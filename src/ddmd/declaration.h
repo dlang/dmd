@@ -258,7 +258,6 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    void semantic2(Scope *sc);
     const char *kind();
     AggregateDeclaration *isThis();
     bool needThis();
@@ -567,7 +566,6 @@ public:
     unsigned flags;                     // FUNCFLAGxxxxx
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic2(Scope *sc);
     bool functionSemantic();
     bool functionSemantic3();
     bool checkForwardRef(Loc loc);

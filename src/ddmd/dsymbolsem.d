@@ -66,6 +66,468 @@ import ddmd.visitor;
 
 enum LOG = false;
 
+extern(C++) final class Semantic2Visitor : Visitor
+{
+    alias visit = super.visit;
+    Scope* sc;
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(Dsymbol) {}
+
+    override void visit(StaticAssert sa)
+    {
+        //printf("StaticAssert::semantic2() %s\n", toChars());
+        auto sds = new ScopeDsymbol();
+        sc = sc.push(sds);
+        sc.tinst = null;
+        sc.minst = null;
+
+        import ddmd.staticcond;
+        bool errors;
+        bool result = evalStaticCondition(sc, sa.exp, sa.exp, errors);
+        sc = sc.pop();
+        if (errors)
+        {
+            errorSupplemental(sa.loc, "while evaluating: `static assert(%s)`", sa.exp.toChars());
+        }
+        else if (!result)
+        {
+            if (sa.msg)
+            {
+                sc = sc.startCTFE();
+                sa.msg = sa.msg.semantic(sc);
+                sa.msg = resolveProperties(sc, sa.msg);
+                sc = sc.endCTFE();
+                sa.msg = sa.msg.ctfeInterpret();
+                if (StringExp se = sa.msg.toStringExp())
+                {
+                    // same with pragma(msg)
+                    se = se.toUTF8(sc);
+                    sa.error("\"%.*s\"", cast(int)se.len, se.string);
+                }
+                else
+                    sa.error("%s", sa.msg.toChars());
+            }
+            else
+                sa.error("`%s` is false", sa.exp.toChars());
+            if (sc.tinst)
+                sc.tinst.printInstantiationTrace();
+            if (!global.gag)
+                fatal();
+        }
+    }
+
+    override void visit(TemplateInstance tempinst)
+    {
+        if (tempinst.semanticRun >= PASSsemantic2)
+            return;
+        tempinst.semanticRun = PASSsemantic2;
+        static if (LOG)
+        {
+            printf("+TemplateInstance.semantic2('%s')\n", tempinst.toChars());
+        }
+        if (!tempinst.errors && tempinst.members)
+        {
+            TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
+            assert(tempdecl);
+
+            sc = tempdecl._scope;
+            assert(sc);
+            sc = sc.push(tempinst.argsym);
+            sc = sc.push(tempinst);
+            sc.tinst = tempinst;
+            sc.minst = tempinst.minst;
+
+            int needGagging = (tempinst.gagged && !global.gag);
+            uint olderrors = global.errors;
+            int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+            if (needGagging)
+                oldGaggedErrors = global.startGagging();
+
+            for (size_t i = 0; i < tempinst.members.dim; i++)
+            {
+                Dsymbol s = (*tempinst.members)[i];
+                static if (LOG)
+                {
+                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+                }
+                s.semantic2(sc);
+                if (tempinst.gagged && global.errors != olderrors)
+                    break;
+            }
+
+            if (global.errors != olderrors)
+            {
+                if (!tempinst.errors)
+                {
+                    if (!tempdecl.literal)
+                        tempinst.error(tempinst.loc, "error instantiating");
+                    if (tempinst.tinst)
+                        tempinst.tinst.printInstantiationTrace();
+                }
+                tempinst.errors = true;
+            }
+            if (needGagging)
+                global.endGagging(oldGaggedErrors);
+
+            sc = sc.pop();
+            sc.pop();
+        }
+        static if (LOG)
+        {
+            printf("-TemplateInstance.semantic2('%s')\n", tempinst.toChars());
+        }
+    }
+
+    override void visit(TemplateMixin tmix)
+    {
+        if (tmix.semanticRun >= PASSsemantic2)
+            return;
+        tmix.semanticRun = PASSsemantic2;
+        static if (LOG)
+        {
+            printf("+TemplateMixin.semantic2('%s')\n", tmix.toChars());
+        }
+        if (tmix.members)
+        {
+            assert(sc);
+            sc = sc.push(tmix.argsym);
+            sc = sc.push(tmix);
+            for (size_t i = 0; i < tmix.members.dim; i++)
+            {
+                Dsymbol s = (*tmix.members)[i];
+                static if (LOG)
+                {
+                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+                }
+                s.semantic2(sc);
+            }
+            sc = sc.pop();
+            sc.pop();
+        }
+        static if (LOG)
+        {
+            printf("-TemplateMixin.semantic2('%s')\n", tmix.toChars());
+        }
+    }
+
+    override void visit(VarDeclaration vd)
+    {
+        if (vd.semanticRun < PASSsemanticdone && vd.inuse)
+            return;
+
+        //printf("VarDeclaration::semantic2('%s')\n", toChars());
+
+        if (vd._init && !vd.toParent().isFuncDeclaration())
+        {
+            vd.inuse++;
+            version (none)
+            {
+                ExpInitializer ei = vd._init.isExpInitializer();
+                if (ei)
+                {
+                    ei.exp.print();
+                    printf("type = %p\n", ei.exp.type);
+                }
+            }
+            // https://issues.dlang.org/show_bug.cgi?id=14166
+            // Don't run CTFE for the temporary variables inside typeof
+            vd._init = vd._init.semantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+            vd.inuse--;
+        }
+        if (vd._init && vd.storage_class & STCmanifest)
+        {
+            /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
+             * Scan initializer looking for them. Issue error if found.
+             */
+            if (ExpInitializer ei = vd._init.isExpInitializer())
+            {
+                static bool hasInvalidEnumInitializer(Expression e)
+                {
+                    static bool arrayHasInvalidEnumInitializer(Expressions* elems)
+                    {
+                        foreach (e; *elems)
+                        {
+                            if (e && hasInvalidEnumInitializer(e))
+                                return true;
+                        }
+                        return false;
+                    }
+
+                    if (e.op == TOKclassreference)
+                        return true;
+                    if (e.op == TOKaddress && (cast(AddrExp)e).e1.op == TOKstructliteral)
+                        return true;
+                    if (e.op == TOKarrayliteral)
+                        return arrayHasInvalidEnumInitializer((cast(ArrayLiteralExp)e).elements);
+                    if (e.op == TOKstructliteral)
+                        return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
+                    if (e.op == TOKassocarrayliteral)
+                    {
+                        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+                        return arrayHasInvalidEnumInitializer(ae.values) ||
+                               arrayHasInvalidEnumInitializer(ae.keys);
+                    }
+                    return false;
+                }
+
+                if (hasInvalidEnumInitializer(ei.exp))
+                    vd.error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
+            }
+        }
+        else if (vd._init && vd.isThreadlocal())
+        {
+            if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
+            {
+                ExpInitializer ei = vd._init.isExpInitializer();
+                if (ei && ei.exp.op == TOKclassreference)
+                    vd.error("is mutable. Only const or immutable class thread local variable are allowed, not %s", vd.type.toChars());
+            }
+            else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
+            {
+                ExpInitializer ei = vd._init.isExpInitializer();
+                if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                {
+                    vd.error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", vd.type.toChars());
+                }
+            }
+        }
+        vd.semanticRun = PASSsemantic2done;
+    }
+
+    override void visit(Module mod)
+    {
+        //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
+        if (mod.semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
+            return;
+        mod.semanticRun = PASSsemantic2;
+        // Note that modules get their own scope, from scratch.
+        // This is so regardless of where in the syntax a module
+        // gets imported, it is unaffected by context.
+        Scope* sc = Scope.createGlobal(mod); // create root scope
+        //printf("Module = %p\n", sc.scopesym);
+        // Pass 2 semantic routines: do initializers and function bodies
+        for (size_t i = 0; i < mod.members.dim; i++)
+        {
+            Dsymbol s = (*mod.members)[i];
+            s.semantic2(sc);
+        }
+        if (mod.userAttribDecl)
+        {
+            mod.userAttribDecl.semantic2(sc);
+        }
+        sc = sc.pop();
+        sc.pop();
+        mod.semanticRun = PASSsemantic2done;
+        //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
+    }
+
+    override void visit(FuncDeclaration fd)
+    {
+        if (fd.semanticRun >= PASSsemantic2done)
+            return;
+        assert(fd.semanticRun <= PASSsemantic2);
+
+        fd.semanticRun = PASSsemantic2;
+
+        objc.setSelector(fd, sc);
+        objc.validateSelector(fd);
+        if (ClassDeclaration cd = fd.parent.isClassDeclaration())
+        {
+            objc.checkLinkage(fd);
+        }
+    }
+
+    override void visit(Import i)
+    {
+        //printf("Import::semantic2('%s')\n", toChars());
+        if (i.mod)
+        {
+            i.mod.semantic2(null);
+            if (i.mod.needmoduleinfo)
+            {
+                //printf("module5 %s because of %s\n", sc.module.toChars(), mod.toChars());
+                if (sc)
+                    sc._module.needmoduleinfo = 1;
+            }
+        }
+    }
+
+    override void visit(Nspace ns)
+    {
+        if (ns.semanticRun >= PASSsemantic2)
+            return;
+        ns.semanticRun = PASSsemantic2;
+        static if (LOG)
+        {
+            printf("+Nspace::semantic2('%s')\n", ns.toChars());
+        }
+        if (ns.members)
+        {
+            assert(sc);
+            sc = sc.push(ns);
+            sc.linkage = LINKcpp;
+            foreach (s; *ns.members)
+            {
+                static if (LOG)
+                {
+                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
+                }
+                s.semantic2(sc);
+            }
+            sc.pop();
+        }
+        static if (LOG)
+        {
+            printf("-Nspace::semantic2('%s')\n", ns.toChars());
+        }
+    }
+
+    override void visit(AttribDeclaration ad)
+    {
+        Dsymbols* d = ad.include(sc, null);
+        if (d)
+        {
+            Scope* sc2 = ad.newScope(sc);
+            for (size_t i = 0; i < d.dim; i++)
+            {
+                Dsymbol s = (*d)[i];
+                s.semantic2(sc2);
+            }
+            if (sc2 != sc)
+                sc2.pop();
+        }
+    }
+
+    /**
+     * Run the DeprecatedDeclaration's semantic2 phase then its members.
+     *
+     * The message set via a `DeprecatedDeclaration` can be either of:
+     * - a string literal
+     * - an enum
+     * - a static immutable
+     * So we need to call ctfe to resolve it.
+     * Afterward forwards to the members' semantic2.
+     */
+    override void visit(DeprecatedDeclaration dd)
+    {
+        getMessage(dd);
+        visit(cast(AttribDeclaration)dd);
+    }
+
+    override void visit(AlignDeclaration ad)
+    {
+        ad.getAlignment(sc);
+        visit(cast(AttribDeclaration)ad);
+    }
+
+    override void visit(UserAttributeDeclaration uad)
+    {
+        if (uad.decl && uad.atts && uad.atts.dim && uad._scope)
+        {
+            static void eval(Scope* sc, Expressions* exps)
+            {
+                foreach (ref Expression e; *exps)
+                {
+                    if (e)
+                    {
+                        e = e.semantic(sc);
+                        if (definitelyValueParameter(e))
+                            e = e.ctfeInterpret();
+                        if (e.op == TOKtuple)
+                        {
+                            TupleExp te = cast(TupleExp)e;
+                            eval(sc, te.exps);
+                        }
+                    }
+                }
+            }
+
+            uad._scope = null;
+            eval(sc, uad.atts);
+        }
+        visit(cast(AttribDeclaration)uad);
+    }
+
+    override void visit(AggregateDeclaration ad)
+    {
+        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
+        if (!ad.members)
+            return;
+
+        if (ad._scope)
+        {
+            ad.error("has forward references");
+            return;
+        }
+
+        auto sc2 = ad.newScope(sc);
+
+        ad.determineSize(ad.loc);
+
+        for (size_t i = 0; i < ad.members.dim; i++)
+        {
+            Dsymbol s = (*ad.members)[i];
+            //printf("\t[%d] %s\n", i, s.toChars());
+            s.semantic2(sc2);
+        }
+
+        sc2.pop();
+    }
+}
+
+structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
+{
+    if (ad.salign != ad.UNKNOWN)
+        return ad.salign;
+
+    if (!ad.ealign)
+        return ad.salign = STRUCTALIGN_DEFAULT;
+
+    sc = sc.startCTFE();
+    ad.ealign = ad.ealign.semantic(sc);
+    ad.ealign = resolveProperties(sc, ad.ealign);
+    sc = sc.endCTFE();
+    ad.ealign = ad.ealign.ctfeInterpret();
+
+    if (ad.ealign.op == TOKerror)
+        return ad.salign = STRUCTALIGN_DEFAULT;
+
+    Type tb = ad.ealign.type.toBasetype();
+    auto n = ad.ealign.toInteger();
+
+    if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
+    {
+        error(ad.loc, "alignment must be an integer positive power of 2, not %s", ad.ealign.toChars());
+        return ad.salign = STRUCTALIGN_DEFAULT;
+    }
+
+    return ad.salign = cast(structalign_t)n;
+}
+
+const(char)* getMessage(DeprecatedDeclaration dd)
+{
+    if (auto sc = dd._scope)
+    {
+        dd._scope = null;
+
+        sc = sc.startCTFE();
+        dd.msg = dd.msg.semantic(sc);
+        dd.msg = resolveProperties(sc, dd.msg);
+        sc = sc.endCTFE();
+        dd.msg = dd.msg.ctfeInterpret();
+
+        if (auto se = dd.msg.toStringExp())
+            dd.msgstr = se.toStringz().ptr;
+        else
+            dd.msg.error("compile time constant expected, not `%s`", dd.msg.toChars());
+    }
+    return dd.msgstr;
+}
+
 extern(C++) final class Semantic3Visitor : Visitor
 {
     alias visit = super.visit;

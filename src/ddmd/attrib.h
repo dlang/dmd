@@ -41,7 +41,6 @@ public:
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     void importAll(Scope *sc);
-    void semantic2(Scope *sc);
     void addComment(const utf8_t *comment);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -77,7 +76,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    void semantic2(Scope *sc);
     const char *getMessage();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -128,7 +126,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    void semantic2(Scope *sc);
     structalign_t getAlignment();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -245,7 +242,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    void semantic2(Scope *sc);
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
     const char *kind() const;

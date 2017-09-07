@@ -91,36 +91,6 @@ extern (C++) final class Nspace : ScopeDsymbol
         }
     }
 
-    override void semantic2(Scope* sc)
-    {
-        if (semanticRun >= PASSsemantic2)
-            return;
-        semanticRun = PASSsemantic2;
-        static if (LOG)
-        {
-            printf("+Nspace::semantic2('%s')\n", toChars());
-        }
-        if (members)
-        {
-            assert(sc);
-            sc = sc.push(this);
-            sc.linkage = LINKcpp;
-            foreach (s; *members)
-            {
-                static if (LOG)
-                {
-                    printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
-                }
-                s.semantic2(sc);
-            }
-            sc.pop();
-        }
-        static if (LOG)
-        {
-            printf("-Nspace::semantic2('%s')\n", toChars());
-        }
-    }
-
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
         return Dsymbol.oneMember(ps, ident);
