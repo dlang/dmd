@@ -1434,6 +1434,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             tysize(e->E1->Ety) <= REGSIZE)
         {
+            int sz = tysize(e->E1->Ety);
             e->Eoper = OPbtst;
             e->Ety = TYbool;
             e->E1 = e2;
@@ -1441,6 +1442,14 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             e->E2->Ety = e->E1->Ety;
             e1->E2 = NULL;
             el_free(e1);
+
+            if (sz >= 2)
+                e = el_una(OPu8_16, TYushort, e);
+            if (sz >= 4)
+                e = el_una(OPu16_32, TYulong, e);
+            if (sz >= 8)
+                e = el_una(OPu32_64, TYullong, e);
+
             return optelem(e, goal);
         }
     }
@@ -2398,6 +2407,15 @@ STATIC elem * eldiv(elem *e, goal_t goal)
             }
         }
 
+        /* Convert if(e1/e2) to if(e1>=e2) iff unsigned division.
+         */
+        if (goal == GOALflags && uns && e->Eoper == OPdiv)
+        {
+            e->Eoper = OPge;
+            e->Ety = TYbool;
+            return e;
+        }
+
         /* TODO: (i*c1)/c2 => i*(c1/c2) if (c1%c2)==0
          * TODO: i/(x?c1:c2) => i>>(x?log2(c1):log2(c2)) if c1 and c2 are powers of 2
          */
@@ -2431,6 +2449,7 @@ STATIC elem * eldiv(elem *e, goal_t goal)
                     e->Eoper = OPremquo;
                     e = el_una(op, tym, e);
                     e->E1->Ety = (sz == 2) ? TYlong : (sz == 4) ? TYllong : TYcent;
+                    return e;
                 }
             }
         }
@@ -5142,7 +5161,7 @@ beg:
                 e1 = e->E1 = optelem(e->E1,GOALnone);
 //              if (e1 && !OTsideff(e1->Eoper))
 //                  e1 = e->E1 = optelem(e1, GOALnone);
-                e2 = e->E2 = optelem(e->E2,rightgoal);
+                e2 = e->E2 = optelem(e->E2,goal);
                 if (!e1)
                 {   if (!e2)
                         goto retnull;
@@ -5516,7 +5535,6 @@ L1:
 elem *doptelem(elem *e, goal_t goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
-
     assert(!PARSER);
     do
     {   again = false;
