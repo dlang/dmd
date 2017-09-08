@@ -1792,6 +1792,8 @@ public:
 
     override void visit(AliasDeclaration d)
     {
+        if (d.storage_class & STClocal)
+            return;
         buf.writestring("alias ");
         if (d.aliassym)
         {
@@ -1823,6 +1825,8 @@ public:
 
     override void visit(VarDeclaration d)
     {
+        if (d.storage_class & STClocal)
+            return;
         visitVarDecl(d, false);
         buf.writeByte(';');
         buf.writenl();
