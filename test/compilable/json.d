@@ -115,3 +115,10 @@ static foreach(enum i; 0..3)
 {
     mixin("int a" ~ i.stringof ~ " = 1;");
 }
+
+alias Seq(T...) = T;
+
+static foreach(int i, alias a; Seq!(a0, a1, a2))
+{
+	mixin("alias b" ~ i.stringof ~ " = a;");
+}
