@@ -1,8 +1,0 @@
-Print unhandled exception's trace and abort if rt_trapExceptions is false
-
-D exception handling was assuming the top level exception handler,
-so all exceptions would be handled somewhere. In case rt_trapExceptions
-is cleared, this handler would not be enabled, and this assertion
-would fail, aborting the program, but without any information
-about the exception. This is now changed, so the exception information
-will be printed to the stderr, followed by abort.
