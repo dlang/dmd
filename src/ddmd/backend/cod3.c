@@ -1473,7 +1473,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         {
             if (!vmin)
             {   // Need to clear out high 32 bits of reg
-                cdb.append(genmovreg(CNIL,reg,reg));                       // MOV reg,reg
+                genmovreg(cdb,reg,reg);                       // MOV reg,reg
             }
             if (config.flags3 & CFG3pic || config.exe == EX_WIN64)
             {
@@ -1585,7 +1585,7 @@ void doswitch(CodeBuilder& cdb, block *b)
                 unsigned r1;
                 allocreg(cdb,&scratchm,&r1,TYint);
 
-                cdb.append(genmovreg(CNIL,r1,BX));              // MOV R1,EBX
+                genmovreg(cdb,r1,BX);              // MOV R1,EBX
                 cdb.genc1(0x2B,modregxrm(2,r1,4),FLswitch,0);   // SUB R1,disp[reg*4][EBX]
                 cdb.last()->IEV1.Vswitch = b;
                 cdb.last()->Isib = modregrm(2,reg,BX);
@@ -1648,7 +1648,7 @@ void doswitch(CodeBuilder& cdb, block *b)
 
             makeitextern(gotsym);
 
-            cdb.append(genmovreg(CNIL, DX, DI));    // MOV EDX, EDI
+            genmovreg(cdb, DX, DI);    // MOV EDX, EDI
                                         // ADD EDI,offset of switch table
             cdb.gencs(0x81,modregrm(3,0,DI),FLswitch,NULL);
             cdb.last()->IEV2.Vswitch = b;
@@ -2464,14 +2464,19 @@ void gensavereg(CodeBuilder& cdb, unsigned& reg, targ_uns slot)
  * register moves.
  */
 
-code *genmovreg(code *c,unsigned to,unsigned from)
+code *genmovreg(unsigned to,unsigned from)
+{
+    CodeBuilder cdb;
+    genmovreg(cdb, to, from);
+    return cdb.finish();
+}
+
+void genmovreg(CodeBuilder& cdb,unsigned to,unsigned from)
 {
 #if DEBUG
         if (to > ES || from > ES)
                 printf("genmovreg(c = %p, to = %d, from = %d)\n",c,to,from);
 #endif
-        assert(!c);
-        CodeBuilder cdb;
         assert(to <= ES && from <= ES);
         if (to != from)
         {
@@ -2484,7 +2489,6 @@ code *genmovreg(code *c,unsigned to,unsigned from)
                 if (I64)
                         code_orrex(cdb.last(), REX_W);
         }
-        return cdb.finish();
 }
 
 /***************************************
@@ -2498,7 +2502,7 @@ void genmulimm(CodeBuilder& cdb,unsigned r1,unsigned r2,targ_int imm)
     switch (imm)
     {
         case 1:
-            cdb.append(genmovreg(CNIL,r1,r2));
+            genmovreg(cdb,r1,r2);
             break;
 
         case 5:
@@ -2774,7 +2778,7 @@ L1:
                 assert(!I16 || regcon.immed.value[r] == (targ_short)regcon.immed.value[r]);
 #endif
                 if (mreg & 1 && regcon.immed.value[r] == value)
-                {   cdb.append(genmovreg(CNIL,reg,r));
+                {   genmovreg(cdb,reg,r);
                     goto done;
                 }
                 r++;
@@ -3694,7 +3698,7 @@ void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* name
                 }
                 else
                 {
-                    cdb.append(genmovreg(CNIL,r,preg));
+                    genmovreg(cdb,r,preg);
                     if (I64 && sz == 8)
                         code_orrex(cdb.last(), REX_W);
                 }
