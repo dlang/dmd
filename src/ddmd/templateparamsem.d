@@ -1,4 +1,18 @@
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Template implementation.
+ *
+ * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/templateparamsem.d, _templateparamsem.d)
+ */
+
 module ddmd.templateparamsem;
+
+// Online documentation: https://dlang.org/phobos/ddmd_templateparamsem.html
 
 import ddmd.arraytypes;
 import ddmd.dsymbol;
@@ -99,6 +113,17 @@ extern (C++) final class TemplateParameterSemanticVisitor : Visitor
     }
 }
 
+/***********************************************
+ * Support function for performing semantic analysis on `TemplateAliasParameter`.
+ *
+ * Params:
+ *      loc = location (for error messages)
+ *      sc = context
+ *      o = object to run semantic() on, the `TemplateAliasParameter`s `specAlias` or `defaultAlias`
+ *      parameters = array of `TemplateParameters` supplied to the `TemplateDeclaration`
+ * Returns:
+ *      object resulting from running semantic() on `o`
+ */
 RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters)
 {
     if (o)
