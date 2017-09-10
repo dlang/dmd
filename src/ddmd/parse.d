@@ -7460,7 +7460,7 @@ final class Parser(AST) : Lexer
             check(TOKdot, t.toChars());
             if (token.value != TOKidentifier)
             {
-                error("found `%s` when expecting identifier following `%s.`", token.toChars(), t.toChars());
+                error("found `%s` when expecting identifier following `%s`.", token.toChars(), t.toChars());
                 goto Lerr;
             }
             e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
