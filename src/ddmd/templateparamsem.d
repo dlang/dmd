@@ -122,7 +122,7 @@ extern (C++) final class TemplateParameterSemanticVisitor : Visitor
  *      o = object to run semantic() on, the `TemplateAliasParameter`s `specAlias` or `defaultAlias`
  *      parameters = array of `TemplateParameters` supplied to the `TemplateDeclaration`
  * Returns:
- *      object resulting from running semantic() on `o`
+ *      object resulting from running `semantic` on `o`
  */
 RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplateParameters* parameters)
 {
