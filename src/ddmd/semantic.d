@@ -83,11 +83,11 @@ extern(C++) Type semantic(Type t, Loc loc, Scope* sc)
  * Performs semantic on TemplateParameter AST nodes.
  *
  * Params:
- *      tp = element of parameters[] to be semantically analyzed
+ *      tp = element of `parameters` to be semantically analyzed
  *      sc = context
- *      parameters = array of TemplateParameters supplied to the TemplateDeclaration
+ *      parameters = array of `TemplateParameters` supplied to the `TemplateDeclaration`
  * Returns:
- *      true if no errors
+ *      `true` if no errors
  */
 extern(C++) bool semantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
 {
