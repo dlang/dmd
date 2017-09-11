@@ -78,7 +78,7 @@ extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
  *      sc = context
  *      statement = Statement to check
  * Returns:
- *      if true, then the LabelStatement, otherwise `null`
+ *      if `true`, then the `LabelStatement`, otherwise `null`
  */
 extern (C++) LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
 {
@@ -112,7 +112,7 @@ Expression checkAssignmentAsCondition(Expression e)
 
 /**
  * Returns:
- *      TypeIdentifier corresponding to `object.Throwable`
+ *     `TypeIdentifier` corresponding to `object.Throwable`
  */
 TypeIdentifier getThrowable()
 {
@@ -194,7 +194,7 @@ extern (C++) abstract class Statement : RootObject
      * Determine if an enclosed `break` would apply to this
      * statement, such as if it is a loop or switch statement.
      * Returns:
-     *  `true` if it does
+     *     `true` if it does
      */
     bool hasBreak()
     {
@@ -206,7 +206,7 @@ extern (C++) abstract class Statement : RootObject
      * Determine if an enclosed `continue` would apply to this
      * statement, such as if it is a loop statement.
      * Returns:
-     *  `true` if it does
+     *     `true` if it does
      */
     bool hasContinue()
     {
@@ -215,7 +215,7 @@ extern (C++) abstract class Statement : RootObject
 
     /**********************************
      * Returns:
-     *   `true` if statement uses exception handling
+     *     `true` if statement uses exception handling
      */
     final bool usesEH()
     {
@@ -333,10 +333,10 @@ extern (C++) abstract class Statement : RootObject
      * at the end of the current scope, return that code in the form of
      * a Statement.
      * Params:
-     *    sc = context
-     *    sentry     = set to code executed upon entry to the scope
-     *    sexception = set to code executed upon exit from the scope via exception
-     *    sfinally   = set to code executed in finally block
+     *     sc = context
+     *     sentry     = set to code executed upon entry to the scope
+     *     sexception = set to code executed upon exit from the scope via exception
+     *     sfinally   = set to code executed in finally block
      * Returns:
      *    code to be run in the finally clause
      */
@@ -354,9 +354,9 @@ extern (C++) abstract class Statement : RootObject
      * Flatten out the scope by presenting the statement
      * as an array of statements.
      * Params:
-     *    sc = context
+     *     sc = context
      * Returns:
-     *    The array of Statements, or null if no flattening necessary
+     *     The array of `Statements`, or `null` if no flattening necessary
      */
     Statements* flatten(Scope* sc)
     {
