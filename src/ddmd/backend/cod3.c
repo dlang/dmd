@@ -1940,6 +1940,10 @@ int jmpopcode(elem *e)
   {
         if (needsNanCheck)
             return XP|JNE;
+
+        if (op == OPu32_64) { e = e->E1; op = e->Eoper; }
+        if (op == OPu16_32) { e = e->E1; op = e->Eoper; }
+        if (op == OPu8_16) op = e->E1->Eoper;
         return ((op >= OPbt && op <= OPbts) || op == OPbtst) ? JC : JNE;
   }
 
