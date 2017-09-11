@@ -287,14 +287,10 @@ extern (C++) bool discardValue(Expression e)
         e.error("`%s` has no effect", e.toChars());
         return true;
     case TOKandand:
-        {
-            AndAndExp aae = cast(AndAndExp)e;
-            return discardValue(aae.e2);
-        }
     case TOKoror:
         {
-            OrOrExp ooe = cast(OrOrExp)e;
-            return discardValue(ooe.e2);
+            LogicalExp aae = cast(LogicalExp)e;
+            return discardValue(aae.e2);
         }
     case TOKquestion:
         {

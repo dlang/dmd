@@ -7968,7 +7968,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
-    override void visit(OrOrExp exp)
+    override void visit(LogicalExp exp)
     {
         if (exp.type)
         {
@@ -7978,7 +7978,6 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.setNoderefOperands();
 
-        // same as for AndAnd
         Expression e1x = exp.e1.semantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -7994,9 +7993,9 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* If in static if, don't evaluate e2 if we don't have to.
              */
             e1x = e1x.optimize(WANTvalue);
-            if (e1x.isBool(true))
+            if (e1x.isBool(exp.op == TOKoror))
             {
-                result = new IntegerExp(exp.loc, 1, Type.tbool);
+                result = new IntegerExp(exp.loc, exp.op == TOKoror, Type.tbool);
                 return;
             }
         }
@@ -8050,87 +8049,6 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = exp;
     }
 
-    override void visit(AndAndExp exp)
-    {
-        if (exp.type)
-        {
-            result = exp;
-            return;
-        }
-
-        exp.setNoderefOperands();
-
-        // same as for OrOr
-        Expression e1x = exp.e1.semantic(sc);
-
-        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-        if (e1x.op == TOKtype)
-            e1x = resolveAliasThis(sc, e1x);
-
-        e1x = resolveProperties(sc, e1x);
-        e1x = e1x.toBoolean(sc);
-        uint cs1 = sc.callSuper;
-
-        if (sc.flags & SCOPEcondition)
-        {
-            /* If in static if, don't evaluate e2 if we don't have to.
-             */
-            e1x = e1x.optimize(WANTvalue);
-            if (e1x.isBool(false))
-            {
-                result = new IntegerExp(exp.loc, 0, Type.tbool);
-                return;
-            }
-        }
-
-        Expression e2x = exp.e2.semantic(sc);
-        sc.mergeCallSuper(exp.loc, cs1);
-
-        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-        if (e2x.op == TOKtype)
-            e2x = resolveAliasThis(sc, e2x);
-
-        e2x = resolveProperties(sc, e2x);
-
-        auto f1 = checkNonAssignmentArrayOp(e1x);
-        auto f2 = checkNonAssignmentArrayOp(e2x);
-        if (f1 || f2)
-        {
-            result = new ErrorExp();
-            return;
-        }
-
-        // Unless the right operand is 'void', the expression is converted to 'bool'.
-        if (e2x.type.ty != Tvoid)
-            e2x = e2x.toBoolean(sc);
-
-        if (e2x.op == TOKtype || e2x.op == TOKscope)
-        {
-            exp.error("%s is not an expression", exp.e2.toChars());
-            result = new ErrorExp();
-            return;
-        }
-        if (e1x.op == TOKerror)
-        {
-            result = e1x;
-            return;
-        }
-        if (e2x.op == TOKerror)
-        {
-            result = e2x;
-            return;
-        }
-
-        // The result type is 'bool', unless the right operand has type 'void'.
-        if (e2x.type.ty == Tvoid)
-            exp.type = Type.tvoid;
-        else
-            exp.type = Type.tbool;
-
-        exp.e1 = e1x;
-        exp.e2 = e2x;
-        result = exp;
-    }
 
     override void visit(CmpExp exp)
     {

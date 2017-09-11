@@ -8316,7 +8316,7 @@ final class Parser(AST) : Lexer
         {
             nextToken();
             auto e2 = parseOrExp();
-            e = new AST.AndAndExp(loc, e, e2);
+            e = new AST.LogicalExp(loc, TOKandand, e, e2);
         }
         return e;
     }
@@ -8330,7 +8330,7 @@ final class Parser(AST) : Lexer
         {
             nextToken();
             auto e2 = parseAndAndExp();
-            e = new AST.OrOrExp(loc, e, e2);
+            e = new AST.LogicalExp(loc, TOKoror, e, e2);
         }
         return e;
     }

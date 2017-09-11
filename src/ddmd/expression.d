@@ -2124,7 +2124,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     // edtor => (__gate || edtor)
                     assert(tmp.edtor);
                     Expression e = tmp.edtor;
-                    e = new OrOrExp(e.loc, new VarExp(e.loc, gate), e);
+                    e = new LogicalExp(e.loc, TOKoror, new VarExp(e.loc, gate), e);
                     tmp.edtor = e.semantic(sc);
                     //printf("edtor: %s\n", tmp.edtor.toChars());
                 }
@@ -7887,38 +7887,14 @@ extern (C++) final class XorExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#andand_expressions
  * http://dlang.org/spec/expression.html#oror_expressions
  */
-extern (C++) final class OrOrExp : BinExp
+extern (C++) final class LogicalExp : BinExp
 {
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, TOK op, Expression e1, Expression e2)
     {
-        super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
-    }
-
-    override Expression toBoolean(Scope* sc)
-    {
-        auto ex2 = e2.toBoolean(sc);
-        if (ex2.op == TOKerror)
-            return ex2;
-        e2 = ex2;
-        return this;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * http://dlang.org/spec/expression.html#andand_expressions
- */
-extern (C++) final class AndAndExp : BinExp
-{
-    extern (D) this(Loc loc, Expression e1, Expression e2)
-    {
-        super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
+        super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
     }
 
     override Expression toBoolean(Scope* sc)
@@ -8140,9 +8116,9 @@ extern (C++) final class CondExp : BinExp
                         //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
                         Expression ve = new VarExp(vcond.loc, vcond);
                         if (isThen)
-                            v.edtor = new AndAndExp(v.edtor.loc, ve, v.edtor);
+                            v.edtor = new LogicalExp(v.edtor.loc, TOKandand, ve, v.edtor);
                         else
-                            v.edtor = new OrOrExp(v.edtor.loc, ve, v.edtor);
+                            v.edtor = new LogicalExp(v.edtor.loc, TOKoror, ve, v.edtor);
                         v.edtor = v.edtor.semantic(sc);
                         //printf("\t--v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
                     }

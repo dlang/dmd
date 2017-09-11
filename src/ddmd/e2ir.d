@@ -3373,36 +3373,18 @@ elem *toElem(Expression e, IRState *irs)
         /***************************************
          */
 
-        override void visit(AndAndExp aae)
+        override void visit(LogicalExp aae)
         {
             tym_t tym = totym(aae.type);
 
             elem *el = toElem(aae.e1, irs);
             elem *er = toElemDtor(aae.e2, irs);
-            elem *e = el_bin(OPandand,tym,el,er);
+            elem *e = el_bin(aae.op == TOKandand ? OPandand : OPoror,tym,el,er);
 
             elem_setLoc(e, aae.loc);
 
             if (global.params.cov && aae.e2.loc.linnum)
                 e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
-            result = e;
-        }
-
-        /***************************************
-         */
-
-        override void visit(OrOrExp ooe)
-        {
-            tym_t tym = totym(ooe.type);
-
-            elem *el = toElem(ooe.e1, irs);
-            elem *er = toElemDtor(ooe.e2, irs);
-            elem *e = el_bin(OPoror,tym,el,er);
-
-            elem_setLoc(e, ooe.loc);
-
-            if (global.params.cov && ooe.e2.loc.linnum)
-                e.EV.E2 = el_combine(incUsageElem(irs, ooe.e2.loc), e.EV.E2);
             result = e;
         }
 

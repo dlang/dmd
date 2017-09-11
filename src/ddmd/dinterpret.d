@@ -4748,11 +4748,11 @@ public:
         result = new IntegerExp(e.loc, (e.op == TOKandand) ? 0 : 1, e.type);
     }
 
-    override void visit(AndAndExp e)
+    override void visit(LogicalExp e)
     {
         debug (LOG)
         {
-            printf("%s AndAndExp::interpret() %s\n", e.loc.toChars(), e.toChars());
+            printf("%s LogicalExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
         // Check for an insidePointer expression, evaluate it if so
         interpretFourPointerRelation(e);
@@ -4764,9 +4764,10 @@ public:
             return;
 
         int res;
-        if (result.isBool(false))
-            res = 0;
-        else if (isTrueBool(result))
+        const andand = e.op == TOKandand;
+        if (andand ? result.isBool(false) : isTrueBool(result))
+            res = !andand;
+        else if (andand ? isTrueBool(result) : result.isBool(false))
         {
             result = interpret(e.e2, istate);
             if (exceptionOrCant(result))
@@ -4783,14 +4784,14 @@ public:
                 res = 1;
             else
             {
-                result.error("%s does not evaluate to a boolean", result.toChars());
+                result.error("`%s` does not evaluate to a bool", result.toChars());
                 result = CTFEExp.cantexp;
                 return;
             }
         }
         else
         {
-            result.error("%s cannot be interpreted as a boolean", result.toChars());
+            result.error("`%s` cannot be interpreted as a bool", result.toChars());
             result = CTFEExp.cantexp;
             return;
         }
@@ -4798,55 +4799,6 @@ public:
             result = new IntegerExp(e.loc, res, e.type);
     }
 
-    override void visit(OrOrExp e)
-    {
-        debug (LOG)
-        {
-            printf("%s OrOrExp::interpret() %s\n", e.loc.toChars(), e.toChars());
-        }
-        // Check for an insidePointer expression, evaluate it if so
-        interpretFourPointerRelation(e);
-        if (result)
-            return;
-
-        result = interpret(e.e1, istate);
-        if (exceptionOrCant(result))
-            return;
-
-        int res;
-        if (isTrueBool(result))
-            res = 1;
-        else if (result.isBool(false))
-        {
-            result = interpret(e.e2, istate);
-            if (exceptionOrCant(result))
-                return;
-            if (result.op == TOKvoidexp)
-            {
-                assert(e.type.ty == Tvoid);
-                result = null;
-                return;
-            }
-            if (result.isBool(false))
-                res = 0;
-            else if (isTrueBool(result))
-                res = 1;
-            else
-            {
-                result.error("%s cannot be interpreted as a boolean", result.toChars());
-                result = CTFEExp.cantexp;
-                return;
-            }
-        }
-        else
-        {
-            result.error("%s cannot be interpreted as a boolean", result.toChars());
-            result = CTFEExp.cantexp;
-            return;
-        }
-        if (goal != ctfeNeedNothing)
-            result = new IntegerExp(e.loc, res, e.type);
-    }
 
     // Print a stack trace, starting from callingExp which called fd.
     // To shorten the stack trace, try to detect recursion.
