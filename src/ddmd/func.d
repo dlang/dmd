@@ -282,6 +282,10 @@ extern (C++) class FuncDeclaration : Declaration
     {
         super.setScope(sc);
 
+        sc = getScope();
+        scope(exit) if (sc != _scope)
+            sc.pop();
+
         parent = sc.parent;
 
         storage_class |= sc.stc & ~STCref;
@@ -678,7 +682,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
     }
 
-    final override void semanticType()
+    override void semanticType()
     {
         if (typeState == SemState.Done)
             return;
@@ -686,7 +690,9 @@ extern (C++) class FuncDeclaration : Declaration
         void defer() { typeState = SemState.Defer; }
         void setError() { errors = true; typeState = SemState.Done; }
 
-        auto sc = _scope;
+        auto sc = getScope();
+        scope(exit) if (sc != _scope)
+            sc.pop();
 
         auto fld = isFuncLiteralDeclaration();
         if (fld && fld.treq)
@@ -864,12 +870,21 @@ extern (C++) class FuncDeclaration : Declaration
         typeState = SemState.Done;
     }
 
+    Scope* getScope()
+    {
+        return _scope;
+    }
+
     /// Do the semantic analysis on the external interface to the function.
     override void semantic()
     {
         if (semanticState == SemState.Done)
             return;
         semanticState = SemState.In;
+
+        auto sc = getScope();
+        scope(exit) if (sc != _scope)
+            sc.pop();
 
         TypeFunction f;
         AggregateDeclaration ad;
@@ -5018,7 +5033,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
     assert(m); // FWDREF when does !m happen?
 //         if (m)
 //         {
-            m.needmoduleinfo = 1;
+            m.needmoduleinfo = 1; // FWDREF TODO: move into the constructor since addMember calls are now lazily? that still wouldn't work with string mixins though
             //printf("module1 %s needs moduleinfo\n", m.toChars());
 //         }
     }

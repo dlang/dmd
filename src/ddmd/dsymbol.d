@@ -697,6 +697,10 @@ extern (C++) class Dsymbol : RootObject
     {
     }
 
+    void semanticInitializer()
+    {
+    }
+
     /*************************************
      * Does semantic analysis on the public face of declarations.
      */
@@ -2213,7 +2217,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         forward.importScope(s, protection);
     }
 
-    override void semantic(Scope* sc){ }
+    override void semantic() { }
 
     override const(char)* kind()const{ return "local scope"; }
 

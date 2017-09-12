@@ -101,7 +101,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * A hook point to supply scope for members.
      * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
      */
-    override Scope* newScope(Scope* sc)
+    Scope* newScope(Scope* sc)
     {
         return sc;
     }
@@ -390,10 +390,10 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
      * So we need to call ctfe to resolve it.
      * Afterward forwards to the members' semantic2.
      */
-    override void semantic2(Scope* sc)
+    override void semantic()
     {
         getMessage();
-        super.semantic2(sc);
+        super.semantic();
     }
 
     const(char)* getMessage()
@@ -612,10 +612,10 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
     }
 
-    override void semantic2(Scope* sc)
+    override void semantic()
     {
-        getAlignment(sc);
-        super.semantic2(sc);
+        getAlignment(_scope);
+        super.semantic();
     }
 
     structalign_t getAlignment(Scope* sc)
@@ -838,8 +838,10 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         return sc;
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
+        auto sc = _scope;
+
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
         if (ident == Id.msg)
@@ -1322,7 +1324,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return new CompileDeclaration(loc, exp.syntaxCopy());
     }
 
-    void include(ScopeDsymbol sds)
+    override void include(ScopeDsymbol sds)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp.toChars());
         if (includeState == SemState.In)
@@ -1401,40 +1403,56 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return sc2;
     }
 
-    override void semantic(Scope* sc)
+    alias attsState = initializerState;
+
+    override void semantic()
     {
-        //printf("UserAttributeDeclaration::semantic() %p\n", this);
-        if (decl && !_scope)
-            Dsymbol.setScope(sc); // for function local symbols
-        return AttribDeclaration.semantic(sc);
+        void defer() { semanticState = SemState.Defer; }
+
+        evalAtts();
+        if (attsState == SemState.Defer)
+            return defer();
+        AttribDeclaration.semantic();
     }
 
-    override void semantic2(Scope* sc)
+    final void evalAtts()
     {
-        if (decl && atts && atts.dim && _scope)
+        if (attsState == SemState.Done)
+            return;
+        attsState = SemState.In;
+
+        void defer() { attsState = SemState.Defer; }
+
+        if (decl && atts && atts.dim)
         {
-            static void eval(Scope* sc, Expressions* exps)
+            // returns true if deferred
+            static bool eval(Scope* sc, Expressions* exps)
             {
                 foreach (ref Expression e; *exps)
                 {
                     if (e)
                     {
-                        e = e.semantic(sc);
+                        auto exp = e.semantic(sc);
+                        if (exp.op == TOKdefer)
+                            return true;
                         if (definitelyValueParameter(e))
                             e = e.ctfeInterpret();
                         if (e.op == TOKtuple)
                         {
                             TupleExp te = cast(TupleExp)e;
-                            eval(sc, te.exps);
+                            if (eval(sc, te.exps))
+                                return true;
                         }
                     }
                 }
+                return false;
             }
 
-            _scope = null;
-            eval(sc, atts);
+            if (eval(_scope, atts))
+                return defer();
         }
-        AttribDeclaration.semantic2(sc);
+
+        attsState = SemState.Done;
     }
 
     static Expressions* concat(Expressions* udas1, Expressions* udas2)
