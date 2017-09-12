@@ -21,11 +21,29 @@ import ddmd.dtemplate;
 import ddmd.globals;
 import ddmd.expression;
 import ddmd.root.rootobject;
-import ddmd.mtype;
 import ddmd.semantic;
+import ddmd.mtype;
 import ddmd.visitor;
 
-extern (C++) final class TemplateParameterSemanticVisitor : Visitor
+/************************************************
+ * Performs semantic on TemplateParameter AST nodes.
+ *
+ * Params:
+ *      tp = element of `parameters` to be semantically analyzed
+ *      sc = context
+ *      parameters = array of `TemplateParameters` supplied to the `TemplateDeclaration`
+ * Returns:
+ *      `true` if no errors
+ */
+extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
+{
+    scope v = new TemplateParameterSemanticVisitor(sc, parameters);
+    tp.accept(v);
+    return v.result;
+}
+
+
+private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
