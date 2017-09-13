@@ -418,9 +418,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return ScopeDsymbol.syntaxCopy(cd);
     }
 
-    override Scope* newScope(Scope* sc)
+    override Scope* newScope()
     {
-        auto sc2 = super.newScope(sc);
+        auto sc2 = super.newScope();
         if (isCOMclass())
         {
             /* This enables us to use COM objects under Linux and
@@ -490,7 +490,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     uint nextBase;
-    final void determineBaseClasses()
+    void determineBaseClasses()
     {
         if (baseClassState == SemState.Done)
             return;
@@ -689,7 +689,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         determineBaseClasses();
         super.determineMembers();
 
-        if (baseClassState != SemState.Done)
+        if (baseClassState == SemState.Defer)
             membersState = SemState.Defer;
 
         foreach (b; *baseclasses)
@@ -806,7 +806,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     // Fill the vtbl and determine .isabstract
-    final void determineVtbl()
+    void determineVtbl()
     {
         if (vtblState == SemState.Done)
             return;
@@ -814,7 +814,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         void defer() { vtblState = SemState.Defer; }
 
         determineMembers(); // also calls determineBaseClasses()
-        if (membersState != SemState.Done)
+        if (membersState == SemState.Defer)
             return defer();
 
         foreach (b; *baseclasses)
@@ -1475,9 +1475,9 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     }
 
 
-    override Scope* newScope(Scope* sc)
+    override Scope* newScope()
     {
-        auto sc2 = super.newScope(sc);
+        auto sc2 = super.newScope();
         if (com)
             sc2.linkage = LINKwindows;
         else if (cpp)
@@ -1487,14 +1487,66 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         return sc2;
     }
 
-    override void importAll(Scope* sc)
+    override void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSmembersdone)
-            return;
+        Dsymbol.setScope(sc);
 
-        if (_scope)
-            sc = _scope;
-        assert(sc);
+        if (!parent)
+        {
+            assert(sc.parent && sc.func);
+            parent = sc.parent;
+        }
+
+        assert(parent && !isAnonymous());
+
+        protection = sc.protection;
+
+        storage_class |= sc.stc;
+        if (storage_class & STCdeprecated)
+            isdeprecated = true;
+
+        userAttribDecl = sc.userAttribDecl;
+
+        if (!baseclasses.dim && sc.linkage == LINKcpp)
+            cpp = true;
+
+        if (sc.linkage == LINKobjc)
+            objc.setObjc(this);
+    }
+
+    final override void semanticType()
+    {
+        if (this.errors)
+            type = Type.terror;
+        type = type.semantic(loc, sc);
+        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+        {
+            auto ti = (cast(TypeClass)type).sym.isInstantiated();
+            if (ti && isError(ti)) // FWDREF FIXME how could we possibly have an invalid class that becomes valid in a different context?
+                (cast(TypeClass)type).sym = this;
+        }
+
+        version (none)
+        {
+            if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
+            {
+                printf("this = %p %s\n", this, this.toChars());
+                printf("type = %d sym = %p\n", type.ty, (cast(TypeClass)type).sym);
+            }
+        }
+        assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
+    }
+
+    final override void determineBaseClasses()
+    {
+        if (baseClassState == SemState.Done)
+            return;
+        assert(baseClassState != SemState.In);
+
+        baseClassState = SemState.In;
+        void defer() { baseClassState = SemState.Defer; }
+
+        auto sc = _scope;
 
         T resolveBase(T)(lazy T exp)
         {
@@ -1509,253 +1561,123 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             }
         }
 
-        if (semanticRun < PASSmembers)
+        // Expand any tuples in baseclasses[]
+        for (size_t i = 0; i < baseclasses.dim;)
         {
-            semanticRun = PASSmembers;
+            auto b = (*baseclasses)[i];
+            auto t = resolveBase(b.type.semantic(loc, sc));
+            if (t.ty == Tdefer)
+                return defer();
+            b.type = t;
 
-            if (!parent)
+            Type tb = b.type.toBasetype();
+            if (tb.ty == Ttuple)
             {
-                assert(sc.parent && sc.func);
-                parent = sc.parent;
+                TypeTuple tup = cast(TypeTuple)tb;
+                baseclasses.remove(i);
+                size_t dim = Parameter.dim(tup.arguments);
+                for (size_t j = 0; j < dim; j++)
+                {
+                    Parameter arg = Parameter.getNth(tup.arguments, j);
+                    b = new BaseClass(arg.type);
+                    baseclasses.insert(i + j, b);
+                }
             }
-
-            assert(parent && !isAnonymous());
-
-            protection = sc.protection;
-
-            storage_class |= sc.stc;
-            if (storage_class & STCdeprecated)
-                isdeprecated = true;
-
-            userAttribDecl = sc.userAttribDecl;
-
-            // Expand any tuples in baseclasses[]
-            for (size_t i = 0; i < baseclasses.dim;)
-            {
-                auto b = (*baseclasses)[i];
-                b.type = resolveBase(b.type.semantic(loc, sc));
-
-                Type tb = b.type.toBasetype();
-                if (tb.ty == Ttuple)
-                {
-                    TypeTuple tup = cast(TypeTuple)tb;
-                    baseclasses.remove(i);
-                    size_t dim = Parameter.dim(tup.arguments);
-                    for (size_t j = 0; j < dim; j++)
-                    {
-                        Parameter arg = Parameter.getNth(tup.arguments, j);
-                        b = new BaseClass(arg.type);
-                        baseclasses.insert(i + j, b);
-                    }
-                }
-                else
-                    i++;
-            }
-
-            if (baseok >= BASEOKdone)
-            {
-                //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
-                if (semanticRun >= PASSmembersdone)
-                    return;
-                goto Lancestorsdone;
-            }
-
-            baseok = BASEOKin;
-        }
-
-        if (baseok == BASEOKin)
-        {
-            if (!baseclasses.dim && sc.linkage == LINKcpp)
-                cpp = true;
-
-            if (sc.linkage == LINKobjc)
-                objc.setObjc(this);
-
-            // Check for errors, handle forward references
-            for (size_t i = 0; i < baseclasses.dim;)
-            {
-                BaseClass* b = (*baseclasses)[i];
-                Type tb = b.type.toBasetype();
-                TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
-                if (!tc || !tc.sym.isInterfaceDeclaration())
-                {
-                    if (b.type != Type.terror)
-                        error("base type must be interface, not %s", b.type.toChars());
-//                     baseclasses.remove(i);
-                    continue;
-                }
-
-                // Check for duplicate interfaces
-                for (size_t j = 0; j < i; j++)
-                {
-                    BaseClass* b2 = (*baseclasses)[j];
-                    if (b2.sym == tc.sym)
-                    {
-                        error("inherits from duplicate interface %s", b2.sym.toChars());
-//                         baseclasses.remove(i);
-                        continue;
-                    }
-                }
-                if (tc.sym == this || isBaseOf2(tc.sym))
-                {
-                    error("circular inheritance of interface");
-//                     baseclasses.remove(i);
-                    continue;
-                }
-                if (tc.sym.isDeprecated())
-                {
-                    if (!isDeprecated())
-                    {
-                        // Deriving from deprecated class makes this one deprecated too
-                        isdeprecated = true;
-                        tc.checkDeprecated(loc, sc);
-                    }
-                }
-
-                b.sym = tc.sym;
-
-                if (tc.sym.baseok < BASEOKdone)
-                    resolveBase(tc.sym.importAll(null)); // Try to resolve forward reference
-//                 assert(tc.sym.baseok == BASEOKdone);
-//                 if (tc.sym.baseok < BASEOKdone) // FWDREF
-//                 {
-//                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
-//                     if (tc.sym._scope)
-//                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
-//                     baseok = BASEOKnone;
-//                 }
+            else
                 i++;
-            }
-            assert(baseok != BASEOKnone); // FWDREF temporary
-//             if (baseok == BASEOKnone)
-//             {
-//                 // Forward referencee of one or more bases, try again later
-//                 _scope = scx ? scx : sc.copy();
-//                 _scope.setNoFree();
-//                 _scope._module.addDeferredSemantic(this);
-//                 return;
-//             }
-            baseok = BASEOKdone;
-
-            interfaces = baseclasses.tdata()[0 .. baseclasses.dim];
-            foreach (b; interfaces)
-            {
-                // If this is an interface, and it derives from a COM interface,
-                // then this is a COM interface too.
-                if (b.sym.isCOMinterface())
-                    com = true;
-                if (b.sym.isCPPinterface())
-                    cpp = true;
-            }
-        }
-    Lancestorsdone:
-
-        if (!members) // if opaque declaration
-        {
-            semanticRun = PASSmembersdone;
-            return;
         }
 
-        auto sc2 = newScope(sc);
-
-        if (!symtab)
-        {
-            symtab = new DsymbolTable();
-
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                s.addMember(sc, this);
-            }
-
-            /* Set scope so if there are forward references, we still might be able to
-            * resolve individual members like enums.
-            */
-            for (size_t i = 0; i < members.dim; i++)
-            {
-                Dsymbol s = (*members)[i];
-                //printf("setScope %s %s\n", s.kind(), s.toChars());
-                s.setScope(sc2);
-            }
-        }
-
-        ScopeDsymbol.importAll(sc2);
-        sc2.pop();
-
-        if (semanticRun == PASSmembersdone && baseok < BASEOKdone)
-            semanticRun = PASSmembers;
-    }
-
-    override void semantic(Scope* sc)
-    {
-        //printf("InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
-        if (semanticRun >= PASSsemanticdone)
-            return;
-
-        importAll(sc);
-        if (semanticRun < PASSmembersdone)
-        {
-            error("interface forward ref");
-            return;
-        }
-
-        int errors = global.errors;
-        //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
-
-        Scope* scx = null;
-        if (_scope)
-        {
-            sc = _scope;
-            scx = _scope; // save so we don't make redundant copies
-            _scope = null;
-        }
-
-        if (this.errors)
-            type = Type.terror;
-        type = type.semantic(loc, sc);
-        if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-        {
-            auto ti = (cast(TypeClass)type).sym.isInstantiated();
-            if (ti && isError(ti))
-                (cast(TypeClass)type).sym = this;
-        }
-
-        // Ungag errors when not speculative
-        Ungag ungag = ungagSpeculative();
-
-        if (semanticRun >= PASSsemantic/+symtab && !scx+/) // FWDREF FIXME: we should probably error ref here
-            return;
-        semanticRun = PASSsemantic;
-
-        interfaceSemantic(sc);
-
-        if (!members) // if opaque declaration
-        {
-            semanticRun = PASSsemanticdone;
-            return;
-        }
-
-        for (size_t i = 0; i < baseclasses.dim; i++)
+        // Check for errors, handle forward references
+        for (size_t i = 0; i < baseclasses.dim;)
         {
             BaseClass* b = (*baseclasses)[i];
             Type tb = b.type.toBasetype();
-            assert(tb.ty == Tclass);
-            TypeClass tc = cast(TypeClass)tb;
-            tc.sym.semantic(null); // FWDREF also, shouldn't the next lines only happen in case of an actual circular/fwd ref error?
-            if (tc.sym.semanticRun < PASSsemanticdone)
+            TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
+            if (!tc || !tc.sym.isInterfaceDeclaration())
             {
-                // Forward referencee of one or more bases, try again later
-                _scope = scx ? scx : sc.copy();
-                _scope.setNoFree();
-                if (tc.sym._scope)
-                    tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                _scope._module.addDeferredSemantic(this);
-                return;
+                if (b.type != Type.terror)
+                    error("base type must be interface, not %s", b.type.toChars());
+//                 baseclasses.remove(i);
+                continue;
             }
+
+            // Check for duplicate interfaces
+            for (size_t j = 0; j < i; j++)
+            {
+                BaseClass* b2 = (*baseclasses)[j];
+                if (b2.sym == tc.sym)
+                {
+                    error("inherits from duplicate interface %s", b2.sym.toChars());
+//                     baseclasses.remove(i);
+                    continue;
+                }
+            }
+            if (tc.sym == this || isBaseOf2(tc.sym))
+            {
+                error("circular inheritance of interface");
+//                 baseclasses.remove(i);
+                continue;
+            }
+            if (tc.sym.isDeprecated())
+            {
+                if (!isDeprecated())
+                {
+                    // Deriving from deprecated class makes this one deprecated too
+                    isdeprecated = true;
+                    tc.checkDeprecated(loc, sc);
+                }
+            }
+
+            b.sym = tc.sym;
+            i++;
         }
 
-        assert(baseok == BASEOKdone);
-        baseok = BASEOKsemanticdone;
+        interfaces = baseclasses.tdata()[0 .. baseclasses.dim];
+        foreach (b; interfaces)
+        {
+            // If this is an interface, and it derives from a COM interface,
+            // then this is a COM interface too.
+            if (b.sym.isCOMinterface())
+                com = true;
+            if (b.sym.isCPPinterface())
+                cpp = true;
+        }
+
+        baseClassState = SemState.Done;
+    }
+
+    override void determineMembers()
+    {
+        if (membersState == SemState.Done)
+            return;
+
+        void defer() { membersState = SemState.Defer; }
+
+        determineBaseClasses();
+        super.determineMembers();
+
+        if (baseClassState == SemState.Defer)
+            return defer();
+    }
+
+    final override void determineVtbl()
+    {
+        if (vtblState == SemState.Done)
+            return;
+        assert(vtblState != SemState.In);
+
+        void defer() { vtblState = SemState.Defer; }
+
+        determineMembers(); // also calls determineBaseClasses()
+        if (membersState == SemState.Defer)
+            return defer();
+
+        foreach (b; *baseclasses)
+        {
+            b.sym.determineVtbl();
+            if (b.sym.vtblState != SemState.Done)
+                return defer();
+        }
 
         // initialize vtbl
         if (vtblOffset())
@@ -1768,7 +1690,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             for (size_t k = 0; k < i; k++)
             {
                 if (b == interfaces[k])
-                    goto Lcontinue;
+                    continue;
             }
 
             // Copy vtbl[] from base class
@@ -1786,40 +1708,72 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             {
                 vtbl.append(&b.sym.vtbl);
             }
-
-        Lcontinue:
         }
 
-        auto sc2 = newScope(sc);
-
-        for (size_t i = 0; i < members.dim; i++)
+        extern (C++) static int func(Dsymbol s, void* param)
         {
-            Dsymbol s = (*members)[i];
-            s.semantic(sc2);
+            auto cd = cast(ClassDeclaration)param;
+            auto f = s.isFuncDeclaration();
+            if (!f)
+                return 0;
+
+            if (!f.addVtblEntry())
+            {
+                cd.vtblState = SemState.Defer;
+                return 1;
+            }
+
+            return 0;
         }
 
-        Module.dprogress++;
-        semanticRun = PASSsemanticdone;
+        foreach (s; *members)
+            if (s.apply(&func, cast(void*)this))
+                return false;
+
+        vtblState = SemState.Done;
+    }
+
+    override void semantic()
+    {
+        //printf("InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
+
+        void defer() { semanticState = SemState.Defer; }
+        void errorReturn()
+        {
+            type = Type.terror;
+            this.errors = true;
+            semanticState = SemState.Done;
+        }
+
+        int errors = global.errors;
+        scope(exit) if (global.errors != errors)
+            errorReturn();
+        //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
+
+        interfaceSemantic(sc);
+
+        if (!members) // if opaque declaration
+        {
+            semanticState = SemState.Done;
+            return;
+        }
+
+        ScopeDsymbol.semantic();
+
+        determineVtbl();
+        if (vtblState != SemState.Done)
+            return defer();
+
         //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
         //members.print();
 
-        sc2.pop();
-
-        if (global.errors != errors)
-        {
-            // The type is no good.
-            type = Type.terror;
-        }
-
-        version (none)
-        {
-            if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
-            {
-                printf("this = %p %s\n", this, this.toChars());
-                printf("type = %d sym = %p\n", type.ty, (cast(TypeClass)type).sym);
-            }
-        }
-        assert(type.ty != Tclass || (cast(TypeClass)type).sym == this);
+        semanticState = SemState.Done;
     }
 
     /*******************************************

@@ -254,10 +254,9 @@ extern (C++) class Package : ScopeDsymbol
         return isAncestorPackageOf(pkg.parent.isPackage());
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
+        semanticState = SemState.Done;
     }
 
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
@@ -1002,7 +1001,7 @@ extern (C++) final class Module : Package
         return _scope;
     }
 
-    override void detemineMembers()
+    override void determineMembers()
     {
         //printf("+Module::detemineMembers(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         if (membersState == SemState.Done)

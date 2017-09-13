@@ -103,7 +103,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         super(id);
         this.loc = loc;
         protection = Prot(PROTpublic);
-        sizeok = SIZEOKnone; // size not determined yet
     }
 
     /***************************************
@@ -142,8 +141,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 sc3.stc |= STCdeprecated;
 
             ti.semantic(sc3);
-            ti.semantic2(sc3);
-            ti.semantic3(sc3);
             auto e = DsymbolExp.resolve(Loc(), sc3, ti.toAlias(), false);
 
             sc3.endCTFE();
@@ -321,7 +318,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool checkOverlappedFields()
     {
         //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
+        assert(sizeState == SemState.Done);
         size_t nfields = fields.dim;
         if (isNested())
         {
@@ -396,7 +393,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool fill(Loc loc, Expressions* elements, bool ctorinit)
     {
         //printf("AggregateDeclaration::fill() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
+        assert(sizeState == SemState.Done);
         assert(elements);
         size_t nfields = fields.dim - isNested();
         bool errors = false;
@@ -684,7 +681,9 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             vthis.parent = this;
             vthis.protection = Prot(PROTpublic);
             vthis.alignment = t.alignment();
-            vthis.semanticRun = PASSsemanticdone;
+            vthis.typeState = SemState.Done;
+            vthis.initializerState = SemState.Done;
+            vthis.semanticState = SemState.Done;
 
             if (fieldsState == SemState.Done)
                 fields.push(vthis);
@@ -724,7 +723,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 {
                     auto f = s.isCtorDeclaration();
                     if (f && f.semanticRun == PASSinit)
-                        f.semantic(null);
+                        f.semantic();
                     return 0;
                 }
             }

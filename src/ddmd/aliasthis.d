@@ -49,7 +49,10 @@ extern (C++) final class AliasThis : Dsymbol
         if (addMemberState == SemState.Done)
             return;
 
-        super.addMember(sc, sds);
+        void defer() { addMemberState = SemState.Defer; }
+
+        if (addMemberState == SemState.Init)
+            super.addMember(sc, sds);
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -58,25 +61,6 @@ extern (C++) final class AliasThis : Dsymbol
             .error(loc, "alias this can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             return;
         }
-
-        if (ad.aliasthis && s != ad.aliasthis)
-        {
-            .error(loc, "there can be only one alias this");
-            return;
-        }
-        ad.aliasthis = s;
-    }
-
-    final void aliasSemantic()
-    {
-        if (aliasState == SemState.Done)
-            return;
-        aliasState = SemState.In;
-
-        void defer() { aliasState = SemState.Defer; }
-
-        Dsymbol p = sc.parent.pastMixin();
-        AggregateDeclaration ad = p.isAggregateDeclaration();
 
         assert(ad.members);
         Dsymbol s = ad.search(loc, ident);
@@ -93,14 +77,30 @@ extern (C++) final class AliasThis : Dsymbol
             aliasState = SemState.Done;
             return;
         }
+        if (ad.aliasthis && s != ad.aliasthis)
+        {
+            .error(loc, "there can be only one alias this");
+            return;
+        }
+        ad.aliasthis = s.isAliasDeclaration() ? s.toAlias() : s;
+    }
+
+    override void semantic()
+    {
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
+
+        assert(addMemberState == SemState.Done);
+
+        Dsymbol p = _scope.parent.pastMixin();
+        AggregateDeclaration ad = p.isAggregateDeclaration();
 
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
          */
         Dsymbol sx = ad.aliasthis;
         ad.aliasthis = null;
-        if (sx.isAliasDeclaration())
-            sx = sx.toAlias();
         Declaration d = sx.isDeclaration();
         if (d && !d.isTupleDeclaration())
         {
@@ -111,20 +111,9 @@ extern (C++) final class AliasThis : Dsymbol
                 .error(loc, "alias this is not reachable as `%s` already converts to `%s`", ad.toChars(), t.toChars());
             }
         }
-
         ad.aliasthis = sx;
 
-        aliasState = SemState.Done;
-    }
-
-    override void semantic()
-    {
-        if (semanticState == SemState.Done)
-            return;
-        semanticState = SemState.In;
-
-        aliasSemantic();
-        semanticState = aliasState;
+        semanticState = SemState.Done;
     }
 
     override const(char)* kind() const

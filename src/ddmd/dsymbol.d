@@ -229,15 +229,25 @@ extern (C++) class Dsymbol : RootObject
         @property SemState initializerState() { return (semanticRun & (0x3<<4)) >> 4; }
         @property SemState initializerState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<4)) | (value << 4); }
         alias bodyState = initializerState;
+        alias aliasState = initializerState;
 
         @property SemState sizeState() { return (semanticRun & (0x3<<6)) >> 6; }
         @property SemState sizeState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<6)) | (value << 6); }
 
         @property SemState baseClassState() { return (semanticRun & (0x3<<8)) >> 8; }
         @property SemState baseClassState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<8)) | (value << 8); }
+        alias includeState = baseClassState;
 
         @property SemState tiargsState() { return (semanticRun & (0x3<<10)) >> 10; }
         @property SemState tiargsState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<10)) | (value << 10); }
+        alias fieldsState = tiargsState;
+
+        @property SemState addMemberState() { return (semanticRun & (0x3<<12)) >> 12; }
+        @property SemState addMemberState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<12)) | (value << 12); }
+
+        @property SemState semanticState() { return (semanticRun & (0x3<<14)) >> 14; }
+        @property SemState semanticState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<14)) | (value << 14); }
+
 
         // vtbl?
     }
@@ -645,6 +655,9 @@ extern (C++) class Dsymbol : RootObject
             return;
 
         setScope(sc);
+
+        if (auto decl = isDeclaration()) // FWDREF TODO move to Declaration.addMember? (this was originally in StorageClassDeclaration.addMember)
+            decl.storage_class |= sc.stc & STClocal;
 
         //printf("Dsymbol::addMember('%s')\n", toChars());
         //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds.toChars());

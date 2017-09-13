@@ -79,10 +79,9 @@ extern (C++) FuncDeclaration buildArrayOp(Identifier ident, BinExp exp, Scope* s
     sc.parent = sc._module.importedFrom;
     sc.stc = 0;
     sc.linkage = LINKc;
-    fd.semantic(sc);
-    fd.semantic2(sc);
+    fd.setScope(sc);
     uint errors = global.startGagging();
-    fd.semantic3(sc);
+    fd.semanticBody(); // FWDREF NOTE not sure if correct, but master got rid of compiler-generated array op so it doesn't matter much
     if (global.endGagging(errors))
     {
         fd.type = Type.terror;

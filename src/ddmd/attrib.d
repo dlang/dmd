@@ -145,12 +145,11 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
         {
-            Dsymbols* d = include(null, null);
-            if (d)
+            include(null);
+            if (decl)
             {
-                for (size_t i = 0; i < d.dim; i++)
+                foreach (s; *decl)
                 {
-                    Dsymbol s = (*d)[i];
                     //printf("AttribDeclaration::addComment %s\n", s.toChars());
                     s.addComment(comment);
                 }
@@ -165,50 +164,41 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        Dsymbols* d = include(null, null);
-        return Dsymbol.oneMembers(d, ps, ident);
+        include(null);
+        return Dsymbol.oneMembers(decl, ps, ident);
     }
 
     override final bool hasPointers()
     {
-        Dsymbols* d = include(null, null);
-        if (d)
+        include(null);
+        if (decl)
         {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
+            foreach (s; *decl)
                 if (s.hasPointers())
                     return true;
-            }
         }
         return false;
     }
 
     override final bool hasStaticCtorOrDtor()
     {
-        Dsymbols* d = include(null, null);
-        if (d)
+        include(null);
+        if (decl)
         {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
+            foreach (s; *decl)
                 if (s.hasStaticCtorOrDtor())
                     return true;
-            }
         }
         return false;
     }
 
     override final void checkCtorConstInit()
     {
-        Dsymbols* d = include(null, null);
-        if (d)
+        include(null);
+        if (decl)
         {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
+            foreach (s; *decl)
                 s.checkCtorConstInit();
-            }
         }
     }
 
@@ -216,14 +206,11 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        Dsymbols* d = include(null, null);
-        if (d)
+        include(null);
+        if (decl)
         {
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
+            foreach (s; *decl)
                 s.addLocalClass(aclasses);
-            }
         }
     }
 
@@ -305,32 +292,6 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         return t;
     }
 
-    override void addMember(Scope* sc, ScopeDsymbol sds)
-    {
-        Dsymbols* d = include(sc, sds);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
-                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
-                if (auto decl = s.isDeclaration())
-                {
-                    decl.storage_class |= stc & STClocal;
-                    if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
-                    {
-                        sdecl.stc |= stc & STClocal;
-                    }
-                }
-                s.addMember(sc2, sds);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-    }
-
     override inout(StorageClassDeclaration) isStorageClassDeclaration() inout
     {
         return this;
@@ -400,7 +361,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     {
         if (!msgstr)
         {
-            sc = sc.startCTFE();
+            auto sc = _scope.startCTFE();
             msg = msg.semantic(sc);
             msg = resolveProperties(sc, msg);
             sc = sc.endCTFE();
@@ -539,8 +500,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        if (pkg_identifiers)
-            semantic(sc);
+        assert(!pkg_identifiers);
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.protection, 1, sc.aligndecl, sc.inlining);
     }
 
@@ -1034,7 +994,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             for (size_t i = 0; i < decl.dim; i++)
             {
                 Dsymbol s = (*decl)[i];
-                s.semantic(sc2);
+                s.semantic();
                 if (ident == Id.mangle)
                 {
                     assert(args && args.dim == 1);
