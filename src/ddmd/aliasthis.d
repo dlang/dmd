@@ -44,20 +44,12 @@ extern (C++) final class AliasThis : Dsymbol
         return new AliasThis(loc, ident);
     }
 
-    override void importAll(Scope* sc)
+    override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        // FWDREF TODO (DMD BUG?): alias this has been and still is depending upon the order of declarations, if the aggregate contains static if/foreach or mixins
-
-        if (semanticRun != PASSinit)
+        if (addMemberState == SemState.Done)
             return;
 
-        if (_scope)
-            sc = _scope;
-
-        if (!sc)
-            return;
-
-        semanticRun = PASSmembers;
+        super.addMember(sc, sds);
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
@@ -67,50 +59,40 @@ extern (C++) final class AliasThis : Dsymbol
             return;
         }
 
-        assert(ad.members);
-        Dsymbol s = ad.search(loc, ident);
-        if (!s)
-        {
-            s = sc.search(loc, ident, null);
-            if (s)
-                .error(loc, "`%s` is not a member of `%s`", s.toChars(), ad.toChars());
-            else
-                .error(loc, "undefined identifier `%s`", ident.toChars());
-            return;
-        }
         if (ad.aliasthis && s != ad.aliasthis)
         {
             .error(loc, "there can be only one alias this");
             return;
         }
-
         ad.aliasthis = s;
-        semanticRun = PASSmembersdone;
     }
 
-    override void semantic(Scope* sc)
+    final void aliasSemantic()
     {
-        if (semanticRun >= PASSsemantic)
+        if (aliasState == SemState.Done)
             return;
+        aliasState = SemState.In;
 
-        importAll(sc);
-        if (semanticRun < PASSmembersdone)
-            return; // there was an error
-
-        if (_scope)
-        {
-            sc = _scope;
-            _scope = null;
-        }
-
-        if (!sc)
-            return;
-
-        semanticRun = PASSsemantic;
+        void defer() { aliasState = SemState.Defer; }
 
         Dsymbol p = sc.parent.pastMixin();
         AggregateDeclaration ad = p.isAggregateDeclaration();
-        assert(ad);
+
+        assert(ad.members);
+        Dsymbol s = ad.search(loc, ident);
+        if (!s)
+        {
+            if (ad.membersState == SemState.Defer)
+                return defer();
+
+            s = sc.search(loc, ident, null);
+            if (s)
+                .error(loc, "`%s` is not a member of `%s`", s.toChars(), ad.toChars());
+            else
+                .error(loc, "undefined identifier `%s`", ident.toChars());
+            aliasState = SemState.Done;
+            return;
+        }
 
         /* disable the alias this conversion so the implicit conversion check
          * doesn't use it.
@@ -131,7 +113,18 @@ extern (C++) final class AliasThis : Dsymbol
         }
 
         ad.aliasthis = sx;
-        semanticRun = PASSsemanticdone;
+
+        aliasState = SemState.Done;
+    }
+
+    override void semantic()
+    {
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
+
+        aliasSemantic();
+        semanticState = aliasState;
     }
 
     override const(char)* kind() const

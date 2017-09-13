@@ -1343,7 +1343,8 @@ public:
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
 
-        determineMembers();
+        if (membersState != SemState.Done)
+            determineMembers();
 
         // Look in symbols declared in this module
         if (symtab && !(flags & SearchImportsOnly))

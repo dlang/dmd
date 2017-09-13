@@ -532,27 +532,41 @@ extern (C++) final class AliasDeclaration : Declaration
         return sa;
     }
 
-    override void semantic(Scope* sc)
+    override final void setScope(Scope* sc)
     {
-        if (semanticRun >= PASSsemanticdone)
-            return;
-        assert(semanticRun <= PASSsemantic);
+        super.setScope(sc);
 
         storage_class |= sc.stc & STCdeprecated;
         protection = sc.protection;
         userAttribDecl = sc.userAttribDecl;
-
-        if (!sc.func && inNonRoot())
-            return;
-
-        aliasSemantic(sc);
     }
 
-    final void aliasSemantic(Scope* sc)
+    override void semantic()
     {
+        if (semanticState == SemState.Done)
+            return;
+        assert(semanticState == SemState.Init);
+        semanticState = SemState.In;
+
+        aliasSemantic();
+
+        semanticState = aliasState;
+    }
+
+    final void aliasSemantic()
+    {
+        if (aliasState == SemState.Done)
+            return;
+        aliasState = SemState.In;
+
+        void defer() { aliasState = SemState.Defer; }
+
+        auto sc = _scope;
+
         //printf("AliasDeclaration::semantic() %s\n", toChars());
         if (aliassym)
         {
+            scope(exit) aliasState = SemState.Done; // FWDREF hmm
             auto fd = aliassym.isFuncLiteralDeclaration();
             auto td = aliassym.isTemplateDeclaration();
             if (fd || td && td.literal)
@@ -576,7 +590,7 @@ extern (C++) final class AliasDeclaration : Declaration
             }
 
             if (aliassym.isTemplateInstance())
-                aliassym.semantic(sc);
+                aliassym.semantic();
             return;
         }
         inuse = 1;
@@ -672,7 +686,6 @@ extern (C++) final class AliasDeclaration : Declaration
             aliassym = null;
         }
         inuse = 0;
-        semanticRun = PASSsemanticdone;
 
         if (auto sx = overnext)
         {
@@ -680,6 +693,8 @@ extern (C++) final class AliasDeclaration : Declaration
             if (!overloadInsert(sx))
                 ScopeDsymbol.multiplyDefined(Loc(), sx, this);
         }
+
+        aliasState = SemState.Done;
     }
 
     override bool overloadInsert(Dsymbol s)
@@ -932,7 +947,7 @@ extern (C++) final class OverDeclaration : Declaration
         return "overload alias"; // todo
     }
 
-    override void semantic(Scope* sc)
+    override void semantic()
     {
     }
 
@@ -2551,7 +2566,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         assert(0); // should never be produced by syntax
     }
 
-    override final void semantic(Scope* sc)
+    override final void semantic()
     {
         assert(linkage == LINKc);
     }
