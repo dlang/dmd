@@ -1,0 +1,13 @@
+The runtime learned a few new options to customize how coverage reports are created.
+
+The format is the same as with the GC but using `covopt` as suffix, for example
+you can pass options separating them with spaces like `--DRT-covopt "merge:1
+dstpath:/tmp"`.
+
+These are the currently accepted options:
+
+$(DL
+  $(DT merge) $(DD Merge the current run with existing reports if 1, or overwrite the existing reports if 0.)
+  $(DT srcpath) $(DD Set path to where source files are located.)
+  $(DT dstpath) $(DD Set path to where listing files are to be written.)
+)

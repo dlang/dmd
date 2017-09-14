@@ -24,6 +24,7 @@ private
     import core.stdc.stdio;
     import core.stdc.stdlib;
     import rt.util.utf;
+    import core.internal.parseoptions;
 
     struct BitArray
     {
@@ -57,9 +58,35 @@ private
     __gshared
     {
         Cover[] gdata;
+        Config config;
+    }
+
+    struct Config
+    {
         string  srcpath;
         string  dstpath;
         bool    merge;
+
+    @nogc nothrow:
+
+        bool initialize()
+        {
+            return initConfigOptions(this, this.errorName);
+        }
+
+        void help()
+        {
+            string s = "Code coverage options are specified as white space separated assignments:
+    merge:0|1      - 0 overwrites existing reports, 1 merges current run with existing coverage reports (default: %d)
+    dstpath:<PATH> - write code coverage reports to <PATH> (default: current
+            working directory)
+    srcpath:<PATH> - set the path where the source files are located to <PATH>
+    (defaul: current working directory)
+";
+            printf(s.ptr, merge);
+        }
+
+        string errorName() { return "covopt"; }
     }
 }
 
@@ -72,7 +99,7 @@ private
  */
 extern (C) void dmd_coverSourcePath( string pathname )
 {
-    srcpath = pathname;
+    config.srcpath = pathname;
 }
 
 
@@ -84,7 +111,7 @@ extern (C) void dmd_coverSourcePath( string pathname )
  */
 extern (C) void dmd_coverDestPath( string pathname )
 {
-    dstpath = pathname;
+    config.dstpath = pathname;
 }
 
 
@@ -97,7 +124,7 @@ extern (C) void dmd_coverDestPath( string pathname )
  */
 extern (C) void dmd_coverSetMerge( bool flag )
 {
-    merge = flag;
+    config.merge = flag;
 }
 
 
@@ -149,6 +176,11 @@ uint parseNum(const(char)[] s)
 T min(T)(T a, T b) { return a < b ? a : b; }
 T max(T)(T a, T b) { return b < a ? a : b; }
 
+shared static this()
+{
+    config.initialize();
+}
+
 shared static ~this()
 {
     if (!gdata.length) return;
@@ -161,14 +193,14 @@ shared static ~this()
 
     foreach (c; gdata)
     {
-        auto fname = appendFN(dstpath, addExt(baseName(c.filename), "lst"));
+        auto fname = appendFN(config.dstpath, addExt(baseName(c.filename), "lst"));
         auto flst = openOrCreateFile(fname);
         if (flst is null)
             continue;
         lockFile(fileno(flst)); // gets unlocked by fclose
         scope(exit) fclose(flst);
 
-        if (merge && readFile(flst, buf))
+        if (config.merge && readFile(flst, buf))
         {
             splitLines(buf, lines);
 
@@ -176,7 +208,7 @@ shared static ~this()
                 c.data[i] += parseNum(line);
         }
 
-        if (!readFile(appendFN(srcpath, c.filename), buf))
+        if (!readFile(appendFN(config.srcpath, c.filename), buf))
             continue;
         splitLines(buf, lines);
 
