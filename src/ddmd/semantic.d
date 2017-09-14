@@ -91,23 +91,6 @@ extern(C++) Type semantic(Type t, Loc loc, Scope* sc)
 }
 
 
-/************************************************
- * Performs semantic on TemplateParameter AST nodes.
- *
- * Params:
- *      tp = element of `parameters` to be semantically analyzed
- *      sc = context
- *      parameters = array of `TemplateParameters` supplied to the `TemplateDeclaration`
- * Returns:
- *      `true` if no errors
- */
-extern(C++) bool semantic(TemplateParameter tp, Scope* sc, TemplateParameters* parameters)
-{
-    scope v = new TemplateParameterSemanticVisitor(sc, parameters);
-    tp.accept(v);
-    return v.result;
-}
-
 void semantic(Catch c, Scope* sc)
 {
     semanticWrapper(c, sc);

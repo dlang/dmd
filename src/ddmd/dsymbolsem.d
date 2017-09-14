@@ -64,6 +64,7 @@ import ddmd.utils;
 import ddmd.semantic;
 import ddmd.statement;
 import ddmd.target;
+import ddmd.templateparamsem;
 import ddmd.visitor;
 
 enum LOG = false;
@@ -3635,7 +3636,7 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
                 error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
                 tempdecl.errors = true;
             }
-            if (!tp.semantic(paramscope, tempdecl.parameters))
+            if (!tp.tpsemantic(paramscope, tempdecl.parameters))
             {
                 tempdecl.errors = true;
             }
