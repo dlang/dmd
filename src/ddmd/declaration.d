@@ -571,7 +571,7 @@ extern (C++) final class AliasDeclaration : Declaration
             auto td = aliassym.isTemplateDeclaration();
             if (fd || td && td.literal)
             {
-                if (fd && fd.semanticRun >= PASSsemanticdone)
+                if (fd && fd.semanticState == SemState.Done)
                     return;
 
                 Expression e = new FuncExp(loc, aliassym);
@@ -718,7 +718,7 @@ extern (C++) final class AliasDeclaration : Declaration
          *  simple Overload class (an array) and then later have that resolve
          *  all collisions.
          */
-        if (semanticRun >= PASSsemanticdone)
+        if (aliasState == SemState.Done)
         {
             /* Semantic analysis is already finished, and the aliased entity
              * is not overloadable.
@@ -856,7 +856,7 @@ extern (C++) final class AliasDeclaration : Declaration
             return aliassym;
         }
 
-        if (semanticRun >= PASSsemanticdone)
+        if (aliasState == SemState.Done) // FWDREF FIXME correctness?
         {
             // semantic is already done.
 
@@ -872,12 +872,9 @@ extern (C++) final class AliasDeclaration : Declaration
                 /* If this is an internal alias for selective/renamed import,
                  * load the module first.
                  */
-                _import.importAll(null);
+                _import.determineMembers();
             }
-            if (_scope)
-            {
-                aliasSemantic(_scope);
-            }
+            aliasSemantic();
         }
 
         inuse = 1;
@@ -902,7 +899,7 @@ extern (C++) final class AliasDeclaration : Declaration
     override bool isOverloadable()
     {
         // assume overloadable until alias is resolved
-        return semanticRun < PASSsemanticdone ||
+        return aliasState != SemState.Done ||
             aliassym && aliassym.isOverloadable();
     }
 
@@ -1134,6 +1131,8 @@ extern (C++) class VarDeclaration : Declaration
         if (addMemberState == SemState.Done)
             return;
 
+        void defer() { addMemberState = SemState.Defer; }
+
         auto nextMemberIndex = sds.nextMember + 1; // if this is a tuple to be expanded, new members need to be inserted right after this one
 
         if (addMemberState == SemState.Init)
@@ -1150,12 +1149,9 @@ extern (C++) class VarDeclaration : Declaration
             if (parent.isAggregateDeclaration())
                 storage_class |= STCfield;
 
-        semanticType();
+        semanticType(); // it's necessary to do it this early in case this is a tuple
         if (typeState == SemState.Defer)
-        {
-            addMemberState = SemState.Defer;
-            return;
-        }
+            return defer();
 
         Type tb = type.toBasetype();
         Type tbn = tb.baseElemOf();
@@ -1207,7 +1203,7 @@ extern (C++) class VarDeclaration : Declaration
                     else if (isAliasThisTuple(e))
                     {
                         auto v = copyToTemp(0, "__tup", e);
-                        v.semantic(sc);
+                        v.semantic(); // FWDREF FIXME is that correct?
                         auto ve = new VarExp(loc, v);
                         ve.type = e.type;
 
@@ -1312,39 +1308,20 @@ extern (C++) class VarDeclaration : Declaration
             aliassym = v2;
         }
 
+        if (isField())
+        {
+            AggregateDeclaration aad = parent.isAggregateDeclaration();
+            assert(aad.fieldsState != SemState.Done);
+
+            if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME move to just before noDefaultCtor is used?
+                if (!isThisDeclaration() && !_init)
+                    aad.noDefaultCtor = true;
+        }
+
         addMemberState = SemState.Done;
     }
 
-    override void determineMembers()
-    {
-        if (isField())
-        {
-            semanticType(sc);
-            if (semanticRun == PASSmembersdeferred || semanticRun >= PASSsemanticdone)
-                return; // we're done if it was deferred, or if it's a tuple
-
-            Dsymbol parent = toParent();
-            Type tb = type.toBasetype();
-            Type tbn = tb.baseElemOf();
-
-            AggregateDeclaration aad = parent.isAggregateDeclaration();
-            if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME move to just before noDefaultCtor is used?
-            {
-                if (!isThisDeclaration() && !_init)
-                    aad.noDefaultCtor = true;
-            }
-
-            InterfaceDeclaration id = parent.isInterfaceDeclaration();
-            if (id)
-            {
-                error("field not allowed in interface");
-            }
-            else if (aad && aad.sizeok == SIZEOKdone)
-            {
-                error("cannot be further field because it will change the determined %s size", aad.toChars());
-            }
-        }
-    }
+    bool inferred; // FWDREF FIXME unsure
 
     override void semanticType()
     {
@@ -1357,7 +1334,6 @@ extern (C++) class VarDeclaration : Declaration
         assert(!inuse); // FWDREF FIXME: this is to study when this occurs, inuse should get removed
 
         auto sc = _scope;
-        bool inferred;
 
         /* If auto type inference, do the inference
          */
@@ -1570,6 +1546,12 @@ extern (C++) class VarDeclaration : Declaration
         initializerState = SemState.In;
 
         void defer() { initializerState = SemState.Defer; }
+
+        auto sc = _scope;
+
+        assert(typeState == SemState.Done);
+        Type tb = type.toBasetype();
+        Type tbn = tb.baseElemOf();
 
         Dsymbol parent = toParent();
         FuncDeclaration fd = parent.isFuncDeclaration();
@@ -1895,6 +1877,12 @@ extern (C++) class VarDeclaration : Declaration
 
     override void semantic()
     {
+        if (semanticState == SemState.Done)
+            return;
+        semanticState = SemState.In;
+
+        void defer() { semanticState = SemState.Defer; }
+
         version (none)
         {
             printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
@@ -1904,6 +1892,12 @@ extern (C++) class VarDeclaration : Declaration
             printf("linkage = %d\n", sc.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
+
+        auto sc = _scope;
+
+        assert(typeState == SemState.Done);
+        Type tb = type.toBasetype();
+        Type tbn = tb.baseElemOf();
 
         AggregateDeclaration ad = isThis();
 
@@ -1923,27 +1917,31 @@ extern (C++) class VarDeclaration : Declaration
                 }
             }
 
+            InterfaceDeclaration id = parent.isInterfaceDeclaration();
+            if (id)
+                error("field not allowed in interface");
+
             /* Templates cannot add fields to aggregates // FWDREF FIXME: What??? How is that even supposed to happen?
              */
             TemplateInstance ti = parent.isTemplateInstance();
             assert(!ti); // FWDREF
-            if (ti)
-            {
-                // Take care of nested templates
-                while (1)
-                {
-                    TemplateInstance ti2 = ti.tempdecl.parent.isTemplateInstance();
-                    if (!ti2)
-                        break;
-                    ti = ti2;
-                }
-                // If it's a member template
-                AggregateDeclaration ad2 = ti.tempdecl.isMember();
-                if (ad2 && storage_class != STCundefined)
-                {
-                    error("cannot use template to add field to aggregate '%s'", ad2.toChars());
-                }
-            }
+//             if (ti)
+//             {
+//                 // Take care of nested templates
+//                 while (1)
+//                 {
+//                     TemplateInstance ti2 = ti.tempdecl.parent.isTemplateInstance();
+//                     if (!ti2)
+//                         break;
+//                     ti = ti2;
+//                 }
+//                 // If it's a member template
+//                 AggregateDeclaration ad2 = ti.tempdecl.isMember();
+//                 if (ad2 && storage_class != STCundefined)
+//                 {
+//                     error("cannot use template to add field to aggregate '%s'", ad2.toChars());
+//                 }
+//             }
         }
 
         if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor) // FWDREF FIXME should be moved
@@ -2030,7 +2028,7 @@ extern (C++) class VarDeclaration : Declaration
         if (offset)
         {
             // already a field
-            assert(false); // FWDREF
+            assert(!offset); // FWDREF
             *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
             return;
         }
@@ -2038,8 +2036,8 @@ extern (C++) class VarDeclaration : Declaration
         {
             if (ad.fields[i] == this)
             {
-                assert(false); // FWDREF
                 // already a field
+                assert(ad.fields[i] != this); // FWDREF
                 *poffset = ad.structsize; // https://issues.dlang.org/show_bug.cgi?id=13613
                 return;
             }
@@ -2330,26 +2328,22 @@ extern (C++) class VarDeclaration : Declaration
                 global.gag = 0;
         }
 
-        if (_scope && semanticRun < PASSsemantic2done)
-        {
-            semantic(null);
-            if (isDeferred())
-                return new DeferExp();
-            semantic2(null);
-        }
-        assert(type && _init);
+        semanticInit();
+        if (initializerState == SemState.Defer)
+            return new DeferExp();
+        assert(type && _init && initializerState == SemState.Done);
 
         auto vinit = _init;
 
-        if (_scope && semanticRun < PASSsemantic2done)
-        {
-            inuse++;
-            vinit = _init.semantic(_scope, type, INITinterpret);
-            if (!vinit.isDeferInitializer())
-                _init = vinit;
-//             _scope = null; // FWDREF FIXME?: this whole parallel initializer affair doesn't seem right to me, what's wrong with semantic()?
-            inuse--;
-        }
+//         if (_scope && semanticRun < PASSsemantic2done)
+//         {
+//             inuse++;
+//             vinit = _init.semantic(_scope, type, INITinterpret);
+//             if (!vinit.isDeferInitializer())
+//                 _init = vinit;
+// //             _scope = null; // FWDREF FIXME?: this whole parallel initializer affair doesn't seem right to me, what's wrong with semantic()?
+//             inuse--;
+//         }
 
         Expression e = vinit.toExpression(needFullType ? type : null);
         return e;
@@ -2479,8 +2473,9 @@ extern (C++) class VarDeclaration : Declaration
     override final Dsymbol toAlias()
     {
         //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
-        if ((!type || !type.deco) && _scope)
-            importAll(_scope);
+//         if (!type || !type.deco)
+//             semanticType(); // FWDREF hmm
+        assert(addMemberState == SemState.Done); // temporary uglo
 
         assert(this != aliassym);
         Dsymbol s = aliassym ? aliassym.toAlias() : this;
@@ -2553,7 +2548,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         protection = Prot(PROTpublic);
         linkage = LINKc;
         alignment = Target.ptrsize;
-        semanticRun = PASSsemanticdone;
+//         semanticRun = PASSsemanticdone; // FWDREF was that necessary?
     }
 
     static TypeInfoDeclaration create(Type tinfo)
