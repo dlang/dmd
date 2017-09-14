@@ -421,9 +421,10 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 ######## Begin build targets
 
-all: dmd
+# Remove ddmd after ddmd -> ddmd transition
+all: $G/dmd $G/ddmd
 
-auto-tester-build: dmd checkwhitespace checkcxxheaders $G/dmd_frontend
+auto-tester-build: $G/dmd checkwhitespace checkcxxheaders $G/dmd_frontend
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -455,15 +456,18 @@ dmd: $G/dmd $G/dmd.conf
 	cp $< .
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
 else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
 endif
 
 $G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+
+# Remove after ddmd -> dmd transition is complete
+$G/ddmd: $G/dmd
 
 unittest: $G/dmd-unittest
 	$<
@@ -485,7 +489,6 @@ build-examples: $(EXAMPLES)
 
 clean:
 	rm -R $(GENERATED)
-	rm -f dmd
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
@@ -517,21 +520,9 @@ export DEFAULT_DMD_CONF
 $G/dmd.conf: $(SRC_MAKE)
 	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
 
-######## generate a default dmd.conf (for compatibility)
 ######## REMOVE ME after the ddmd -> dmd transition
-
-define DEFAULT_DMD_CONF_LEGACY
-[Environment32]
-DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/32$(if $(filter $(OS),osx),, -L--export-dynamic)
-
-[Environment64]
-DFLAGS=-I%@P%/../../druntime/import -I%@P%/../../phobos -L-L%@P%/../../phobos/generated/$(OS)/release/64$(if $(filter $(OS),osx),, -L--export-dynamic) -fPIC
-endef
-
-export DEFAULT_DMD_CONF_LEGACY
-
 dmd.conf:
-	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF_LEGACY" > $@
+	@echo "Warning: this target doesn't exist anymore. Please use $G/dmd.conf"
 
 ######## optabgen generates some source
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -575,7 +566,7 @@ $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 install: all
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
-	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
+	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
 	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
