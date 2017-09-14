@@ -35,17 +35,6 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.visitor;
 
-enum Abstract : int
-{
-    ABSfwdref = 0,      // whether an abstract class is not yet computed
-    ABSyes,             // is abstract class
-    ABSno,              // is not abstract class
-}
-
-alias ABSfwdref = Abstract.ABSfwdref;
-alias ABSyes = Abstract.ABSyes;
-alias ABSno = Abstract.ABSno;
-
 /***********************************************************
  */
 struct BaseClass
@@ -219,7 +208,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     bool cpp;           // true if this is a C++ interface
     bool isobjc;        // true if this is an Objective-C class/interface
     bool isscope;       // true if this is a scope class
-    Abstract isabstract;
+    bool isabstract;
     int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
 
@@ -451,7 +440,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (storage_class & STCscope)
             isscope = true;
         if (storage_class & STCabstract)
-            isabstract = ABSyes;
+            isabstract = true;
 
         assert(userAttribDecl == sc.userAttribDecl); // FWDREF TODO remove
 //         userAttribDecl = sc.userAttribDecl;
@@ -467,8 +456,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (this.errors)
             type = Type.terror;
 
-//         type = type.addSTC(sc.stc | storage_class); // FWDREF NOTE: this is line is present in dstruct.d but not in dclass.d?
-        type = type.semantic(loc, sc);
+//         type = type.addSTC(_scope.stc | storage_class); // FWDREF NOTE: this is line is present in dstruct.d but not in dclass.d?
+        type = type.semantic(loc, _scope);
 
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
@@ -525,7 +514,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         for (size_t i = 0; i < baseclasses.dim;)
         {
             auto b = (*baseclasses)[i];
-            auto t = resolveBase(b.type.semantic(loc, sc));
+            auto t = resolveBase(b.type.semantic(loc, _scope));
             if (t.ty == Tdefer)
                 return defer();
             b.type = t;
@@ -570,7 +559,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 {
                     // Deriving from deprecated class makes this one deprecated too
                     isdeprecated = true;
-                    tc.checkDeprecated(loc, sc);
+                    tc.checkDeprecated(loc, _scope);
                 }
             }
 
@@ -627,7 +616,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 badObjectDotD();
 
             Type t = object.type;
-            t = t.semantic(loc, sc).toBasetype();
+            t = t.semantic(loc, _scope).toBasetype();
             if (t.ty == Terror)
                 badObjectDotD();
             assert(t.ty == Tclass);
@@ -736,6 +725,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 tf.trust     = btf.trust;
 
                 auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
+                ctor.generated = true;
                 ctor.fbody = new CompoundStatement(Loc(), new Statements());
 
                 members.push(ctor);
@@ -806,23 +796,20 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     }
 
     // Fill the vtbl and determine .isabstract
-    void determineVtbl()
+    SemState determineVtbl()
     {
         if (vtblState == SemState.Done)
-            return;
+            return vtblState;
         assert(vtblState != SemState.In);
-        void defer() { vtblState = SemState.Defer; }
+        SemState defer() { return vtblState = SemState.Defer; }
 
         determineMembers(); // also calls determineBaseClasses()
         if (membersState == SemState.Defer)
             return defer();
 
         foreach (b; *baseclasses)
-        {
-            b.sym.determineVtbl();
-            if (b.sym.vtblState != SemState.Done)
+            if (b.sym.determineVtbl() != SemState.Done)
                 return defer();
-        }
 
         // Initialize or reset the vtbl
         if (baseClass)
@@ -844,25 +831,21 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         extern (C++) static int func(Dsymbol s, void* param)
         {
-            auto cd = cast(ClassDeclaration)param;
             auto f = s.isFuncDeclaration();
             if (!f)
                 return 0;
 
             if (!f.addVtblEntry())
-            {
-                cd.vtblState = SemState.Defer;
                 return 1;
-            }
 
             return 0;
         }
 
         foreach (s; *members)
-            if (s.apply(&func, cast(void*)this))
-                return false;
+            if (s.apply(&func, null))
+                return defer();
 
-        vtblState = SemState.Done;
+        return vtblState = SemState.Done;
     }
 
     override void semantic()
@@ -888,8 +871,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
 
-        interfaceSemantic(sc);
-
         if (!members) // if opaque declaration
         {
             semanticState = SemState.Done;
@@ -902,15 +883,15 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         semanticState = SemState.In;
 
-        determineVtbl();
-        if (vtblState != SemState.Done)
+        if (determineVtbl() == SemState.Defer)
             return defer();
 
         determineSize(loc);
         if (sizeState == SemState.Defer)
             return defer();
 
-        if (ctor.generated && noDefaultCtor)
+        auto _ctor = ctor.isCtorDeclaration();
+        if (_ctor && _ctor.generated && noDefaultCtor)
         {
             // A class object is always created by constructor, so this check is legitimate.
             foreach (v; fields)
@@ -919,6 +900,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                     .error(v.loc, "field %s must be initialized in constructor", v.toChars());
             }
         }
+
+        auto sc2 = newScope();
+        scope(exit) if (sc2 != _scope) sc2.pop;
 
         if (auto f = hasIdentityOpAssign(this, sc2))
         {
@@ -982,10 +966,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             /* cd.baseClass might not be set if cd is forward referenced.
              */
-            if (!cd.baseClass && cd.semanticRun < PASSsemanticdone && !cd.isInterfaceDeclaration())
+            if (!cd.baseClass && cd.baseClassState != SemState.Done && !cd.isInterfaceDeclaration())
             {
-                cd.semantic(null);
-                if (!cd.baseClass && cd.semanticRun < PASSsemanticdone)
+                cd.determineBaseClasses();
+                if (!cd.baseClass && cd.baseClassState != SemState.Done)
                     cd.error("base class is forward referenced by %s", toChars());
             }
 
@@ -1010,16 +994,16 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     {
         //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
-        if (_scope/+ && baseok < BASEOKdone+/)
-        {
+//         if (_scope/+ && baseok < BASEOKdone+/)
+//         {
 //             if (!inuse) // FWDREF FIXME: this should go
 //             {
                 // must semantic on base class/interfaces
 //                 ++inuse;
-                importAll(_scope);
+                determineMembers();
 //                 --inuse;
 //             }
-        }
+//         }
 
 //         if (!members || !symtab) // opaque or addMember is not yet done
         if (!symtab)
@@ -1092,12 +1076,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final override void finalizeSize()
     {
-        assert(sizeok != SIZEOKdone);
+        assert(sizeState != SemState.Done);
+        assert(fieldsState == SemState.Done);
 
         // Set the offsets of the fields and determine the size of the class
         if (baseClass)
         {
-            assert(baseClass.sizeok == SIZEOKdone);
+            assert(baseClass.sizeState == SemState.Done); // FWDREF probably incorrect
 
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
@@ -1120,6 +1105,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 structsize += Target.ptrsize; // allow room for __monitor
         }
 
+        initVtblInterfaces();
+
         //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
         size_t bi = 0;                  // index into vtblInterfaces[]
 
@@ -1140,9 +1127,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             foreach (BaseClass* b; cd.interfaces)
             {
-                if (b.sym.sizeok != SIZEOKdone)
+                if (b.sym.sizeState != SemState.Done)
                     b.sym.finalizeSize();
-                assert(b.sym.sizeok == SIZEOKdone);
+                assert(b.sym.sizeState == SemState.Done);
 
                 if (!b.sym.alignsize)
                     b.sym.alignsize = Target.ptrsize;
@@ -1175,10 +1162,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         structsize += membersPlace(this, structsize);
 
         if (isInterfaceDeclaration())
-        {
-            sizeok = SIZEOKdone;
             return;
-        }
 
         // FIXME: Currently setFieldOffset functions need to increase fields
         // to calculate each variable offsets. It can be improved later.
@@ -1186,11 +1170,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         uint offset = structsize;
         foreach (s; *members)
-        {
             s.setFieldOffset(this, &offset, false);
-        }
-
-        sizeok = SIZEOKdone;
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
@@ -1320,14 +1300,16 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return fdmatch;
     }
 
-    final void interfaceSemantic(Scope* sc)
+    final void initVtblInterfaces()
     {
+        assert(!vtblInterfaces);
+
         vtblInterfaces = new BaseClasses();
         vtblInterfaces.reserve(interfaces.length);
         foreach (b; interfaces)
         {
-            b.sym.semantic(null);
-            assert(b.sym.semanticRun >= PASSsemanticdone);
+            b.sym.determineSize(loc);
+            assert(b.sym.sizeState == SemState.Done);
             vtblInterfaces.push(b);
             b.copyBaseInterfaces(vtblInterfaces);
         }
@@ -1360,54 +1342,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     final bool isAbstract()
     {
-        if (isabstract != ABSfwdref)
-            return isabstract == ABSyes;
-
-        /* https://issues.dlang.org/show_bug.cgi?id=11169
-         * Resolve forward references to all class member functions,
-         * and determine whether this class is abstract.
-         */
-        extern (C++) static int func(Dsymbol s, void* param)
-        {
-            auto fd = s.isFuncDeclaration();
-            if (!fd)
-                return 0;
-            if (fd.storage_class & STCstatic)
-                return 0;
-
-            if (fd._scope)
-                fd.semantic(null);
-
-            if (fd.isAbstract())
-                return 1;
-            return 0;
-        }
-
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            auto s = (*members)[i];
-            if (s.apply(&func, cast(void*)this))
-            {
-                isabstract = ABSyes;
-                return true;
-            }
-        }
-
-        /* Iterate inherited member functions and check their abstract attribute.
-         */
-        for (size_t i = 1; i < vtbl.dim; i++)
-        {
-            auto fd = vtbl[i].isFuncDeclaration();
-            //if (fd) printf("\tvtbl[%d] = [%s] %s\n", i, fd.loc.toChars(), fd.toChars());
-            if (!fd || fd.isAbstract())
-            {
-                isabstract = ABSyes;
-                return true;
-            }
-        }
-
-        isabstract = ABSno;
-        return false;
+        determineVtbl();
+        assert(vtblState == SemState.Done); // FIXME defer
+        return isabstract;
     }
 
     /****************************************
@@ -1518,7 +1455,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         if (this.errors)
             type = Type.terror;
-        type = type.semantic(loc, sc);
+        type = type.semantic(loc, _scope);
         if (type.ty == Tclass && (cast(TypeClass)type).sym != this)
         {
             auto ti = (cast(TypeClass)type).sym.isInstantiated();
@@ -1660,24 +1597,21 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
             return defer();
     }
 
-    final override void determineVtbl()
+    final override SemState determineVtbl()
     {
         if (vtblState == SemState.Done)
-            return;
+            return vtblState;
         assert(vtblState != SemState.In);
 
-        void defer() { vtblState = SemState.Defer; }
+        SemState defer() { return vtblState = SemState.Defer; }
 
         determineMembers(); // also calls determineBaseClasses()
         if (membersState == SemState.Defer)
             return defer();
 
         foreach (b; *baseclasses)
-        {
-            b.sym.determineVtbl();
-            if (b.sym.vtblState != SemState.Done)
+            if (b.sym.determineVtbl() != SemState.Done)
                 return defer();
-        }
 
         // initialize vtbl
         if (vtblOffset())
@@ -1712,25 +1646,21 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
         extern (C++) static int func(Dsymbol s, void* param)
         {
-            auto cd = cast(ClassDeclaration)param;
             auto f = s.isFuncDeclaration();
             if (!f)
                 return 0;
 
             if (!f.addVtblEntry())
-            {
-                cd.vtblState = SemState.Defer;
                 return 1;
-            }
 
             return 0;
         }
 
         foreach (s; *members)
-            if (s.apply(&func, cast(void*)this))
-                return false;
+            if (s.apply(&func, null))
+                return defer();
 
-        vtblState = SemState.Done;
+        return vtblState = SemState.Done;
     }
 
     override void semantic()
@@ -1756,8 +1686,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         // Ungag errors when not speculative
         Ungag ungag = ungagSpeculative();
 
-        interfaceSemantic(sc);
-
         if (!members) // if opaque declaration
         {
             semanticState = SemState.Done;
@@ -1766,8 +1694,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
         ScopeDsymbol.semantic();
 
-        determineVtbl();
-        if (vtblState != SemState.Done)
+        if (determineVtbl() != SemState.Done)
             return defer();
 
         //printf("-InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
@@ -1789,7 +1716,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     override bool isBaseOf(ClassDeclaration cd, int* poffset)
     {
         //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
-        assert(semanticRun >= PASSsemanticdone);
+        assert(baseClassState == SemState.Done); // FWDREF FIXME call determineBaseClasses?
         assert(!baseClass);
         foreach (j, b; cd.interfaces)
         {
@@ -1801,7 +1728,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 {
                     // don't return incorrect offsets
                     // https://issues.dlang.org/show_bug.cgi?id=16980
-                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_FWDREF;
+                    *poffset = cd.sizeState == SemState.Done ? b.offset : OFFSET_FWDREF;
                 }
                 // printf("\tfound at offset %d\n", b.offset);
                 return true;
@@ -1819,7 +1746,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
     bool isBaseOf(BaseClass* bc, int* poffset)
     {
-        assert(semanticRun >= PASSsemanticdone);
+        assert(baseClassState == SemState.Done);
         //printf("%s.InterfaceDeclaration.isBaseOf(bc = '%s')\n", toChars(), bc.sym.toChars());
         for (size_t j = 0; j < bc.baseInterfaces.length; j++)
         {

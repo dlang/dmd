@@ -343,7 +343,7 @@ extern (C++) class FuncDeclaration : Declaration
             return true;
 
         if (storage_class & STCabstract)
-            cd.isabstract = ABSyes; // FWDREF NOTE: couldn't this be moved to setScope?
+            cd.isabstract = true; // FWDREF NOTE: couldn't this be moved to setScope?
 
         // if static function, do not put in vtbl[]
         if (!isVirtual())

@@ -241,6 +241,7 @@ extern (C++) class Dsymbol : RootObject
         @property SemState tiargsState() { return (semanticRun & (0x3<<10)) >> 10; }
         @property SemState tiargsState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<10)) | (value << 10); }
         alias fieldsState = tiargsState;
+        alias vtblState = tiargsState;
 
         @property SemState addMemberState() { return (semanticRun & (0x3<<12)) >> 12; }
         @property SemState addMemberState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<12)) | (value << 12); }

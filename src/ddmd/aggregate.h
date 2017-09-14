@@ -58,13 +58,6 @@ enum StructPOD
     ISPODfwd,           // POD not yet computed
 };
 
-enum Abstract
-{
-    ABSfwdref = 0,      // whether an abstract class is not yet computed
-    ABSyes,             // is abstract class
-    ABSno,              // is not abstract class
-};
-
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc);
 FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc);
 bool needOpEquals(StructDeclaration *sd);
@@ -277,9 +270,8 @@ public:
     bool cpp;                           // true if this is a C++ interface
     bool isobjc;                        // true if this is an Objective-C class/interface
     bool isscope;                       // true if this is a scope class
-    Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
+    bool isabstract;                // true if this is an abstract class
     int inuse;                          // to prevent recursive attempts
-    Baseok baseok;                      // set the progress of base classes resolving
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -297,7 +289,7 @@ public:
     void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
-    void interfaceSemantic(Scope *sc);
+    void initVtblInterfaces();
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
