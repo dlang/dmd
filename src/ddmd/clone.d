@@ -308,14 +308,15 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
     uint errors = global.startGagging(); // Do not report errors, even if the
-//     Scope* sc2 = sc.push();
-//     sc2.stc = 0;
-//     sc2.linkage = LINKd;
+    Scope* sc2 = sc.push();
+    sc2.stc = 0;
+    sc2.linkage = LINKd;
+    fop.setScope(sc2);
+    sc2.pop();
     fop.semanticBody(); // FWDREF FIXME?! isn't determineMembers a bit early for this?
     // https://issues.dlang.org/show_bug.cgi?id=15044
     // fop.semantic3 isn't run here for lazy forward reference resolution.
 
-//     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
     {
         // Disable generated opAssign, because some members forbid identity assignment.
@@ -518,9 +519,9 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
-    fop.semantic2(sc2);
+    fop.setScope(sc2);
     sc2.pop();
+    fop.semanticBody();
     if (global.endGagging(errors)) // if errors happened
         fop = sd.xerreq;
     return fop;
@@ -638,9 +639,9 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
-    fop.semantic2(sc2);
+    fop.setScope(sc2);
     sc2.pop();
+    fop.semanticBody();
     if (global.endGagging(errors)) // if errors happened
         fop = sd.xerrcmp;
     return fop;
@@ -751,9 +752,9 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
-    fop.semantic2(sc2);
+    fop.setScope(sc2);
     sc2.pop();
+//     fop.semanticBody();
 
     //printf("%s fop = %s %s\n", sd.toChars(), fop.toChars(), fop.type.toChars());
     return fop;
@@ -796,7 +797,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         if (!sdv.postblit)
             continue;
         assert(!sdv.isUnionDeclaration());
-        sdv.postblit.functionSemantic();
+        sdv.postblit.determineAttributes();
 
         stc = mergeFuncAttrs(stc, sdv.postblit);
         stc = mergeFuncAttrs(stc, sdv.dtor);
@@ -862,7 +863,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
          */
         if (!sdv.dtor)
             continue;
-        sdv.dtor.functionSemantic();
+//         sdv.dtor.determineAttributes(); // FWDREF shouldn't be needed?
 
         tv = v.type.toBasetype();
         if (tv.ty == Tstruct)
@@ -925,7 +926,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         dd.fbody = (stc & STCdisable) ? null : new CompoundStatement(loc, a);
         sd.postblits.shift(dd);
         sd.members.push(dd);
-        dd.semantic(sc);
+        dd.setScope(sc);
     }
 
     FuncDeclaration xpostblit = null;
@@ -960,7 +961,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         sd.members.push(dd);
-        dd.semantic(sc);
+        dd.setScope(sc);
         xpostblit = dd;
         break;
     }
@@ -969,7 +970,6 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (xpostblit)
     {
         auto _alias = new AliasDeclaration(Loc(), Id.__xpostblit, xpostblit);
-        _alias.semantic(sc);
         sd.members.push(_alias);
         _alias.addMember(sc, sd); // add to symbol table
     }
@@ -1007,7 +1007,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.dtor)
             continue;
-        sdv.dtor.functionSemantic();
+        sdv.dtor.determineAttributes();
 
         stc = mergeFuncAttrs(stc, sdv.dtor);
         if (stc & STCdisable)
@@ -1079,7 +1079,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         dd.fbody = new ExpStatement(loc, e);
         ad.dtors.shift(dd);
         ad.members.push(dd);
-        dd.semantic(sc);
+        dd.setScope(sc);
     }
 
     FuncDeclaration xdtor = null;
@@ -1114,7 +1114,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);
-        dd.semantic(sc);
+        dd.setScope(sc);
         xdtor = dd;
         break;
     }
@@ -1123,7 +1123,6 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     if (xdtor)
     {
         auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor);
-        _alias.semantic(sc);
         ad.members.push(_alias);
         _alias.addMember(sc, ad); // add to symbol table
     }
@@ -1177,7 +1176,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
         }
         auto inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
         ad.members.push(inv);
-        inv.semantic(sc);
+        inv.setScope(sc);
         return inv;
     }
 }
