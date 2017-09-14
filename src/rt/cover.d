@@ -24,7 +24,6 @@ private
     import core.stdc.stdio;
     import core.stdc.stdlib;
     import rt.util.utf;
-    import core.internal.parseoptions;
 
     struct BitArray
     {
@@ -71,17 +70,18 @@ private
 
         bool initialize()
         {
+            import core.internal.parseoptions : initConfigOptions;
             return initConfigOptions(this, this.errorName);
         }
 
         void help()
         {
-            string s = "Code coverage options are specified as white space separated assignments:
+            string s = "Code coverage options are specified as whitespace separated assignments:
     merge:0|1      - 0 overwrites existing reports, 1 merges current run with existing coverage reports (default: %d)
-    dstpath:<PATH> - write code coverage reports to <PATH> (default: current
+    dstpath:<PATH> - writes code coverage reports to <PATH> (default: current
             working directory)
-    srcpath:<PATH> - set the path where the source files are located to <PATH>
-    (defaul: current working directory)
+    srcpath:<PATH> - sets the path where the source files are located to <PATH>
+    (default: current working directory)
 ";
             printf(s.ptr, merge);
         }
