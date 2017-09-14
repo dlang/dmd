@@ -50,9 +50,11 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         this.decl = decl;
     }
 
-    void include(ScopeDsymbol sds)
+    // FWDREF FIXME: return type was changed to void then changed back to Dsymbols* so there are a dozen of useless changes to include() calls that have to be reverted in this file
+    Dsymbols* include(ScopeDsymbol sds)
     {
         includeState = SemState.Done;
+        return decl;
     }
 
     override final int apply(Dsymbol_apply_ft_t fp, void* param)
@@ -1072,11 +1074,11 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     }
 
     // Decide if 'then' or 'else' code should be included
-    override void include(ScopeDsymbol sds)
+    override Dsymbols* include(ScopeDsymbol sds)
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
         if (includeState == SemState.In || includeState == SemState.Done)
-            return;
+            return decl;
         includeState = SemState.In;
         assert(condition);
         condition.include(_scope, sds);
@@ -1084,7 +1086,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         {
             case 0:
                 includeState = SemState.Defer;
-                return;
+                return null;
             case 1:
                 break;
             case 2:
@@ -1094,6 +1096,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
                 assert(false);
         }
         includeState = SemState.Done;
+        return decl;
     }
 
     override final void addComment(const(char)* comment)
@@ -1178,21 +1181,22 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override void include(ScopeDsymbol sds)
+    override Dsymbols* include(ScopeDsymbol sds)
     {
         if (includeState == SemState.Done)
-            return;
+            return decl;
         sfe.prepare(_scope);
         if (!sfe.ready())
         {
-               includeState = SemState.Defer; // FWDREF TODO check what .ready does
-               return;
+            includeState = SemState.Defer; // FWDREF TODO check what .ready does
+            return null;
         }
 
         import ddmd.statementsem: makeTupleForeach;
         decl = makeTupleForeach!(true,true)(_scope, sfe.aggrfe, decl, sfe.needExpansion);
 
         includeState = SemState.Done;
+        return decl;
     }
 
     override final void addComment(const(char)* comment)
@@ -1284,14 +1288,14 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return new CompileDeclaration(loc, exp.syntaxCopy());
     }
 
-    override void include(ScopeDsymbol sds)
+    override Dsymbols* include(ScopeDsymbol sds)
     {
         //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp.toChars());
         if (includeState == SemState.In)
-            return;
+            return decl;
         includeState = SemState.In;
 
-        void defer() { includeState = SemState.Defer; }
+        Dsymbols* defer() { includeState = SemState.Defer; return null; }
 
         auto e = semanticString(_scope, exp, "argument to mixin");
         if (e.op == TOKdefer)
@@ -1299,11 +1303,11 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         assert(e.op == TOKstring);
         auto se = cast(StringExp) e;
         if (!se)
-            return;
-        se = se.toUTF8(sc);
+            return null;
+        se = se.toUTF8(_scope);
 
         uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
+        scope p = new Parser!ASTCodegen(loc, _scope._module, se.toStringz(), false);
         p.nextToken();
 
         decl = p.parseDeclDefs(0);
@@ -1316,6 +1320,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         }
 
         includeState = SemState.Done;
+        return decl;
     }
 
     override const(char)* kind() const
@@ -1465,11 +1470,11 @@ extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)
     {
-        Dsymbols* decls = ad.include(null, null);
+        ad.include(null);
         uint nestedCount = 0;
-        if (decls && decls.dim)
-            for (size_t i = 0; i < decls.dim; ++i)
-                nestedCount += setMangleOverride((*decls)[i], sym);
+        if (ad.decl && ad.decl.dim)
+            for (size_t i = 0; i < ad.decl.dim; ++i)
+                nestedCount += setMangleOverride((*ad.decl)[i], sym);
         return nestedCount;
     }
     else if (s.isFuncDeclaration() || s.isVarDeclaration())

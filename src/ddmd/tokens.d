@@ -1187,3 +1187,5 @@ private immutable TOK[] keywords =
     TOKshared,
     TOKimmutable,
 ];
+
+alias TOKdefer = TOKfinally;

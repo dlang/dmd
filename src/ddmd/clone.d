@@ -308,15 +308,14 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
     uint errors = global.startGagging(); // Do not report errors, even if the
-    Scope* sc2 = sc.push();
-    sc2.stc = 0;
-    sc2.linkage = LINKd;
-    fop.semantic(sc2);
-    fop.semantic2(sc2);
+//     Scope* sc2 = sc.push();
+//     sc2.stc = 0;
+//     sc2.linkage = LINKd;
+    fop.semanticBody(); // FWDREF FIXME?! isn't determineMembers a bit early for this?
     // https://issues.dlang.org/show_bug.cgi?id=15044
     // fop.semantic3 isn't run here for lazy forward reference resolution.
 
-    sc2.pop();
+//     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
     {
         // Disable generated opAssign, because some members forbid identity assignment.
