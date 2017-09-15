@@ -1733,10 +1733,10 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             {
                 reg = findreg(retregs & XMMREGS);
                 // MOVSD floatreg, XMM?
-                cdb.append(genxmmreg(CNIL,xmmstore(tym),reg,0,tym));
+                cdb.genxmmreg(xmmstore(tym),reg,0,tym);
                 if (mask[rreg] & XMMREGS)
                     // MOVSD XMM?, floatreg
-                    cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym));
+                    cdb.genxmmreg(xmmload(tym),rreg,0,tym);
                 else
                 {
                     // MOV rreg,floatreg
@@ -1767,7 +1767,7 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
                         cdb.genfltreg(0x89,reg,0);
                         reg = findregmsw(retregs);
                         cdb.genfltreg(0x89,reg,4);
-                        cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym)); // MOVQ xmm,mem
+                        cdb.genxmmreg(xmmload(tym),rreg,0,tym); // MOVQ xmm,mem
                     }
                     else
                     {
@@ -2526,7 +2526,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
             0x66,0x0f,0xa4,0xc2,0x10,   // shld EDX,EAX,16      ;DX,AX = EAX
         };
 
-        cdb.append(genasm(CNIL,lmul,sizeof(lmul)));
+        cdb.genasm((char*)lmul,sizeof(lmul));
   }
   else
   {
@@ -2569,7 +2569,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
             }
         }
 
-        cdb.append(gencs(CNIL,LARGECODE ? 0x9A : 0xE8,0,FLfunc,s));  // CALL s
+        cdb.gencs(LARGECODE ? 0x9A : 0xE8,0,FLfunc,s);  // CALL s
         if (nalign)
             cod3_stackadj(cdb, -nalign);
         calledafunc = 1;
@@ -3549,7 +3549,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
 
     if (retregs & mST0)
     {
-        cdb.append(genadjfpu(CNIL, 1));
+        cdb.genadjfpu(1);
         if (*pretregs)                  // if we want the result
         {   //assert(stackused == 0);
             push87(cdb);                // one item on 8087 stack
@@ -3562,7 +3562,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
     }
     else if (retregs & mST01)
     {
-        cdb.append(genadjfpu(CNIL, 2));
+        cdb.genadjfpu(2);
         if (*pretregs)                  // if we want the result
         {   assert(stackused == 0);
             push87(cdb);

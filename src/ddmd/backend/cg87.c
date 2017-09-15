@@ -3537,7 +3537,7 @@ __body
     // FUCOMP doesn't raise exceptions on QNANs, unlike FTST
 
     CodeBuilder cdbnop;
-    cdbnop.append(gennop(CNIL));
+    cdbnop.gennop();
     code *cnop = cdbnop.peek();
     push87(cdb);
     cdb.gen2(0xD9,0xEE);                       // FLDZ
