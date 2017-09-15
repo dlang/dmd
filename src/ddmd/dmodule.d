@@ -126,10 +126,10 @@ void semantic3OnDependencies(Module m)
     if (!m)
         return;
 
-    if (m.semanticRun > PASSsemantic3)
+    if (m.semanticState == SemState.Done)
         return;
 
-    m.semantic3(null);
+    m.semantic();
 
     foreach (i; 1 .. m.aimports.dim)
         semantic3OnDependencies(m.aimports[i]);

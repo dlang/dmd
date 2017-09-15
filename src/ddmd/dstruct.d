@@ -144,23 +144,23 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.dtor && !sd.xhash && !search_toString(sd))
                 return; // none of TypeInfo-specific members
 
-            // If the struct is in a non-root module, run semantic3 to get
+            // If the struct is in a non-root module, run semantic to get
             // correct symbols for the member function.
-            if (sd.semanticRun >= PASSsemantic3)
+            if (sd.semanticState == SemState.Done)
             {
-                // semantic3 is already done
+                // semantic is already done
             }
             else if (TemplateInstance ti = sd.isInstantiated())
             {
                 if (ti.minst && !ti.minst.isRoot())
-                    Module.addDeferredSemantic3(sd);
+                    Module.addDeferredSemantic(sd); // FWDREF FIXME: full semantic shouldn't be necessary, we only want the mangling
             }
             else
             {
                 if (sd.inNonRoot())
                 {
                     //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
-                    Module.addDeferredSemantic3(sd);
+                    Module.addDeferredSemantic(sd);
                 }
             }
         }
@@ -296,8 +296,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (this.errors)
             type = Type.terror;
 
-        type = type.addSTC(sc.stc | storage_class);
-        type = type.semantic(loc, sc);
+        type = type.addSTC(_scope.stc | storage_class);
+        type = type.semantic(loc, _scope);
 
         if (type.ty == Tstruct && (cast(TypeStruct)type).sym != this)
         {
@@ -358,6 +358,9 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             return;
         }
 
+        auto sc2 = newScope();
+        scope(exit) sc2.pop();
+
         /* Look for special member functions.
          */
         aggNew = cast(NewDeclaration)search(Loc(), Id.classNew);
@@ -412,7 +415,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             if (scall)
             {
                 uint xerrors = global.startGagging();
-                sc = sc.push();
+                auto sc = _scope.push();
                 sc.tinst = null;
                 sc.minst = null;
                 auto fcall = resolveFuncCall(loc, sc, scall, null, null, null, 1);
@@ -445,52 +448,46 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final void semanticTypeInfoMembers()
     {
         if (xeq &&
-            xeq._scope &&
-            xeq.semanticRun < PASSsemantic3done)
+            xeq.bodyState != SemState.Done)
         {
             uint errors = global.startGagging();
-            xeq.semantic3(xeq._scope);
+            xeq.semanticBody();
             if (global.endGagging(errors))
                 xeq = xerreq;
         }
 
         if (xcmp &&
-            xcmp._scope &&
-            xcmp.semanticRun < PASSsemantic3done)
+            xcmp.bodyState != SemState.Done)
         {
             uint errors = global.startGagging();
-            xcmp.semantic3(xcmp._scope);
+            xcmp.semanticBody();
             if (global.endGagging(errors))
                 xcmp = xerrcmp;
         }
 
         FuncDeclaration ftostr = search_toString(this);
         if (ftostr &&
-            ftostr._scope &&
-            ftostr.semanticRun < PASSsemantic3done)
+            ftostr.bodyState != SemState.Done)
         {
-            ftostr.semantic3(ftostr._scope);
+            ftostr.semanticBody();
         }
 
         if (xhash &&
-            xhash._scope &&
-            xhash.semanticRun < PASSsemantic3done)
+            xhash.bodyState != SemState.Done)
         {
-            xhash.semantic3(xhash._scope);
+            xhash.semanticBody();
         }
 
         if (postblit &&
-            postblit._scope &&
-            postblit.semanticRun < PASSsemantic3done)
+            postblit.bodyState != SemState.Done)
         {
-            postblit.semantic3(postblit._scope);
+            postblit.semanticBody();
         }
 
         if (dtor &&
-            dtor._scope &&
-            dtor.semanticRun < PASSsemantic3done)
+            dtor.bodyState != SemState.Done)
         {
-            dtor.semantic3(dtor._scope);
+            dtor.semanticBody();
         }
     }
 

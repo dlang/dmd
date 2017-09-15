@@ -746,8 +746,8 @@ extern (C++) static size_t getCodeIndent(const(char)* src)
 /** Recursively expand template mixin member docs into the scope. */
 extern (C++) static void expandTemplateMixinComments(TemplateMixin tm, OutBuffer* buf, Scope* sc)
 {
-    if (!tm.semanticRun)
-        tm.semantic(sc);
+    if (tm.semanticState != SemState.Done) // FWDREF TODO check if doc generation doesn't break?
+        tm.semantic();
     TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {
@@ -1037,7 +1037,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
              * (only template instantiations).
              * Hence, Ddoc omits attributes from template members.
              */
-            Dsymbols* d = ad.include(null, null);
+            Dsymbols* d = ad.include(null);
             if (d)
             {
                 for (size_t i = 0; i < d.dim; i++)
