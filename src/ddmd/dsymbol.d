@@ -191,79 +191,46 @@ extern (C++) class Dsymbol : RootObject
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
 
-    version(StringSupported)
+    private static extern(D) string semStates(string[] names)
     {
-        static string semStates(string[] names)
+        import std.conv;
+
+        string result;
+        uint offset;
+        foreach(name; names)
         {
-            string result;
-            uint offset;
-            foreach(name; names)
-            {
-                uint stateOffset = offset;
-                uint mask = 0x3 << offset;
-                offset += 2;
+            uint mask = 0x3 << offset;
 
-                OutBuffer buf;
-                buf.printf("%u", stateOffset);
-                char[] s_stateOffset = buf.peekSlice();
-                buf.reset();
-                buf.printf("%u", stateOffset);
-                char[] s_mask = buf.peekSlice();
+            auto s_offset = offset.to!string;
+            auto s_mask = mask.to!string;
 
-                result ~= "    @property SemState " ~ name ~ "state() { return semanticRun & mask; }\n";
-                result ~="    @property SemState " ~ name ~ "state(SemState value)" ~
-                    " { return semanticRun = (semanticRun & ~" ~ mask ~ ") | (value << " ~ stateOffset ~ "); }\n";
-            }
-            return result;
+            result ~= "    @property SemState " ~ name ~ "State()" ~
+                " { return cast(SemState) (semanticRun & " ~ s_mask ~ ") >>"  ~ s_offset ~ "; }\n";
+            result ~="    @property SemState " ~ name ~ "State(SemState value)" ~
+                " { semanticRun = (semanticRun & ~" ~ s_mask ~ ") | (value << " ~ s_offset ~ "); return value; }\n";
+
+            offset += 2;
         }
-        mixin(semStates(["members"]));
+        return result;
     }
-    else
-    {
-        @property SemState membersState() { return semanticRun & 0x3; }
-        @property SemState membersState(SemState value) { return semanticRun = (semanticRun & ~0x3) | value; }
 
-        @property SemState typeState() { return (semanticRun & (0x3<<2)) >> 2; }
-        @property SemState typeState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<2)) | (value << 2); }
+    mixin(semStates(["addMember", "members", "type", "initializer", "size", "baseClass", "tiargs", "semantic"]));
 
-        @property SemState initializerState() { return (semanticRun & (0x3<<4)) >> 4; }
-        @property SemState initializerState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<4)) | (value << 4); }
-        alias bodyState = initializerState;
-        alias aliasState = initializerState;
-
-        @property SemState sizeState() { return (semanticRun & (0x3<<6)) >> 6; }
-        @property SemState sizeState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<6)) | (value << 6); }
-
-        @property SemState baseClassState() { return (semanticRun & (0x3<<8)) >> 8; }
-        @property SemState baseClassState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<8)) | (value << 8); }
-        alias includeState = baseClassState;
-
-        @property SemState tiargsState() { return (semanticRun & (0x3<<10)) >> 10; }
-        @property SemState tiargsState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<10)) | (value << 10); }
-        alias fieldsState = tiargsState;
-        alias vtblState = tiargsState;
-
-        @property SemState addMemberState() { return (semanticRun & (0x3<<12)) >> 12; }
-        @property SemState addMemberState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<12)) | (value << 12); }
-
-        @property SemState semanticState() { return (semanticRun & (0x3<<14)) >> 14; }
-        @property SemState semanticState(SemState value) { return semanticRun = (semanticRun & ~(0x3<<14)) | (value << 14); }
-
-
-        // vtbl?
-    }
+    alias bodyState = initializerState;
+    alias aliasState = initializerState;
+    alias includeState = baseClassState;
+    alias fieldsState = tiargsState;
+    alias vtblState = tiargsState;
 
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.semanticRun = PASSinit;
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.ident = ident;
-        this.semanticRun = PASSinit;
     }
 
     static Dsymbol create(Identifier ident)
@@ -813,8 +780,8 @@ extern (C++) class Dsymbol : RootObject
                     return null;
                 }
                 ti.tempdecl = td;
-                if (!ti.semanticRun)
-                    ti.semantic(sc);
+                if (ti.semanticState != SemState.Done) // FWDREF FIXME should probably go
+                    ti.semantic();
                 sm = ti.toAlias();
                 break;
             }
@@ -1738,7 +1705,7 @@ public:
         {
             Dsymbol s = (*members)[i];
             if (AttribDeclaration a = s.isAttribDeclaration())
-                result = _foreach(sc, a.include(sc, null), dg, &n);
+                result = _foreach(sc, a.include(null), dg, &n);
             else if (TemplateMixin tm = s.isTemplateMixin())
                 result = _foreach(sc, tm.members, dg, &n);
             else if (s.isTemplateInstance())
@@ -1764,9 +1731,7 @@ public:
 
     Scope* newScope()
     {
-        // always push a new scope
-        sc = _scope.push(this);
-        return sc;
+        return _scope.push(this);
     }
 
     uint nextMember;
@@ -1802,7 +1767,7 @@ public:
                 if (!symtab)
                     symtab = new DsymbolTable();
 
-                sc = newScope();
+                auto sc = newScope();
                 scope(exit) while (sc != _scope)
                     sc = sc.pop();
 
@@ -1831,7 +1796,7 @@ public:
         void defer()
         {
             semanticState = SemState.Defer;
-            _scope._module.addDeferredSemantic(s);
+            _scope._module.addDeferredSemantic(this);
         }
 
         // Ungag errors when not speculative
@@ -1840,11 +1805,7 @@ public:
         determineMembers();
         if (membersState == SemState.Defer)
             return defer();
-        if (membersState != SemState.Done)
-        {
-            error("member expansion failed");
-            return;
-        }
+        assert (membersState == SemState.Done, "member expansion failed");
 
         if (members)
             foreach (s; *members)
@@ -1967,7 +1928,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
-                v.semantic(sc);
+                v.semantic(); // FWDREF FIXME?
                 return v;
             }
             if (type)
@@ -1978,7 +1939,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
-                v.semantic(sc);
+                v.semantic(); // FWDREF FIXME?
                 return v;
             }
             if (exp.op == TOKindex)
@@ -2117,7 +2078,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 }
                 *pvar = v;
             }
-            (*pvar).semantic(sc);
+            (*pvar).semantic(); // FWDREF FIXME?
             return (*pvar);
         }
         return null;
