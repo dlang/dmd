@@ -6731,7 +6731,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        //printf("CatAssignExp::semantic() %s\n", toChars());
+        //printf("CatAssignExp::semantic() %s\n", exp.toChars());
         Expression e = exp.op_overload(sc);
         if (e)
         {
@@ -6772,13 +6772,20 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb1next = tb1.nextOf();
         Type tb2 = exp.e2.type.toBasetype();
 
+        /* Two possibilities:
+         * 1. appending T[] to T[]
+         * 2. appending T to T[]
+         */
+        bool appendArray = false;       // assume case 2
+
         if ((tb1.ty == Tarray) &&
             (tb2.ty == Tarray || tb2.ty == Tsarray) &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
               (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
         {
-            // Append array
+            // case 1: append array
+            appendArray = true;
             if (exp.e1.checkPostblit(sc, tb1next))
             {
                 result = new ErrorExp();
@@ -6822,7 +6829,10 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.type = exp.e1.type;
-        result = exp.reorderSettingAAElem(sc);
+        auto res = exp.reorderSettingAAElem(sc);
+        if (!appendArray && global.params.vsafe)
+            checkAssignEscape(sc, res, false);
+        result = res;
     }
 
     override void visit(AddExp exp)
