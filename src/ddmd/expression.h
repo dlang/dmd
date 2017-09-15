@@ -214,6 +214,11 @@ public:
         return ::op_overload(this, sc);
     }
 
+    virtual bool hasCode()
+    {
+        return true;
+    }
+
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -611,6 +616,8 @@ public:
     Dsymbol *declaration;
 
     Expression *syntaxCopy();
+
+    bool hasCode();
 
     void accept(Visitor *v) { v->visit(this); }
 };

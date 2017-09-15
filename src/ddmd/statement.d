@@ -272,7 +272,10 @@ extern (C++) abstract class Statement : RootObject
 
             override void visit(ExpStatement s)
             {
-                stop = s.exp !is null;
+                if (s.exp !is null)
+                {
+                    stop = s.exp.hasCode();
+                }
             }
 
             override void visit(CompoundStatement s)
