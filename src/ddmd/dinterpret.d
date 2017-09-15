@@ -681,7 +681,7 @@ extern (C++) void ctfeCompile(FuncDeclaration fd)
     }
     assert(!fd.ctfeCode);
     assert(!fd.semantic3Errors);
-    assert(fd.semanticRun == PASSsemantic3done);
+    assert(fd.bodyState == SemState.Done);
 
     fd.ctfeCode = new CompiledCtfeFunction(fd);
     if (fd.parameters)
@@ -801,14 +801,14 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
     }
-    if (fd.semanticRun == PASSsemantic3)
+    if (fd.bodyState == SemState.In)
     {
         fd.error("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
     if (!fd.functionSemantic3())
         return CTFEExp.cantexp;
-    if (fd.semanticRun < PASSsemantic3done)
+    if (fd.bodyState != SemState.Done)
         return CTFEExp.cantexp;
 
     // CTFE-compile the function
@@ -2300,7 +2300,7 @@ public:
             if (v.ident == Id.ctfe)
                 return new IntegerExp(loc, 1, Type.tbool);
 
-            v.semantic(null);
+            v.semanticType();
             if (v.type.ty == Terror)
                 return CTFEExp.cantexp;
 
@@ -2311,15 +2311,16 @@ public:
                     error(loc, "circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
                     return CTFEExp.cantexp;
                 }
-                if (v._scope)
-                    v.semantic2(null);
+                v.semanticInit();
+                if (v.initializerState == SemState.Defer)
+                    return new DeferExp(); // FWDREF unsure
                 auto vinit = v._init;
-                if (v._scope && v.semanticRun < PASSsemantic2done)
-                {
-                    v.inuse++;
-                    vinit = vinit.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
-                    v.inuse--;
-                }
+//                 if (v._scope && v.semanticRun < PASSsemantic2done) // FWDREF dubious parallel _init.semantic, no thanks
+//                 {
+//                     v.inuse++;
+//                     vinit = vinit.semantic(v._scope, v.type, INITinterpret); // might not be run on aggregate members
+//                     v.inuse--;
+//                 }
                 e = vinit.toExpression(v.type);
                 if (!e)
                     return CTFEExp.cantexp;
@@ -5025,7 +5026,7 @@ public:
             }
         }
 
-        if (fd && fd.semanticRun >= PASSsemantic3done && fd.semantic3Errors)
+        if (fd && fd.bodyState == SemState.Done && fd.semantic3Errors)
         {
             e.error("CTFE failed because of previous errors in %s", fd.toChars());
             result = CTFEExp.cantexp;

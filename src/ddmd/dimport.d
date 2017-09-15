@@ -271,10 +271,11 @@ extern (C++) final class Import : Dsymbol
             else
                 mod.deprecation(loc, "is deprecated");
         }
+
+        auto sc = _scope;
+
         if (!isstatic && !aliasId && !names.dim)
-        {
             sc.scopesym.importScope(mod, protection);
-        }
 
         if (aliasdecls.dim)
         {
@@ -291,6 +292,15 @@ extern (C++) final class Import : Dsymbol
 
         if (!aliasId && !names.dim) // neither a selective nor a renamed import
         {
+            ScopeDsymbol scopesym;
+            for (Scope* scd = sc; scd; scd = scd.enclosing)
+            {
+                if (!scd.scopesym)
+                    continue;
+                scopesym = scd.scopesym;
+                break;
+            }
+
             // Mark the imported packages as accessible from the current
             // scope. This access check is necessary when using FQN b/c
             // we're using a single global package tree.

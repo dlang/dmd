@@ -77,7 +77,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                 EnumMember em = (*members)[i].isEnumMember(); // FWDREF NOTE: why can't we have others Dsymbol (e.g attribs) in enums?
                 em.ed = this;
                 //printf("add %s to scope %s\n", em.toChars(), scopesym.toChars());
-                em.addMember(sc, sds);
+                em.addMember(_scope, sds);
             }
         }
     }
@@ -97,7 +97,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (addMemberState == SemState.Done)
             return;
         addMemberState = SemState.In;
-
 
         if (!isAnonymous())
             super.addMember(sc, sds);
@@ -124,7 +123,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     override Scope* newScope()
     {
-        Scope* sce = sc.push(this);
+        Scope* sce = _scope.push(this);
         sce.parent = this;
         sce = sce.startCTFE();
         sce.setNoFree(); // needed for getMaxMinValue()
@@ -150,7 +149,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         void defer() { typeState = SemState.Defer; }
         void errorReturn() { errors = true; typeState = SemState.Done; }
 
-        type = type.semantic(loc, sc);
+        type = type.semantic(loc, _scope);
 
         if (!memtype)
         {
@@ -163,23 +162,23 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             // FIXME BUG: this is incorrect if the first member has a small value but there's another member that doesn't fit in the first inferred type (the bug existed before FWDREF)
             if (members.dim)
             {
-                auto s = (*members)[0];
-                s.semanticType();
-                if (s.typeState != SemState.Done)
+                auto em = (*members)[0].isEnumMember();
+                em.semanticType();
+                if (em.typeState == SemState.Defer)
                     return defer(); // memtype is forward referenced, so try again later
-                memtype = s.type;
+                memtype = em.type;
             }
             else
                 memtype = Type.tint32;
         }
 
-        memtype = memtype.semantic(loc, sc);
+        memtype = memtype.semantic(loc, _scope);
 
         /* Check to see if memtype is forward referenced
             */
         if (memtype.ty == Tenum)
         {
-            EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(sc);
+            EnumDeclaration sym = cast(EnumDeclaration)memtype.toDsymbol(_scope);
             sym.semanticType();
             if (sym.typeState != SemState.Done)
                 return defer(); // memtype is forward referenced, so try again later
@@ -303,7 +302,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return *pval;
         }
 
-        if (inuse)
+        if (semanticState == SemState.In) // FWDREF FIXME: this is half the story
         {
             error(loc, "recursive definition of `.%s` property", id.toChars());
             return errorReturn();
@@ -354,9 +353,9 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                  *      maxval = e;
                  */
                 Expression ec = new CmpExp(id == Id.max ? TOKgt : TOKlt, em.loc, e, *pval);
-                inuse++;
+//                 inuse++;
                 ec = ec.semantic(em._scope);
-                inuse--;
+//                 inuse--;
                 ec = ec.ctfeInterpret();
                 if (ec.toInteger())
                     *pval = e;
@@ -459,8 +458,9 @@ extern (C++) final class EnumMember : VarDeclaration
     {
         super.setScope(sc);
 
+        assert(sc.parent.isEnumDeclaration());
         if (!ed)
-            ed = sc.parent;
+            ed = cast(EnumDeclaration)sc.parent;
 
         protection = ed.isAnonymous() ? ed.protection : Prot(PROTpublic);
         linkage = LINKd;
@@ -478,7 +478,7 @@ extern (C++) final class EnumMember : VarDeclaration
 
         if (origType)
         {
-            origType = origType.semantic(loc, sc);
+            origType = origType.semantic(loc, _scope);
                 if (origType.ty == Tdefer)
                     return defer();
             type = origType;
@@ -516,8 +516,8 @@ extern (C++) final class EnumMember : VarDeclaration
         {
             Expression e = value;
             assert(e.dyncast() == DYNCAST.expression);
-            e = e.semantic(sc);
-            e = resolveProperties(sc, e);
+            e = e.semantic(_scope);
+            e = resolveProperties(_scope, e);
             e = e.ctfeInterpret();
             if (e.op == TOKdefer)
                 return defer();
@@ -541,14 +541,14 @@ extern (C++) final class EnumMember : VarDeclaration
                     for (size_t i = 0; i < ed.members.dim; i++)
                     {
                         EnumMember em = (*ed.members)[i].isEnumMember();
-                        if (!em || em == this || em.semanticRun < PASSsemanticdone || em.origType)
+                        if (!em || em == this || em.initializerState != SemState.Done || em.origType)
                             continue;
 
                         //printf("[%d] em = %s, em.semanticRun = %d\n", i, toChars(), em.semanticRun);
                         Expression ev = em.value;
-                        ev = ev.implicitCastTo(sc, ed.memtype);
+                        ev = ev.implicitCastTo(_scope, ed.memtype);
                         ev = ev.ctfeInterpret();
-                        ev = ev.castTo(sc, ed.type);
+                        ev = ev.castTo(_scope, ed.type);
                         if (ev.op == TOKerror)
                             ed.errors = true;
                         em.value = ev;
@@ -563,7 +563,7 @@ extern (C++) final class EnumMember : VarDeclaration
 
             if (ed.memtype && !origType)
             {
-                e = e.implicitCastTo(sc, ed.memtype);
+                e = e.implicitCastTo(_scope, ed.memtype);
                 e = e.ctfeInterpret();
 
                 // save origValue for better json output
@@ -571,13 +571,13 @@ extern (C++) final class EnumMember : VarDeclaration
 
                 if (!ed.isAnonymous())
                 {
-                    e = e.castTo(sc, ed.type);
+                    e = e.castTo(_scope, ed.type);
                     e = e.ctfeInterpret();
                 }
             }
             else if (origType)
             {
-                e = e.implicitCastTo(sc, origType);
+                e = e.implicitCastTo(_scope, origType);
                 e = e.ctfeInterpret();
                 assert(ed.isAnonymous());
 
@@ -598,7 +598,7 @@ extern (C++) final class EnumMember : VarDeclaration
                     ed.memtype = t;
             }
             Expression e = new IntegerExp(loc, 0, Type.tint32);
-            e = e.implicitCastTo(sc, t);
+            e = e.implicitCastTo(_scope, t);
             e = e.ctfeInterpret();
 
             // save origValue for better json output
@@ -606,7 +606,7 @@ extern (C++) final class EnumMember : VarDeclaration
 
             if (!ed.isAnonymous())
             {
-                e = e.castTo(sc, ed.type);
+                e = e.castTo(_scope, ed.type);
                 e = e.ctfeInterpret();
             }
             value = e;
@@ -639,14 +639,14 @@ extern (C++) final class EnumMember : VarDeclaration
             Type tprev = eprev.type.equals(ed.type) ? ed.memtype : eprev.type;
 
             Expression emax = tprev.getProperty(ed.loc, Id.max, 0);
-            emax = emax.semantic(sc);
+            emax = emax.semantic(_scope);
             emax = emax.ctfeInterpret();
 
             // Set value to (eprev + 1).
             // But first check that (eprev != emax)
             assert(eprev);
             Expression e = new EqualExp(TOKequal, loc, eprev, emax);
-            e = e.semantic(sc);
+            e = e.semantic(_scope);
             e = e.ctfeInterpret();
             if (e.toInteger())
             {
@@ -657,8 +657,8 @@ extern (C++) final class EnumMember : VarDeclaration
 
             // Now set e to (eprev + 1)
             e = new AddExp(loc, eprev, new IntegerExp(loc, 1, Type.tint32));
-            e = e.semantic(sc);
-            e = e.castTo(sc, eprev.type);
+            e = e.semantic(_scope);
+            e = e.castTo(_scope, eprev.type);
             e = e.ctfeInterpret();
 
             // save origValue (without cast) for better json output
@@ -666,7 +666,7 @@ extern (C++) final class EnumMember : VarDeclaration
             {
                 assert(emprev.origValue);
                 origValue = new AddExp(loc, emprev.origValue, new IntegerExp(loc, 1, Type.tint32));
-                origValue = origValue.semantic(sc);
+                origValue = origValue.semantic(_scope);
                 origValue = origValue.ctfeInterpret();
             }
 
@@ -676,7 +676,7 @@ extern (C++) final class EnumMember : VarDeclaration
             {
                 // Check that e != eprev (not always true for floats)
                 Expression etest = new EqualExp(TOKequal, loc, e, eprev);
-                etest = etest.semantic(sc);
+                etest = etest.semantic(_scope);
                 etest = etest.ctfeInterpret();
                 if (etest.toInteger())
                 {
