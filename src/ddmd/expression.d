@@ -167,10 +167,16 @@ L1:
 
 /****************************************
  * Resolve a symbol `s` and wraps it in an expression object.
+ *
  * Params:
- *      hasOverloads = works if the aliased symbol is a function.
- *          true:  it's overloaded and will be resolved later.
- *          false: it's exact function symbol.
+ *      loc = location of use of `s`
+ *      sc = context
+ *      s = symbol to resolve
+ *      hasOverloads = applies if `s` represents a function.
+ *          true means it's overloaded and will be resolved later,
+ *          false means it's the exact function symbol.
+ * Returns:
+ *      `s` turned into an expression, `ErrorExp` if an error occurred
  */
 Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
 {
@@ -356,7 +362,7 @@ Lagain:
  * scopes until a function is found.
  *
  * Params:
- *      sc = context
+ *      sc = where to start looking for the enclosing function
  * Returns:
  *      Found function if it satisfies `isThis()`, otherwise `null`
  */
@@ -407,6 +413,12 @@ Lno:
 }
 
 /***********************************
+ * Determine if a `this` is needed to access `d`.
+ * Params:
+ *      sc = context
+ *      d = declaration to check
+ * Returns:
+ *      true means a `this` is needed
  */
 extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
@@ -1606,7 +1618,7 @@ extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
  */
 extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
 {
-    //printf("functionParameters()\n");
+    //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
     assert(arguments);
     assert(fd || tf.next);
     size_t nargs = arguments ? arguments.dim : 0;
