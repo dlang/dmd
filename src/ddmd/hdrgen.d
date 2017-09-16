@@ -247,7 +247,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(ForeachStatement s)
+    private void visitWithoutBody(ForeachStatement s)
     {
         buf.writestring(Token.toString(s.op));
         buf.writestring(" (");
@@ -266,6 +266,11 @@ public:
         s.aggr.accept(this);
         buf.writeByte(')');
         buf.writenl();
+    }
+
+    override void visit(ForeachStatement s)
+    {
+        visitWithoutBody(s);
         buf.writeByte('{');
         buf.writenl();
         buf.level++;
@@ -276,7 +281,7 @@ public:
         buf.writenl();
     }
 
-    override void visit(ForeachRangeStatement s)
+    private void visitWithoutBody(ForeachRangeStatement s)
     {
         buf.writestring(Token.toString(s.op));
         buf.writestring(" (");
@@ -292,6 +297,11 @@ public:
         buf.writenl();
         buf.writeByte('{');
         buf.writenl();
+    }
+
+    override void visit(ForeachRangeStatement s)
+    {
+        visitWithoutBody(s);
         buf.level++;
         if (s._body)
             s._body.accept(this);
@@ -1346,6 +1356,28 @@ public:
         buf.writenl();
     }
 
+    override void visit(StaticForeachDeclaration s)
+    {
+        buf.writestring("static ");
+        if (s.sfe.aggrfe)
+        {
+            visitWithoutBody(s.sfe.aggrfe);
+        }
+        else
+        {
+            assert(s.sfe.rangefe);
+            visitWithoutBody(s.sfe.rangefe);
+        }
+        buf.writeByte('{');
+        buf.writenl();
+        buf.level++;
+        visit(cast(AttribDeclaration)s);
+        buf.level--;
+        buf.writeByte('}');
+        buf.writenl();
+
+    }
+
     override void visit(CompileDeclaration d)
     {
         buf.writestring("mixin(");
@@ -1760,6 +1792,8 @@ public:
 
     override void visit(AliasDeclaration d)
     {
+        if (d.storage_class & STClocal)
+            return;
         buf.writestring("alias ");
         if (d.aliassym)
         {
@@ -1791,6 +1825,8 @@ public:
 
     override void visit(VarDeclaration d)
     {
+        if (d.storage_class & STClocal)
+            return;
         visitVarDecl(d, false);
         buf.writeByte(';');
         buf.writenl();
