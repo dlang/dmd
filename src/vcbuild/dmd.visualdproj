@@ -490,6 +490,7 @@
    <File path="..\ddmd\dscope.d" />
    <File path="..\ddmd\dstruct.d" />
    <File path="..\ddmd\dsymbol.d" />
+   <File path="..\ddmd\dsymbolsem.d" />
    <File path="..\ddmd\dtemplate.d" />
    <File path="..\ddmd\dversion.d" />
    <File path="..\ddmd\e2ir.d" />
@@ -538,6 +539,7 @@
    <File path="..\ddmd\sapply.d" />
    <File path="..\ddmd\scanmscoff.d" />
    <File path="..\ddmd\scanomf.d" />
+   <File path="..\ddmd\semantic.d" />
    <File path="..\ddmd\sideeffect.d" />
    <File path="..\ddmd\statement.d" />
    <File path="..\ddmd\statementsem.d" />
@@ -545,6 +547,7 @@
    <File path="..\ddmd\staticassert.d" />
    <File path="..\ddmd\staticcond.d" />
    <File path="..\ddmd\target.d" />
+   <File path="..\ddmd\templateparamsem.d" />
    <File path="..\ddmd\tocsym.d" />
    <File path="..\ddmd\toctype.d" />
    <File path="..\ddmd\tocvdebug.d" />
