@@ -2080,7 +2080,8 @@ struct Gcx
         {
             // local stack is full, push it to the global stack
             assert(stackPos == stack.length);
-            toscan.push(ScanRange(p1, p2));
+            if (p1 + 1 < p2)
+                toscan.push(ScanRange(p1 + 1, p2));
             // reverse order for depth-first-order traversal
             foreach_reverse (ref rng; stack[0 .. $ - 1])
                 toscan.push(rng);
