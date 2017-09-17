@@ -2020,7 +2020,7 @@ struct Gcx
                     // We don't care abou setting pointsToBase correctly
                     // because it's ignored for small object pools anyhow.
                     auto offsetBase = offset & notbinsize[bin];
-                    biti = offsetBase >> pool.shiftBy;
+                    biti = offsetBase >> pool.shiftBySmall;
                     base = pool.baseAddr + offsetBase;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
@@ -2034,7 +2034,7 @@ struct Gcx
                 {
                     auto offsetBase = offset & notbinsize[bin];
                     base = pool.baseAddr + offsetBase;
-                    biti = offsetBase >> pool.shiftBy;
+                    biti = offsetBase >> pool.shiftByLarge;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                     pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2056,7 +2056,7 @@ struct Gcx
                 {
                     pn -= pool.bPageOffsets[pn];
                     base = pool.baseAddr + (pn * PAGESIZE);
-                    biti = pn * (PAGESIZE >> pool.shiftBy);
+                    biti = pn * (PAGESIZE >> pool.shiftByLarge);
 
                     pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
                     if(pool.nointerior.nbits && pool.nointerior.test(biti))
@@ -2475,7 +2475,7 @@ struct Gcx
             else if(bins == B_PAGEPLUS)
             {
                 pn -= pool.bPageOffsets[pn];
-                biti = pn * (PAGESIZE >> pool.shiftBy);
+                biti = pn * (PAGESIZE >> pool.shiftByLarge);
             }
             else // bins == B_FREE
             {
@@ -2629,6 +2629,8 @@ struct Pool
 
     bool isLargeObject;
 
+    enum shiftBySmall = 4;
+    enum shiftByLarge = 12;
     uint shiftBy;    // shift count for the divisor used for determining bit indices.
 
     // This tracks how far back we have to go to find the nearest B_PAGE at
@@ -2648,7 +2650,7 @@ struct Pool
         this.isLargeObject = isLargeObject;
         size_t poolsize;
 
-        shiftBy = isLargeObject ? 12 : 4;
+        shiftBy = isLargeObject ? shiftByLarge : shiftBySmall;
 
         //debug(PRINTF) printf("Pool::Pool(%u)\n", npages);
         poolsize = npages * PAGESIZE;
@@ -3134,7 +3136,7 @@ struct SmallObjectPool
         info.base = cast(void*)((cast(size_t)p) & notbinsize[bin]);
         info.size = binsize[bin];
         offset = info.base - baseAddr;
-        info.attr = getBits(cast(size_t)(offset >> shiftBy));
+        info.attr = getBits(cast(size_t)(offset >> shiftBySmall));
 
         return info;
     }
