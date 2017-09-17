@@ -1968,22 +1968,22 @@ struct Gcx
         size_t stackPos;
         ScanRange[FANOUT_LIMIT] stack = void;
 
-    Lagain:
         size_t pcache = 0;
 
         // let dmd allocate a register for this.pools
         auto pools = pooltable.pools;
         const highpool = pooltable.npools - 1;
         const minAddr = pooltable.minAddr;
-        const maxAddr = pooltable.maxAddr;
+        size_t rngAddr = pooltable.maxAddr - minAddr;
 
+    Lagain:
         //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
     Lnext: for (; p1 < p2; p1++)
         {
             auto p = *p1;
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
-            if (p >= minAddr && p < maxAddr)
+            if (cast(size_t)(p - minAddr) < rngAddr)
             {
                 if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
                     continue;
