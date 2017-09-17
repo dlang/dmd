@@ -2113,7 +2113,7 @@ struct Gcx
         p1 = cast(void**)next.pbot;
         p2 = cast(void**)next.ptop;
         // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
-        goto Lagain;
+        goto LnextBody;
     }
 
     // collection step 1: prepare freebits and mark bits
