@@ -1890,6 +1890,12 @@ struct Gcx
         return null;
     }
 
+    static struct ScanRange
+    {
+        void* pbot;
+        void* ptop;
+    }
+
     static struct ToScanStack
     {
     nothrow:
@@ -1898,25 +1904,25 @@ struct Gcx
         void reset()
         {
             _length = 0;
-            os_mem_unmap(_p, _cap * Range.sizeof);
+            os_mem_unmap(_p, _cap * ScanRange.sizeof);
             _p = null;
             _cap = 0;
         }
 
-        void push(Range rng)
+        void push(ScanRange rng)
         {
             if (_length == _cap) grow();
             _p[_length++] = rng;
         }
 
-        Range pop()
+        ScanRange pop()
         in { assert(!empty); }
         body
         {
             return _p[--_length];
         }
 
-        ref inout(Range) opIndex(size_t idx) inout
+        ref inout(ScanRange) opIndex(size_t idx) inout
         in { assert(idx < _length); }
         body
         {
@@ -1930,20 +1936,20 @@ struct Gcx
         void grow()
         {
             enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
-            immutable ncap = _cap ? 2 * _cap : initSize / Range.sizeof;
-            auto p = cast(Range*)os_mem_map(ncap * Range.sizeof);
+            immutable ncap = _cap ? 2 * _cap : initSize / ScanRange.sizeof;
+            auto p = cast(ScanRange*)os_mem_map(ncap * ScanRange.sizeof);
             if (p is null) onOutOfMemoryErrorNoGC();
             if (_p !is null)
             {
                 p[0 .. _length] = _p[0 .. _length];
-                os_mem_unmap(_p, _cap * Range.sizeof);
+                os_mem_unmap(_p, _cap * ScanRange.sizeof);
             }
             _p = p;
             _cap = ncap;
         }
 
         size_t _length;
-        Range* _p;
+        ScanRange* _p;
         size_t _cap;
     }
 
@@ -1960,7 +1966,7 @@ struct Gcx
         // limit the amount of ranges added to the toscan stack
         enum FANOUT_LIMIT = 32;
         size_t stackPos;
-        Range[FANOUT_LIMIT] stack = void;
+        ScanRange[FANOUT_LIMIT] stack = void;
 
     Lagain:
         size_t pcache = 0;
@@ -2017,7 +2023,7 @@ struct Gcx
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
-                        stack[stackPos++] = Range(base, base + binsize[bin]);
+                        stack[stackPos++] = ScanRange(base, base + binsize[bin]);
                         if (stackPos == stack.length)
                             break;
                     }
@@ -2039,7 +2045,7 @@ struct Gcx
                         continue;
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
-                        stack[stackPos++] = Range(base, base + pool.bPageOffsets[pn] * PAGESIZE);
+                        stack[stackPos++] = ScanRange(base, base + pool.bPageOffsets[pn] * PAGESIZE);
                         if (stackPos == stack.length)
                             break;
                     }
@@ -2055,7 +2061,7 @@ struct Gcx
                         continue;
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
-                        stack[stackPos++] = Range(base, base + pool.bPageOffsets[pn] * PAGESIZE);
+                        stack[stackPos++] = ScanRange(base, base + pool.bPageOffsets[pn] * PAGESIZE);
                         if (stackPos == stack.length)
                             break;
                     }
@@ -2069,12 +2075,12 @@ struct Gcx
             }
         }
 
-        Range next=void;
+        ScanRange next=void;
         if (p1 < p2)
         {
             // local stack is full, push it to the global stack
             assert(stackPos == stack.length);
-            toscan.push(Range(p1, p2));
+            toscan.push(ScanRange(p1, p2));
             // reverse order for depth-first-order traversal
             foreach_reverse (ref rng; stack[0 .. $ - 1])
                 toscan.push(rng);
