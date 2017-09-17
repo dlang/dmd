@@ -468,7 +468,17 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         freeDSO(pdso);
 
-        if (_loadedDSOs.empty) finiLocks(); // last DSO
+        if (_loadedDSOs.empty)
+        {
+            // last DSO
+            version (Shared)
+            {
+                !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+                _handleToDSO.reset();
+                !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
+            }
+            finiLocks();
+        }
     }
 }
 
