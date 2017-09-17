@@ -1980,6 +1980,7 @@ struct Gcx
         //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
     Lnext: for (; p1 < p2; p1++)
         {
+        LnextBody:
             auto p = *p1;
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
@@ -2009,6 +2010,7 @@ struct Gcx
                 size_t pn = offset / PAGESIZE;
                 Bins   bin = cast(Bins)pool.pagetable[pn];
                 void* base = void;
+                void* top = void;
 
                 //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
 
@@ -2022,10 +2024,10 @@ struct Gcx
                     base = pool.baseAddr + offsetBase;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
-                        stack[stackPos++] = ScanRange(base, base + binsize[bin]);
-                        if (stackPos == stack.length)
-                            break;
+                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                    {
+                        top = base + binsize[bin];
+                        goto LaddRange;
                     }
                 }
                 else if (bin == B_PAGE)
@@ -2044,10 +2046,10 @@ struct Gcx
                     if(!pointsToBase && pool.nointerior.nbits && pool.nointerior.test(biti))
                         continue;
 
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
-                        stack[stackPos++] = ScanRange(base, base + pool.bPageOffsets[pn] * PAGESIZE);
-                        if (stackPos == stack.length)
-                            break;
+                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                    {
+                        top = base + pool.bPageOffsets[pn] * PAGESIZE;
+                        goto LaddRange;
                     }
                 }
                 else if (bin == B_PAGEPLUS)
@@ -2060,35 +2062,40 @@ struct Gcx
                     if(pool.nointerior.nbits && pool.nointerior.test(biti))
                         continue;
 
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti)) {
-                        stack[stackPos++] = ScanRange(base, base + pool.bPageOffsets[pn] * PAGESIZE);
-                        if (stackPos == stack.length)
-                            break;
+                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                    {
+                        top = base + pool.bPageOffsets[pn] * PAGESIZE;
+                        goto LaddRange;
                     }
                 }
                 else
                 {
                     // Don't mark bits in B_FREE pages
                     assert(bin == B_FREE);
+                }
+                continue;
+
+            LaddRange:
+                if (stackPos < stack.length)
+                {
+                    stack[stackPos++] = ScanRange(base, top);
                     continue;
                 }
+                if (p1 + 1 < p2) // *p1 already scanned
+                    toscan.push(ScanRange(p1 + 1, p2));
+                // reverse order for depth-first-order traversal
+                foreach_reverse (ref rng; stack)
+                    toscan.push(rng);
+                stackPos = 0;
+                // continue with last stack entry
+                p1 = cast(void**)base;
+                p2 = cast(void**)top;
+                goto LnextBody; // skip increment and check
             }
         }
 
         ScanRange next=void;
-        if (p1 < p2)
-        {
-            // local stack is full, push it to the global stack
-            assert(stackPos == stack.length);
-            if (p1 + 1 < p2)
-                toscan.push(ScanRange(p1 + 1, p2));
-            // reverse order for depth-first-order traversal
-            foreach_reverse (ref rng; stack[0 .. $ - 1])
-                toscan.push(rng);
-            stackPos = 0;
-            next = stack[$-1];
-        }
-        else if (stackPos)
+        if (stackPos)
         {
             // pop range from local stack and recurse
             next = stack[--stackPos];
