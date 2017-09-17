@@ -55,8 +55,6 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-void initPrecedence();
-
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
