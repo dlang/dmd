@@ -456,6 +456,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
             unsetDSOForHandle(pdso, pdso._handle);
             pdso._handle = null;
+
+            pdso._deps.reset();
         }
         else
         {
