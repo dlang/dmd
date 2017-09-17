@@ -713,181 +713,76 @@ void regwithvalue(CodeBuilder& cdb,regm_t regm,targ_size_t value,unsigned *preg,
 
 /************************
  * When we don't know whether a function symbol is defined or not
- * within this module, we stuff it in this linked list of references
- * to be fixed up later.
+ * within this module, we stuff it in an array of references to be
+ * fixed up later.
  */
-
-struct fixlist
+struct Fixup
 {
-    int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
-    int         Lflags;         // CFxxxx
-    targ_size_t Loffset;        // addr of reference to symbol
-    targ_size_t Lval;           // value to add into location
+    symbol      *sym;       // the referenced symbol
+    int         seg;        // where the fixup is going (CODE or DATA, never UDATA)
+    int         flags;      // CFxxxx
+    targ_size_t offset;     // addr of reference to symbol
+    targ_size_t val;        // value to add into location
 #if TARGET_OSX
-    symbol      *Lfuncsym;      // function the symbol goes in
+    symbol      *funcsym;   // function the symbol goes in
 #endif
-    fixlist *Lnext;             // next in threaded list
-
-    static int nodel;           // don't delete from within searchfixlist
 };
 
-int fixlist::nodel = 0;
-
-/* The AArray, being hashed on the pointer value of the symbol s, is in a different
- * order from run to run. This plays havoc with trying to compare the .obj file output.
- * When needing to do that, set FLARRAY to 1. This will replace the AArray with a
- * simple (and very slow) linear array. Handy for tracking down compiler issues, though.
- */
-#define FLARRAY 0
-struct Flarray
+struct FixupArray
 {
-#if FLARRAY
-    symbol *s;
-    fixlist *fl;
+    Fixup *ptr;
+    size_t dim, cap;
 
-    static Flarray *flarray;
-    static size_t flarray_dim;
-    static size_t flarray_max;
+    FixupArray()
+    : ptr(NULL)
+    , dim(0)
+    , cap(0)
+    {}
 
-    static fixlist **add(symbol *s)
+    void push(const Fixup &e)
     {
-        //printf("add %s\n", s->Sident);
-        fixlist **pv;
-        for (size_t i = 0; 1; i++)
+        if (dim == cap)
         {
-            assert(i <= flarray_dim);
-            if (i == flarray_dim)
-            {
-                if (flarray_dim == flarray_max)
-                {
-                    flarray_max = flarray_max * 2 + 1000;
-                    flarray = (Flarray *)mem_realloc(flarray, flarray_max * sizeof(flarray[0]));
-                }
-                flarray_dim += 1;
-                flarray[i].s = s;
-                flarray[i].fl = NULL;
-                pv = &flarray[i].fl;
-                break;
-            }
-            if (flarray[i].s == s)
-            {
-                pv = &flarray[i].fl;
-                break;
-            }
+            cap = cap ? 2 * cap : 16;
+            ptr = (Fixup *)::mem_realloc(ptr, cap * sizeof(Fixup));
         }
-        return pv;
+        ptr[dim++] = e;
     }
 
-    static fixlist **search(symbol *s)
+    const Fixup& operator[](size_t idx) const
     {
-        //printf("search %s\n", s->Sident);
-        fixlist **lp = NULL;
-        for (size_t i = 0; i < flarray_dim; i++)
-        {
-            if (flarray[i].s == s)
-            {
-                lp = &flarray[i].fl;
-                break;
-            }
-        }
-        return lp;
+        assert(idx < dim);
+        return ptr[idx];
     }
 
-    static void del(symbol *s)
+    void clear()
     {
-        //printf("del %s\n", s->Sident);
-        for (size_t i = 0; 1; i++)
-        {
-            assert(i < flarray_dim);
-            if (flarray[i].s == s)
-            {
-                if (i + 1 == flarray_dim)
-                    --flarray_dim;
-                else
-                    flarray[i].s = NULL;
-                break;
-            }
-        }
+        dim = 0;
     }
-
-    static void apply(int (*dg)(void *parameter, void *pkey, void *pvalue))
-    {
-        //printf("apply\n");
-        for (size_t i = 0; i < flarray_dim; i++)
-        {
-            fixlist::nodel++;
-            if (flarray[i].s)
-                (*dg)(NULL, &flarray[i].s, &flarray[i].fl);
-            fixlist::nodel--;
-        }
-    }
-#else
-    static AArray *start;
-
-    static fixlist **add(symbol *s)
-    {
-        if (!start)
-            start = new AArray(&ti_pvoid, sizeof(fixlist *));
-        return (fixlist **)start->get(&s);
-    }
-
-    static fixlist **search(symbol *s)
-    {
-        return (fixlist **)(start ? start->in(&s) : NULL);
-    }
-
-    static void del(symbol *s)
-    {
-        start->del(&s);
-    }
-
-    static void apply(int (*dg)(void *parameter, void *pkey, void *pvalue))
-    {
-        if (start)
-        {
-            fixlist::nodel++;
-            start->apply(NULL, dg);
-            fixlist::nodel--;
-#if TERMCODE
-            delete start;
-#endif
-            start = NULL;
-        }
-    }
-#endif
 };
 
-#if FLARRAY
-Flarray *Flarray::flarray;
-size_t Flarray::flarray_dim;
-size_t Flarray::flarray_max;
-#else
-AArray *Flarray::start = NULL;
-#endif
+static FixupArray fixups;
 
 /****************************
  * Add to the fix list.
  */
 
-size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flags)
+size_t addtofixlist(symbol *s,targ_size_t offset,int seg,targ_size_t val,int flags)
 {
         static char zeros[8];
 
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
         assert(I32 || flags);
-        fixlist *ln = (fixlist *) mem_calloc(sizeof(fixlist));
-        //ln->Lsymbol = s;
-        ln->Loffset = soffset;
-        ln->Lseg = seg;
-        ln->Lflags = flags;
-        ln->Lval = val;
+        Fixup f;
+        f.sym = s;
+        f.offset = offset;
+        f.seg = seg;
+        f.flags = flags;
+        f.val = val;
 #if TARGET_OSX
-        ln->Lfuncsym = funcsym_p;
+        f.funcsym = funcsym_p;
 #endif
-
-        fixlist **pv = Flarray::add(s);
-        ln->Lnext = *pv;
-        *pv = ln;
+        fixups.push(f);
 
         size_t numbytes;
 #if TARGET_SEGMENTED
@@ -913,150 +808,84 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
 #ifdef DEBUG
         assert(numbytes <= sizeof(zeros));
 #endif
-        objmod->bytes(seg,soffset,numbytes,zeros);
+        objmod->bytes(seg,offset,numbytes,zeros);
         return numbytes;
 }
 
 /****************************
- * Given a function symbol we've just defined the offset for,
- * search for it in the fixlist, and resolve any matches we find.
- * Input:
- *      s       function symbol just defined
+ * Output fixups as references to external or static symbol.
+ * First emit data for still undefined static symbols or mark non-static symbols as SCextern.
  */
-
-void searchfixlist(symbol *s)
+static void outfixup(const Fixup &f)
 {
-    //printf("searchfixlist(%s)\n",s->Sident);
-        fixlist **lp = Flarray::search(s);
-        if (lp)
-        {   fixlist *p;
-            while ((p = *lp) != NULL)
-            {
-                //dbg_printf("Found reference at x%lx\n",p->Loffset);
+    symbol_debug(f.sym);
+    //printf("outfixup '%s' offset %04x\n", f.sym->Sident, f.offset);
 
-                // Determine if it is a self-relative fixup we can
-                // resolve directly.
-                if (s->Sseg == p->Lseg &&
-                    (s->Sclass == SCstatic ||
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                     (!(config.flags3 & CFG3pic) && s->Sclass == SCglobal)) &&
-#else
-                        s->Sclass == SCglobal) &&
+#if TARGET_SEGMENTED
+    if (tybasic(f.sym->ty()) == TYf16func)
+    {
+        Obj::far16thunk(f.sym);          /* make it into a thunk         */
+    }
+    else
 #endif
-                    s->Sxtrnnum == 0 && p->Lflags & CFselfrel)
-                {   targ_size_t ad;
-
-                    //printf("Soffset = x%lx, Loffset = x%lx, Lval = x%lx\n",s->Soffset,p->Loffset,p->Lval);
-                    ad = s->Soffset - p->Loffset - REGSIZE + p->Lval;
-                    objmod->bytes(p->Lseg,p->Loffset,REGSIZE,&ad);
-                }
-                else
-                {
-#if TARGET_OSX
-                    symbol *funcsymsave = funcsym_p;
-                    funcsym_p = p->Lfuncsym;
-                    Obj::reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
-                    funcsym_p = funcsymsave;
-#else
-                    objmod->reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
-#endif
-                }
-                *lp = p->Lnext;
-                mem_free(p);            /* remove from list             */
-            }
-            if (!fixlist::nodel)
+    if (f.sym->Sxtrnnum == 0)
+    {
+        if (f.sym->Sclass == SCstatic)
+        {
+#if SCPP
+            if (f.sym->Sdt)
+                outdata(f.sym);
+            else
+                synerr(EM_no_static_def,prettyident(s)); // no definition found for static
+#else // MARS
+            // OBJ_OMF does not set Sxtrnnum for static symbols, so check
+            // whether the symbol was assigned to a segment instead, compare
+            // outdata(symbol *s)
+            if (f.sym->Sseg == UNKNOWN)
             {
-                Flarray::del(s);
+                printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
+                err_exit(); // BUG: do better
             }
+#endif
         }
+        else if (f.sym->Sflags & SFLwasstatic)
+        {
+            // Put it in BSS
+            f.sym->Sclass = SCstatic;
+            f.sym->Sfl = FLunde;
+            DtBuilder dtb;
+            dtb.nzeros(type_size(f.sym->Stype));
+            f.sym->Sdt = dtb.finish();
+            outdata(f.sym);
+        }
+        else
+        {
+            f.sym->Sclass = SCextern;   /* make it external             */
+            objmod->external(f.sym);
+            if (f.sym->Sflags & SFLweak)
+                objmod->wkext(f.sym, NULL);
+        }
+    }
+
+#if TARGET_OSX
+    symbol *funcsymsave = funcsym_p;
+    funcsym_p = f.funcsym;
+    objmod->reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
+    funcsym_p = funcsymsave;
+#else
+    objmod->reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
+#endif
 }
 
 /****************************
- * End of module. Output remaining fixlist elements as references
+ * End of module. Output fixups as references
  * to external symbols.
  */
-
-STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
-{
-    //printf("outfixlist_dg(pkey = %p, pvalue = %p)\n", pkey, pvalue);
-    symbol *s = *(symbol **)pkey;
-
-    fixlist **plnext = (fixlist **)pvalue;
-
-    while (*plnext)
-    {
-        fixlist *ln = *plnext;
-
-        symbol_debug(s);
-        //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
-
-#if TARGET_SEGMENTED
-        if (tybasic(s->ty()) == TYf16func)
-        {
-            Obj::far16thunk(s);          /* make it into a thunk         */
-            searchfixlist(s);
-        }
-        else
-#endif
-        {
-            if (s->Sxtrnnum == 0)
-            {   if (s->Sclass == SCstatic)
-                {
-#if SCPP
-                    if (s->Sdt)
-                    {
-                        outdata(s);
-                        searchfixlist(s);
-                        continue;
-                    }
-
-                    synerr(EM_no_static_def,prettyident(s));    // no definition found for static
-#else // MARS
-                    printf("Error: no definition for static %s\n",prettyident(s));      // no definition found for static
-                    err_exit();                         // BUG: do better
-#endif
-                }
-                if (s->Sflags & SFLwasstatic)
-                {
-                    // Put it in BSS
-                    s->Sclass = SCstatic;
-                    s->Sfl = FLunde;
-                    DtBuilder dtb;
-                    dtb.nzeros(type_size(s->Stype));
-                    s->Sdt = dtb.finish();
-                    outdata(s);
-                    searchfixlist(s);
-                    continue;
-                }
-                s->Sclass = SCextern;   /* make it external             */
-                objmod->external(s);
-                if (s->Sflags & SFLweak)
-                {
-                    objmod->wkext(s, NULL);
-                }
-            }
-#if TARGET_OSX
-            symbol *funcsymsave = funcsym_p;
-            funcsym_p = ln->Lfuncsym;
-            Obj::reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
-            funcsym_p = funcsymsave;
-#else
-            objmod->reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
-#endif
-            *plnext = ln->Lnext;
-#if TERMCODE
-            mem_free(ln);
-#endif
-        }
-    }
-    s->Sxtrnnum = 0;
-    return 0;
-}
-
 void outfixlist()
 {
-    //printf("outfixlist()\n");
-    Flarray::apply(&outfixlist_dg);
+    for (size_t i = 0; i < fixups.dim; ++i)
+        outfixup(fixups[i]);
+    fixups.clear();
 }
 
 #endif // !SPP

@@ -1,0 +1,11 @@
+DMD builds are now reproducible
+
+The dmd reference compiler now deterministically produces identical binaries for
+a given source code and configuration, thus allowing third parties to verify
+that distributed binaries indeed originate from specified source code.
+
+This guarantee only applies when the same compiler version and configuration is
+used. Also values of the non-deterministic lexer tokens `__DATE__`, `__TIME__`,
+and `__TIMESTAMP__` must not end up in the binary.
+
+See $(LINK2 https://reproducible-builds.org/, reproducible-builds.org) for further information.
