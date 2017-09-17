@@ -108,11 +108,7 @@ struct Prot
     PROTKIND kind;
     Package *pkg;
 
-    Prot();
-    Prot(PROTKIND kind);
-
     bool isMoreRestrictiveThan(const Prot other) const;
-    bool operator==(const Prot& other) const;
     bool isSubsetOf(const Prot& other) const;
 };
 
