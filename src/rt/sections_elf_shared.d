@@ -460,8 +460,6 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         else
         {
             // static DSOs are unloaded in reverse order
-            assert(pdso._tlsSize == _tlsRanges.back.length);
-            _tlsRanges.popBack();
             assert(pdso == _loadedDSOs.back);
             _loadedDSOs.popBack();
         }
