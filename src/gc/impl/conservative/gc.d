@@ -1984,114 +1984,114 @@ struct Gcx
             auto p = *p1;
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
-            if (cast(size_t)(p - minAddr) < rngAddr)
-            {
-                if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
-                    continue;
-
-                Pool* pool = void;
-                size_t low = 0;
-                size_t high = highpool;
-                while (true)
-                {
-                    size_t mid = (low + high) >> 1;
-                    pool = pools[mid];
-                    if (p < pool.baseAddr)
-                        high = mid - 1;
-                    else if (p >= pool.topAddr)
-                        low = mid + 1;
-                    else break;
-
-                    if (low > high)
-                        continue Lnext;
-                }
-                size_t offset = cast(size_t)(p - pool.baseAddr);
-                size_t biti = void;
-                size_t pn = offset / PAGESIZE;
-                Bins   bin = cast(Bins)pool.pagetable[pn];
-                void* base = void;
-                void* top = void;
-
-                //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
-
-                // Adjust bit to be at start of allocated memory block
-                if (bin < B_PAGE)
-                {
-                    // We don't care abou setting pointsToBase correctly
-                    // because it's ignored for small object pools anyhow.
-                    auto offsetBase = offset & notbinsize[bin];
-                    biti = offsetBase >> pool.shiftBySmall;
-                    base = pool.baseAddr + offsetBase;
-                    //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
-
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
-                    {
-                        top = base + binsize[bin];
-                        goto LaddRange;
-                    }
-                }
-                else if (bin == B_PAGE)
-                {
-                    auto offsetBase = offset & notbinsize[bin];
-                    base = pool.baseAddr + offsetBase;
-                    biti = offsetBase >> pool.shiftByLarge;
-                    //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
-
-                    pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
-
-                    // For the NO_INTERIOR attribute.  This tracks whether
-                    // the pointer is an interior pointer or points to the
-                    // base address of a block.
-                    bool pointsToBase = (base == sentinel_sub(p));
-                    if(!pointsToBase && pool.nointerior.nbits && pool.nointerior.test(biti))
-                        continue;
-
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
-                    {
-                        top = base + pool.bPageOffsets[pn] * PAGESIZE;
-                        goto LaddRange;
-                    }
-                }
-                else if (bin == B_PAGEPLUS)
-                {
-                    pn -= pool.bPageOffsets[pn];
-                    base = pool.baseAddr + (pn * PAGESIZE);
-                    biti = pn * (PAGESIZE >> pool.shiftByLarge);
-
-                    pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
-                    if(pool.nointerior.nbits && pool.nointerior.test(biti))
-                        continue;
-
-                    if (!pool.mark.set(biti) && !pool.noscan.test(biti))
-                    {
-                        top = base + pool.bPageOffsets[pn] * PAGESIZE;
-                        goto LaddRange;
-                    }
-                }
-                else
-                {
-                    // Don't mark bits in B_FREE pages
-                    assert(bin == B_FREE);
-                }
+            if (cast(size_t)(p - minAddr) >= rngAddr)
                 continue;
 
-            LaddRange:
-                if (stackPos < stack.length)
-                {
-                    stack[stackPos++] = ScanRange(base, top);
-                    continue;
-                }
-                if (p1 + 1 < p2) // *p1 already scanned
-                    toscan.push(ScanRange(p1 + 1, p2));
-                // reverse order for depth-first-order traversal
-                foreach_reverse (ref rng; stack)
-                    toscan.push(rng);
-                stackPos = 0;
-                // continue with last stack entry
-                p1 = cast(void**)base;
-                p2 = cast(void**)top;
-                goto LnextBody; // skip increment and check
+            if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
+                continue;
+
+            Pool* pool = void;
+            size_t low = 0;
+            size_t high = highpool;
+            while (true)
+            {
+                size_t mid = (low + high) >> 1;
+                pool = pools[mid];
+                if (p < pool.baseAddr)
+                    high = mid - 1;
+                else if (p >= pool.topAddr)
+                    low = mid + 1;
+                else break;
+
+                if (low > high)
+                    continue Lnext;
             }
+            size_t offset = cast(size_t)(p - pool.baseAddr);
+            size_t biti = void;
+            size_t pn = offset / PAGESIZE;
+            Bins   bin = cast(Bins)pool.pagetable[pn];
+            void* base = void;
+            void* top = void;
+
+            //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
+
+            // Adjust bit to be at start of allocated memory block
+            if (bin < B_PAGE)
+            {
+                // We don't care abou setting pointsToBase correctly
+                // because it's ignored for small object pools anyhow.
+                auto offsetBase = offset & notbinsize[bin];
+                biti = offsetBase >> pool.shiftBySmall;
+                base = pool.baseAddr + offsetBase;
+                //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+
+                if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                {
+                    top = base + binsize[bin];
+                    goto LaddRange;
+                }
+            }
+            else if (bin == B_PAGE)
+            {
+                auto offsetBase = offset & notbinsize[bin];
+                base = pool.baseAddr + offsetBase;
+                biti = offsetBase >> pool.shiftByLarge;
+                //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
+
+                pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
+
+                // For the NO_INTERIOR attribute.  This tracks whether
+                // the pointer is an interior pointer or points to the
+                // base address of a block.
+                bool pointsToBase = (base == sentinel_sub(p));
+                if(!pointsToBase && pool.nointerior.nbits && pool.nointerior.test(biti))
+                    continue;
+
+                if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                {
+                    top = base + pool.bPageOffsets[pn] * PAGESIZE;
+                    goto LaddRange;
+                }
+            }
+            else if (bin == B_PAGEPLUS)
+            {
+                pn -= pool.bPageOffsets[pn];
+                base = pool.baseAddr + (pn * PAGESIZE);
+                biti = pn * (PAGESIZE >> pool.shiftByLarge);
+
+                pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
+                if(pool.nointerior.nbits && pool.nointerior.test(biti))
+                    continue;
+
+                if (!pool.mark.set(biti) && !pool.noscan.test(biti))
+                {
+                    top = base + pool.bPageOffsets[pn] * PAGESIZE;
+                    goto LaddRange;
+                }
+            }
+            else
+            {
+                // Don't mark bits in B_FREE pages
+                assert(bin == B_FREE);
+            }
+            continue;
+
+        LaddRange:
+            if (stackPos < stack.length)
+            {
+                stack[stackPos++] = ScanRange(base, top);
+                continue;
+            }
+            if (p1 + 1 < p2) // *p1 already scanned
+                toscan.push(ScanRange(p1 + 1, p2));
+            // reverse order for depth-first-order traversal
+            foreach_reverse (ref rng; stack)
+                toscan.push(rng);
+            stackPos = 0;
+            // continue with last stack entry
+            p1 = cast(void**)base;
+            p2 = cast(void**)top;
+            goto LnextBody; // skip increment and check
         }
 
         ScanRange next=void;
