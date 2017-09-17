@@ -89,6 +89,7 @@ class LinkDeclaration : public AttribDeclaration
 public:
     LINK linkage;
 
+    static LinkDeclaration *create(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     const char *toChars();
