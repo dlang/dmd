@@ -19,6 +19,7 @@
 #include "ctfloat.h"
 #include "outbuffer.h"
 #include "filename.h"
+#include "compiler.h"
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
@@ -198,11 +199,6 @@ struct Param
     const char *resfile;
     const char *exefile;
     const char *mapfile;
-};
-
-struct Compiler
-{
-    const char *vendor;     // Compiler backend name
 };
 
 typedef unsigned structalign_t;

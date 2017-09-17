@@ -19,6 +19,7 @@ import core.stdc.stdio;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
+import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -213,11 +214,6 @@ struct Param
     const(char)* resfile;
     const(char)* exefile;
     const(char)* mapfile;
-}
-
-struct Compiler
-{
-    const(char)* vendor; // Compiler backend name
 }
 
 alias structalign_t = uint;
