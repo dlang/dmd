@@ -400,6 +400,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         baseok = BASEOKnone;
     }
 
+    static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
+    {
+        return new ClassDeclaration(loc, id, baseclasses, members, inObject);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("ClassDeclaration.syntaxCopy('%s')\n", toChars());

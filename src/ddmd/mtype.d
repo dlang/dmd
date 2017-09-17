@@ -4392,6 +4392,11 @@ extern (C++) final class TypeVector : Type
         this.basetype = basetype;
     }
 
+    static TypeVector create(Loc loc, Type basetype)
+    {
+        return new TypeVector(loc, basetype);
+    }
+
     override const(char)* kind() const
     {
         return "vector";
@@ -5635,6 +5640,11 @@ extern (C++) final class TypePointer : TypeNext
     extern (D) this(Type t)
     {
         super(Tpointer, t);
+    }
+
+    static TypePointer create(Type t)
+    {
+        return new TypePointer(t);
     }
 
     override const(char)* kind() const
@@ -7095,6 +7105,11 @@ extern (C++) final class TypeDelegate : TypeNext
         ty = Tdelegate;
     }
 
+    static TypeDelegate create(Type t)
+    {
+        return new TypeDelegate(t);
+    }
+
     override const(char)* kind() const
     {
         return "delegate";
@@ -8169,6 +8184,11 @@ extern (C++) final class TypeStruct : Type
     {
         super(Tstruct);
         this.sym = sym;
+    }
+
+    static TypeStruct create(StructDeclaration sym)
+    {
+        return new TypeStruct(sym);
     }
 
     override const(char)* kind() const

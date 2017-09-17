@@ -269,6 +269,11 @@ extern (C++) class FuncDeclaration : Declaration
         inferRetType = (type && type.nextOf() is null);
     }
 
+    static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    {
+        return new FuncDeclaration(loc, endloc, id, storage_class, type);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());

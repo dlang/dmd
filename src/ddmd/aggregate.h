@@ -188,6 +188,7 @@ public:
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
+    static StructDeclaration *create(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semanticTypeInfoMembers();
@@ -282,6 +283,7 @@ public:
     Baseok baseok;                      // set the progress of base classes resolving
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
+    static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void semantic(Scope *sc);
