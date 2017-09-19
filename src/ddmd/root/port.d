@@ -38,7 +38,7 @@ extern (C++) struct Port
     {
         int result = 0;
 
-        for (int i = 0; i < n; i++)
+        foreach (i; 0 .. n)
         {
             char c1 = s1[i];
             char c2 = s2[i];
