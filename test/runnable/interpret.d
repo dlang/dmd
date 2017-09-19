@@ -3481,6 +3481,27 @@ void test15681()
 }
 
 /************************************************/
+// toPrec
+
+void testToPrec()
+{
+    import core.math;
+
+    enum real PIR = 0xc.90fdaa22168c235p-2;
+    enum double PID = 0x1.921fb54442d18p+1;
+    enum float PIF = 0x1.921fb6p+1;
+    static assert(toPrec!float(PIR) == PIF);
+    static assert(toPrec!double(PIR) == PID);
+    static assert(toPrec!real(PIR) == PIR);
+    static assert(toPrec!float(PID) == PIF);
+    static assert(toPrec!double(PID) == PID);
+    static assert(toPrec!real(PID) == PID);
+    static assert(toPrec!float(PIF) == PIF);
+    static assert(toPrec!double(PIF) == PIF);
+    static assert(toPrec!real(PIF) == PIF);
+}
+
+/************************************************/
 
 int main()
 {
