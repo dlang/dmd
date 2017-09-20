@@ -695,8 +695,9 @@ private bool needToHash(StructDeclaration sd)
         }
         if (tv.isfloating())
         {
-            // This is necessray for:
-            //  1. comparison of +0.0 and -0.0 should be true.
+            /* This is necessary because comparison of +0.0 and -0.0 should be true,
+             * i.e. not a bit compare.
+             */
             goto Lneed;
         }
         if (tv.ty == Tarray)

@@ -5473,9 +5473,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
 
-        sd.xeq = buildXopEquals(sd, sc2);
-        sd.xcmp = buildXopCmp(sd, sc2);
-        sd.xhash = buildXtoHash(sd, sc2);
+        if (global.params.useTypeInfo)  // these functions are used for TypeInfo
+        {
+            sd.xeq = buildXopEquals(sd, sc2);
+            sd.xcmp = buildXopCmp(sd, sc2);
+            sd.xhash = buildXtoHash(sd, sc2);
+        }
 
         sd.inv = buildInv(sd, sc2);
 
