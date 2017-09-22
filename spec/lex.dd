@@ -915,8 +915,6 @@ $(GNAME LeadingDecimal):
 ---------
 1f; // OK
 1.f; // forbidden
-1d; // OK
-1.d; // forbidden
 1.; // OK, int
 ---------
 
