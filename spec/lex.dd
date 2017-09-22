@@ -939,7 +939,7 @@ $(GNAME Keyword):
 $(MULTICOLS 4,
     $(LINK2 attribute.html#abstract, $(D abstract))
     $(LINK2 declaration.html#alias, $(D alias))
-    $(LINK2 iasm.html#IntegerExpression, $(D align))
+    $(LINK2 attribute.html#align, $(D align))
     $(LINK2 statement.html#AsmStatement, $(D asm))
     $(LINK2 expression.html#AssertExpression, $(D assert))
     $(LINK2 attribute.html#auto, $(D auto))
