@@ -426,7 +426,7 @@ unsigned calcblksize (code *c);
 unsigned calccodsize(code *c);
 unsigned codout(int seg, code *c);
 size_t addtofixlist (symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
-void searchfixlist (symbol *s );
+inline void searchfixlist (symbol *s ) {}
 void outfixlist (void );
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
@@ -751,5 +751,3 @@ struct CodeBuilder
         return (code *)((char *)pTail - ((char*)&(*pTail)->next - (char*)*pTail));
     }
 };
-
-

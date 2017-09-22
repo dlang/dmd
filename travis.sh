@@ -34,12 +34,14 @@ build() {
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
+    sha1sum generated/$TRAVIS_OS_NAME/release/$MODEL/dmd
     deactivate # deactivate host compiler
 }
 
 # self-compile dmd
 rebuild() {
     local build_path=generated/$TRAVIS_OS_NAME/release/$MODEL
+    local compare=${1:-0}
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
     # the generated dmd.conf
@@ -48,6 +50,10 @@ rebuild() {
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 all
+    sha1sum $build_path/dmd
+    if [ $compare -eq 1 ]; then
+        diff _${build_path}/host_dmd $build_path/dmd
+    fi
 }
 
 # test druntime, phobos, dmd
@@ -88,7 +94,7 @@ for proj in druntime phobos; do
 done
 
 date
-for step in build test rebuild rebuild test_dmd; do
+for step in build test rebuild "rebuild 1" test_dmd; do
     $step
     date
 done
