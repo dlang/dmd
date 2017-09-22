@@ -709,7 +709,10 @@ struct FixupArray
     {
         if (dim == cap)
         {
-            cap = cap ? 2 * cap : 16;
+            // 0x800 determined experimentally to minimize reallocations
+            cap = cap
+                ? (3 * cap) / 2 // use 'Tau' of 1.5
+                : 0x800;
             ptr = (Fixup *)::mem_realloc(ptr, cap * sizeof(Fixup));
         }
         ptr[dim++] = e;
@@ -778,6 +781,13 @@ size_t addtofixlist(symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
         return numbytes;
 }
 
+#if 0
+void searchfixlist (symbol *s )
+{
+    //printf("searchfixlist(%s)\n", s->Sident);
+}
+#endif
+
 /****************************
  * Output fixups as references to external or static symbol.
  * First emit data for still undefined static symbols or mark non-static symbols as SCextern.
@@ -800,9 +810,11 @@ static void outfixup(const Fixup &f)
         {
 #if SCPP
             if (f.sym->Sdt)
+            {
                 outdata(f.sym);
-            else
-                synerr(EM_no_static_def,prettyident(s)); // no definition found for static
+            }
+            else if (f.sym->Sseg == UNKNOWN)
+                synerr(EM_no_static_def,prettyident(f.sym)); // no definition found for static
 #else // MARS
             // OBJ_OMF does not set Sxtrnnum for static symbols, so check
             // whether the symbol was assigned to a segment instead, compare
@@ -824,7 +836,7 @@ static void outfixup(const Fixup &f)
             f.sym->Sdt = dtb.finish();
             outdata(f.sym);
         }
-        else
+        else if (f.sym->Sclass != SCsinline)
         {
             f.sym->Sclass = SCextern;   /* make it external             */
             objmod->external(f.sym);
