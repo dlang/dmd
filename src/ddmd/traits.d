@@ -59,7 +59,7 @@ struct PushAttributes
 
 extern (C++) __gshared StringTable traitsStringTable;
 
-static this()
+shared static this()
 {
     static immutable string[] names =
     [

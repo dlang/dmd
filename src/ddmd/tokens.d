@@ -840,7 +840,7 @@ extern (C++) struct Token
         return true;
     }());
 
-    static this()
+    shared static this()
     {
         Identifier.initTable();
         foreach (kw; keywords)
