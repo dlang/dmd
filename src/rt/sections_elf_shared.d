@@ -465,14 +465,13 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         freeDSO(pdso);
 
+        // last DSO being unloaded => shutdown registry
         if (_loadedDSOs.empty)
         {
-            // last DSO
             version (Shared)
             {
-                !pthread_mutex_lock(&_handleToDSOMutex) || assert(0);
+                assert(_handleToDSO.empty);
                 _handleToDSO.reset();
-                !pthread_mutex_unlock(&_handleToDSOMutex) || assert(0);
             }
             finiLocks();
         }
