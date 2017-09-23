@@ -2479,7 +2479,7 @@ void genmovreg(CodeBuilder& cdb,unsigned to,unsigned from)
 {
 #if DEBUG
         if (to > ES || from > ES)
-                printf("genmovreg(c = %p, to = %d, from = %d)\n",c,to,from);
+                printf("genmovreg(to = %d, from = %d)\n",to,from);
 #endif
         assert(to <= ES && from <= ES);
         if (to != from)
