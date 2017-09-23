@@ -66,7 +66,7 @@ extern (C++) bool isCommutative(TOK op)
 /***********************************
  * Get Identifier for operator overload.
  */
-extern (C++) static Identifier opId(Expression e)
+private Identifier opId(Expression e)
 {
     extern (C++) final class OpIdVisitor : Visitor
     {
@@ -274,7 +274,7 @@ extern (C++) static Identifier opId(Expression e)
  * Get Identifier for reverse operator overload,
  * NULL if not supported for this operator.
  */
-extern (C++) static Identifier opId_r(Expression e)
+private Identifier opId_r(Expression e)
 {
     extern (C++) final class OpIdRVisitor : Visitor
     {
@@ -1950,7 +1950,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
     return true;
 }
 
-extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
+private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
 {
     MOD mod = ethis.type.mod;
     MATCH match = MATCHnomatch;
@@ -2004,7 +2004,7 @@ extern (C++) static Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaratio
  *      1 match for this function
  *      0 no match for this function
  */
-extern (C++) static int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters, int flags = 0)
+private int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters, int flags = 0)
 {
     size_t nparams;
     Parameter p;

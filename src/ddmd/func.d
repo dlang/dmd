@@ -2179,7 +2179,7 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
     return overloadApply(fstart, s => (*fp)(param, s));
 }
 
-extern (C++) static void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
+void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
 {
     bool bothMutable = ((lhsMod & rhsMod) == 0);
     bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared) != 0;
@@ -3160,7 +3160,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
  * Generate unique unittest function Id so we can have multiple
  * instances per module.
  */
-extern (C++) static Identifier unitTestId(Loc loc)
+private Identifier unitTestId(Loc loc)
 {
     OutBuffer buf;
     buf.printf("__unittestL%u_", loc.linnum);

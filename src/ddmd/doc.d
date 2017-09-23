@@ -329,7 +329,7 @@ extern (C++) bool isCVariadicParameter(Dsymbols* a, const(char)* p, size_t len)
     return false;
 }
 
-extern (C++) static Dsymbol getEponymousMember(TemplateDeclaration td)
+private Dsymbol getEponymousMember(TemplateDeclaration td)
 {
     if (!td.onemember)
         return null;
@@ -344,7 +344,7 @@ extern (C++) static Dsymbol getEponymousMember(TemplateDeclaration td)
     return null;
 }
 
-extern (C++) static TemplateDeclaration getEponymousParent(Dsymbol s)
+private TemplateDeclaration getEponymousParent(Dsymbol s)
 {
     if (!s.parent)
         return null;
@@ -636,14 +636,14 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
 
 // Basically, this is to skip over things like private{} blocks in a struct or
 // class definition that don't add any components to the qualified name.
-extern (C++) static Scope* skipNonQualScopes(Scope* sc)
+private Scope* skipNonQualScopes(Scope* sc)
 {
     while (sc && !sc.scopesym)
         sc = sc.enclosing;
     return sc;
 }
 
-extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc, bool includeParent)
+private bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc, bool includeParent)
 {
     if (!s || s.isPackage() || s.isModule())
         return false;
@@ -674,7 +674,7 @@ extern (C++) static bool emitAnchorName(OutBuffer* buf, Dsymbol s, Scope* sc, bo
     return true;
 }
 
-extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc, bool forHeader = false)
+private void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc, bool forHeader = false)
 {
     Identifier ident;
     {
@@ -733,7 +733,7 @@ extern (C++) static void emitAnchor(OutBuffer* buf, Dsymbol s, Scope* sc, bool f
 /******************************* emitComment **********************************/
 
 /** Get leading indentation from 'src' which represents lines of code. */
-extern (C++) static size_t getCodeIndent(const(char)* src)
+private size_t getCodeIndent(const(char)* src)
 {
     while (src && (*src == '\r' || *src == '\n'))
         ++src; // skip until we find the first non-empty line
@@ -747,7 +747,7 @@ extern (C++) static size_t getCodeIndent(const(char)* src)
 }
 
 /** Recursively expand template mixin member docs into the scope. */
-extern (C++) static void expandTemplateMixinComments(TemplateMixin tm, OutBuffer* buf, Scope* sc)
+private void expandTemplateMixinComments(TemplateMixin tm, OutBuffer* buf, Scope* sc)
 {
     if (!tm.semanticRun)
         tm.semantic(sc);

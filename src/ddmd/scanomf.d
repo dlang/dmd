@@ -85,7 +85,7 @@ extern (C++) void parseName(const(ubyte)** pp, char* name)
     *pp = p + len;
 }
 
-extern (C++) static ushort parseIdx(const(ubyte)** pp)
+private ushort parseIdx(const(ubyte)** pp)
 {
     auto p = *pp;
     const c = *p++;
@@ -95,7 +95,7 @@ extern (C++) static ushort parseIdx(const(ubyte)** pp)
 }
 
 // skip numeric field of a data type of a COMDEF record
-extern (C++) static void skipNumericField(const(ubyte)** pp)
+private void skipNumericField(const(ubyte)** pp)
 {
     const(ubyte)* p = *pp;
     const c = *p++;
@@ -111,7 +111,7 @@ extern (C++) static void skipNumericField(const(ubyte)** pp)
 }
 
 // skip data type of a COMDEF record
-extern (C++) static void skipDataType(const(ubyte)** pp)
+private void skipDataType(const(ubyte)** pp)
 {
     auto p = *pp;
     const c = *p++;

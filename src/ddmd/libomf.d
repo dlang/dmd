@@ -521,7 +521,7 @@ enum BUCKETSIZE = (BUCKETPAGE - HASHMOD - 1);
  * Returns:
  *      false   failure
  */
-extern (C++) static bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
+private bool EnterDict(ubyte* bucketsP, ushort ndicpages, ubyte* entry, uint entrylen)
 {
     ushort uStartIndex;
     ushort uStep;
