@@ -2490,8 +2490,8 @@ else
                         errors = true;
                     }
 
-                    /* Also check if the VarExp is declared in a scope outside of this one
-                     * 'scx' is set to the scope of the switch statement.
+                    /* Find the outermost scope `scx` that set `sw`.
+                     * Then search scope `scx` for a declaration of `v`.
                      */
                     for (Scope* scx = sc; scx; scx = scx.enclosing)
                     {
