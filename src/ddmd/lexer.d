@@ -75,7 +75,7 @@ bool issinglechar(char c)
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-static this()
+shared static this()
 {
     foreach (const c; 0 .. cmtable.length)
     {
