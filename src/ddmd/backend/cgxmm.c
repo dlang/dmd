@@ -1485,7 +1485,13 @@ void cdvecfill(CodeBuilder& cdb, elem *e, regm_t *pretregs)
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 allocreg(cdb,&retregs,&reg,ty);
-                cs.Iop = config.avx >= 2 ? VPBROADCASTQ : tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
+                
+                if (config.avx >= 2) {
+                    cs.Iop = VPBROADCASTQ;
+                } else {
+                    cs.Iop = tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
+                }
+                
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
                 checkSetVex(&cs,ty);
