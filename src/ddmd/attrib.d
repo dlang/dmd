@@ -1311,7 +1311,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     }
 }
 
-extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
+uint setMangleOverride(Dsymbol s, char* sym)
 {
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)

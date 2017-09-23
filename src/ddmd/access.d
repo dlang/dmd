@@ -89,7 +89,7 @@ extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
  *      false   is not accessible
  *      true    is accessible
  */
-extern (C++) static bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration dthis, AggregateDeclaration cdscope)
+private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration dthis, AggregateDeclaration cdscope)
 {
     assert(dthis);
     version (none)
