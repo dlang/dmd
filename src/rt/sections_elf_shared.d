@@ -455,7 +455,6 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
             }
 
             unsetDSOForHandle(pdso, pdso._handle);
-            pdso._handle = null;
         }
         else
         {
@@ -466,7 +465,16 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         freeDSO(pdso);
 
-        if (_loadedDSOs.empty) finiLocks(); // last DSO
+        // last DSO being unloaded => shutdown registry
+        if (_loadedDSOs.empty)
+        {
+            version (Shared)
+            {
+                assert(_handleToDSO.empty);
+                _handleToDSO.reset();
+            }
+            finiLocks();
+        }
     }
 }
 
@@ -599,7 +607,12 @@ version (Shared) void runFinalizers(DSO* pdso)
 void freeDSO(DSO* pdso) nothrow @nogc
 {
     pdso._gcRanges.reset();
-    version (Shared) pdso._codeSegments.reset();
+    version (Shared)
+    {
+        pdso._codeSegments.reset();
+        pdso._deps.reset();
+        pdso._handle = null;
+    }
     .free(pdso);
 }
 
