@@ -1974,9 +1974,8 @@ struct Gcx
         auto pools = pooltable.pools;
         const highpool = pooltable.npools - 1;
         const minAddr = pooltable.minAddr;
-        size_t rngAddr = pooltable.maxAddr - minAddr;
+        size_t memSize = pooltable.maxAddr - minAddr;
 
-    Lagain:
         //printf("marking range: [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
     Lnext: for (; p1 < p2; p1++)
         {
@@ -1984,7 +1983,7 @@ struct Gcx
             auto p = *p1;
 
             //if (log) debug(PRINTF) printf("\tmark %p\n", p);
-            if (cast(size_t)(p - minAddr) >= rngAddr)
+            if (cast(size_t)(p - minAddr) >= memSize)
                 continue;
 
             if ((cast(size_t)p & ~cast(size_t)(PAGESIZE-1)) == pcache)
@@ -2021,7 +2020,7 @@ struct Gcx
                 // We don't care abou setting pointsToBase correctly
                 // because it's ignored for small object pools anyhow.
                 auto offsetBase = offset & notbinsize[bin];
-                biti = offsetBase >> pool.shiftBySmall;
+                biti = offsetBase >> Pool.ShiftBy.Small;
                 base = pool.baseAddr + offsetBase;
                 //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
@@ -2035,7 +2034,7 @@ struct Gcx
             {
                 auto offsetBase = offset & notbinsize[bin];
                 base = pool.baseAddr + offsetBase;
-                biti = offsetBase >> pool.shiftByLarge;
+                biti = offsetBase >> Pool.ShiftBy.Large;
                 //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                 pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2057,7 +2056,7 @@ struct Gcx
             {
                 pn -= pool.bPageOffsets[pn];
                 base = pool.baseAddr + (pn * PAGESIZE);
-                biti = pn * (PAGESIZE >> pool.shiftByLarge);
+                biti = pn * (PAGESIZE >> Pool.ShiftBy.Large);
 
                 pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
                 if(pool.nointerior.nbits && pool.nointerior.test(biti))
@@ -2475,7 +2474,7 @@ struct Gcx
             else if(bins == B_PAGEPLUS)
             {
                 pn -= pool.bPageOffsets[pn];
-                biti = pn * (PAGESIZE >> pool.shiftByLarge);
+                biti = pn * (PAGESIZE >> pool.ShiftBy.Large);
             }
             else // bins == B_FREE
             {
@@ -2629,9 +2628,12 @@ struct Pool
 
     bool isLargeObject;
 
-    enum shiftBySmall = 4;
-    enum shiftByLarge = 12;
-    uint shiftBy;    // shift count for the divisor used for determining bit indices.
+    enum ShiftBy
+    {
+        Small = 4,
+        Large = 12
+    }
+    ShiftBy shiftBy;    // shift count for the divisor used for determining bit indices.
 
     // This tracks how far back we have to go to find the nearest B_PAGE at
     // a smaller address than a B_PAGEPLUS.  To save space, we use a uint.
@@ -2650,7 +2652,7 @@ struct Pool
         this.isLargeObject = isLargeObject;
         size_t poolsize;
 
-        shiftBy = isLargeObject ? shiftByLarge : shiftBySmall;
+        shiftBy = isLargeObject ? ShiftBy.Large : ShiftBy.Small;
 
         //debug(PRINTF) printf("Pool::Pool(%u)\n", npages);
         poolsize = npages * PAGESIZE;
@@ -3136,7 +3138,7 @@ struct SmallObjectPool
         info.base = cast(void*)((cast(size_t)p) & notbinsize[bin]);
         info.size = binsize[bin];
         offset = info.base - baseAddr;
-        info.attr = getBits(cast(size_t)(offset >> shiftBySmall));
+        info.attr = getBits(cast(size_t)(offset >> ShiftBy.Small));
 
         return info;
     }
