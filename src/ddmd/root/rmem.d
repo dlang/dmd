@@ -27,6 +27,7 @@ version (GC)
 
         static void xfree(void* p) nothrow
         {
+            return GC.free(p);
         }
 
         static void* xmalloc(size_t n) nothrow
@@ -42,6 +43,14 @@ version (GC)
         static void* xrealloc(void* p, size_t size) nothrow
         {
             return GC.realloc(p, size);
+        }
+        static void error() nothrow
+        {
+            import core.stdc.stdlib : exit, EXIT_FAILURE;
+            import core.stdc.stdio : printf;
+
+            printf("Error: out of memory\n");
+            exit(EXIT_FAILURE);
         }
     }
 
