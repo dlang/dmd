@@ -2021,11 +2021,11 @@ struct Gcx
                 // because it's ignored for small object pools anyhow.
                 auto offsetBase = offset & notbinsize[bin];
                 biti = offsetBase >> Pool.ShiftBy.Small;
-                base = pool.baseAddr + offsetBase;
                 //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                 if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                 {
+                    base = pool.baseAddr + offsetBase;
                     top = base + binsize[bin];
                     goto LaddRange;
                 }
@@ -2055,7 +2055,6 @@ struct Gcx
             else if (bin == B_PAGEPLUS)
             {
                 pn -= pool.bPageOffsets[pn];
-                base = pool.baseAddr + (pn * PAGESIZE);
                 biti = pn * (PAGESIZE >> Pool.ShiftBy.Large);
 
                 pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2064,6 +2063,7 @@ struct Gcx
 
                 if (!pool.mark.set(biti) && !pool.noscan.test(biti))
                 {
+                    base = pool.baseAddr + (pn * PAGESIZE);
                     top = base + pool.bPageOffsets[pn] * PAGESIZE;
                     goto LaddRange;
                 }
