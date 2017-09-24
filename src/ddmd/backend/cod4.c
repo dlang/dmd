@@ -3324,7 +3324,7 @@ void cdasm(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     // Assume only regs normally destroyed by a function are destroyed
     getregs(cdb,(ALLREGS | mES) & ~fregsaved);
-    cdb.append(genasm(CNIL,(unsigned char *)e->EV.ss.Vstring,e->EV.ss.Vstrlen));
+    cdb.genasm((char *)e->EV.ss.Vstring,e->EV.ss.Vstrlen);
     fixresult(cdb,e,(I16 ? mDX | mAX : mAX),pretregs);
 }
 

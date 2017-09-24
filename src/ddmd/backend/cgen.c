@@ -349,18 +349,6 @@ void CodeBuilder::gen2sib(unsigned op, unsigned rm, unsigned sib)
  * Generate an ASM sequence.
  */
 
-code *genasm(code *c,unsigned char *s,unsigned slen)
-{   code *ce;
-
-    ce = code_calloc();
-    ce->Iop = ASM;
-    ce->IFL1 = FLasm;
-    ce->IEV1.as.len = slen;
-    ce->IEV1.as.bytes = (char *) mem_malloc(slen);
-    memcpy(ce->IEV1.as.bytes,s,slen);
-    return cat(c,ce);
-}
-
 void CodeBuilder::genasm(char *s, unsigned slen)
 {
     code *ce = code_calloc();
@@ -400,18 +388,6 @@ void CodeBuilder::genasm(block *label)
 }
 
 #if TX86
-code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
-{   code cs;
-
-    cs.Iop = op;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.IFL2 = FL2;
-    cs.IEVsym2 = s;
-    cs.IEVoffset2 = 0;
-
-    return gen(c,&cs);
-}
 
 void CodeBuilder::gencs(unsigned op, unsigned ea, unsigned FL2, symbol *s)
 {
@@ -624,16 +600,6 @@ void CodeBuilder::genfltreg(unsigned opcode,unsigned reg,targ_size_t offset)
     if ((opcode & ~7) == 0xD8)
         genfwait(*this);
     genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
-}
-
-code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
-{
-    assert(xreg >= XMM0);
-    floatreg = TRUE;
-    reflocal = TRUE;
-    code *c1 = genc1(CNIL,opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
-    checkSetVex(c1, tym);
-    return cat(c, c1);
 }
 
 void CodeBuilder::genxmmreg(unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym)
