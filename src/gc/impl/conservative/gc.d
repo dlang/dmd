@@ -1962,6 +1962,9 @@ struct Gcx
      */
     void mark(void *pbot, void *ptop) scope nothrow
     {
+        if (pbot >= ptop)
+            return;
+
         void **p1 = cast(void **)pbot;
         void **p2 = cast(void **)ptop;
 
