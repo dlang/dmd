@@ -2080,7 +2080,7 @@ struct Gcx
             if (stackPos)
             {
                 // pop range from local stack and recurse
-                auto next = stack.ptr[--stackPos];
+                auto next = &stack[--stackPos];
                 p1 = cast(void**)next.pbot;
                 p2 = cast(void**)next.ptop;
             }
@@ -2102,7 +2102,9 @@ struct Gcx
         LaddRange:
             if (stackPos < stack.length)
             {
-                stack[stackPos++] = ScanRange(base, top);
+                stack[stackPos].pbot = base;
+                stack[stackPos].ptop = top;
+                stackPos++;
                 continue;
             }
             if (p1 + 1 < p2) // *p1 already scanned
