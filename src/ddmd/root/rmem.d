@@ -44,6 +44,7 @@ version (GC)
         {
             return GC.realloc(p, size);
         }
+
         static void error() nothrow
         {
             import core.stdc.stdlib : exit, EXIT_FAILURE;
