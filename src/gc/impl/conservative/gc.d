@@ -2098,20 +2098,22 @@ struct Gcx
             continue;
 
         LaddRange:
-            if (stackPos < stack.length)
+            if (++p1 < p2)
             {
-                stack[stackPos].pbot = base;
-                stack[stackPos].ptop = top;
-                stackPos++;
-                continue;
+                if (stackPos < stack.length)
+                {
+                    stack[stackPos].pbot = base;
+                    stack[stackPos].ptop = top;
+                    stackPos++;
+                    continue;
+                }
+                toscan.push(ScanRange(p1, p2));
+                // reverse order for depth-first-order traversal
+                foreach_reverse (ref rng; stack)
+                    toscan.push(rng);
+                stackPos = 0;
             }
-            if (p1 + 1 < p2) // *p1 already scanned
-                toscan.push(ScanRange(p1 + 1, p2));
-            // reverse order for depth-first-order traversal
-            foreach_reverse (ref rng; stack)
-                toscan.push(rng);
-            stackPos = 0;
-            // continue with last stack entry
+            // continue with last found range
             p1 = cast(void**)base;
             p2 = cast(void**)top;
         }
