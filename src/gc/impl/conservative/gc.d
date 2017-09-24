@@ -2009,7 +2009,7 @@ struct Gcx
                 size_t offset = cast(size_t)(p - pool.baseAddr);
                 size_t biti = void;
                 size_t pn = offset / PAGESIZE;
-                Bins   bin = cast(Bins)pool.pagetable[pn];
+                size_t bin = pool.pagetable[pn]; // not Bins to avoid multiple size extension instructions
 
                 //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
 
@@ -2031,12 +2031,12 @@ struct Gcx
                 }
                 else if (bin == B_PAGE)
                 {
-                    auto offsetBase = offset & notbinsize[bin];
-                    base = pool.baseAddr + offsetBase;
-                    biti = offsetBase >> Pool.ShiftBy.Large;
+                    auto offsetBase = offset & ~cast(size_t)(PAGESIZE-1);
+                    biti = offset >> Pool.ShiftBy.Large;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                     pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
+                    base = cast(void*)pcache;
 
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
