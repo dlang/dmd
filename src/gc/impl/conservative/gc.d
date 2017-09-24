@@ -2041,8 +2041,7 @@ struct Gcx
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
                     // base address of a block.
-                    bool pointsToBase = (base == sentinel_sub(p));
-                    if(!pointsToBase && pool.nointerior.nbits && pool.nointerior.test(biti))
+                    if(base != sentinel_sub(p) && pool.nointerior.nbits && pool.nointerior.test(biti))
                         goto LnextPtr;
 
                     if (!pool.mark.set(biti) && !pool.noscan.test(biti))
