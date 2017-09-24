@@ -20,9 +20,18 @@ char[] unsignedToTempString(ulong value, return char[] buf, uint radix = 10) @sa
     size_t i = buf.length;
     do
     {
-        ubyte x = cast(ubyte)(value % radix);
-        value = value / radix;
-        buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
+        if (value < radix)
+        {
+            ubyte x = cast(ubyte)value;
+            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
+            break;
+        }
+        else
+        {
+            ubyte x = cast(ubyte)(value % radix);
+            value = value / radix;
+            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
+        }
     } while (value);
     return buf[i .. $];
 }
