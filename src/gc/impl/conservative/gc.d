@@ -2031,7 +2031,6 @@ struct Gcx
                 }
                 else if (bin == B_PAGE)
                 {
-                    auto offsetBase = offset & ~cast(size_t)(PAGESIZE-1);
                     biti = offset >> Pool.ShiftBy.Large;
                     //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
