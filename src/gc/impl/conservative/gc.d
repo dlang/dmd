@@ -1935,6 +1935,8 @@ struct Gcx
     private:
         void grow()
         {
+            pragma(inline, false);
+
             enum initSize = 64 * 1024; // Windows VirtualAlloc granularity
             immutable ncap = _cap ? 2 * _cap : initSize / ScanRange.sizeof;
             auto p = cast(ScanRange*)os_mem_map(ncap * ScanRange.sizeof);
