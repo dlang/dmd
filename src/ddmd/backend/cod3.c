@@ -181,7 +181,7 @@ static unsigned char inssize2[256] =
  * Allocate register temporaries
  */
 
-code *REGSAVE::save(code *c, int reg, unsigned *pidx)
+void REGSAVE::save(CodeBuilder& cdb, int reg, unsigned *pidx)
 {
     unsigned i;
     if (reg >= XMM0)
@@ -200,7 +200,7 @@ code *REGSAVE::save(code *c, int reg, unsigned *pidx)
              * reason. Need to fix.
              */
             op = STOUPD;
-        c = genc1(c,op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
     }
     else
     {
@@ -209,18 +209,17 @@ code *REGSAVE::save(code *c, int reg, unsigned *pidx)
         i = idx;
         idx += REGSIZE;
         // MOV idx[RBP],reg
-        c = genc1(c,0x89,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) i);
+        cdb.genc1(0x89,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) i);
         if (I64)
-            code_orrex(c, REX_W);
+            code_orrex(cdb.last(), REX_W);
     }
     reflocal = TRUE;
     if (idx > top)
         top = idx;              // keep high water mark
     *pidx = i;
-    return c;
 }
 
-code *REGSAVE::restore(code *c, int reg, unsigned idx)
+void REGSAVE::restore(CodeBuilder& cdb, int reg, unsigned idx)
 {
     if (reg >= XMM0)
     {
@@ -229,15 +228,14 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
         unsigned op = LODAPD;
         if (0)
             op = LODUPD;
-        c = genc1(c,op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+        cdb.genc1(op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
     }
     else
     {   // MOV reg,idx[RBP]
-        c = genc1(c,0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) idx);
+        cdb.genc1(0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) idx);
         if (I64)
-            code_orrex(c, REX_W);
+            code_orrex(cdb.last(), REX_W);
     }
-    return c;
 }
 
 /************************************

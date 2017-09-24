@@ -300,50 +300,73 @@ void genEEcode()
 
 unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
 {
-    CodeBuilder cdb1;
-    cdb1.append(*csave);
-    code *cs2 = *crestore;
-    unsigned stackused = 0;
-
     //printf("gensaverestore2(%s)\n", regm_str(regm));
     regm &= mBP | mES | ALLREGS | XMMREGS | mST0 | mST01;
-    for (int i = 0; regm; i++)
+    if (!regm)
+        return 0;
+
+    CodeBuilder cdb1;
+    cdb1.append(*csave);
+    unsigned stackused = 0;
+
+    code *restore[sizeof(regm) * 8];
+
+    int i;
+    for (i = 0; regm; i++)
     {
         if (regm & 1)
         {
+            code *cs2;
             if (i == ES)
             {
                 stackused += REGSIZE;
                 cdb1.gen1(0x06);                        // PUSH ES
-                cs2 = cat(gen1(CNIL, 0x07),cs2);        // POP  ES
+                cs2 = gen1(CNIL, 0x07);                 // POP  ES
             }
             else if (i == ST0 || i == ST01)
             {
-                code *cs1 = NULL;
-                gensaverestore87(1 << i, &cs1, &cs2);
-                cdb1.append(cs1);
+                CodeBuilder cdb;
+                gensaverestore87(1 << i, cdb1, cdb);
+                cs2 = cdb.finish();
             }
             else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {   unsigned idx;
-                cdb1.append(regsave.save(NULL, i, &idx));
-                cs2 = regsave.restore(cs2, i, idx);
+                regsave.save(cdb1, i, &idx);
+                CodeBuilder cdb;
+                regsave.restore(cdb, i, idx);
+                cs2 = cdb.finish();
             }
             else
             {
                 stackused += REGSIZE;
                 cdb1.gen1(0x50 + (i & 7));              // PUSH i
-                code *c = gen1(NULL, 0x58 + (i & 7));   // POP  i
+                cs2 = gen1(CNIL, 0x58 + (i & 7));       // POP  i
                 if (i & 8)
                 {   code_orrex(cdb1.last(), REX_B);
-                    code_orrex(c, REX_B);
+                    code_orrex(cs2, REX_B);
                 }
-                cs2 = cat(c,cs2);
             }
+            restore[i] = cs2;
         }
+        else
+            restore[i] = NULL;
         regm >>= 1;
     }
+
     *csave = cdb1.finish();
-    *crestore = cs2;
+
+    CodeBuilder cdb2;
+    while (i)
+    {
+        code *c = restore[--i];
+        if (c)
+        {
+            cdb2.append(c);
+        }
+    }
+    cdb2.append(*crestore);
+
+    *crestore = cdb2.finish();
     return stackused;
 }
 
@@ -3031,8 +3054,8 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 if (mi & tosave)
                 {
                     unsigned idx;
-                    cdbsave.append(regsave.save(CNIL, j, &idx));
-                    cdbrestore.append(regsave.restore(CNIL, j, idx));
+                    regsave.save(cdbsave, j, &idx);
+                    regsave.restore(cdbrestore, j, idx);
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
                     tosave &= ~mi;
@@ -3092,8 +3115,8 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         if (mi & tosave)
                         {
                             unsigned idx;
-                            cdbsave.append(regsave.save(CNIL, j, &idx));
-                            cdbrestore.append(regsave.restore(CNIL, j, idx));
+                            regsave.save(cdbsave, j, &idx);
+                            regsave.restore(cdbrestore, j, idx);
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
                             tosave &= ~mi;

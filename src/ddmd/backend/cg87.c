@@ -429,34 +429,29 @@ void save87regs(CodeBuilder& cdb, unsigned n)
  * Save/restore ST0 or ST01
  */
 
-void gensaverestore87(regm_t regm, code **csave, code **crestore)
+void gensaverestore87(regm_t regm, CodeBuilder& cdbsave, CodeBuilder& cdbrestore)
 {
     //printf("gensaverestore87(%s)\n", regm_str(regm));
-    CodeBuilder cdb1;
-    cdb1.append(*csave);
-    CodeBuilder cdb2;
-    code *cs2 = NULL;
     assert(regm == mST0 || regm == mST01);
 
     int i = getemptyslot();
     NDP::save[i].e = el_calloc();       // this blocks slot [i] for the life of this function
-    ndp_fstp(cdb1, i, TYldouble);
+    ndp_fstp(cdbsave, i, TYldouble);
 
     CodeBuilder cdb2a;
     ndp_fld(cdb2a, i, TYldouble);
+
     CodeBuilder cdb2b;
     if (regm == mST01)
     {
         int j = getemptyslot();
         NDP::save[j].e = el_calloc();
-        ndp_fstp(cdb1, j, TYldouble);
+        ndp_fstp(cdbsave, j, TYldouble);
         ndp_fld(cdb2b, j, TYldouble);
     }
-    *csave = cdb1.finish();
-    cdb2.append(cdb2b);
-    cdb2.append(cdb2a);
-    cdb2.append(*crestore);
-    *crestore = cdb2.finish();
+
+    cdbrestore.append(cdb2b);
+    cdbrestore.append(cdb2a);
 }
 
 /*************************************
