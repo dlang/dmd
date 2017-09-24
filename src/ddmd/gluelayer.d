@@ -15,13 +15,14 @@ module ddmd.gluelayer;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.lib;
 import ddmd.mtype;
 import ddmd.statement;
 import ddmd.root.file;
 
 version (NoBackend)
 {
+    import ddmd.lib : Library;
+
     struct Symbol;
     struct code;
     struct block;
@@ -54,6 +55,8 @@ version (NoBackend)
 }
 else
 {
+    import ddmd.lib : Library;
+
     public import ddmd.backend.cc : block, Blockx, Symbol;
     public import ddmd.backend.type : type;
     public import ddmd.backend.el : elem;
