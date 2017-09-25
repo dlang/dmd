@@ -38,8 +38,16 @@ bool fn(string s1, string s2)
     return s1 == s2;
 }
 
+bool bangFn(string s1, string s2)
+{
+    return s1 != s2;
+}
+
 static assert(!fn("LLVM","HHVM"));
 static assert(fn("LLVM","LLVM"));
+
+static assert(bangFn("LLVM","HHVM"));
+static assert(!bangFn("LLVM","LLVM"));
 
 string first_1 = "first";
 string second_1 = "second";
