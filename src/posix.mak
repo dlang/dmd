@@ -24,6 +24,7 @@
 # ENABLE_UNITTEST:		Build dmd with unittests (sets ENABLE_COVERAGE=1)
 # ENABLE_PROFILE:		Build dmd with a profiling recorder (D)
 # ENABLE_COVERAGE		Build dmd with coverage counting
+# ENABLE_SANITIZERS		Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
 ################################################################################
 
 # get OS and MODEL
@@ -127,6 +128,17 @@ else
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DMD_PATH=$(HOST_DMD)
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
+endif
+
+HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
+ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=gdc
+endif
+ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=ldc
+endif
+ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=dmd
 endif
 
 # Compiler Warnings
@@ -237,6 +249,19 @@ DFLAGS  += -profile
 endif
 ifdef ENABLE_COVERAGE
 DFLAGS  += -cov
+endif
+ifdef ENABLE_SANITIZERS
+CXXFLAGS += -fsanitize=${ENABLE_SANITIZERS}
+
+ifeq ($(HOST_DMD_KIND), dmd)
+DFLAGS += $(if $(findstring address,${ENABLE_SANITIZERS}),-L-lasan,)
+DFLAGS += $(if $(findstring undefined,${ENABLE_SANITIZERS}),-L-lubsan,)
+DFLAGS += $(if $(findstring memory,${ENABLE_SANITIZERS}),-L-lmsan,)
+endif
+ifneq (,$(findstring gdc,$(HOST_DMD_KIND))$(findstring ldc,$(HOST_DMD_KIND)))
+DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
+endif
+
 endif
 
 # Unique extra flags if necessary
