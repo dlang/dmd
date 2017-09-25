@@ -33,9 +33,17 @@ Outbuffer::Outbuffer()
     buf = NULL;
     pend = NULL;
     p = NULL;
-    len = 0;
-    inc = 0;
     origbuf = NULL;
+}
+
+Outbuffer::Outbuffer(d_size_t initialSize)
+{
+    buf = NULL;
+    pend = NULL;
+    p = NULL;
+    origbuf = NULL;
+
+    enlarge(initialSize);
 }
 
 Outbuffer::~Outbuffer()
@@ -59,22 +67,18 @@ void Outbuffer::reset()
 // Enlarge buffer size so there's at least nbytes available
 void Outbuffer::enlarge(d_size_t nbytes)
 {
-    d_size_t oldlen = len;
-    d_size_t used = p - buf;
+    const d_size_t oldlen = pend - buf;
+    const d_size_t used = p - buf;
 
-    if (inc > nbytes)
-    {
-        len = used + inc;
-    }
-    else
-    {
-        len = used + nbytes;
-        if (len < 2 * oldlen)
-        {   len = 2 * oldlen;
-            if (len < 8)
-                len = 8;
-        }
-    }
+    d_size_t len = used + nbytes;
+    if (len <= oldlen)
+        return;
+
+    const d_size_t newlen = oldlen + (oldlen >> 1);   // oldlen * 1.5
+    if (len < newlen)
+        len = newlen;
+    len = (len + 15) & ~15;
+
 #if MEM_DEBUG
     if (buf == origbuf)
     {
@@ -85,19 +89,14 @@ void Outbuffer::enlarge(d_size_t nbytes)
     else
         buf = (unsigned char *)mem_realloc(buf, len);
 #else
-    if (buf)
-    {
-        if (buf == origbuf)
-        {
-            buf = (unsigned char *) malloc(len);
-            if (buf)
-                memcpy(buf, origbuf, oldlen);
-        }
-        else
-            buf = (unsigned char *) realloc(buf,len);
-    }
-    else
-        buf = (unsigned char *) malloc(len);
+     if (buf == origbuf && origbuf)
+     {
+         buf = (unsigned char *) malloc(len);
+         if (buf)
+             memcpy(buf, origbuf, used);
+     }
+     else
+         buf = (unsigned char *) realloc(buf,len);
 #endif
     if (!buf)
     {
@@ -117,7 +116,7 @@ void Outbuffer::enlarge(d_size_t nbytes)
  */
 void Outbuffer::position(d_size_t offset, d_size_t nbytes)
 {
-    if (offset + nbytes > len)
+    if (offset + nbytes > pend - buf)
     {
         enlarge(offset + nbytes - (p - buf));
     }
@@ -125,7 +124,6 @@ void Outbuffer::position(d_size_t offset, d_size_t nbytes)
 #if DEBUG
     assert(buf <= p);
     assert(p <= pend);
-    assert(len == pend - buf);
     assert(p + nbytes <= pend);
 #endif
 }
@@ -271,7 +269,6 @@ void Outbuffer::setsize(d_size_t size)
 #if DEBUG
     assert(buf <= p);
     assert(p <= pend);
-    assert(len == pend - buf);
 #endif
 }
 
