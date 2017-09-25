@@ -36,7 +36,7 @@ struct SymInfo
 {
     bool canSlice;
     bool accessSlice;   // if Symbol was accessed as a slice
-    bool usePair;       // will use OPpair
+    bool usePair;       // will need OPpair to recombine sliced fields
     tym_t ty0;          // type of first slice
     tym_t ty1;          // type of second slice
     SYMIDX si0;
@@ -59,11 +59,6 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                     {
                         // Rewrite as OPpair later
                         sia[si].usePair = true;
-
-                        /* OPpair cannot handle XMM registers, cdpair() and fixresult()
-                         */
-                        if (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1))
-                            sia[si].canSlice = false;
                     }
                     else if (sz == REGSIZE &&
                         (e->Eoffset == 0 || e->Eoffset == REGSIZE))
@@ -78,9 +73,6 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                             sia[si].ty0 = tybasic(e->Ety);
                         else
                             sia[si].ty1 = tybasic(e->Ety);
-                        // Cannot slice float fields if the symbol is also accessed using OPpair (see above)
-                        if (sia[si].usePair && (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1)))
-                            sia[si].canSlice = false;
                     }
                     else
                     {
@@ -271,9 +263,11 @@ void sliceStructs()
             sia2[si + n].canSlice = false;
             if (sia[si].canSlice)
             {
-                if (!sia[si].accessSlice)
+                // If never did access it as a slice, don't slice
+                if (!sia[si].accessSlice ||
+                    // OPpair cannot handle XMM registers, cdpair() and fixresult().
+                    sia[si].usePair && (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1)))
                 {
-                    // If never did access it as a slice, don't slice
                     sia[si].canSlice = false;
                     continue;
                 }
