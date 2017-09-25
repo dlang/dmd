@@ -43,7 +43,7 @@ extern (C++) void error(const ref Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void error(Loc loc, const(char)* format, ...)
+extern (D) void error(Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
