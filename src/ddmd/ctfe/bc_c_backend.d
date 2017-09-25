@@ -690,13 +690,16 @@ pure:
 
     void IToF32(BCValue target, BCValue source)
     {
-        assert(0);
+        "\tfloat tmp = " ~ toCode(source) ~ ";\n";
+        toCode(target) ~ " = cast(int*) &tmp\n"; 
+        // assert(0);
     }
 
 
     void IToF64(BCValue target, BCValue source)
     {
-        assert(0);
+        "\tdouble tmp = " ~ toCode(source) ~ ";\n";
+        toCode(target) ~ " = cast(long*)  &tmp\n"; 
     }
 
     void Comment(string comment)
