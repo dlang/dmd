@@ -129,8 +129,8 @@ struct REGSAVE
     int alignment;              // 8 or 16
 
     void reset() { off = 0; top = 0; idx = 0; alignment = REGSIZE; }
-    code *save(code *c, int reg, unsigned *pidx);
-    code *restore(code *c, int reg, unsigned idx);
+    void save(CodeBuilder& cdb, int reg, unsigned *pidx);
+    void restore(CodeBuilder& cdb, int reg, unsigned idx);
 };
 }
 extern REGSAVE regsave;
@@ -490,7 +490,7 @@ void pop87();
 void push87(CodeBuilder& cdb);
 void save87(CodeBuilder& cdb);
 void save87regs(CodeBuilder& cdb, unsigned n);
-void gensaverestore87(regm_t, code **, code **);
+void gensaverestore87(regm_t, CodeBuilder& cdbsave, CodeBuilder& cdbrestore);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 void genfwait(CodeBuilder& cdb);
 void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
