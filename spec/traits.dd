@@ -403,6 +403,15 @@ $(H2 $(GNAME identifier))
 	$(P Takes one argument, a symbol. Returns the identifier
 	for that symbol as a string literal.
 	)
+---
+import std.stdio;
+
+int var = 123;
+pragma(msg, typeof(var));                       // int
+pragma(msg, typeof(__traits(identifier, var))); // string
+writeln(var);                                   // 123
+writeln(__traits(identifier, var));             // "var"
+---
 
 $(H2 $(GNAME getAliasThis))
 
