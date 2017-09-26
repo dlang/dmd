@@ -2098,6 +2098,7 @@ struct Gcx
                 break;
             }
             // printf("  pop [%p..%p] (%#zx)\n", p1, p2, cast(size_t)p2 - cast(size_t)p1);
+            pcache = 0;
             continue;
 
         LaddRange:
@@ -2119,6 +2120,7 @@ struct Gcx
             // continue with last found range
             p1 = cast(void**)base;
             p2 = cast(void**)top;
+            pcache = 0;
         }
     }
 
