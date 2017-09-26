@@ -43,7 +43,8 @@ extern (C++) void error(const ref Loc loc, const(char)* format, ...)
     va_end(ap);
 }
 
-extern (C++) void error(Loc loc, const(char)* format, ...)
+// This override allows Loc() literals to be passed.
+extern (D) void error(Loc loc, const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
