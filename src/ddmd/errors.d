@@ -99,7 +99,7 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
 {
     va_list ap;
     va_start(ap, format);
-    vdeprecation(loc, format, ap);
+    vdeprecationSupplemental(loc, format, ap);
     va_end(ap);
 }
 
