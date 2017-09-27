@@ -423,7 +423,7 @@ pure:
         code ~= "\t" ~ toCode(to) ~ " |= heapPtr._heap[" ~ toCode(from) ~ "];\n";
         code ~= "\t" ~ toCode(to) ~ " |= (heapPtr._heap[" ~ toCode(from) ~ " + 4] >> 32);\n";
     }
-    
+
     void Store64(BCValue to, BCValue from)
     {
         sameLabel = false;
@@ -690,16 +690,16 @@ pure:
 
     void IToF32(BCValue target, BCValue source)
     {
-        "\tfloat tmp = " ~ toCode(source) ~ ";\n";
-        toCode(target) ~ " = cast(int*) &tmp\n"; 
+        code ~= "\tfloat tmp = " ~ toCode(source) ~ ";\n" ~
+        toCode(target) ~ " = cast(int*) &tmp\n";
         // assert(0);
     }
 
 
     void IToF64(BCValue target, BCValue source)
     {
-        "\tdouble tmp = " ~ toCode(source) ~ ";\n";
-        toCode(target) ~ " = cast(long*)  &tmp\n"; 
+        code ~= "\tdouble tmp = " ~ toCode(source) ~ ";\n" ~
+            toCode(target) ~ " = cast(long*)  &tmp\n";
     }
 
     void Comment(string comment)
