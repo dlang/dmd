@@ -927,8 +927,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             gencodelem(cdb,e,&retregs,TRUE);
             if (anyspill)
             {   // Add in the epilog code
-                code *cstore = NULL;
-                code *cload = NULL;
+                CodeBuilder cdbstore;
+                CodeBuilder cdbload;
 
                 for (int i = 0; i < anyspill; i++)
                 {   symbol *s = globsym.tab[i];
@@ -937,11 +937,11 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                         vec_testbit(dfoidx,s->Srange))
                     {
                         s->Sfl = sflsave[i];    // undo block register assignments
-                        cgreg_spillreg_epilog(bl,s,&cstore,&cload);
+                        cgreg_spillreg_epilog(bl,s,cdbstore,cdbload);
                     }
                 }
-                cdb.append(cstore);
-                cdb.append(cload);
+                cdb.append(cdbstore);
+                cdb.append(cdbload);
             }
             nextb = bl->nthSucc(0);
             goto L5;

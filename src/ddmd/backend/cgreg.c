@@ -487,9 +487,14 @@ Lcant:
 /**********************************
  * Determine block prolog code - it's either
  * assignments to register, or storing register back in memory.
+ * Params:
+ *      b = block to generate prolog code for
+ *      s = symbol in the block that may need prolog code
+ *      cdbstore = append store code to this
+ *      cdbload = append load code to this
  */
 
-void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
+void cgreg_spillreg_prolog(block *b,Symbol *s,CodeBuilder& cdbstore,CodeBuilder& cdbload)
 {
     const int bi = b->Bdfoidx;
 
@@ -552,34 +557,29 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
     }
 #endif
 
-    CodeBuilder cdbload(*pcload);
-    CodeBuilder cdbstore(*pcstore);
-
     if (inoutp == -1)
         gen_spill_reg(cdbstore, s, false);
     else
         gen_spill_reg(cdbload, s, true);
-
-    // Store old register values before loading in new ones
-    *pcstore = cdbstore.finish();
-    *pcload = cdbload.finish();
 }
 
 /**********************************
  * Determine block epilog code - it's either
  * assignments to register, or storing register back in memory.
+ * Params:
+ *      b = block to generate prolog code for
+ *      s = symbol in the block that may need prolog code
+ *      cdbstore = append store code to this
+ *      cdbload = append load code to this
  */
 
-void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
+void cgreg_spillreg_epilog(block *b,Symbol *s,CodeBuilder& cdbstore,CodeBuilder& cdbload)
 {
     int bi = b->Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s->Sident);
     //assert(b->BC == BCgoto);
     if (!cgreg_gotoepilog(b->nthSucc(0), s))
         return;
-
-    CodeBuilder cdbload(*pcload);
-    CodeBuilder cdbstore(*pcstore);
 
     int inoutp;
     if (vec_testbit(bi,s->Slvreg))
@@ -621,10 +621,6 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
             gen_spill_reg(cdbload, s, true);
         break;
     }
-
-    // Store old register values before loading in new ones
-    *pcstore = cdbstore.finish();
-    *pcload = cdbload.finish();
 }
 
 /***************************
