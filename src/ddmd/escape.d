@@ -178,7 +178,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
     enum log = false;
     if (log) printf("checkAssignEscape(e: %s)\n", e.toChars());
-    if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct && e.op != TOKcatass)
+    if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct &&
+        e.op != TOKcatass && e.op != TOKcatelemass && e.op != TOKcatdcharass)
         return false;
     auto ae = cast(BinExp)e;
     Expression e1 = ae.e1;

@@ -7664,6 +7664,14 @@ extern (C++) final class UshrAssignExp : BinAssignExp
 }
 
 /***********************************************************
+ * The ~= operator. It can have one of the following operators:
+ *
+ * TOKcatass      - appending T[] to T[]
+ * TOKcatelemass  - appending T to T[]
+ * TOKcatdcharass - appending dchar to T[]
+ *
+ * The parser initially sets it to TOKcatass, and semantic() later decides which
+ * of the three it will be set to.
  */
 extern (C++) final class CatAssignExp : BinAssignExp
 {

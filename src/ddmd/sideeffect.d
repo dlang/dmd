@@ -156,6 +156,8 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
     case TOKaddass:
     case TOKminass:
     case TOKcatass:
+    case TOKcatelemass:
+    case TOKcatdcharass:
     case TOKmulass:
     case TOKdivass:
     case TOKmodass:

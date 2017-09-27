@@ -3728,7 +3728,7 @@ public:
             if (e.e1.type.ty != Tpointer)
             {
                 // ~= can create new values (see bug 6052)
-                if (e.op == TOKcatass)
+                if (e.op == TOKcatass || e.op == TOKcatelemass || e.op == TOKcatdcharass)
                 {
                     // We need to dup it and repaint the type. For a dynamic array
                     // we can skip duplication, because it gets copied later anyway.
@@ -4497,6 +4497,8 @@ public:
             return;
 
         case TOKcatass:
+        case TOKcatelemass:
+        case TOKcatdcharass:
             interpretAssignCommon(e, &ctfeCat);
             return;
 
