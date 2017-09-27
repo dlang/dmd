@@ -2510,7 +2510,10 @@ extern (C++) abstract class Type : RootObject
         }
         else if (ident == Id.__xalignof)
         {
-            e = new IntegerExp(loc, alignsize(), Type.tsize_t);
+            const explicitAlignment = alignment();
+            const naturalAlignment = alignsize();
+            const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
+            e = new IntegerExp(loc, actualAlignment, Type.tsize_t);
         }
         else if (ident == Id._init)
         {
