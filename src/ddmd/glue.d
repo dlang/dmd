@@ -293,8 +293,6 @@ void obj_end(Library library, File *objfile)
     }
     objbuf.pend = null;
     objbuf.p = null;
-    objbuf.len = 0;
-    objbuf.inc = 0;
 }
 
 bool obj_includelib(const(char)* name)
