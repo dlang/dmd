@@ -103,6 +103,30 @@ alias GC gc_t;
 
 /* ============================ GC =============================== */
 
+// register GC in C constructor (_STI_)
+extern(C) void _d_register_conservative_gc()
+{
+    import gc.registry;
+    registerGCFactory("conservative", &initialize);
+}
+
+private GC initialize()
+{
+    import core.stdc.string: memcpy;
+
+    auto p = cstdlib.malloc(__traits(classInstanceSize, ConservativeGC));
+
+    if (!p)
+        onOutOfMemoryErrorNoGC();
+
+    auto init = typeid(ConservativeGC).initializer();
+    assert(init.length == __traits(classInstanceSize, ConservativeGC));
+    auto instance = cast(ConservativeGC) memcpy(p, init.ptr, init.length);
+    instance.__ctor();
+
+    return instance;
+}
+
 class ConservativeGC : GC
 {
     // For passing to debug code (not thread safe)
@@ -123,42 +147,6 @@ class ConservativeGC : GC
             onInvalidMemoryOperationError();
         gcLock.lock();
     }
-
-
-    static void initialize(ref GC gc)
-    {
-        import core.stdc.string: memcpy;
-
-        if ((config.gc != "precise") && (config.gc != "conservative"))
-            return;
-
-        if (config.gc == "precise")
-            isPrecise = true;
-
-        auto p = cstdlib.malloc(__traits(classInstanceSize,ConservativeGC));
-
-        if (!p)
-            onOutOfMemoryErrorNoGC();
-
-        auto init = typeid(ConservativeGC).initializer();
-        assert(init.length == __traits(classInstanceSize, ConservativeGC));
-        auto instance = cast(ConservativeGC) memcpy(p, init.ptr, init.length);
-        instance.__ctor();
-
-        gc = instance;
-    }
-
-
-    static void finalize(ref GC gc)
-    {
-        if ((config.gc != "precise") && (config.gc != "conservative"))
-            return;
-
-        auto instance = cast(ConservativeGC) gc;
-        instance.Dtor();
-        cstdlib.free(cast(void*)instance);
-    }
-
 
     this()
     {
@@ -190,6 +178,7 @@ class ConservativeGC : GC
             cstdlib.free(gcx);
             gcx = null;
         }
+        cstdlib.free(cast(void*) this);
     }
 
 

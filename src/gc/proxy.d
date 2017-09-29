@@ -18,6 +18,7 @@ import gc.impl.manual.gc;
 import gc.impl.proto.gc;
 import gc.config;
 import gc.gcinterface;
+import gc.registry : createGCInstance;
 
 static import core.memory;
 
@@ -42,11 +43,8 @@ extern (C)
         if (!isInstanceInit)
         {
             auto protoInstance = instance;
-            config.initialize();
-            ManualGC.initialize(instance);
-            ConservativeGC.initialize(instance);
-
-            if (instance is protoInstance)
+            auto newInstance = createGCInstance(config.gc);
+            if (newInstance is null)
             {
                 import core.stdc.stdio : fprintf, stderr;
                 import core.stdc.stdlib : exit;
@@ -58,7 +56,7 @@ extern (C)
                 // Shouldn't get here.
                 assert(0);
             }
-
+            instance = newInstance;
             // Transfer all ranges and roots to the real GC.
             (cast(ProtoGC) protoInstance).term();
             isInstanceInit = true;
@@ -109,9 +107,9 @@ extern (C)
                     break;
             }
 
-            ManualGC.finalize(instance);
-            ConservativeGC.finalize(instance);
-        }
+        thread_term();
+
+        instance.Dtor();
     }
 
     void gc_enable()
