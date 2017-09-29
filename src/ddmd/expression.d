@@ -7155,6 +7155,7 @@ extern (C++) final class CommaExp : BinExp
         if (ex2.op == TOKerror)
             return ex2;
         e2 = ex2;
+        type = e2.type;
         return this;
     }
 
