@@ -36,7 +36,6 @@ struct SymInfo
 {
     bool canSlice;
     bool accessSlice;   // if Symbol was accessed as a slice
-    bool usePair;       // will need OPpair to recombine sliced fields
     tym_t ty0;          // type of first slice
     tym_t ty1;          // type of second slice
     SYMIDX si0;
@@ -57,8 +56,7 @@ static void sliceStructs_Gather(SymInfo *sia, elem *e)
                     unsigned sz = tysize(e->Ety);
                     if (sz == 2 * REGSIZE && !tyfv(e->Ety))
                     {
-                        // Rewrite as OPpair later
-                        sia[si].usePair = true;
+                        // Rewritten as OPpair later
                     }
                     else if (sz == REGSIZE &&
                         (e->Eoffset == 0 || e->Eoffset == REGSIZE))
@@ -228,7 +226,6 @@ void sliceStructs()
                 anySlice = true;
                 sia[si].canSlice = true;
                 sia[si].accessSlice = false;
-                sia[si].usePair = false;
                 break;
 
             case SCstack:
@@ -264,9 +261,7 @@ void sliceStructs()
             if (sia[si].canSlice)
             {
                 // If never did access it as a slice, don't slice
-                if (!sia[si].accessSlice ||
-                    // OPpair cannot handle XMM registers, cdpair() and fixresult().
-                    sia[si].usePair && (tyfloating(sia[si].ty0) || tyfloating(sia[si].ty1)))
+                if (!sia[si].accessSlice)
                 {
                     sia[si].canSlice = false;
                     continue;
