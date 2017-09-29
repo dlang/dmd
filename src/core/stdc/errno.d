@@ -8,7 +8,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly, Alex Rønne Petersen
- * Source:    $(DRUNTIMESRC core/stdc/_errno.d)
+ * Source:    https://github.com/dlang/druntime/blob/master/src/core/stdc/errno.d
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
@@ -27,15 +27,78 @@ else version (WatchOS)
 nothrow:
 @nogc:
 
-///
-@property int errno() { return getErrno(); }
-///
-@property int errno(int n) { return setErrno(n); }
+version (CRuntime_DigitalMars)
+{
+    extern (C)
+    {
+        ref int _errno();
+        alias errno = _errno;
+    }
+}
+else version (CRuntime_Microsoft)
+{
+    extern (C)
+    {
+        ref int _errno();
+        alias errno = _errno;
+    }
+}
+else version (CRuntime_Glibc)
+{
+    extern (C)
+    {
+        ref int __errno_location();
+        alias errno = __errno_location;
+    }
+}
+else version (FreeBSD)
+{
+    extern (C)
+    {
+        ref int __error();
+        alias errno = __error;
+    }
+}
+else version (linux)
+{
+    extern (C)
+    {
+        ref int __errno_location();
+        alias errno = __errno_location;
+    }
+}
+else version (Darwin)
+{
+    extern (C)
+    {
+        ref int __error();
+        alias errno = __error;
+    }
+}
+else version (OSX)
+{
+    extern (C)
+    {
+        ref int __error();
+        alias errno = __error;
+    }
+}
+else
+{
+    ///
+    @property int errno() { return getErrno(); }
+    ///
+    @property int errno(int n) { return setErrno(n); }
+
+    extern (C)
+    {
+        private int getErrno();      // for internal use
+        private int setErrno(int);   // for internal use
+    }
+}
 
 extern (C):
 
-private extern (C) int getErrno();      // for internal use
-private extern (C) int setErrno(int);   // for internal use
 
 version( Windows )
 {
