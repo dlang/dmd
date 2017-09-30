@@ -5144,6 +5144,12 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(UnitTestDeclaration utd)
     {
+        // The identifier has to be generated here in order for it to be possible
+        // to link regardless of whether the files were compiled separately
+        // or all at once. See:
+        // https://issues.dlang.org/show_bug.cgi?id=16995
+        utd.setIdentifier();
+
         if (utd.semanticRun >= PASSsemanticdone)
             return;
         if (utd._scope)
