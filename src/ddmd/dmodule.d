@@ -319,6 +319,11 @@ extern (C++) final class Module : Package
     int isDocFile;              // if it is a documentation input file, not D source
     bool isPackageFile;         // if it is a package.d
     int needmoduleinfo;
+    /**
+       How many unit tests have been seen so far in this module. Makes it so the
+       unit test name is reproducible regardless of whether it's compiled
+       separately or all at once.
+     */
     uint unitTestCounter;       // how many unittests have been seen so far
     int selfimports;            // 0: don't know, 1: does not, 2: does
 

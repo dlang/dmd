@@ -3182,6 +3182,12 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(utd);
     }
 
+    /**
+       Sets the "real" identifier, replacing the one created in the contructor.
+       The reason for this is that the "real" identifier can only be generated
+       properly in the semantic pass. See:
+       https://issues.dlang.org/show_bug.cgi?id=16995
+     */
     final void setIdentifier()
     {
         ident = createIdentifier(loc, _scope);
@@ -3193,7 +3199,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
      */
     private static Identifier createIdentifier(Loc loc, Scope* sc)
     {
-
         OutBuffer buf;
         auto index = sc ? sc._module.unitTestCounter++ : 0;
         buf.printf("__unittest_%s_%u_%d", loc.filename, loc.linnum, index);
@@ -3203,7 +3208,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         for(int i = 0; str[i] != 0; ++i)
             if(str[i] == '/' || str[i] == '\\' || str[i] == '.') str[i] = '_';
 
-        return Identifier.idPool(buf.peekSlice);
+        return Identifier.idPool(buf.peekSlice());
     }
 
     override AggregateDeclaration isThis()
