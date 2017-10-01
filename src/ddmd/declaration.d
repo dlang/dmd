@@ -520,6 +520,11 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(s);
     }
 
+    static AliasDeclaration create(Loc loc, Identifier id, Type type)
+    {
+        return new AliasDeclaration(loc, id, type);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("AliasDeclaration::syntaxCopy()\n");
@@ -907,8 +912,7 @@ extern (C++) class VarDeclaration : Declaration
         {
             if (!type && !_init)
             {
-                import core.stdc.stdio;
-                printf("VarDeclaration('%s')\n", id.toChars());
+                //printf("VarDeclaration('%s')\n", id.toChars());
                 //*(char*)0=0;
             }
         }

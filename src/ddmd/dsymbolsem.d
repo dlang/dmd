@@ -732,14 +732,10 @@ extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
-        uint fensure_endlin = funcdecl.endloc.linnum;
-        if (funcdecl.fensure)
-            if (auto s = funcdecl.fensure.isScopeStatement())
-                fensure_endlin = s.endloc.linnum;
+        // Remember whether we need to generate an 'out' contract.
+        immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
 
-        funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
-        funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, funcdecl.outId);
-        if (funcdecl.fbody || funcdecl.frequire || funcdecl.fensure)
+        if (funcdecl.fbody || funcdecl.frequire || needEnsure)
         {
             /* Symbol table into which we place parameters and nested functions,
              * solely to diagnose name collisions.
@@ -955,9 +951,17 @@ extern(C++) final class Semantic3Visitor : Visitor
             }
 
             Scope* scout = null;
-            if (funcdecl.fensure || funcdecl.addPostInvariant())
+            if (needEnsure || funcdecl.addPostInvariant())
             {
-                if ((funcdecl.fensure && global.params.useOut) || fpostinv)
+                /* https://issues.dlang.org/show_bug.cgi?id=3657
+                 * Set the correct end line number for fensure scope.
+                 */
+                uint fensure_endlin = funcdecl.endloc.linnum;
+                if (funcdecl.fensure)
+                    if (auto s = funcdecl.fensure.isScopeStatement())
+                        fensure_endlin = s.endloc.linnum;
+
+                if ((needEnsure && global.params.useOut) || fpostinv)
                 {
                     funcdecl.returnLabel = new LabelDsymbol(Id.returnLabel);
                 }
@@ -1280,6 +1284,83 @@ extern(C++) final class Semantic3Visitor : Visitor
                 sc2 = sc2.pop();
             }
 
+            /* https://issues.dlang.org/show_bug.cgi?id=17502
+             * Wait until after the return type has been inferred before
+             * generating the contracts for this function, and merging contracts
+             * from overrides.
+             *
+             * This was originally at the end of the first semantic pass, but
+             * required a fix-up to be done here for the '__result' variable
+             * type of __ensure() inside auto functions, but this didn't work
+             * if the out parameter was implicit.
+             */
+            if (funcdecl.isVirtual())
+            {
+                /* Rewrite contracts as nested functions, then call them.
+                 * Doing it as nested functions means that overriding functions
+                 * can call them.
+                 */
+                if (funcdecl.frequire)
+                {
+                    /*   in { ... }
+                     * becomes:
+                     *   void __require() { ... }
+                     *   __require();
+                     */
+                    Loc loc = funcdecl.frequire.loc;
+                    auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
+                    tf.isnothrow = f.isnothrow;
+                    tf.isnogc = f.isnogc;
+                    tf.purity = f.purity;
+                    tf.trust = f.trust;
+                    auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
+                    fd.fbody = funcdecl.frequire;
+                    Statement s1 = new ExpStatement(loc, fd);
+                    Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+                    Statement s2 = new ExpStatement(loc, e);
+                    funcdecl.frequire = new CompoundStatement(loc, s1, s2);
+                    funcdecl.fdrequire = fd;
+                }
+
+                if (!funcdecl.outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
+                    funcdecl.outId = Id.result; // provide a default
+
+                if (funcdecl.fensure)
+                {
+                    /*   out (result) { ... }
+                     * becomes:
+                     *   void __ensure(ref tret result) { ... }
+                     *   __ensure(result);
+                     */
+                    Loc loc = funcdecl.fensure.loc;
+                    auto fparams = new Parameters();
+                    Parameter p = null;
+                    if (funcdecl.outId)
+                    {
+                        p = new Parameter(STCref | STCconst, f.nextOf(), funcdecl.outId, null);
+                        fparams.push(p);
+                    }
+                    auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
+                    tf.isnothrow = f.isnothrow;
+                    tf.isnogc = f.isnogc;
+                    tf.purity = f.purity;
+                    tf.trust = f.trust;
+                    auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
+                    fd.fbody = funcdecl.fensure;
+                    Statement s1 = new ExpStatement(loc, fd);
+                    Expression eresult = null;
+                    if (funcdecl.outId)
+                        eresult = new IdentifierExp(loc, funcdecl.outId);
+                    Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+                    Statement s2 = new ExpStatement(loc, e);
+                    funcdecl.fensure = new CompoundStatement(loc, s1, s2);
+                    funcdecl.fdensure = fd;
+                }
+            }
+
+            funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
+            funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, funcdecl.outId);
+
             Statement freq = funcdecl.frequire;
             Statement fens = funcdecl.fensure;
 
@@ -1321,16 +1402,6 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                 // BUG: need to treat parameters as const
                 // BUG: need to disallow returns and throws
-                if (funcdecl.inferRetType && funcdecl.fdensure && funcdecl.fdensure.type.toTypeFunction().parameters)
-                {
-                    // Return type was unknown in the first semantic pass
-                    auto out_params = (cast(TypeFunction)funcdecl.fdensure.type).parameters;
-                    if (out_params.dim > 0)
-                    {
-                        Parameter p = (*out_params)[0];
-                        p.type = f.next;
-                    }
-                }
 
                 if (funcdecl.fensure && f.next.ty != Tvoid)
                     funcdecl.buildResultVar(scout, f.next);
@@ -4705,70 +4776,6 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (funcdecl.isMain())
             funcdecl.checkDmain();       // Check main() parameters and return type
-
-        if (funcdecl.isVirtual() && funcdecl.semanticRun != PASSsemanticdone)
-        {
-            /* Rewrite contracts as nested functions, then call them.
-             * Doing it as nested functions means that overriding functions
-             * can call them.
-             */
-            if (funcdecl.frequire)
-            {
-                /*   in { ... }
-                 * becomes:
-                 *   void __require() { ... }
-                 *   __require();
-                 */
-                Loc loc = funcdecl.frequire.loc;
-                auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
-                tf.isnothrow = f.isnothrow;
-                tf.isnogc = f.isnogc;
-                tf.purity = f.purity;
-                tf.trust = f.trust;
-                auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
-                fd.fbody = funcdecl.frequire;
-                Statement s1 = new ExpStatement(loc, fd);
-                Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
-                Statement s2 = new ExpStatement(loc, e);
-                funcdecl.frequire = new CompoundStatement(loc, s1, s2);
-                funcdecl.fdrequire = fd;
-            }
-
-            if (!funcdecl.outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
-                funcdecl.outId = Id.result; // provide a default
-
-            if (funcdecl.fensure)
-            {
-                /*   out (result) { ... }
-                 * becomes:
-                 *   void __ensure(ref tret result) { ... }
-                 *   __ensure(result);
-                 */
-                Loc loc = funcdecl.fensure.loc;
-                auto fparams = new Parameters();
-                Parameter p = null;
-                if (funcdecl.outId)
-                {
-                    p = new Parameter(STCref | STCconst, f.nextOf(), funcdecl.outId, null);
-                    fparams.push(p);
-                }
-                auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
-                tf.isnothrow = f.isnothrow;
-                tf.isnogc = f.isnogc;
-                tf.purity = f.purity;
-                tf.trust = f.trust;
-                auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
-                fd.fbody = funcdecl.fensure;
-                Statement s1 = new ExpStatement(loc, fd);
-                Expression eresult = null;
-                if (funcdecl.outId)
-                    eresult = new IdentifierExp(loc, funcdecl.outId);
-                Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
-                Statement s2 = new ExpStatement(loc, e);
-                funcdecl.fensure = new CompoundStatement(loc, s1, s2);
-                funcdecl.fdensure = fd;
-            }
-        }
 
     Ldone:
         /* Purity and safety can be inferred for some functions by examining

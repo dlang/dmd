@@ -417,6 +417,7 @@ class TypeVector : public Type
 public:
     Type *basetype;
 
+    static TypeVector *create(Loc loc, Type *basetype);
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
@@ -516,6 +517,7 @@ public:
 class TypePointer : public TypeNext
 {
 public:
+    static TypePointer *create(Type *t);
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc) /*const*/;
@@ -623,6 +625,7 @@ class TypeDelegate : public TypeNext
 public:
     // .next is a TypeFunction
 
+    static TypeDelegate *create(Type *t);
     const char *kind();
     Type *syntaxCopy();
     Type *addStorageClass(StorageClass stc);
@@ -730,6 +733,7 @@ public:
     AliasThisRec att;
     CPPMANGLE cppmangle;
 
+    static TypeStruct *create(StructDeclaration *sym);
     const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();

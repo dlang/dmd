@@ -108,11 +108,7 @@ struct Prot
     PROTKIND kind;
     Package *pkg;
 
-    Prot();
-    Prot(PROTKIND kind);
-
     bool isMoreRestrictiveThan(const Prot other) const;
-    bool operator==(const Prot& other) const;
     bool isSubsetOf(const Prot& other) const;
 };
 
@@ -314,6 +310,7 @@ public:
     const char *kind();
     FuncDeclaration *findGetMembers();
     virtual Dsymbol *symtabInsert(Dsymbol *s);
+    virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
     bool hasStaticCtorOrDtor();
 
     static size_t dim(Dsymbols *members);

@@ -89,7 +89,6 @@ public:
     virtual bool hasBreak();
     virtual bool hasContinue();
     bool usesEH();
-    int blockExit(FuncDeclaration *func, bool mustNotThrow);
     bool comeFrom();
     bool hasCode();
     virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
