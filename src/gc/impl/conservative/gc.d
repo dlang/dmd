@@ -164,7 +164,7 @@ class ConservativeGC : GC
     }
 
 
-    void Dtor()
+    ~this()
     {
         version (linux)
         {

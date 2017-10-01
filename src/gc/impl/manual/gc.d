@@ -67,7 +67,7 @@ class ManualGC : GC
     {
     }
 
-    void Dtor()
+    ~this()
     {
         cstdlib.free(cast(void*) this);
     }

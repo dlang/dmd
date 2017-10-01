@@ -13,7 +13,8 @@ import gc.gcinterface : GC;
 
 /**
  * A factory function that instantiates an implementation of the GC interface.
- * The instance is supposed to free itself upon calling it's Dtor function.
+ * In case the instance was allocated on the C heap, it is supposed to
+ * free itself upon calling it's destructor.
  *
  * The factory should print an error and abort the program if it
  * cannot successfully initialize the GC instance.

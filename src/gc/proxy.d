@@ -109,7 +109,7 @@ extern (C)
 
         thread_term();
 
-        instance.Dtor();
+        destroy(instance);
     }
 
     void gc_enable()
