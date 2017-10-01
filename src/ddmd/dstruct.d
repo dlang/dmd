@@ -263,6 +263,11 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             Module.moduleinfo = this;
     }
 
+    static StructDeclaration create(Loc loc, Identifier id)
+    {
+        return new StructDeclaration(loc, id);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         StructDeclaration sd =

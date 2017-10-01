@@ -264,6 +264,11 @@ extern (C++) class FuncDeclaration : Declaration
         inferRetType = (type && type.nextOf() is null);
     }
 
+    static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    {
+        return new FuncDeclaration(loc, endloc, id, storage_class, type);
+    }
+
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         //printf("FuncDeclaration::syntaxCopy('%s')\n", toChars());
@@ -1829,14 +1834,13 @@ extern (C++) class FuncDeclaration : Declaration
          *     a stack local, allocate that local immediately following the exception
          *     handler block, so it is always at the same offset from EBP.
          */
-        for (size_t i = 0; i < foverrides.dim; i++)
+        foreach (fdv; foverrides)
         {
-            FuncDeclaration fdv = foverrides[i];
-
             /* The semantic pass on the contracts of the overridden functions must
-             * be completed before code generation occurs (bug 3602).
+             * be completed before code generation occurs.
+             * https://issues.dlang.org/show_bug.cgi?id=3602
              */
-            if (fdv.fdrequire && fdv.fdrequire.semanticRun != PASSsemantic3done)
+            if (fdv.frequire && fdv.semanticRun != PASSsemantic3done)
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
@@ -1870,6 +1874,27 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
+     * Determine whether an 'out' contract is declared inside
+     * the given function or any of its overrides.
+     * Params:
+     *      fd = the function to search
+     * Returns:
+     *      true    found an 'out' contract
+     */
+    static bool needsFensure(FuncDeclaration fd)
+    {
+        if (fd.fensure)
+            return true;
+
+        foreach (fdv; fd.foverrides)
+        {
+            if (needsFensure(fdv))
+                return true;
+        }
+        return false;
+    }
+
+    /****************************************************
      * Merge into this function the 'out' contracts of all it overrides.
      * 'out's are AND'd together, i.e. all of them need to pass.
      */
@@ -1884,14 +1909,14 @@ extern (C++) class FuncDeclaration : Declaration
          * list for the 'this' pointer, something that would need an unknown amount
          * of tweaking of various parts of the compiler that I'd rather leave alone.
          */
-        for (size_t i = 0; i < foverrides.dim; i++)
+        foreach (fdv; foverrides)
         {
-            FuncDeclaration fdv = foverrides[i];
-
             /* The semantic pass on the contracts of the overridden functions must
-             * be completed before code generation occurs (bug 3602 and 5230).
+             * be completed before code generation occurs.
+             * https://issues.dlang.org/show_bug.cgi?id=3602 and
+             * https://issues.dlang.org/show_bug.cgi?id=5230
              */
-            if (fdv.fdensure && fdv.fdensure.semanticRun != PASSsemantic3done)
+            if (needsFensure(fdv) && fdv.semanticRun != PASSsemantic3done)
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();

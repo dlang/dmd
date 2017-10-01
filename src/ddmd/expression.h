@@ -55,8 +55,6 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-void initPrecedence();
-
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
@@ -214,6 +212,11 @@ public:
         return ::op_overload(this, sc);
     }
 
+    virtual bool hasCode()
+    {
+        return true;
+    }
+
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -222,6 +225,7 @@ class IntegerExp : public Expression
 public:
     dinteger_t value;
 
+    static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     real_t toReal();
@@ -249,6 +253,7 @@ class RealExp : public Expression
 public:
     real_t value;
 
+    static RealExp *create(Loc loc, real_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -264,6 +269,7 @@ class ComplexExp : public Expression
 public:
     complex_t value;
 
+    static ComplexExp *create(Loc loc, complex_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -343,6 +349,7 @@ public:
     OwnedBy ownedByCtfe;
 
     static StringExp *create(Loc loc, char *s);
+    static StringExp *create(Loc loc, void *s, size_t len);
     bool equals(RootObject *o);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
@@ -386,6 +393,7 @@ public:
     Expressions *elements;
     OwnedBy ownedByCtfe;
 
+    static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
@@ -512,6 +520,7 @@ public:
     NewDeclaration *allocator;  // allocator function
     int onstack;                // allocate on stack
 
+    static NewExp *create(Loc loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -611,6 +620,8 @@ public:
     Dsymbol *declaration;
 
     Expression *syntaxCopy();
+
+    bool hasCode();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -881,6 +892,7 @@ public:
     TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
 
+    static VectorExp *create(Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -974,6 +986,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     bool isBool(bool result);
+    Expression *toBoolean(Scope *sc);
     Expression *addDtorHook(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };

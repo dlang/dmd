@@ -420,6 +420,8 @@ public:
 
     void jsonProperties(Declaration d)
     {
+        if (d.storage_class & STClocal)
+            return;
         jsonProperties(cast(Dsymbol)d);
         propertyStorageClass("storageClass", d.storage_class);
         property("type", "deco", d.type);
@@ -755,6 +757,8 @@ public:
 
     override void visit(VarDeclaration d)
     {
+        if (d.storage_class & STClocal)
+            return;
         objectStart();
         jsonProperties(d);
         if (d._init)

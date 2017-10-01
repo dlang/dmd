@@ -2476,7 +2476,6 @@ else
                     sw.hasVars = 1;
 
                     /* TODO check if v can be uninitialized at that point.
-                     * Also check if the VarExp is declared in a scope outside of this one
                      */
                     if (!v.isConst() && !v.isImmutable())
                     {
@@ -2487,6 +2486,24 @@ else
                     {
                         cs.error("case variables not allowed in final switch statements");
                         errors = true;
+                    }
+
+                    /* Find the outermost scope `scx` that set `sw`.
+                     * Then search scope `scx` for a declaration of `v`.
+                     */
+                    for (Scope* scx = sc; scx; scx = scx.enclosing)
+                    {
+                        if (scx.enclosing && scx.enclosing.sw == sw)
+                            continue;
+                        assert(scx.sw == sw);
+
+                        if (!scx.search(cs.exp.loc, v.ident, null))
+                        {
+                            cs.error("case variable `%s` declared at %s cannot be declared in switch body",
+                                v.toChars(), v.loc.toChars());
+                            errors = true;
+                        }
+                        break;
                     }
                     goto L1;
                 }
