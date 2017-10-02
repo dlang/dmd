@@ -721,27 +721,27 @@ Language changes listed by -transition=id:
      */
     if (global.params.addMain)
     {
-        for (size_t i = 0; 1; i++)
+        bool added = false;
+        foreach (m; modules)
         {
-            assert(i != modules.dim);
-            Module m = modules[i];
             if (strcmp(m.srcfile.name.str, global.main_d) == 0)
             {
                 string buf = "int main(){return 0;}";
                 m.srcfile.setbuffer(cast(void*)buf.ptr, buf.length);
                 m.srcfile._ref = 1;
+                added = true;
                 break;
             }
         }
+        assert(added);
     }
     enum ASYNCREAD = false;
     static if (ASYNCREAD)
     {
         // Multi threaded
         AsyncRead* aw = AsyncRead.create(modules.dim);
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             aw.addFile(m.srcfile);
         }
         aw.start();
@@ -749,9 +749,8 @@ Language changes listed by -transition=id:
     else
     {
         // Single threaded
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             m.read(Loc());
         }
     }
@@ -816,9 +815,8 @@ Language changes listed by -transition=id:
          * line switches and what else is imported, they are generated
          * before any semantic analysis.
          */
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "import    %s\n", m.toChars());
             genhdrfile(m);
@@ -828,9 +826,8 @@ Language changes listed by -transition=id:
         fatal();
 
     // load all unconditional imports for better symbol resolving
-    for (size_t i = 0; i < modules.dim; i++)
+    foreach (m; modules)
     {
-        Module m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "importall %s\n", m.toChars());
         m.importAll(null);
@@ -841,9 +838,8 @@ Language changes listed by -transition=id:
     backend_init();
 
     // Do semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    foreach (m; modules)
     {
-        Module m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
         m.semantic(null);
@@ -863,9 +859,8 @@ Language changes listed by -transition=id:
     }
 
     // Do pass 2 semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    foreach (m; modules)
     {
-        Module m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
         m.semantic2(null);
@@ -875,9 +870,8 @@ Language changes listed by -transition=id:
         fatal();
 
     // Do pass 3 semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    foreach (m; modules)
     {
-        Module m = modules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
         m.semantic3(null);
@@ -889,9 +883,8 @@ Language changes listed by -transition=id:
     // Scan for functions to inline
     if (global.params.useInline)
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "inline scan %s\n", m.toChars());
             inlineScanModule(m);
@@ -973,9 +966,8 @@ Language changes listed by -transition=id:
     }
     if (!global.errors && global.params.doDocComments)
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             gendocfile(m);
         }
     }
@@ -1010,9 +1002,8 @@ Language changes listed by -transition=id:
     {
         if (modules.dim)
             obj_start(cast(char*)modules[0].srcfile.toChars());
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m.toChars());
             genObjFile(m, false);
@@ -1026,9 +1017,8 @@ Language changes listed by -transition=id:
     }
     else
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        foreach (m; modules)
         {
-            Module m = modules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m.toChars());
             obj_start(cast(char*)m.srcfile.toChars());
@@ -1063,9 +1053,9 @@ Language changes listed by -transition=id:
                 status = runProgram();
                 /* Delete .obj files and .exe file
                  */
-                for (size_t i = 0; i < modules.dim; i++)
+                foreach (m; modules)
                 {
-                    modules[i].deleteObjFile();
+                    m.deleteObjFile();
                     if (global.params.oneobj)
                         break;
                 }
