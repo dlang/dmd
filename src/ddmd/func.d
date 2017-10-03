@@ -1306,8 +1306,10 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /********************************************
-     * Returns true if the function return value has no indirection
-     * which comes from the parameters.
+     * See if pointers from function parameters do not leak into return value.
+     * Returns:
+     *   true if the function return value has no indirection
+     *   which comes from the parameters
      */
     final bool isolateReturn()
     {
@@ -1315,18 +1317,60 @@ extern (C++) class FuncDeclaration : Declaration
         assert(tf.next);
 
         Type treti = tf.next;
-        treti = tf.isref ? treti : getIndirection(treti);
-        if (!treti)
-            return true; // target has no mutable indirection
-        return parametersIntersect(treti);
+        if (tf.isref)
+            return parametersIntersect(treti);
+
+        return parametersIntersectIndirect(treti);
+    }
+
+    /********************
+     * Goes down one level of indirection, then calls parametersIntersect() on
+     * the result.
+     * Returns:
+     *  result of parametersIntersect()
+     */
+    bool parametersIntersectIndirect(Type t)
+    {
+        //printf("parametersIntersectIndirect(t: %s)\n", t.toChars());
+        t = t.baseElemOf();
+        switch (t.ty)
+        {
+            case Tarray:
+            case Tpointer:
+                return parametersIntersect(t.nextOf()); // go down one level
+
+            case Taarray:
+            case Tclass:
+                return parametersIntersect(t);
+
+            case Tstruct:
+                /* Drill down and check the struct's fields
+                 */
+                auto sym = t.toDsymbol(null).isStructDeclaration();
+                foreach (v; sym.fields)
+                {
+                    Type tmi = v.type.addMod(t.mod);
+                    //printf("\tt = %s, tmi = %s\n", t.toChars(), tmi.toChars());
+                    if (!parametersIntersectIndirect(tmi))
+                        return false;
+                }
+                return true;
+
+            default:
+                return true;
+        }
     }
 
     /********************************************
-     * Returns true if an object typed t can have indirections
-     * which come from the parameters.
+     * Params:
+     *    t = type of object to test one level of indirection down
+     * Returns:
+     *    true if an object typed t has no indirections
+     *    which could have come from the this function's parameters.
      */
     final bool parametersIntersect(Type t)
     {
+        //printf("parametersIntersect(t: %s)\n", t.toChars());
         assert(t);
         if (!isPureBypassingInference() || isNested())
             return false;
@@ -1339,16 +1383,57 @@ extern (C++) class FuncDeclaration : Declaration
         for (size_t i = 0; i < dim; i++)
         {
             Parameter fparam = Parameter.getNth(tf.parameters, i);
-            if (!fparam.type)
+            Type tp = fparam.type;
+            if (!tp)
                 continue;
-            Type tprmi = (fparam.storageClass & (STClazy | STCout | STCref)) ? fparam.type : getIndirection(fparam.type);
-            if (!tprmi)
-                continue; // there is no mutable indirection
 
-            //printf("\t[%d] tprmi = %d %s\n", i, tprmi.ty, tprmi.toChars());
-            if (traverseIndirections(tprmi, t))
+            if (fparam.storageClass & (STClazy | STCout | STCref))
+            {
+                if (traverseIndirections(tp, t))
+                    return false;
+                continue;
+            }
+
+            /* Goes down one level of indirection, then calls traverseIndirection() on
+             * the result.
+             * Returns:
+             *  true if tp, one level down, can be used to construct a t
+             */
+            static bool traverse(Type tp, Type t)
+            {
+                tp = tp.baseElemOf();
+                switch (tp.ty)
+                {
+                    case Tarray:
+                    case Tpointer:
+                        return traverseIndirections(tp.nextOf(), t);
+
+                    case Taarray:
+                    case Tclass:
+                        return traverseIndirections(tp, t);
+
+                    case Tstruct:
+                        /* Drill down and check the struct's fields
+                         */
+                        auto sym = tp.toDsymbol(null).isStructDeclaration();
+                        foreach (v; sym.fields)
+                        {
+                            Type tprmi = v.type.addMod(tp.mod);
+                            //printf("\ttp = %s, tprmi = %s\n", tp.toChars(), tprmi.toChars());
+                            if (traverse(tprmi, t))
+                                return true;
+                        }
+                        return false;
+
+                    default:
+                        return false;
+                }
+            }
+
+            if (traverse(tp, t))
                 return false;
         }
+        // The 'this' reference is a parameter, too
         if (AggregateDeclaration ad = isCtorDeclaration() ? null : isThis())
         {
             Type tthis = ad.getType().addMod(tf.mod);
@@ -2483,78 +2568,107 @@ extern (C++) Type getIndirection(Type t)
  * a `const(int)` reference can point to a pre-existing `int`, but not the other
  * way round.
  *
+ * Examples:
+ *
+ *      ta,           tb,               result
+ *      `const(int)`, `int`,            `false`
+ *      `int`,        `const(int)`,     `true`
+ *      `int`,        `immutable(int)`, `false`
+ *      const(immutable(int)*), immutable(int)*, false   // BUG: returns true
+ *
+ * Params:
+ *      ta = value type being referred to
+ *      tb = referred to value type that could be constructed from ta
+ *
  * Returns:
- *      true if so
+ *      true if reference to `tb` could be constructed from reference to `ta`
  */
 private bool traverseIndirections(Type ta, Type tb)
 {
-    // To handle arbitrary levels of indirections in both parameters, we
-    // recursively descend into aggregate members/levels of indirection in both
-    // `ta` and `tb` while avoiding cycles. Start with the original types.
-    return traverseIndirectionsImpl(ta, tb, null, false);
-}
-private bool traverseIndirectionsImpl(Type ta, Type tb, void* p, bool reversePass)
-{
-    // First, check if the pointed-to types are convertible to each other such
-    // that they might alias directly.
-    static mayAliasDirect(Type source, Type target)
-    {
-        return source.constConv(target) ||
-            (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod));
-    }
+    //printf("traverseIndirections(%s, %s)\n", ta.toChars(), tb.toChars());
 
-    if (mayAliasDirect(reversePass ? tb : ta, reversePass ? ta : tb))
-        return true;
-
-    // No direct match, so try breaking up one of the types (starting with tb).
-    Type tbb = tb.toBasetype().baseElemOf();
-    if (tbb != tb)
-        return traverseIndirectionsImpl(ta, tbb, p, reversePass);
-
-    // context data to detect circular look up
+    /* Threaded list of aggregate types already examined,
+     * used to break cycles.
+     * Cycles in type graphs can only occur with aggregates.
+     */
     static struct Ctxt
     {
         Ctxt* prev;
-        Type type;
+        Type type;      // an aggregate type
     }
 
-    Ctxt* ctxt = cast(Ctxt*)p;
-    if (tb.ty == Tclass || tb.ty == Tstruct)
+    static bool traverse(Type ta, Type tb, Ctxt* ctxt, bool reversePass)
     {
-        for (Ctxt* c = ctxt; c; c = c.prev)
-            if (tb == c.type)
-                return false;
-        Ctxt c;
-        c.prev = ctxt;
-        c.type = tb;
+        ta = ta.baseElemOf();
+        tb = tb.baseElemOf();
 
-        AggregateDeclaration sym = tb.toDsymbol(null).isAggregateDeclaration();
-        for (size_t i = 0; i < sym.fields.dim; i++)
+        // First, check if the pointed-to types are convertible to each other such
+        // that they might alias directly.
+        static bool mayAliasDirect(Type source, Type target)
         {
-            VarDeclaration v = sym.fields[i];
-            Type tprmi = v.type.addMod(tb.mod);
-            //printf("\ttb = %s, tprmi = %s\n", tb.toChars(), tprmi.toChars());
-            if (traverseIndirectionsImpl(ta, tprmi, &c, reversePass))
+            return
+                // if source is the same as target or can be const-converted to target
+                source.constConv(target) != MATCHnomatch ||
+                // if target is void and source can be const-converted to target
+                (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod));
+        }
+
+        if (mayAliasDirect(reversePass ? tb : ta, reversePass ? ta : tb))
+        {
+            //printf(" true  mayalias %s %s %d\n", ta.toChars(), tb.toChars(), reversePass);
+            return true;
+        }
+        if (ta.nextOf() && ta.nextOf() == tb.nextOf())
+        {
+             //printf(" next==next %s %s %d\n", ta.toChars(), tb.toChars(), reversePass);
+             return false;
+        }
+
+        if (tb.ty == Tclass || tb.ty == Tstruct)
+        {
+            for (Ctxt* c = ctxt; c; c = c.prev)
+                if (tb == c.type)
+                    return false;
+            Ctxt c;
+            c.prev = ctxt;
+            c.type = tb;
+
+            /* Traverse the type of each field of the aggregate
+             */
+            AggregateDeclaration sym = tb.toDsymbol(null).isAggregateDeclaration();
+            foreach (v; sym.fields)
+            {
+                Type tprmi = v.type.addMod(tb.mod);
+                //printf("\ttb = %s, tprmi = %s\n", tb.toChars(), tprmi.toChars());
+                if (traverse(ta, tprmi, &c, reversePass))
+                    return true;
+            }
+        }
+        else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
+        {
+            Type tind = tb.nextOf();
+            if (traverse(ta, tind, ctxt, reversePass))
                 return true;
         }
-    }
-    else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
-    {
-        Type tind = tb.nextOf();
-        if (traverseIndirectionsImpl(ta, tind, ctxt, reversePass))
+        else if (tb.hasPointers())
+        {
+            // BUG: consider the context pointer of delegate types
             return true;
-    }
-    else if (tb.hasPointers())
-    {
-        // FIXME: function pointer/delegate types should be considered.
-        return true;
+        }
+
+        // Still no match, so try breaking up ta if we have not done so yet.
+        if (!reversePass)
+            return traverse(tb, ta, ctxt, true);
+
+        return false;
     }
 
-    // Still no match, so try breaking up ta if we have not done so yet.
-    if (!reversePass)
-        return traverseIndirectionsImpl(tb, ta, ctxt, true);
-
-    return false;
+    // To handle arbitrary levels of indirections in both parameters, we
+    // recursively descend into aggregate members/levels of indirection in both
+    // `ta` and `tb` while avoiding cycles. Start with the original types.
+    const result = traverse(ta, tb, null, false);
+    //printf("  returns %d\n", result);
+    return result;
 }
 
 /* For all functions between outerFunc and f, mark them as needing
