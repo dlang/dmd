@@ -468,7 +468,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isDeprecated)
     {
-      return isDsymX(t => t.isDeprecated());
+        return isDsymX(t => t.isDeprecated());
     }
     if (e.ident == Id.isStaticArray)
     {
