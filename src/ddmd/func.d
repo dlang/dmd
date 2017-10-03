@@ -2471,37 +2471,45 @@ extern (C++) Type getIndirection(Type t)
 }
 
 /**************************************
- * Returns true if memory reachable through a reference B to a value of type tb,
- * which has been constructed with a reference A to a value of type ta
- * available, can alias memory reachable from A based on the types involved
- * (either directly or via any number of indirections).
+ * Performs type-based alias analysis between a newly created value and a pre-
+ * existing memory reference:
  *
- * This relation is not symmetric in the two arguments. For example,
- * a const(int) reference can point to a pre-existing int, but not the other
+ * Assuming that a reference A to a value of type `ta` was available to the code
+ * that created a reference B to a value of type `tb`, it returns whether B
+ * might alias memory reachable from A based on the types involved (either
+ * directly or via any number of indirections in either A or B).
+ *
+ * This relation is not symmetric in the two arguments. For example, a
+ * a `const(int)` reference can point to a pre-existing `int`, but not the other
  * way round.
  *
  * Returns:
  *      true if so
  */
-private bool traverseIndirections(Type ta, Type tb, void* p = null, bool reversePass = false)
+private bool traverseIndirections(Type ta, Type tb)
 {
-    Type source = ta;
-    Type target = tb;
-    if (reversePass)
+    // To handle arbitrary levels of indirections in both parameters, we
+    // recursively descend into aggregate members/levels of indirection in both
+    // `ta` and `tb` while avoiding cycles. Start with the original types.
+    return traverseIndirectionsImpl(ta, tb, null, false);
+}
+private bool traverseIndirectionsImpl(Type ta, Type tb, void* p, bool reversePass)
+{
+    // First, check if the pointed-to types are convertible to each other such
+    // that they might alias directly.
+    static mayAliasDirect(Type source, Type target)
     {
-        source = tb;
-        target = ta;
+        return source.constConv(target) ||
+            (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod));
     }
 
-    if (source.constConv(target))
-        return true;
-    else if (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod))
+    if (mayAliasDirect(reversePass ? tb : ta, reversePass ? ta : tb))
         return true;
 
     // No direct match, so try breaking up one of the types (starting with tb).
     Type tbb = tb.toBasetype().baseElemOf();
     if (tbb != tb)
-        return traverseIndirections(ta, tbb, p, reversePass);
+        return traverseIndirectionsImpl(ta, tbb, p, reversePass);
 
     // context data to detect circular look up
     static struct Ctxt
@@ -2526,14 +2534,14 @@ private bool traverseIndirections(Type ta, Type tb, void* p = null, bool reverse
             VarDeclaration v = sym.fields[i];
             Type tprmi = v.type.addMod(tb.mod);
             //printf("\ttb = %s, tprmi = %s\n", tb.toChars(), tprmi.toChars());
-            if (traverseIndirections(ta, tprmi, &c, reversePass))
+            if (traverseIndirectionsImpl(ta, tprmi, &c, reversePass))
                 return true;
         }
     }
     else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
     {
         Type tind = tb.nextOf();
-        if (traverseIndirections(ta, tind, ctxt, reversePass))
+        if (traverseIndirectionsImpl(ta, tind, ctxt, reversePass))
             return true;
     }
     else if (tb.hasPointers())
@@ -2542,9 +2550,9 @@ private bool traverseIndirections(Type ta, Type tb, void* p = null, bool reverse
         return true;
     }
 
-    // Still no match, so try breaking up ta if we have note done so yet.
+    // Still no match, so try breaking up ta if we have not done so yet.
     if (!reversePass)
-        return traverseIndirections(tb, ta, ctxt, true);
+        return traverseIndirectionsImpl(tb, ta, ctxt, true);
 
     return false;
 }
