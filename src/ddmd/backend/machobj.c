@@ -1662,24 +1662,9 @@ void Obj::compiler()
  *              3:      compiler
  */
 
-void Obj::staticctor(Symbol *s,int dtor,int none)
+void Obj::staticctor(Symbol *s, int, int)
 {
-#if 0
-    IDXSEC seg;
-    Outbuffer *buf;
-
-    //dbg_printf("Obj::staticctor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    s->Sseg = seg =
-        ElfObj::getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-        buf->write64(s->Soffset);
-    else
-        buf->write32(s->Soffset);
-    MachObj::addrel(seg, SegData[seg]->SDoffset, s, RELaddr);
-    SegData[seg]->SDoffset = buf->size();
-#endif
+    setModuleCtorDtor(s, true);
 }
 
 /**************************************
@@ -1692,21 +1677,7 @@ void Obj::staticctor(Symbol *s,int dtor,int none)
 
 void Obj::staticdtor(Symbol *s)
 {
-#if 0
-    IDXSEC seg;
-    Outbuffer *buf;
-
-    //dbg_printf("Obj::staticdtor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    seg = ElfObj::getsegment(".dtors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-        buf->write64(s->Soffset);
-    else
-        buf->write32(s->Soffset);
-    MachObj::addrel(seg, SegData[seg]->SDoffset, s, RELaddr);
-    SegData[seg]->SDoffset = buf->size();
-#endif
+    setModuleCtorDtor(s, false);
 }
 
 
@@ -1715,9 +1686,16 @@ void Obj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
+void Obj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    //dbg_printf("Obj::setModuleCtorDtor(%s) \n",s->Sident);
+    const char *secname = isCtor ? "__mod_init_func" : "__mod_term_func";
+    const int align = I64 ? 3 : 2; // align to NPTRSIZE
+    const int flags = isCtor ? S_MOD_INIT_FUNC_POINTERS : S_MOD_TERM_FUNC_POINTERS;
+    IDXSEC seg = MachObj::getsegment(secname, "__DATA", align, flags);
+
+    const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
+    const int sz = Obj::reftoident(seg, SegData[seg]->SDoffset, sfunc, 0, relflags);
+    SegData[seg]->SDoffset += sz;
 }
 
 

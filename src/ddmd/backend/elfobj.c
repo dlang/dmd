@@ -1625,16 +1625,9 @@ void Obj::compiler()
  *              3:      compiler
  */
 
-void Obj::staticctor(Symbol *s,int dtor,int none)
+void Obj::staticctor(Symbol *s, int, int)
 {
-    // Static constructors and destructors
-    //dbg_printf("Obj::staticctor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    const IDXSEC seg = s->Sseg =
-        ElfObj::getsegment(".ctors", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, 4);
-    const unsigned relinfo = I64 ? R_X86_64_64 : R_386_32;
-    const size_t sz = ElfObj::writerel(seg, SegData[seg]->SDoffset, relinfo, STI_TEXT, s->Soffset);
-    SegData[seg]->SDoffset += sz;
+    setModuleCtorDtor(s, true);
 }
 
 /**************************************
@@ -1647,14 +1640,7 @@ void Obj::staticctor(Symbol *s,int dtor,int none)
 
 void Obj::staticdtor(Symbol *s)
 {
-    //dbg_printf("Obj::staticdtor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    // Why does this sequence differ from staticctor, looks like a bug?
-    const IDXSEC seg =
-        ElfObj::getsegment(".dtors", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, 4);
-    const unsigned relinfo = I64 ? R_X86_64_64 : R_386_32;
-    const size_t sz = ElfObj::writerel(seg, SegData[seg]->SDoffset, relinfo, s->Sxtrnnum, s->Soffset);
-    SegData[seg]->SDoffset += sz;
+    setModuleCtorDtor(s, false);
 }
 
 /***************************************
@@ -1662,9 +1648,12 @@ void Obj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
+void Obj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    //dbg_printf("Obj::setModuleCtorDtor(%s) \n",s->Sident);
+    IDXSEC seg = ElfObj::getsegment(isCtor ? ".ctors" : ".dtors", NULL, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, NPTRSIZE);
+    const unsigned reltype = I64 ? R_X86_64_64 : R_386_32;
+    const size_t sz = ElfObj::writerel(seg, SegData[seg]->SDoffset, reltype, sfunc->Sxtrnnum, 0);
+    SegData[seg]->SDoffset += sz;
 }
 
 

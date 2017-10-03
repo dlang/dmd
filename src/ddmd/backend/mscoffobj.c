@@ -1129,22 +1129,7 @@ void MsCoffObj::compiler()
 
 void MsCoffObj::staticctor(Symbol *s,int dtor,int none)
 {
-#if 0
-    IDXSEC seg;
-    Outbuffer *buf;
-
-    //dbg_printf("MsCoffObj::staticctor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    s->Sseg = seg =
-        MsCoffObj::getsegment(".ctors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-        buf->write64(s->Soffset);
-    else
-        buf->write32(s->Soffset);
-    MsCoffObj::addrel(seg, SegData[seg]->SDoffset, s, RELaddr);
-    SegData[seg]->SDoffset = buf->size();
-#endif
+    setModuleCtorDtor(s, true);
 }
 
 /**************************************
@@ -1157,21 +1142,7 @@ void MsCoffObj::staticctor(Symbol *s,int dtor,int none)
 
 void MsCoffObj::staticdtor(Symbol *s)
 {
-#if 0
-    IDXSEC seg;
-    Outbuffer *buf;
-
-    //dbg_printf("MsCoffObj::staticdtor(%s) offset %x\n",s->Sident,s->Soffset);
-    //symbol_print(s);
-    seg = MsCoffObj::getsegment(".dtors", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE, 4);
-    buf = SegData[seg]->SDbuf;
-    if (I64)
-        buf->write64(s->Soffset);
-    else
-        buf->write32(s->Soffset);
-    MsCoffObj::addrel(seg, SegData[seg]->SDoffset, s, RELaddr);
-    SegData[seg]->SDoffset = buf->size();
-#endif
+    setModuleCtorDtor(s, false);
 }
 
 
@@ -1180,9 +1151,17 @@ void MsCoffObj::staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void MsCoffObj::setModuleCtorDtor(Symbol *s, bool isCtor)
+void MsCoffObj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
 {
-    //dbg_printf("MsCoffObj::setModuleCtorDtor(%s) \n",s->Sident);
+    // Also see https://blogs.msdn.microsoft.com/vcblog/2006/10/20/crt-initialization/
+    // and http://www.codeguru.com/cpp/misc/misc/applicationcontrol/article.php/c6945/Running-Code-Before-and-After-Main.htm
+    const int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
+    const int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | align | IMAGE_SCN_MEM_READ;
+    const int seg = MsCoffObj::getsegment(isCtor ? ".CRT$XCU" : ".CRT$XPU", attr);
+
+    const int relflags = I64 ? CFoff | CFoffset64 : CFoff;
+    const int sz = MsCoffObj::reftoident(seg, SegData[seg]->SDoffset, sfunc, 0, relflags);
+    SegData[seg]->SDoffset += sz;
 }
 
 

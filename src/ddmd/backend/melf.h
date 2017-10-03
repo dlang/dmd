@@ -108,6 +108,9 @@ typedef struct
         #define SHT_REL          9          /* Relocations no addends */
         #define SHT_RESTYPE      10         /* Reserved section type*/
         #define SHT_DYNTAB       11         /* Dynamic linker symbol table */
+        #define SHT_INIT_ARRAY   14         /* Array of constructors */
+        #define SHT_FINI_ARRAY   15         /* Array of destructors */
+        #define SHT_PREINIT_ARRAY 16        /* Array of pre-constructors */
         #define SHT_GROUP        17         /* Section group (COMDAT) */
         #define SHT_SYMTAB_SHNDX 18         /* Extended section indices */
   Elf32_Word   sh_flags;               /* Section attribute flags */
