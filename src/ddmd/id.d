@@ -346,6 +346,7 @@ immutable Msgtable[] msgtable =
     { "isFinalClass" },
     { "isTemplate" },
     { "isPOD" },
+    { "isDeprecated" },
     { "isNested" },
     { "isFloating" },
     { "isIntegral" },
