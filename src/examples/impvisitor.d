@@ -3,11 +3,11 @@
 dependency "dmd" path="../.."
 +/
 
-import ddmd.permissivevisitor;
-import ddmd.transitivevisitor;
+import dmd.permissivevisitor;
+import dmd.transitivevisitor;
 
-import ddmd.tokens;
-import ddmd.root.outbuffer;
+import dmd.tokens;
+import dmd.root.outbuffer;
 
 import core.stdc.stdio;
 
@@ -77,12 +77,12 @@ void main()
     import std.file;
     import std.path : buildPath, dirName;
 
-    import ddmd.parse;
-    import ddmd.astbase;
+    import dmd.parse;
+    import dmd.astbase;
 
-    import ddmd.id;
-    import ddmd.globals;
-    import ddmd.identifier;
+    import dmd.id;
+    import dmd.globals;
+    import dmd.identifier;
 
     import core.memory;
 

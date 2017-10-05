@@ -11,8 +11,8 @@ void main()
 // lexer
 unittest
 {
-    import ddmd.lexer;
-    import ddmd.tokens;
+    import dmd.lexer;
+    import dmd.tokens;
 
     immutable expected = [
         TOKvoid,
@@ -40,8 +40,8 @@ unittest
 // parser
 unittest
 {
-    import ddmd.astbase;
-    import ddmd.parse;
+    import dmd.astbase;
+    import dmd.parse;
 
     scope parser = new Parser!ASTBase(null, null, false);
     assert(parser !is null);

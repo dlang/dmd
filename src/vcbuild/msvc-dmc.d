@@ -22,7 +22,7 @@ int main(string[] args)
     string[] newArgs = [cl];
     newArgs ~= "/nologo";
     newArgs ~= `/Ivcbuild`;
-    newArgs ~= `/Iddmd\root`;
+    newArgs ~= `/Idmd\root`;
     newArgs ~= `/FIwarnings.h`;
 
     if (environment.get("VisualStudioVersion", defaultVSVersion).to!double >= 14.0)
