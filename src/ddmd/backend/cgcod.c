@@ -1344,8 +1344,8 @@ STATIC void blcodgen(block *bl)
     char *sflsave = NULL;
     if (config.flags4 & CFG4optimized)
     {
-        code *cload = NULL;
-        code *cstore = NULL;
+        CodeBuilder cdbload;
+        CodeBuilder cdbstore;
 
         sflsave = (char *) alloca(globsym.top * sizeof(char));
         for (SYMIDX i = 0; i < globsym.top; i++)
@@ -1370,7 +1370,7 @@ STATIC void blcodgen(block *bl)
             {   if (vec_testbit(dfoidx,s->Srange))
                 {
                     anyspill = i + 1;
-                    cgreg_spillreg_prolog(bl,s,&cstore,&cload);
+                    cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
                     if (vec_testbit(dfoidx,s->Slvreg))
                     {   s->Sfl = FLreg;
                         regcon.mvar |= s->Sregm;
@@ -1385,12 +1385,10 @@ STATIC void blcodgen(block *bl)
         }
         if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
         {
-            CodeBuilder cdb2;
-            cse_save(cdb2,regcon.cse.mops & ~regcon.cse.mval);
-            cstore = cat(cdb2.finish(), cstore);
+            cse_save(cdb,regcon.cse.mops & ~regcon.cse.mval);
         }
-        cdb.append(cstore);
-        cdb.append(cload);
+        cdb.append(cdbstore);
+        cdb.append(cdbload);
         mfuncreg &= ~regcon.mvar;               // use these registers
         regcon.used |= regcon.mvar;
 

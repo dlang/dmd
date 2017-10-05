@@ -551,7 +551,6 @@ code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib);
 code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );
-code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 );
 code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 , unsigned FL2 , targ_size_t EV2 );
 code *genlinnum(code *,Srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
@@ -565,8 +564,8 @@ void cgreg_init();
 void cgreg_term();
 void cgreg_reset();
 void cgreg_used(unsigned bi,regm_t used);
-void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload);
-void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload);
+void cgreg_spillreg_prolog(block *b,Symbol *s,CodeBuilder& cdbstore,CodeBuilder& cdbload);
+void cgreg_spillreg_epilog(block *b,Symbol *s,CodeBuilder& cdbstore,CodeBuilder& cdbload);
 int cgreg_assign(Symbol *retsym);
 void cgreg_unregister(regm_t conflict);
 

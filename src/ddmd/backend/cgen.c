@@ -431,19 +431,6 @@ void CodeBuilder::genc2(unsigned op, unsigned ea, targ_size_t EV2)
  * Generate code.
  */
 
-code *genc1(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1)
-{   code cs;
-
-    assert(FL1 < FLMAX);
-    cs.Iop = op;
-    cs.Iflags = CFoff;
-    cs.Iea = ea;
-    ccheck(&cs);
-    cs.IFL1 = FL1;
-    cs.IEV1.Vsize_t = EV1;
-    return gen(c,&cs);
-}
-
 void CodeBuilder::genc1(unsigned op, unsigned ea, unsigned FL1, targ_size_t EV1)
 {
     code cs;
