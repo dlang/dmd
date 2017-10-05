@@ -3163,34 +3163,39 @@ elem *toElem(Expression e, IRState *irs)
             elem *e;
             Type tb1 = ce.e1.type.toBasetype();
             Type tb2 = ce.e2.type.toBasetype();
+            assert(tb1.ty == Tarray);
+            Type tb1n = tb1.nextOf().toBasetype();
 
-            if (tb1.ty == Tarray && tb2.ty == Tdchar &&
-                (tb1.nextOf().ty == Tchar || tb1.nextOf().ty == Twchar))
+            elem *e1 = toElem(ce.e1, irs);
+            elem *e2 = toElem(ce.e2, irs);
+
+            switch (ce.op)
             {
-                // Append dchar to char[] or wchar[]
-                elem *e1 = toElem(ce.e1, irs);
-                e1 = el_una(OPaddr, TYnptr, e1);
+                case TOKcatdcharass:
+                {
+                    // Append dchar to char[] or wchar[]
+                    assert(tb2.ty == Tdchar &&
+                          (tb1n.ty == Tchar || tb1n.ty == Twchar));
 
-                elem *e2 = toElem(ce.e2, irs);
+                    e1 = el_una(OPaddr, TYnptr, e1);
 
-                elem *ep = el_params(e2, e1, null);
-                int rtl = (tb1.nextOf().ty == Tchar)
-                        ? RTLSYM_ARRAYAPPENDCD
-                        : RTLSYM_ARRAYAPPENDWD;
-                e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
-                toTraceGC(irs, e, &ce.loc);
-                elem_setLoc(e, ce.loc);
-            }
-            else if (tb1.ty == Tarray || tb2.ty == Tsarray)
-            {
-                elem *e1 = toElem(ce.e1, irs);
-                elem *e2 = toElem(ce.e2, irs);
+                    elem *ep = el_params(e2, e1, null);
+                    int rtl = (tb1.nextOf().ty == Tchar)
+                            ? RTLSYM_ARRAYAPPENDCD
+                            : RTLSYM_ARRAYAPPENDWD;
+                    e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
+                    toTraceGC(irs, e, &ce.loc);
+                    elem_setLoc(e, ce.loc);
+                    break;
+                }
 
-                Type tb1n = tb1.nextOf().toBasetype();
-                if ((tb2.ty == Tarray || tb2.ty == Tsarray) &&
-                    tb1n.equals(tb2.nextOf().toBasetype()))
+                case TOKcatass:
                 {
                     // Append array
+                    assert(tb2.ty == Tarray || tb2.ty == Tsarray);
+
+                    assert(tb1n.equals(tb2.nextOf().toBasetype()));
+
                     e1 = el_una(OPaddr, TYnptr, e1);
                     if (config.exe == EX_WIN64)
                         e2 = addressElem(e2, tb2, true);
@@ -3199,10 +3204,13 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_params(e2, e1, getTypeInfo(ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
                     toTraceGC(irs, e, &ce.loc);
+                    break;
                 }
-                else if (tb1n.equals(tb2))
+
+                case TOKcatelemass:
                 {
                     // Append element
+                    assert(tb1n.equals(tb2));
 
                     elem *e2x = null;
 
@@ -3263,17 +3271,13 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_combine(e2x, e);
                     e = el_combine(e, eeq);
                     e = el_combine(e, el_var(stmp));
-                }
-                else
-                {
-                    ce.error("Internal Compiler Error: cannot append '%s' to '%s'", tb2.toChars(), tb1.toChars());
-                    assert(0);
+                    break;
                 }
 
-                elem_setLoc(e, ce.loc);
+                default:
+                    assert(0);
             }
-            else
-                assert(0);
+            elem_setLoc(e, ce.loc);
             result = e;
         }
 

@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2016 by Digital Mars
+ * Copyright (c) 1999-2017 by Digital Mars
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -90,7 +90,7 @@ enum TOK
         TOKshl,         TOKshr,
         TOKshlass,      TOKshrass,
         TOKushr,        TOKushrass,
-        TOKcat,         TOKcatass,      // ~ ~=
+        TOKcat,         TOKcatass,      TOKcatelemass,  TOKcatdcharass,     // ~ ~=
         TOKadd,         TOKmin,         TOKaddass,      TOKminass,
         TOKmul,         TOKdiv,         TOKmod,
         TOKmulass,      TOKdivass,      TOKmodass,

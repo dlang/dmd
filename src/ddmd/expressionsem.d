@@ -6772,20 +6772,19 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb1next = tb1.nextOf();
         Type tb2 = exp.e2.type.toBasetype();
 
-        /* Two possibilities:
-         * 1. appending T[] to T[]
-         * 2. appending T to T[]
+        /* Possibilities:
+         * TOKcatass: appending T[] to T[]
+         * TOKcatelemass: appending T to T[]
+         * TOKcatdcharass: appending dchar to T[]
          */
-        bool appendArray = false;       // assume case 2
-
         if ((tb1.ty == Tarray) &&
             (tb2.ty == Tarray || tb2.ty == Tsarray) &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
               (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
         {
-            // case 1: append array
-            appendArray = true;
+            // TOKcatass
+            assert(exp.op == TOKcatass);
             if (exp.e1.checkPostblit(sc, tb1next))
             {
                 result = new ErrorExp();
@@ -6801,6 +6800,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = new ErrorExp();
                 return;
             }
+            exp.op = TOKcatelemass;
             exp.e2 = exp.e2.castTo(sc, tb1next);
             exp.e2 = doCopyOrMove(sc, exp.e2);
         }
@@ -6810,6 +6810,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                  exp.e2.implicitConvTo(Type.tdchar))
         {
             // Append dchar to char[] or wchar[]
+            exp.op = TOKcatdcharass;
             exp.e2 = exp.e2.castTo(sc, Type.tdchar);
 
             /* Do not allow appending wchar to char[] because if wchar happens
@@ -6830,7 +6831,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.type = exp.e1.type;
         auto res = exp.reorderSettingAAElem(sc);
-        if (!appendArray && global.params.vsafe)
+        if ((exp.op == TOKcatelemass || exp.op == TOKcatdcharass) && global.params.vsafe)
             checkAssignEscape(sc, res, false);
         result = res;
     }

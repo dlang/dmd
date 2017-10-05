@@ -172,6 +172,8 @@ __gshared PREC[TOKMAX] precedence =
     TOKaddass : PREC.assign,
     TOKminass : PREC.assign,
     TOKcatass : PREC.assign,
+    TOKcatelemass : PREC.assign,
+    TOKcatdcharass : PREC.assign,
     TOKmulass : PREC.assign,
     TOKdivass : PREC.assign,
     TOKmodass : PREC.assign,
