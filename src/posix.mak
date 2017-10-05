@@ -248,7 +248,8 @@ ifdef ENABLE_PROFILE
 DFLAGS  += -profile
 endif
 ifdef ENABLE_COVERAGE
-DFLAGS  += -cov
+DFLAGS  += -cov -L-lgcov
+CXXFLAGS += --coverage
 endif
 ifdef ENABLE_SANITIZERS
 CXXFLAGS += -fsanitize=${ENABLE_SANITIZERS}
