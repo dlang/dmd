@@ -66,6 +66,7 @@ shared static this()
         "isAbstractClass",
         "isArithmetic",
         "isAssociativeArray",
+        "isDeprecated",
         "isFinalClass",
         "isPOD",
         "isNested",
@@ -464,6 +465,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isAssociativeArray)
     {
         return isTypeX(t => t.toBasetype().ty == Taarray);
+    }
+    if (e.ident == Id.isDeprecated)
+    {
+        return isDsymX(t => t.isDeprecated());
     }
     if (e.ident == Id.isStaticArray)
     {
