@@ -820,7 +820,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             /* Allow the result of strongly pure functions to
              * convert to immutable
              */
-            if (e.f && e.f.isolateReturn())
+            if (e.f && e.f.isReturnIsolated())
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.

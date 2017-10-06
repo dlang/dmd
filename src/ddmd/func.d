@@ -1306,42 +1306,47 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /********************************************
-     * See if pointers from function parameters do not leak into return value.
+     * See if pointers from function parameters, mutable globals, or uplevel functions
+     * could leak into return value.
      * Returns:
-     *   true if the function return value has no indirection
-     *   which comes from the parameters
+     *   true if the function return value is isolated from
+     *   any inputs to the function
      */
-    final bool isolateReturn()
+    final bool isReturnIsolated()
     {
         TypeFunction tf = type.toTypeFunction();
         assert(tf.next);
 
         Type treti = tf.next;
         if (tf.isref)
-            return parametersIntersect(treti);
+            return isTypeIsolatedIndirect(treti);              // check influence from parameters
 
-        return parametersIntersectIndirect(treti);
+        return isTypeIsolated(treti);
     }
 
     /********************
-     * Goes down one level of indirection, then calls parametersIntersect() on
-     * the result.
+     * See if pointers from function parameters, mutable globals, or uplevel functions
+     * could leak into type `t`.
+     * Params:
+     *   t = type to check if it is isolated
      * Returns:
-     *  result of parametersIntersect()
+     *   true if `t` is isolated from
+     *   any inputs to the function
      */
-    bool parametersIntersectIndirect(Type t)
+    final bool isTypeIsolated(Type t)
     {
-        //printf("parametersIntersectIndirect(t: %s)\n", t.toChars());
+        //printf("isTypeIsolated(t: %s)\n", t.toChars());
+
         t = t.baseElemOf();
         switch (t.ty)
         {
             case Tarray:
             case Tpointer:
-                return parametersIntersect(t.nextOf()); // go down one level
+                return isTypeIsolatedIndirect(t.nextOf()); // go down one level
 
             case Taarray:
             case Tclass:
-                return parametersIntersect(t);
+                return isTypeIsolatedIndirect(t);
 
             case Tstruct:
                 /* Drill down and check the struct's fields
@@ -1351,7 +1356,7 @@ extern (C++) class FuncDeclaration : Declaration
                 {
                     Type tmi = v.type.addMod(t.mod);
                     //printf("\tt = %s, tmi = %s\n", t.toChars(), tmi.toChars());
-                    if (!parametersIntersectIndirect(tmi))
+                    if (!isTypeIsolated(tmi))
                         return false;
                 }
                 return true;
@@ -1365,19 +1370,25 @@ extern (C++) class FuncDeclaration : Declaration
      * Params:
      *    t = type of object to test one level of indirection down
      * Returns:
-     *    true if an object typed t has no indirections
-     *    which could have come from the this function's parameters.
+     *    true if an object typed `t` has no indirections
+     *    which could have come from the function's parameters, mutable
+     *    globals, or uplevel functions.
      */
-    final bool parametersIntersect(Type t)
+    private final bool isTypeIsolatedIndirect(Type t)
     {
-        //printf("parametersIntersect(t: %s)\n", t.toChars());
+        //printf("isTypeIsolatedIndirect(t: %s)\n", t.toChars());
         assert(t);
+
+        /* Since `t` is one level down from an indirection, it could pick
+         * up a reference to a mutable global or an outer function, so
+         * return false.
+         */
         if (!isPureBypassingInference() || isNested())
             return false;
 
         TypeFunction tf = type.toTypeFunction();
 
-        //printf("parametersIntersect(%s) t = %s\n", tf.toChars(), t.toChars());
+        //printf("isTypeIsolatedIndirect(%s) t = %s\n", tf.toChars(), t.toChars());
 
         size_t dim = Parameter.dim(tf.parameters);
         for (size_t i = 0; i < dim; i++)
@@ -1389,7 +1400,7 @@ extern (C++) class FuncDeclaration : Declaration
 
             if (fparam.storageClass & (STClazy | STCout | STCref))
             {
-                if (traverseIndirections(tp, t))
+                if (!traverseIndirections(tp, t))
                     return false;
                 continue;
             }
@@ -1397,7 +1408,7 @@ extern (C++) class FuncDeclaration : Declaration
             /* Goes down one level of indirection, then calls traverseIndirection() on
              * the result.
              * Returns:
-             *  true if tp, one level down, can be used to construct a t
+             *  true if t is isolated from tp
              */
             static bool traverse(Type tp, Type t)
             {
@@ -1420,17 +1431,17 @@ extern (C++) class FuncDeclaration : Declaration
                         {
                             Type tprmi = v.type.addMod(tp.mod);
                             //printf("\ttp = %s, tprmi = %s\n", tp.toChars(), tprmi.toChars());
-                            if (traverse(tprmi, t))
-                                return true;
+                            if (!traverse(tprmi, t))
+                                return false;
                         }
-                        return false;
+                        return true;
 
                     default:
-                        return false;
+                        return true;
                 }
             }
 
-            if (traverse(tp, t))
+            if (!traverse(tp, t))
                 return false;
         }
         // The 'this' reference is a parameter, too
@@ -1438,7 +1449,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             Type tthis = ad.getType().addMod(tf.mod);
             //printf("\ttthis = %s\n", tthis.toChars());
-            if (traverseIndirections(tthis, t))
+            if (!traverseIndirections(tthis, t))
                 return false;
         }
 
@@ -2581,7 +2592,7 @@ extern (C++) Type getIndirection(Type t)
  *      tb = referred to value type that could be constructed from ta
  *
  * Returns:
- *      true if reference to `tb` could be constructed from reference to `ta`
+ *      true if reference to `tb` is isolated from reference to `ta`
  */
 private bool traverseIndirections(Type ta, Type tb)
 {
@@ -2616,19 +2627,19 @@ private bool traverseIndirections(Type ta, Type tb)
         if (mayAliasDirect(reversePass ? tb : ta, reversePass ? ta : tb))
         {
             //printf(" true  mayalias %s %s %d\n", ta.toChars(), tb.toChars(), reversePass);
-            return true;
+            return false;
         }
         if (ta.nextOf() && ta.nextOf() == tb.nextOf())
         {
              //printf(" next==next %s %s %d\n", ta.toChars(), tb.toChars(), reversePass);
-             return false;
+             return true;
         }
 
         if (tb.ty == Tclass || tb.ty == Tstruct)
         {
             for (Ctxt* c = ctxt; c; c = c.prev)
                 if (tb == c.type)
-                    return false;
+                    return true;
             Ctxt c;
             c.prev = ctxt;
             c.type = tb;
@@ -2640,27 +2651,27 @@ private bool traverseIndirections(Type ta, Type tb)
             {
                 Type tprmi = v.type.addMod(tb.mod);
                 //printf("\ttb = %s, tprmi = %s\n", tb.toChars(), tprmi.toChars());
-                if (traverse(ta, tprmi, &c, reversePass))
-                    return true;
+                if (!traverse(ta, tprmi, &c, reversePass))
+                    return false;
             }
         }
         else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
         {
             Type tind = tb.nextOf();
-            if (traverse(ta, tind, ctxt, reversePass))
-                return true;
+            if (!traverse(ta, tind, ctxt, reversePass))
+                return false;
         }
         else if (tb.hasPointers())
         {
             // BUG: consider the context pointer of delegate types
-            return true;
+            return false;
         }
 
         // Still no match, so try breaking up ta if we have not done so yet.
         if (!reversePass)
             return traverse(tb, ta, ctxt, true);
 
-        return false;
+        return true;
     }
 
     // To handle arbitrary levels of indirections in both parameters, we

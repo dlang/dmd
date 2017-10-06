@@ -2207,13 +2207,13 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     if (isCtorCall)
     {
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd.toChars(), fd.type.toChars(),
-        //    wildmatch, tf.isWild(), fd.isolateReturn());
+        //    wildmatch, tf.isWild(), fd.isReturnIsolated());
         if (!tthis)
         {
             assert(sc.intypeof || global.errors);
             tthis = fd.isThis().type.addMod(fd.type.mod);
         }
-        if (tf.isWild() && !fd.isolateReturn())
+        if (tf.isWild() && !fd.isReturnIsolated())
         {
             if (wildmatch)
                 tret = tret.substWildTo(wildmatch);
