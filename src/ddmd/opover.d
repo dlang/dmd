@@ -878,7 +878,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 expandTuples(&args2);
                 argsset = 1;
                 Match m;
-                m.last = MATCHnomatch;
+                m.last = MATCH.nomatch;
                 if (s)
                 {
                     functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
@@ -903,7 +903,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     // Error, ambiguous
                     e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
-                else if (m.last <= MATCHnomatch)
+                else if (m.last <= MATCH.nomatch)
                 {
                     m.lastf = m.anyf;
                     if (tiargs)
@@ -917,7 +917,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     // Rewrite (e1 -- e2) as e1.postdec()
                     result = build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
                 }
-                else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+                else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
                     result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
@@ -964,7 +964,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             expandTuples(&args2);
                         }
                         Match m;
-                        m.last = MATCHnomatch;
+                        m.last = MATCH.nomatch;
                         if (s_r)
                         {
                             functionResolve(&m, s_r, e.loc, sc, tiargs, e.e1.type, &args2);
@@ -989,11 +989,11 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                             // Error, ambiguous
                             e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                         }
-                        else if (m.last <= MATCHnomatch)
+                        else if (m.last <= MATCH.nomatch)
                         {
                             m.lastf = m.anyf;
                         }
-                        if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
+                        if (lastf && m.lastf == lastf || !s && m.last <= MATCH.nomatch)
                         {
                             // Rewrite (e1 op e2) as e1.opfunc_r(e2)
                             result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s_r);
@@ -1464,7 +1464,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 args2[0] = e.e2;
                 expandTuples(&args2);
                 Match m;
-                m.last = MATCHnomatch;
+                m.last = MATCH.nomatch;
                 if (s)
                 {
                     functionResolve(&m, s, e.loc, sc, tiargs, e.e1.type, &args2);
@@ -1479,7 +1479,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     // Error, ambiguous
                     e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
-                else if (m.last <= MATCHnomatch)
+                else if (m.last <= MATCH.nomatch)
                 {
                     m.lastf = m.anyf;
                     if (tiargs)
@@ -1570,7 +1570,7 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
         args2[0] = e.e2;
         expandTuples(&args2);
         Match m;
-        m.last = MATCHnomatch;
+        m.last = MATCH.nomatch;
         if (0 && s && s_r)
         {
             printf("s  : %s\n", s.toPrettyChars());
@@ -1609,12 +1609,12 @@ extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
                 e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
             }
         }
-        else if (m.last <= MATCHnomatch)
+        else if (m.last <= MATCH.nomatch)
         {
             m.lastf = m.anyf;
         }
         Expression result;
-        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCH.nomatch)
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
@@ -1953,7 +1953,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
 private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
 {
     MOD mod = ethis.type.mod;
-    MATCH match = MATCHnomatch;
+    MATCH match = MATCH.nomatch;
     FuncDeclaration fd_best;
     FuncDeclaration fd_ambig;
     overloadApply(fstart, (Dsymbol s)
@@ -1962,16 +1962,16 @@ private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Pa
         if (!f)
             return 0;
         auto tf = cast(TypeFunction)f.type;
-        MATCH m = MATCHexact;
+        MATCH m = MATCH.exact;
         if (f.isThis())
         {
             if (!MODimplicitConv(mod, tf.mod))
-                m = MATCHnomatch;
+                m = MATCH.nomatch;
             else if (mod != tf.mod)
-                m = MATCHconst;
+                m = MATCH.constant;
         }
         if (!inferApplyArgTypesY(tf, parameters, 1))
-            m = MATCHnomatch;
+            m = MATCH.nomatch;
         if (m > match)
         {
             fd_best = f;

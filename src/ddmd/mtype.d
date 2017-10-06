@@ -98,14 +98,14 @@ bool MODimplicitConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
 }
 
 /***************************
- * Return MATCHexact or MATCHconst if a method of type '() modfrom' can call a method of type '() modto'.
+ * Return MATCH.exact or MATCH.constant if a method of type '() modfrom' can call a method of type '() modto'.
  */
 MATCH MODmethodConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
 {
     if (modfrom == modto)
-        return MATCHexact;
+        return MATCH.exact;
     if (MODimplicitConv(modfrom, modto))
-        return MATCHconst;
+        return MATCH.constant;
 
     auto X(T, U)(T m, U n)
     {
@@ -122,10 +122,10 @@ MATCH MODmethodConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
     case X(MODshared | MODimmutable, MODshared | MODwild):
     case X(MODshared | MODconst, MODshared | MODwild):
     case X(MODshared | MODwildconst, MODshared | MODwild):
-        return MATCHconst;
+        return MATCH.constant;
 
     default:
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 }
 
@@ -2302,7 +2302,7 @@ extern (C++) abstract class Type : RootObject
      * Determine if 'this' can be implicitly converted
      * to type 'to'.
      * Returns:
-     *      MATCHnomatch, MATCHconvert, MATCHconst, MATCHexact
+     *      MATCH.nomatch, MATCH.convert, MATCH.constant, MATCH.exact
      */
     MATCH implicitConvTo(Type to)
     {
@@ -2310,26 +2310,26 @@ extern (C++) abstract class Type : RootObject
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
         if (this.equals(to))
-            return MATCHexact;
-        return MATCHnomatch;
+            return MATCH.exact;
+        return MATCH.nomatch;
     }
 
     /*******************************
      * Determine if converting 'this' to 'to' is an identity operation,
      * a conversion to const operation, or the types aren't the same.
      * Returns:
-     *      MATCHexact      'this' == 'to'
-     *      MATCHconst      'to' is const
-     *      MATCHnomatch    conversion to mutable or invariant
+     *      MATCH.exact      'this' == 'to'
+     *      MATCH.constant      'to' is const
+     *      MATCH.nomatch    conversion to mutable or invariant
      */
     MATCH constConv(Type to)
     {
         //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to.toChars());
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
         if (ty == to.ty && MODimplicitConv(mod, to.mod))
-            return MATCHconst;
-        return MATCHnomatch;
+            return MATCH.constant;
+        return MATCH.nomatch;
     }
 
     /***************************************
@@ -3362,27 +3362,27 @@ extern (C++) abstract class TypeNext : Type
     {
         //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to.toChars());
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
 
         if (!(ty == to.ty && MODimplicitConv(mod, to.mod)))
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         Type tn = to.nextOf();
         if (!(tn && next.ty == tn.ty))
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         MATCH m;
         if (to.isConst()) // whole tail const conversion
         {
             // Recursive shared level check
             m = next.constConv(tn);
-            if (m == MATCHexact)
-                m = MATCHconst;
+            if (m == MATCH.exact)
+                m = MATCH.constant;
         }
         else
         {
             //printf("\tnext => %s, to.next => %s\n", next.toChars(), tn.toChars());
-            m = next.equals(tn) ? MATCHconst : MATCHnomatch;
+            m = next.equals(tn) ? MATCH.constant : MATCH.nomatch;
         }
         return m;
     }
@@ -4165,24 +4165,24 @@ extern (C++) final class TypeBasic : Type
     {
         //printf("TypeBasic::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
-            return MATCHexact;
+            return MATCH.exact;
 
         if (ty == to.ty)
         {
             if (mod == to.mod)
-                return MATCHexact;
+                return MATCH.exact;
             else if (MODimplicitConv(mod, to.mod))
-                return MATCHconst;
+                return MATCH.constant;
             else if (!((mod ^ to.mod) & MODshared)) // for wild matching
-                return MATCHconst;
+                return MATCH.constant;
             else
-                return MATCHconvert;
+                return MATCH.convert;
         }
 
         if (ty == Tvoid || to.ty == Tvoid)
-            return MATCHnomatch;
+            return MATCH.nomatch;
         if (to.ty == Tbool)
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         TypeBasic tob;
         if (to.ty == Tvector && to.deco)
@@ -4193,13 +4193,13 @@ extern (C++) final class TypeBasic : Type
         else
             tob = to.isTypeBasic();
         if (!tob)
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         if (flags & TFLAGSintegral)
         {
             // Disallow implicit conversion of integers to imaginary or complex
             if (tob.flags & (TFLAGSimaginary | TFLAGScomplex))
-                return MATCHnomatch;
+                return MATCH.nomatch;
 
             // If converting from integral to integral
             if (tob.flags & TFLAGSintegral)
@@ -4210,34 +4210,34 @@ extern (C++) final class TypeBasic : Type
                 /* Can't convert to smaller size
                  */
                 if (sz > tosz)
-                    return MATCHnomatch;
+                    return MATCH.nomatch;
                 /* Can't change sign if same size
                  */
                 //if (sz == tosz && (flags ^ tob.flags) & TFLAGSunsigned)
-                //    return MATCHnomatch;
+                //    return MATCH.nomatch;
             }
         }
         else if (flags & TFLAGSfloating)
         {
             // Disallow implicit conversion of floating point to integer
             if (tob.flags & TFLAGSintegral)
-                return MATCHnomatch;
+                return MATCH.nomatch;
 
             assert(tob.flags & TFLAGSfloating || to.ty == Tvector);
 
             // Disallow implicit conversion from complex to non-complex
             if (flags & TFLAGScomplex && !(tob.flags & TFLAGScomplex))
-                return MATCHnomatch;
+                return MATCH.nomatch;
 
             // Disallow implicit conversion of real or imaginary to complex
             if (flags & (TFLAGSreal | TFLAGSimaginary) && tob.flags & TFLAGScomplex)
-                return MATCHnomatch;
+                return MATCH.nomatch;
 
             // Disallow implicit conversion to-from real and imaginary
             if ((flags & (TFLAGSreal | TFLAGSimaginary)) != (tob.flags & (TFLAGSreal | TFLAGSimaginary)))
-                return MATCHnomatch;
+                return MATCH.nomatch;
         }
-        return MATCHconvert;
+        return MATCH.convert;
     }
 
     override Expression defaultInit(Loc loc)
@@ -4431,10 +4431,10 @@ extern (C++) final class TypeVector : Type
     {
         //printf("TypeVector::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
-            return MATCHexact;
+            return MATCH.exact;
         if (ty == to.ty)
-            return MATCHconvert;
-        return MATCHnomatch;
+            return MATCH.convert;
+        return MATCH.nomatch;
     }
 
     override Expression defaultInit(Loc loc)
@@ -4706,7 +4706,7 @@ extern (C++) final class TypeSArray : TypeArray
         {
             TypeSArray tsa = cast(TypeSArray)to;
             if (!dim.equals(tsa.dim))
-                return MATCHnomatch;
+                return MATCH.nomatch;
         }
         return TypeNext.constConv(to);
     }
@@ -4718,26 +4718,26 @@ extern (C++) final class TypeSArray : TypeArray
         {
             TypeDArray ta = cast(TypeDArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
-                return MATCHnomatch;
+                return MATCH.nomatch;
 
             /* Allow conversion to void[]
              */
             if (ta.next.ty == Tvoid)
             {
-                return MATCHconvert;
+                return MATCH.convert;
             }
 
             MATCH m = next.constConv(ta.next);
-            if (m > MATCHnomatch)
+            if (m > MATCH.nomatch)
             {
-                return MATCHconvert;
+                return MATCH.convert;
             }
-            return MATCHnomatch;
+            return MATCH.nomatch;
         }
         if (to.ty == Tsarray)
         {
             if (this == to)
-                return MATCHexact;
+                return MATCH.exact;
 
             TypeSArray tsa = cast(TypeSArray)to;
             if (dim.equals(tsa.dim))
@@ -4748,15 +4748,15 @@ extern (C++) final class TypeSArray : TypeArray
                  * to int.
                  */
                 MATCH m = next.implicitConvTo(tsa.next);
-                if (m >= MATCHconst)
+                if (m >= MATCH.constant)
                 {
                     if (mod != to.mod)
-                        m = MATCHconst;
+                        m = MATCH.constant;
                     return m;
                 }
             }
         }
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     override Expression defaultInit(Loc loc)
@@ -4965,27 +4965,27 @@ extern (C++) final class TypeDArray : TypeArray
     {
         //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
 
         if (to.ty == Tarray)
         {
             TypeDArray ta = cast(TypeDArray)to;
 
             if (!MODimplicitConv(next.mod, ta.next.mod))
-                return MATCHnomatch; // not const-compatible
+                return MATCH.nomatch; // not const-compatible
 
             /* Allow conversion to void[]
              */
             if (next.ty != Tvoid && ta.next.ty == Tvoid)
             {
-                return MATCHconvert;
+                return MATCH.convert;
             }
 
             MATCH m = next.constConv(ta.next);
-            if (m > MATCHnomatch)
+            if (m > MATCH.nomatch)
             {
-                if (m == MATCHexact && mod != to.mod)
-                    m = MATCHconst;
+                if (m == MATCH.exact && mod != to.mod)
+                    m = MATCH.constant;
                 return m;
             }
         }
@@ -5138,23 +5138,23 @@ extern (C++) final class TypeAArray : TypeArray
     {
         //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
 
         if (to.ty == Taarray)
         {
             TypeAArray ta = cast(TypeAArray)to;
 
             if (!MODimplicitConv(next.mod, ta.next.mod))
-                return MATCHnomatch; // not const-compatible
+                return MATCH.nomatch; // not const-compatible
 
             if (!MODimplicitConv(index.mod, ta.index.mod))
-                return MATCHnomatch; // not const-compatible
+                return MATCH.nomatch; // not const-compatible
 
             MATCH m = next.constConv(ta.next);
             MATCH mi = index.constConv(ta.index);
-            if (m > MATCHnomatch && mi > MATCHnomatch)
+            if (m > MATCH.nomatch && mi > MATCH.nomatch)
             {
-                return MODimplicitConv(mod, to.mod) ? MATCHconst : MATCHnomatch;
+                return MODimplicitConv(mod, to.mod) ? MATCH.constant : MATCH.nomatch;
             }
         }
         return Type.implicitConvTo(to);
@@ -5220,7 +5220,7 @@ extern (C++) final class TypePointer : TypeNext
     {
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to.toChars(), toChars());
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
 
         if (next.ty == Tfunction)
         {
@@ -5230,7 +5230,7 @@ extern (C++) final class TypePointer : TypeNext
                 if (tp.next.ty == Tfunction)
                 {
                     if (next.equals(tp.next))
-                        return MATCHconst;
+                        return MATCH.constant;
 
                     if (next.covariant(tp.next) == 1)
                     {
@@ -5246,18 +5246,18 @@ extern (C++) final class TypePointer : TypeNext
                              */
                             int offset = 0;
                             if (toret.isBaseOf(tret, &offset) && offset != 0)
-                                return MATCHnomatch;
+                                return MATCH.nomatch;
                         }
-                        return MATCHconvert;
+                        return MATCH.convert;
                     }
                 }
                 else if (tp.next.ty == Tvoid)
                 {
                     // Allow conversions to void*
-                    return MATCHconvert;
+                    return MATCH.convert;
                 }
             }
-            return MATCHnomatch;
+            return MATCH.nomatch;
         }
         else if (to.ty == Tpointer)
         {
@@ -5265,24 +5265,24 @@ extern (C++) final class TypePointer : TypeNext
             assert(tp.next);
 
             if (!MODimplicitConv(next.mod, tp.next.mod))
-                return MATCHnomatch; // not const-compatible
+                return MATCH.nomatch; // not const-compatible
 
             /* Alloc conversion to void*
              */
             if (next.ty != Tvoid && tp.next.ty == Tvoid)
             {
-                return MATCHconvert;
+                return MATCH.convert;
             }
 
             MATCH m = next.constConv(tp.next);
-            if (m > MATCHnomatch)
+            if (m > MATCH.nomatch)
             {
-                if (m == MATCHexact && mod != to.mod)
-                    m = MATCHconst;
+                if (m == MATCH.exact && mod != to.mod)
+                    m = MATCH.constant;
                 return m;
             }
         }
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     override MATCH constConv(Type to)
@@ -5292,7 +5292,7 @@ extern (C++) final class TypePointer : TypeNext
             if (to.nextOf() && next.equals((cast(TypeNext)to).next))
                 return Type.constConv(to);
             else
-                return MATCHnomatch;
+                return MATCH.nomatch;
         }
         return TypeNext.constConv(to);
     }
@@ -5898,7 +5898,7 @@ extern (C++) final class TypeFunction : TypeNext
     MATCH callMatch(Type tthis, Expressions* args, int flag = 0)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
-        MATCH match = MATCHexact; // assume exact match
+        MATCH match = MATCH.exact; // assume exact match
         ubyte wildmatch = 0;
 
         if (tthis)
@@ -5909,13 +5909,13 @@ extern (C++) final class TypeFunction : TypeNext
             if (t.mod != mod)
             {
                 if (MODimplicitConv(t.mod, mod))
-                    match = MATCHconst;
+                    match = MATCH.constant;
                 else if ((mod & MODwild) && MODimplicitConv(t.mod, (mod & ~MODwild) | MODconst))
                 {
-                    match = MATCHconst;
+                    match = MATCH.constant;
                 }
                 else
-                    return MATCHnomatch;
+                    return MATCH.nomatch;
             }
             if (isWild())
             {
@@ -5940,7 +5940,7 @@ extern (C++) final class TypeFunction : TypeNext
             if (varargs == 0)
                 goto Nomatch;
             // too many args; no match
-            match = MATCHconvert; // match ... with a "conversion" match level
+            match = MATCH.convert; // match ... with a "conversion" match level
         }
 
         for (size_t u = 0; u < nargs; u++)
@@ -5998,7 +5998,7 @@ extern (C++) final class TypeFunction : TypeNext
                 Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
 
                 if (p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid)
-                    m = MATCHconvert;
+                    m = MATCH.convert;
                 else
                 {
                     //printf("%s of type %s implicitConvTo %s\n", arg.toChars(), targ.toChars(), tprm.toChars());
@@ -6078,7 +6078,7 @@ extern (C++) final class TypeFunction : TypeNext
                 goto L1;
 
             //printf("\tm = %d\n", m);
-            if (m == MATCHnomatch) // if no match
+            if (m == MATCH.nomatch) // if no match
             {
             L1:
                 if (varargs == 2 && u + 1 == nparams) // if last varargs param
@@ -6110,20 +6110,20 @@ extern (C++) final class TypeFunction : TypeNext
                                 if (tret)
                                 {
                                     if (ta.next.equals(arg.type))
-                                        m = MATCHexact;
+                                        m = MATCH.exact;
                                     else if (tret.toBasetype().ty == Tvoid)
-                                        m = MATCHconvert;
+                                        m = MATCH.convert;
                                     else
                                     {
                                         m = arg.implicitConvTo(tret);
-                                        if (m == MATCHnomatch)
+                                        if (m == MATCH.nomatch)
                                             m = arg.implicitConvTo(ta.next);
                                     }
                                 }
                                 else
                                     m = arg.implicitConvTo(ta.next);
 
-                                if (m == MATCHnomatch)
+                                if (m == MATCH.nomatch)
                                     goto Nomatch;
                                 if (m < match)
                                     match = m;
@@ -6151,7 +6151,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     Nomatch:
         //printf("no match\n");
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     bool checkRetType(Loc loc)
@@ -6266,7 +6266,7 @@ extern (C++) final class TypeDelegate : TypeNext
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
         if (this == to)
-            return MATCHexact;
+            return MATCH.exact;
 
         version (all)
         {
@@ -6285,13 +6285,13 @@ extern (C++) final class TypeDelegate : TypeNext
                      */
                     int offset = 0;
                     if (toret.isBaseOf(tret, &offset) && offset != 0)
-                        return MATCHnomatch;
+                        return MATCH.nomatch;
                 }
-                return MATCHconvert;
+                return MATCH.convert;
             }
         }
 
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     override Expression defaultInit(Loc loc)
@@ -7609,10 +7609,10 @@ extern (C++) final class TypeStruct : Type
         //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
         {
-            m = MATCHexact; // exact match
+            m = MATCH.exact; // exact match
             if (mod != to.mod)
             {
-                m = MATCHconst;
+                m = MATCH.constant;
                 if (MODimplicitConv(mod, to.mod))
                 {
                 }
@@ -7630,12 +7630,12 @@ extern (C++) final class TypeStruct : Type
                         }
                         else if (v.offset == offset)
                         {
-                            if (m > MATCHnomatch)
+                            if (m > MATCH.nomatch)
                                 continue;
                         }
                         else
                         {
-                            if (m <= MATCHnomatch)
+                            if (m <= MATCH.nomatch)
                                 return m;
                         }
 
@@ -7649,7 +7649,7 @@ extern (C++) final class TypeStruct : Type
                         MATCH mf = tvf.implicitConvTo(tv);
                         //printf("\t%s => %s, match = %d\n", v.type.toChars(), tv.toChars(), mf);
 
-                        if (mf <= MATCHnomatch)
+                        if (mf <= MATCH.nomatch)
                             return mf;
                         if (mf < m) // if field match is worse
                             m = mf;
@@ -7665,17 +7665,17 @@ extern (C++) final class TypeStruct : Type
             att = cast(AliasThisRec)(att & ~RECtracing);
         }
         else
-            m = MATCHnomatch; // no match
+            m = MATCH.nomatch; // no match
         return m;
     }
 
     override MATCH constConv(Type to)
     {
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
         if (ty == to.ty && sym == (cast(TypeStruct)to).sym && MODimplicitConv(mod, to.mod))
-            return MATCHconst;
-        return MATCHnomatch;
+            return MATCH.constant;
+        return MATCH.nomatch;
     }
 
     override ubyte deduceWild(Type t, bool isRef)
@@ -7890,21 +7890,21 @@ extern (C++) final class TypeEnum : Type
         MATCH m;
         //printf("TypeEnum::implicitConvTo()\n");
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
-            m = (mod == to.mod) ? MATCHexact : MATCHconst;
+            m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
         else if (sym.getMemtype(Loc()).implicitConvTo(to))
-            m = MATCHconvert; // match with conversions
+            m = MATCH.convert; // match with conversions
         else
-            m = MATCHnomatch; // no match
+            m = MATCH.nomatch; // no match
         return m;
     }
 
     override MATCH constConv(Type to)
     {
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym && MODimplicitConv(mod, to.mod))
-            return MATCHconst;
-        return MATCHnomatch;
+            return MATCH.constant;
+        return MATCH.nomatch;
     }
 
     override Type toBasetype()
@@ -8443,7 +8443,7 @@ extern (C++) final class TypeClass : Type
     {
         //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to.toChars(), toChars());
         MATCH m = constConv(to);
-        if (m > MATCHnomatch)
+        if (m > MATCH.nomatch)
             return m;
 
         ClassDeclaration cdto = to.isClassHandle();
@@ -8457,11 +8457,11 @@ extern (C++) final class TypeClass : Type
             if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
             {
                 //printf("'to' is base\n");
-                return MATCHconvert;
+                return MATCH.convert;
             }
         }
 
-        m = MATCHnomatch;
+        m = MATCH.nomatch;
         if (sym.aliasthis && !(att & RECtracing))
         {
             att = cast(AliasThisRec)(att | RECtracing);
@@ -8475,9 +8475,9 @@ extern (C++) final class TypeClass : Type
     override MATCH constConv(Type to)
     {
         if (equals(to))
-            return MATCHexact;
+            return MATCH.exact;
         if (ty == to.ty && sym == (cast(TypeClass)to).sym && MODimplicitConv(mod, to.mod))
-            return MATCHconst;
+            return MATCH.constant;
 
         /* Conversion derived to const(base)
          */
@@ -8488,10 +8488,10 @@ extern (C++) final class TypeClass : Type
             //  derived to base
             //  inout(derived) to inout(base)
             if (!to.isMutable() && !to.isWild())
-                return MATCHconvert;
+                return MATCH.convert;
         }
 
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     override ubyte deduceWild(Type t, bool isRef)
@@ -8847,7 +8847,7 @@ extern (C++) final class TypeNull : Type
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
         MATCH m = Type.implicitConvTo(to);
-        if (m != MATCHnomatch)
+        if (m != MATCH.nomatch)
             return m;
 
         // NULL implicitly converts to any pointer type or dynamic array
@@ -8855,10 +8855,10 @@ extern (C++) final class TypeNull : Type
         {
             Type tb = to.toBasetype();
             if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
-                return MATCHconst;
+                return MATCH.constant;
         }
 
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     override bool isBoolean() const

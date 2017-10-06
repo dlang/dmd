@@ -1048,14 +1048,14 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
         emplaceExp!(UnionExp)(&ue, ex);
         return ue;
     }
-    if (e1.type.implicitConvTo(to) >= MATCHconst || to.implicitConvTo(e1.type) >= MATCHconst)
+    if (e1.type.implicitConvTo(to) >= MATCH.constant || to.implicitConvTo(e1.type) >= MATCH.constant)
     {
         goto L1;
     }
     // Allow covariant converions of delegates
-    // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
+    // (Perhaps implicit conversion from pure to impure should be a MATCH.constant,
     // then we wouldn't need this extra check.)
-    if (e1.type.toBasetype().ty == Tdelegate && e1.type.implicitConvTo(to) == MATCHconvert)
+    if (e1.type.toBasetype().ty == Tdelegate && e1.type.implicitConvTo(to) == MATCH.convert)
     {
         goto L1;
     }

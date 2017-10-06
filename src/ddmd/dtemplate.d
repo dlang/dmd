@@ -809,7 +809,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         dedtypes.zero();
 
         if (errors)
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         size_t parameters_dim = parameters.dim;
         int variadic = isVariadic() !is null;
@@ -821,7 +821,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             {
                 printf(" no match: more arguments than parameters\n");
             }
-            return MATCHnomatch;
+            return MATCH.nomatch;
         }
 
         assert(dedtypes_dim == parameters_dim);
@@ -839,7 +839,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         paramscope.stc = 0;
 
         // Attempt type deduction
-        m = MATCHexact;
+        m = MATCH.exact;
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
             MATCH m2;
@@ -857,7 +857,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
             //printf("\tm2 = %d\n", m2);
-            if (m2 == MATCHnomatch)
+            if (m2 == MATCH.nomatch)
             {
                 version (none)
                 {
@@ -894,7 +894,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (m > MATCHnomatch && constraint && !flag)
+        if (m > MATCH.nomatch && constraint && !flag)
         {
             if (ti.hasNestedArgs(ti.tiargs, this.isstatic)) // TODO: should gag error
                 ti.parent = ti.enclosing;
@@ -941,7 +941,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             printf("--------------------------\n");
             printf("template %s\n", toChars());
             printf("instance %s\n", ti.toChars());
-            if (m > MATCHnomatch)
+            if (m > MATCH.nomatch)
             {
                 for (size_t i = 0; i < dedtypes_dim; i++)
                 {
@@ -969,7 +969,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             printf(" no match\n");
         }
-        m = MATCHnomatch;
+        m = MATCH.nomatch;
 
     Lret:
         paramscope.pop();
@@ -1024,7 +1024,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         // Attempt a type deduction
         MATCH m = td2.matchWithInstance(sc, ti, &dedtypes, fargs, 1);
-        if (m > MATCHnomatch)
+        if (m > MATCH.nomatch)
         {
             /* A non-variadic template is more specialized than a
              * variadic one.
@@ -1044,7 +1044,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             printf("  doesn't match, so is not as specialized\n");
         }
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     /*************************************************
@@ -1069,8 +1069,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         size_t nfargs;
         size_t ntargs; // array size of tiargs
         size_t fptupindex = IDX_NOTFOUND;
-        MATCH match = MATCHexact;
-        MATCH matchTiargs = MATCHexact;
+        MATCH match = MATCH.exact;
+        MATCH matchTiargs = MATCH.exact;
         Parameters* fparameters; // function parameter list
         int fvarargs; // function varargs
         uint wildmatch = 0;
@@ -1104,7 +1104,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         dedtypes.zero();
 
         if (errors || fd.errors)
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         // Set up scope for parameters
         auto paramsym = new ScopeDsymbol();
@@ -1169,7 +1169,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 Declaration sparam = null;
                 MATCH m = (*parameters)[i].matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, &sparam);
                 //printf("\tdeduceType m = %d\n", m);
-                if (m <= MATCHnomatch)
+                if (m <= MATCH.nomatch)
                     goto Lnomatch;
                 if (m < matchTiargs)
                     matchTiargs = m;
@@ -1211,7 +1211,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (tp) // if variadic
         {
             // TemplateTupleParameter always makes most lesser matching.
-            matchTiargs = MATCHconvert;
+            matchTiargs = MATCH.convert;
 
             if (nfparams == 0 && nfargs != 0) // if no function parameters
             {
@@ -1266,7 +1266,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                     Type t = new TypeIdentifier(Loc(), ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
-                    if (m <= MATCHnomatch)
+                    if (m <= MATCH.nomatch)
                         goto Lnomatch;
                     if (m < match)
                         match = m; // pick worst match
@@ -1302,7 +1302,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (hasttp)
                     mod = MODmerge(thismod, mod);
                 MATCH m = MODmethodConv(thismod, mod);
-                if (m <= MATCHnomatch)
+                if (m <= MATCH.nomatch)
                     goto Lnomatch;
                 if (m < match)
                     match = m;
@@ -1376,13 +1376,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             if (ubyte wm = deduceWildHelper(farg.type, &tt, tid))
                             {
                                 wildmatch |= wm;
-                                m = MATCHconst;
+                                m = MATCH.constant;
                             }
                             else
                             {
                                 m = deduceTypeHelper(farg.type, &tt, tid);
                             }
-                            if (m <= MATCHnomatch)
+                            if (m <= MATCH.nomatch)
                                 goto Lnomatch;
                             if (m < match)
                                 match = m;
@@ -1497,7 +1497,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                         (*dedargs)[i] = oded;
                                         MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
                                         //printf("m2 = %d\n", m2);
-                                        if (m2 <= MATCHnomatch)
+                                        if (m2 <= MATCH.nomatch)
                                             goto Lnomatch;
                                         if (m2 < matchTiargs)
                                             matchTiargs = m2; // pick worst match
@@ -1506,8 +1506,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                     }
                                     else
                                     {
-                                        if (MATCHconvert < matchTiargs)
-                                            matchTiargs = MATCHconvert;
+                                        if (MATCH.convert < matchTiargs)
+                                            matchTiargs = MATCH.convert;
                                     }
                                     (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                                 }
@@ -1633,10 +1633,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     /* If no match, see if the argument can be matched by using
                      * implicit conversions.
                      */
-                    if (m == MATCHnomatch && prmtype.deco)
+                    if (m == MATCH.nomatch && prmtype.deco)
                         m = farg.implicitConvTo(prmtype);
 
-                    if (m == MATCHnomatch)
+                    if (m == MATCH.nomatch)
                     {
                         AggregateDeclaration ad = isAggregate(farg.type);
                         if (ad && ad.aliasthis && argtype != att)
@@ -1655,7 +1655,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (m > MATCHnomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
+                    if (m > MATCH.nomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
                     {
                         if (!farg.isLvalue())
                         {
@@ -1667,16 +1667,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 goto Lnomatch;
                         }
                     }
-                    if (m > MATCHnomatch && (fparam.storageClass & STCout))
+                    if (m > MATCH.nomatch && (fparam.storageClass & STCout))
                     {
                         if (!farg.isLvalue())
                             goto Lnomatch;
                         if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                             goto Lnomatch;
                     }
-                    if (m == MATCHnomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
-                        m = MATCHconvert;
-                    if (m != MATCHnomatch)
+                    if (m == MATCH.nomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
+                        m = MATCH.convert;
+                    if (m != MATCH.nomatch)
                     {
                         if (m < match)
                             match = m; // pick worst match
@@ -1765,7 +1765,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 {
                                     Type vt = tvp.valType.semantic(Loc(), sc);
                                     MATCH m = dim.implicitConvTo(vt);
-                                    if (m <= MATCHnomatch)
+                                    if (m <= MATCH.nomatch)
                                         goto Lnomatch;
                                     (*dedtypes)[i] = dim;
                                 }
@@ -1790,15 +1790,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             {
                                 if (ta.next.equals(arg.type))
                                 {
-                                    m = MATCHexact;
+                                    m = MATCH.exact;
                                 }
                                 else
                                 {
                                     m = arg.implicitConvTo(tret);
-                                    if (m == MATCHnomatch)
+                                    if (m == MATCH.nomatch)
                                     {
                                         if (tret.toBasetype().ty == Tvoid)
-                                            m = MATCHconvert;
+                                            m = MATCH.convert;
                                     }
                                 }
                             }
@@ -1808,7 +1808,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 m = deduceType(arg, paramscope, ta.next, parameters, dedtypes, &wm, inferStart);
                                 wildmatch |= wm;
                             }
-                            if (m == MATCHnomatch)
+                            if (m == MATCH.nomatch)
                                 goto Lnomatch;
                             if (m < match)
                                 match = m;
@@ -1868,7 +1868,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         (*dedargs)[i] = oded;
                         MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
                         //printf("m2 = %d\n", m2);
-                        if (m2 <= MATCHnomatch)
+                        if (m2 <= MATCH.nomatch)
                             goto Lnomatch;
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
@@ -1878,8 +1878,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     else
                     {
                         // Discussion: https://issues.dlang.org/show_bug.cgi?id=16484
-                        if (MATCHconvert < matchTiargs)
-                            matchTiargs = MATCHconvert;
+                        if (MATCH.convert < matchTiargs)
+                            matchTiargs = MATCH.convert;
                     }
                 }
                 else
@@ -1915,7 +1915,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         (*dedargs)[i] = oded;
                         MATCH m2 = tparam.matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, null);
                         //printf("m2 = %d\n", m2);
-                        if (m2 <= MATCHnomatch)
+                        if (m2 <= MATCH.nomatch)
                             goto Lnomatch;
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
@@ -1983,13 +1983,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     Lnomatch:
         paramscope.pop();
         //printf("\tnomatch\n");
-        return MATCHnomatch;
+        return MATCH.nomatch;
 
     Lerror:
         // todo: for the future improvement
         paramscope.pop();
         //printf("\terror\n");
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     /**************************************************
@@ -2290,7 +2290,7 @@ extern (C++) final class TypeDeduced : Type
 
     MATCH matchAll(Type tt)
     {
-        MATCH match = MATCHexact;
+        MATCH match = MATCH.exact;
         for (size_t j = 0; j < argexps.dim; j++)
         {
             Expression e = argexps[j];
@@ -2303,7 +2303,7 @@ extern (C++) final class TypeDeduced : Type
             MATCH m = e.implicitConvTo(t);
             if (match > m)
                 match = m;
-            if (match <= MATCHnomatch)
+            if (match <= MATCH.nomatch)
                 break;
         }
         return match;
@@ -2355,7 +2355,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
     size_t ov_index = 0;
     TemplateDeclaration td_best;
     TemplateInstance ti_best;
-    MATCH ta_last = m.last != MATCHnomatch ? MATCHexact : MATCHnomatch;
+    MATCH ta_last = m.last != MATCH.nomatch ? MATCH.exact : MATCH.nomatch;
     Type tthis_best;
 
     int applyFunction(FuncDeclaration fd)
@@ -2407,11 +2407,11 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 tthis_fd = null;
             }
             else
-                return 0;   // MATCHnomatch
+                return 0;   // MATCH.nomatch
         }
         MATCH mfa = tf.callMatch(tthis_fd, fargs);
         //printf("test1: mfa = %d\n", mfa);
-        if (mfa > MATCHnomatch)
+        if (mfa > MATCH.nomatch)
         {
             if (mfa > m.last) goto LfIsBetter;
             if (mfa < m.last) goto LlastIsBetter;
@@ -2483,7 +2483,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         LfIsBetter:
             td_best = null;
             ti_best = null;
-            ta_last = MATCHexact;
+            ta_last = MATCH.exact;
             m.last = mfa;
             m.lastf = fd;
             tthis_best = tthis_fd;
@@ -2516,7 +2516,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         Lerror:
             m.lastf = null;
             m.count = 0;
-            m.last = MATCHnomatch;
+            m.last = MATCH.nomatch;
             return 1;
         }
         //printf("td = %s\n", td.toChars());
@@ -2532,7 +2532,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             assert(td.semanticRun != PASSinit);
             MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
-            if (mta <= MATCHnomatch || mta < ta_last)   // no match or less match
+            if (mta <= MATCH.nomatch || mta < ta_last)   // no match or less match
                 return 0;
 
             ti.templateInstanceSemantic(sc, fargs);
@@ -2592,7 +2592,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             {
                 m.lastf = fd;   // to propagate "error match"
                 m.count = 1;
-                m.last = MATCHnomatch;
+                m.last = MATCH.nomatch;
                 return 1;
             }
 
@@ -2650,7 +2650,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             MATCH mta = cast(MATCH)(x >> 4);
             MATCH mfa = cast(MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
-            if (!fd || mfa == MATCHnomatch)
+            if (!fd || mfa == MATCH.nomatch)
                 continue;
 
             Type tthis_fd = fd.needThis() ? tthis : null;
@@ -2669,7 +2669,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                     tthis_fd = null;
                 }
                 else
-                    continue;   // MATCHnomatch
+                    continue;   // MATCH.nomatch
             }
 
             if (mta < ta_last) goto Ltd_best;
@@ -2780,7 +2780,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         Lerror:
             m.count = 1;
             assert(m.lastf);
-            m.last = MATCHnomatch;
+            m.last = MATCH.nomatch;
             return;
         }
 
@@ -2826,7 +2826,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
     Lnomatch:
         m.count = 0;
         m.lastf = null;
-        m.last = MATCHnomatch;
+        m.last = MATCH.nomatch;
     }
 }
 
@@ -2948,7 +2948,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(U)                       immutable(T)            => immutable(T)
         {
             *at = t;
-            return MATCHexact;
+            return MATCH.exact;
         }
     case X(MODconst, MODconst):
     case X(MODwild, MODwild):
@@ -2968,7 +2968,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(immutable(U))            immutable(T)            => T
         {
             *at = t.mutableOf().unSharedOf();
-            return MATCHexact;
+            return MATCH.exact;
         }
     case X(MODconst, 0):
     case X(MODconst, MODwild):
@@ -2992,13 +2992,13 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(shared(const(U)))        immutable(T)            => T
         {
             *at = t.mutableOf();
-            return MATCHconst;
+            return MATCH.constant;
         }
     case X(MODconst, MODshared):
         // foo(const(U))                shared(T)               => shared(T)
         {
             *at = t;
-            return MATCHconst;
+            return MATCH.constant;
         }
     case X(MODshared, MODshared | MODconst):
     case X(MODshared, MODshared | MODwild):
@@ -3010,7 +3010,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(shared(const(U)))        shared(T)               => T
         {
             *at = t.unSharedOf();
-            return MATCHconst;
+            return MATCH.constant;
         }
     case X(MODwildconst, MODimmutable):
     case X(MODshared | MODconst, MODshared | MODwildconst):
@@ -3022,13 +3022,13 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(shared(inout(const(U)))) shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
-            return MATCHconst;
+            return MATCH.constant;
         }
     case X(MODshared | MODconst, MODshared | MODwild):
         // foo(shared(const(U)))        shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
-            return MATCHconst;
+            return MATCH.constant;
         }
     case X(MODwild, 0):
     case X(MODwild, MODconst):
@@ -3118,7 +3118,7 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
         // foo(immutable(U))            shared(const(T))        => nomatch
         // foo(immutable(U))            shared(inout(T))        => nomatch
         // foo(immutable(U))            shared(inout(const(T))) => nomatch
-        return MATCHnomatch;
+        return MATCH.nomatch;
 
     default:
         assert(0);
@@ -3163,7 +3163,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             this.dedtypes = dedtypes;
             this.wm = wm;
             this.inferStart = inferStart;
-            result = MATCHnomatch;
+            result = MATCH.nomatch;
         }
 
         override void visit(Type t)
@@ -3283,7 +3283,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     {
                         (*dedtypes)[i] = tt;
                         *wm |= wx;
-                        result = MATCHconst;
+                        result = MATCH.constant;
                         return;
                     }
 
@@ -3292,11 +3292,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     {
                         TypeDeduced xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
-                        if (result > MATCHnomatch)
+                        if (result > MATCH.nomatch)
                         {
                             (*dedtypes)[i] = tt;
-                            if (result > MATCHconst)
-                                result = MATCHconst; // limit level for inout matches
+                            if (result > MATCH.constant)
+                                result = MATCH.constant; // limit level for inout matches
                         }
                         return;
                     }
@@ -3336,7 +3336,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     {
                         TypeDeduced xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
-                        if (result > MATCHnomatch)
+                        if (result > MATCH.nomatch)
                         {
                             (*dedtypes)[i] = tt;
                         }
@@ -3353,7 +3353,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         result = tt.implicitConvTo(at);
                         return;
                     }
-                    if (tt.ty == Tsarray && at.ty == Tarray && tt.nextOf().implicitConvTo(at.nextOf()) >= MATCHconst)
+                    if (tt.ty == Tsarray && at.ty == Tarray && tt.nextOf().implicitConvTo(at.nextOf()) >= MATCH.constant)
                     {
                         goto Lexact;
                     }
@@ -3383,7 +3383,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
 
                 MATCH m = t.implicitConvTo(tparam);
-                if (m == MATCHnomatch)
+                if (m == MATCH.nomatch)
                 {
                     if (t.ty == Tclass)
                     {
@@ -3431,15 +3431,15 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
         Lexact:
-            result = MATCHexact;
+            result = MATCH.exact;
             return;
 
         Lnomatch:
-            result = MATCHnomatch;
+            result = MATCH.nomatch;
             return;
 
         Lconst:
-            result = MATCHconst;
+            result = MATCH.constant;
         }
 
         override void visit(TypeVector t)
@@ -3491,7 +3491,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (tparam.ty == Tarray)
                 {
                     MATCH m = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
-                    result = (m >= MATCHconst) ? MATCHconvert : MATCHnomatch;
+                    result = (m >= MATCH.constant) ? MATCH.convert : MATCH.nomatch;
                     return;
                 }
 
@@ -3552,7 +3552,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 TypeAArray tp = cast(TypeAArray)tparam;
                 if (!deduceType(t.index, sc, tp.index, parameters, dedtypes))
                 {
-                    result = MATCHnomatch;
+                    result = MATCH.nomatch;
                     return;
                 }
             }
@@ -3571,7 +3571,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 TypeFunction tp = cast(TypeFunction)tparam;
                 if (t.varargs != tp.varargs || t.linkage != tp.linkage)
                 {
-                    result = MATCHnomatch;
+                    result = MATCH.nomatch;
                     return;
                 }
 
@@ -3632,7 +3632,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         Tuple tup = isTuple(o);
                         if (!tup || tup.objects.dim != tuple_dim)
                         {
-                            result = MATCHnomatch;
+                            result = MATCH.nomatch;
                             return;
                         }
                         for (size_t i = 0; i < tuple_dim; i++)
@@ -3640,7 +3640,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                             Parameter arg = Parameter.getNth(t.parameters, nfparams - 1 + i);
                             if (!arg.type.equals(tup.objects[i]))
                             {
-                                result = MATCHnomatch;
+                                result = MATCH.nomatch;
                                 return;
                             }
                         }
@@ -3664,7 +3664,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             L1:
                 if (nfargs != nfparams)
                 {
-                    result = MATCHnomatch;
+                    result = MATCH.nomatch;
                     return;
                 }
             L2:
@@ -3676,7 +3676,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (!a.isCovariant(t.isref, ap) ||
                         !deduceType(a.type, sc, ap.type, parameters, dedtypes))
                     {
-                        result = MATCHnomatch;
+                        result = MATCH.nomatch;
                         return;
                     }
                 }
@@ -3696,7 +3696,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     RootObject id2 = tp.idents[i];
                     if (!id1.equals(id2))
                     {
-                        result = MATCHnomatch;
+                        result = MATCH.nomatch;
                         return;
                     }
                 }
@@ -3962,7 +3962,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         Lnomatch:
             //printf("no match\n");
-            result = MATCHnomatch;
+            result = MATCH.nomatch;
         }
 
         override void visit(TypeStruct t)
@@ -4022,7 +4022,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 //printf("\t%d\n", (MATCH) t.implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
                 {
-                    result = MATCHconst;
+                    result = MATCH.constant;
                     return;
                 }
                 result = t.implicitConvTo(tp);
@@ -4040,7 +4040,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (t.sym == tp.sym)
                     visit(cast(Type)t);
                 else
-                    result = MATCHnomatch;
+                    result = MATCH.nomatch;
                 return;
             }
             Type tb = t.toBasetype();
@@ -4082,7 +4082,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                 auto t = new TypeInstance(Loc(), parti);
                 MATCH m = deduceType(t, sc, tparam, parameters, tmpdedtypes);
-                if (m > MATCHnomatch)
+                if (m > MATCH.nomatch)
                 {
                     // If this is the first ever match, it becomes our best estimate
                     if (numBaseClassMatches == 0)
@@ -4124,7 +4124,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     MATCH m = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
                     // Even if the match fails, there is still a chance it could match
                     // a base class.
-                    if (m != MATCHnomatch)
+                    if (m != MATCH.nomatch)
                     {
                         result = m;
                         return;
@@ -4155,7 +4155,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                 // If it matches exactly or via implicit conversion, we're done
                 visit(cast(Type)t);
-                if (result != MATCHnomatch)
+                if (result != MATCH.nomatch)
                     return;
 
                 /* There is still a chance to match via implicit conversion to
@@ -4185,13 +4185,13 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
                 if (numBaseClassMatches == 0)
                 {
-                    result = MATCHnomatch;
+                    result = MATCH.nomatch;
                     return;
                 }
 
                 // If we got at least one match, copy the known types into dedtypes
                 memcpy(dedtypes.tdata(), best.tdata(), best.dim * (void*).sizeof);
-                result = MATCHconvert;
+                result = MATCH.convert;
                 return;
             }
 
@@ -4203,7 +4203,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 //printf("\t%d\n", (MATCH) t.implicitConvTo(tp));
                 if (wm && t.deduceWild(tparam, false))
                 {
-                    result = MATCHconst;
+                    result = MATCH.constant;
                     return;
                 }
                 result = t.implicitConvTo(tp);
@@ -4236,7 +4236,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             {
                 if ((*dedtypes)[i])
                 {
-                    result = MATCHexact;
+                    result = MATCH.exact;
                     return;
                 }
                 if (tp.defaultType)
@@ -4251,7 +4251,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
             {
                 *wm |= wx;
-                result = MATCHconst;
+                result = MATCH.constant;
             }
             else if (MATCH m = deduceTypeHelper(e.type, &tt, tparam))
             {
@@ -4275,7 +4275,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             // From previous matched expressions to current deduced type
-            MATCH match1 = xt ? xt.matchAll(tt) : MATCHnomatch;
+            MATCH match1 = xt ? xt.matchAll(tt) : MATCH.nomatch;
 
             // From current expressions to previous deduced type
             Type pt = at.addMod(tparam.mod);
@@ -4283,12 +4283,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 pt = pt.substWildTo(*wm);
             MATCH match2 = e.implicitConvTo(pt);
 
-            if (match1 > MATCHnomatch && match2 > MATCHnomatch)
+            if (match1 > MATCH.nomatch && match2 > MATCH.nomatch)
             {
-                if (at.implicitConvTo(tt) <= MATCHnomatch)
-                    match1 = MATCHnomatch; // Prefer at
-                else if (tt.implicitConvTo(at) <= MATCHnomatch)
-                    match2 = MATCHnomatch; // Prefer tt
+                if (at.implicitConvTo(tt) <= MATCH.nomatch)
+                    match1 = MATCH.nomatch; // Prefer at
+                else if (tt.implicitConvTo(at) <= MATCH.nomatch)
+                    match2 = MATCH.nomatch; // Prefer tt
                 else if (tt.isTypeBasic() && tt.ty == at.ty && tt.mod != at.mod)
                 {
                     if (!tt.isMutable() && !at.isMutable())
@@ -4296,26 +4296,26 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     else if (tt.isMutable())
                     {
                         if (at.mod == 0) // Prefer unshared
-                            match1 = MATCHnomatch;
+                            match1 = MATCH.nomatch;
                         else
-                            match2 = MATCHnomatch;
+                            match2 = MATCH.nomatch;
                     }
                     else if (at.isMutable())
                     {
                         if (tt.mod == 0) // Prefer unshared
-                            match2 = MATCHnomatch;
+                            match2 = MATCH.nomatch;
                         else
-                            match1 = MATCHnomatch;
+                            match1 = MATCH.nomatch;
                     }
                     //printf("tt = %s, at = %s\n", tt.toChars(), at.toChars());
                 }
                 else
                 {
-                    match1 = MATCHnomatch;
-                    match2 = MATCHnomatch;
+                    match1 = MATCH.nomatch;
+                    match2 = MATCH.nomatch;
                 }
             }
-            if (match1 > MATCHnomatch)
+            if (match1 > MATCH.nomatch)
             {
                 // Prefer current match: tt
                 if (xt)
@@ -4325,7 +4325,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 result = match1;
                 return;
             }
-            if (match2 > MATCHnomatch)
+            if (match2 > MATCH.nomatch)
             {
                 // Prefer previous match: (*dedtypes)[i]
                 if (xt)
@@ -4350,7 +4350,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 return;
             }
 
-            result = MATCHnomatch;
+            result = MATCH.nomatch;
         }
 
         MATCH deduceEmptyArrayElement()
@@ -4401,7 +4401,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (tparam.ty == Tarray && e.elements && e.elements.dim)
             {
                 Type tn = (cast(TypeDArray)tparam).next;
-                result = MATCHexact;
+                result = MATCH.exact;
                 if (e.basis)
                 {
                     MATCH m = deduceType(e.basis, sc, tn, parameters, dedtypes, wm);
@@ -4410,7 +4410,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
-                    if (result <= MATCHnomatch)
+                    if (result <= MATCH.nomatch)
                         break;
                     auto el = (*e.elements)[i];
                     if (!el)
@@ -4437,18 +4437,18 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (tparam.ty == Taarray && e.keys && e.keys.dim)
             {
                 TypeAArray taa = cast(TypeAArray)tparam;
-                result = MATCHexact;
+                result = MATCH.exact;
                 for (size_t i = 0; i < e.keys.dim; i++)
                 {
                     MATCH m1 = deduceType((*e.keys)[i], sc, taa.index, parameters, dedtypes, wm);
                     if (m1 < result)
                         result = m1;
-                    if (result <= MATCHnomatch)
+                    if (result <= MATCH.nomatch)
                         break;
                     MATCH m2 = deduceType((*e.values)[i], sc, taa.next, parameters, dedtypes, wm);
                     if (m2 < result)
                         result = m2;
-                    if (result <= MATCHnomatch)
+                    if (result <= MATCH.nomatch)
                         break;
                 }
                 return;
@@ -4955,7 +4955,7 @@ extern (C++) class TemplateParameter
      *  template A(T : X!TL, alias X, TL...) {}
      *  // X and TL are dependent template parameter
      *
-     * A dependent template parameter should return MATCHexact in matchArg()
+     * A dependent template parameter should return MATCH.exact in matchArg()
      * to respect the match level of the corresponding precedent parameter.
      */
     bool dependent;
@@ -5038,7 +5038,7 @@ extern (C++) class TemplateParameter
     Lnomatch:
         if (psparam)
             *psparam = null;
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     abstract MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam);
@@ -5130,7 +5130,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     override final MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         //printf("TemplateTypeParameter.matchArg('%s')\n", ident.toChars());
-        MATCH m = MATCHexact;
+        MATCH m = MATCH.exact;
         Type ta = isType(oarg);
         if (!ta)
         {
@@ -5146,7 +5146,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
             //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta.toChars(), specType.toChars());
             MATCH m2 = deduceType(ta, sc, specType, parameters, dedtypes);
-            if (m2 <= MATCHnomatch)
+            if (m2 <= MATCH.nomatch)
             {
                 //printf("\tfailed deduceType\n");
                 goto Lnomatch;
@@ -5185,7 +5185,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
             else
             {
                 // So that matches with specializations are better
-                m = MATCHconvert;
+                m = MATCH.convert;
             }
         }
         (*dedtypes)[i] = ta;
@@ -5193,13 +5193,13 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         if (psparam)
             *psparam = new AliasDeclaration(loc, ident, ta);
         //printf("\tm = %d\n", m);
-        return dependent ? MATCHexact : m;
+        return dependent ? MATCH.exact : m;
 
     Lnomatch:
         if (psparam)
             *psparam = null;
-        //printf("\tm = %d\n", MATCHnomatch);
-        return MATCHnomatch;
+        //printf("\tm = %d\n", MATCH.nomatch);
+        return MATCH.nomatch;
     }
 
     override final void* dummyArg()
@@ -5331,7 +5331,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     {
         //printf("TemplateValueParameter.matchArg('%s')\n", ident.toChars());
 
-        MATCH m = MATCHexact;
+        MATCH m = MATCH.exact;
 
         Expression ei = isExpression(oarg);
         Type vt;
@@ -5371,7 +5371,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
              * e.g. The x1 value must be same even if the f1 definition will be moved
              *      into di while stripping body code.
              */
-            m = MATCHconvert;
+            m = MATCH.convert;
         }
 
         if (ei && ei.op == TOKvar)
@@ -5391,7 +5391,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             //printf("m: %d\n", m);
             if (m2 < m)
                 m = m2;
-            if (m <= MATCHnomatch)
+            if (m <= MATCH.nomatch)
                 goto Lnomatch;
             ei = ei.implicitCastTo(sc, vt);
             ei = ei.ctfeInterpret();
@@ -5441,13 +5441,13 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             sparam.storage_class = STCmanifest;
             *psparam = sparam;
         }
-        return dependent ? MATCHexact : m;
+        return dependent ? MATCH.exact : m;
 
     Lnomatch:
         //printf("\tno match\n");
         if (psparam)
             *psparam = null;
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     override void* dummyArg()
@@ -5546,7 +5546,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
     override MATCH matchArg(Scope* sc, RootObject oarg, size_t i, TemplateParameters* parameters, Objects* dedtypes, Declaration* psparam)
     {
         //printf("TemplateAliasParameter.matchArg('%s')\n", ident.toChars());
-        MATCH m = MATCHexact;
+        MATCH m = MATCH.exact;
         Type ta = isType(oarg);
         RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
         Expression ea = isExpression(oarg);
@@ -5557,7 +5557,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         if (sa)
         {
             if ((cast(Dsymbol)sa).isAggregateDeclaration())
-                m = MATCHconvert;
+                m = MATCH.convert;
 
             /* specType means the alias must be a declaration with a type
              * that matches specType.
@@ -5626,7 +5626,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
                 Type t = new TypeInstance(Loc(), ti);
                 MATCH m2 = deduceType(t, sc, talias, parameters, dedtypes);
-                if (m2 <= MATCHnomatch)
+                if (m2 <= MATCH.nomatch)
                     goto Lnomatch;
             }
         }
@@ -5661,13 +5661,13 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 *psparam = v;
             }
         }
-        return dependent ? MATCHexact : m;
+        return dependent ? MATCH.exact : m;
 
     Lnomatch:
         if (psparam)
             *psparam = null;
-        //printf("\tm = %d\n", MATCHnomatch);
-        return MATCHnomatch;
+        //printf("\tm = %d\n", MATCH.nomatch);
+        return MATCH.nomatch;
     }
 
     override void* dummyArg()
@@ -5795,20 +5795,20 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         //printf("TemplateTupleParameter.matchArg('%s')\n", ident.toChars());
         Tuple ovar = isTuple(oarg);
         if (!ovar)
-            return MATCHnomatch;
+            return MATCH.nomatch;
         if ((*dedtypes)[i])
         {
             Tuple tup = isTuple((*dedtypes)[i]);
             if (!tup)
-                return MATCHnomatch;
+                return MATCH.nomatch;
             if (!match(tup, ovar))
-                return MATCHnomatch;
+                return MATCH.nomatch;
         }
         (*dedtypes)[i] = ovar;
 
         if (psparam)
             *psparam = new TupleDeclaration(loc, ident, &ovar.objects);
-        return dependent ? MATCHexact : MATCHconvert;
+        return dependent ? MATCH.exact : MATCH.convert;
     }
 
     override void* dummyArg()
@@ -6832,7 +6832,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             TemplateDeclaration td_best;
             TemplateDeclaration td_ambig;
-            MATCH m_best = MATCHnomatch;
+            MATCH m_best = MATCH.nomatch;
 
             Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
             overloadApply(dstart, (Dsymbol s)
@@ -6856,7 +6856,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                 MATCH m = td.matchWithInstance(sc, this, &dedtypes, fargs, 0);
                 //printf("matchWithInstance = %d\n", m);
-                if (m <= MATCHnomatch) // no match at all
+                if (m <= MATCH.nomatch) // no match at all
                     return 0;
                 if (m < m_best) goto Ltd_best;
                 if (m > m_best) goto Ltd;
@@ -7081,7 +7081,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         }
                     }
                     MATCH m = td.matchWithInstance(sc, this, &dedtypes, null, 0);
-                    if (m <= MATCHnomatch)
+                    if (m <= MATCH.nomatch)
                         return 0;
                 }
 

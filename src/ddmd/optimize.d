@@ -103,7 +103,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     {
                         // const variable initialized with const expression
                     }
-                    else if (ei.implicitConvTo(v.type) >= MATCHconst)
+                    else if (ei.implicitConvTo(v.type) >= MATCH.constant)
                     {
                         // const var initialized with non-const expression
                         ei = ei.implicitCastTo(null, v.type);
@@ -580,7 +580,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
             }
 
-            if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCHconst)
+            if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
             {
                 //printf(" returning2 %s\n", e.e1.toChars());
             L1:

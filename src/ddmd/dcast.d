@@ -70,7 +70,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             MATCH match = e.implicitConvTo(t);
             if (match)
             {
-                if (match == MATCHconst && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
+                if (match == MATCH.constant && (e.type.constConv(t) || !e.isLvalue() && e.type.equivalent(t)))
                 {
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
@@ -128,7 +128,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
             FuncExp fe;
-            if (e.matchType(t, sc, &fe) > MATCHnomatch)
+            if (e.matchType(t, sc, &fe) > MATCH.nomatch)
             {
                 result = fe;
                 return;
@@ -187,7 +187,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
         extern (D) this(Type t)
         {
             this.t = t;
-            result = MATCHnomatch;
+            result = MATCH.nomatch;
         }
 
         override void visit(Expression e)
@@ -208,7 +208,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Expression ex = e.optimize(WANTvalue);
             if (ex.type.equals(t))
             {
-                result = MATCHexact;
+                result = MATCH.exact;
                 return;
             }
             if (ex != e)
@@ -219,7 +219,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
 
             MATCH match = e.type.implicitConvTo(t);
-            if (match != MATCHnomatch)
+            if (match != MATCH.nomatch)
             {
                 result = match;
                 return;
@@ -233,7 +233,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 IntRange target = IntRange.fromType(t);
                 if (target.contains(src))
                 {
-                    result = MATCHconvert;
+                    result = MATCH.convert;
                     return;
                 }
             }
@@ -272,7 +272,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type typeb = e.type.toBasetype();
 
             if (typeb.ty != Tpointer || tb.ty != Tpointer)
-                return MATCHnomatch;
+                return MATCH.nomatch;
 
             Type t1b = e.e1.type.toBasetype();
             Type t2b = e.e2.type.toBasetype();
@@ -281,16 +281,16 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 // ptr + offset
                 // ptr - offset
                 MATCH m = e.e1.implicitConvTo(t);
-                return (m > MATCHconst) ? MATCHconst : m;
+                return (m > MATCH.constant) ? MATCH.constant : m;
             }
             if (t2b.ty == Tpointer && t1b.isintegral() && t2b.equivalent(tb))
             {
                 // offset + ptr
                 MATCH m = e.e2.implicitConvTo(t);
-                return (m > MATCHconst) ? MATCHconst : m;
+                return (m > MATCH.constant) ? MATCH.constant : m;
             }
 
-            return MATCHnomatch;
+            return MATCH.nomatch;
         }
 
         override void visit(AddExp e)
@@ -300,7 +300,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("AddExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             visit(cast(Expression)e);
-            if (result == MATCHnomatch)
+            if (result == MATCH.nomatch)
                 result = implicitConvToAddMin(e, t);
         }
 
@@ -311,7 +311,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("MinExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             visit(cast(Expression)e);
-            if (result == MATCHnomatch)
+            if (result == MATCH.nomatch)
                 result = implicitConvToAddMin(e, t);
         }
 
@@ -322,7 +322,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("IntegerExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             MATCH m = e.type.implicitConvTo(t);
-            if (m >= MATCHconst)
+            if (m >= MATCH.constant)
             {
                 result = m;
                 return;
@@ -332,7 +332,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             TY toty = t.toBasetype().ty;
             TY oldty = ty;
 
-            if (m == MATCHnomatch && t.ty == Tenum)
+            if (m == MATCH.nomatch && t.ty == Tenum)
                 return;
 
             if (t.ty == Tvector)
@@ -500,8 +500,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 return;
             }
 
-            //printf("MATCHconvert\n");
-            result = MATCHconvert;
+            //printf("MATCH.convert\n");
+            result = MATCH.convert;
         }
 
         override void visit(ErrorExp e)
@@ -517,7 +517,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             if (e.type.equals(t))
             {
-                result = MATCHexact;
+                result = MATCH.exact;
                 return;
             }
 
@@ -527,7 +527,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              */
             if (t.equivalent(e.type))
             {
-                result = MATCHconst;
+                result = MATCH.constant;
                 return;
             }
 
@@ -541,11 +541,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("StructLiteralExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             visit(cast(Expression)e);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
             if (e.type.ty == t.ty && e.type.ty == Tstruct && (cast(TypeStruct)e.type).sym == (cast(TypeStruct)t).sym)
             {
-                result = MATCHconst;
+                result = MATCH.constant;
                 for (size_t i = 0; i < e.elements.dim; i++)
                 {
                     Expression el = (*e.elements)[i];
@@ -585,7 +585,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                             {
                                 if ((cast(TypeSArray)e.type).dim.toInteger() == (cast(TypeSArray)t).dim.toInteger())
                                 {
-                                    result = MATCHexact;
+                                    result = MATCH.exact;
                                 }
                                 return;
                             }
@@ -600,13 +600,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 if (tolen != fromlen)
                                 {
                                     // implicit length extending
-                                    result = MATCHconvert;
+                                    result = MATCH.convert;
                                     return;
                                 }
                             }
                             if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                             {
-                                result = MATCHexact;
+                                result = MATCH.exact;
                                 return;
                             }
                         }
@@ -624,18 +624,18 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 if (tolen != fromlen)
                                 {
                                     // implicit length extending
-                                    result = MATCHconvert;
+                                    result = MATCH.convert;
                                     return;
                                 }
                             }
                             if (tynto == tyn)
                             {
-                                result = MATCHexact;
+                                result = MATCH.exact;
                                 return;
                             }
                             if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
                             {
-                                result = MATCHexact;
+                                result = MATCH.exact;
                                 return;
                             }
                         }
@@ -643,12 +643,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     case Tarray:
                     case Tpointer:
                         Type tn = t.nextOf();
-                        MATCH m = MATCHexact;
+                        MATCH m = MATCH.exact;
                         if (e.type.nextOf().mod != tn.mod)
                         {
                             if (!tn.isConst())
                                 return;
-                            m = MATCHconst;
+                            m = MATCH.constant;
                         }
                         if (!e.committed)
                         {
@@ -656,17 +656,17 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                             {
                             case Tchar:
                                 if (e.postfix == 'w' || e.postfix == 'd')
-                                    m = MATCHconvert;
+                                    m = MATCH.convert;
                                 result = m;
                                 return;
                             case Twchar:
                                 if (e.postfix != 'w')
-                                    m = MATCHconvert;
+                                    m = MATCH.convert;
                                 result = m;
                                 return;
                             case Tdchar:
                                 if (e.postfix != 'd')
-                                    m = MATCHconvert;
+                                    m = MATCH.convert;
                                 result = m;
                                 return;
                             default:
@@ -696,14 +696,14 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if ((tb.ty == Tarray || tb.ty == Tsarray) &&
                 (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
-                result = MATCHexact;
+                result = MATCH.exact;
                 Type typen = typeb.nextOf().toBasetype();
 
                 if (tb.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tb;
                     if (e.elements.dim != tsa.dim.toInteger())
-                        result = MATCHnomatch;
+                        result = MATCH.nomatch;
                 }
 
                 Type telement = tb.nextOf();
@@ -723,7 +723,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     for (size_t i = 0; i < e.elements.dim; i++)
                     {
                         Expression el = (*e.elements)[i];
-                        if (result == MATCHnomatch)
+                        if (result == MATCH.nomatch)
                             break;
                         if (!el)
                             continue;
@@ -740,7 +740,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
             {
-                result = MATCHexact;
+                result = MATCH.exact;
                 // Convert array literal to vector type
                 TypeVector tv = cast(TypeVector)tb;
                 TypeSArray tbase = cast(TypeSArray)tv.basetype;
@@ -749,7 +749,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 const tbasedim = tbase.dim.toInteger();
                 if (edim > tbasedim)
                 {
-                    result = MATCHnomatch;
+                    result = MATCH.nomatch;
                     return;
                 }
 
@@ -767,7 +767,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     MATCH m = el.implicitConvTo(telement);
                     if (m < result)
                         result = m; // remember worst match
-                    if (result == MATCHnomatch)
+                    if (result == MATCH.nomatch)
                         break; // no need to check for worse
                 }
                 return;
@@ -783,20 +783,20 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             if (tb.ty == Taarray && typeb.ty == Taarray)
             {
-                result = MATCHexact;
+                result = MATCH.exact;
                 for (size_t i = 0; i < e.keys.dim; i++)
                 {
                     Expression el = (*e.keys)[i];
                     MATCH m = el.implicitConvTo((cast(TypeAArray)tb).index);
                     if (m < result)
                         result = m; // remember worst match
-                    if (result == MATCHnomatch)
+                    if (result == MATCH.nomatch)
                         break; // no need to check for worse
                     el = (*e.values)[i];
                     m = el.implicitConvTo(tb.nextOf());
                     if (m < result)
                         result = m; // remember worst match
-                    if (result == MATCHnomatch)
+                    if (result == MATCH.nomatch)
                         break; // no need to check for worse
                 }
                 return;
@@ -814,7 +814,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
 
             visit(cast(Expression)e);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             /* Allow the result of strongly pure functions to
@@ -823,8 +823,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (e.f && e.f.isolateReturn())
             {
                 result = e.type.immutableOf().implicitConvTo(t);
-                if (result > MATCHconst) // Match level is MATCHconst at best.
-                    result = MATCHconst;
+                if (result > MATCH.constant) // Match level is MATCH.constant at best.
+                    result = MATCH.constant;
                 return;
             }
 
@@ -861,7 +861,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              *    int* mp = foo();            // should be disallowed
              *  }
              */
-            if (e.type.immutableOf().implicitConvTo(t) < MATCHconst && e.type.addMod(MODshared).implicitConvTo(t) < MATCHconst && e.type.implicitConvTo(t.addMod(MODshared)) < MATCHconst)
+            if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODshared).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODshared)) < MATCH.constant)
             {
                 return;
             }
@@ -900,7 +900,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                  */
                 DotVarExp dve = cast(DotVarExp)e.e1;
                 Type targ = dve.e1.type;
-                if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
+                if (targ.constConv(targ.castMod(mod)) == MATCH.nomatch)
                     return;
             }
             for (size_t i = j; i < e.arguments.dim; ++i)
@@ -921,7 +921,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         continue;
                     if (fparam.storageClass & (STCout | STCref))
                     {
-                        if (targ.constConv(tparam.castMod(mod)) == MATCHnomatch)
+                        if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                             return;
                         continue;
                     }
@@ -930,13 +930,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 {
                     printf("[%d] earg: %s, targm: %s\n", cast(int)i, earg.toChars(), targ.addMod(mod).toChars());
                 }
-                if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                if (implicitMod(earg, targ, mod) == MATCH.nomatch)
                     return;
             }
 
             /* Success
              */
-            result = MATCHconst;
+            result = MATCH.constant;
         }
 
         override void visit(AddrExp e)
@@ -948,7 +948,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             result = e.type.implicitConvTo(t);
             //printf("\tresult = %d\n", result);
 
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             Type tb = t.toBasetype();
@@ -976,7 +976,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         }
                         else
                             f = f2;
-                        result = MATCHexact;
+                        result = MATCH.exact;
                     }
                 }
             }
@@ -1003,7 +1003,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
             result = e.type.implicitConvTo(t);
             //printf("\tresult = %d\n", result);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             Type tb = t.toBasetype();
@@ -1021,7 +1021,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         if ((tb.ty == Tdelegate && (f.needThis() || f.isNested())) ||
                             (tb.ty == Tpointer && !(f.needThis() || f.isNested())))
                         {
-                            result = MATCHexact;
+                            result = MATCH.exact;
                         }
                     }
                 }
@@ -1036,7 +1036,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("DelegateExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             result = e.type.implicitConvTo(t);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             Type tb = t.toBasetype();
@@ -1046,7 +1046,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
             {
                 if (e.func && e.func.overloadExactMatch(tb.nextOf()))
-                    result = MATCHexact;
+                    result = MATCH.exact;
             }
         }
 
@@ -1054,7 +1054,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
         {
             //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
             MATCH m = e.matchType(t, null, null, 1);
-            if (m > MATCHnomatch)
+            if (m > MATCH.nomatch)
             {
                 result = m;
                 return;
@@ -1065,7 +1065,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
         override void visit(OrExp e)
         {
             visit(cast(Expression)e);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             MATCH m1 = e.e1.implicitConvTo(t);
@@ -1078,7 +1078,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
         override void visit(XorExp e)
         {
             visit(cast(Expression)e);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             MATCH m1 = e.e1.implicitConvTo(t);
@@ -1110,11 +1110,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("CastExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             result = e.type.implicitConvTo(t);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
-            if (t.isintegral() && e.e1.type.isintegral() && e.e1.implicitConvTo(t) != MATCHnomatch)
-                result = MATCHconvert;
+            if (t.isintegral() && e.e1.type.isintegral() && e.e1.implicitConvTo(t) != MATCH.nomatch)
+                result = MATCH.convert;
             else
                 visit(cast(Expression)e);
         }
@@ -1126,7 +1126,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 printf("NewExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
             visit(cast(Expression)e);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             /* Calling new() is like calling a pure function. We can implicitly convert the
@@ -1141,7 +1141,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             /* See if fail only because of mod bits
              */
-            if (e.type.immutableOf().implicitConvTo(t.immutableOf()) == MATCHnomatch)
+            if (e.type.immutableOf().implicitConvTo(t.immutableOf()) == MATCH.nomatch)
                 return;
 
             /* Get mod bits of what we're converting to
@@ -1166,7 +1166,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 /* Treat 'this' as just another function argument
                  */
                 Type targ = e.thisexp.type;
-                if (targ.constConv(targ.castMod(mod)) == MATCHnomatch)
+                if (targ.constConv(targ.castMod(mod)) == MATCH.nomatch)
                     return;
             }
 
@@ -1185,7 +1185,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
                 if (fd == e.member)
                 {
-                    if (e.type.immutableOf().implicitConvTo(t) < MATCHconst && e.type.addMod(MODshared).implicitConvTo(t) < MATCHconst && e.type.implicitConvTo(t.addMod(MODshared)) < MATCHconst)
+                    if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODshared).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODshared)) < MATCH.constant)
                     {
                         return;
                     }
@@ -1215,7 +1215,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                             continue;
                         if (fparam.storageClass & (STCout | STCref))
                         {
-                            if (targ.constConv(tparam.castMod(mod)) == MATCHnomatch)
+                            if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                                 return;
                             continue;
                         }
@@ -1224,7 +1224,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     {
                         printf("[%d] earg: %s, targm: %s\n", cast(int)i, earg.toChars(), targ.addMod(mod).toChars());
                     }
-                    if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                    if (implicitMod(earg, targ, mod) == MATCH.nomatch)
                         return;
                 }
             }
@@ -1246,7 +1246,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         printf("[%d] earg: %s, targ: %s\n", cast(int)i, earg.toChars(), targ.toChars());
                         printf("[%d] earg: %s, targm: %s\n", cast(int)i, earg.toChars(), targ.addMod(mod).toChars());
                     }
-                    if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                    if (implicitMod(earg, targ, mod) == MATCH.nomatch)
                         return;
                 }
             }
@@ -1297,7 +1297,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                     else if (ExpInitializer ei = _init.isExpInitializer())
                                     {
                                         Type tb = v.type.toBasetype();
-                                        if (implicitMod(ei.exp, tb, mod) == MATCHnomatch)
+                                        if (implicitMod(ei.exp, tb, mod) == MATCH.nomatch)
                                             return false;
                                     }
                                     else
@@ -1323,20 +1323,20 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 Expression earg = e.newtype.defaultInitLiteral(e.loc);
                 Type targ = e.newtype.toBasetype();
 
-                if (implicitMod(earg, targ, mod) == MATCHnomatch)
+                if (implicitMod(earg, targ, mod) == MATCH.nomatch)
                     return;
             }
 
             /* Success
              */
-            result = MATCHconst;
+            result = MATCH.constant;
         }
 
         override void visit(SliceExp e)
         {
             //printf("SliceExp::implicitConvTo e = %s, type = %s\n", e.toChars(), e.type.toChars());
             visit(cast(Expression)e);
-            if (result != MATCHnomatch)
+            if (result != MATCH.nomatch)
                 return;
 
             Type tb = t.toBasetype();
@@ -1379,8 +1379,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (tx)
                 {
                     result = e.e1.implicitConvTo(tx);
-                    if (result > MATCHconst) // Match level is MATCHconst at best.
-                        result = MATCHconst;
+                    if (result > MATCH.constant) // Match level is MATCH.constant at best.
+                        result = MATCH.constant;
                 }
             }
 
@@ -1532,7 +1532,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 goto Lfail;
             }
-            else if (t1b.implicitConvTo(tob) == MATCHconst && t.equals(e.type.constOf()))
+            else if (t1b.implicitConvTo(tob) == MATCH.constant && t.equals(e.type.constOf()))
             {
                 result = e.copy();
                 result.type = t;
@@ -2360,7 +2360,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         {
             //printf("FuncExp::castTo type = %s, t = %s\n", e.type.toChars(), t.toChars());
             FuncExp fe;
-            if (e.matchType(t, sc, &fe, 1) > MATCHnomatch)
+            if (e.matchType(t, sc, &fe, 1) > MATCH.nomatch)
             {
                 result = fe;
                 return;
@@ -2455,7 +2455,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     t1b = tb.nextOf().pointerTo();
                 else
                     assert(0);
-                if (e.e1.implicitConvTo(t1b) > MATCHnomatch)
+                if (e.e1.implicitConvTo(t1b) > MATCH.nomatch)
                 {
                     Expression e1x = e.e1.implicitCastTo(sc, t1b);
                     assert(e1x.op != TOKerror);
@@ -2923,7 +2923,7 @@ Lagain:
          */
         goto Lx2;
     }
-    else if ((t1.ty == Tsarray || t1.ty == Tarray) && (m = t1.implicitConvTo(t2)) != MATCHnomatch)
+    else if ((t1.ty == Tsarray || t1.ty == Tarray) && (m = t1.implicitConvTo(t2)) != MATCH.nomatch)
     {
         // https://issues.dlang.org/show_bug.cgi?id=7285
         // Tsarray op [x, y, ...] should to be Tsarray
@@ -2931,7 +2931,7 @@ Lagain:
         // Tsarray ~ [x, y, ...] should to be Tarray
         if (t1.ty == Tsarray && e2.op == TOKarrayliteral && op != TOKcat)
             goto Lt1;
-        if (m == MATCHconst && (op == TOKaddass || op == TOKminass || op == TOKmulass || op == TOKdivass || op == TOKmodass || op == TOKpowass || op == TOKandass || op == TOKorass || op == TOKxorass))
+        if (m == MATCH.constant && (op == TOKaddass || op == TOKminass || op == TOKmulass || op == TOKdivass || op == TOKmodass || op == TOKpowass || op == TOKandass || op == TOKorass || op == TOKxorass))
         {
             // Don't make the lvalue const
             t = t2;
@@ -3008,9 +3008,9 @@ Lagain:
             {
                 // We have the case of class vs. void*, so pick class
                 if (t1.ty == Tpointer)
-                    i1 = MATCHnomatch;
+                    i1 = MATCH.nomatch;
                 else if (t2.ty == Tpointer)
-                    i2 = MATCHnomatch;
+                    i2 = MATCH.nomatch;
             }
 
             if (i2)
@@ -3090,8 +3090,8 @@ Lagain:
             if (!ts1.sym.aliasthis && !ts2.sym.aliasthis)
                 goto Lincompatible;
 
-            MATCH i1 = MATCHnomatch;
-            MATCH i2 = MATCHnomatch;
+            MATCH i1 = MATCH.nomatch;
+            MATCH i2 = MATCH.nomatch;
 
             Expression e1b = null;
             Expression e2b = null;
@@ -3441,7 +3441,7 @@ extern (C++) bool arrayTypeCompatible(Loc loc, Type t1, Type t2)
 
     if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
     {
-        if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCHconst && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCHconst && (t1.nextOf().ty != Tvoid && t2.nextOf().ty != Tvoid))
+        if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCH.constant && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCH.constant && (t1.nextOf().ty != Tvoid && t2.nextOf().ty != Tvoid))
         {
             error(loc, "array equality comparison type mismatch, `%s` vs `%s`", t1.toChars(), t2.toChars());
         }
@@ -3463,7 +3463,7 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Loc loc, Type t1, Type t2)
 
     if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && t2.ty == t1.ty)
     {
-        if (t1.nextOf().implicitConvTo(t2.nextOf()) >= MATCHconst || t2.nextOf().implicitConvTo(t1.nextOf()) >= MATCHconst)
+        if (t1.nextOf().implicitConvTo(t2.nextOf()) >= MATCH.constant || t2.nextOf().implicitConvTo(t1.nextOf()) >= MATCH.constant)
             return true;
     }
     return false;

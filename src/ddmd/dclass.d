@@ -747,16 +747,16 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
                     {
                     // Function type matching: exact > covariant
-                    MATCH m1 = tf.equals(fd.type) ? MATCHexact : MATCHnomatch;
-                    MATCH m2 = tf.equals(fdmatch.type) ? MATCHexact : MATCHnomatch;
+                    MATCH m1 = tf.equals(fd.type) ? MATCH.exact : MATCH.nomatch;
+                    MATCH m2 = tf.equals(fdmatch.type) ? MATCH.exact : MATCH.nomatch;
                     if (m1 > m2)
                         goto Lfd;
                     else if (m1 < m2)
                         goto Lfdmatch;
                     }
                     {
-                    MATCH m1 = (tf.mod == fd.type.mod) ? MATCHexact : MATCHnomatch;
-                    MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCHexact : MATCHnomatch;
+                    MATCH m1 = (tf.mod == fd.type.mod) ? MATCH.exact : MATCH.nomatch;
+                    MATCH m2 = (tf.mod == fdmatch.type.mod) ? MATCH.exact : MATCH.nomatch;
                     if (m1 > m2)
                         goto Lfd;
                     else if (m1 < m2)
@@ -764,8 +764,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                     }
                     {
                     // The way of definition: non-mixin > mixin
-                    MATCH m1 = fd.parent.isClassDeclaration() ? MATCHexact : MATCHnomatch;
-                    MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCHexact : MATCHnomatch;
+                    MATCH m1 = fd.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
+                    MATCH m2 = fdmatch.parent.isClassDeclaration() ? MATCH.exact : MATCH.nomatch;
                     if (m1 > m2)
                         goto Lfd;
                     else if (m1 < m2)

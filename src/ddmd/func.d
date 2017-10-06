@@ -711,7 +711,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 auto tf = cast(TypeFunction)f.type;
                 if (tf.covariant(t) == 1 &&
-                    tf.nextOf().implicitConvTo(t.nextOf()) >= MATCHconst)
+                    tf.nextOf().implicitConvTo(t.nextOf()) >= MATCH.constant)
                 {
                     fd = f;
                     return 1;
@@ -744,7 +744,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
         Match m;
-        m.last = MATCHnomatch;
+        m.last = MATCH.nomatch;
         overloadApply(this, (Dsymbol s)
         {
             auto f = s.isFuncDeclaration();
@@ -759,18 +759,18 @@ extern (C++) class FuncDeclaration : Declaration
             if (tthis) // non-static functions are preferred than static ones
             {
                 if (f.needThis())
-                    match = f.isCtorDeclaration() ? MATCHexact : MODmethodConv(tthis.mod, tf.mod);
+                    match = f.isCtorDeclaration() ? MATCH.exact : MODmethodConv(tthis.mod, tf.mod);
                 else
-                    match = MATCHconst; // keep static function in overload candidates
+                    match = MATCH.constant; // keep static function in overload candidates
             }
             else // static functions are preferred than non-static ones
             {
                 if (f.needThis())
-                    match = MATCHconvert;
+                    match = MATCH.convert;
                 else
-                    match = MATCHexact;
+                    match = MATCH.exact;
             }
-            if (match == MATCHnomatch)
+            if (match == MATCH.nomatch)
                 return 0;
 
             if (match > m.last) goto LcurrIsBetter;
@@ -793,7 +793,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         LcurrIsBetter:
             //printf("\tisbetter\n");
-            if (m.last <= MATCHconvert)
+            if (m.last <= MATCH.convert)
             {
                 // clear last secondary matching
                 m.nextf = null;
@@ -897,12 +897,12 @@ extern (C++) class FuncDeclaration : Declaration
             if (isCtorDeclaration())
             {
                 if (!MODimplicitConv(tg.mod, tf.mod))
-                    return MATCHnomatch;
+                    return MATCH.nomatch;
             }
             else
             {
                 if (!MODimplicitConv(tf.mod, tg.mod))
-                    return MATCHnomatch;
+                    return MATCH.nomatch;
             }
         }
 
@@ -925,7 +925,7 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         MATCH m = tg.callMatch(null, &args, 1);
-        if (m > MATCHnomatch)
+        if (m > MATCH.nomatch)
         {
             /* A variadic parameter list is less specialized than a
              * non-variadic one.
@@ -944,7 +944,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             printf("  doesn't match, so is not as specialized\n");
         }
-        return MATCHnomatch;
+        return MATCH.nomatch;
     }
 
     /********************************
@@ -2364,11 +2364,11 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     }
 
     Match m;
-    m.last = MATCHnomatch;
+    m.last = MATCH.nomatch;
 
     functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
-    if (m.last > MATCHnomatch && m.lastf)
+    if (m.last > MATCH.nomatch && m.lastf)
     {
         if (m.count == 1) // exactly one match
         {
@@ -2385,7 +2385,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     /* Failed to find a best match.
      * Do nothing or print error.
      */
-    if (m.last <= MATCHnomatch)
+    if (m.last <= MATCH.nomatch)
     {
         // error was caused on matched function
         if (m.count == 1)
@@ -2608,7 +2608,7 @@ private bool traverseIndirections(Type ta, Type tb)
         {
             return
                 // if source is the same as target or can be const-converted to target
-                source.constConv(target) != MATCHnomatch ||
+                source.constConv(target) != MATCH.nomatch ||
                 // if target is void and source can be const-converted to target
                 (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod));
         }
