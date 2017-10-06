@@ -115,7 +115,8 @@ void* AArray::get(void *pkey)
     //printf("AArray::get()\n");
     size_t i;
     aaA* e;
-    size_t keysize = aligntsize(keyti->tsize());
+    const size_t keysize = keyti->tsize();
+    const size_t aligned_keysize = aligntsize(keysize);
 
     if (!buckets_length)
     {
@@ -148,9 +149,9 @@ void* AArray::get(void *pkey)
 
     // Not found, create new elem
     //printf("create new one\n");
-    e = (aaA *) new char[sizeof(aaA) + keysize + valuesize];
+    e = (aaA *) new char[sizeof(aaA) + aligned_keysize + valuesize];
     memcpy(e + 1, pkey, keysize);
-    memset((unsigned char *)(e + 1) + keysize, 0, valuesize);
+    memset((unsigned char *)(e + 1) + aligned_keysize, 0, valuesize);
     e->hash = key_hash;
     e->left = NULL;
     e->right = NULL;
@@ -165,7 +166,7 @@ void* AArray::get(void *pkey)
     }
 
 Lret:
-    return (void *)((char *)(e + 1) + keysize);
+    return (void *)((char *)(e + 1) + aligned_keysize);
 }
 
 
@@ -341,11 +342,12 @@ void *AArray::values()
 
 void *AArray::values_x(aaA *e, void *p)
 {
-    size_t keysize = keyti->tsize();
+    const size_t keysize = keyti->tsize();
+    const size_t aligned_keysize = aligntsize(keysize);
     do
     {
         memcpy(p,
-               (char *)(e + 1) + keysize,
+               (char *)(e + 1) + aligned_keysize,
                valuesize);
         p = (void *)((char *)p + valuesize);
         if (e->left)
@@ -464,14 +466,15 @@ int AArray::apply(void *parameter, dg2_t dg)
 
     if (nodes)
     {
-        size_t keysize = aligntsize(keyti->tsize());
+        const size_t keysize = keyti->tsize();
+        const size_t aligned_keysize = aligntsize(keysize);
 
         for (size_t i = 0; i < buckets_length; i++)
         {   aaA* e = buckets[i];
 
             if (e)
             {
-                result = apply_x(e, dg, keysize, parameter);
+                result = apply_x(e, dg, aligned_keysize, parameter);
                 if (result)
                     break;
             }
@@ -480,13 +483,13 @@ int AArray::apply(void *parameter, dg2_t dg)
     return result;
 }
 
-int AArray::apply_x(aaA* e, dg2_t dg, size_t keysize, void *parameter)
+int AArray::apply_x(aaA* e, dg2_t dg, size_t aligned_keysize, void *parameter)
 {   int result;
 
     do
     {
         //printf("apply_x(e = %p, dg = %p)\n", e, dg);
-        result = (*dg)(parameter, e + 1, (char *)(e + 1) + keysize);
+        result = (*dg)(parameter, e + 1, (char *)(e + 1) + aligned_keysize);
         if (result)
             break;
         if (e->right)
@@ -495,7 +498,7 @@ int AArray::apply_x(aaA* e, dg2_t dg, size_t keysize, void *parameter)
                 e = e->right;
                 continue;
             }
-            result = apply_x(e->right, dg, keysize, parameter);
+            result = apply_x(e->right, dg, aligned_keysize, parameter);
             if (result)
                 break;
         }
@@ -504,5 +507,3 @@ int AArray::apply_x(aaA* e, dg2_t dg, size_t keysize, void *parameter)
 
     return result;
 }
-
-
