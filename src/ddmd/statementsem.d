@@ -1111,7 +1111,7 @@ extern (C++) final class StatementSemanticVisitor : Visitor
                         fs.key = var;
                         if (p.storageClass & STCref)
                         {
-                            if (var.type.constConv(p.type) <= MATCHnomatch)
+                            if (var.type.constConv(p.type) <= MATCH.nomatch)
                             {
                                 fs.error("key type mismatch, `%s` to `ref %s`",
                                     var.type.toChars(), p.type.toChars());
@@ -1146,7 +1146,7 @@ extern (C++) final class StatementSemanticVisitor : Visitor
                                 var.storage_class |= STCctorinit;
 
                             Type t = tab.nextOf();
-                            if (t.constConv(p.type) <= MATCHnomatch)
+                            if (t.constConv(p.type) <= MATCH.nomatch)
                             {
                                 fs.error("argument type mismatch, `%s` to `ref %s`",
                                     t.toChars(), p.type.toChars());
@@ -1986,7 +1986,7 @@ else
         }
         if (fs.prm.storageClass & STCref)
         {
-            if (fs.key.type.constConv(fs.prm.type) <= MATCHnomatch)
+            if (fs.key.type.constConv(fs.prm.type) <= MATCH.nomatch)
             {
                 fs.error("argument type mismatch, `%s` to ref `%s`", fs.key.type.toChars(), fs.prm.type.toChars());
                 return setError();

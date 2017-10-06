@@ -1707,7 +1707,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
                 {
                     MATCH m;
-                    if ((m = arg.implicitConvTo(p.type)) > MATCHnomatch)
+                    if ((m = arg.implicitConvTo(p.type)) > MATCH.nomatch)
                     {
                         if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
                             goto L2;
@@ -5564,7 +5564,7 @@ extern (C++) final class FuncExp : Expression
             {
                 if (!flag)
                     error("cannot match function literal to delegate type '%s'", to.toChars());
-                return MATCHnomatch;
+                return MATCH.nomatch;
             }
             tof = cast(TypeFunction)to.nextOf();
         }
@@ -5574,7 +5574,7 @@ extern (C++) final class FuncExp : Expression
             {
                 if (!flag)
                     error("cannot match delegate literal to function pointer type '%s'", to.toChars());
-                return MATCHnomatch;
+                return MATCH.nomatch;
             }
             tof = cast(TypeFunction)to.nextOf();
         }
@@ -5586,7 +5586,7 @@ extern (C++) final class FuncExp : Expression
             L1:
                 if (!flag)
                     error("cannot infer parameter types from %s", to.toChars());
-                return MATCHnomatch;
+                return MATCH.nomatch;
             }
 
             // Parameter types inference from 'tof'
@@ -5633,20 +5633,20 @@ extern (C++) final class FuncExp : Expression
             fd.treq = null;
 
             if (ex.op == TOKerror)
-                return MATCHnomatch;
+                return MATCH.nomatch;
             if (ex.op != TOKfunction)
                 goto L1;
             return (cast(FuncExp)ex).matchType(to, sc, presult, flag);
         }
 
         if (!tof || !tof.next)
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         assert(type && type != Type.tvoid);
         TypeFunction tfx = cast(TypeFunction)fd.type;
         bool convertMatch = (type.ty != to.ty);
 
-        if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCHconvert)
+        if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCH.convert)
         {
             /* If return type is inferred and covariant return,
              * tweak return statements to required return type.
@@ -5685,12 +5685,12 @@ extern (C++) final class FuncExp : Expression
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
 
         MATCH m = tx.implicitConvTo(to);
-        if (m > MATCHnomatch)
+        if (m > MATCH.nomatch)
         {
-            // MATCHexact:      exact type match
-            // MATCHconst:      covairiant type match (eg. attributes difference)
-            // MATCHconvert:    context conversion
-            m = convertMatch ? MATCHconvert : tx.equals(to) ? MATCHexact : MATCHconst;
+            // MATCH.exact:      exact type match
+            // MATCH.constant:      covairiant type match (eg. attributes difference)
+            // MATCH.convert:    context conversion
+            m = convertMatch ? MATCH.convert : tx.equals(to) ? MATCH.exact : MATCH.constant;
 
             if (presult)
             {

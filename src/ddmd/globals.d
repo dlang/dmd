@@ -449,11 +449,6 @@ enum MATCH : int
     exact,     // exact match
 }
 
-alias MATCHnomatch = MATCH.nomatch;
-alias MATCHconvert = MATCH.convert;
-alias MATCHconst = MATCH.constant;
-alias MATCHexact = MATCH.exact;
-
 enum PINLINE : int
 {
     def,     // as specified on the command line

@@ -1634,7 +1634,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.fd.treq) // defer type determination
                 {
                     FuncExp fe;
-                    if (exp.matchType(exp.fd.treq, sc, &fe) > MATCHnomatch)
+                    if (exp.matchType(exp.fd.treq, sc, &fe) > MATCH.nomatch)
                         e = fe;
                     else
                         e = new ErrorExp();
@@ -3178,7 +3178,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
             MATCH m = deduceType(e.targ, sc, e.tspec, e.parameters, &dedtypes);
             //printf("targ: %s\n", targ.toChars());
             //printf("tspec: %s\n", tspec.toChars());
-            if (m <= MATCHnomatch || (m != MATCHexact && e.tok == TOKequal))
+            if (m <= MATCH.nomatch || (m != MATCH.exact && e.tok == TOKequal))
             {
                 goto Lno;
             }
@@ -3199,7 +3199,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Declaration s = null;
 
                     m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, &dedtypes, &s);
-                    if (m <= MATCHnomatch)
+                    if (m <= MATCH.nomatch)
                         goto Lno;
                     s.semantic(sc);
                     if (sc.sds)
@@ -6299,7 +6299,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
-                if (e2x.implicitConvTo(t1.nextOf().arrayOf()) > MATCHnomatch)
+                if (e2x.implicitConvTo(t1.nextOf().arrayOf()) > MATCH.nomatch)
                 {
                     uinteger_t dim1 = (cast(TypeSArray)t1).dim.toInteger();
                     uinteger_t dim2 = dim1;
@@ -7126,7 +7126,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb2next = tb2.nextOf();
 
         // Check for: array ~ array
-        if (tb1next && tb2next && (tb1next.implicitConvTo(tb2next) >= MATCHconst || tb2next.implicitConvTo(tb1next) >= MATCHconst || exp.e1.op == TOKarrayliteral && exp.e1.implicitConvTo(tb2) || exp.e2.op == TOKarrayliteral && exp.e2.implicitConvTo(tb1)))
+        if (tb1next && tb2next && (tb1next.implicitConvTo(tb2next) >= MATCH.constant || tb2next.implicitConvTo(tb1next) >= MATCH.constant || exp.e1.op == TOKarrayliteral && exp.e1.implicitConvTo(tb2) || exp.e2.op == TOKarrayliteral && exp.e2.implicitConvTo(tb1)))
         {
             /* https://issues.dlang.org/show_bug.cgi?id=9248
              * Here to avoid the case of:
@@ -7177,7 +7177,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = tb2.arrayOf();
                 goto L2elem;
             }
-            if (exp.e2.implicitConvTo(tb1next) >= MATCHconvert)
+            if (exp.e2.implicitConvTo(tb1next) >= MATCH.convert)
             {
                 exp.e2 = exp.e2.implicitCastTo(sc, tb1next);
                 exp.type = tb1next.arrayOf();
@@ -7217,7 +7217,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = tb1.arrayOf();
                 goto L1elem;
             }
-            if (exp.e1.implicitConvTo(tb2next) >= MATCHconvert)
+            if (exp.e1.implicitConvTo(tb2next) >= MATCH.convert)
             {
                 exp.e1 = exp.e1.implicitCastTo(sc, tb2next);
                 exp.type = tb2next.arrayOf();
@@ -8131,7 +8131,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Type t1next = t1.nextOf();
             Type t2next = t2.nextOf();
-            if (t1next.implicitConvTo(t2next) < MATCHconst && t2next.implicitConvTo(t1next) < MATCHconst && (t1next.ty != Tvoid && t2next.ty != Tvoid))
+            if (t1next.implicitConvTo(t2next) < MATCH.constant && t2next.implicitConvTo(t1next) < MATCH.constant && (t1next.ty != Tvoid && t2next.ty != Tvoid))
             {
                 exp.error("array comparison type mismatch, %s vs %s", t1next.toChars(), t2next.toChars());
                 result = new ErrorExp();
