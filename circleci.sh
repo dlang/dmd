@@ -122,7 +122,8 @@ codecov()
     # CodeCov gets confused by lst files which it can't matched
     rm -rf test/runnable/extra-files
     download "https://codecov.io/bash" "https://raw.githubusercontent.com/codecov/codecov-bash/master/codecov" "codecov.sh"
-    bash codecov.sh
+    cd src # need to run from compilation folder for gcov to find sources
+    bash ../codecov.sh -p .. -x gcov-4.9 # must match g++ version (on CircleCI `g++` is 4.9 and `gcov` 4.6 :/)
 }
 
 case $1 in
