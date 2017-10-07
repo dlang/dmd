@@ -475,9 +475,22 @@ public int runLINK()
         Strings argv;
         const(char)* cc = getenv("CC");
         if (!cc)
-            cc = "cc";
-        argv.push(cc);
-        argv.insert(1, global.params.objfiles);
+        {
+            argv.push("cc");
+        }
+        else
+        {
+            // Split CC command to support link driver arguments such as -fpie or -flto.
+            char *arg = strdup(cc);
+            const(char)* tok = strtok(arg, " ");
+            while (tok)
+            {
+                argv.push(mem.xstrdup(tok));
+                tok = strtok(null, " ");
+            }
+            free(arg);
+        }
+        argv.append(global.params.objfiles);
         version (OSX)
         {
             // If we are on Mac OS X and linking a dynamic library,
