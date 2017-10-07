@@ -2884,7 +2884,8 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 // Zero high 32 bits
                 getregs(cdb,retregs);
                 reg = findreg(retregs);
-                genregs(cdb,0x89,reg,reg);  // MOV Ereg,Ereg
+                // Don't use x89 because that will get optimized away
+                genregs(cdb,0x8B,reg,reg);  // MOV Ereg,Ereg
             }
         }
         fixresult(cdb,e,retregs,pretregs);

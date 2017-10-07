@@ -404,7 +404,8 @@ void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     else if (zx)
     {   assert(I64);
         getregs(cdb,regs);
-        genregs(cdb,STO,reg,reg); // MOV reg,reg to zero upper 32-bit
+        genregs(cdb,0x8B,reg,reg); // MOV reg,reg to zero upper 32-bit
+                                   // Don't use x89 because that will get optimized away
         code_orflag(cdb.last(),CFvolatile);
     }
 
