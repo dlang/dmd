@@ -52,7 +52,7 @@ public:
 
     bool needExpansion;
 
-    Condition *syntaxCopy();
+    StaticForeach *syntaxCopy();
 };
 
 class DVCondition : public Condition
