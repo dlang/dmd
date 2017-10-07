@@ -703,6 +703,34 @@ void test15396()
 
 /*****************************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=15538
+
+struct S15538
+{
+    int a = 0;
+    int b = 1;
+}
+
+int f15538(S15538 s)
+{
+    switch (s.a)
+    {
+        case 0: return 10;
+        case 1: return 20;
+        case 2: return 30;
+        case 3: return 40;
+        default: return 99;
+    }
+}
+
+void test15538()
+{
+    S15538 s;
+    assert(f15538(s) == 10); /* fails */
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -732,6 +760,7 @@ int main()
     test14352();
     test14587();
     test15396();
+    test15538();
 
     printf("Success\n");
     return 0;
