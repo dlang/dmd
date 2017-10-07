@@ -255,9 +255,7 @@ ifdef ENABLE_SANITIZERS
 CXXFLAGS += -fsanitize=${ENABLE_SANITIZERS}
 
 ifeq ($(HOST_DMD_KIND), dmd)
-DFLAGS += $(if $(findstring address,${ENABLE_SANITIZERS}),-L-lasan,)
-DFLAGS += $(if $(findstring undefined,${ENABLE_SANITIZERS}),-L-lubsan,)
-DFLAGS += $(if $(findstring memory,${ENABLE_SANITIZERS}),-L-lmsan,)
+HOST_CXX += -fsanitize=${ENABLE_SANITIZERS}
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_KIND))$(findstring ldc,$(HOST_DMD_KIND)))
 DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
@@ -422,29 +420,29 @@ $G/backend.a: $(G_OBJS)
 	$(AR) rcs $@ $(G_OBJS)
 
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
 
 parser_test: $G/parser.a $(EX)/test_parser.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
 
 example_avg: $G/parser.a $(EX)/avg.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 dmd: $G/dmd $G/dmd.conf
 	cp $< .
 
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
 
 
@@ -567,7 +565,7 @@ install: all
 ######################################################
 
 checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -run $(TOOLS_DIR)/checkwhitespace.d $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -run $(TOOLS_DIR)/checkwhitespace.d $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
 
 $(TOOLS_DIR)/checkwhitespace.d:
 	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
@@ -597,7 +595,7 @@ gitzip:
 ######################################################
 
 ../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -Df$@ $<
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -Df$@ $<
 
 ################################################################################
 # DDoc documentation generation
