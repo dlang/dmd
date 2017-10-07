@@ -83,7 +83,7 @@ else version(HPPA)
     };
 
 }
-else version(MIPS)
+else version(MIPS32)
 {
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/mips/bits/msq.h
     alias c_ulong msgqnum_t;

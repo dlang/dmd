@@ -991,7 +991,7 @@ else version(PPC)
     enum TLS_DTV_OFFSET = 0x8000;
 else version(PPC64)
     enum TLS_DTV_OFFSET = 0x8000;
-else version(MIPS)
+else version(MIPS32)
     enum TLS_DTV_OFFSET = 0x8000;
 else version(MIPS64)
     enum TLS_DTV_OFFSET = 0x8000;
