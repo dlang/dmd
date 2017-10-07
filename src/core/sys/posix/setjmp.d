@@ -78,7 +78,7 @@ version( CRuntime_Glibc )
     {
         alias long[64] __jmp_buf;
     }
-    else version (MIPS)
+    else version (MIPS32)
     {
         struct __jmp_buf
         {
