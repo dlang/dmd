@@ -2135,7 +2135,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (fd.isCtorDeclaration())
         {
             // For constructors, emitting return type is necessary for
-            // isolateReturn() in functionResolve.
+            // isReturnIsolated() in functionResolve.
             scx.flags |= SCOPEctor;
 
             Dsymbol parent = toParent2();
@@ -2396,10 +2396,10 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (isCtorCall)
         {
             //printf("%s tf.mod = x%x tthis_fd.mod = x%x %d\n", tf.toChars(),
-            //        tf.mod, tthis_fd.mod, fd.isolateReturn());
+            //        tf.mod, tthis_fd.mod, fd.isReturnIsolated());
             if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
                 tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
-                fd.isolateReturn())
+                fd.isReturnIsolated())
             {
                 /* && tf.isShared() == tthis_fd.isShared()*/
                 // Uniquely constructed object can ignore shared qualifier.
@@ -2664,7 +2664,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                 assert(tf.next);
                 if (MODimplicitConv(tf.mod, tthis_fd.mod) ||
                     tf.isWild() && tf.isShared() == tthis_fd.isShared() ||
-                    fd.isolateReturn())
+                    fd.isReturnIsolated())
                 {
                     tthis_fd = null;
                 }

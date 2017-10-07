@@ -1226,7 +1226,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                             continue;
                         }
 
-                        if (!exp.implicitConvTo(tret) && funcdecl.parametersIntersectIndirect(exp.type))
+                        if (!exp.implicitConvTo(tret) && funcdecl.isTypeIsolated(exp.type))
                         {
                             if (exp.type.immutableOf().implicitConvTo(tret))
                                 exp = exp.castTo(sc2, exp.type.immutableOf());
