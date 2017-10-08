@@ -1087,6 +1087,7 @@ extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = new ErrorExp();
                 return;
             }
+
             if (cd.isAbstract())
             {
                 exp.error("cannot create instance of abstract class %s", cd.toChars());

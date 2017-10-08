@@ -1108,6 +1108,29 @@ extern (C++) class FuncDeclaration : Declaration
         return true; // functions can be overloaded
     }
 
+    /***********************************
+     * Override so it can work even if semantic() hasn't yet
+     * been run.
+     */
+    override final bool isAbstract()
+    {
+        if (storage_class & STCabstract)
+            return true;
+        if (semanticRun >= PASSsemanticdone)
+            return false;
+
+        if (_scope)
+        {
+           if (_scope.stc & STCabstract)
+                return true;
+           parent = _scope.parent;
+           Dsymbol parent = toParent();
+           if (parent.isInterfaceDeclaration())
+                return true;
+        }
+        return false;
+    }
+
     /**********************************
      * Decide if attributes for this function can be inferred from examining
      * the function body.
