@@ -5393,7 +5393,13 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!sd.determineFields())
         {
-            assert(sd.type.ty == Terror);
+            if (sd.type.ty != Terror)
+            {
+                sd.error(sd.loc, "circular or forward reference");
+                sd.errors = true;
+                sd.type = Type.terror;
+            }
+
             sc2.pop();
             sd.semanticRun = PASSsemanticdone;
             return;
