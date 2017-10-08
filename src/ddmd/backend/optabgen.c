@@ -450,11 +450,11 @@ void dotab()
         case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
         case OPstrlen:  X("strlen",     elzot,  cdstrlen);
         case OPstrcpy:  X("strcpy",     elstrcpy,cdstrcpy);
-        case OPmemcpy:  X("memcpy",     elmemxxx,cdmemcpy);
-        case OPmemset:  X("memset",     elmemxxx,cdmemset);
+        case OPmemcpy:  X("memcpy",     elmemcpy,cdmemcpy);
+        case OPmemset:  X("memset",     elmemset,cdmemset);
         case OPstrcat:  X("strcat",     elzot,  cderr);
         case OPstrcmp:  X("strcmp",     elstrcmp,cdstrcmp);
-        case OPmemcmp:  X("memcmp",     elmemxxx,cdmemcmp);
+        case OPmemcmp:  X("memcmp",     elmemcmp,cdmemcmp);
         case OPsetjmp:  X("setjmp",     elzot,  cdsetjmp);
         case OPnegass:  X("negass",     elnegass, cdaddass);
         case OPpreinc:  X("U++",        elzot,  cderr);
