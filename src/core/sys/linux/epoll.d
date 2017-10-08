@@ -96,6 +96,14 @@ else version (PPC64)
         epoll_data_t data;
     }
 }
+else version (MIPS32)
+{
+    struct epoll_event
+    {
+        uint events;
+        epoll_data_t data;
+    }
+}
 else version (MIPS64)
 {
     struct epoll_event
