@@ -792,7 +792,7 @@ Line[] findSymbolLineNumbers(IDiaSession session, IDiaSymbol sym, ubyte[]* funcR
     scope(exit) dialines.Release();
 
     ubyte* rvabase = &__ImageBase;
-    *funcRange = rvabase[rva .. rva+length];
+    *funcRange = rvabase[rva .. rva + cast(size_t)length];
 
     Line[] lines;
     IDiaLineNumber line;
