@@ -1497,14 +1497,17 @@ struct ASTBase
         int zeroInit;
         StructPOD ispod;
 
-        final extern (D) this(Loc loc, Identifier id)
+        final extern (D) this(Loc loc, Identifier id, bool inObject)
         {
             super(loc, id);
             zeroInit = 0;
             ispod = ISPODfwd;
             type = new TypeStruct(this);
-            if (id == Id.ModuleInfo && !Module.moduleinfo)
-                Module.moduleinfo = this;
+            if (inObject)
+            {
+                if (id == Id.ModuleInfo && !Module.moduleinfo)
+                    Module.moduleinfo = this;
+            }
         }
 
         override void accept(Visitor v)
@@ -1517,7 +1520,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Identifier id)
         {
-            super(loc, id);
+            super(loc, id, false);
         }
 
         override void accept(Visitor v)
