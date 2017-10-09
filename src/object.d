@@ -3454,7 +3454,7 @@ if (__traits(isScalar, T))
 // comparisons in the semantic analysis phase of CmpExp. The ordering
 // comparison is lowered to a call to this template.
 int __cmp(T1, T2)(T1[] s1, T2[] s2)
-if (!__traits(isScalar, T1))
+if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
 {
     import core.internal.traits : Unqual;
     alias U1 = Unqual!T1;
