@@ -141,7 +141,7 @@ public:
     virtual bool isCodeseg();
     bool isCtorinit()     { return (storage_class & STCctorinit) != 0; }
     bool isFinal()        { return (storage_class & STCfinal) != 0; }
-    bool isAbstract()     { return (storage_class & STCabstract) != 0; }
+    virtual bool isAbstract()     { return (storage_class & STCabstract) != 0; }
     bool isConst()        { return (storage_class & STCconst) != 0; }
     bool isImmutable()    { return (storage_class & STCimmutable) != 0; }
     bool isWild()         { return (storage_class & STCwild) != 0; }
@@ -596,6 +596,7 @@ public:
     bool isImportedSymbol();
     bool isCodeseg();
     bool isOverloadable();
+    bool isAbstract();
     PURE isPure();
     PURE isPureBypassingInference();
     bool setImpure();

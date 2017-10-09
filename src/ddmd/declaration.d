@@ -265,7 +265,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STCfinal) != 0;
     }
 
-    final bool isAbstract()
+    bool isAbstract()
     {
         return (storage_class & STCabstract) != 0;
     }

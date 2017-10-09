@@ -5393,7 +5393,13 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (!sd.determineFields())
         {
-            assert(sd.type.ty == Terror);
+            if (sd.type.ty != Terror)
+            {
+                sd.error(sd.loc, "circular or forward reference");
+                sd.errors = true;
+                sd.type = Type.terror;
+            }
+
             sc2.pop();
             sd.semanticRun = PASSsemanticdone;
             return;
@@ -6045,6 +6051,20 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
         //members.print();
 
         sc2.pop();
+
+        /* isAbstract() is undecidable in some cases because of circular dependencies.
+         * Now that semantic is finished, get a definitive result, and error if it is not the same.
+         */
+        if (cldec.isabstract != ABSfwdref)    // if evaluated it before completion
+        {
+            const isabstractsave = cldec.isabstract;
+            cldec.isabstract = ABSfwdref;
+            cldec.isAbstract();               // recalculate
+            if (cldec.isabstract != isabstractsave)
+            {
+                cldec.error("cannot infer `abstract` attribute due to circular dependencies");
+            }
+        }
 
         if (cldec.type.ty == Tclass && (cast(TypeClass)cldec.type).sym != cldec)
         {
