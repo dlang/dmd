@@ -317,6 +317,7 @@ public:
     static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
+    void semantic(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

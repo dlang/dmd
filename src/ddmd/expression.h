@@ -905,6 +905,7 @@ public:
     VarDeclaration *lengthVar;
     bool upperIsInBounds;       // true if upr <= e1.length
     bool lowerIsLessThanUpper;  // true if lwr <= upr
+    bool arrayop;               // an array operation, rather than a slice
 
     Expression *syntaxCopy();
     int checkModifiable(Scope *sc, int flag);

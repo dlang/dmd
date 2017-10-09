@@ -393,8 +393,8 @@ public:
     virtual void visit(PragmaDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(ConditionalDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StaticIfDeclaration *s) { visit((ConditionalDeclaration *)s); }
-    virtual void visit(CompileDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(StaticForeachDeclaration *s) { visit((AttribDeclaration *)s); }
+    virtual void visit(CompileDeclaration *s) { visit((AttribDeclaration *)s); }
     virtual void visit(UserAttributeDeclaration *s) { visit((AttribDeclaration *)s); }
 
     virtual void visit(ScopeDsymbol *s) { visit((Dsymbol *)s); }
