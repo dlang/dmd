@@ -262,7 +262,7 @@ class Lexer
         {
             scan(&token);
         }
-        //token.print();
+        //printf(token.toChars());
         return token.value;
     }
 

@@ -5672,7 +5672,9 @@ final class Parser(AST) : Lexer
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
-                    s = parseStatement(PSsemi | PScurlyscope);
+                {
+                    s = parseStatement(PSsemi);
+                }
                 s = new AST.ScopeStatement(loc, s, token.loc);
 
                 if (last)
@@ -5705,7 +5707,7 @@ final class Parser(AST) : Lexer
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
-                    s = parseStatement(PSsemi | PScurlyscope);
+                    s = parseStatement(PSsemi);
                 s = new AST.ScopeStatement(loc, s, token.loc);
                 s = new AST.DefaultStatement(loc, s);
                 break;
