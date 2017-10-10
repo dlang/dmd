@@ -49,6 +49,8 @@ Before submitting a PR there are some things you can check which will hopefully 
 
 - Ensure newly introduced symbols are documented and that updates to existing symbols are reflected in the documentation.
 
+- Add a link to the PR to the bugzilla entry.
+
 - If your pull request affects the language specifications in any way (i.e. changing the grammar, deprecating a feature or adding a new one),
   a pull request to [the website](https://github.com/dlang/dlang.org) should be submitted in parallel.
 
