@@ -55,6 +55,9 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
+        if (errors)
+            return null;
+
         return decl;
     }
 
@@ -802,6 +805,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         if (!ad)
         {
             .error(loc, "%s can only be a part of an aggregate, not %s `%s`", kind(), p.kind(), p.toChars());
+            errors = true;
             return;
         }
 
@@ -1241,6 +1245,10 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+
+        if (errors)
+            return null;
+
         assert(condition);
         return condition.include(_scope ? _scope : sc, sds) ? decl : elsedecl;
     }
@@ -1317,6 +1325,10 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+
+        if (errors)
+            return null;
+
         if (condition.inc == 0)
         {
             assert(scopesym); // addMember is already done
@@ -1442,6 +1454,9 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
     {
+        if (errors)
+            return null;
+
         if (cached)
         {
             return cache;
