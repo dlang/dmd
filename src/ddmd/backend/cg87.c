@@ -441,16 +441,14 @@ void gensaverestore87(regm_t regm, CodeBuilder& cdbsave, CodeBuilder& cdbrestore
     CodeBuilder cdb2a;
     ndp_fld(cdb2a, i, TYldouble);
 
-    CodeBuilder cdb2b;
     if (regm == mST01)
     {
         int j = getemptyslot();
         NDP::save[j].e = el_calloc();
         ndp_fstp(cdbsave, j, TYldouble);
-        ndp_fld(cdb2b, j, TYldouble);
+        ndp_fld(cdbrestore, j, TYldouble);
     }
 
-    cdbrestore.append(cdb2b);
     cdbrestore.append(cdb2a);
 }
 

@@ -2811,7 +2811,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
         touse &= ~oldregimmed;
   }
 
-  code *cs1 = NULL;
+  CodeBuilder cdbs1;
   code *cs2 = NULL;
   int adjesp = 0;
 
@@ -2828,7 +2828,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                 {   regm_t mj = mask[j];
 
                     if (touse & mj)
-                    {   cs1 = cat(cs1,genmovreg(j,i));
+                    {   genmovreg(cdbs1,j,i);
                         cs2 = cat(genmovreg(i,j),cs2);
                         touse &= ~mj;
                         mfuncreg &= ~mj;
@@ -2840,7 +2840,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             }
             else                        // else use memory
             {
-                unsigned size = gensaverestore2(mask[i], &cs1, &cs2);
+                CodeBuilder cdbx;
+                unsigned size = gensaverestore(mask[i], cdbs1, cdbx);
+                cs2 = cat(cdbx.finish(),cs2);
                 if (size)
                 {
                     stackchanged = 1;
@@ -2851,8 +2853,6 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             tosave &= ~mi;
         }
   }
-  CodeBuilder cdbs1;
-  cdbs1.append(cs1);
   CodeBuilder cdbs2;
   if (adjesp)
   {

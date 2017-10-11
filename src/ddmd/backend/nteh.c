@@ -706,9 +706,9 @@ void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index)
     local_unwind = RTLSYM_LOCAL_UNWIND2;
 #endif
     desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
-    code *cs1;
-    code *cs2;
-    gensaverestore(retregs & desregs,&cs1,&cs2);
+    CodeBuilder cdbs;
+    CodeBuilder cdbr;
+    gensaverestore(retregs & desregs,cdbs,cdbr);
 
     CodeBuilder cdbx;
     getregs(cdbx,desregs);
@@ -736,63 +736,10 @@ void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index)
     cod3_stackadj(cdbx, -8);
 #endif
 
-    cdb.append(cs1);
+    cdb.append(cdbs);
     cdb.append(cdbx);
-    cdb.append(cs2);
+    cdb.append(cdbr);
 }
-
-/****************************************
- * Call _local_unwind(), which means call the __finally blocks until
- * index is reached.
- */
-
-#if 0 // Replaced with inline calls to __finally blocks
-
-code *linux_unwind(regm_t retregs,unsigned index)
-{
-    int i;
-    regm_t desregs;
-    int reg;
-    int local_unwind;
-
-    // Shouldn't this always be CX?
-#if SCPP
-    reg = AX;
-#else
-    reg = CX;
-#endif
-
-#if MARS
-    local_unwind = RTLSYM_D_LOCAL_UNWIND2;
-#else
-    local_unwind = RTLSYM_LOCAL_UNWIND2;
-#endif
-    desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
-    code *cs1;
-    code *cs2;
-    gensaverestore(retregs & desregs,&cs1,&cs2);
-
-    CodeBuilder cdb;
-    getregs(cdb,desregs);
-    cdb.genc2(0x68,0,index);                  // PUSH index
-
-#if MARS
-//    cdb.gencs(0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
-
-    cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
-    cod3_stackadj(cdb, -4);
-#else
-    cdb.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
-    cod3_stackadj(cdb, -8);
-#endif
-
-    CodeBuilder cdb1(cs1);
-    CodeBuilder cdb2(cs2);
-    cdb1.append(cdb, cdb2);
-    return cdb1.finish();
-}
-
-#endif
 
 /*************************************************
  * Set monitor, hook monitor exception handler.
@@ -878,15 +825,15 @@ void nteh_monitor_epilog(CodeBuilder& cdb,regm_t retregs)
     Symbol *s = getRtlsym(RTLSYM_MONITOR_EPILOG);
     //desregs = ~s->Sregsaved & ALLREGS;
     regm_t desregs = 0;
-    code *cs1;
-    code *cs2;
-    gensaverestore(retregs& desregs,&cs1,&cs2);
-    cdb.append(cs1);
+    CodeBuilder cdbs;
+    CodeBuilder cdbr;
+    gensaverestore(retregs& desregs,cdbs,cdbr);
+    cdb.append(cdbs);
 
     getregs(cdb,desregs);
     cdb.gencs(0xE8,0,FLfunc,s);               // CALL __d_monitor_epilog
 
-    cdb.append(cs2);
+    cdb.append(cdbr);
 
     code cs;
     cs.Iop = 0x8F;
