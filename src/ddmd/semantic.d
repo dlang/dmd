@@ -85,9 +85,7 @@ extern(C++) Statement semantic(Statement s, Scope* sc)
  */
 extern(C++) Type semantic(Type t, Loc loc, Scope* sc)
 {
-    scope v = new TypeSemanticVisitor(loc, sc);
-    t.accept(v);
-    return  v.result;
+    return typeSemantic(t, loc, sc);
 }
 
 
