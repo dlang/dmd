@@ -2850,11 +2850,14 @@ extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (d)
         {
             Scope* sc2 = ad.newScope(sc);
+            bool errors;
             for (size_t i = 0; i < d.dim; i++)
             {
                 Dsymbol s = (*d)[i];
                 s.semantic(sc2);
+                errors |= s.errors;
             }
+            ad.errors |= errors;
             if (sc2 != sc)
                 sc2.pop();
         }
