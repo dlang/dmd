@@ -34,8 +34,7 @@ import ddmd.typesem;
  */
 extern(C++) void semantic(Dsymbol dsym, Scope* sc)
 {
-    scope v = new DsymbolSemanticVisitor(sc);
-    dsym.accept(v);
+    dsymbolSemantic(dsym, sc);
 }
 
 // entrypoint for semantic ExpressionSemanticVisitor

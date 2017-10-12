@@ -69,6 +69,15 @@ import ddmd.visitor;
 
 enum LOG = false;
 
+/*************************************
+ * Does semantic analysis on the public face of declarations.
+ */
+extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
+{
+    scope v = new DsymbolSemanticVisitor(sc);
+    dsym.accept(v);
+}
+
 extern(C++) final class Semantic2Visitor : Visitor
 {
     alias visit = super.visit;
@@ -1785,7 +1794,7 @@ extern(C++) final class Semantic3Visitor : Visitor
     }
 }
 
-extern(C++) final class DsymbolSemanticVisitor : Visitor
+private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
