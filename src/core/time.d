@@ -3514,7 +3514,13 @@ unittest
 }
 
 
+// @@@DEPRECATED_2018-10@@@
 /++
+    $(RED Everything in druntime and Phobos that was using FracSec now uses
+          Duration for greater simplicity. So, FracSec has been deprecated.
+          It will be removed from the docs in October 2018, and removed
+          completely from druntime in October 2019.)
+
     Represents fractional seconds.
 
     This is the portion of the time which is smaller than a second and it cannot
@@ -3534,6 +3540,7 @@ unittest
     given as nsecs will be converted to hnsecs using $(D convert) (which uses
     truncating division when converting to smaller units).
   +/
+deprecated("FracSec has been deprecated in favor of just using Duration for the sake of simplicity")
 struct FracSec
 {
 @safe pure:
