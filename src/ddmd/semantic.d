@@ -22,7 +22,6 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.statement;
 
-import ddmd.initsem;
 import ddmd.dsymbolsem;
 import ddmd.statementsem;
 import ddmd.templateparamsem;
@@ -50,9 +49,8 @@ extern(C++) void semantic(Dsymbol dsym, Scope* sc)
  */
 extern(C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
 {
-    scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
-    init.accept(v);
-    return v.result;
+    import ddmd.initsem;
+    return initializerSemantic(init, sc, t, needInterpret);
 }
 
 // Performs semantic analysis in Statement AST nodes
