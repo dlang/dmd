@@ -66,7 +66,7 @@ import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
 
-extern (C++) final class ExpressionSemanticVisitor : Visitor
+private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
@@ -8215,6 +8215,14 @@ Expression binSemanticProp(BinExp e, Scope* sc)
     e.e1 = e1x;
     e.e2 = e2x;
     return null;
+}
+
+// entrypoint for semantic ExpressionSemanticVisitor
+extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
+{
+    scope v = new ExpressionSemanticVisitor(sc);
+    e.accept(v);
+    return v.result;
 }
 
 Expression semanticX(DotIdExp exp, Scope* sc)

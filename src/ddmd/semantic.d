@@ -24,7 +24,6 @@ import ddmd.statement;
 
 import ddmd.initsem;
 import ddmd.dsymbolsem;
-import ddmd.expressionsem;
 import ddmd.statementsem;
 import ddmd.templateparamsem;
 import ddmd.typesem;
@@ -37,12 +36,10 @@ extern(C++) void semantic(Dsymbol dsym, Scope* sc)
     dsymbolSemantic(dsym, sc);
 }
 
-// entrypoint for semantic ExpressionSemanticVisitor
 extern(C++) Expression semantic(Expression e, Scope* sc)
 {
-    scope v = new ExpressionSemanticVisitor(sc);
-    e.accept(v);
-    return v.result;
+    import ddmd.expressionsem;
+    return expressionSemantic(e, sc);
 }
 
 /******************************************
