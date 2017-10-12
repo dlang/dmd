@@ -51,7 +51,15 @@ import ddmd.tokens;
 import ddmd.semantic;
 import ddmd.visitor;
 
-extern (C++) final class StatementSemanticVisitor : Visitor
+// Performs semantic analysis in Statement AST nodes
+extern(C++) Statement statementSemantic(Statement s, Scope* sc)
+{
+    scope v = new StatementSemanticVisitor(sc);
+    s.accept(v);
+    return v.result;
+}
+
+private extern (C++) final class StatementSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
