@@ -27,6 +27,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -2415,7 +2416,7 @@ public:
             e = s.dsym.type.defaultInitLiteral(loc);
             if (e.op == TOKerror)
                 error(loc, "CTFE failed because of previous errors in %s.init", s.toChars());
-            e = e.semantic(null);
+            e = e.expressionSemantic(null);
             if (e.op == TOKerror)
                 e = CTFEExp.cantexp;
             else // Convert NULL to CTFEExp

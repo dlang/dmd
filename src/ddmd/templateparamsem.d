@@ -20,6 +20,7 @@ import ddmd.dscope;
 import ddmd.dtemplate;
 import ddmd.globals;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.mtype;
@@ -159,7 +160,7 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
         else if (ea)
         {
             sc = sc.startCTFE();
-            ea = ea.semantic(sc);
+            ea = ea.expressionSemantic(sc);
             sc = sc.endCTFE();
             o = ea.ctfeInterpret();
         }

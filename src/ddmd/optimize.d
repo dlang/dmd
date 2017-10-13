@@ -20,6 +20,7 @@ import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
@@ -107,7 +108,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     {
                         // const var initialized with non-const expression
                         ei = ei.implicitCastTo(null, v.type);
-                        ei = ei.semantic(null);
+                        ei = ei.expressionSemantic(null);
                     }
                     else
                         goto L1;

@@ -284,7 +284,7 @@ extern(C++) final class InitializerSemanticVisitor : Visitor
             if (idx)
             {
                 sc = sc.startCTFE();
-                idx = idx.semantic(sc);
+                idx = idx.expressionSemantic(sc);
                 sc = sc.endCTFE();
                 idx = idx.ctfeInterpret();
                 i.index[j] = idx;
@@ -366,7 +366,7 @@ extern(C++) final class InitializerSemanticVisitor : Visitor
         //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
-        i.exp = i.exp.semantic(sc);
+        i.exp = i.exp.expressionSemantic(sc);
         i.exp = resolveProperties(sc, i.exp);
         if (needInterpret)
             sc = sc.endCTFE();
@@ -458,7 +458,7 @@ extern(C++) final class InitializerSemanticVisitor : Visitor
                 e = new StructLiteralExp(i.loc, sd, null);
                 e = new DotIdExp(i.loc, e, Id.ctor);
                 e = new CallExp(i.loc, e, i.exp);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 if (needInterpret)
                     i.exp = e.ctfeInterpret();
                 else
@@ -625,7 +625,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
     override void visit(ExpInitializer init)
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
-        init.exp = init.exp.semantic(sc);
+        init.exp = init.exp.expressionSemantic(sc);
         init.exp = resolveProperties(sc, init.exp);
         if (init.exp.op == TOKscope)
         {

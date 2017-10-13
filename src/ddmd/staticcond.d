@@ -18,6 +18,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
@@ -76,7 +77,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
     sc = sc.startCTFE();
     sc.flags |= SCOPEcondition;
 
-    e = e.semantic(sc);
+    e = e.expressionSemantic(sc);
     e = resolveProperties(sc, e);
 
     sc = sc.endCTFE();

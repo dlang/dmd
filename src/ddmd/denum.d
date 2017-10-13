@@ -17,6 +17,7 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
@@ -230,7 +231,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                  */
                 Expression ec = new CmpExp(id == Id.max ? TOKgt : TOKlt, em.loc, e, *pval);
                 inuse++;
-                ec = ec.semantic(em._scope);
+                ec = ec.expressionSemantic(em._scope);
                 inuse--;
                 ec = ec.ctfeInterpret();
                 if (ec.toInteger())
@@ -365,7 +366,7 @@ extern (C++) final class EnumMember : VarDeclaration
         if (errors)
             return new ErrorExp();
         Expression e = new VarExp(loc, this);
-        return e.semantic(sc);
+        return e.expressionSemantic(sc);
     }
 
     override inout(EnumMember) isEnumMember() inout

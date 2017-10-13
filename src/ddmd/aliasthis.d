@@ -17,6 +17,7 @@ import ddmd.aggregate;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
@@ -70,7 +71,7 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
         Loc loc = e.loc;
         Type tthis = (e.op == TOKtype ? e.type : null);
         e = new DotIdExp(loc, e, ad.aliasthis.ident);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         if (tthis && ad.aliasthis.needThis())
         {
             if (e.op == TOKvar)
@@ -102,7 +103,7 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
             }
         L1:
             e = new TypeExp(loc, new TypeTypeof(loc, e));
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         }
         e = resolveProperties(sc, e);
         if (gag && global.endGagging(olderrors))
