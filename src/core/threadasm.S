@@ -52,7 +52,6 @@
 #if defined( USE_ABI_2 )
     .abiversion 2
 #endif
-    .globl  _D4core6thread18callWithStackShellFNbMDFPvZvZv
     .globl  _D4core6thread18callWithStackShellFNbMDFNbPvZvZv
     .align  2
     .type   _D4core6thread18callWithStackShellFNbMDFNbPvZvZv,@function
