@@ -29,6 +29,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 static unsigned xmmoperator(tym_t tym, unsigned oper);
 
 /*******************************************
@@ -1159,7 +1160,17 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             }
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
+#if MARS
+            if (imm8->Eoper != OPconst)
+            {
+                error(imm8->Esrcpos.Sfilename, imm8->Esrcpos.Slinnum, imm8->Esrcpos.Scharnum, "last parameter to `__simd()` must be a constant");
+                cs.IEV2.Vsize_t = 0;
+            }
+            else
+                cs.IEV2.Vsize_t = el_tolong(imm8);
+#else
             cs.IEV2.Vsize_t = el_tolong(imm8);
+#endif
         }
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;
