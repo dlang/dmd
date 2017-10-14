@@ -25,6 +25,7 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.semantic;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 /***********************************************************
@@ -289,7 +290,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
              * just the base type
              */
             if (memtype)
-                memtype = memtype.semantic(loc, _scope);
+                memtype = memtype.typeSemantic(loc, _scope);
             else
             {
                 if (!isAnonymous() && members)

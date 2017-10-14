@@ -921,7 +921,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 // Resolve parameter types and 'auto ref's.
                 tf.fargs = fargs;
                 uint olderrors = global.startGagging();
-                fd.type = tf.semantic(loc, paramscope);
+                fd.type = tf.typeSemantic(loc, paramscope);
                 if (global.endGagging(olderrors))
                 {
                     assert(fd.type.ty != Tfunction);
@@ -1349,7 +1349,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             Parameter p = Parameter.getNth(fparameters, j);
                             if (!reliesOnTident(p.type, parameters, inferStart))
                             {
-                                Type pt = p.type.syntaxCopy().semantic(fd.loc, paramscope);
+                                Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
                                 rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
                             }
                             else
@@ -1419,7 +1419,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (!reliesOnTident(prmtype, parameters, inferStart))
                 {
                     // should copy prmtype to avoid affecting semantic result
-                    prmtype = prmtype.syntaxCopy().semantic(fd.loc, paramscope);
+                    prmtype = prmtype.syntaxCopy().typeSemantic(fd.loc, paramscope);
 
                     if (prmtype.ty == Ttuple)
                     {
@@ -1764,7 +1764,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 }
                                 else
                                 {
-                                    Type vt = tvp.valType.semantic(Loc(), sc);
+                                    Type vt = tvp.valType.typeSemantic(Loc(), sc);
                                     MATCH m = dim.implicitConvTo(vt);
                                     if (m <= MATCH.nomatch)
                                         goto Lnomatch;
@@ -2162,7 +2162,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             tf.next = null;
         fd.type = tf;
         fd.type = fd.type.addSTC(scx.stc);
-        fd.type = fd.type.semantic(fd.loc, scx);
+        fd.type = fd.type.typeSemantic(fd.loc, scx);
         scx = scx.pop();
 
         if (fd.type.ty != Tfunction)
@@ -2813,7 +2813,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
          */
         if (tf.next && !m.lastf.inferRetType)
         {
-            m.lastf.type = tf.semantic(loc, sc);
+            m.lastf.type = tf.typeSemantic(loc, sc);
         }
     }
     else if (m.lastf)
@@ -3204,7 +3204,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     /* BUG: what if tparam is a template instance, that
                      * has as an argument another Tident?
                      */
-                    tparam = tparam.semantic(loc, sc);
+                    tparam = tparam.typeSemantic(loc, sc);
                     assert(tparam.ty != Tident);
                     result = deduceType(t, sc, tparam, parameters, dedtypes, wm);
                     return;
@@ -3373,7 +3373,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     loc = tp.loc;
                 }
 
-                tparam = tparam.semantic(loc, sc);
+                tparam = tparam.typeSemantic(loc, sc);
             }
             if (t.ty != tparam.ty)
             {
@@ -4499,7 +4499,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     Type t = pto.type.syntaxCopy(); // https://issues.dlang.org/show_bug.cgi?id=11774
                     if (reliesOnTident(t, parameters, inferStart))
                         return;
-                    t = t.semantic(e.loc, sc);
+                    t = t.typeSemantic(e.loc, sc);
                     if (t.ty == Terror)
                         return;
                     tiargs.push(t);
@@ -5118,7 +5118,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         if (t)
         {
             t = t.syntaxCopy();
-            t = t.semantic(loc, sc); // use the parameter loc
+            t = t.typeSemantic(loc, sc); // use the parameter loc
         }
         return t;
     }
@@ -5382,7 +5382,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         }
 
         //printf("\tvalType: %s, ty = %d\n", valType.toChars(), valType.ty);
-        vt = valType.semantic(loc, sc);
+        vt = valType.typeSemantic(loc, sc);
         //printf("ei: %s, ei.type: %s\n", ei.toChars(), ei.type.toChars());
         //printf("vt = %s\n", vt.toChars());
 

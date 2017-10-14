@@ -488,7 +488,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                 parameters.push(new Parameter(STCref | STCconst, sd.type, null, null));
                 tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINKd);
                 tfeqptr.mod = MODconst;
-                tfeqptr = cast(TypeFunction)tfeqptr.semantic(Loc(), &scx);
+                tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc(), &scx);
             }
             fd = fd.overloadExactMatch(tfeqptr);
             if (fd)
@@ -558,7 +558,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 parameters.push(new Parameter(STCref | STCconst, sd.type, null, null));
                 tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINKd);
                 tfcmpptr.mod = MODconst;
-                tfcmpptr = cast(TypeFunction)tfcmpptr.semantic(Loc(), &scx);
+                tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc(), &scx);
             }
             fd = fd.overloadExactMatch(tfcmpptr);
             if (fd)

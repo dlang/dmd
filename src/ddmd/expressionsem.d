@@ -59,6 +59,7 @@ import ddmd.semantic;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.traits;
+import ddmd.typesem;
 import ddmd.typinf;
 import ddmd.utf;
 import ddmd.utils;
@@ -94,7 +95,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("Expression::semantic() %s\n", e.toChars());
         }
         if (e.type)
-            e.type = e.type.semantic(e.loc, sc);
+            e.type = e.type.typeSemantic(e.loc, sc);
         else
             e.type = Type.tvoid;
         result = e;
@@ -116,7 +117,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!e.type)
             e.type = Type.tfloat64;
         else
-            e.type = e.type.semantic(e.loc, sc);
+            e.type = e.type.typeSemantic(e.loc, sc);
         result = e;
     }
 
@@ -125,7 +126,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!e.type)
             e.type = Type.tcomplex80;
         else
-            e.type = e.type.semantic(e.loc, sc);
+            e.type = e.type.typeSemantic(e.loc, sc);
         result = e;
     }
 
@@ -539,7 +540,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e.type = new TypeDArray(Type.tchar.immutableOf());
             break;
         }
-        e.type = e.type.semantic(e.loc, sc);
+        e.type = e.type.typeSemantic(e.loc, sc);
         //type = type.immutableOf();
         //printf("type = %s\n", type.toChars());
 
@@ -583,7 +584,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         expandTuples(exp.exps);
 
         exp.type = new TypeTuple(exp.exps);
-        exp.type = exp.type.semantic(exp.loc, sc);
+        exp.type = exp.type.typeSemantic(exp.loc, sc);
         //printf("-TupleExp::semantic(%s)\n", toChars());
         result = exp;
     }
@@ -620,7 +621,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         e.type = t0.arrayOf();
-        e.type = e.type.semantic(e.loc, sc);
+        e.type = e.type.typeSemantic(e.loc, sc);
 
         /* Disallow array literals of type void being used.
          */
@@ -672,7 +673,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         e.type = new TypeAArray(tvalue, tkey);
-        e.type = e.type.semantic(e.loc, sc);
+        e.type = e.type.typeSemantic(e.loc, sc);
 
         semanticTypeInfo(sc, e.type);
 
@@ -744,7 +745,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (t)
         {
             //printf("t = %d %s\n", t.ty, t.toChars());
-            exp.type = t.semantic(exp.loc, sc);
+            exp.type = t.typeSemantic(exp.loc, sc);
             e = exp;
         }
         else if (s)
@@ -946,12 +947,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             sc = sc.push(cdthis);
-            exp.type = exp.newtype.semantic(exp.loc, sc);
+            exp.type = exp.newtype.typeSemantic(exp.loc, sc);
             sc = sc.pop();
         }
         else
         {
-            exp.type = exp.newtype.semantic(exp.loc, sc);
+            exp.type = exp.newtype.typeSemantic(exp.loc, sc);
         }
         if (exp.type.ty == Terror)
             return setError();
@@ -962,7 +963,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 // --> new T[edim]
                 exp.type = new TypeSArray(exp.type, edim);
-                exp.type = exp.type.semantic(exp.loc, sc);
+                exp.type = exp.type.typeSemantic(exp.loc, sc);
                 if (exp.type.ty == Terror)
                     return setError();
             }
@@ -1033,7 +1034,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 return setError();
             }
-            // checkDeprecated() is already done in newtype.semantic().
+            // checkDeprecated() is already done in newtype.typeSemantic().
 
             if (cd.isNested())
             {
@@ -1187,7 +1188,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.error("default construction is disabled for type %s", sd.type.toChars());
                 return setError();
             }
-            // checkDeprecated() is already done in newtype.semantic().
+            // checkDeprecated() is already done in newtype.typeSemantic().
 
             if (sd.aggNew)
             {
@@ -1411,7 +1412,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!e.type)
             e.type = e.var.type;
         if (e.type && !e.type.deco)
-            e.type = e.type.semantic(e.loc, sc);
+            e.type = e.type.typeSemantic(e.loc, sc);
 
         /* Fix for 1161 doesn't work because it causes protection
          * problems when instantiating imported templates passing private
@@ -1522,14 +1523,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if ((exp.fd.isNested() && exp.fd.tok == TOKdelegate) || (exp.tok == TOKreserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
             {
                 exp.type = new TypeDelegate(exp.fd.type);
-                exp.type = exp.type.semantic(exp.loc, sc);
+                exp.type = exp.type.typeSemantic(exp.loc, sc);
 
                 exp.fd.tok = TOKdelegate;
             }
             else
             {
                 exp.type = new TypePointer(exp.fd.type);
-                exp.type = exp.type.semantic(exp.loc, sc);
+                exp.type = exp.type.typeSemantic(exp.loc, sc);
                 //type = fd.type.pointerTo();
 
                 /* A lambda expression deduced to function pointer might become
@@ -1817,9 +1818,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODconst);
                     auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
-                    (tf = cast(TypeFunction)tf.semantic(exp.loc, sc)).next = tw; // hack for bug7757
+                    (tf = cast(TypeFunction)tf.typeSemantic(exp.loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
-                    ve.type = t.semantic(exp.loc, sc);
+                    ve.type = t.typeSemantic(exp.loc, sc);
                 }
                 VarDeclaration v = ve.var.isVarDeclaration();
                 if (v && ve.checkPurity(sc, v))
@@ -2908,7 +2909,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * is(targ == tspec)
              * is(targ : tspec)
              */
-            e.tspec = e.tspec.semantic(e.loc, sc);
+            e.tspec = e.tspec.typeSemantic(e.loc, sc);
             //printf("targ  = %s, %s\n", targ.toChars(), targ.deco);
             //printf("tspec = %s, %s\n", tspec.toChars(), tspec.deco);
 
@@ -3511,7 +3512,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.e1 = e.e1.expressionSemantic(sc);
 
         e.type = new TypeDelegate(e.func.type);
-        e.type = e.type.semantic(e.loc, sc);
+        e.type = e.type.typeSemantic(e.loc, sc);
 
         FuncDeclaration f = e.func.toAliasFunc();
         AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
@@ -4181,7 +4182,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.to)
         {
-            exp.to = exp.to.semantic(exp.loc, sc);
+            exp.to = exp.to.typeSemantic(exp.loc, sc);
             if (exp.to == Type.terror)
                 return setError();
 
@@ -4217,7 +4218,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!exp.to) // Handle cast(const) and cast(immutable), etc.
         {
             exp.to = exp.e1.type.castMod(exp.mod);
-            exp.to = exp.to.semantic(exp.loc, sc);
+            exp.to = exp.to.typeSemantic(exp.loc, sc);
             if (exp.to == Type.terror)
                 return setError();
         }
@@ -4312,7 +4313,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         exp.e1 = exp.e1.expressionSemantic(sc);
-        exp.type = exp.to.semantic(exp.loc, sc);
+        exp.type = exp.to.typeSemantic(exp.loc, sc);
         if (exp.e1.op == TOKerror || exp.type.ty == Terror)
         {
             result = exp.e1;
@@ -8689,7 +8690,7 @@ L1:
             if (v)
             {
                 if (v.type && !v.type.deco)
-                    v.type = v.type.semantic(v.loc, sc);
+                    v.type = v.type.typeSemantic(v.loc, sc);
                 e = new DotVarExp(exp.loc, exp.e1, v);
                 e = e.expressionSemantic(sc);
                 return e;
@@ -8775,7 +8776,7 @@ L1:
             if (v)
             {
                 if (v.type && !v.type.deco)
-                    v.type = v.type.semantic(v.loc, sc);
+                    v.type = v.type.typeSemantic(v.loc, sc);
                 e = new DotVarExp(exp.loc, exp.e1, v);
                 e = e.expressionSemantic(sc);
                 return e;

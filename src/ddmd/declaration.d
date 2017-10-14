@@ -36,6 +36,7 @@ import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 /************************************
@@ -438,7 +439,7 @@ extern (C++) final class TupleDeclaration : Declaration
 
             tupletype = new TypeTuple(args);
             if (hasdeco)
-                return tupletype.semantic(Loc(), null);
+                return tupletype.typeSemantic(Loc(), null);
         }
         return tupletype;
     }
@@ -671,7 +672,7 @@ extern (C++) final class AliasDeclaration : Declaration
             }
             else
             {
-                Type t = type.semantic(loc, _scope);
+                Type t = type.typeSemantic(loc, _scope);
                 if (t.ty == Terror)
                     goto Lerr;
                 if (global.errors != olderrors)

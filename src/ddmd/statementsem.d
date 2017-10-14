@@ -49,6 +49,7 @@ import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.semantic;
 import ddmd.visitor;
 
@@ -586,7 +587,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         Type paramtype = (*fs.parameters)[dim - 1].type;
         if (paramtype)
         {
-            paramtype = paramtype.semantic(loc, sc);
+            paramtype = paramtype.typeSemantic(loc, sc);
             if (paramtype.ty == Terror)
             {
                 setError();
@@ -655,7 +656,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         p.type = Type.tsize_t;
                     }
                 }
-                p.type = p.type.semantic(loc, sc);
+                p.type = p.type.typeSemantic(loc, sc);
                 TY keyty = p.type.ty;
                 if (keyty != Tint32 && keyty != Tuns32)
                 {
@@ -1078,7 +1079,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     int i = (dim == 1) ? 0 : 1; // index of value
                     Parameter p = (*fs.parameters)[i];
-                    p.type = p.type.semantic(loc, sc2);
+                    p.type = p.type.typeSemantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     tnv = p.type.toBasetype();
                     if (tnv.ty != tn.ty &&
@@ -1106,7 +1107,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     // Declare parameterss
                     Parameter p = (*fs.parameters)[i];
-                    p.type = p.type.semantic(loc, sc2);
+                    p.type = p.type.typeSemantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     VarDeclaration var;
 
@@ -1437,7 +1438,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         }
                         if (!p.type)
                             p.type = exp.type;
-                        p.type = p.type.addStorageClass(p.storageClass).semantic(loc, sc2);
+                        p.type = p.type.addStorageClass(p.storageClass).typeSemantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
                             goto Lrangeerr;
 
@@ -1486,7 +1487,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (fdapply)
                     {
                         assert(fdapply.type && fdapply.type.ty == Tfunction);
-                        tfld = cast(TypeFunction)fdapply.type.semantic(loc, sc2);
+                        tfld = cast(TypeFunction)fdapply.type.typeSemantic(loc, sc2);
                         goto Lget;
                     }
                     else if (tab.ty == Tdelegate)
@@ -1499,7 +1500,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             Parameter p = Parameter.getNth(tfld.parameters, 0);
                             if (p.type && p.type.ty == Tdelegate)
                             {
-                                auto t = p.type.semantic(loc, sc2);
+                                auto t = p.type.typeSemantic(loc, sc2);
                                 assert(t.ty == Tdelegate);
                                 tfld = cast(TypeFunction)t.nextOf();
                             }
@@ -1518,7 +1519,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     StorageClass stc = STCref;
                     Identifier id;
 
-                    p.type = p.type.semantic(loc, sc2);
+                    p.type = p.type.typeSemantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
                     if (tfld)
                     {
@@ -1849,7 +1850,7 @@ else
 
         if (fs.prm.type)
         {
-            fs.prm.type = fs.prm.type.semantic(loc, sc);
+            fs.prm.type = fs.prm.type.typeSemantic(loc, sc);
             fs.prm.type = fs.prm.type.addStorageClass(fs.prm.storageClass);
             fs.lwr = fs.lwr.implicitCastTo(sc, fs.prm.type);
 
@@ -3267,7 +3268,7 @@ else
                 }
 
                 Type t = ClassDeclaration.object.type;
-                t = t.semantic(Loc(), sc).toBasetype();
+                t = t.typeSemantic(Loc(), sc).toBasetype();
                 assert(t.ty == Tclass);
 
                 ss.exp = new CastExp(ss.loc, ss.exp, t);
@@ -3823,7 +3824,7 @@ void semanticWrapper(Catch c, Scope* sc)
         // reference .object.Throwable
         c.type = getThrowable();
     }
-    c.type = c.type.semantic(c.loc, sc);
+    c.type = c.type.typeSemantic(c.loc, sc);
     if (c.type == Type.terror)
         c.errors = true;
     else
