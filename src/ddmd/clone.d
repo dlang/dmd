@@ -21,6 +21,7 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -501,7 +502,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         Expression e = new IdentifierExp(sd.loc, Id.empty);
         e = new DotIdExp(sd.loc, e, Id.object);
         e = new DotIdExp(sd.loc, e, id);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         Dsymbol s = getDsymbol(e);
         assert(s);
         sd.xerreq = s.isFuncDeclaration();
@@ -621,7 +622,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
         Expression e = new IdentifierExp(sd.loc, Id.empty);
         e = new DotIdExp(sd.loc, e, Id.object);
         e = new DotIdExp(sd.loc, e, id);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         Dsymbol s = getDsymbol(e);
         assert(s);
         sd.xerrcmp = s.isFuncDeclaration();

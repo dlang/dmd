@@ -1519,7 +1519,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 TypeVector tv = cast(TypeVector)tob;
                 result = new CastExp(e.loc, e, tv.elementType());
                 result = new VectorExp(e.loc, result, tob);
-                result = result.semantic(sc);
+                result = result.expressionSemantic(sc);
                 return;
             }
             else if (tob.ty != Tvector && t1b.ty == Tvector)
@@ -2015,7 +2015,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 {
                     f.tookAddressOf++;
                     auto se = new SymOffExp(e.loc, f, 0, false);
-                    se.semantic(sc);
+                    se.expressionSemantic(sc);
                     // Let SymOffExp::castTo() do the heavy lifting
                     visit(se);
                     return;
@@ -2178,7 +2178,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     (*ae.elements)[i] = ex;
                 }
                 Expression ev = new VectorExp(e.loc, ae, tb);
-                ev = ev.semantic(sc);
+                ev = ev.expressionSemantic(sc);
                 result = ev;
                 return;
             }
@@ -2258,12 +2258,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                         if (f.needThis() && hasThis(sc))
                         {
                             result = new DelegateExp(e.loc, new ThisExp(e.loc), f, false);
-                            result = result.semantic(sc);
+                            result = result.expressionSemantic(sc);
                         }
                         else if (f.isNested())
                         {
                             result = new DelegateExp(e.loc, new IntegerExp(0), f, false);
-                            result = result.semantic(sc);
+                            result = result.expressionSemantic(sc);
                         }
                         else if (f.needThis())
                         {

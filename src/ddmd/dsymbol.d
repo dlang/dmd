@@ -33,6 +33,7 @@ import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -1912,7 +1913,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                         }
                         auto tiargs = new Objects();
                         Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
-                        edim = edim.semantic(sc);
+                        edim = edim.expressionSemantic(sc);
                         tiargs.push(edim);
                         e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                     }
@@ -1932,7 +1933,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                         assert(d);
                         e = new DotVarExp(loc, ce, d);
                     }
-                    e = e.semantic(sc);
+                    e = e.expressionSemantic(sc);
                     if (!e.type)
                         exp.error("%s has no value", e.toChars());
                     t = e.type.toBasetype();

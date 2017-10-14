@@ -19,6 +19,7 @@ import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
@@ -134,7 +135,7 @@ extern (C++) final class StaticForeach : RootObject
         auto aggr = aggrfe.aggr;
         Expression el = new ArrayLengthExp(aggr.loc, aggr);
         sc = sc.startCTFE();
-        el = el.semantic(sc);
+        el = el.expressionSemantic(sc);
         sc = sc.endCTFE();
         el = el.optimize(WANTvalue);
         el = el.ctfeInterpret();
@@ -149,7 +150,7 @@ extern (C++) final class StaticForeach : RootObject
                 es.push(value);
             }
             aggrfe.aggr = new TupleExp(aggr.loc, es);
-            aggrfe.aggr = aggrfe.aggr.semantic(sc);
+            aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
             aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
         }
         else
@@ -326,9 +327,9 @@ extern (C++) final class StaticForeach : RootObject
         if (rangefe)
         {
             sc = sc.startCTFE();
-            rangefe.lwr = rangefe.lwr.semantic(sc);
+            rangefe.lwr = rangefe.lwr.expressionSemantic(sc);
             rangefe.lwr = resolveProperties(sc, rangefe.lwr);
-            rangefe.upr = rangefe.upr.semantic(sc);
+            rangefe.upr = rangefe.upr.expressionSemantic(sc);
             rangefe.upr = resolveProperties(sc, rangefe.upr);
             sc = sc.endCTFE();
             rangefe.lwr = rangefe.lwr.optimize(WANTvalue);
@@ -353,7 +354,7 @@ extern (C++) final class StaticForeach : RootObject
         s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
         auto aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
         sc = sc.startCTFE();
-        aggr = aggr.semantic(sc);
+        aggr = aggr.expressionSemantic(sc);
         aggr = resolveProperties(sc, aggr);
         sc = sc.endCTFE();
         aggr = aggr.optimize(WANTvalue);
@@ -382,7 +383,7 @@ extern (C++) final class StaticForeach : RootObject
         if (aggrfe)
         {
             sc = sc.startCTFE();
-            aggrfe.aggr = aggrfe.aggr.semantic(sc);
+            aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
             sc = sc.endCTFE();
             aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
             auto tab = aggrfe.aggr.type.toBasetype();

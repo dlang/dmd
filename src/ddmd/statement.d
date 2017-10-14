@@ -31,6 +31,7 @@ import ddmd.dsymbol;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -740,7 +741,7 @@ extern (C++) class ExpStatement : Statement
             Dsymbol d = (cast(DeclarationExp)exp).declaration;
             if (TemplateMixin tm = d.isTemplateMixin())
             {
-                Expression e = exp.semantic(sc);
+                Expression e = exp.expressionSemantic(sc);
                 if (e.op == TOKerror || tm.errors)
                 {
                     auto a = new Statements();

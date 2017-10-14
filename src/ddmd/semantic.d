@@ -36,12 +36,6 @@ extern(C++) void semantic(Dsymbol dsym, Scope* sc)
     dsymbolSemantic(dsym, sc);
 }
 
-extern(C++) Expression semantic(Expression e, Scope* sc)
-{
-    import ddmd.expressionsem;
-    return expressionSemantic(e, sc);
-}
-
 /******************************************
  * Perform semantic analysis on init.
  * Params:

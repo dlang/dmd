@@ -18,6 +18,7 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -134,7 +135,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         Expression id = new IdentifierExp(e.loc, Id.empty);
         id = new DotIdExp(e.loc, id, Id.object);
         id = new DotIdExp(e.loc, id, Identifier.idPool("_arrayOp"));
-        id = id.semantic(sc);
+        id = id.expressionSemantic(sc);
         if (id.op != TOKtemplate)
             ObjectNotFound(Identifier.idPool("_arrayOp"));
         arrayOp = (cast(TemplateExp)id).td;
@@ -143,7 +144,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
     auto fd = resolveFuncCall(e.loc, sc, arrayOp, tiargs, null, args);
     if (!fd || fd.errors)
         return new ErrorExp();
-    return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).semantic(sc);
+    return new CallExp(e.loc, new VarExp(e.loc, fd, false), args).expressionSemantic(sc);
 }
 
 /// ditto
@@ -220,7 +221,7 @@ extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Express
                 buf.writestring("u");
                 buf.writestring(Token.toString(e.op));
                 e.e1.accept(this);
-                tiargs.push(new StringExp(Loc(), buf.extractString()).semantic(sc));
+                tiargs.push(new StringExp(Loc(), buf.extractString()).expressionSemantic(sc));
             }
         }
 
@@ -236,7 +237,7 @@ extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Express
                 // RPN
                 e.e1.accept(this);
                 e.e2.accept(this);
-                tiargs.push(new StringExp(Loc(), cast(char*) Token.toChars(e.op)).semantic(sc));
+                tiargs.push(new StringExp(Loc(), cast(char*) Token.toChars(e.op)).expressionSemantic(sc));
             }
         }
     }

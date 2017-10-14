@@ -34,6 +34,7 @@ import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.gluelayer;
@@ -103,7 +104,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             // Allow CommaExp in ExpStatement because return isn't used
             CommaExp.allow(s.exp);
 
-            s.exp = s.exp.semantic(sc);
+            s.exp = s.exp.expressionSemantic(sc);
             s.exp = resolveProperties(sc, s.exp);
             s.exp = s.exp.addDtorHook(sc);
             if (checkNonAssignmentArrayOp(s.exp))
@@ -401,7 +402,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         // check in syntax level
         ds.condition = checkAssignmentAsCondition(ds.condition);
 
-        ds.condition = ds.condition.semantic(sc);
+        ds.condition = ds.condition.expressionSemantic(sc);
         ds.condition = resolveProperties(sc, ds.condition);
         if (checkNonAssignmentArrayOp(ds.condition))
             ds.condition = new ErrorExp();
@@ -472,7 +473,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             // check in syntax level
             fs.condition = checkAssignmentAsCondition(fs.condition);
 
-            fs.condition = fs.condition.semantic(sc);
+            fs.condition = fs.condition.expressionSemantic(sc);
             fs.condition = resolveProperties(sc, fs.condition);
             if (checkNonAssignmentArrayOp(fs.condition))
                 fs.condition = new ErrorExp();
@@ -484,7 +485,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (fs.increment)
         {
             CommaExp.allow(fs.increment);
-            fs.increment = fs.increment.semantic(sc);
+            fs.increment = fs.increment.expressionSemantic(sc);
             fs.increment = resolveProperties(sc, fs.increment);
             if (checkNonAssignmentArrayOp(fs.increment))
                 fs.increment = new ErrorExp();
@@ -850,7 +851,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 import ddmd.cond: StaticForeach;
                 auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
-                access = semantic(access, sc);
+                access = expressionSemantic(access, sc);
                 auto types = access.type.isTuple();
                 if (!tuple) return returnEarly();
                 //printf("%s\n",tuple.toChars());
@@ -858,7 +859,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     auto cp = (*fs.parameters)[l];
                     Expression init_ = new IndexExp(loc, access, new IntegerExp(loc, l, Type.tsize_t));
-                    init_ = init_.semantic(sc);
+                    init_ = init_.expressionSemantic(sc);
                     assert(init_.type);
                     declareVariable(p.storageClass, init_.type, cp.ident, init_, null);
                 }
@@ -944,7 +945,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.func = fs.func.fes.func;
 
         VarDeclaration vinit = null;
-        fs.aggr = fs.aggr.semantic(sc);
+        fs.aggr = fs.aggr.expressionSemantic(sc);
         fs.aggr = resolveProperties(sc, fs.aggr);
         fs.aggr = fs.aggr.optimize(WANTvalue);
         if (fs.aggr.op == TOKerror)
@@ -1565,7 +1566,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, fs);
                 fld.fbody = fs._body;
                 Expression flde = new FuncExp(loc, fld);
-                flde = flde.semantic(sc2);
+                flde = flde.expressionSemantic(sc2);
                 fld.tookAddressOf = 0;
 
                 // Resolve any forward referenced goto's
@@ -1586,7 +1587,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (vinit)
                 {
                     e = new DeclarationExp(loc, vinit);
-                    e = e.semantic(sc2);
+                    e = e.expressionSemantic(sc2);
                     if (e.op == TOKerror)
                         goto case Terror;
                 }
@@ -1734,7 +1735,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         fs.aggr = (cast(DelegateExp)fs.aggr).e1;
                     }
                     ec = new CallExp(loc, fs.aggr, flde);
-                    ec = ec.semantic(sc2);
+                    ec = ec.expressionSemantic(sc2);
                     if (ec.op == TOKerror)
                         goto case Terror;
                     if (ec.type != Type.tint32)
@@ -1770,7 +1771,7 @@ else
                      */
                     ec = new DotIdExp(loc, fs.aggr, sapply.ident);
                     ec = new CallExp(loc, ec, flde);
-                    ec = ec.semantic(sc2);
+                    ec = ec.expressionSemantic(sc2);
                     if (ec.op == TOKerror)
                         goto case Terror;
                     if (ec.type != Type.tint32)
@@ -1828,7 +1829,7 @@ else
     {
         //printf("ForeachRangeStatement::semantic() %p\n", fs);
         auto loc = fs.loc;
-        fs.lwr = fs.lwr.semantic(sc);
+        fs.lwr = fs.lwr.expressionSemantic(sc);
         fs.lwr = resolveProperties(sc, fs.lwr);
         fs.lwr = fs.lwr.optimize(WANTvalue);
         if (!fs.lwr.type)
@@ -1837,7 +1838,7 @@ else
             return setError();
         }
 
-        fs.upr = fs.upr.semantic(sc);
+        fs.upr = fs.upr.expressionSemantic(sc);
         fs.upr = resolveProperties(sc, fs.upr);
         fs.upr = fs.upr.optimize(WANTvalue);
         if (!fs.upr.type)
@@ -1860,7 +1861,7 @@ else
             {
                 // See if upr-1 fits in prm.type
                 Expression limit = new MinExp(loc, fs.upr, new IntegerExp(1));
-                limit = limit.semantic(sc);
+                limit = limit.expressionSemantic(sc);
                 limit = limit.optimize(WANTvalue);
                 if (!limit.implicitConvTo(fs.prm.type))
                 {
@@ -2036,7 +2037,7 @@ else
             auto de = new DeclarationExp(ifs.loc, ifs.match);
             auto ve = new VarExp(ifs.loc, ifs.match);
             ifs.condition = new CommaExp(ifs.loc, de, ve);
-            ifs.condition = ifs.condition.semantic(scd);
+            ifs.condition = ifs.condition.expressionSemantic(scd);
 
             if (ifs.match.edtor)
             {
@@ -2051,7 +2052,7 @@ else
             if (ifs.condition.op == TOKdotid)
                 (cast(DotIdExp)ifs.condition).noderef = true;
 
-            ifs.condition = ifs.condition.semantic(scd);
+            ifs.condition = ifs.condition.expressionSemantic(scd);
             ifs.condition = resolveProperties(scd, ifs.condition);
             ifs.condition = ifs.condition.addDtorHook(scd);
         }
@@ -2132,7 +2133,7 @@ else
                 foreach (arg; *ps.args)
                 {
                     sc = sc.startCTFE();
-                    auto e = arg.semantic(sc);
+                    auto e = arg.expressionSemantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
 
@@ -2192,7 +2193,7 @@ else
             {
                 Expression e = (*ps.args)[0];
                 sc = sc.startCTFE();
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 e = resolveProperties(sc, e);
                 sc = sc.endCTFE();
 
@@ -2279,7 +2280,7 @@ else
         }
 
         bool conditionError = false;
-        ss.condition = ss.condition.semantic(sc);
+        ss.condition = ss.condition.expressionSemantic(sc);
         ss.condition = resolveProperties(sc, ss.condition);
 
         Type att = null;
@@ -2454,7 +2455,7 @@ else
 
         //printf("CaseStatement::semantic() %s\n", toChars());
         sc = sc.startCTFE();
-        cs.exp = cs.exp.semantic(sc);
+        cs.exp = cs.exp.expressionSemantic(sc);
         cs.exp = resolveProperties(sc, cs.exp);
         sc = sc.endCTFE();
 
@@ -2597,14 +2598,14 @@ else
         }
 
         sc = sc.startCTFE();
-        crs.first = crs.first.semantic(sc);
+        crs.first = crs.first.expressionSemantic(sc);
         crs.first = resolveProperties(sc, crs.first);
         sc = sc.endCTFE();
         crs.first = crs.first.implicitCastTo(sc, sw.condition.type);
         crs.first = crs.first.ctfeInterpret();
 
         sc = sc.startCTFE();
-        crs.last = crs.last.semantic(sc);
+        crs.last = crs.last.expressionSemantic(sc);
         crs.last = resolveProperties(sc, crs.last);
         sc = sc.endCTFE();
         crs.last = crs.last.implicitCastTo(sc, sw.condition.type);
@@ -2725,7 +2726,7 @@ else
 
         if (gcs.exp)
         {
-            gcs.exp = gcs.exp.semantic(sc);
+            gcs.exp = gcs.exp.expressionSemantic(sc);
             gcs.exp = gcs.exp.implicitCastTo(sc, sc.sw.condition.type);
             gcs.exp = gcs.exp.optimize(WANTvalue);
             if (gcs.exp.op == TOKerror)
@@ -2818,7 +2819,7 @@ else
             else if (fld && fld.treq)
                 rs.exp = inferType(rs.exp, fld.treq.nextOf().nextOf());
 
-            rs.exp = rs.exp.semantic(sc);
+            rs.exp = rs.exp.expressionSemantic(sc);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
             if (rs.exp.op == TOKtype)
@@ -2853,7 +2854,7 @@ else
                     rs.error("cannot return non-void from void function");
                     errors = true;
                     rs.exp = new CastExp(rs.loc, rs.exp, Type.tvoid);
-                    rs.exp = rs.exp.semantic(sc);
+                    rs.exp = rs.exp.expressionSemantic(sc);
                 }
 
                 /* Replace:
@@ -3237,7 +3238,7 @@ else
     {
         if (ss.exp)
         {
-            ss.exp = ss.exp.semantic(sc);
+            ss.exp = ss.exp.expressionSemantic(sc);
             ss.exp = resolveProperties(sc, ss.exp);
             ss.exp = ss.exp.optimize(WANTvalue);
             ss.exp = checkGC(sc, ss.exp);
@@ -3270,7 +3271,7 @@ else
                 assert(t.ty == Tclass);
 
                 ss.exp = new CastExp(ss.loc, ss.exp, t);
-                ss.exp = ss.exp.semantic(sc);
+                ss.exp = ss.exp.expressionSemantic(sc);
             }
             version (all)
             {
@@ -3331,14 +3332,14 @@ else
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STCnothrow);
             Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STCnothrow);
             e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), e);
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(ss.loc, e);
@@ -3359,7 +3360,7 @@ else
         Initializer _init;
 
         //printf("WithStatement::semantic()\n");
-        ws.exp = ws.exp.semantic(sc);
+        ws.exp = ws.exp.expressionSemantic(sc);
         ws.exp = resolveProperties(sc, ws.exp);
         ws.exp = ws.exp.optimize(WANTvalue);
         ws.exp = checkGC(sc, ws.exp);
@@ -3391,7 +3392,7 @@ else
             if (t.ty == Tpointer)
             {
                 ws.exp = new PtrExp(ws.loc, ws.exp);
-                ws.exp = ws.exp.semantic(sc);
+                ws.exp = ws.exp.expressionSemantic(sc);
                 t = ws.exp.type.toBasetype();
             }
 
@@ -3625,7 +3626,7 @@ else
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         fd.hasReturnExp |= 2;
 
-        ts.exp = ts.exp.semantic(sc);
+        ts.exp = ts.exp.expressionSemantic(sc);
         ts.exp = resolveProperties(sc, ts.exp);
         ts.exp = checkGC(sc, ts.exp);
         if (ts.exp.op == TOKerror)

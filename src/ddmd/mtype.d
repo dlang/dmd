@@ -329,7 +329,7 @@ Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
 
     sc = sc.push(sym);
     sc = sc.startCTFE();
-    exp = exp.semantic(sc);
+    exp = exp.expressionSemantic(sc);
     sc = sc.endCTFE();
     sc.pop();
 
@@ -348,14 +348,14 @@ Expression semanticLength(Scope* sc, Type t, Expression exp)
         sym.parent = sc.scopesym;
         sc = sc.push(sym);
         sc = sc.startCTFE();
-        exp = exp.semantic(sc);
+        exp = exp.expressionSemantic(sc);
         sc = sc.endCTFE();
         sc.pop();
     }
     else
     {
         sc = sc.startCTFE();
-        exp = exp.semantic(sc);
+        exp = exp.expressionSemantic(sc);
         sc = sc.endCTFE();
     }
     return exp;
@@ -2536,7 +2536,7 @@ extern (C++) abstract class Type : RootObject
             {
                 e = new StringExp(loc, deco);
                 Scope sc;
-                e = e.semantic(&sc);
+                e = e.expressionSemantic(&sc);
             }
         }
         else if (ident == Id.stringof)
@@ -2544,7 +2544,7 @@ extern (C++) abstract class Type : RootObject
             const s = toChars();
             e = new StringExp(loc, cast(char*)s);
             Scope sc;
-            e = e.semantic(&sc);
+            e = e.expressionSemantic(&sc);
         }
         else if (flag && this != Type.terror)
         {
@@ -2645,7 +2645,7 @@ extern (C++) abstract class Type : RootObject
 
     Lreturn:
         if (e)
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -2709,7 +2709,7 @@ extern (C++) abstract class Type : RootObject
                  */
                 e = build_overload(e.loc, sc, e, null, fd);
                 e = new DotIdExp(e.loc, e, ident);
-                return returnExp(e.semantic(sc));
+                return returnExp(e.expressionSemantic(sc));
             }
 
             /* Look for overloaded opDispatch to see if we should forward request
@@ -4121,7 +4121,7 @@ extern (C++) final class TypeBasic : Type
             return Type.dotExp(sc, e, ident, flag);
         }
         if (!(flag & 1) || e)
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -4378,7 +4378,7 @@ extern (C++) final class TypeVector : Type
              * __vector(float[4]), and a type paint won't do.
              */
             e = new AddrExp(e.loc, e);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = e.castTo(sc, basetype.nextOf().pointerTo());
             return e;
         }
@@ -4499,7 +4499,7 @@ extern (C++) class TypeArray : TypeNext
         e = Type.dotExp(sc, e, ident, flag);
 
         if (!(flag & 1) || e)
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -4680,7 +4680,7 @@ extern (C++) final class TypeSArray : TypeArray
             e = TypeArray.dotExp(sc, e, ident, flag);
         }
         if (!(flag & 1) || e)
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -6322,7 +6322,7 @@ extern (C++) final class TypeDelegate : TypeNext
         if (ident == Id.ptr)
         {
             e = new DelegatePtrExp(e.loc, e);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         }
         else if (ident == Id.funcptr)
         {
@@ -6332,7 +6332,7 @@ extern (C++) final class TypeDelegate : TypeNext
                 return new ErrorExp();
             }
             e = new DelegateFuncptrExp(e.loc, e);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         }
         else
         {
@@ -6441,7 +6441,7 @@ extern (C++) abstract class TypeQualified : Type
             else if (sindex)
                 eindex = .resolve(loc, sc, sindex, false);
             Expression e = new IndexExp(loc, .resolve(loc, sc, s, false), eindex);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             resolveExp(e, pt, pe, ps);
             return;
         }
@@ -6532,7 +6532,7 @@ extern (C++) abstract class TypeQualified : Type
                     assert(ex);
 
                     ex = typeToExpressionHelper(this, ex, i + 1);
-                    ex = ex.semantic(sc);
+                    ex = ex.expressionSemantic(sc);
                     resolveExp(ex, pt, pe, ps);
                     return;
                 }
@@ -6599,7 +6599,7 @@ extern (C++) abstract class TypeQualified : Type
                             e = new VarExp(loc, s.isDeclaration(), true);
 
                         e = typeToExpressionHelper(this, e, i);
-                        e = e.semantic(sc);
+                        e = e.expressionSemantic(sc);
                         resolveExp(e, pt, pe, ps);
                         return;
                     }
@@ -6665,7 +6665,7 @@ extern (C++) abstract class TypeQualified : Type
             {
                 //printf("'%s' is a function literal\n", fld.toChars());
                 *pe = new FuncExp(loc, fld);
-                *pe = (*pe).semantic(sc);
+                *pe = (*pe).expressionSemantic(sc);
                 return;
             }
             version (none)
@@ -6968,7 +6968,7 @@ extern (C++) final class TypeTypeof : TypeQualified
          */
         Scope* sc2 = sc.push();
         sc2.intypeof = 1;
-        auto exp2 = exp.semantic(sc2);
+        auto exp2 = exp.expressionSemantic(sc2);
         exp2 = resolvePropertiesOnly(sc2, exp2);
         sc2.pop();
 
@@ -7025,7 +7025,7 @@ extern (C++) final class TypeTypeof : TypeQualified
             else
             {
                 auto e = typeToExpressionHelper(this, new TypeExp(loc, t));
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 resolveExp(e, pt, pe, ps);
             }
         }
@@ -7113,7 +7113,7 @@ extern (C++) final class TypeReturn : TypeQualified
             else
             {
                 auto e = typeToExpressionHelper(this, new TypeExp(loc, t));
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 resolveExp(e, pt, pe, ps);
             }
         }
@@ -7215,7 +7215,7 @@ extern (C++) final class TypeStruct : Type
             /* Create a TupleExp out of the fields of the struct e:
              * (e.field0, e.field1, e.field2, ...)
              */
-            e = e.semantic(sc); // do this before turning on noaccesscheck
+            e = e.expressionSemantic(sc); // do this before turning on noaccesscheck
 
             sym.size(e.loc); // do semantic of type
 
@@ -7243,7 +7243,7 @@ extern (C++) final class TypeStruct : Type
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
             sc2.flags = sc.flags | SCOPEnoaccesscheck;
-            e = e.semantic(sc2);
+            e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
         }
@@ -7313,14 +7313,14 @@ extern (C++) final class TypeStruct : Type
                 }
                 checkAccess(e.loc, sc, null, v);
                 Expression ve = new VarExp(e.loc, v);
-                ve = ve.semantic(sc);
+                ve = ve.expressionSemantic(sc);
                 return ve;
             }
         }
 
         if (auto t = s.getType())
         {
-            return (new TypeExp(e.loc, t)).semantic(sc);
+            return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
 
         TemplateMixin tm = s.isTemplateMixin();
@@ -7338,7 +7338,7 @@ extern (C++) final class TypeStruct : Type
                 e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             return e;
         }
 
@@ -7358,7 +7358,7 @@ extern (C++) final class TypeStruct : Type
                 e = new ScopeExp(e.loc, ti);
             else
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
-            return e.semantic(sc);
+            return e.expressionSemantic(sc);
         }
 
         if (s.isImport() || s.isModule() || s.isPackage())
@@ -7391,7 +7391,7 @@ extern (C++) final class TypeStruct : Type
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
             if (d.needThis() && sc.intypeof != 1)
@@ -7402,7 +7402,7 @@ extern (C++) final class TypeStruct : Type
                 if (hasThis(sc))
                 {
                     e = new DotVarExp(e.loc, new ThisExp(e.loc), d);
-                    e = e.semantic(sc);
+                    e = e.expressionSemantic(sc);
                     return e;
                 }
             }
@@ -7422,12 +7422,12 @@ extern (C++) final class TypeStruct : Type
             checkAccess(e.loc, sc, e, d);
             Expression ve = new VarExp(e.loc, d);
             e = unreal ? ve : new CommaExp(e.loc, e, ve);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             return e;
         }
 
         e = new DotVarExp(e.loc, e, d);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -7812,7 +7812,7 @@ extern (C++) final class TypeEnum : Type
             const s = toChars();
             e = new StringExp(loc, cast(char*)s);
             Scope sc;
-            e = e.semantic(&sc);
+            e = e.expressionSemantic(&sc);
         }
         else if (ident == Id._mangleof)
         {
@@ -8010,7 +8010,7 @@ extern (C++) final class TypeClass : Type
         {
             /* Create a TupleExp
              */
-            e = e.semantic(sc); // do this before turning on noaccesscheck
+            e = e.expressionSemantic(sc); // do this before turning on noaccesscheck
 
             sym.size(e.loc); // do semantic of type
 
@@ -8041,7 +8041,7 @@ extern (C++) final class TypeClass : Type
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
             sc2.flags = sc.flags | SCOPEnoaccesscheck;
-            e = e.semantic(sc2);
+            e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
         }
@@ -8085,7 +8085,7 @@ extern (C++) final class TypeClass : Type
                 if (e.op == TOKtype)
                     return Type.getProperty(e.loc, ident, 0);
                 e = new DotTypeExp(e.loc, e, sym);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
             if (auto cbase = sym.searchBase(ident))
@@ -8096,7 +8096,7 @@ extern (C++) final class TypeClass : Type
                     e = new CastExp(e.loc, e, ifbase.type);
                 else
                     e = new DotTypeExp(e.loc, e, cbase);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
 
@@ -8154,7 +8154,7 @@ extern (C++) final class TypeClass : Type
                  */
                 e = e.castTo(sc, tvoidptr.immutableOf().pointerTo().pointerTo());
                 e = new PtrExp(e.loc, e);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
 
@@ -8166,7 +8166,7 @@ extern (C++) final class TypeClass : Type
                 e = e.castTo(sc, tvoidptr.pointerTo());
                 e = new AddExp(e.loc, e, new IntegerExp(1));
                 e = new PtrExp(e.loc, e);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
 
@@ -8253,14 +8253,14 @@ extern (C++) final class TypeClass : Type
                 }
                 checkAccess(e.loc, sc, null, v);
                 Expression ve = new VarExp(e.loc, v);
-                ve = ve.semantic(sc);
+                ve = ve.expressionSemantic(sc);
                 return ve;
             }
         }
 
         if (auto t = s.getType())
         {
-            return (new TypeExp(e.loc, t)).semantic(sc);
+            return (new TypeExp(e.loc, t)).expressionSemantic(sc);
         }
 
         TemplateMixin tm = s.isTemplateMixin();
@@ -8278,7 +8278,7 @@ extern (C++) final class TypeClass : Type
                 e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             return e;
         }
 
@@ -8298,7 +8298,7 @@ extern (C++) final class TypeClass : Type
                 e = new ScopeExp(e.loc, ti);
             else
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
-            return e.semantic(sc);
+            return e.expressionSemantic(sc);
         }
 
         if (s.isImport() || s.isModule() || s.isPackage())
@@ -8331,7 +8331,7 @@ extern (C++) final class TypeClass : Type
             if (TupleDeclaration tup = d.isTupleDeclaration())
             {
                 e = new TupleExp(e.loc, tup);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
             if (d.needThis() && sc.intypeof != 1)
@@ -8343,7 +8343,7 @@ extern (C++) final class TypeClass : Type
                 {
                     // This is almost same as getRightThis() in expression.c
                     Expression e1 = new ThisExp(e.loc);
-                    e1 = e1.semantic(sc);
+                    e1 = e1.expressionSemantic(sc);
                 L2:
                     Type t = e1.type.toBasetype();
                     ClassDeclaration cd = e.type.isClassHandle();
@@ -8352,7 +8352,7 @@ extern (C++) final class TypeClass : Type
                     {
                         e = new DotTypeExp(e1.loc, e1, cd);
                         e = new DotVarExp(e.loc, e, d);
-                        e = e.semantic(sc);
+                        e = e.expressionSemantic(sc);
                         return e;
                     }
                     if (tcd && tcd.isNested())
@@ -8364,7 +8364,7 @@ extern (C++) final class TypeClass : Type
                         e1.type = tcd.vthis.type;
                         e1.type = e1.type.addMod(t.mod);
                         // Do not call ensureStaticLinkTo()
-                        //e1 = e1.semantic(sc);
+                        //e1 = e1.expressionSemantic(sc);
 
                         // Skip up over nested functions, and get the enclosing
                         // class type.
@@ -8389,10 +8389,10 @@ extern (C++) final class TypeClass : Type
                             e1.type = s.isClassDeclaration().type;
                             e1.type = e1.type.addMod(t.mod);
                             if (n > 1)
-                                e1 = e1.semantic(sc);
+                                e1 = e1.expressionSemantic(sc);
                         }
                         else
-                            e1 = e1.semantic(sc);
+                            e1 = e1.expressionSemantic(sc);
                         goto L2;
                     }
                 }
@@ -8414,12 +8414,12 @@ extern (C++) final class TypeClass : Type
             checkAccess(e.loc, sc, e, d);
             Expression ve = new VarExp(e.loc, d);
             e = unreal ? ve : new CommaExp(e.loc, e, ve);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             return e;
         }
 
         e = new DotVarExp(e.loc, e, d);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -8766,8 +8766,8 @@ extern (C++) final class TypeSlice : TypeNext
                 sym.parent = sc.scopesym;
                 sc = sc.push(sym);
                 sc = sc.startCTFE();
-                lwr = lwr.semantic(sc);
-                upr = upr.semantic(sc);
+                lwr = lwr.expressionSemantic(sc);
+                upr = upr.expressionSemantic(sc);
                 sc = sc.endCTFE();
                 sc = sc.pop();
 

@@ -24,6 +24,7 @@ import ddmd.dstruct;
 import ddmd.dsymbol;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -938,7 +939,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     Expression e = fparam.defaultArg;
                     if (fparam.storageClass & (STCref | STCout))
                     {
-                        e = e.semantic(argsc);
+                        e = e.expressionSemantic(argsc);
                         e = resolveProperties(argsc, e);
                     }
                     else
@@ -956,7 +957,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         // and copying the literal itself is wrong.
                         e = new VarExp(e.loc, fe.fd, false);
                         e = new AddrExp(e.loc, e);
-                        e = e.semantic(argsc);
+                        e = e.expressionSemantic(argsc);
                     }
                     e = e.implicitCastTo(argsc, fparam.type);
 

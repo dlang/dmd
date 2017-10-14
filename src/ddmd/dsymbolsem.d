@@ -37,6 +37,7 @@ import ddmd.dversion;
 import ddmd.errors;
 import ddmd.escape;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.gluelayer;
@@ -110,7 +111,7 @@ extern(C++) final class Semantic2Visitor : Visitor
             if (sa.msg)
             {
                 sc = sc.startCTFE();
-                sa.msg = sa.msg.semantic(sc);
+                sa.msg = sa.msg.expressionSemantic(sc);
                 sa.msg = resolveProperties(sc, sa.msg);
                 sc = sc.endCTFE();
                 sa.msg = sa.msg.ctfeInterpret();
@@ -446,7 +447,7 @@ extern(C++) final class Semantic2Visitor : Visitor
                 {
                     if (e)
                     {
-                        e = e.semantic(sc);
+                        e = e.expressionSemantic(sc);
                         if (definitelyValueParameter(e))
                             e = e.ctfeInterpret();
                         if (e.op == TOKtuple)
@@ -500,7 +501,7 @@ structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
         return ad.salign = STRUCTALIGN_DEFAULT;
 
     sc = sc.startCTFE();
-    ad.ealign = ad.ealign.semantic(sc);
+    ad.ealign = ad.ealign.expressionSemantic(sc);
     ad.ealign = resolveProperties(sc, ad.ealign);
     sc = sc.endCTFE();
     ad.ealign = ad.ealign.ctfeInterpret();
@@ -527,7 +528,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
         dd._scope = null;
 
         sc = sc.startCTFE();
-        dd.msg = dd.msg.semantic(sc);
+        dd.msg = dd.msg.expressionSemantic(sc);
         dd.msg = resolveProperties(sc, dd.msg);
         sc = sc.endCTFE();
         dd.msg = dd.msg.ctfeInterpret();
@@ -1132,7 +1133,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                         {
                             Expression e1 = new SuperExp(Loc());
                             Expression e = new CallExp(Loc(), e1);
-                            e = e.semantic(sc2);
+                            e = e.expressionSemantic(sc2);
                             Statement s = new ExpStatement(Loc(), e);
                             funcdecl.fbody = new CompoundStatement(Loc(), s, funcdecl.fbody);
                         }
@@ -1205,7 +1206,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                         else
                             e = new HaltExp(funcdecl.endloc);
                         e = new CommaExp(Loc(), e, f.next.defaultInit());
-                        e = e.semantic(sc2);
+                        e = e.expressionSemantic(sc2);
                         Statement s = new ExpStatement(Loc(), e);
                         funcdecl.fbody = new CompoundStatement(Loc(), funcdecl.fbody, s);
                     }
@@ -1455,7 +1456,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     Expression e = new VarExp(Loc(), funcdecl.v_arguments);
                     e = new DotIdExp(Loc(), e, Id.elements);
                     e = new ConstructExp(Loc(), _arguments, e);
-                    e = e.semantic(sc2);
+                    e = e.expressionSemantic(sc2);
 
                     _arguments._init = new ExpInitializer(Loc(), e);
                     auto de = new DeclarationExp(Loc(), _arguments);
@@ -1495,7 +1496,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                         if (funcdecl.tintro)
                         {
                             e = e.implicitCastTo(sc, funcdecl.tintro.nextOf());
-                            e = e.semantic(sc);
+                            e = e.expressionSemantic(sc);
                         }
                         auto s = new ReturnStatement(Loc(), e);
                         a.push(s);
@@ -2055,7 +2056,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             size_t nelems = Parameter.dim(tt.arguments);
             Expression ie = (dsym._init && !dsym._init.isVoidInitializer()) ? dsym._init.initializerToExpression() : null;
             if (ie)
-                ie = ie.semantic(sc);
+                ie = ie.expressionSemantic(sc);
             if (nelems > 0 && ie)
             {
                 auto iexps = new Expressions();
@@ -2430,7 +2431,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 Expression e = tv.defaultInitLiteral(dsym.loc);
                 e = new BlitExp(dsym.loc, new VarExp(dsym.loc, dsym), e);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 dsym._init = new ExpInitializer(dsym.loc, e);
                 goto Ldtor;
             }
@@ -2508,7 +2509,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     else
                         exp = new ConstructExp(dsym.loc, e1, exp);
                     dsym.canassign++;
-                    exp = exp.semantic(sc);
+                    exp = exp.expressionSemantic(sc);
                     dsym.canassign--;
                     exp = exp.optimize(WANTvalue);
                     if (exp.op == TOKerror)
@@ -2581,7 +2582,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         bool needctfe = dsym.isDataseg() || (dsym.storage_class & STCmanifest);
                         if (needctfe)
                             sc = sc.startCTFE();
-                        exp = exp.semantic(sc);
+                        exp = exp.expressionSemantic(sc);
                         exp = resolveProperties(sc, exp);
                         if (needctfe)
                             sc = sc.endCTFE();
@@ -2641,9 +2642,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.edtor)
         {
             if (sc.func && dsym.storage_class & (STCstatic | STCgshared))
-                dsym.edtor = dsym.edtor.semantic(sc._module._scope);
+                dsym.edtor = dsym.edtor.expressionSemantic(sc._module._scope);
             else
-                dsym.edtor = dsym.edtor.semantic(sc);
+                dsym.edtor = dsym.edtor.expressionSemantic(sc);
 
             version (none)
             {
@@ -2917,7 +2918,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     Expression e = (*pd.args)[i];
                     sc = sc.startCTFE();
-                    e = e.semantic(sc);
+                    e = e.expressionSemantic(sc);
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
                     // pragma(msg) is allowed to contain types as well as expressions
@@ -2983,7 +2984,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  */
                 Expression e = (*pd.args)[0];
                 sc = sc.startCTFE();
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 sc = sc.endCTFE();
                 (*pd.args)[0] = e;
                 Dsymbol sa = getDsymbol(e);
@@ -3073,7 +3074,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         Expression e = (*pd.args)[i];
                         sc = sc.startCTFE();
-                        e = e.semantic(sc);
+                        e = e.expressionSemantic(sc);
                         e = resolveProperties(sc, e);
                         sc = sc.endCTFE();
                         e = e.ctfeInterpret();
@@ -3482,7 +3483,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             Expression e = em.value;
             assert(e.dyncast() == DYNCAST.expression);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = resolveProperties(sc, e);
             e = e.ctfeInterpret();
             if (e.op == TOKerror)
@@ -3601,14 +3602,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Type tprev = eprev.type.equals(em.ed.type) ? em.ed.memtype : eprev.type;
 
             Expression emax = tprev.getProperty(em.ed.loc, Id.max, 0);
-            emax = emax.semantic(sc);
+            emax = emax.expressionSemantic(sc);
             emax = emax.ctfeInterpret();
 
             // Set value to (eprev + 1).
             // But first check that (eprev != emax)
             assert(eprev);
             Expression e = new EqualExp(TOKequal, em.loc, eprev, emax);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = e.ctfeInterpret();
             if (e.toInteger())
             {
@@ -3619,7 +3620,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Now set e to (eprev + 1)
             e = new AddExp(em.loc, eprev, new IntegerExp(em.loc, 1, Type.tint32));
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = e.castTo(sc, eprev.type);
             e = e.ctfeInterpret();
 
@@ -3628,7 +3629,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 assert(emprev.origValue);
                 em.origValue = new AddExp(em.loc, emprev.origValue, new IntegerExp(em.loc, 1, Type.tint32));
-                em.origValue = em.origValue.semantic(sc);
+                em.origValue = em.origValue.expressionSemantic(sc);
                 em.origValue = em.origValue.ctfeInterpret();
             }
 
@@ -3638,7 +3639,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Check that e != eprev (not always true for floats)
                 Expression etest = new EqualExp(TOKequal, em.loc, e, eprev);
-                etest = etest.semantic(sc);
+                etest = etest.expressionSemantic(sc);
                 etest = etest.ctfeInterpret();
                 if (etest.toInteger())
                 {
@@ -6998,7 +6999,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
                 return;
 
             Expression e = new FuncExp(ds.loc, ds.aliassym);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             if (e.op == TOKfunction)
             {
                 FuncExp fe = cast(FuncExp)e;

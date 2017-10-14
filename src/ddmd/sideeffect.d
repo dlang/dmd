@@ -16,6 +16,7 @@ import ddmd.apply;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.identifier;
@@ -407,8 +408,8 @@ Expression extractSideEffect(Scope* sc, const char* name,
 
     Expression de = new DeclarationExp(vd.loc, vd);
     Expression ve = new VarExp(vd.loc, vd);
-    de = de.semantic(sc);
-    ve = ve.semantic(sc);
+    de = de.expressionSemantic(sc);
+    ve = ve.expressionSemantic(sc);
 
     e0 = Expression.combine(e0, de);
     return ve;

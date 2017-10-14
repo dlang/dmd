@@ -29,6 +29,7 @@ import ddmd.dsymbol;
 import ddmd.dsymbolsem;
 import ddmd.errors;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
@@ -1544,7 +1545,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                     // Deduce prmtype from the defaultArg.
                     farg = fparam.defaultArg.syntaxCopy();
-                    farg = farg.semantic(paramscope);
+                    farg = farg.expressionSemantic(paramscope);
                     farg = resolveProperties(paramscope, farg);
                 }
                 else
@@ -3904,7 +3905,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                             // (it may be from a parent template, for example)
                         }
 
-                        e2 = e2.semantic(sc); // https://issues.dlang.org/show_bug.cgi?id=13417
+                        e2 = e2.expressionSemantic(sc); // https://issues.dlang.org/show_bug.cgi?id=13417
                         e2 = e2.ctfeInterpret();
 
                         //printf("e1 = %s, type = %s %d\n", e1.toChars(), e1.type.toChars(), e1.type.ty);
@@ -4509,7 +4510,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     e.fd.treq = tparam;
 
                 auto ti = new TemplateInstance(e.loc, e.td, tiargs);
-                Expression ex = (new ScopeExp(e.loc, ti)).semantic(e.td._scope);
+                Expression ex = (new ScopeExp(e.loc, ti)).expressionSemantic(e.td._scope);
 
                 // Reset inference target for the later re-semantic
                 e.fd.treq = null;
@@ -5310,7 +5311,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (e)
         {
             e = e.syntaxCopy();
-            if ((e = e.semantic(sc)) is null)
+            if ((e = e.expressionSemantic(sc)) is null)
                 return null;
             if ((e = resolveProperties(sc, e)) is null)
                 return null;
@@ -5344,7 +5345,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
                 goto Lnomatch;
 
             ei = new VarExp(loc, f);
-            ei = ei.semantic(sc);
+            ei = ei.expressionSemantic(sc);
 
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
@@ -5405,7 +5406,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             Expression e = specValue;
 
             sc = sc.startCTFE();
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             e = resolveProperties(sc, e);
             sc = sc.endCTFE();
             e = e.implicitCastTo(sc, vt);
@@ -5413,7 +5414,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
 
             ei = ei.syntaxCopy();
             sc = sc.startCTFE();
-            ei = ei.semantic(sc);
+            ei = ei.expressionSemantic(sc);
             sc = sc.endCTFE();
             ei = ei.implicitCastTo(sc, vt);
             ei = ei.ctfeInterpret();
@@ -6604,7 +6605,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 //printf("+[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
                 if (flags & 1) // only used by __traits
                 {
-                    ea = ea.semantic(sc);
+                    ea = ea.expressionSemantic(sc);
 
                     // must not interpret the args, excepting template parameters
                     if (ea.op != TOKvar || ((cast(VarExp)ea).var.storage_class & STCtemplateparameter))
@@ -6615,7 +6616,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     sc = sc.startCTFE();
-                    ea = ea.semantic(sc);
+                    ea = ea.expressionSemantic(sc);
                     sc = sc.endCTFE();
 
                     if (ea.op == TOKvar)
