@@ -66,6 +66,7 @@ import ddmd.semantic;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.templateparamsem;
+import ddmd.typesem;
 import ddmd.visitor;
 
 enum LOG = false;
@@ -1687,7 +1688,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 sc.flags |= SCOPEctor;
             sc.stc = 0;
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
-            funcdecl.type = f.semantic(funcdecl.loc, sc);
+            funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
         }
 
@@ -1978,7 +1979,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Scope* sc2 = sc.push();
             sc2.stc |= (dsym.storage_class & STC_FUNCATTR);
             dsym.inuse++;
-            dsym.type = dsym.type.semantic(dsym.loc, sc2);
+            dsym.type = dsym.type.typeSemantic(dsym.loc, sc2);
             dsym.inuse--;
             sc2.pop();
         }
@@ -2067,7 +2068,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 Lexpand1:
                     Expression e = (*iexps)[pos];
                     Parameter arg = Parameter.getNth(tt.arguments, pos);
-                    arg.type = arg.type.semantic(dsym.loc, sc);
+                    arg.type = arg.type.typeSemantic(dsym.loc, sc);
                     //printf("[%d] iexps.dim = %d, ", pos, iexps.dim);
                     //printf("e = (%s %s, %s), ", Token::tochars[e.op], e.toChars(), e.type.toChars());
                     //printf("arg = (%s, %s)\n", arg.toChars(), arg.type.toChars());
@@ -2107,7 +2108,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         Lexpand2:
                             Expression ee = (*exps)[u];
                             arg = Parameter.getNth(tt.arguments, pos + u);
-                            arg.type = arg.type.semantic(dsym.loc, sc);
+                            arg.type = arg.type.typeSemantic(dsym.loc, sc);
                             //printf("[%d+%d] exps.dim = %d, ", pos, u, exps.dim);
                             //printf("ee = (%s %s, %s), ", Token::tochars[ee.op], ee.toChars(), ee.type.toChars());
                             //printf("arg = (%s, %s)\n", arg.toChars(), arg.type.toChars());
@@ -3278,7 +3279,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         ed.parent = sc.parent;
-        ed.type = ed.type.semantic(ed.loc, sc);
+        ed.type = ed.type.typeSemantic(ed.loc, sc);
 
         ed.protection = sc.protection;
         if (sc.stc & STCdeprecated)
@@ -3307,7 +3308,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (ed.memtype)
         {
-            ed.memtype = ed.memtype.semantic(ed.loc, sc);
+            ed.memtype = ed.memtype.typeSemantic(ed.loc, sc);
 
             /* Check to see if memtype is forward referenced
              */
@@ -3474,7 +3475,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (em.origType)
         {
-            em.origType = em.origType.semantic(em.loc, sc);
+            em.origType = em.origType.typeSemantic(em.loc, sc);
             em.type = em.origType;
             assert(em.value); // "type id;" is not a valid enum member declaration
         }
@@ -4283,7 +4284,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 stc |= STCwild;
             funcdecl.type = funcdecl.type.addSTC(stc);
 
-            funcdecl.type = funcdecl.type.semantic(funcdecl.loc, sc);
+            funcdecl.type = funcdecl.type.typeSemantic(funcdecl.loc, sc);
             sc = sc.pop();
         }
         if (funcdecl.type.ty != Tfunction)
@@ -5241,7 +5242,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!nd.type)
             nd.type = new TypeFunction(nd.parameters, tret, nd.varargs, LINKd, nd.storage_class);
 
-        nd.type = nd.type.semantic(nd.loc, sc);
+        nd.type = nd.type.typeSemantic(nd.loc, sc);
 
         // Check that there is at least one argument of type size_t
         TypeFunction tf = nd.type.toTypeFunction();
@@ -5282,7 +5283,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!deld.type)
             deld.type = new TypeFunction(deld.parameters, Type.tvoid, 0, LINKd, deld.storage_class);
 
-        deld.type = deld.type.semantic(deld.loc, sc);
+        deld.type = deld.type.typeSemantic(deld.loc, sc);
 
         // Check that there is only one argument of type void*
         TypeFunction tf = deld.type.toTypeFunction();
@@ -5330,7 +5331,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.type = Type.terror;
         if (sd.semanticRun == PASSinit)
             sd.type = sd.type.addSTC(sc.stc | sd.storage_class);
-        sd.type = sd.type.semantic(sd.loc, sc);
+        sd.type = sd.type.typeSemantic(sd.loc, sc);
         if (sd.type.ty == Tstruct && (cast(TypeStruct)sd.type).sym != sd)
         {
             auto ti = (cast(TypeStruct)sd.type).sym.isInstantiated();
@@ -5554,7 +5555,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (cldec.errors)
             cldec.type = Type.terror;
-        cldec.type = cldec.type.semantic(cldec.loc, sc);
+        cldec.type = cldec.type.typeSemantic(cldec.loc, sc);
         if (cldec.type.ty == Tclass && (cast(TypeClass)cldec.type).sym != cldec)
         {
             auto ti = (cast(TypeClass)cldec.type).sym.isInstantiated();
@@ -5632,7 +5633,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < cldec.baseclasses.dim;)
             {
                 auto b = (*cldec.baseclasses)[i];
-                b.type = resolveBase(b.type.semantic(cldec.loc, sc));
+                b.type = resolveBase(b.type.typeSemantic(cldec.loc, sc));
 
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
@@ -5788,7 +5789,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     badObjectDotD();
 
                 Type t = cldec.object.type;
-                t = t.semantic(cldec.loc, sc).toBasetype();
+                t = t.typeSemantic(cldec.loc, sc).toBasetype();
                 if (t.ty == Terror)
                     badObjectDotD();
                 assert(t.ty == Tclass);
@@ -6148,7 +6149,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (idec.errors)
             idec.type = Type.terror;
-        idec.type = idec.type.semantic(idec.loc, sc);
+        idec.type = idec.type.typeSemantic(idec.loc, sc);
         if (idec.type.ty == Tclass && (cast(TypeClass)idec.type).sym != idec)
         {
             auto ti = (cast(TypeClass)idec.type).sym.isInstantiated();
@@ -6209,7 +6210,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             for (size_t i = 0; i < idec.baseclasses.dim;)
             {
                 auto b = (*idec.baseclasses)[i];
-                b.type = resolveBase(b.type.semantic(idec.loc, sc));
+                b.type = resolveBase(b.type.typeSemantic(idec.loc, sc));
 
                 Type tb = b.type.toBasetype();
                 if (tb.ty == Ttuple)
@@ -7095,7 +7096,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     if (!s) // it's a type alias
     {
         //printf("alias %s resolved to type %s\n", toChars(), type.toChars());
-        ds.type = ds.type.semantic(ds.loc, sc);
+        ds.type = ds.type.typeSemantic(ds.loc, sc);
         ds.aliassym = null;
     }
     else    // it's a symbolic alias

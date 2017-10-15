@@ -42,6 +42,7 @@ import ddmd.root.stringtable;
 import ddmd.semantic;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 
 /******************************************
  * Perform semantic analysis on a type.
@@ -194,7 +195,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     override void visit(TypeVector mtype)
     {
         uint errors = global.errors;
-        mtype.basetype = mtype.basetype.semantic(loc, sc);
+        mtype.basetype = mtype.basetype.typeSemantic(loc, sc);
         if (errors != global.errors)
         {
             result = Type.terror;
@@ -285,7 +286,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             return;
         }
 
-        Type tn = mtype.next.semantic(loc, sc);
+        Type tn = mtype.next.typeSemantic(loc, sc);
         if (tn.ty == Terror)
         {
             result = errorReturn();
@@ -409,7 +410,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
     override void visit(TypeDArray mtype)
     {
-        Type tn = mtype.next.semantic(loc, sc);
+        Type tn = mtype.next.typeSemantic(loc, sc);
         Type tbn = tn.toBasetype();
         switch (tbn.ty)
         {
@@ -465,11 +466,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 // It was an expression -
                 // Rewrite as a static array
                 auto tsa = new TypeSArray(mtype.next, e);
-                result = tsa.semantic(loc, sc);
+                result = tsa.typeSemantic(loc, sc);
                 return;
             }
             else if (t)
-                mtype.index = t.semantic(loc, sc);
+                mtype.index = t.typeSemantic(loc, sc);
             else
             {
                 mtype.index.error(loc, "index is not a type or an expression");
@@ -478,7 +479,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             }
         }
         else
-            mtype.index = mtype.index.semantic(loc, sc);
+            mtype.index = mtype.index.typeSemantic(loc, sc);
         mtype.index = mtype.index.merge2();
 
         if (mtype.index.nextOf() && !mtype.index.nextOf().isImmutable())
@@ -617,7 +618,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 }
             }
         }
-        mtype.next = mtype.next.semantic(loc, sc).merge2();
+        mtype.next = mtype.next.typeSemantic(loc, sc).merge2();
         mtype.transitive();
 
         switch (mtype.next.toBasetype().ty)
@@ -651,7 +652,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             result = mtype;
             return;
         }
-        Type n = mtype.next.semantic(loc, sc);
+        Type n = mtype.next.typeSemantic(loc, sc);
         switch (n.toBasetype().ty)
         {
         case Ttuple:
@@ -694,7 +695,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     override void visit(TypeReference mtype)
     {
         //printf("TypeReference::semantic()\n");
-        Type n = mtype.next.semantic(loc, sc);
+        Type n = mtype.next.typeSemantic(loc, sc);
         if (n !=mtype. next)
            mtype. deco = null;
         mtype.next = n;
@@ -788,7 +789,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             sc = sc.push();
             sc.stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
-            tf.next = tf.next.semantic(loc, sc);
+            tf.next = tf.next.typeSemantic(loc, sc);
             sc = sc.pop();
             errors |= tf.checkRetType(loc);
             if (tf.next.isscope() && !(sc.flags & SCOPEctor))
@@ -820,7 +821,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             {
                 Parameter fparam = Parameter.getNth(tf.parameters, i);
                 tf.inuse++;
-                fparam.type = fparam.type.semantic(loc, argsc);
+                fparam.type = fparam.type.typeSemantic(loc, argsc);
                 if (tf.inuse == 1)
                     tf.inuse--;
                 if (fparam.type.ty == Terror)
@@ -1109,7 +1110,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             result = mtype;
             return;
         }
-        mtype.next = mtype.next.semantic(loc, sc);
+        mtype.next = mtype.next.typeSemantic(loc, sc);
         if (mtype.next.ty != Tfunction)
         {
             result = Type.terror;
@@ -1321,7 +1322,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     override void visit(TypeSlice mtype)
     {
         //printf("TypeSlice::semantic() %s\n", toChars());
-        Type tn = mtype.next.semantic(loc, sc);
+        Type tn = mtype.next.typeSemantic(loc, sc);
         //printf("next: %s\n", tn.toChars());
 
         Type tbn = tn.toBasetype();
@@ -1363,7 +1364,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             args.push(arg);
         }
         Type t = new TypeTuple(args);
-        result = t.semantic(loc, sc);
+        result = t.typeSemantic(loc, sc);
     }
 
 }

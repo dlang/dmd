@@ -1027,7 +1027,7 @@ extern (C++) abstract class Type : RootObject
     {
         //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
         uint errors = global.startGagging();
-        Type t = semantic(this, loc, sc);
+        Type t = typeSemantic(this, loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
             t = null;
@@ -2826,7 +2826,7 @@ extern (C++) abstract class Type : RootObject
     void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("Type::resolve() %s, %d\n", toChars(), ty);
-        Type t = semantic(this, loc, sc);
+        Type t = typeSemantic(this, loc, sc);
         *pt = t;
         *pe = null;
         *ps = null;
@@ -6478,7 +6478,7 @@ extern (C++) abstract class TypeQualified : Type
         *ps = isDsymbol(o);
         *pe = isExpression(o);
         if (*pt)
-            *pt = (*pt).semantic(loc, sc);
+            *pt = (*pt).typeSemantic(loc, sc);
         if (*pe)
             resolveExp(*pe, pt, pe, ps);
     }

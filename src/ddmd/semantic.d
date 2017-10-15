@@ -59,22 +59,6 @@ extern(C++) Statement semantic(Statement s, Scope* sc)
     return statementSemantic(s, sc);
 }
 
-/******************************************
- * Perform semantic analysis on a type.
- * Params:
- *      t = Type AST node
- *      loc = the location of the type
- *      sc = context
- * Returns:
- *      `Type` with completed semantic analysis, `Terror` if errors
- *      were encountered
- */
-extern(C++) Type semantic(Type t, Loc loc, Scope* sc)
-{
-    return typeSemantic(t, loc, sc);
-}
-
-
 void semantic(Catch c, Scope* sc)
 {
     semanticWrapper(c, sc);

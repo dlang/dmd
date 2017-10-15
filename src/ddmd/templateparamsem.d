@@ -24,6 +24,7 @@ import ddmd.expressionsem;
 import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.mtype;
+import ddmd.typesem;
 import ddmd.visitor;
 
 /************************************************
@@ -63,14 +64,14 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
         //printf("TemplateTypeParameter.semantic('%s')\n", ident.toChars());
         if (ttp.specType && !reliesOnTident(ttp.specType, parameters))
         {
-            ttp.specType = ttp.specType.semantic(ttp.loc, sc);
+            ttp.specType = ttp.specType.typeSemantic(ttp.loc, sc);
         }
         version (none)
         {
             // Don't do semantic() until instantiation
             if (ttp.defaultType)
             {
-                ttp.defaultType = ttp.defaultType.semantic(ttp.loc, sc);
+                ttp.defaultType = ttp.defaultType.typeSemantic(ttp.loc, sc);
             }
         }
         result = !(ttp.specType && isError(ttp.specType));
@@ -78,7 +79,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
 
     override void visit(TemplateValueParameter tvp)
     {
-        tvp.valType = tvp.valType.semantic(tvp.loc, sc);
+        tvp.valType = tvp.valType.typeSemantic(tvp.loc, sc);
         version (none)
         {
             // defer semantic analysis to arg match
@@ -114,7 +115,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
     {
         if (tap.specType && !reliesOnTident(tap.specType, parameters))
         {
-            tap.specType = tap.specType.semantic(tap.loc, sc);
+            tap.specType = tap.specType.typeSemantic(tap.loc, sc);
         }
         tap.specAlias = aliasParameterSemantic(tap.loc, sc, tap.specAlias, parameters);
         version (none)
@@ -155,7 +156,7 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
             if (s)
                 o = s;
             else
-                o = ta.semantic(loc, sc);
+                o = ta.typeSemantic(loc, sc);
         }
         else if (ea)
         {

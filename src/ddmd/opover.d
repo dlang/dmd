@@ -33,6 +33,7 @@ import ddmd.mtype;
 import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 /***********************************
@@ -1823,7 +1824,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             Parameter p = (*fes.parameters)[u];
             if (p.type)
             {
-                p.type = p.type.semantic(fes.loc, sc);
+                p.type = p.type.typeSemantic(fes.loc, sc);
                 p.type = p.type.addStorageClass(p.storageClass);
             }
         }

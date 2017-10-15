@@ -38,6 +38,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.semantic;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.utf;
 import ddmd.visitor;
 
@@ -99,7 +100,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 else
                 {
                     //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
-                    //type = type.semantic(loc, sc);
+                    //type = type.typeSemantic(loc, sc);
                     //printf("type %s t %s\n", type.deco, t.deco);
                     e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
                         e.toChars(), e.type.toChars(), t.toChars());
@@ -2846,7 +2847,7 @@ Lagain:
             else
                 tx = d.pointerTo();
 
-            tx = tx.semantic(e1.loc, sc);
+            tx = tx.typeSemantic(e1.loc, sc);
 
             if (t1.implicitConvTo(tx) && t2.implicitConvTo(tx))
             {
