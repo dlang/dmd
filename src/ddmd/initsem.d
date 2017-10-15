@@ -66,11 +66,29 @@ extern (C++) Expression initializerToExpression(Initializer init, Type t = null)
     return v.result;
 }
 
+/******************************************
+ * Perform semantic analysis on init.
+ * Params:
+ *      init = Initializer AST node
+ *      sc = context
+ *      t = type that the initializer needs to become
+ *      needInterpret = if CTFE needs to be run on this,
+ *                      such as if it is the initializer for a const declaration
+ * Returns:
+ *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
+ *      were encountered
+ */
+extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
+{
+    scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
+    init.accept(v);
+    return v.result;
+}
 
 /* ****************************** Implementation ************************ */
 
 
-extern(C++) final class InitializerSemanticVisitor : Visitor
+private extern(C++) final class InitializerSemanticVisitor : Visitor
 {
     alias visit = super.visit;
 
