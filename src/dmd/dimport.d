@@ -161,9 +161,18 @@ extern (C++) final class Import : Dsymbol
                         else
                         {
                             // mod is a package.d, or a normal module which conflicts with the package name.
-                            assert(mod.isPackageFile == (p.isPkgMod == PKG.module_));
-                            if (mod.isPackageFile)
+                            auto pkgmod = mod.insertIntoPackageTree();
+                            if (auto mprev = pkgmod.isModule())
+                            {
+                                // https://issues.dlang.org/show_bug.cgi?id=14446
+                                // Use previously parsed module to avoid AST duplication ICE.
+                                mod = mprev;
+                            }
+                            else
+                            {
+                                assert(pkgmod is p);
                                 mod.tag = p.tag; // reuse the same package tag
+                            }
                         }
                     }
                     else
@@ -185,12 +194,19 @@ extern (C++) final class Import : Dsymbol
                 }
             }
         }
+
         if (!mod)
         {
             // Load module
             mod = Module.load(loc, packages, id);
             if (mod)
             {
+                auto pkgmod = mod.insertIntoPackageTree();
+                // https://issues.dlang.org/show_bug.cgi?id=14446
+                // Use previously parsed module to avoid AST duplication ICE.
+                if (auto mprev = pkgmod.isModule())
+                    mod = mprev;
+                assert(mod.tag == pkgmod.tag);
                 // id may be different from mod.ident, if so then insert alias
                 dst.insert(id, mod);
             }

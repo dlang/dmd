@@ -314,7 +314,6 @@ extern (C++) final class Module : Package
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     int isDocFile;              // if it is a documentation input file, not D source
-    bool isPackageFile;         // if it is a package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
     int selfimports;            // 0: don't know, 1: does not, 2: does
@@ -514,7 +513,7 @@ extern (C++) final class Module : Package
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
             message("import    %s", buf.peekString());
         }
-        m = m.parse();
+        m.parse();
 
         // Call onImport here because if the module is going to be compiled then we
         // need to determine it early because it affects semantic analysis. This is
@@ -657,13 +656,11 @@ extern (C++) final class Module : Package
     }
 
     // syntactic parse
-    Module parse()
+    void parse()
     {
         //printf("Module::parse(srcfile='%s') this=%p\n", srcfile.name.toChars(), this);
         const(char)* srcname = srcfile.name.toChars();
         //printf("Module::parse(srcname = '%s')\n", srcname);
-        isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0 ||
-                         strcmp(srcfile.name.name(), "package.di") == 0);
         char* buf = cast(char*)srcfile.buffer;
         size_t buflen = srcfile.len;
         if (buflen >= 2)
@@ -844,7 +841,7 @@ extern (C++) final class Module : Package
             isDocFile = 1;
             if (!docfile)
                 setDocfile();
-            return this;
+            return;
         }
         /* If it has the extension ".dd", it is also a documentation
          * source file. Documentation source files may begin with "Ddoc"
@@ -857,7 +854,7 @@ extern (C++) final class Module : Package
             isDocFile = 1;
             if (!docfile)
                 setDocfile();
-            return this;
+            return;
         }
         {
             scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
@@ -872,16 +869,33 @@ extern (C++) final class Module : Package
             .free(srcfile.buffer);
         srcfile.buffer = null;
         srcfile.len = 0;
-        /* The symbol table into which the module is to be inserted.
-         */
+        if (md)
+            // A provided ModuleDeclaration sets the name of this module.
+            this.ident = md.id;
+        }
+    }
+
+    /**
+       Insert module name into package tree.
+       Package modules are wrapped inside a Package before insertion.
+       In case of conflicting modules the existing entry is returned.
+
+       Returns:
+         This module, the containing package module, or a previously inserted
+         conflicting module.
+     */
+    final Package insertIntoPackageTree()
+    {
+        if (isDocFile)
+            return this;
         DsymbolTable dst;
+        // Insert module name into symbol table
         if (md)
         {
             /* A ModuleDeclaration, md, was provided.
              * The ModuleDeclaration sets the packages this module appears in, and
              * the name of this module.
              */
-            this.ident = md.id;
             Package ppack = null;
             dst = Package.resolve(md.packages, &this.parent, &ppack);
             assert(dst);
@@ -897,14 +911,16 @@ extern (C++) final class Module : Package
             /* The name of the module is set to the source file name.
              * There are no packages.
              */
-            dst = modules; // and so this module goes into global module symbol table
+            dst = Module.modules; // and so this module goes into global module symbol table
             /* Check to see if module name is a valid identifier
              */
-            if (!Identifier.isValidIdentifier(this.ident.toChars()))
+            if (!Identifier.isValidIdentifier(ident.toChars()))
                 error("has non-identifier characters in filename, use module declaration instead");
         }
-        // Insert module into the symbol table
-        Dsymbol s = this;
+
+        Package ret = this;
+        immutable isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0 ||
+                                   strcmp(srcfile.name.name(), "package.di") == 0);
         if (isPackageFile)
         {
             /* If the source tree is as follows:
@@ -930,9 +946,10 @@ extern (C++) final class Module : Package
             p.mod = this;
             p.tag = this.tag; // reuse the same package tag
             p.symtab = new DsymbolTable();
-            s = p;
+            ret = p;
         }
-        if (!dst.insert(s))
+
+        if (!dst.insert(ret))
         {
             /* It conflicts with a name that is already in the symbol table.
              * Figure out what went wrong, and issue error message.
@@ -941,6 +958,7 @@ extern (C++) final class Module : Package
             assert(prev);
             if (Module mprev = prev.isModule())
             {
+                const(char)* srcname = srcfile.name.toChars();
                 if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
                     error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
                 else if (isRoot() && mprev.isRoot())
@@ -949,7 +967,7 @@ extern (C++) final class Module : Package
                     error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
                 // https://issues.dlang.org/show_bug.cgi?id=14446
                 // Return previously parsed module to avoid AST duplication ICE.
-                return mprev;
+                ret = mprev;
             }
             else if (Package pkg = prev.isPackage())
             {
@@ -961,10 +979,14 @@ extern (C++) final class Module : Package
                     pkg.isPkgMod = PKG.module_;
                     pkg.mod = this;
                     pkg.tag = this.tag; // reuse the same package tag
+                    ret = pkg;
                     amodules.push(this); // Add to global array of all modules
                 }
                 else
+                {
+                    const(char)* srcname = srcfile.name.toChars();
                     error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
+                }
             }
             else
                 assert(global.errors);
@@ -974,7 +996,7 @@ extern (C++) final class Module : Package
             // Add to global array of all modules
             amodules.push(this);
         }
-        return this;
+        return ret;
     }
 
     override void importAll(Scope* prevsc)

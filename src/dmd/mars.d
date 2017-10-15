@@ -708,6 +708,10 @@ private int tryMain(size_t argc, const(char)** argv)
             }
         }
         m.parse();
+        // https://issues.dlang.org/show_bug.cgi?id=14446
+        // Use previously parsed module to avoid AST duplication ICE.
+        if (auto mprev = m.insertIntoPackageTree().isModule())
+            m = mprev;
         if (m.isDocFile)
         {
             anydocfiles = true;
