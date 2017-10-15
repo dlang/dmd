@@ -918,9 +918,50 @@ extern (C++) final class Module : Package
                 error("has non-identifier characters in filename, use module declaration instead");
         }
 
-        Package ret = this;
         immutable isPackageFile = (strcmp(srcfile.name.name(), "package.d") == 0 ||
                                    strcmp(srcfile.name.name(), "package.di") == 0);
+
+        if (auto prev = dst.lookup(ident))
+        {
+            /* It conflicts with a name that is already in the symbol table.
+             * Figure out what went wrong, and issue error message.
+             */
+            if (Module mprev = prev.isModule())
+            {
+                const(char)* srcname = srcfile.name.toChars();
+                if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
+                    error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
+                else if (isRoot() && mprev.isRoot())
+                    error(loc, "from file %s is specified twice on the command line", srcname);
+                else
+                    error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
+                // https://issues.dlang.org/show_bug.cgi?id=14446
+                // Return previously parsed module to avoid AST duplication ICE.
+                return mprev;
+            }
+            else if (Package pkg = prev.isPackage())
+            {
+                if (pkg.isPkgMod == PKG.unknown && isPackageFile)
+                {
+                    /* If the previous inserted Package is not yet determined as package.d,
+                     * link it to the actual module.
+                     */
+                    pkg.isPkgMod = PKG.module_;
+                    pkg.mod = this;
+                    pkg.tag = this.tag; // reuse the same package tag
+                    return pkg;
+                    amodules.push(this); // Add to global array of all modules
+                }
+                else
+                {
+                    const(char)* srcname = srcfile.name.toChars();
+                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
+                    return this;
+                }
+            }
+        }
+
+        Package ret = this;
         if (isPackageFile)
         {
             /* If the source tree is as follows:
@@ -937,12 +978,12 @@ extern (C++) final class Module : Package
              *
              * To avoid the conflict:
              * 1. If preceding package name insertion had occurred by Package::resolve,
-             *    later package.d loading will change Package::isPkgMod to PKG.module_ and set Package::mod.
+             *    later package.d loading will change Package::isPkgMod to PKGmodule and set Package::mod.
              * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
              */
             auto p = new Package(ident);
             p.parent = this.parent;
-            p.isPkgMod = PKG.module_;
+            p.isPkgMod = PKGmodule;
             p.mod = this;
             p.tag = this.tag; // reuse the same package tag
             p.symtab = new DsymbolTable();
@@ -951,45 +992,7 @@ extern (C++) final class Module : Package
 
         if (!dst.insert(ret))
         {
-            /* It conflicts with a name that is already in the symbol table.
-             * Figure out what went wrong, and issue error message.
-             */
-            Dsymbol prev = dst.lookup(ident);
-            assert(prev);
-            if (Module mprev = prev.isModule())
-            {
-                const(char)* srcname = srcfile.name.toChars();
-                if (FileName.compare(srcname, mprev.srcfile.toChars()) != 0)
-                    error(loc, "from file %s conflicts with another module %s from file %s", srcname, mprev.toChars(), mprev.srcfile.toChars());
-                else if (isRoot() && mprev.isRoot())
-                    error(loc, "from file %s is specified twice on the command line", srcname);
-                else
-                    error(loc, "from file %s must be imported with 'import %s;'", srcname, toPrettyChars());
-                // https://issues.dlang.org/show_bug.cgi?id=14446
-                // Return previously parsed module to avoid AST duplication ICE.
-                ret = mprev;
-            }
-            else if (Package pkg = prev.isPackage())
-            {
-                if (pkg.isPkgMod == PKG.unknown && isPackageFile)
-                {
-                    /* If the previous inserted Package is not yet determined as package.d,
-                     * link it to the actual module.
-                     */
-                    pkg.isPkgMod = PKG.module_;
-                    pkg.mod = this;
-                    pkg.tag = this.tag; // reuse the same package tag
-                    ret = pkg;
-                    amodules.push(this); // Add to global array of all modules
-                }
-                else
-                {
-                    const(char)* srcname = srcfile.name.toChars();
-                    error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());
-                }
-            }
-            else
-                assert(global.errors);
+            assert(global.errors);
         }
         else
         {
