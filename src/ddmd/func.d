@@ -35,7 +35,6 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
-import ddmd.mars;
 import ddmd.mtype;
 import ddmd.nogc;
 import ddmd.objc;
@@ -49,6 +48,8 @@ import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.visitor;
+
+extern (C++) void genCmain(Scope* sc);
 
 /// Inline Status
 enum ILS : int

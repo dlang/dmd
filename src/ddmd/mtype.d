@@ -2863,11 +2863,11 @@ extern (C++) abstract class Type : RootObject
         assert(0 < length && length < namelen); // don't overflow the buffer
 
         int off = 0;
-        static if (!IN_GCC)
+        static if (!IN_GCC) // %%
         {
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in
-        }
+        }   // %%
         auto id = Identifier.idPool(name + off, length - off);
 
         if (name != namebuf.ptr)
@@ -4531,8 +4531,22 @@ extern (C++) final class TypeVector : Type
         //printf("TypeVector::implicitConvTo(%s) from %s\n", to.toChars(), toChars());
         if (this == to)
             return MATCHexact;
-        if (ty == to.ty)
-            return MATCHconvert;
+        if (to.ty == Tvector)
+        {
+            TypeVector tv = cast(TypeVector)to;
+            assert(basetype.ty == Tsarray && tv.basetype.ty == Tsarray);
+
+            // Can't convert to a vector which has different size.
+            if (basetype.size() != tv.basetype.size())
+                return MATCHnomatch;
+
+            // Allow conversion to void[]
+            if (tv.basetype.nextOf().ty == Tvoid)
+                return MATCHconvert;
+
+            // Otherwise implicitly convertible only if basetypes are.
+            return basetype.implicitConvTo(tv.basetype);
+        }
         return MATCHnomatch;
     }
 

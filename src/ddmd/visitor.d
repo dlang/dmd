@@ -28,6 +28,7 @@ import ddmd.dtemplate;
 import ddmd.dversion;
 import ddmd.expression;
 import ddmd.func;
+import ddmd.globals;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.nspace;
@@ -242,6 +243,14 @@ extern (C++) class Visitor
     void visit(AsmStatement s)
     {
         visit(cast(Statement)s);
+    }
+
+    static if (IN_GCC)
+    {
+        void visit(ExtAsmStatement s)
+        {
+            visit(cast(Statement)s);
+        }
     }
 
     void visit(CompoundAsmStatement s)

@@ -5973,6 +5973,20 @@ final class Parser(AST) : Lexer
                         error("matching `}` expected, not end of file");
                         goto Lerror;
 
+                static if (IN_GCC)
+                {
+                    case TOKlparen:
+                    case TOKstring:
+                        // If the first token is a string or '(', parse as extended asm.
+                        if (!toklist)
+                        {
+                            s = parseExtAsm(stc);
+                            statements.push(s);
+                            continue;
+                        }
+                        goto Ldefault;
+                }
+
                     default:
                     Ldefault:
                         *ptoklist = Token.alloc();
@@ -6017,6 +6031,228 @@ final class Parser(AST) : Lexer
         if (pEndloc)
             *pEndloc = prevloc;
         return s;
+    }
+
+    static if (IN_GCC)
+    {
+        /***********************************
+         * Parse list of extended asm input or output operands.
+         * ExtAsmOperand:
+         *     [Identifier] StringLiteral (Identifier), ...
+         */
+        int parseExtAsmOperands(AST.Expressions* args, AST.Identifiers* names, AST.Expressions* constraints)
+        {
+            int numargs = 0;
+
+            while (1)
+            {
+                AST.Expression arg;
+                Identifier name;
+                AST.Expression constraint;
+
+                switch (token.value)
+                {
+                    case TOKsemicolon:
+                    case TOKcolon:
+                    case TOKeof:
+                        return numargs;
+
+                    case TOKlbracket:
+                        nextToken();
+                        if (token.value == TOKidentifier)
+                        {
+                            name = token.ident;
+                            nextToken();
+                        }
+                        else
+                        {
+                            error("expected identifier after '['");
+                            return numargs;
+                        }
+                        check(TOKrbracket);
+                        // fall through
+
+                    default:
+                        constraint = parsePrimaryExp();
+                        if (constraint.op != TOKstring)
+                        {
+                            error(constraint.loc, "expected constant string constraint for operand, not '%s'", constraint.toChars());
+                            goto Lerror;
+                        }
+                        arg = parseAssignExp();
+
+                        args.push(arg);
+                        names.push(name);
+                        constraints.push(constraint);
+                        numargs++;
+
+                        if (token.value == TOKcomma)
+                            nextToken();
+                        break;
+
+                }
+            }
+        Lerror:
+            while (token.value != TOKrcurly &&
+                   token.value != TOKsemicolon &&
+                   token.value != TOKeof)
+                nextToken();
+
+            return numargs;
+        }
+
+        /***********************************
+         * Parse list of extended asm clobbers.
+         * ExtAsmClobbers:
+         *     StringLiteral, ...
+         */
+        AST.Expressions *parseExtAsmClobbers()
+        {
+            AST.Expressions *clobbers;
+
+            while (1)
+            {
+                AST.Expression clobber;
+
+                switch (token.value)
+                {
+                    case TOKsemicolon:
+                    case TOKcolon:
+                    case TOKeof:
+                        return clobbers;
+
+                    case TOKstring:
+                        clobber = parseAssignExp();
+                        if (!clobbers)
+                            clobbers = new AST.Expressions();
+                        clobbers.push(clobber);
+
+                        if (token.value == TOKcomma)
+                            nextToken();
+                        break;
+
+                    default:
+                        error("expected constant string constraint for clobber name, not '%s'", token.toChars());
+                        goto Lerror;
+                }
+            }
+        Lerror:
+            while (token.value != TOKrcurly &&
+                   token.value != TOKsemicolon &&
+                   token.value != TOKeof)
+                nextToken();
+
+            return clobbers;
+        }
+
+        /***********************************
+         * Parse list of extended asm goto labels.
+         * ExtAsmGotoLabels:
+         *     Identifier, ...
+         */
+        AST.Identifiers *parseExtAsmGotoLabels()
+        {
+            AST.Identifiers *labels;
+
+            while (1)
+            {
+                switch (token.value)
+                {
+                    case TOKsemicolon:
+                    case TOKeof:
+                        return labels;
+
+                    case TOKidentifier:
+                        if (!labels)
+                            labels = new AST.Identifiers();
+                        labels.push(token.ident);
+
+                        if (nextToken() == TOKcomma)
+                            nextToken();
+                        break;
+
+                    default:
+                        error("expected identifier for goto label name, not '%s'", token.toChars());
+                        goto Lerror;
+                }
+            }
+        Lerror:
+            while (token.value != TOKrcurly &&
+                   token.value != TOKsemicolon &&
+                   token.value != TOKeof)
+                nextToken();
+
+            return labels;
+        }
+
+        /***********************************
+         * Parse an extended asm statement.
+         * ExtAsmStatement:
+         *     asm { StringLiterals [ : InputOperands [ : OutputOperands [ : Clobbers [ : GotoLabels ] ] ] ] }
+         */
+
+        AST.Statement parseExtAsm(StorageClass stc)
+        {
+            AST.Expressions *args;
+            AST.Identifiers *names;
+            AST.Expressions *constraints;
+            int outputargs = 0;
+            AST.Expressions *clobbers;
+            AST.Identifiers *labels;
+            Loc loc = token.loc;
+
+            AST.Expression insn = parseExpression();
+            if (token.value == TOKsemicolon)
+                goto Ldone;
+
+            for (int section = 0; section < 4; ++section)
+            {
+                check(TOKcolon);
+
+                final switch (section)
+                {
+                    case 0:
+                        if (!args)
+                        {
+                            args = new AST.Expressions();
+                            constraints = new AST.Expressions();
+                            names = new AST.Identifiers();
+                        }
+                        outputargs = parseExtAsmOperands(args, names, constraints);
+                        break;
+
+                    case 1:
+                        parseExtAsmOperands(args, names, constraints);
+                        break;
+
+                    case 2:
+                        clobbers = parseExtAsmClobbers();
+                        break;
+
+                    case 3:
+                        labels = parseExtAsmGotoLabels();
+                        break;
+                }
+
+                switch (token.value)
+                {
+                    case TOKsemicolon:
+                        goto Ldone;
+
+                    case TOKeof:
+                        error("matching '}' expected, not end of file");
+                        goto Ldone;
+
+                    default:
+                        continue;
+                }
+            }
+        Ldone:
+            check(TOKsemicolon);
+
+            return new AST.ExtAsmStatement(loc, stc, insn, args, names,
+                                           constraints, outputargs, clobbers, labels);
+        }
     }
 
     /*****************************************

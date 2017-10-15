@@ -503,6 +503,19 @@ extern (C++) final class CppMangleVisitor : Visitor
                 td = new TypeDelegate(td);
                 t = t.merge();
             }
+            static if (IN_GCC)
+            {
+                // Could be a va_list, which we mangle as a pointer.
+                if (t.ty == Tsarray && Type.tvalist.ty == Tsarray)
+                {
+                    Type tb = t.toBasetype().mutableOf();
+                    if (tb == Type.tvalist)
+                    {
+                        tb = t.nextOf().pointerTo();
+                        t = tb.castMod(t.mod);
+                    }
+                }
+            }
             if (t.ty == Tsarray)
             {
                 // Mangle static arrays as pointers
