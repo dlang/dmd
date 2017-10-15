@@ -2014,6 +2014,75 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
+     * Rewrite contracts as nested functions, then call them. Doing it as nested
+     * functions means that overriding functions can call them.
+     */
+    final void buildEnsureRequire()
+    {
+        if (!isVirtual())
+            return;
+
+        TypeFunction f = cast(TypeFunction) type;
+
+        if (frequire)
+        {
+            /*   in { ... }
+             * becomes:
+             *   void __require() { ... }
+             *   __require();
+             */
+            Loc loc = frequire.loc;
+            auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
+            tf.isnothrow = f.isnothrow;
+            tf.isnogc = f.isnogc;
+            tf.purity = f.purity;
+            tf.trust = f.trust;
+            auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
+            fd.fbody = frequire;
+            Statement s1 = new ExpStatement(loc, fd);
+            Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+            Statement s2 = new ExpStatement(loc, e);
+            frequire = new CompoundStatement(loc, s1, s2);
+            fdrequire = fd;
+        }
+
+        if (!outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
+            outId = Id.result; // provide a default
+
+        if (fensure)
+        {
+            /*   out (result) { ... }
+             * becomes:
+             *   void __ensure(ref tret result) { ... }
+             *   __ensure(result);
+             */
+            Loc loc = fensure.loc;
+            auto fparams = new Parameters();
+            Parameter p = null;
+            if (outId)
+            {
+                p = new Parameter(STCref | STCconst, f.nextOf(), outId, null);
+                fparams.push(p);
+            }
+            auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
+            tf.isnothrow = f.isnothrow;
+            tf.isnogc = f.isnogc;
+            tf.purity = f.purity;
+            tf.trust = f.trust;
+            auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
+            fd.fbody = fensure;
+            Statement s1 = new ExpStatement(loc, fd);
+            Expression eresult = null;
+            if (outId)
+                eresult = new IdentifierExp(loc, outId);
+            Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+            Statement s2 = new ExpStatement(loc, e);
+            fensure = new CompoundStatement(loc, s1, s2);
+            fdensure = fd;
+        }
+    }
+
+    /****************************************************
      * Merge into this function the 'out' contracts of all it overrides.
      * 'out's are AND'd together, i.e. all of them need to pass.
      */
