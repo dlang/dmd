@@ -10,9 +10,11 @@
 
 module ddmd.initsem;
 
+import core.stdc.stdio;
 import core.checkedint;
 
 import ddmd.aggregate;
+import ddmd.aliasthis;
 import ddmd.arraytypes;
 import ddmd.dcast;
 import ddmd.declaration;
@@ -600,6 +602,11 @@ private extern(C++) final class InferTypeVisitor : Visitor
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
         init.exp = init.exp.semantic(sc);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (init.exp.op == TOKtype)
+            init.exp = resolveAliasThis(sc, init.exp);
+
         init.exp = resolveProperties(sc, init.exp);
         if (init.exp.op == TOKscope)
         {

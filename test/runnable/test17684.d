@@ -74,6 +74,10 @@ bool boolTest(T)()
     assert(t == boolValue);
     assert(boolValue == t);
 
+    t = true;                     // tests inferType
+    auto inferredValue = t;
+    assert(inferredValue == true);
+
     t = true;
     return t;                     // tests ReturnStatement
 }
