@@ -294,19 +294,21 @@ void genEEcode()
 
 /********************************************
  * Gen a save/restore sequence for mask of registers.
+ * Params:
+ *      regm = mask of registers to save
+ *      cdbsave = save code appended here
+ *      cdbrestore = restore code appended here
  * Returns:
  *      amount of stack consumed
  */
 
-unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
+unsigned gensaverestore(regm_t regm,CodeBuilder& cdbsave,CodeBuilder& cdbrestore)
 {
     //printf("gensaverestore2(%s)\n", regm_str(regm));
     regm &= mBP | mES | ALLREGS | XMMREGS | mST0 | mST01;
     if (!regm)
         return 0;
 
-    CodeBuilder cdb1;
-    cdb1.append(*csave);
     unsigned stackused = 0;
 
     code *restore[sizeof(regm) * 8];
@@ -320,18 +322,18 @@ unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
             if (i == ES)
             {
                 stackused += REGSIZE;
-                cdb1.gen1(0x06);                        // PUSH ES
+                cdbsave.gen1(0x06);                     // PUSH ES
                 cs2 = gen1(CNIL, 0x07);                 // POP  ES
             }
             else if (i == ST0 || i == ST01)
             {
                 CodeBuilder cdb;
-                gensaverestore87(1 << i, cdb1, cdb);
+                gensaverestore87(1 << i, cdbsave, cdb);
                 cs2 = cdb.finish();
             }
             else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {   unsigned idx;
-                regsave.save(cdb1, i, &idx);
+                regsave.save(cdbsave, i, &idx);
                 CodeBuilder cdb;
                 regsave.restore(cdb, i, idx);
                 cs2 = cdb.finish();
@@ -339,10 +341,10 @@ unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
             else
             {
                 stackused += REGSIZE;
-                cdb1.gen1(0x50 + (i & 7));              // PUSH i
+                cdbsave.gen1(0x50 + (i & 7));           // PUSH i
                 cs2 = gen1(CNIL, 0x58 + (i & 7));       // POP  i
                 if (i & 8)
-                {   code_orrex(cdb1.last(), REX_B);
+                {   code_orrex(cdbsave.last(), REX_B);
                     code_orrex(cs2, REX_B);
                 }
             }
@@ -353,29 +355,18 @@ unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
         regm >>= 1;
     }
 
-    *csave = cdb1.finish();
-
-    CodeBuilder cdb2;
     while (i)
     {
         code *c = restore[--i];
         if (c)
         {
-            cdb2.append(c);
+            cdbrestore.append(c);
         }
     }
-    cdb2.append(*crestore);
 
-    *crestore = cdb2.finish();
     return stackused;
 }
 
-unsigned gensaverestore(regm_t regm,code **csave,code **crestore)
-{
-    *csave = NULL;
-    *crestore = NULL;
-    return gensaverestore2(regm, csave, crestore);
-}
 
 /****************************************
  * Clean parameters off stack.
@@ -2527,10 +2518,8 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
     getregs(cdb,(~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
     keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
-    code *c = CNIL;
-    code *cpop = CNIL;
-    gensaverestore2(keepmask, &c, &cpop);
-    cdb.append(c);
+    CodeBuilder cdbpop;
+    gensaverestore(keepmask, cdb, cdbpop);
 
     save87regs(cdb,cinfo->push87);
     for (int i = 0; i < cinfo->push87; i++)
@@ -2610,7 +2599,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
     if (I16)
         stackpush -= cinfo->pop;
     regm_t retregs = I16 ? cinfo->retregs16 : cinfo->retregs32;
-    cdb.append(cpop);
+    cdb.append(cdbpop);
     fixresult(cdb,e,retregs,pretregs);
 }
 

@@ -749,14 +749,11 @@ void cgreg_set_priorities(tym_t ty, unsigned char **pseq, unsigned char **pseqms
  */
 static code *callFinallyBlock(block *bf, regm_t retregs)
 {
-    code *cs;
-    code *cr;
+    CodeBuilder cdbs;
+    CodeBuilder cdbr;
     int nalign = 0;
 
-    unsigned npush = gensaverestore(retregs,&cs,&cr);
-
-    CodeBuilder cdbs(cs);
-    CodeBuilder cdbr(cr);
+    unsigned npush = gensaverestore(retregs,cdbs,cdbr);
 
     if (STACKALIGN == 16)
     {   npush += REGSIZE;
@@ -1108,15 +1105,15 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                         if (bt->Bscope_index == 0)
                         {
                             // call __finally
-                            code *cs;
-                            code *cr;
+                            CodeBuilder cdbs;
+                            CodeBuilder cdbr;
 
                             nteh_gensindex(cdb,-1);
-                            gensaverestore(retregs,&cs,&cr);
-                            cdb.append(cs);
+                            gensaverestore(retregs,cdbs,cdbr);
+                            cdb.append(cdbs);
                             cdb.genc(0xE8,0,0,0,FLblock,(targ_size_t)bf->nthSucc(0));
                             regcon.immed.mval = 0;
-                            cdb.append(cr);
+                            cdb.append(cdbr);
                         }
                         else
                         {
