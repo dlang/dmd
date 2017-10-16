@@ -200,7 +200,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 }
                 assert(sc);
                 Initializer iz = i.value[j];
-                iz = iz.semantic(sc, vd.type.addMod(t.mod), needInterpret);
+                iz = iz.initializerSemantic(sc, vd.type.addMod(t.mod), needInterpret);
                 Expression ex = iz.initializerToExpression();
                 if (ex.op == TOKerror)
                 {
@@ -224,7 +224,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             }
             sle.type = t;
             auto ie = new ExpInitializer(i.loc, sle);
-            result = ie.semantic(sc, t, needInterpret);
+            result = ie.initializerSemantic(sc, t, needInterpret);
             return;
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
@@ -239,7 +239,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             fd.endloc = i.loc;
             Expression e = new FuncExp(i.loc, fd);
             auto ie = new ExpInitializer(i.loc, e);
-            result = ie.semantic(sc, t, needInterpret);
+            result = ie.initializerSemantic(sc, t, needInterpret);
             return;
         }
         error(i.loc, "a struct is not a valid initializer for a %s", t.toChars());
@@ -284,7 +284,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     goto Lerr;
                 }
                 auto ei = new ExpInitializer(e.loc, e);
-                result = ei.semantic(sc, t, needInterpret);
+                result = ei.initializerSemantic(sc, t, needInterpret);
                 return;
             }
         case Tpointer:
@@ -321,7 +321,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             ExpInitializer ei = val.isExpInitializer();
             if (ei && !idx)
                 ei.expandTuples = true;
-            val = val.semantic(sc, t.nextOf(), needInterpret);
+            val = val.initializerSemantic(sc, t.nextOf(), needInterpret);
             if (val.isErrorInitializer())
                 errors = true;
             ei = val.isExpInitializer();

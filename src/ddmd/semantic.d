@@ -47,7 +47,7 @@ extern(C++) void semantic(Dsymbol dsym, Scope* sc)
  *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
  *      were encountered
  */
-extern(C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
+extern(C++) Initializer xxsemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
 {
     import ddmd.initsem;
     return initializerSemantic(init, sc, t, needInterpret);

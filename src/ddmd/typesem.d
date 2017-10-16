@@ -947,7 +947,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     {
                         e = inferType(e, fparam.type);
                         Initializer iz = new ExpInitializer(e.loc, e);
-                        iz = iz.semantic(argsc, fparam.type, INITnointerpret);
+                        iz = iz.initializerSemantic(argsc, fparam.type, INITnointerpret);
                         e = iz.initializerToExpression();
                     }
                     if (e.op == TOKfunction) // https://issues.dlang.org/show_bug.cgi?id=4820
