@@ -3478,7 +3478,7 @@ else
         bool catchErrors = false;
         foreach (i, c; *tcs.catches)
         {
-            c.semantic(sc);
+            c.catchSemantic(sc);
             if (c.errors)
             {
                 catchErrors = true;
@@ -3787,7 +3787,7 @@ else
     }
 }
 
-void semanticWrapper(Catch c, Scope* sc)
+void catchSemantic(Catch c, Scope* sc)
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
 

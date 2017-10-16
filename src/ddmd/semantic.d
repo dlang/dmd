@@ -59,11 +59,6 @@ extern(C++) Statement semantic(Statement s, Scope* sc)
     return statementSemantic(s, sc);
 }
 
-void semantic(Catch c, Scope* sc)
-{
-    semanticWrapper(c, sc);
-}
-
 /*************************************
  * Does semantic analysis on initializers and members of aggregates.
  */
