@@ -1235,10 +1235,6 @@ void StructDeclaration::finalizeSize()
     //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
     assert(sizeok != SIZEOKdone);
 
-
-    Module::dprogress++;
-    semanticRun = PASSsemanticdone;
-
     //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
 
     fields.setDim(0);   // workaround
