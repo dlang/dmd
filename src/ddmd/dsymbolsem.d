@@ -58,6 +58,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.sideeffect;
+import ddmd.statementsem;
 import ddmd.staticassert;
 import ddmd.tokens;
 import ddmd.utf;
@@ -1015,7 +1016,7 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STCauto));
 
-                funcdecl.fbody = funcdecl.fbody.semantic(sc2);
+                funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
                     funcdecl.fbody = new CompoundStatement(Loc(), new Statements());
 
@@ -1190,7 +1191,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     if (blockexit & BEfallthru)
                     {
                         Statement s = new ReturnStatement(funcdecl.loc, null);
-                        s = s.semantic(sc2);
+                        s = s.statementSemantic(sc2);
                         funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
                         funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
                     }
@@ -1339,7 +1340,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 // BUG: need to treat parameters as const
                 // BUG: need to disallow returns and throws
                 // BUG: verify that all in and ref parameters are read
-                freq = freq.semantic(sc2);
+                freq = freq.statementSemantic(sc2);
                 freq.blockExit(funcdecl, false);
 
                 sc2 = sc2.pop();
@@ -1363,7 +1364,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 if (funcdecl.fensure && f.next.ty != Tvoid)
                     funcdecl.buildResultVar(scout, f.next);
 
-                fens = fens.semantic(sc2);
+                fens = fens.statementSemantic(sc2);
                 fens.blockExit(funcdecl, false);
 
                 sc2 = sc2.pop();
@@ -1472,7 +1473,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                             Statement s = new DtorExpStatement(Loc(), v.edtor, v);
                             v.storage_class |= STCnodtor;
 
-                            s = s.semantic(sc2);
+                            s = s.statementSemantic(sc2);
 
                             bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAGnothrowInprocess);
                             int blockexit = s.blockExit(funcdecl, isnothrow);
@@ -1519,7 +1520,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                             }
                             sbody = new PeelStatement(sbody); // don't redo semantic()
                             sbody = new SynchronizedStatement(funcdecl.loc, vsync, sbody);
-                            sbody = sbody.semantic(sc2);
+                            sbody = sbody.statementSemantic(sc2);
                         }
                     }
                     else
