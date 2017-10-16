@@ -10,6 +10,9 @@ $(GNAME Declaration):
     $(GLINK2 struct, AggregateDeclaration)
     $(GLINK2 enum, EnumDeclaration)
     $(GLINK2 module, ImportDeclaration)
+    $(GLINK2 version, ConditionalDeclaration)
+    $(GLINK2 version, StaticForeachDeclaration)
+    $(GLINK2 version, StaticAssert)
 )
 
 $(GRAMMAR

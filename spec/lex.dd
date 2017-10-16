@@ -793,6 +793,7 @@ $(GRAMMAR
 $(GNAME FloatLiteral):
     $(GLINK Float)
     $(GLINK Float) $(GLINK Suffix)
+    $(GLINK Integer) $(GLINK FloatSuffix)
     $(GLINK Integer) $(GLINK ImaginarySuffix)
     $(GLINK Integer) $(GLINK FloatSuffix) $(GLINK ImaginarySuffix)
     $(GLINK Integer) $(GLINK RealSuffix) $(GLINK ImaginarySuffix)
@@ -914,9 +915,7 @@ $(GNAME LeadingDecimal):
 ---------
 1f; // OK
 1.f; // forbidden
-1d; // OK
-1.d; // forbidden
-1.; // OK, int
+1.; // OK, double
 ---------
 
 	$(P Complex literals are not tokens, but are assembled from
@@ -938,7 +937,7 @@ $(GNAME Keyword):
 $(MULTICOLS 4,
     $(LINK2 attribute.html#abstract, $(D abstract))
     $(LINK2 declaration.html#alias, $(D alias))
-    $(LINK2 iasm.html#IntegerExpression, $(D align))
+    $(LINK2 attribute.html#align, $(D align))
     $(LINK2 statement.html#AsmStatement, $(D asm))
     $(LINK2 expression.html#AssertExpression, $(D assert))
     $(LINK2 attribute.html#auto, $(D auto))
