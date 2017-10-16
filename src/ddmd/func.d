@@ -42,6 +42,7 @@ import ddmd.root.rootobject;
 import ddmd.semantic;
 import ddmd.statement_rewrite_walker;
 import ddmd.statement;
+import ddmd.statementsem;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -130,7 +131,7 @@ public:
             auto catches = new Catches();
             auto ctch = new Catch(Loc(), getThrowable(), id, handler);
             ctch.internalCatch = true;
-            ctch.semantic(sc); // Run semantic to resolve identifier '__o'
+            ctch.catchSemantic(sc); // Run semantic to resolve identifier '__o'
             catches.push(ctch);
 
             Statement s2 = new TryCatchStatement(Loc(), s._body, catches);
