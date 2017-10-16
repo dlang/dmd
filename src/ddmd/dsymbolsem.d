@@ -249,7 +249,7 @@ extern(C++) final class Semantic2Visitor : Visitor
             }
             // https://issues.dlang.org/show_bug.cgi?id=14166
             // Don't run CTFE for the temporary variables inside typeof
-            vd._init = vd._init.semantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+            vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             vd.inuse--;
         }
         if (vd._init && vd.storage_class & STCmanifest)
@@ -2437,7 +2437,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
-                            dsym._init = dsym._init.semantic(sc, dsym.type, INITnointerpret);
+                            dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITnointerpret);
                             e = dsym._init.initializerToExpression();
                             if (!e)
                             {
@@ -2503,7 +2503,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=14166
                     // Don't run CTFE for the temporary variables inside typeof
-                    dsym._init = dsym._init.semantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                 }
             }
             else if (parent.isAggregateDeclaration())
@@ -2565,7 +2565,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         }
                         ei.exp = exp;
                     }
-                    dsym._init = dsym._init.semantic(sc, dsym.type, INITinterpret);
+                    dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
                     dsym.inuse--;
                     if (global.errors > errors)
                     {

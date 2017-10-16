@@ -1274,7 +1274,7 @@ extern (C++) class VarDeclaration : Declaration
         if (_scope)
         {
             inuse++;
-            _init = _init.semantic(_scope, type, INITinterpret);
+            _init = _init.initializerSemantic(_scope, type, INITinterpret);
             _scope = null;
             inuse--;
         }
