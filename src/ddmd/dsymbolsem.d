@@ -961,6 +961,10 @@ extern(C++) final class Semantic3Visitor : Visitor
                     fpostinv = new ExpStatement(Loc(), e);
             }
 
+            // Pre/Postcondition contract
+            if (!funcdecl.fbody)
+                funcdecl.buildEnsureRequire();
+
             Scope* scout = null;
             if (needEnsure || funcdecl.addPostInvariant())
             {
@@ -1142,6 +1146,22 @@ extern(C++) final class Semantic3Visitor : Visitor
                     //printf("callSuper = x%x\n", sc2.callSuper);
                 }
 
+                /* https://issues.dlang.org/show_bug.cgi?id=17502
+                 * Wait until after the return type has been inferred before
+                 * generating the contracts for this function, and merging contracts
+                 * from overrides.
+                 *
+                 * https://issues.dlang.org/show_bug.cgi?id=17893
+                 * However should take care to generate this before inferered
+                 * function attributes are applied, such as 'nothrow'.
+                 *
+                 * This was originally at the end of the first semantic pass, but
+                 * required a fix-up to be done here for the '__result' variable
+                 * type of __ensure() inside auto functions, but this didn't work
+                 * if the out parameter was implicit.
+                 */
+                funcdecl.buildEnsureRequire();
+
                 int blockexit = BEnone;
                 if (!funcdecl.fbody.isErrorStatement())
                 {
@@ -1293,80 +1313,6 @@ extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 sc2 = sc2.pop();
-            }
-
-            /* https://issues.dlang.org/show_bug.cgi?id=17502
-             * Wait until after the return type has been inferred before
-             * generating the contracts for this function, and merging contracts
-             * from overrides.
-             *
-             * This was originally at the end of the first semantic pass, but
-             * required a fix-up to be done here for the '__result' variable
-             * type of __ensure() inside auto functions, but this didn't work
-             * if the out parameter was implicit.
-             */
-            if (funcdecl.isVirtual())
-            {
-                /* Rewrite contracts as nested functions, then call them.
-                 * Doing it as nested functions means that overriding functions
-                 * can call them.
-                 */
-                if (funcdecl.frequire)
-                {
-                    /*   in { ... }
-                     * becomes:
-                     *   void __require() { ... }
-                     *   __require();
-                     */
-                    Loc loc = funcdecl.frequire.loc;
-                    auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
-                    tf.isnothrow = f.isnothrow;
-                    tf.isnogc = f.isnogc;
-                    tf.purity = f.purity;
-                    tf.trust = f.trust;
-                    auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
-                    fd.fbody = funcdecl.frequire;
-                    Statement s1 = new ExpStatement(loc, fd);
-                    Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
-                    Statement s2 = new ExpStatement(loc, e);
-                    funcdecl.frequire = new CompoundStatement(loc, s1, s2);
-                    funcdecl.fdrequire = fd;
-                }
-
-                if (!funcdecl.outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
-                    funcdecl.outId = Id.result; // provide a default
-
-                if (funcdecl.fensure)
-                {
-                    /*   out (result) { ... }
-                     * becomes:
-                     *   void __ensure(ref tret result) { ... }
-                     *   __ensure(result);
-                     */
-                    Loc loc = funcdecl.fensure.loc;
-                    auto fparams = new Parameters();
-                    Parameter p = null;
-                    if (funcdecl.outId)
-                    {
-                        p = new Parameter(STCref | STCconst, f.nextOf(), funcdecl.outId, null);
-                        fparams.push(p);
-                    }
-                    auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
-                    tf.isnothrow = f.isnothrow;
-                    tf.isnogc = f.isnogc;
-                    tf.purity = f.purity;
-                    tf.trust = f.trust;
-                    auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
-                    fd.fbody = funcdecl.fensure;
-                    Statement s1 = new ExpStatement(loc, fd);
-                    Expression eresult = null;
-                    if (funcdecl.outId)
-                        eresult = new IdentifierExp(loc, funcdecl.outId);
-                    Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
-                    Statement s2 = new ExpStatement(loc, e);
-                    funcdecl.fensure = new CompoundStatement(loc, s1, s2);
-                    funcdecl.fdensure = fd;
-                }
             }
 
             funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
@@ -2889,6 +2835,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!ad)
         {
             error(scd.loc, "%s can only be a part of an aggregate, not %s `%s`", scd.kind(), p.kind(), p.toChars());
+            scd.errors = true;
             return;
         }
 
