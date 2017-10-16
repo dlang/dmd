@@ -2443,6 +2443,9 @@ public:
             if (rs->exp->op == TOKcall)
                 rs->exp = valueNoDtor(rs->exp);
 
+            if (e0)
+                e0 = e0->optimize(WANTvalue);
+
             /* Void-return function can have void typed expression
              * on return statement.
              */

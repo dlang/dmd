@@ -458,8 +458,13 @@ Lfail:
     // There's unresolvable forward reference.
     if (type != Type::terror)
         error(loc, "no size because of forward reference");
-    type = Type::terror;
-    errors = true;
+    // Don't cache errors from speculative semantic, might be resolvable later.
+    // https://issues.dlang.org/show_bug.cgi?id=16574
+    if (!global.gag)
+    {
+        type = Type::terror;
+        errors = true;
+    }
     return false;
 }
 
@@ -1151,15 +1156,6 @@ void StructDeclaration::semantic(Scope *sc)
     xcmp = buildXopCmp(this, sc2);
     xhash = buildXtoHash(this, sc2);
 
-    /* Even if the struct is merely imported and its semantic3 is not run,
-     * the TypeInfo object would be speculatively stored in each object
-     * files. To set correct function pointer, run semantic3 for xeq and xcmp.
-     */
-    //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
-    //    Module::addDeferredSemantic3(this);
-    /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
-     * See semanticTypeInfo().
-     */
     inv = buildInv(this, sc2);
 
     Module::dprogress++;

@@ -41,10 +41,10 @@ ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
-ClassDeclaration *ClassDeclaration::cpp_type_info_ptr;
+ClassDeclaration *ClassDeclaration::cpp_type_info_ptr;   // Object.__cpp_type_info_ptr
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
-    : AggregateDeclaration(loc, id)
+    : AggregateDeclaration(loc, id ? id : Identifier::generateId("__anonclass"))
 {
     static const char msg[] = "only object.d can define this reserved class name";
 
@@ -343,16 +343,9 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (!parent)
     {
-        assert(sc->parent && (sc->func || !ident));
+        assert(sc->parent);
         parent = sc->parent;
-
-        if (!ident)         // if anonymous class
-        {
-            const char *id = "__anonclass";
-            ident = Identifier::generateId(id);
-        }
     }
-    assert(parent && !isAnonymous());
 
     if (this->errors)
         type = Type::terror;
@@ -805,11 +798,14 @@ Lancestorsdone:
             tf->isnothrow = btf->isnothrow;
             tf->isnogc = btf->isnogc;
             tf->trust = btf->trust;
+
             CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
+
             members->push(ctor);
             ctor->addMember(sc, this);
             ctor->semantic(sc2);
+
             this->ctor = ctor;
             defaultCtor = ctor;
         }
@@ -835,6 +831,17 @@ Lancestorsdone:
     //members.print();
 
     sc2->pop();
+
+    if (type->ty != Tclass || ((TypeClass *)type)->sym != this)
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=17492
+        ClassDeclaration *cd = ((TypeClass *)type)->sym;
+#if 0
+        printf("this = %p %s\n", this, this->toPrettyChars());
+        printf("type = %d sym = %p, %s\n", type->ty, cd, cd->toPrettyChars());
+#endif
+        error("already exists at %s. Perhaps in another function with the same name?", cd->loc.toChars());
+    }
 
     if (global.errors != errors)
     {
@@ -865,16 +872,6 @@ Lancestorsdone:
         deferred->semantic2(sc);
         deferred->semantic3(sc);
     }
-
-#if 0
-    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
-    {
-        printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
-      }
-#endif
-    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
-
     //printf("-ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 }
 

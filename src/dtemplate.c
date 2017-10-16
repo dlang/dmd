@@ -5424,7 +5424,6 @@ bool TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
         if (e->op == TOKint64 || e->op == TOKfloat64 ||
             e->op == TOKcomplex80 || e->op == TOKnull || e->op == TOKstring)
             specValue = e;
-        //e->toInteger();
     }
 
     if (defaultValue)
@@ -5437,7 +5436,6 @@ bool TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
         e = e->ctfeInterpret();
         if (e->op == TOKint64)
             defaultValue = e;
-        //e->toInteger();
     }
 #endif
     return !isError(valType);
@@ -6284,7 +6282,7 @@ Lerror:
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if (sc->func && !tinst)
+    if ((sc->func || (sc->flags & SCOPEfullinst)) && !tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of
@@ -7511,6 +7509,8 @@ Dsymbols *TemplateInstance::appendToModuleMember()
     Dsymbols *a = mi->members;
     a->push(this);
     memberOf = mi;
+    if (mi->semanticRun >= PASSsemantic2done && mi->isRoot())
+        Module::addDeferredSemantic2(this);
     if (mi->semanticRun >= PASSsemantic3done && mi->isRoot())
         Module::addDeferredSemantic3(this);
     return a;

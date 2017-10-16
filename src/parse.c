@@ -2236,7 +2236,7 @@ Dsymbol *Parser::parseAggregate()
         case TOKinterface:
         {
             if (!id)
-                error("anonymous classes not allowed");
+                error(loc, "anonymous classes not allowed");
 
             // Collect base class(es)
             BaseClasses *baseclasses = NULL;
@@ -2302,7 +2302,8 @@ Dsymbol *Parser::parseAggregate()
         nextToken();
         Dsymbols *decl = parseDeclDefs(0);
         if (token.value != TOKrcurly)
-            error("} expected following members in %s declaration at %s", Token::toChars(tok), loc.toChars());
+            error("} expected following members in %s declaration at %s",
+                Token::toChars(tok), loc.toChars());
         nextToken();
         if (anon)
         {

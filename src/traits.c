@@ -1103,7 +1103,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
             Scope *sc2 = sc->push();
             sc2->tinst = NULL;
             sc2->minst = NULL;
-            sc2->flags = (sc->flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile;
+            sc2->flags = (sc->flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile | SCOPEfullinst;
             bool err = false;
 
             RootObject *o = (*e->args)[i];

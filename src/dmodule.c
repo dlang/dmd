@@ -888,6 +888,8 @@ void Module::semantic3(Scope*)
         Dsymbol *s = (*members)[i];
         //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
         s->semantic3(sc);
+
+        runDeferredSemantic2();
     }
 
     if (userAttribDecl)
@@ -1078,6 +1080,7 @@ void Module::runDeferredSemantic2()
         if (global.errors)
             break;
     }
+    a->setDim(0);
 }
 
 void Module::runDeferredSemantic3()
@@ -1095,6 +1098,7 @@ void Module::runDeferredSemantic3()
         if (global.errors)
             break;
     }
+    a->setDim(0);
 }
 
 /************************************

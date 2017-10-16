@@ -1629,7 +1629,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             }
 
         Lok:
-            result = new CastExp(e->loc, e, tob);
+            result = new CastExp(e->loc, e, t);
             result->type = t;       // Don't call semantic()
             //printf("Returning: %s\n", result->toChars());
         }
@@ -2727,6 +2727,15 @@ bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2)
     if (!t2) printf("\te2 = '%s'\n", e2->toChars());
 #endif
     assert(t2);
+
+    if (t1->mod != t2->mod &&
+        t1->ty == Tenum && t2->ty == Tenum &&
+        ((TypeEnum *)t1)->sym == ((TypeEnum *)t2)->sym)
+    {
+        unsigned char mod = MODmerge(t1->mod, t2->mod);
+        t1 = t1->castMod(mod);
+        t2 = t2->castMod(mod);
+    }
 
 Lagain:
     t1b = t1->toBasetype();
