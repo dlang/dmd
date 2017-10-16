@@ -133,7 +133,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         if (!a)
             return;
         Statement s = new CompoundStatement(cs.loc, a);
-        result = s.semantic(sc);
+        result = s.statementSemantic(sc);
     }
 
     override void visit(CompoundStatement cs)
@@ -160,7 +160,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     cs.statements.insert(i, flt);
                     continue;
                 }
-                s = s.semantic(sc);
+                s = s.statementSemantic(sc);
                 (*cs.statements)[i] = s;
                 if (s)
                 {
@@ -171,12 +171,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     (*cs.statements)[i] = s.scopeCode(sc, &sentry, &sexception, &sfinally);
                     if (sentry)
                     {
-                        sentry = sentry.semantic(sc);
+                        sentry = sentry.statementSemantic(sc);
                         cs.statements.insert(i, sentry);
                         i++;
                     }
                     if (sexception)
-                        sexception = sexception.semantic(sc);
+                        sexception = sexception.statementSemantic(sc);
                     if (sexception)
                     {
                         if (i + 1 == cs.statements.dim && !sfinally)
@@ -218,7 +218,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             s = new TryCatchStatement(Loc(), _body, catches);
                             if (sfinally)
                                 s = new TryFinallyStatement(Loc(), s, sfinally);
-                            s = s.semantic(sc);
+                            s = s.statementSemantic(sc);
 
                             cs.statements.setDim(i + 1);
                             cs.statements.push(s);
@@ -245,7 +245,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             }
                             Statement _body = new CompoundStatement(Loc(), a);
                             s = new TryFinallyStatement(Loc(), _body, sfinally);
-                            s = s.semantic(sc);
+                            s = s.statementSemantic(sc);
                             cs.statements.setDim(i + 1);
                             cs.statements.push(s);
                             break;
@@ -311,7 +311,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (s)
             {
                 //printf("[%d]: %s\n", i, s.toChars());
-                s = s.semantic(scd);
+                s = s.statementSemantic(scd);
                 if (s && !serror)
                     serror = s.isErrorStatement();
             }
@@ -337,7 +337,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 ss.statement = new CompoundStatement(ss.loc, a);
             }
 
-            ss.statement = ss.statement.semantic(sc);
+            ss.statement = ss.statement.statementSemantic(sc);
             if (ss.statement)
             {
                 if (ss.statement.isErrorStatement())
@@ -356,7 +356,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (sfinally)
                 {
                     //printf("adding sfinally\n");
-                    sfinally = sfinally.semantic(sc);
+                    sfinally = sfinally.statementSemantic(sc);
                     ss.statement = new CompoundStatement(ss.loc, ss.statement, sfinally);
                 }
             }
@@ -376,7 +376,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sc = sc.push(ss.sym);
         sc.sbreak = ss;
         sc.scontinue = ss;
-        ss.statement = ss.statement.semantic(sc);
+        ss.statement = ss.statement.statementSemantic(sc);
         sc = sc.pop();
         result = ss.statement ? ss : null;
     }
@@ -386,7 +386,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         /* Rewrite as a for(;condition;) loop
          */
         Statement s = new ForStatement(ws.loc, null, ws.condition, null, ws._body, ws.endloc);
-        s = s.semantic(sc);
+        s = s.statementSemantic(sc);
         result = s;
     }
 
@@ -448,7 +448,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             ainit.push(fs);
             Statement s = new CompoundStatement(fs.loc, ainit);
             s = new ScopeStatement(fs.loc, s, fs.endloc);
-            s = s.semantic(sc);
+            s = s.statementSemantic(sc);
             if (!s.isErrorStatement())
             {
                 if (LabelStatement ls = checkLabeledLoop(sc, fs))
@@ -1030,7 +1030,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             makeTupleForeach!(false,false)(fs);
             if (vinit)
                 result = new CompoundStatement(loc, new ExpStatement(loc, vinit), result);
-            result = result.semantic(sc);
+            result = result.statementSemantic(sc);
             return;
         }
 
@@ -1273,7 +1273,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (auto ls = checkLabeledLoop(sc, fs))   // https://issues.dlang.org/show_bug.cgi?id=15450
                                                           // don't use sc2
                     ls.gotoTarget = s;
-                s = s.semantic(sc2);
+                s = s.statementSemantic(sc2);
                 break;
             }
         case Taarray:
@@ -1461,7 +1461,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     printf("increment: %s\n", increment.toChars());
                     printf("body: %s\n", forbody.toChars());
                 }
-                s = s.semantic(sc2);
+                s = s.statementSemantic(sc2);
                 break;
 
             Lrangeerr:
@@ -1810,7 +1810,7 @@ else
                     s = new CompoundStatement(loc, a);
                     s = new SwitchStatement(loc, e, s, false);
                 }
-                s = s.semantic(sc2);
+                s = s.statementSemantic(sc2);
                 break;
             }
         case Terror:
@@ -2006,7 +2006,7 @@ else
         auto s = new ForStatement(loc, forinit, cond, increment, fs._body, fs.endloc);
         if (LabelStatement ls = checkLabeledLoop(sc, fs))
             ls.gotoTarget = s;
-        result = s.semantic(sc);
+        result = s.statementSemantic(sc);
     }
 
     override void visit(IfStatement ifs)
@@ -2106,17 +2106,17 @@ else
             {
                 sc = sc.push();
                 sc.flags |= SCOPEdebug;
-                cs.ifbody = cs.ifbody.semantic(sc);
+                cs.ifbody = cs.ifbody.statementSemantic(sc);
                 sc.pop();
             }
             else
-                cs.ifbody = cs.ifbody.semantic(sc);
+                cs.ifbody = cs.ifbody.statementSemantic(sc);
             result = cs.ifbody;
         }
         else
         {
             if (cs.elsebody)
-                cs.elsebody = cs.elsebody.semantic(sc);
+                cs.elsebody = cs.elsebody.statementSemantic(sc);
             result = cs.elsebody;
         }
     }
@@ -2208,7 +2208,7 @@ else
                 }
                 if (ps._body)
                 {
-                    ps._body = ps._body.semantic(sc);
+                    ps._body = ps._body.statementSemantic(sc);
                     if (ps._body.isErrorStatement())
                     {
                         result = ps._body;
@@ -2260,7 +2260,7 @@ else
 
         if (ps._body)
         {
-            ps._body = ps._body.semantic(sc);
+            ps._body = ps._body.statementSemantic(sc);
         }
         result = ps._body;
     }
@@ -2342,7 +2342,7 @@ else
 
         ss.cases = new CaseStatements();
         sc.noctor++; // BUG: should use Scope::mergeCallSuper() for each case instead
-        ss._body = ss._body.semantic(sc);
+        ss._body = ss._body.statementSemantic(sc);
         sc.noctor--;
 
         if (conditionError || ss._body.isErrorStatement())
@@ -2568,7 +2568,7 @@ else
             errors = true;
         }
 
-        cs.statement = cs.statement.semantic(sc);
+        cs.statement = cs.statement.statementSemantic(sc);
         if (cs.statement.isErrorStatement())
         {
             result = cs.statement;
@@ -2615,7 +2615,7 @@ else
         if (crs.first.op == TOKerror || crs.last.op == TOKerror || errors)
         {
             if (crs.statement)
-                crs.statement.semantic(sc);
+                crs.statement.statementSemantic(sc);
             return setError();
         }
 
@@ -2659,7 +2659,7 @@ else
             statements.push(cs);
         }
         Statement s = new CompoundStatement(crs.loc, statements);
-        s = s.semantic(sc);
+        s = s.statementSemantic(sc);
         result = s;
     }
 
@@ -2693,7 +2693,7 @@ else
             errors = true;
         }
 
-        ds.statement = ds.statement.semantic(sc);
+        ds.statement = ds.statement.statementSemantic(sc);
         if (errors || ds.statement.isErrorStatement())
             return setError();
 
@@ -3246,7 +3246,7 @@ else
             if (ss.exp.op == TOKerror)
             {
                 if (ss._body)
-                    ss._body = ss._body.semantic(sc);
+                    ss._body = ss._body.statementSemantic(sc);
                 return setError();
             }
 
@@ -3303,7 +3303,7 @@ else
                 cs.push(s);
 
                 s = new CompoundStatement(ss.loc, cs);
-                result = s.semantic(sc);
+                result = s.statementSemantic(sc);
             }
         }
         else
@@ -3348,7 +3348,7 @@ else
             cs.push(s);
 
             s = new CompoundStatement(ss.loc, cs);
-            result = s.semantic(sc);
+            result = s.statementSemantic(sc);
 
             // set the explicit __critsec alignment after semantic()
             tmp.alignment = Target.ptrsize;
@@ -3427,7 +3427,7 @@ else
                     auto es = new ExpStatement(ws.loc, tmp);
                     ws.exp = new VarExp(ws.loc, tmp);
                     Statement ss = new ScopeStatement(ws.loc, new CompoundStatement(ws.loc, es, ws), ws.endloc);
-                    result = ss.semantic(sc);
+                    result = ss.statementSemantic(sc);
                     return;
                 }
                 Expression e = ws.exp.addressOf();
@@ -3452,7 +3452,7 @@ else
             sym._scope = sc;
             sc = sc.push(sym);
             sc.insert(sym);
-            ws._body = ws._body.semantic(sc);
+            ws._body = ws._body.statementSemantic(sc);
             sc.pop();
             if (ws._body && ws._body.isErrorStatement())
             {
@@ -3550,7 +3550,7 @@ else
     override void visit(TryFinallyStatement tfs)
     {
         //printf("TryFinallyStatement::semantic()\n");
-        tfs._body = tfs._body.semantic(sc);
+        tfs._body = tfs._body.statementSemantic(sc);
 
         sc = sc.push();
         sc.tf = tfs;
@@ -3651,7 +3651,7 @@ else
         {
             sc = sc.push();
             sc.flags |= SCOPEdebug;
-            ds.statement = ds.statement.semantic(sc);
+            ds.statement = ds.statement.statementSemantic(sc);
             sc.pop();
         }
         result = ds.statement;
@@ -3725,7 +3725,7 @@ else
         }
         sc.slabel = ls;
         if (ls.statement)
-            ls.statement = ls.statement.semantic(sc);
+            ls.statement = ls.statement.statementSemantic(sc);
         sc.pop();
 
         result = ls;
@@ -3740,7 +3740,7 @@ else
     {
         foreach (ref s; *cas.statements)
         {
-            s = s ? s.semantic(sc) : null;
+            s = s ? s.statementSemantic(sc) : null;
         }
 
         assert(sc.func);
@@ -3867,7 +3867,7 @@ void semanticWrapper(Catch c, Scope* sc)
             c.var.semantic(sc);
             sc.insert(c.var);
         }
-        c.handler = c.handler.semantic(sc);
+        c.handler = c.handler.statementSemantic(sc);
         if (c.handler && c.handler.isErrorStatement())
             c.errors = true;
     }
@@ -3882,7 +3882,7 @@ Statement semanticNoScope(Statement s, Scope* sc)
     {
         s = new CompoundStatement(s.loc, s); // so scopeCode() gets called
     }
-    s = s.semantic(sc);
+    s = s.statementSemantic(sc);
     return s;
 }
 

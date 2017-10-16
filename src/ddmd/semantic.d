@@ -54,7 +54,7 @@ extern(C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterp
 }
 
 // Performs semantic analysis in Statement AST nodes
-extern(C++) Statement semantic(Statement s, Scope* sc)
+extern(C++) Statement xxsemantic(Statement s, Scope* sc)
 {
     return statementSemantic(s, sc);
 }
