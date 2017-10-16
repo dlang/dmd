@@ -455,20 +455,26 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
             }
 
             unsetDSOForHandle(pdso, pdso._handle);
-            pdso._handle = null;
         }
         else
         {
             // static DSOs are unloaded in reverse order
-            assert(pdso._tlsSize == _tlsRanges.back.length);
-            _tlsRanges.popBack();
             assert(pdso == _loadedDSOs.back);
             _loadedDSOs.popBack();
         }
 
         freeDSO(pdso);
 
-        if (_loadedDSOs.empty) finiLocks(); // last DSO
+        // last DSO being unloaded => shutdown registry
+        if (_loadedDSOs.empty)
+        {
+            version (Shared)
+            {
+                assert(_handleToDSO.empty);
+                _handleToDSO.reset();
+            }
+            finiLocks();
+        }
     }
 }
 
@@ -601,7 +607,12 @@ version (Shared) void runFinalizers(DSO* pdso)
 void freeDSO(DSO* pdso) nothrow @nogc
 {
     pdso._gcRanges.reset();
-    version (Shared) pdso._codeSegments.reset();
+    version (Shared)
+    {
+        pdso._codeSegments.reset();
+        pdso._deps.reset();
+        pdso._handle = null;
+    }
     .free(pdso);
 }
 
@@ -980,7 +991,7 @@ else version(PPC)
     enum TLS_DTV_OFFSET = 0x8000;
 else version(PPC64)
     enum TLS_DTV_OFFSET = 0x8000;
-else version(MIPS)
+else version(MIPS32)
     enum TLS_DTV_OFFSET = 0x8000;
 else version(MIPS64)
     enum TLS_DTV_OFFSET = 0x8000;

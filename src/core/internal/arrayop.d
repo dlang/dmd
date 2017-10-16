@@ -1,5 +1,5 @@
 module core.internal.arrayop;
-import core.internal.traits : Filter, Unqual;
+import core.internal.traits : Filter, staticMap, TypeTuple, Unqual;
 
 version (GNU) version = GNU_OR_LDC;
 version (LDC) version = GNU_OR_LDC;
@@ -9,8 +9,8 @@ version (LDC) version = GNU_OR_LDC;
  * types and operations are passed as template arguments in Reverse Polish
  * Notation (RPN).
 
- * Operands can be slices or scalar types. The unqualified element types of all
- * slices must be `T`, scalar types must be implicitly convertible to `T`.
+ * Operands can be slices or scalar types. The element types of all
+ * slices and all scalar types must be implicitly convertible to `T`.
  *
  * Operations are encoded as strings, e.g. `"+"`, `"%"`, `"*="`. Unary
  * operations are prefixed with "u", e.g. `"u-"`, `"u~"`. Only the last
@@ -27,7 +27,8 @@ version (LDC) version = GNU_OR_LDC;
  */
 T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nogc pure nothrow
 {
-    enum check = opsSupported!(true, T, Filter!(not!isType, Args)); // must support all scalar ops
+    alias scalarizedExp = staticMap!(toElementType, Args);
+    alias check = typeCheck!(true, T, scalarizedExp); // must support all scalar ops
 
     size_t pos;
     static if (vectorizeable!(T[], Args))
@@ -117,35 +118,86 @@ version (DigitalMars)
 
 // mixin gen
 
-// Check whether operations `ops` are supported for type `T`. Fails with a human-friendly static assert message, if `fail` is true.
-template opsSupported(bool fail, T, ops...) if (ops.length > 1)
-{
-    enum opsSupported = opsSupported!(fail, T, ops[0 .. $ / 2])
-            && opsSupported!(fail, T, ops[$ / 2 .. $]);
-}
+/**
+Check whether operations on operand types are supported.  This
+template recursively reduces the expression tree and determines
+intermediate types.
+Type checking is done here rather than in the compiler to provide more
+detailed error messages.
 
-template opsSupported(bool fail, T, string op)
+Params:
+    fail = whether to fail (static assert) with a human-friendly error message
+       T = type of result
+    Args = operand types and operations in RPN
+Returns:
+    The resulting type of the expression
+See_Also:
+    $(LREF arrayOp)
+*/
+template typeCheck(bool fail, T, Args...)
 {
-    static if (isUnaryOp(op))
+    enum idx = staticIndexOf!(not!isType, Args);
+    static if (isUnaryOp(Args[idx]))
     {
-        enum opsSupported = is(typeof((T a) => mixin(op[1 .. $] ~ " a")));
-        static assert(!fail || opsSupported,
-                "Unary op `" ~ op[1 .. $] ~ "` not supported for element type " ~ T.stringof ~ ".");
+        alias UT = Args[idx - 1];
+        enum op = Args[idx][1 .. $];
+        static if (is(typeof((UT a) => mixin(op ~ " a")) RT == return))
+            alias typeCheck = typeCheck!(fail, T, Args[0 .. idx - 1], RT, Args[idx + 1 .. $]);
+        else static if (fail)
+            static assert(0, "Unary `" ~ op ~ "` not supported for type `" ~ UT.stringof ~ "`.");
+    }
+    else static if (isBinaryOp(Args[idx]))
+    {
+        alias LHT = Args[idx - 2];
+        alias RHT = Args[idx - 1];
+        enum op = Args[idx];
+        static if (is(typeof((LHT a, RHT b) => mixin("a " ~ op ~ " b")) RT == return))
+            alias typeCheck = typeCheck!(fail, T, Args[0 .. idx - 2], RT, Args[idx + 1 .. $]);
+        else static if (fail)
+            static assert(0,
+                    "Binary `" ~ op ~ "` not supported for types `"
+                    ~ LHT.stringof ~ "` and `" ~ RHT.stringof ~ "`.");
+    }
+    else static if (Args[idx] == "=" || isBinaryAssignOp(Args[idx]))
+    {
+        alias RHT = Args[idx - 1];
+        enum op = Args[idx];
+        static if (is(T == __vector(ET[N]), ET, size_t N))
+        {
+            // no `cast(T)` before assignment for vectors
+            static if (is(typeof((T res, RHT b) => mixin("res " ~ op ~ " b")) RT == return)
+                    && // workaround https://issues.dlang.org/show_bug.cgi?id=17758
+                    (op != "=" || is(Unqual!T == Unqual!RHT)))
+                alias typeCheck = typeCheck!(fail, T, Args[0 .. idx - 1], RT, Args[idx + 1 .. $]);
+            else static if (fail)
+                static assert(0,
+                        "Binary op `" ~ op ~ "` not supported for types `"
+                        ~ T.stringof ~ "` and `" ~ RHT.stringof ~ "`.");
+        }
+        else
+        {
+            static if (is(typeof((RHT b) => mixin("cast(T) b"))))
+            {
+                static if (is(typeof((T res, T b) => mixin("res " ~ op ~ " b")) RT == return))
+                    alias typeCheck = typeCheck!(fail, T, Args[0 .. idx - 1], RT, Args[idx + 1 .. $]);
+                else static if (fail)
+                    static assert(0,
+                            "Binary op `" ~ op ~ "` not supported for types `"
+                            ~ T.stringof ~ "` and `" ~ T.stringof ~ "`.");
+            }
+            else static if (fail)
+                static assert(0,
+                        "`cast(" ~ T.stringof ~ ")` not supported for type `" ~ RHT.stringof ~ "`.");
+        }
     }
     else
-    {
-        enum opsSupported = is(typeof((T a, T b) => mixin("a " ~ op ~ " b")));
-        static assert(!fail || opsSupported,
-                "Binary op `" ~ op ~ "` not supported for element type " ~ T.stringof ~ ".");
-    }
+        static assert(0);
 }
-
-// check whether slices have the unqualified element type `E` and scalars are implicitly convertible to `E`
-// i.e. filter out things like float[] = float[] / size_t[]
-enum compatibleVecTypes(E, T : T[]) = is(Unqual!T == Unqual!E); // array elem types must be same (maybe add cvtpi2ps)
-enum compatibleVecTypes(E, T) = is(T : E); // scalar must be convertible to target elem type
-enum compatibleVecTypes(E, Types...) = compatibleVecTypes!(E, Types[0 .. $ / 2])
-        && compatibleVecTypes!(E, Types[$ / 2 .. $]);
+/// ditto
+template typeCheck(bool fail, T, ResultType)
+{
+    alias typeCheck = ResultType;
+}
 
 version (GNU_OR_LDC)
 {
@@ -158,16 +210,23 @@ else
     template vectorizeable(E : E[], Args...)
     {
         static if (is(vec!E))
-            enum vectorizeable = opsSupported!(false, vec!E, Filter!(not!isType, Args))
-                    && compatibleVecTypes!(E, Filter!(isType, Args));
+        {
+            // type check with vector types
+            enum vectorizeable = is(typeCheck!(false, vec!E, staticMap!(toVecType, Args)));
+        }
         else
             enum vectorizeable = false;
     }
 
     version (X86_64) unittest
     {
+        pragma(msg, vectorizeable!(double[], const(double)[], double[], "+", "="));
         static assert(vectorizeable!(double[], const(double)[], double[], "+", "="));
         static assert(!vectorizeable!(double[], const(ulong)[], double[], "+", "="));
+        // Vector type are (atm.) not implicitly convertible and would require
+        // lots of SIMD intrinsics. Therefor leave mixed type array ops to
+        // GDC/LDC's auto-vectorizers.
+        static assert(!vectorizeable!(double[], const(uint)[], uint, "+", "="));
     }
 }
 
@@ -224,7 +283,7 @@ string scalarExp(Args...)()
         }
         else static if (isBinaryOp(arg))
         {
-            stack[$ - 2] = "(cast(T)(" ~ stack[$ - 2] ~ " " ~ arg ~ " " ~ stack[$ - 1] ~ "))";
+            stack[$ - 2] = "(" ~ stack[$ - 2] ~ " " ~ arg ~ " " ~ stack[$ - 1] ~ ")";
             stack.length -= 1;
         }
         else
@@ -238,16 +297,17 @@ string scalarExp(Args...)()
 // `args` to contain operand values.
 string initScalarVecs(Args...)()
 {
-    size_t scalarsIdx;
+    size_t scalarsIdx, argsIdx;
     string res;
-    foreach (aidx, arg; Args)
+    foreach (arg; Args)
     {
         static if (is(arg == T[], T))
         {
+            ++argsIdx;
         }
         else static if (is(arg))
             res ~= "immutable vec scalar" ~ scalarsIdx++.toString ~ " = args["
-                ~ aidx.toString ~ "];\n";
+                ~ argsIdx++.toString ~ "];\n";
     }
     return res;
 }
@@ -259,7 +319,7 @@ string vectorExp(Args...)()
 {
     size_t scalarsIdx, argsIdx;
     string[] stack;
-    foreach (i, arg; Args)
+    foreach (arg; Args)
     {
         static if (is(arg == T[], T))
             stack ~= "load(&args[" ~ argsIdx++.toString ~ "][pos])";
@@ -302,6 +362,33 @@ template not(alias tmlp)
 {
     enum not(Args...) = !tmlp!Args;
 }
+/**
+Find element in `haystack` for which `pred` is true.
+
+Params:
+    pred = the template predicate
+    haystack = elements to search
+Returns:
+    The first index for which `pred!haystack[index]` is true or -1.
+ */
+template staticIndexOf(alias pred, haystack...)
+{
+    static if (pred!(haystack[0]))
+        enum staticIndexOf = 0;
+    else
+    {
+        enum next = staticIndexOf!(pred, haystack[1 .. $]);
+        enum staticIndexOf = next == -1 ? -1 : next + 1;
+    }
+}
+/// converts slice types to their element type, preserves anything else
+alias toElementType(E : E[]) = E;
+alias toElementType(S) = S;
+alias toElementType(alias op) = op;
+/// converts slice types to their element type, preserves anything else
+alias toVecType(E : E[]) = vec!E;
+alias toVecType(S) = vec!S;
+alias toVecType(alias op) = op;
 
 string toString(size_t num)
 {
@@ -448,4 +535,42 @@ unittest
 
     static assert(is(typeof(&arrayOp!(S2[], S2[], S2[], S2, "*", "+", "="))));
     static assert(is(typeof(&arrayOp!(S2[], S2[], S2, "*", "+="))));
+}
+
+// test mixed type array op
+unittest
+{
+    uint[32] a = 0xF;
+    float[32] res = 2.0f;
+    arrayOp!(float[], const(uint)[], uint, "&", "*=")(res[], a[], 12);
+    foreach (v; res[])
+        assert(v == 24.0f);
+}
+
+// test mixed type array op
+unittest
+{
+    static struct S
+    {
+        float opBinary(string op)(in S) @nogc const pure nothrow
+        {
+            return 2.0f;
+        }
+    }
+
+    float[32] res = 24.0f;
+    S[32] s;
+    arrayOp!(float[], const(S)[], const(S)[], "+", "/=")(res[], s[], s[]);
+    foreach (v; res[])
+        assert(v == 12.0f);
+}
+
+// test scalar after operation argument
+unittest
+{
+    float[32] res, a = 2, b = 3;
+    float c = 4;
+    arrayOp!(float[], const(float)[], const(float)[], "*", float, "+", "=")(res[], a[], b[], c);
+    foreach (v; res[])
+        assert(v == 2 * 3 + 4);
 }

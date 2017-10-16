@@ -814,6 +814,7 @@ struct GC
  * Pure variants of C's memory allocation functions `malloc`, `calloc`, and
  * `realloc` and deallocation function `free`.
  *
+ * UNIX 98 requires that errno be set to ENOMEM upon failure.
  * Purity is achieved by saving and restoring the value of `errno`, thus
  * behaving as if it were never changed.
  *
@@ -823,42 +824,33 @@ struct GC
  */
 void* pureMalloc(size_t size) @trusted pure @nogc nothrow
 {
-    const errno = fakePureGetErrno();
+    const errnosave = fakePureErrno();
     void* ret = fakePureMalloc(size);
-    if (!ret || errno != 0)
-    {
-        cast(void)fakePureSetErrno(errno);
-    }
+    fakePureErrno() = errnosave;
     return ret;
 }
 /// ditto
 void* pureCalloc(size_t nmemb, size_t size) @trusted pure @nogc nothrow
 {
-    const errno = fakePureGetErrno();
+    const errnosave = fakePureErrno();
     void* ret = fakePureCalloc(nmemb, size);
-    if (!ret || errno != 0)
-    {
-        cast(void)fakePureSetErrno(errno);
-    }
+    fakePureErrno() = errnosave;
     return ret;
 }
 /// ditto
 void* pureRealloc(void* ptr, size_t size) @system pure @nogc nothrow
 {
-    const errno = fakePureGetErrno();
+    const errnosave = fakePureErrno();
     void* ret = fakePureRealloc(ptr, size);
-    if (!ret || errno != 0)
-    {
-        cast(void)fakePureSetErrno(errno);
-    }
+    fakePureErrno() = errnosave;
     return ret;
 }
 /// ditto
 void pureFree(void* ptr) @system pure @nogc nothrow
 {
-    const errno = fakePureGetErrno();
+    const errnosave = fakePureErrno();
     fakePureFree(ptr);
-    cast(void)fakePureSetErrno(errno);
+    fakePureErrno() = errnosave;
 }
 
 ///
@@ -881,20 +873,20 @@ void pureFree(void* ptr) @system pure @nogc nothrow
 
 @system pure nothrow @nogc unittest
 {
-    const int errno = fakePureGetErrno();
+    const int errno = fakePureErrno();
 
     void* x = pureMalloc(10);            // normal allocation
-    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(errno == fakePureErrno()); // errno shouldn't change
     assert(x !is null);                   // allocation should succeed
 
     x = pureRealloc(x, 10);              // normal reallocation
-    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(errno == fakePureErrno()); // errno shouldn't change
     assert(x !is null);                   // allocation should succeed
 
     fakePureFree(x);
 
     void* y = pureCalloc(10, 1);         // normal zeroed allocation
-    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(errno == fakePureErrno()); // errno shouldn't change
     assert(y !is null);                   // allocation should succeed
 
     fakePureFree(y);
@@ -902,15 +894,24 @@ void pureFree(void* ptr) @system pure @nogc nothrow
     // subtract 2 because snn.lib adds 2 unconditionally before passing
     //  the size to the Windows API
     void* z = pureMalloc(size_t.max - 2); // won't affect `errno`
-    assert(errno == fakePureGetErrno()); // errno shouldn't change
+    assert(errno == fakePureErrno()); // errno shouldn't change
     assert(z is null);
 }
 
 // locally purified for internal use here only
+
+extern (C) private @system @nogc nothrow
+{
+    ref int fakePureErrnoImpl()
+    {
+        import core.stdc.errno;
+        return errno();
+    }
+}
+
 extern (C) private pure @system @nogc nothrow
 {
-    pragma(mangle, "getErrno") int fakePureGetErrno();
-    pragma(mangle, "setErrno") int fakePureSetErrno(int);
+    pragma(mangle, "fakePureErrnoImpl") ref int fakePureErrno();
 
     pragma(mangle, "malloc") void* fakePureMalloc(size_t);
     pragma(mangle, "calloc") void* fakePureCalloc(size_t nmemb, size_t size);
