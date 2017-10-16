@@ -235,8 +235,7 @@ class Visitor
     void visit(ASTBase.AndExp e) { visit(cast(ASTBase.BinExp)e); }
     void visit(ASTBase.XorExp e) { visit(cast(ASTBase.BinExp)e); }
     void visit(ASTBase.OrExp e) { visit(cast(ASTBase.BinExp)e); }
-    void visit(ASTBase.AndAndExp e) { visit(cast(ASTBase.BinExp)e); }
-    void visit(ASTBase.OrOrExp e) { visit(cast(ASTBase.BinExp)e); }
+    void visit(ASTBase.LogicalExp e) { visit(cast(ASTBase.BinExp)e); }
     void visit(ASTBase.CondExp e) { visit(cast(ASTBase.BinExp)e); }
     void visit(ASTBase.AssignExp e) { visit(cast(ASTBase.BinExp)e); }
     void visit(ASTBase.BinAssignExp e) { visit(cast(ASTBase.BinExp)e); }

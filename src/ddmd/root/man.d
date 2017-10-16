@@ -79,7 +79,7 @@ else version (Posix)
         if (browser)
             browser = strdup(browser);
         else
-            browser = "x-www-browser";
+            browser = "xdg-open";
         args[0] = browser;
         args[1] = url;
         args[2] = null;

@@ -29,6 +29,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+extern void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...);
 static unsigned xmmoperator(tym_t tym, unsigned oper);
 
 /*******************************************
@@ -404,7 +405,8 @@ void xmmcnvt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     else if (zx)
     {   assert(I64);
         getregs(cdb,regs);
-        cdb.append(genregs(CNIL,STO,reg,reg)); // MOV reg,reg to zero upper 32-bit
+        genregs(cdb,0x8B,reg,reg); // MOV reg,reg to zero upper 32-bit
+                                   // Don't use x89 because that will get optimized away
         code_orflag(cdb.last(),CFvolatile);
     }
 
@@ -1159,7 +1161,17 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             }
             elem *imm8 = params[3];
             cs.IFL2 = FLconst;
+#if MARS
+            if (imm8->Eoper != OPconst)
+            {
+                error(imm8->Esrcpos.Sfilename, imm8->Esrcpos.Slinnum, imm8->Esrcpos.Scharnum, "last parameter to `__simd()` must be a constant");
+                cs.IEV2.Vsize_t = 0;
+            }
+            else
+                cs.IEV2.Vsize_t = el_tolong(imm8);
+#else
             cs.IEV2.Vsize_t = el_tolong(imm8);
+#endif
         }
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;

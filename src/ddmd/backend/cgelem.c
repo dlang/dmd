@@ -629,120 +629,135 @@ STATIC elem * elstrcmp(elem *e, goal_t goal)
 }
 
 /****************************
- * For OPmemcmp, OPmemcpy, OPmemset.
+ * For OPmemcmp
  */
 
-STATIC elem * elmemxxx(elem *e, goal_t goal)
+STATIC elem * elmemcmp(elem *e, goal_t goal)
 {
     elem_debug(e);
     if (OPTIMIZER)
-    {   elem *ex;
+    {
+        elem *ex = e->E1;
+        if (ex->E1->Eoper == OPnp_fp)
+            eltonear(&ex->E1);
+        if (ex->E2->Eoper == OPnp_fp)
+            eltonear(&ex->E2);
+    }
+    return e;
+}
 
-        ex = e->E1;
-        switch (e->Eoper)
-        {   case OPmemcmp:
-                if (ex->E1->Eoper == OPnp_fp)
-                    eltonear(&ex->E1);
-                if (ex->E2->Eoper == OPnp_fp)
-                    eltonear(&ex->E2);
-                break;
+/****************************
+ * For OPmemset
+ */
 
-            case OPmemset:
-                if (ex->Eoper == OPnp_fp)
-                    eltonear(&ex);
-                else
-                {
-                    // lvalue OPmemset (nbytes param value)
-                    elem *enbytes = e->E2->E1;
-                    elem *evalue = e->E2->E2;
+STATIC elem * elmemset(elem *e, goal_t goal)
+{
+    elem_debug(e);
+    if (OPTIMIZER)
+    {
+        elem *ex = e->E1;
+        if (ex->Eoper == OPnp_fp)
+            eltonear(&ex);
+        else
+        {
+            // lvalue OPmemset (nbytes param value)
+            elem *enbytes = e->E2->E1;
+            elem *evalue = e->E2->E2;
 
 #if MARS
-                    if (enbytes->Eoper == OPconst && evalue->Eoper == OPconst)
-                    {   tym_t tym;
-                        tym_t ety;
-                        int nbytes = el_tolong(enbytes);
-                        targ_llong value = el_tolong(evalue);
-                        elem *e1 = e->E1;
-                        elem *tmp;
+            if (enbytes->Eoper == OPconst && evalue->Eoper == OPconst)
+            {   tym_t tym;
+                tym_t ety;
+                int nbytes = el_tolong(enbytes);
+                targ_llong value = el_tolong(evalue);
+                elem *e1 = e->E1;
+                elem *tmp;
 
-                        if (e1->Eoper == OPcomma || OTassign(e1->Eoper))
-                            return cgel_lvalue(e);    // replace (e,v)op=e2 with e,(v op= e2)
+                if (e1->Eoper == OPcomma || OTassign(e1->Eoper))
+                    return cgel_lvalue(e);    // replace (e,v)op=e2 with e,(v op= e2)
 
-                        switch (nbytes)
-                        {
-                            case CHARSIZE:      tym = TYchar;   goto L1;
-                            case SHORTSIZE:     tym = TYshort;  goto L1;
-                            case LONGSIZE:      tym = TYlong;   goto L1;
-                            case LLONGSIZE:     if (intsize == 2)
-                                                    goto Ldefault;
-                                                tym = TYllong;  goto L1;
-                            L1:
-                                ety = e->Ety;
-                                memset(&value, value & 0xFF, sizeof(value));
-                                evalue->EV.Vullong = value;
-                                evalue->Ety = tym;
-                                e->Eoper = OPeq;
-                                e->Ety = (e->Ety & ~mTYbasic) | tym;
-                                if (tybasic(e1->Ety) == TYstruct)
-                                    e1->Ety = tym;
-                                else
-                                    e->E1 = el_una(OPind, tym, e1);
-                                tmp = el_same(&e->E1);
-                                tmp = el_una(OPaddr, ety, tmp);
-                                e->E2->Ety = tym;
-                                e->E2 = el_selecte2(e->E2);
-                                e = el_combine(e, tmp);
-                                e = optelem(e,GOALvalue);
-                                break;
-
-                            default:
-                            Ldefault:
-                                break;
-                        }
-                    }
-#endif
-                }
-                break;
-
-            case OPmemcpy:
-                if (ex->Eoper == OPnp_fp)
-                    eltonear(&e->E1);
-                ex = e->E2;
-                if (ex->E1->Eoper == OPnp_fp)
-                    eltonear(&ex->E1);
-                if (ex->E2->Eoper == OPconst)
+                switch (nbytes)
                 {
-                    if (!boolres(ex->E2))
-                    {   // Copying 0 bytes, so remove memcpy
-                        e->E2 = e->E1;
-                        e->E1 = ex->E1;
-                        ex->E1 = NULL;
-                        e->Eoper = OPcomma;
-                        el_free(ex);
-                        return optelem(e, GOALvalue);
-                    }
-                    // Convert OPmemcpy to OPstreq
-                    e->Eoper = OPstreq;
-                    type *t = type_allocn(TYarray, tschar);
-                    t->Tdim = el_tolong(ex->E2);
-                    e->ET = t;
-                    t->Tcount++;
-                    e->E1 = el_una(OPind,TYstruct,e->E1);
-                    e->E2 = el_una(OPind,TYstruct,ex->E1);
-                    ex->E1 = NULL;
-                    el_free(ex);
-                    ex = el_copytree(e->E1->E1);
-                    if (tysize(e->Ety) > tysize(ex->Ety))
-                        ex = el_una(OPnp_fp,e->Ety,ex);
-                    e = el_bin(OPcomma,e->Ety,e,ex);
-                    if (el_sideeffect(e->E2))
-                        fixside(&e->E1->E1->E1,&e->E2);
-                    return optelem(e,GOALvalue);
-                }
-                break;
+                    case CHARSIZE:      tym = TYchar;   goto L1;
+                    case SHORTSIZE:     tym = TYshort;  goto L1;
+                    case LONGSIZE:      tym = TYlong;   goto L1;
+                    case LLONGSIZE:     if (intsize == 2)
+                                            goto Ldefault;
+                                        tym = TYllong;  goto L1;
+                    L1:
+                        ety = e->Ety;
+                        memset(&value, value & 0xFF, sizeof(value));
+                        evalue->EV.Vullong = value;
+                        evalue->Ety = tym;
+                        e->Eoper = OPeq;
+                        e->Ety = (e->Ety & ~mTYbasic) | tym;
+                        if (tybasic(e1->Ety) == TYstruct)
+                            e1->Ety = tym;
+                        else
+                            e->E1 = el_una(OPind, tym, e1);
+                        tmp = el_same(&e->E1);
+                        tmp = el_una(OPaddr, ety, tmp);
+                        e->E2->Ety = tym;
+                        e->E2 = el_selecte2(e->E2);
+                        e = el_combine(e, tmp);
+                        e = optelem(e,GOALvalue);
+                        break;
 
-            default:
-                assert(0);
+                    default:
+                    Ldefault:
+                        break;
+                }
+            }
+#endif
+        }
+    }
+    return e;
+}
+
+
+/****************************
+ * For OPmemcpy
+ */
+
+STATIC elem * elmemcpy(elem *e, goal_t goal)
+{
+    elem_debug(e);
+    if (OPTIMIZER)
+    {
+        elem *ex = e->E1;
+        if (ex->Eoper == OPnp_fp)
+            eltonear(&e->E1);
+        ex = e->E2;
+        if (ex->E1->Eoper == OPnp_fp)
+            eltonear(&ex->E1);
+        if (ex->E2->Eoper == OPconst)
+        {
+            if (!boolres(ex->E2))
+            {   // Copying 0 bytes, so remove memcpy
+                e->E2 = e->E1;
+                e->E1 = ex->E1;
+                ex->E1 = NULL;
+                e->Eoper = OPcomma;
+                el_free(ex);
+                return optelem(e, GOALvalue);
+            }
+            // Convert OPmemcpy to OPstreq
+            e->Eoper = OPstreq;
+            type *t = type_allocn(TYarray, tschar);
+            t->Tdim = el_tolong(ex->E2);
+            e->ET = t;
+            t->Tcount++;
+            e->E1 = el_una(OPind,TYstruct,e->E1);
+            e->E2 = el_una(OPind,TYstruct,ex->E1);
+            ex->E1 = NULL;
+            el_free(ex);
+            ex = el_copytree(e->E1->E1);
+            if (tysize(e->Ety) > tysize(ex->Ety))
+                ex = el_una(OPnp_fp,e->Ety,ex);
+            e = el_bin(OPcomma,e->Ety,e,ex);
+            if (el_sideeffect(e->E2))
+                fixside(&e->E1->E1->E1,&e->E2);
+            return optelem(e,GOALvalue);
         }
     }
     return e;
@@ -1434,6 +1449,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             tysize(e->E1->Ety) <= REGSIZE)
         {
+            int sz = tysize(e->E1->Ety);
             e->Eoper = OPbtst;
             e->Ety = TYbool;
             e->E1 = e2;
@@ -1441,6 +1457,14 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             e->E2->Ety = e->E1->Ety;
             e1->E2 = NULL;
             el_free(e1);
+
+            if (sz >= 2)
+                e = el_una(OPu8_16, TYushort, e);
+            if (sz >= 4)
+                e = el_una(OPu16_32, TYulong, e);
+            if (sz >= 8)
+                e = el_una(OPu32_64, TYullong, e);
+
             return optelem(e, goal);
         }
     }
@@ -2398,6 +2422,15 @@ STATIC elem * eldiv(elem *e, goal_t goal)
             }
         }
 
+        /* Convert if(e1/e2) to if(e1>=e2) iff unsigned division.
+         */
+        if (goal == GOALflags && uns && e->Eoper == OPdiv)
+        {
+            e->Eoper = OPge;
+            e->Ety = TYbool;
+            return e;
+        }
+
         /* TODO: (i*c1)/c2 => i*(c1/c2) if (c1%c2)==0
          * TODO: i/(x?c1:c2) => i>>(x?log2(c1):log2(c2)) if c1 and c2 are powers of 2
          */
@@ -2431,6 +2464,7 @@ STATIC elem * eldiv(elem *e, goal_t goal)
                     e->Eoper = OPremquo;
                     e = el_una(op, tym, e);
                     e->E1->Ety = (sz == 2) ? TYlong : (sz == 4) ? TYllong : TYcent;
+                    return e;
                 }
             }
         }
@@ -5142,7 +5176,7 @@ beg:
                 e1 = e->E1 = optelem(e->E1,GOALnone);
 //              if (e1 && !OTsideff(e1->Eoper))
 //                  e1 = e->E1 = optelem(e1, GOALnone);
-                e2 = e->E2 = optelem(e->E2,rightgoal);
+                e2 = e->E2 = optelem(e->E2,goal);
                 if (!e1)
                 {   if (!e2)
                         goto retnull;
@@ -5516,7 +5550,6 @@ L1:
 elem *doptelem(elem *e, goal_t goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
-
     assert(!PARSER);
     do
     {   again = false;

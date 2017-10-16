@@ -47,8 +47,10 @@ struct OutBuffer
         //printf("OutBuffer::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
         if (size - offset < nbytes)
         {
-            size = (offset + nbytes) * 2;
-            size = (size + 15) & ~15;
+            /* Increase by factor of 1.5; round up to 16 bytes.
+             * The odd formulation is so it will map onto single x86 LEA instruction.
+             */
+            size = (((offset + nbytes) * 3 + 30) / 2) & ~15;
             data = cast(ubyte*)mem.xrealloc(data, size);
         }
     }

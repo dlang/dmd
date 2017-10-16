@@ -34,6 +34,7 @@ import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
 import ddmd.root.port;
+import ddmd.semantic;
 import ddmd.target;
 import ddmd.visitor;
 
@@ -256,12 +257,6 @@ extern (C++) class Package : ScopeDsymbol
         return isAncestorPackageOf(pkg.parent.isPackage());
     }
 
-    override void semantic(Scope* sc)
-    {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
-    }
-
     override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s Package.search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
@@ -324,7 +319,12 @@ extern (C++) final class Module : Package
     int isDocFile;              // if it is a documentation input file, not D source
     bool isPackageFile;         // if it is a package.d
     int needmoduleinfo;
-
+    /**
+       How many unit tests have been seen so far in this module. Makes it so the
+       unit test name is reproducible regardless of whether it's compiled
+       separately or all at once.
+     */
+    uint unitTestCounter;       // how many unittests have been seen so far
     int selfimports;            // 0: don't know, 1: does not, 2: does
 
     /*************************************
@@ -1056,101 +1056,6 @@ extern (C++) final class Module : Package
         }
         sc = sc.pop();
         sc.pop(); // 2 pops because Scope::createGlobal() created 2
-    }
-
-    // semantic analysis
-    override void semantic(Scope*)
-    {
-        if (semanticRun != PASSinit)
-            return;
-        //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-        semanticRun = PASSsemantic;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = _scope; // see if already got one from importAll()
-        if (!sc)
-        {
-            Scope.createGlobal(this); // create root scope
-        }
-        //printf("Module = %p, linkage = %d\n", sc.scopesym, sc.linkage);
-        // Pass 1 semantic routines: do public side of the definition
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s.toChars());
-            s.semantic(sc);
-            runDeferredSemantic();
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic(sc);
-        }
-        if (!_scope)
-        {
-            sc = sc.pop();
-            sc.pop(); // 2 pops because Scope::createGlobal() created 2
-        }
-        semanticRun = PASSsemanticdone;
-        //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-    }
-
-    // pass 2 semantic analysis
-    override void semantic2(Scope*)
-    {
-        //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-        if (semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
-            return;
-        semanticRun = PASSsemantic2;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(this); // create root scope
-        //printf("Module = %p\n", sc.scopesym);
-        // Pass 2 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.semantic2(sc);
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic2(sc);
-        }
-        sc = sc.pop();
-        sc.pop();
-        semanticRun = PASSsemantic2done;
-        //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-    }
-
-    // pass 3 semantic analysis
-    override void semantic3(Scope*)
-    {
-        //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-        if (semanticRun != PASSsemantic2done)
-            return;
-        semanticRun = PASSsemantic3;
-        // Note that modules get their own scope, from scratch.
-        // This is so regardless of where in the syntax a module
-        // gets imported, it is unaffected by context.
-        Scope* sc = Scope.createGlobal(this); // create root scope
-        //printf("Module = %p\n", sc.scopesym);
-        // Pass 3 semantic routines: do initializers and function bodies
-        for (size_t i = 0; i < members.dim; i++)
-        {
-            Dsymbol s = (*members)[i];
-            //printf("Module %s: %s.semantic3()\n", toChars(), s.toChars());
-            s.semantic3(sc);
-
-            runDeferredSemantic2();
-        }
-        if (userAttribDecl)
-        {
-            userAttribDecl.semantic3(sc);
-        }
-        sc = sc.pop();
-        sc.pop();
-        semanticRun = PASSsemantic3done;
     }
 
     /**********************************

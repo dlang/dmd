@@ -18,10 +18,12 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.expression;
+import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.initsem;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -48,7 +50,7 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
         s = new ReturnStatement(loc, e);
     fld.fbody = s;
     e = new FuncExp(loc, fld);
-    e = e.semantic(sc);
+    e = e.expressionSemantic(sc);
     return e;
 }
 

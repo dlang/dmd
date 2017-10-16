@@ -5,8 +5,9 @@
  * Copyright:   Copyright (C) 1985-1998 by Symantec
  *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.h, backend/code.h)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/code.h
  */
 
 #include <stddef.h>
@@ -128,8 +129,8 @@ struct REGSAVE
     int alignment;              // 8 or 16
 
     void reset() { off = 0; top = 0; idx = 0; alignment = REGSIZE; }
-    code *save(code *c, int reg, unsigned *pidx);
-    code *restore(code *c, int reg, unsigned idx);
+    void save(CodeBuilder& cdb, int reg, unsigned *pidx);
+    void restore(CodeBuilder& cdb, int reg, unsigned idx);
 };
 }
 extern REGSAVE regsave;
@@ -352,8 +353,7 @@ unsigned buildModregrm(int mod, int reg, int rm);
 void andregcon (con_t *pregconsave);
 void genEEcode();
 void docommas(CodeBuilder& cdb,elem **pe);
-unsigned gensaverestore(regm_t, code **, code **);
-unsigned gensaverestore2(regm_t regm,code **csave,code **crestore);
+unsigned gensaverestore(regm_t, CodeBuilder& cdbsave, CodeBuilder& cdbrestore);
 void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk);
 void logexp(CodeBuilder& cdb, elem *e, int jcond, unsigned fltarg, code *targ);
 unsigned getaddrmode (regm_t idxregs );
@@ -394,12 +394,13 @@ void outjmptab (block *b );
 void outswitab (block *b );
 int jmpopcode (elem *e );
 void cod3_ptrchk(CodeBuilder& cdb,code *pcs,regm_t keepmsk);
-code *genregs (code *c , unsigned op , unsigned dstreg , unsigned srcreg );
-code *gentstreg (code *c , unsigned reg );
-code *genpush (code *c , unsigned reg );
-code *genpop (code *c , unsigned reg );
-code* gensavereg(unsigned& reg, targ_uns slot);
-code *genmovreg (code *c , unsigned to , unsigned from );
+void genregs(CodeBuilder& cdb, unsigned op, unsigned dstreg, unsigned srcreg);
+void gentstreg(CodeBuilder& cdb, unsigned reg);
+void genpush(CodeBuilder& cdb, unsigned reg);
+void genpop(CodeBuilder& cdb, unsigned reg);
+void gensavereg(CodeBuilder& cdb, unsigned& reg, targ_uns slot);
+code *genmovreg(unsigned to, unsigned from);
+void genmovreg(CodeBuilder& cdb, unsigned to, unsigned from);
 void genmulimm(CodeBuilder& cdb,unsigned r1,unsigned r2,targ_int imm);
 void genshift(CodeBuilder& cdb);
 void movregconst(CodeBuilder& cdb,unsigned reg,targ_size_t value,regm_t flags);
@@ -407,7 +408,7 @@ void genjmp(CodeBuilder& cdb, unsigned op, unsigned fltarg, block *targ);
 void prolog(CodeBuilder& cdb);
 void epilog (block *b);
 void gen_spill_reg(CodeBuilder& cdb, Symbol *s, bool toreg);
-code *load_localgot();
+void load_localgot(CodeBuilder& cdb);
 targ_size_t cod3_spoff();
 void makeitextern (symbol *s );
 void fltused(void);
@@ -424,7 +425,7 @@ unsigned calcblksize (code *c);
 unsigned calccodsize(code *c);
 unsigned codout(int seg, code *c);
 size_t addtofixlist (symbol *s , targ_size_t soffset , int seg , targ_size_t val , int flags );
-void searchfixlist (symbol *s );
+inline void searchfixlist (symbol *s ) {}
 void outfixlist (void );
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
@@ -488,9 +489,8 @@ void pop87();
 void push87(CodeBuilder& cdb);
 void save87(CodeBuilder& cdb);
 void save87regs(CodeBuilder& cdb, unsigned n);
-void gensaverestore87(regm_t, code **, code **);
+void gensaverestore87(regm_t, CodeBuilder& cdbsave, CodeBuilder& cdbrestore);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
-code *genxmmreg(code *c,unsigned opcode,unsigned xreg,targ_size_t offset, tym_t tym);
 void genfwait(CodeBuilder& cdb);
 void comsub87(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 void fixresult87(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
@@ -549,16 +549,10 @@ code *gen (code *c , code *cs );
 code *gen1 (code *c , unsigned op );
 code *gen2 (code *c , unsigned op , unsigned rm );
 code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib);
-code *genasm (code *c ,unsigned char *s , unsigned slen );
-code *gencsi (code *c , unsigned op , unsigned rm , unsigned FL2 , SYMIDX si );
-code *gencs (code *c , unsigned op , unsigned rm , unsigned FL2 , symbol *s );
 code *genc2 (code *c , unsigned op , unsigned rm , targ_size_t EV2 );
-code *genc1 (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 );
 code *genc (code *c , unsigned op , unsigned rm , unsigned FL1 , targ_size_t EV1 , unsigned FL2 , targ_size_t EV2 );
 code *genlinnum(code *,Srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
-code *genadjesp(code *c, int offset);
-code *genadjfpu(code *c, int offset);
 code *gennop(code *);
 void gencodelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag);
 bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
@@ -569,8 +563,8 @@ void cgreg_init();
 void cgreg_term();
 void cgreg_reset();
 void cgreg_used(unsigned bi,regm_t used);
-void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload);
-void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload);
+void cgreg_spillreg_prolog(block *b,Symbol *s,CodeBuilder& cdbstore,CodeBuilder& cdbload);
+void cgreg_spillreg_epilog(block *b,Symbol *s,CodeBuilder& cdbstore,CodeBuilder& cdbload);
 int cgreg_assign(Symbol *retsym);
 void cgreg_unregister(regm_t conflict);
 
@@ -750,5 +744,3 @@ struct CodeBuilder
         return (code *)((char *)pTail - ((char*)&(*pTail)->next - (char*)*pTail));
     }
 };
-
-

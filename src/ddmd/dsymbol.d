@@ -29,6 +29,7 @@ import ddmd.dimport;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -46,6 +47,7 @@ import ddmd.root.aav;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.root.speller;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -654,30 +656,6 @@ extern (C++) class Dsymbol : RootObject
 
     void importAll(Scope* sc)
     {
-    }
-
-    /*************************************
-     * Does semantic analysis on the public face of declarations.
-     */
-    void semantic(Scope* sc)
-    {
-        error("%p has no semantic routine", this);
-    }
-
-    /*************************************
-     * Does semantic analysis on initializers and members of aggregates.
-     */
-    void semantic2(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
-    }
-
-    /*************************************
-     * Does semantic analysis on function bodies.
-     */
-    void semantic3(Scope* sc)
-    {
-        // Most Dsymbols have no further semantic analysis needed
     }
 
     /*********************************************
@@ -1720,8 +1698,6 @@ public:
         return this;
     }
 
-    override void semantic(Scope* sc) { }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1937,7 +1913,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                         }
                         auto tiargs = new Objects();
                         Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
-                        edim = edim.semantic(sc);
+                        edim = edim.expressionSemantic(sc);
                         tiargs.push(edim);
                         e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                     }
@@ -1957,7 +1933,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                         assert(d);
                         e = new DotVarExp(loc, ce, d);
                     }
-                    e = e.semantic(sc);
+                    e = e.expressionSemantic(sc);
                     if (!e.type)
                         exp.error("%s has no value", e.toChars());
                     t = e.type.toBasetype();
@@ -2112,8 +2088,6 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
     {
         forward.importScope(s, protection);
     }
-
-    override void semantic(Scope* sc){ }
 
     override const(char)* kind()const{ return "local scope"; }
 

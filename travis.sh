@@ -8,7 +8,10 @@ N=2
 if [ "$TRAVIS_OS_NAME" == "linux" ]; then
     mkdir linker
     ln -s /usr/bin/ld.gold linker/ld
+    NM="nm --print-size"
     export PATH="$PWD/linker:$PATH"
+else
+    NM=nm
 fi
 
 # clone druntime and phobos
@@ -40,6 +43,7 @@ build() {
 # self-compile dmd
 rebuild() {
     local build_path=generated/$TRAVIS_OS_NAME/release/$MODEL
+    local compare=${1:-0}
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
     # the generated dmd.conf
@@ -48,6 +52,15 @@ rebuild() {
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 all
+    # build reproducibility is currently broken for unknown reasons on osx-32
+    if [ $compare -eq 1 ] && [ "$TRAVIS_OS_NAME-$MODEL" != osx-32 ]; then
+        if ! diff _${build_path}/host_dmd $build_path/dmd; then
+            $NM _${build_path}/host_dmd > a
+            $NM $build_path/dmd > b
+            diff -u a b
+            exit 1
+        fi
+    fi
 }
 
 # test druntime, phobos, dmd
@@ -88,7 +101,7 @@ for proj in druntime phobos; do
 done
 
 date
-for step in build test rebuild rebuild test_dmd; do
+for step in build test rebuild "rebuild 1" test_dmd; do
     $step
     date
 done

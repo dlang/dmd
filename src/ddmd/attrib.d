@@ -12,34 +12,24 @@ module ddmd.attrib;
 
 // Online documentation: https://dlang.org/phobos/ddmd_attrib.html
 
-import core.stdc.stdio;
-import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.astcodegen;
 import ddmd.cond;
 import ddmd.declaration;
-import ddmd.dinterpret;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
-import ddmd.dtemplate;
-import ddmd.errors;
 import ddmd.expression;
-import ddmd.expressionsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.mtype;
-import ddmd.parse;
 import ddmd.root.outbuffer;
-import ddmd.root.rmem;
 import ddmd.target;
 import ddmd.tokens;
-import ddmd.utf;
-import ddmd.utils;
+import ddmd.semantic;
 import ddmd.visitor;
 
 /***********************************************************
@@ -165,59 +155,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
             {
                 Dsymbol s = (*d)[i];
                 s.importAll(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-    }
-
-    override void semantic(Scope* sc)
-    {
-        if (semanticRun != PASSinit)
-            return;
-        semanticRun = PASSsemantic;
-        Dsymbols* d = include(sc, null);
-        //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-        semanticRun = PASSsemanticdone;
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        Dsymbols* d = include(sc, null);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic2(sc2);
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-    }
-
-    override void semantic3(Scope* sc)
-    {
-        Dsymbols* d = include(sc, null);
-        if (d)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < d.dim; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.semantic3(sc2);
             }
             if (sc2 != sc)
                 sc2.pop();
@@ -486,42 +423,6 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    /**
-     * Run the DeprecatedDeclaration's semantic2 phase then its members.
-     *
-     * The message set via a `DeprecatedDeclaration` can be either of:
-     * - a string literal
-     * - an enum
-     * - a static immutable
-     * So we need to call ctfe to resolve it.
-     * Afterward forwards to the members' semantic2.
-     */
-    override void semantic2(Scope* sc)
-    {
-        getMessage();
-        super.semantic2(sc);
-    }
-
-    const(char)* getMessage()
-    {
-        if (auto sc = _scope)
-        {
-            _scope = null;
-
-            sc = sc.startCTFE();
-            msg = msg.semantic(sc);
-            msg = resolveProperties(sc, msg);
-            sc = sc.endCTFE();
-            msg = msg.ctfeInterpret();
-
-            if (auto se = msg.toStringExp())
-                msgstr = se.toStringz().ptr;
-            else
-                msg.error("compile time constant expected, not `%s`", msg.toChars());
-        }
-        return msgstr;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -653,7 +554,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
     override Scope* newScope(Scope* sc)
     {
         if (pkg_identifiers)
-            semantic(sc);
+            semantic(this, sc);
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.protection, 1, sc.aligndecl, sc.inlining);
     }
 
@@ -702,7 +603,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
     Expression ealign;
-    private enum structalign_t UNKNOWN = 0;
+    enum structalign_t UNKNOWN = 0;
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
     structalign_t salign = UNKNOWN;
 
@@ -723,41 +624,6 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     override Scope* newScope(Scope* sc)
     {
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        getAlignment(sc);
-        super.semantic2(sc);
-    }
-
-    structalign_t getAlignment(Scope* sc)
-    {
-        if (salign != UNKNOWN)
-            return salign;
-
-        if (!ealign)
-            return salign = STRUCTALIGN_DEFAULT;
-
-        sc = sc.startCTFE();
-        ealign = ealign.semantic(sc);
-        ealign = resolveProperties(sc, ealign);
-        sc = sc.endCTFE();
-        ealign = ealign.ctfeInterpret();
-
-        if (ealign.op == TOKerror)
-            return salign = STRUCTALIGN_DEFAULT;
-
-        Type tb = ealign.type.toBasetype();
-        auto n = ealign.toInteger();
-
-        if (n < 1 || n & (n - 1) || structalign_t.max < n || !tb.isintegral())
-        {
-            .error(loc, "alignment must be an integer positive power of 2, not %s", ealign.toChars());
-            return salign = STRUCTALIGN_DEFAULT;
-        }
-
-        return salign = cast(structalign_t)n;
     }
 
     override void accept(Visitor v)
@@ -794,34 +660,6 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         if (decl)
             Dsymbol.setScope(sc);
         return AttribDeclaration.setScope(sc);
-    }
-
-    override void semantic(Scope* sc)
-    {
-        //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
-        assert(sc.parent);
-        auto p = sc.parent.pastMixin();
-        auto ad = p.isAggregateDeclaration();
-        if (!ad)
-        {
-            .error(loc, "%s can only be a part of an aggregate, not %s `%s`", kind(), p.kind(), p.toChars());
-            errors = true;
-            return;
-        }
-
-        if (decl)
-        {
-            sc = sc.push();
-            sc.stc &= ~(STCauto | STCscope | STCstatic | STCtls | STCgshared);
-            sc.inunion = isunion;
-            sc.flags = 0;
-            for (size_t i = 0; i < decl.dim; i++)
-            {
-                Dsymbol s = (*decl)[i];
-                s.semantic(sc);
-            }
-            sc = sc.pop();
-        }
     }
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
@@ -969,228 +807,6 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
         }
         return sc;
-    }
-
-    override void semantic(Scope* sc)
-    {
-        // Should be merged with PragmaStatement
-        //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
-        if (ident == Id.msg)
-        {
-            if (args)
-            {
-                for (size_t i = 0; i < args.dim; i++)
-                {
-                    Expression e = (*args)[i];
-                    sc = sc.startCTFE();
-                    e = e.semantic(sc);
-                    e = resolveProperties(sc, e);
-                    sc = sc.endCTFE();
-                    // pragma(msg) is allowed to contain types as well as expressions
-                    e = ctfeInterpretForPragmaMsg(e);
-                    if (e.op == TOKerror)
-                    {
-                        errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i].toChars());
-                        return;
-                    }
-                    StringExp se = e.toStringExp();
-                    if (se)
-                    {
-                        se = se.toUTF8(sc);
-                        fprintf(stderr, "%.*s", cast(int)se.len, se.string);
-                    }
-                    else
-                        fprintf(stderr, "%s", e.toChars());
-                }
-                fprintf(stderr, "\n");
-            }
-            goto Lnodecl;
-        }
-        else if (ident == Id.lib)
-        {
-            if (!args || args.dim != 1)
-                error("string expected for library name");
-            else
-            {
-                auto se = semanticString(sc, (*args)[0], "library name");
-                if (!se)
-                    goto Lnodecl;
-                (*args)[0] = se;
-
-                auto name = cast(char*)mem.xmalloc(se.len + 1);
-                memcpy(name, se.string, se.len);
-                name[se.len] = 0;
-                if (global.params.verbose)
-                    fprintf(global.stdmsg, "library   %s\n", name);
-                if (global.params.moduleDeps && !global.params.moduleDepsFile)
-                {
-                    OutBuffer* ob = global.params.moduleDeps;
-                    Module imod = sc.instantiatingModule();
-                    ob.writestring("depsLib ");
-                    ob.writestring(imod.toPrettyChars());
-                    ob.writestring(" (");
-                    escapePath(ob, imod.srcfile.toChars());
-                    ob.writestring(") : ");
-                    ob.writestring(name);
-                    ob.writenl();
-                }
-                mem.xfree(name);
-            }
-            goto Lnodecl;
-        }
-        else if (ident == Id.startaddress)
-        {
-            if (!args || args.dim != 1)
-                error("function name expected for start address");
-            else
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=11980
-                 * resolveProperties and ctfeInterpret call are not necessary.
-                 */
-                Expression e = (*args)[0];
-                sc = sc.startCTFE();
-                e = e.semantic(sc);
-                sc = sc.endCTFE();
-                (*args)[0] = e;
-                Dsymbol sa = getDsymbol(e);
-                if (!sa || !sa.isFuncDeclaration())
-                    error("function name expected for start address, not `%s`", e.toChars());
-            }
-            goto Lnodecl;
-        }
-        else if (ident == Id.Pinline)
-        {
-            goto Ldecl;
-        }
-        else if (ident == Id.mangle)
-        {
-            if (!args)
-                args = new Expressions();
-            if (args.dim != 1)
-            {
-                error("string expected for mangled name");
-                args.setDim(1);
-                (*args)[0] = new ErrorExp(); // error recovery
-                goto Ldecl;
-            }
-
-            auto se = semanticString(sc, (*args)[0], "mangled name");
-            if (!se)
-                goto Ldecl;
-            (*args)[0] = se; // Will be used later
-
-            if (!se.len)
-            {
-                error("zero-length string not allowed for mangled name");
-                goto Ldecl;
-            }
-            if (se.sz != 1)
-            {
-                error("mangled name characters can only be of type char");
-                goto Ldecl;
-            }
-            version (all)
-            {
-                /* Note: D language specification should not have any assumption about backend
-                 * implementation. Ideally pragma(mangle) can accept a string of any content.
-                 *
-                 * Therefore, this validation is compiler implementation specific.
-                 */
-                for (size_t i = 0; i < se.len;)
-                {
-                    char* p = se.string;
-                    dchar c = p[i];
-                    if (c < 0x80)
-                    {
-                        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c != 0 && strchr("$%().:?@[]_", c))
-                        {
-                            ++i;
-                            continue;
-                        }
-                        else
-                        {
-                            error("char 0x%02x not allowed in mangled name", c);
-                            break;
-                        }
-                    }
-                    if (const msg = utf_decodeChar(se.string, se.len, i, c))
-                    {
-                        error("%s", msg);
-                        break;
-                    }
-                    if (!isUniAlpha(c))
-                    {
-                        error("char `0x%04x` not allowed in mangled name", c);
-                        break;
-                    }
-                }
-            }
-        }
-        else if (global.params.ignoreUnsupportedPragmas)
-        {
-            if (global.params.verbose)
-            {
-                /* Print unrecognized pragmas
-                 */
-                fprintf(global.stdmsg, "pragma    %s", ident.toChars());
-                if (args)
-                {
-                    for (size_t i = 0; i < args.dim; i++)
-                    {
-                        Expression e = (*args)[i];
-                        sc = sc.startCTFE();
-                        e = e.semantic(sc);
-                        e = resolveProperties(sc, e);
-                        sc = sc.endCTFE();
-                        e = e.ctfeInterpret();
-                        if (i == 0)
-                            fprintf(global.stdmsg, " (");
-                        else
-                            fprintf(global.stdmsg, ",");
-                        fprintf(global.stdmsg, "%s", e.toChars());
-                    }
-                    if (args.dim)
-                        fprintf(global.stdmsg, ")");
-                }
-                fprintf(global.stdmsg, "\n");
-            }
-            goto Lnodecl;
-        }
-        else
-            error("unrecognized `pragma(%s)`", ident.toChars());
-    Ldecl:
-        if (decl)
-        {
-            Scope* sc2 = newScope(sc);
-            for (size_t i = 0; i < decl.dim; i++)
-            {
-                Dsymbol s = (*decl)[i];
-                s.semantic(sc2);
-                if (ident == Id.mangle)
-                {
-                    assert(args && args.dim == 1);
-                    if (auto se = (*args)[0].toStringExp())
-                    {
-                        char* name = cast(char*)mem.xmalloc(se.len + 1);
-                        memcpy(name, se.string, se.len);
-                        name[se.len] = 0;
-                        uint cnt = setMangleOverride(s, name);
-                        if (cnt > 1)
-                            error("can only apply to a single declaration");
-                    }
-                }
-            }
-            if (sc2 != sc)
-                sc2.pop();
-        }
-        return;
-    Lnodecl:
-        if (decl)
-        {
-            error("pragma is missing closing `;`");
-            goto Ldecl;
-            // do them anyway, to avoid segfaults.
-        }
     }
 
     override const(char)* kind() const
@@ -1387,11 +1003,6 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         // do not evaluate condition before semantic pass
     }
 
-    override void semantic(Scope* sc)
-    {
-        AttribDeclaration.semantic(sc);
-    }
-
     override const(char)* kind() const
     {
         return "static if";
@@ -1514,11 +1125,6 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         // do not evaluate aggregate before semantic pass
     }
 
-    override void semantic(Scope* sc)
-    {
-        AttribDeclaration.semantic(sc);
-    }
-
     override const(char)* kind() const
     {
         return "static foreach";
@@ -1626,49 +1232,6 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         Dsymbol.setScope(sc);
     }
 
-    void compileIt(Scope* sc)
-    {
-        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp.toChars());
-        auto se = semanticString(sc, exp, "argument to mixin");
-        if (!se)
-            return;
-        se = se.toUTF8(sc);
-
-        uint errors = global.errors;
-        scope p = new Parser!ASTCodegen(loc, sc._module, se.toStringz(), false);
-        p.nextToken();
-
-        decl = p.parseDeclDefs(0);
-        if (p.token.value != TOKeof)
-            exp.error("incomplete mixin declaration `%s`", se.toChars());
-        if (p.errors)
-        {
-            assert(global.errors != errors);
-            decl = null;
-        }
-    }
-
-    override void semantic(Scope* sc)
-    {
-        //printf("CompileDeclaration::semantic()\n");
-        if (!compiled)
-        {
-            compileIt(sc);
-            AttribDeclaration.addMember(sc, scopesym);
-            compiled = true;
-
-            if (_scope && decl)
-            {
-                for (size_t i = 0; i < decl.dim; i++)
-                {
-                    Dsymbol s = (*decl)[i];
-                    s.setScope(_scope);
-                }
-            }
-        }
-        AttribDeclaration.semantic(sc);
-    }
-
     override const(char)* kind() const
     {
         return "mixin";
@@ -1722,42 +1285,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    override void semantic(Scope* sc)
-    {
-        //printf("UserAttributeDeclaration::semantic() %p\n", this);
-        if (decl && !_scope)
-            Dsymbol.setScope(sc); // for function local symbols
-        return AttribDeclaration.semantic(sc);
-    }
-
-    override void semantic2(Scope* sc)
-    {
-        if (decl && atts && atts.dim && _scope)
-        {
-            static void eval(Scope* sc, Expressions* exps)
-            {
-                foreach (ref Expression e; *exps)
-                {
-                    if (e)
-                    {
-                        e = e.semantic(sc);
-                        if (definitelyValueParameter(e))
-                            e = e.ctfeInterpret();
-                        if (e.op == TOKtuple)
-                        {
-                            TupleExp te = cast(TupleExp)e;
-                            eval(sc, te.exps);
-                        }
-                    }
-                }
-            }
-
-            _scope = null;
-            eval(sc, atts);
-        }
-        AttribDeclaration.semantic2(sc);
-    }
-
     static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
@@ -1803,7 +1330,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     }
 }
 
-extern (C++) static uint setMangleOverride(Dsymbol s, char* sym)
+uint setMangleOverride(Dsymbol s, char* sym)
 {
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)

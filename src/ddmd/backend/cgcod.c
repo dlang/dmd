@@ -1344,8 +1344,8 @@ STATIC void blcodgen(block *bl)
     char *sflsave = NULL;
     if (config.flags4 & CFG4optimized)
     {
-        code *cload = NULL;
-        code *cstore = NULL;
+        CodeBuilder cdbload;
+        CodeBuilder cdbstore;
 
         sflsave = (char *) alloca(globsym.top * sizeof(char));
         for (SYMIDX i = 0; i < globsym.top; i++)
@@ -1370,7 +1370,7 @@ STATIC void blcodgen(block *bl)
             {   if (vec_testbit(dfoidx,s->Srange))
                 {
                     anyspill = i + 1;
-                    cgreg_spillreg_prolog(bl,s,&cstore,&cload);
+                    cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
                     if (vec_testbit(dfoidx,s->Slvreg))
                     {   s->Sfl = FLreg;
                         regcon.mvar |= s->Sregm;
@@ -1385,12 +1385,10 @@ STATIC void blcodgen(block *bl)
         }
         if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
         {
-            CodeBuilder cdb2;
-            cse_save(cdb2,regcon.cse.mops & ~regcon.cse.mval);
-            cstore = cat(cdb2.finish(), cstore);
+            cse_save(cdb,regcon.cse.mops & ~regcon.cse.mval);
         }
-        cdb.append(cstore);
-        cdb.append(cload);
+        cdb.append(cdbstore);
+        cdb.append(cdbload);
         mfuncreg &= ~regcon.mvar;               // use these registers
         regcon.used |= regcon.mvar;
 
@@ -2141,7 +2139,7 @@ static void cse_save(CodeBuilder& cdb, regm_t ms)
                 csextab[i].flags |= CSEsimple;
             else
             {
-                cdb.append(gensavereg(reg, i));
+                gensavereg(cdb, reg, i);
                 reflocal = TRUE;
             }
         }
@@ -2813,7 +2811,7 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
         touse &= ~oldregimmed;
   }
 
-  code *cs1 = NULL;
+  CodeBuilder cdbs1;
   code *cs2 = NULL;
   int adjesp = 0;
 
@@ -2830,8 +2828,8 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                 {   regm_t mj = mask[j];
 
                     if (touse & mj)
-                    {   cs1 = genmovreg(cs1,j,i);
-                        cs2 = cat(genmovreg(CNIL,i,j),cs2);
+                    {   genmovreg(cdbs1,j,i);
+                        cs2 = cat(genmovreg(i,j),cs2);
                         touse &= ~mj;
                         mfuncreg &= ~mj;
                         regcon.used |= mj;
@@ -2842,7 +2840,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             }
             else                        // else use memory
             {
-                unsigned size = gensaverestore2(mask[i], &cs1, &cs2);
+                CodeBuilder cdbx;
+                unsigned size = gensaverestore(mask[i], cdbs1, cdbx);
+                cs2 = cat(cdbx.finish(),cs2);
                 if (size)
                 {
                     stackchanged = 1;
@@ -2853,8 +2853,6 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             tosave &= ~mi;
         }
   }
-  CodeBuilder cdbs1;
-  cdbs1.append(cs1);
   CodeBuilder cdbs2;
   if (adjesp)
   {
@@ -2874,16 +2872,16 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
                                         // because c hasn't been executed yet
             cod3_stackadj(cdbs1, sz);
             regcon.immed.mval = mval_save;
-            cdbs1.append(genadjesp(CNIL, sz));
+            cdbs1.genadjesp(sz);
 
             cod3_stackadj(cdbs2, -sz);
-            cdbs2.append(genadjesp(CNIL, -sz));
+            cdbs2.genadjesp(-sz);
         }
         cdbs2.append(cs2);
 
 
-        cdbs1.append(genadjesp(CNIL,adjesp));
-        cdbs2.append(genadjesp(CNIL,-adjesp));
+        cdbs1.genadjesp(adjesp);
+        cdbs2.genadjesp(-adjesp);
   }
   else
         cdbs2.append(cs2);
@@ -2967,7 +2965,7 @@ void docommas(CodeBuilder& cdb,elem **pe)
     {
         if (configv.addlinenumbers && e->Esrcpos.Slinnum)
         {
-                cdb.append(genlinnum(CNIL,e->Esrcpos));
+                cdb.genlinnum(e->Esrcpos);
                 //e->Esrcpos.Slinnum = 0;               // don't do it twice
         }
         if (e->Eoper != OPcomma)

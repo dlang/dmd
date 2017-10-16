@@ -136,6 +136,11 @@ struct Param
      */
 
     bool showGaggedErrors;  // print gagged errors anyway
+    bool manual;            // open browser on compiler manual
+    bool usage;             // print usage and exit
+    bool mcpuUsage;         // print help on -mcpu switch
+    bool transitionUsage;   // print help on -transition switch
+    bool logo;              // print logo;
 
     CPU cpu;                // CPU instruction set to target
     BOUNDSCHECK useArrayBounds;
@@ -443,11 +448,6 @@ enum MATCH : int
     constant,  // match with conversion to const
     exact,     // exact match
 }
-
-alias MATCHnomatch = MATCH.nomatch;
-alias MATCHconvert = MATCH.convert;
-alias MATCHconst = MATCH.constant;
-alias MATCHexact = MATCH.exact;
 
 enum PINLINE : int
 {

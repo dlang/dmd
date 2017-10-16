@@ -164,12 +164,12 @@ void foo800()
 }
 
 /*************************************************/
-/+
+
 /*
-XEST_OUTPUT:
-
+TEST_OUTPUT:
+---
 fail_compilation/retscope2.d(907): Error: address of variable `this` assigned to `p17568` with longer lifetime
-
+---
 */
 
 #line 900
@@ -183,7 +183,7 @@ struct T17568
         p17568 = &a;
     }
 }
-+/
+
 /*************************************************/
 
 /*
@@ -291,5 +291,28 @@ struct T17388
     return t.foo();
 }
 
+/****************************************************/
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope2.d(1306): Error: returning `& i` escapes a reference to local variable `i`
+---
+*/
+
+#line 1300
+
+// https://issues.dlang.org/show_bug.cgi?id=17370
+
+void test1300() @safe
+{
+    int i;
+    auto p = new S1300(&i).oops;
+}
+
+struct S1300
+{
+    int* oops;
+//    this(int* p) @safe { oops = p; }
+}
 

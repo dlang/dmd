@@ -37,6 +37,7 @@ import ddmd.arraytypes;
  * Print error messages when these are detected.
  * Params:
  *      sc = used to determine current function and module
+ *      fdc = function being called, `null` if called indirectly
  *      par = identifier of function parameter
  *      arg = initializer for param
  *      gag = do not print error messages
@@ -168,17 +169,19 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
  * to eliminate the error.
  * Params:
  *      sc = used to determine current function and module
- *      ae = AssignExp to check for any pointers to the stack
+ *      e = AssignExp or CatAssignExp to check for any pointers to the stack
  *      gag = do not print error messages
  * Returns:
  *      true if pointers to the stack can escape via assignment
  */
 bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
-    //printf("checkAssignEscape(e: %s)\n", e.toChars());
-    if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct)
+    enum log = false;
+    if (log) printf("checkAssignEscape(e: %s)\n", e.toChars());
+    if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct &&
+        e.op != TOKcatass && e.op != TOKcatelemass && e.op != TOKcatdcharass)
         return false;
-    auto ae = cast(AssignExp)e;
+    auto ae = cast(BinExp)e;
     Expression e1 = ae.e1;
     Expression e2 = ae.e2;
     //printf("type = %s, %d\n", e1.type.toChars(), e1.type.hasPointers());
@@ -211,6 +214,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             va = (cast(VarExp)ie.e1).var.isVarDeclaration();
     }
 
+    if (log && va) printf("va: %s\n", va.toChars());
+
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
     if (va && sc.func && sc.func.type && sc.func.type.ty == Tfunction)
@@ -219,7 +224,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
     {
-        //printf("byvalue: %s\n", v.toChars());
+        if (log) printf("byvalue: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -244,10 +249,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
             // If va's lifetime encloses v's, then error
             if (va &&
-                (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) ||
+                (va.enclosesLifetimeOf(v) && !(v.storage_class & (STCparameter | STCtemp)) ||
                  // va is class reference
                  ae.e1.op == TOKdotvar && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope) ||
-                 va.storage_class & STCref) &&
+                 va.storage_class & STCref && !(v.storage_class & STCtemp)) &&
                 sc.func.setUnsafe())
             {
                 if (!gag)
@@ -302,9 +307,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         }
     }
 
+ByRef:
     foreach (VarDeclaration v; er.byref)
     {
-        //printf("byref: %s\n", v.toChars());
+        if (log) printf("byref: %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -312,13 +318,35 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) || va.storage_class & STCref) &&
+            (va.enclosesLifetimeOf(v) && !(v.storage_class & STCparameter) ||
+             va.storage_class & STCref ||
+             va.isDataseg()) &&
             sc.func.setUnsafe())
         {
             if (!gag)
                 error(ae.loc, "address of variable `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
             result = true;
             continue;
+        }
+
+        if (va &&  v.storage_class & (STCref | STCout))
+        {
+            Dsymbol pva = va.toParent2();
+            for (Dsymbol pv = p; pv; )
+            {
+                pv = pv.toParent2();
+                if (pva == pv)  // if v is nested inside pva
+                {
+                    if (sc.func.setUnsafe())
+                    {
+                        if (!gag)
+                            error(ae.loc, "reference `%s` assigned to `%s` with longer lifetime", v.toChars(), va.toChars());
+                        result = true;
+                        continue ByRef;
+                    }
+                    break;
+                }
+            }
         }
 
         if (!(va && va.isScope()))
@@ -346,7 +374,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (FuncDeclaration fd; er.byfunc)
     {
-        //printf("fd = %s, %d\n", fd.toChars(), fd.tookAddressOf);
+        if (log) printf("byfunc: %s, %d\n", fd.toChars(), fd.tookAddressOf);
         VarDeclarations vars;
         findAllOuterAccessedVariables(fd, &vars);
 
@@ -384,6 +412,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     foreach (Expression ee; er.byexp)
     {
+        if (log) printf("byexp: %s\n", ee.toChars());
         if (va && !va.isDataseg() && !va.doNotInferScope)
         {
             if (!va.isScope() && inferScope)
@@ -499,7 +528,8 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
 
 private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
-    //printf("[%s] checkReturnEscapeImpl, e: `%s`\n", e.loc.toChars(), e.toChars());
+    enum log = false;
+    if (log) printf("[%s] checkReturnEscapeImpl, refs: %d e: `%s`\n", e.loc.toChars(), refs, e.toChars());
     EscapeByResults er;
 
     if (refs)
@@ -513,7 +543,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)
     {
-        //printf("byvalue `%s`\n", v.toChars());
+        if (log) printf("byvalue `%s`\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -575,7 +605,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
     foreach (VarDeclaration v; er.byref)
     {
-        //printf("byref `%s`\n", v.toChars());
+        if (log) printf("byref `%s`\n", v.toChars());
 
         void escapingRef(VarDeclaration v)
         {
@@ -661,7 +691,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
     foreach (Expression ee; er.byexp)
     {
-        //printf("byexp %s\n", ee.toChars());
+        if (log) printf("byexp %s\n", ee.toChars());
         if (!gag)
             error(ee.loc, "escaping reference to stack allocated value returned by `%s`", ee.toChars());
         result = true;
@@ -882,6 +912,14 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             }
             else
                 e.e1.accept(this);
+        }
+
+        override void visit(IndexExp e)
+        {
+            if (e.type.hasPointers())
+            {
+                e.e1.accept(this);
+            }
         }
 
         override void visit(BinExp e)

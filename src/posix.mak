@@ -24,6 +24,7 @@
 # ENABLE_UNITTEST:		Build dmd with unittests (sets ENABLE_COVERAGE=1)
 # ENABLE_PROFILE:		Build dmd with a profiling recorder (D)
 # ENABLE_COVERAGE		Build dmd with coverage counting
+# ENABLE_SANITIZERS		Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
 ################################################################################
 
 # get OS and MODEL
@@ -127,6 +128,17 @@ else
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DMD_PATH=$(HOST_DMD)
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
+endif
+
+HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
+ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=gdc
+endif
+ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=ldc
+endif
+ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=dmd
 endif
 
 # Compiler Warnings
@@ -236,7 +248,19 @@ ifdef ENABLE_PROFILE
 DFLAGS  += -profile
 endif
 ifdef ENABLE_COVERAGE
-DFLAGS  += -cov
+DFLAGS  += -cov -L-lgcov
+CXXFLAGS += --coverage
+endif
+ifdef ENABLE_SANITIZERS
+CXXFLAGS += -fsanitize=${ENABLE_SANITIZERS}
+
+ifeq ($(HOST_DMD_KIND), dmd)
+HOST_CXX += -fsanitize=${ENABLE_SANITIZERS}
+endif
+ifneq (,$(findstring gdc,$(HOST_DMD_KIND))$(findstring ldc,$(HOST_DMD_KIND)))
+DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
+endif
+
 endif
 
 # Unique extra flags if necessary
@@ -255,11 +279,11 @@ endif
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle ctfeexpr dcast dclass declaration delegatize denum dimport	\
-	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol	\
+	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
-	json lib link mars mtype nogc nspace objc opover optimize parse sapply	\
-	sideeffect statement staticassert target typesem traits visitor	\
+	json lib link mars mtype nogc nspace objc opover optimize parse sapply templateparamsem	\
+	semantic sideeffect statement staticassert target typesem traits visitor	\
 	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
@@ -396,29 +420,29 @@ $G/backend.a: $(G_OBJS)
 	$(AR) rcs $@ $(G_OBJS)
 
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
 
 parser_test: $G/parser.a $(EX)/test_parser.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/test_parser.d $(EX)/impvisitor.d
 
 example_avg: $G/parser.a $(EX)/avg.d $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $G/parser.a $(EX)/avg.d
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 dmd: $G/dmd $G/dmd.conf
 	cp $< .
 
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 else
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT),$^)
 endif
 
 
@@ -541,7 +565,7 @@ install: all
 ######################################################
 
 checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -run $(TOOLS_DIR)/checkwhitespace.d $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -run $(TOOLS_DIR)/checkwhitespace.d $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
 
 $(TOOLS_DIR)/checkwhitespace.d:
 	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
@@ -571,7 +595,7 @@ gitzip:
 ######################################################
 
 ../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
-	CC=$(HOST_CXX) $(HOST_DMD_RUN) -Df$@ $<
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -Df$@ $<
 
 ################################################################################
 # DDoc documentation generation

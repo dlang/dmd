@@ -42,21 +42,28 @@ import ddmd.parse;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.sapply;
+import ddmd.semantic;
 import ddmd.sideeffect;
 import ddmd.staticassert;
 import ddmd.tokens;
 import ddmd.visitor;
 
+/*****************************************
+ * CTFE requires FuncDeclaration::labtab for the interpretation.
+ * So fixing the label name inside in/out contracts is necessary
+ * for the uniqueness in labtab.
+ * Params:
+ *      sc = context
+ *      ident = statement label name to be adjusted
+ * Returns:
+ *      adjusted label name
+ */
 extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
 {
     uint flags = (sc.flags & SCOPEcontract);
     const id = ident.toChars();
     if (flags && flags != SCOPEinvariant && !(id[0] == '_' && id[1] == '_'))
     {
-        /* CTFE requires FuncDeclaration::labtab for the interpretation.
-         * So fixing the label name inside in/out contracts is necessary
-         * for the uniqueness in labtab.
-         */
         const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
         OutBuffer buf;
         buf.printf("%s%s", prefix, ident.toChars());
@@ -66,6 +73,14 @@ extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
     return ident;
 }
 
+/*******************************************
+ * Check to see if statement is the innermost labeled statement.
+ * Params:
+ *      sc = context
+ *      statement = Statement to check
+ * Returns:
+ *      if `true`, then the `LabelStatement`, otherwise `null`
+ */
 extern (C++) LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
 {
     if (sc.slabel && sc.slabel.statement == statement)
@@ -96,7 +111,10 @@ Expression checkAssignmentAsCondition(Expression e)
     return e;
 }
 
-/// Return a type identifier reference to 'object.Throwable'
+/**
+ * Returns:
+ *     `TypeIdentifier` corresponding to `object.Throwable`
+ */
 TypeIdentifier getThrowable()
 {
     auto tid = new TypeIdentifier(Loc(), Id.empty);
@@ -107,6 +125,7 @@ TypeIdentifier getThrowable()
 
 
 /***********************************************************
+ * Specification: http://dlang.org/spec/statement.html
  */
 extern (C++) abstract class Statement : RootObject
 {
@@ -172,19 +191,33 @@ extern (C++) abstract class Statement : RootObject
         return this;
     }
 
+    /****************************
+     * Determine if an enclosed `break` would apply to this
+     * statement, such as if it is a loop or switch statement.
+     * Returns:
+     *     `true` if it does
+     */
     bool hasBreak()
     {
         //printf("Statement::hasBreak()\n");
         return false;
     }
 
+    /****************************
+     * Determine if an enclosed `continue` would apply to this
+     * statement, such as if it is a loop statement.
+     * Returns:
+     *     `true` if it does
+     */
     bool hasContinue()
     {
         return false;
     }
 
-    /* ============================================== */
-    // true if statement uses exception handling
+    /**********************************
+     * Returns:
+     *     `true` if statement uses exception handling
+     */
     final bool usesEH()
     {
         extern (C++) final class UsesEH : StoppableVisitor
@@ -220,8 +253,10 @@ extern (C++) abstract class Statement : RootObject
         return walkPostorder(this, ueh);
     }
 
-    /* ============================================== */
-    // true if statement 'comes from' somewhere else, like a goto
+    /**********************************
+     * Returns:
+     *   `true` if statement 'comes from' somewhere else, like a goto
+     */
     final bool comeFrom()
     {
         extern (C++) final class ComeFrom : StoppableVisitor
@@ -257,8 +292,10 @@ extern (C++) abstract class Statement : RootObject
         return walkPostorder(this, cf);
     }
 
-    /* ============================================== */
-    // Return true if statement has executable code.
+    /**********************************
+     * Returns:
+     *   `true` if statement has executable code.
+     */
     final bool hasCode()
     {
         extern (C++) final class HasCode : StoppableVisitor
@@ -299,10 +336,13 @@ extern (C++) abstract class Statement : RootObject
      * If this statement has code that needs to run in a finally clause
      * at the end of the current scope, return that code in the form of
      * a Statement.
-     * Output:
-     *      *sentry         code executed upon entry to the scope
-     *      *sexception     code executed upon exit from the scope via exception
-     *      *sfinally       code executed in finally block
+     * Params:
+     *     sc = context
+     *     sentry     = set to code executed upon entry to the scope
+     *     sexception = set to code executed upon exit from the scope via exception
+     *     sfinally   = set to code executed in finally block
+     * Returns:
+     *    code to be run in the finally clause
      */
     Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
     {
@@ -317,89 +357,119 @@ extern (C++) abstract class Statement : RootObject
     /*********************************
      * Flatten out the scope by presenting the statement
      * as an array of statements.
-     * Returns NULL if no flattening necessary.
+     * Params:
+     *     sc = context
+     * Returns:
+     *     The array of `Statements`, or `null` if no flattening necessary
      */
     Statements* flatten(Scope* sc)
     {
         return null;
     }
 
+    /*******************************
+     * Find last statement in a sequence of statements.
+     * Returns:
+     *  the last statement, or `null` if there isn't one
+     */
     inout(Statement) last() inout nothrow pure
     {
         return this;
     }
 
-    // Avoid dynamic_cast
+    /********************
+     * A cheaper method of doing downcasting of Statements.
+     * Returns:
+     *    the downcast statement if it can be downcasted, otherwise `null`
+     */
     ErrorStatement isErrorStatement()
     {
         return null;
     }
 
+    /// ditto
     inout(ScopeStatement) isScopeStatement() inout nothrow pure
     {
         return null;
     }
 
+    /// ditto
     ExpStatement isExpStatement()
     {
         return null;
     }
 
+    /// ditto
     inout(CompoundStatement) isCompoundStatement() inout nothrow pure
     {
         return null;
     }
 
+    /// ditto
     inout(ReturnStatement) isReturnStatement() inout nothrow pure
     {
         return null;
     }
 
+    /// ditto
     IfStatement isIfStatement()
     {
         return null;
     }
 
+    /// ditto
     CaseStatement isCaseStatement()
     {
         return null;
     }
 
+    /// ditto
     DefaultStatement isDefaultStatement()
     {
         return null;
     }
 
+    /// ditto
     LabelStatement isLabelStatement()
     {
         return null;
     }
 
+    /// ditto
     GotoDefaultStatement isGotoDefaultStatement() pure
     {
         return null;
     }
 
+    /// ditto
     GotoCaseStatement isGotoCaseStatement() pure
     {
         return null;
     }
 
+    /// ditto
     inout(BreakStatement) isBreakStatement() inout nothrow pure
     {
         return null;
     }
 
+    /// ditto
     DtorExpStatement isDtorExpStatement()
     {
         return null;
     }
 
+    /// ditto
     ForwardingStatement isForwardingStatement()
     {
         return null;
     }
 
+    /**************************
+     * Support Visitor Pattern
+     * Params:
+     *  v = visitor
+     */
     void accept(Visitor v)
     {
         v.visit(this);
@@ -671,7 +741,7 @@ extern (C++) class ExpStatement : Statement
             Dsymbol d = (cast(DeclarationExp)exp).declaration;
             if (TemplateMixin tm = d.isTemplateMixin())
             {
-                Expression e = exp.semantic(sc);
+                Expression e = exp.expressionSemantic(sc);
                 if (e.op == TOKerror || tm.errors)
                 {
                     auto a = new Statements();

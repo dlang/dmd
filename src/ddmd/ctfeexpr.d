@@ -279,6 +279,8 @@ extern (C++) bool needToCopyLiteral(Expression expr)
         case TOKcat:
             return needToCopyLiteral((cast(BinExp)expr).e1) || needToCopyLiteral((cast(BinExp)expr).e2);
         case TOKcatass:
+        case TOKcatelemass:
+        case TOKcatdcharass:
             expr = (cast(BinExp)expr).e2;
             continue;
         default:

@@ -159,14 +159,14 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
-	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d		\
+	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d $D/dsymbolsem.d		\
 	$D/dtemplate.d $D/dversion.d $D/escape.d			\
 	$D/expression.d $D/expressionsem.d $D/func.d $D/hdrgen.d $D/id.d $D/imphint.d	\
 	$D/impcnvtab.d $D/init.d $D/initsem.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
 	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
-	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
+	$D/sapply.d $D/semantic.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
 	$D/safe.d $D/blockexit.d $D/asttypename.d $D/printast.d $D/typesem.d \
-	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/typinf.d \
+	$D/traits.d $D/utils.d $D/visitor.d $D/libomf.d $D/scanomf.d $D/templateparamsem.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d
 
 LEXER_SRCS=$D/console.d $D/entity.d $D/errors.d $D/globals.d $D/id.d $D/identifier.d \
@@ -215,7 +215,7 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 # D front end
 SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
 	$D/attrib.h $D/complex_t.h $D/cond.h $D/ctfe.h $D/ctfe.h $D/declaration.h $D/dsymbol.h	\
-	$D/enum.h $D/errors.h $D/expression.h $D/globals.h $D/hdrgen.h $D/identifier.h $D/idgen.d	\
+	$D/enum.h $D/errors.h $D/expression.h $D/globals.h $D/hdrgen.h $D/identifier.h	\
 	$D/import.h $D/init.h $D/intrange.h $D/json.h	\
 	$D/mars.h $D/module.h $D/mtype.h $D/nspace.h $D/objc.h                         \
 	$D/scope.h $D/statement.h $D/staticassert.h $D/target.h $D/template.h $D/tokens.h	\
@@ -347,7 +347,7 @@ clean:
 	$(RD) /s /q $(GEN)
 	$(DEL) $D\msgs.h $D\msgs.c
 	$(DEL) optabgen.exe parser_test.exe example_avg.exe
-	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj
+	$(DEL) $(TARGETEXE) $(DMDFRONTENDEXE) *.map *.obj *.exe
 
 install: detab install-copy
 

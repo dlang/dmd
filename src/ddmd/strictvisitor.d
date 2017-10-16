@@ -191,8 +191,7 @@ class StrictVisitor : Visitor
     override void visit(ASTBase.AndExp) { assert(0); }
     override void visit(ASTBase.XorExp) { assert(0); }
     override void visit(ASTBase.OrExp) { assert(0); }
-    override void visit(ASTBase.AndAndExp) { assert(0); }
-    override void visit(ASTBase.OrOrExp) { assert(0); }
+    override void visit(ASTBase.LogicalExp) { assert(0); }
     override void visit(ASTBase.CondExp) { assert(0); }
     override void visit(ASTBase.AssignExp) { assert(0); }
     override void visit(ASTBase.BinAssignExp) { assert(0); }

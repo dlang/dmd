@@ -22,6 +22,7 @@ import ddmd.globals;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -156,6 +157,8 @@ extern (C++) bool lambdaHasSideEffect(Expression e)
     case TOKaddass:
     case TOKminass:
     case TOKcatass:
+    case TOKcatelemass:
+    case TOKcatdcharass:
     case TOKmulass:
     case TOKdivass:
     case TOKmodass:
@@ -287,14 +290,10 @@ extern (C++) bool discardValue(Expression e)
         e.error("`%s` has no effect", e.toChars());
         return true;
     case TOKandand:
-        {
-            AndAndExp aae = cast(AndAndExp)e;
-            return discardValue(aae.e2);
-        }
     case TOKoror:
         {
-            OrOrExp ooe = cast(OrOrExp)e;
-            return discardValue(ooe.e2);
+            LogicalExp aae = cast(LogicalExp)e;
+            return discardValue(aae.e2);
         }
     case TOKquestion:
         {
@@ -409,8 +408,8 @@ Expression extractSideEffect(Scope* sc, const char* name,
 
     Expression de = new DeclarationExp(vd.loc, vd);
     Expression ve = new VarExp(vd.loc, vd);
-    de = de.semantic(sc);
-    ve = ve.semantic(sc);
+    de = de.expressionSemantic(sc);
+    ve = ve.expressionSemantic(sc);
 
     e0 = Expression.combine(e0, de);
     return ve;

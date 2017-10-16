@@ -48,7 +48,6 @@ public:
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    void semantic(Scope *) { }
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
@@ -82,7 +81,12 @@ public:
     int isDocFile;      // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
-
+    /**
+       How many unit tests have been seen so far in this module. Makes it so the
+       unit test name is reproducible regardless of whether it's compiled
+       separately or all at once.
+     */
+    unsigned unitTestCounter;
     int selfimports;            // 0: don't know, 1: does not, 2: does
     bool selfImports();         // returns true if module imports itself
 
@@ -127,9 +131,7 @@ public:
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
     Module *parse();    // syntactic parse
     void importAll(Scope *sc);
-    void semantic(Scope *);    // semantic analysis
     void semantic2(Scope *);   // pass 2 semantic analysis
-    void semantic3(Scope *);   // pass 3 semantic analysis
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isPackageAccessible(Package *p, Prot protection, int flags = 0);

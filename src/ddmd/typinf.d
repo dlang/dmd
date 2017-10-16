@@ -233,7 +233,7 @@ extern (C++) bool isSpeculativeType(Type t)
 /* These decide if there's an instance for them already in std.typeinfo,
  * because then the compiler doesn't need to build one.
  */
-extern (C++) static bool builtinTypeInfo(Type t)
+private bool builtinTypeInfo(Type t)
 {
     if (t.isTypeBasic() || t.ty == Tclass || t.ty == Tnull)
         return !t.mod;

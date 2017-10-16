@@ -17,6 +17,7 @@ import ddmd.cond;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.root.outbuffer;
@@ -98,13 +99,6 @@ extern (C++) final class DebugSymbol : Dsymbol
             else
                 m.debuglevel = level;
         }
-    }
-
-    override void semantic(Scope* sc)
-    {
-        //printf("DebugSymbol::semantic() %s\n", toChars());
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
     }
 
     override const(char)* kind() const
@@ -195,12 +189,6 @@ extern (C++) final class VersionSymbol : Dsymbol
             else
                 m.versionlevel = level;
         }
-    }
-
-    override void semantic(Scope* sc)
-    {
-        if (semanticRun < PASSsemanticdone)
-            semanticRun = PASSsemanticdone;
     }
 
     override const(char)* kind() const

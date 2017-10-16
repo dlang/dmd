@@ -96,33 +96,7 @@ void test9459()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop1.d(111): Error: invalid array operation `x1[] = x2[] * x3[]` because `X` doesn't support necessary arithmetic operations
-fail_compilation/fail_arrayop1.d(115): Error: invalid array operation `s2[] += s1[]` because `string` is not a scalar type
-fail_compilation/fail_arrayop1.d(119): Error: invalid array operation `pa1[] *= pa2[]` for element type `int*`
----
-*/
-void test11376()
-{
-    struct X { }
-
-    auto x1 = [X()];
-    auto x2 = [X()];
-    auto x3 = [X()];
-    x1[] = x2[] * x3[];
-
-    string[] s1;
-    string[] s2;
-    s2[] += s1[];
-
-    int*[] pa1;
-    int*[] pa2;
-    pa1[] *= pa2[];
-}
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail_arrayop1.d(131): Error: invalid array operation `a[] <<= 1` (possible missing [])
+fail_compilation/fail_arrayop1.d(105): Error: invalid array operation `a[] <<= 1` (possible missing [])
 ---
 */
 void test11566()
@@ -134,9 +108,9 @@ void test11566()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop1.d(147): Error: invalid array operation `a + b` (possible missing [])
-fail_compilation/fail_arrayop1.d(148): Error: invalid array operation `x + y` (possible missing [])
-fail_compilation/fail_arrayop1.d(149): Error: invalid array operation `"hel" + "lo."` (possible missing [])
+fail_compilation/fail_arrayop1.d(121): Error: invalid array operation `a + b` (possible missing [])
+fail_compilation/fail_arrayop1.d(122): Error: invalid array operation `x + y` (possible missing [])
+fail_compilation/fail_arrayop1.d(123): Error: invalid array operation `"hel" + "lo."` (possible missing [])
 ---
 */
 void test14649()

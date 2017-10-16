@@ -217,6 +217,7 @@ extern __gshared int refparam;
 targ_size_t cod3_spoff();
 uint calccodsize(code *c);
 targ_size_t cod3_bpoffset(Symbol *s);
+void searchfixlist(Symbol *s) { }
 
 /* cgxmm.c */
 void checkSetVex3(code *c);

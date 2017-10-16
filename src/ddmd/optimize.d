@@ -26,6 +26,7 @@ import ddmd.init;
 import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.sideeffect;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -103,11 +104,11 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     {
                         // const variable initialized with const expression
                     }
-                    else if (ei.implicitConvTo(v.type) >= MATCHconst)
+                    else if (ei.implicitConvTo(v.type) >= MATCH.constant)
                     {
                         // const var initialized with non-const expression
                         ei = ei.implicitCastTo(null, v.type);
-                        ei = ei.semantic(null);
+                        ei = ei.expressionSemantic(null);
                     }
                     else
                         goto L1;
@@ -580,7 +581,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
             }
 
-            if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCHconst)
+            if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
             {
                 //printf(" returning2 %s\n", e.e1.toChars());
             L1:
@@ -1057,21 +1058,23 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("-SliceExp::optimize() %s\n", ret.toChars());
         }
 
-        override void visit(AndAndExp e)
+        override void visit(LogicalExp e)
         {
-            //printf("AndAndExp::optimize(%d) %s\n", result, e.toChars());
+            //printf("LogicalExp::optimize(%d) %s\n", result, e.toChars());
             if (expOptimize(e.e1, WANTvalue))
                 return;
-            if (e.e1.isBool(false))
+            const oror = e.op == TOKoror;
+            if (e.e1.isBool(oror))
             {
-                // Replace with (e1, false)
-                ret = new IntegerExp(e.loc, 0, Type.tbool);
+                // Replace with (e1, oror)
+                ret = new IntegerExp(e.loc, oror, Type.tbool);
                 ret = Expression.combine(e.e1, ret);
                 if (e.type.toBasetype().ty == Tvoid)
                 {
                     ret = new CastExp(e.loc, ret, Type.tvoid);
                     ret.type = e.type;
                 }
+                ret = ret.optimize(result);
                 return;
             }
             if (expOptimize(e.e2, WANTvalue))
@@ -1082,49 +1085,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 {
                     bool n1 = e.e1.isBool(true);
                     bool n2 = e.e2.isBool(true);
-                    ret = new IntegerExp(e.loc, n1 && n2, e.type);
+                    ret = new IntegerExp(e.loc, oror ? (n1 || n2) : (n1 && n2), e.type);
                 }
-                else if (e.e1.isBool(true))
-                {
-                    if (e.type.toBasetype().ty == Tvoid)
-                        ret = e.e2;
-                    else
-                    {
-                        ret = new CastExp(e.loc, e.e2, e.type);
-                        ret.type = e.type;
-                    }
-                }
-            }
-        }
-
-        override void visit(OrOrExp e)
-        {
-            //printf("OrOrExp::optimize(%d) %s\n", result, e.toChars());
-            if (expOptimize(e.e1, WANTvalue))
-                return;
-            if (e.e1.isBool(true))
-            {
-                // Replace with (e1, true)
-                ret = new IntegerExp(e.loc, 1, Type.tbool);
-                ret = Expression.combine(e.e1, ret);
-                if (e.type.toBasetype().ty == Tvoid)
-                {
-                    ret = new CastExp(e.loc, ret, Type.tvoid);
-                    ret.type = e.type;
-                }
-                return;
-            }
-            if (expOptimize(e.e2, WANTvalue))
-                return;
-            if (e.e1.isConst())
-            {
-                if (e.e2.isConst())
-                {
-                    bool n1 = e.e1.isBool(true);
-                    bool n2 = e.e2.isBool(true);
-                    ret = new IntegerExp(e.loc, n1 || n2, e.type);
-                }
-                else if (e.e1.isBool(false))
+                else if (e.e1.isBool(!oror))
                 {
                     if (e.type.toBasetype().ty == Tvoid)
                         ret = e.e2;

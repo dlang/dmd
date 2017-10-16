@@ -33,16 +33,14 @@ struct Outbuffer
     unsigned char *buf;         // the buffer itself
     unsigned char *pend;        // pointer past the end of the buffer
     unsigned char *p;           // current position in buffer
-    unsigned len;               // size of buffer
-    unsigned inc;               // default increment size
     unsigned char *origbuf;     // external buffer
 
     Outbuffer();
 
-    Outbuffer(d_size_t incx) : buf(NULL), pend(NULL), p(NULL), len(0), inc(incx), origbuf(NULL) { }
+    Outbuffer(d_size_t initialSize);
 
     Outbuffer(unsigned char *bufx, d_size_t bufxlen, unsigned incx) :
-        buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
+        buf(bufx), pend(bufx + bufxlen), p(bufx), origbuf(bufx) { }
 
     ~Outbuffer();
 

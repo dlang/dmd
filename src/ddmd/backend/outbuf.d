@@ -26,16 +26,16 @@ struct Outbuffer
     ubyte *buf;         // the buffer itself
     ubyte *pend;        // pointer past the end of the buffer
     ubyte *p;           // current position in buffer
-    uint len;           // size of buffer
-    uint inc;           // default increment size
     ubyte *origbuf;     // external buffer
 
     //this();
 
-    this(size_t incx); // : buf(null), pend(null), p(null), len(0), inc(incx), origbuf(null) { }
+    this(size_t initialSize); // : buf(null), pend(null), p(null), origbuf(null) { }
 
-    this(ubyte *bufx, size_t bufxlen, uint incx);
-        //: buf(bufx), pend(bufx + bufxlen), p(bufx), len(bufxlen), inc(incx), origbuf(bufx) { }
+    this(ubyte *bufx, size_t bufxlen, uint incx)
+    {
+        buf = bufx; pend = bufx + bufxlen; p = bufx; origbuf = bufx;
+    }
 
     //~this();
 
@@ -169,15 +169,15 @@ struct Outbuffer
      */
     void writeDouble(double v);
 
-    void write(const char *s);
+    void write(const(char)* s);
 
-    void write(const ubyte *s);
+    void write(const(ubyte)* s);
 
-    void writeString(const char *s);
+    void writeString(const(char)* s);
 
-    void prependBytes(const char *s);
+    void prependBytes(const(char)* s);
 
-    void prepend(const void *b, size_t len);
+    void prepend(const(void)* b, size_t len);
 
     void bracket(char c1,char c2);
 

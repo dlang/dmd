@@ -75,7 +75,7 @@ bool issinglechar(char c)
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-static this()
+shared static this()
 {
     foreach (const c; 0 .. cmtable.length)
     {
@@ -1532,7 +1532,7 @@ class Lexer
                 }
                 else if (c == delimright)
                     goto Ldone;
-                if (startline && isalpha(c) && hereid)
+                if (startline && (isalpha(c) || c == '_' || (c >= 0x80 && isUniAlpha(c))) && hereid)
                 {
                     Token tok;
                     auto psave = p;

@@ -39,6 +39,7 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.tocsym;
 import ddmd.toobj;
+import ddmd.typesem;
 import ddmd.typinf;
 import ddmd.visitor;
 
@@ -966,7 +967,8 @@ extern (C++) class TypeInfoDtVisitor : Visitor
                 printf("expected = x%x, %s.structsize = x%x\n", cast(uint)expected,
                     typeclass.toChars(), cast(uint)typeclass.structsize);
             }
-            error(typeclass.loc, "mismatch between compiler and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+            error(typeclass.loc, "`%s`: mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+                typeclass.toChars(), cast(uint)expected, cast(uint)typeclass.structsize);
             fatal();
         }
     }

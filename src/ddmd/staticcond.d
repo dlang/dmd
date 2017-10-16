@@ -22,6 +22,7 @@ import ddmd.expressionsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.utils;
 
@@ -40,25 +41,23 @@ import ddmd.utils;
 
 bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool errors)
 {
-    if (e.op == TOKandand)
+    if (e.op == TOKandand || e.op == TOKoror)
     {
-        AndAndExp aae = cast(AndAndExp)e;
+        LogicalExp aae = cast(LogicalExp)e;
         bool result = evalStaticCondition(sc, exp, aae.e1, errors);
-        if (errors || !result)
-            return false;
-        result = evalStaticCondition(sc, exp, aae.e2, errors);
-        return !errors && result;
-    }
-
-    if (e.op == TOKoror)
-    {
-        OrOrExp ooe = cast(OrOrExp)e;
-        bool result = evalStaticCondition(sc, exp, ooe.e1, errors);
         if (errors)
             return false;
-        if (result)
-            return true;
-        result = evalStaticCondition(sc, exp, ooe.e2, errors);
+        if (e.op == TOKandand)
+        {
+            if (!result)
+                return false;
+        }
+        else
+        {
+            if (result)
+                return true;
+        }
+        result = evalStaticCondition(sc, exp, aae.e2, errors);
         return !errors && result;
     }
 
@@ -78,7 +77,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
     sc = sc.startCTFE();
     sc.flags |= SCOPEcondition;
 
-    e = e.semantic(sc);
+    e = e.expressionSemantic(sc);
     e = resolveProperties(sc, e);
 
     sc = sc.endCTFE();

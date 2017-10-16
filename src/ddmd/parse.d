@@ -172,6 +172,8 @@ __gshared PREC[TOKMAX] precedence =
     TOKaddass : PREC.assign,
     TOKminass : PREC.assign,
     TOKcatass : PREC.assign,
+    TOKcatelemass : PREC.assign,
+    TOKcatdcharass : PREC.assign,
     TOKmulass : PREC.assign,
     TOKdivass : PREC.assign,
     TOKmodass : PREC.assign,
@@ -7461,7 +7463,7 @@ final class Parser(AST) : Lexer
             check(TOKdot, t.toChars());
             if (token.value != TOKidentifier)
             {
-                error("found `%s` when expecting identifier following `%s.`", token.toChars(), t.toChars());
+                error("found `%s` when expecting identifier following `%s`.", token.toChars(), t.toChars());
                 goto Lerr;
             }
             e = new AST.DotIdExp(loc, new AST.TypeExp(loc, t), token.ident);
@@ -8317,7 +8319,7 @@ final class Parser(AST) : Lexer
         {
             nextToken();
             auto e2 = parseOrExp();
-            e = new AST.AndAndExp(loc, e, e2);
+            e = new AST.LogicalExp(loc, TOKandand, e, e2);
         }
         return e;
     }
@@ -8331,7 +8333,7 @@ final class Parser(AST) : Lexer
         {
             nextToken();
             auto e2 = parseAndAndExp();
-            e = new AST.OrOrExp(loc, e, e2);
+            e = new AST.LogicalExp(loc, TOKoror, e, e2);
         }
         return e;
     }

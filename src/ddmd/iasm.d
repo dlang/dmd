@@ -35,6 +35,7 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.tokens;
@@ -3473,7 +3474,7 @@ code *asm_db_parse(OP *pop)
             {
                 Expression e = IdentifierExp.create(asmstate.loc, asmstate.tok.ident);
                 Scope *sc = asmstate.sc.startCTFE();
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 sc.endCTFE();
                 e = e.ctfeInterpret();
                 if (e.op == TOKint64)
@@ -3564,7 +3565,7 @@ int asm_getnum()
         {
             Expression e = IdentifierExp.create(asmstate.loc, asmstate.tok.ident);
             Scope *sc = asmstate.sc.startCTFE();
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             sc.endCTFE();
             e = e.ctfeInterpret();
             i = e.toInteger();
@@ -4241,7 +4242,7 @@ void asm_primary_exp(out OPND o1)
                         }
                     }
                     Scope *sc = asmstate.sc.startCTFE();
-                    e = e.semantic(sc);
+                    e = e.expressionSemantic(sc);
                     sc.endCTFE();
                     e = e.ctfeInterpret();
                     if (e.isConst())

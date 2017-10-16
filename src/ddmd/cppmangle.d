@@ -28,6 +28,7 @@ import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.visitor;
 
 /* Do mangling for C++ linkage.
@@ -501,7 +502,7 @@ extern (C++) final class CppMangleVisitor : Visitor
                 // Mangle as delegate
                 Type td = new TypeFunction(null, t, 0, LINKd);
                 td = new TypeDelegate(td);
-                t = t.merge();
+                t = merge(t);
             }
             if (t.ty == Tsarray)
             {
@@ -1956,7 +1957,7 @@ private:
                     // Mangle as delegate
                     Type td = new TypeFunction(null, t, 0, LINKd);
                     td = new TypeDelegate(td);
-                    t = t.merge();
+                    t = merge(t);
                 }
                 if (t.ty == Tsarray)
                 {

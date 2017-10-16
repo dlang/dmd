@@ -120,8 +120,6 @@ public:
 
     virtual Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
-    void semantic2(Scope *sc);
-    void semantic3(Scope *sc);
     bool determineFields();
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
@@ -299,7 +297,6 @@ public:
     void finalizeSize();
     bool isFuncHidden(FuncDeclaration *fd);
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
-    void interfaceSemantic(Scope *sc);
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;

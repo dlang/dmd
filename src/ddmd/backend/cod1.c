@@ -282,7 +282,7 @@ void genEEcode()
     assert(EEStack.offset >= REGSIZE);
     cod3_stackadj(cdb, EEStack.offset - REGSIZE);
     cdb.gen1(0x50 + SI);                      // PUSH ESI
-    cdb.append(genadjesp(CNIL,EEStack.offset));
+    cdb.genadjesp(EEStack.offset);
     gencodelem(cdb,eecontext.EEelem,&retregs, FALSE);
     code *c = cdb.finish();
     assignaddrc(c);
@@ -294,65 +294,79 @@ void genEEcode()
 
 /********************************************
  * Gen a save/restore sequence for mask of registers.
+ * Params:
+ *      regm = mask of registers to save
+ *      cdbsave = save code appended here
+ *      cdbrestore = restore code appended here
  * Returns:
  *      amount of stack consumed
  */
 
-unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
+unsigned gensaverestore(regm_t regm,CodeBuilder& cdbsave,CodeBuilder& cdbrestore)
 {
-    CodeBuilder cdb1;
-    cdb1.append(*csave);
-    code *cs2 = *crestore;
-    unsigned stackused = 0;
-
     //printf("gensaverestore2(%s)\n", regm_str(regm));
     regm &= mBP | mES | ALLREGS | XMMREGS | mST0 | mST01;
-    for (int i = 0; regm; i++)
+    if (!regm)
+        return 0;
+
+    unsigned stackused = 0;
+
+    code *restore[sizeof(regm) * 8];
+
+    int i;
+    for (i = 0; regm; i++)
     {
         if (regm & 1)
         {
+            code *cs2;
             if (i == ES)
             {
                 stackused += REGSIZE;
-                cdb1.gen1(0x06);                        // PUSH ES
-                cs2 = cat(gen1(CNIL, 0x07),cs2);        // POP  ES
+                cdbsave.gen1(0x06);                     // PUSH ES
+                cs2 = gen1(CNIL, 0x07);                 // POP  ES
             }
             else if (i == ST0 || i == ST01)
             {
-                code *cs1 = NULL;
-                gensaverestore87(1 << i, &cs1, &cs2);
-                cdb1.append(cs1);
+                CodeBuilder cdb;
+                gensaverestore87(1 << i, cdbsave, cdb);
+                cs2 = cdb.finish();
             }
             else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {   unsigned idx;
-                cdb1.append(regsave.save(NULL, i, &idx));
-                cs2 = regsave.restore(cs2, i, idx);
+                regsave.save(cdbsave, i, &idx);
+                CodeBuilder cdb;
+                regsave.restore(cdb, i, idx);
+                cs2 = cdb.finish();
             }
             else
             {
                 stackused += REGSIZE;
-                cdb1.gen1(0x50 + (i & 7));              // PUSH i
-                code *c = gen1(NULL, 0x58 + (i & 7));   // POP  i
+                cdbsave.gen1(0x50 + (i & 7));           // PUSH i
+                cs2 = gen1(CNIL, 0x58 + (i & 7));       // POP  i
                 if (i & 8)
-                {   code_orrex(cdb1.last(), REX_B);
-                    code_orrex(c, REX_B);
+                {   code_orrex(cdbsave.last(), REX_B);
+                    code_orrex(cs2, REX_B);
                 }
-                cs2 = cat(c,cs2);
             }
+            restore[i] = cs2;
         }
+        else
+            restore[i] = NULL;
         regm >>= 1;
     }
-    *csave = cdb1.finish();
-    *crestore = cs2;
+
+    while (i)
+    {
+        code *c = restore[--i];
+        if (c)
+        {
+            cdbrestore.append(c);
+        }
+    }
+
     return stackused;
 }
 
-unsigned gensaverestore(regm_t regm,code **csave,code **crestore)
-{
-    *csave = NULL;
-    *crestore = NULL;
-    return gensaverestore2(regm, csave, crestore);
-}
 
 /****************************************
  * Clean parameters off stack.
@@ -372,7 +386,7 @@ void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk)
             !config.windows &&
             !(regcon.mvar & fregsaved)          // and no registers will be pushed
         )
-            cdb.append(genregs(CNIL,0x89,BP,SP));  // MOV SP,BP
+            genregs(cdb,0x89,BP,SP);  // MOV SP,BP
         else
 #endif
         {   regm_t scratchm = 0;
@@ -392,7 +406,7 @@ void genstackclean(CodeBuilder& cdb,unsigned numpara,regm_t keepmsk)
                 cod3_stackadj(cdb, -numpara);
         }
         stackpush -= numpara;
-        cdb.append(genadjesp(CNIL,-numpara));
+        cdb.genadjesp(-numpara);
     }
 }
 
@@ -667,7 +681,7 @@ L2:
                 code_orrex(cdb.last(), REX_W);
         }
         else if (reg == 6)                      // if DIV
-            cdb.append(genregs(CNIL,0x33,DX,DX));        // XOR DX,DX
+            genregs(cdb,0x33,DX,DX);        // XOR DX,DX
   }
 
   // Eliminate MOV reg,reg
@@ -1023,7 +1037,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
                     allocreg(cdb,&idxregs,&msreg,TYfptr);
                     msreg = findregmsw(idxregs);
                                                 /* MOV msreg,segreg     */
-                    cdb.append(genregs(CNIL,0x8C,segfl[f],msreg));
+                    genregs(cdb,0x8C,segfl[f],msreg);
                 }
                 opsave = pcs->Iop;
                 flagsave = pcs->Iflags;
@@ -1520,7 +1534,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
   if (sz == 1)
   {
         assert(regm & BYTEREGS);
-        cdb.append(genregs(CNIL,0x84,reg,reg));        // TEST regL,regL
+        genregs(cdb,0x84,reg,reg);        // TEST regL,regL
         if (I64 && reg >= 4)
             code_orrex(cdb.last(), REX);
         return;
@@ -1554,21 +1568,21 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
             {
                 scrregm = allregs & ~regm;              // possible scratch regs
                 allocreg(cdb,&scrregm,&scrreg,TYoffset); // allocate scratch reg
-                cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
+                genmovreg(cdb,scrreg,reg);  // MOV scrreg,msreg
                 reg = scrreg;
             }
             getregs(cdb,mask[reg]);
             cdb.gen2(0xD1,modregrmx(3,4,reg)); // SHL reg,1
             return;
         }
-        cdb.append(gentstreg(CNIL,reg));                 // TEST reg,reg
+        gentstreg(cdb,reg);                 // TEST reg,reg
         if (sz == SHORTSIZE)
             cdb.last()->Iflags |= CFopsize;             // 16 bit operands
         else if (sz == 8)
             code_orrex(cdb.last(), REX_W);
     }
     else
-        cdb.append(gentstreg(CNIL,reg));                 // TEST reg,reg
+        gentstreg(cdb,reg);                 // TEST reg,reg
     return;
   }
 
@@ -1584,31 +1598,31 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
             if (I32)
             {
                 if (tyfv(tym))
-                    cdb.append(genregs(CNIL,0x0FB7,scrreg,reg)); // MOVZX scrreg,msreg
+                    genregs(cdb,0x0FB7,scrreg,reg); // MOVZX scrreg,msreg
                 else
-                {   cdb.append(genmovreg(CNIL,scrreg,reg));      // MOV scrreg,msreg
+                {   genmovreg(cdb,scrreg,reg);      // MOV scrreg,msreg
                     if (tym == TYdouble || tym == TYdouble_alias)
                         cdb.gen2(0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
                 }
             }
             else
             {
-                cdb.append(genmovreg(CNIL,scrreg,reg));  // MOV scrreg,msreg
+                genmovreg(cdb,scrreg,reg);  // MOV scrreg,msreg
                 if (tym == TYfloat)
                     cdb.gen2(0xD1,modregrm(3,4,scrreg)); // SHL scrreg,1
             }
             reg = findreglsw(regm);
-            cdb.append(genorreg(CNIL,scrreg,reg));           // OR scrreg,lsreg
+            genorreg(cdb,scrreg,reg);           // OR scrreg,lsreg
         }
         else if (sz == 8)
         {
             // !I32
-            cdb.append(genmovreg(CNIL,scrreg,AX));           // MOV scrreg,AX
+            genmovreg(cdb,scrreg,AX);           // MOV scrreg,AX
             if (tym == TYdouble || tym == TYdouble_alias)
                 cdb.gen2(0xD1,modregrm(3,4,scrreg));         // SHL scrreg,1
-            cdb.append(genorreg(CNIL,scrreg,BX));            // OR scrreg,BX
-            cdb.append(genorreg(CNIL,scrreg,CX));            // OR scrreg,CX
-            cdb.append(genorreg(CNIL,scrreg,DX));            // OR scrreg,DX
+            genorreg(cdb,scrreg,BX);            // OR scrreg,BX
+            genorreg(cdb,scrreg,CX);            // OR scrreg,CX
+            genorreg(cdb,scrreg,DX);            // OR scrreg,DX
         }
         else
             assert(0);
@@ -1624,7 +1638,7 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
             getregs(cdb,mask[reg]);            // we're going to trash reg
             if (tyfloating(tym) && sz == 2 * intsize)
                 cdb.gen2(0xD1,modregrm(3,4,reg));   // SHL reg,1
-            cdb.append(genorreg(CNIL,reg,findreglsw(regm)));     // OR reg,reg+1
+            genorreg(cdb,reg,findreglsw(regm));     // OR reg,reg+1
             if (I64)
                 code_orrex(cdb.last(), REX_W);
        }
@@ -1633,9 +1647,9 @@ void tstresult(CodeBuilder& cdb,regm_t regm,tym_t tym,unsigned saveflag)
             getregs(cdb,mAX);                  // allocate AX
             if (tym == TYdouble || tym == TYdouble_alias)
                 cdb.gen2(0xD1,modregrm(3,4,AX));       // SHL AX,1
-            cdb.append(genorreg(CNIL,AX,BX));          // OR AX,BX
-            cdb.append(genorreg(CNIL,AX,CX));          // OR AX,CX
-            cdb.append(genorreg(CNIL,AX,DX));          // OR AX,DX
+            genorreg(cdb,AX,BX);          // OR AX,BX
+            genorreg(cdb,AX,CX);          // OR AX,CX
+            genorreg(cdb,AX,DX);          // OR AX,DX
         }
         else
             assert(0);
@@ -1733,10 +1747,10 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
             {
                 reg = findreg(retregs & XMMREGS);
                 // MOVSD floatreg, XMM?
-                cdb.append(genxmmreg(CNIL,xmmstore(tym),reg,0,tym));
+                cdb.genxmmreg(xmmstore(tym),reg,0,tym);
                 if (mask[rreg] & XMMREGS)
                     // MOVSD XMM?, floatreg
-                    cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym));
+                    cdb.genxmmreg(xmmload(tym),rreg,0,tym);
                 else
                 {
                     // MOV rreg,floatreg
@@ -1767,7 +1781,7 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
                         cdb.genfltreg(0x89,reg,0);
                         reg = findregmsw(retregs);
                         cdb.genfltreg(0x89,reg,4);
-                        cdb.append(genxmmreg(CNIL,xmmload(tym),rreg,0,tym)); // MOVQ xmm,mem
+                        cdb.genxmmreg(xmmload(tym),rreg,0,tym); // MOVQ xmm,mem
                     }
                     else
                     {
@@ -1787,15 +1801,15 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
                 unsigned msrreg = findregmsw(*pretregs);
                 unsigned lsrreg = findreglsw(*pretregs);
 
-                cdb.append(genmovreg(CNIL,msrreg,msreg)); // MOV msrreg,msreg
-                cdb.append(genmovreg(CNIL,lsrreg,lsreg)); // MOV lsrreg,lsreg
+                genmovreg(cdb,msrreg,msreg); // MOV msrreg,msreg
+                genmovreg(cdb,lsrreg,lsreg); // MOV lsrreg,lsreg
             }
             else
             {
                 assert(!(retregs & XMMREGS));
                 assert(!(forregs & XMMREGS));
                 reg = findreg(retregs & (mBP | ALLREGS));
-                cdb.append(genmovreg(CNIL,rreg,reg));    // MOV rreg,reg
+                genmovreg(cdb,rreg,reg);    // MOV rreg,reg
             }
         }
         cssave(e,retregs | *pretregs,opsflag);
@@ -2504,10 +2518,8 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
     getregs(cdb,(~s->Sregsaved & (mES | mBP | ALLREGS)) & ~keepmask); // mask of regs destroyed
     keepmask &= ~s->Sregsaved;
     int npushed = numbitsset(keepmask);
-    code *c = CNIL;
-    code *cpop = CNIL;
-    gensaverestore2(keepmask, &c, &cpop);
-    cdb.append(c);
+    CodeBuilder cdbpop;
+    gensaverestore(keepmask, cdb, cdbpop);
 
     save87regs(cdb,cinfo->push87);
     for (int i = 0; i < cinfo->push87; i++)
@@ -2526,23 +2538,10 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
             0x66,0x0f,0xa4,0xc2,0x10,   // shld EDX,EAX,16      ;DX,AX = EAX
         };
 
-        cdb.append(genasm(CNIL,lmul,sizeof(lmul)));
+        cdb.genasm((char*)lmul,sizeof(lmul));
   }
   else
   {
-        code *cgot = NULL;
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
-        {
-            // Note: not for OSX
-            /* Pass EBX on the stack instead, this is because EBX is used
-             * for shared library function calls
-             */
-            if (config.flags3 & CFG3pic)
-            {
-                cgot = load_localgot();     // EBX gets set to this value
-            }
-        }
-
         makeitextern(s);
         int nalign = 0;
         int pushebx = (cinfo->flags & INFpushebx) != 0;
@@ -2570,8 +2569,19 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
                 nalign += REGSIZE;
             }
         }
-        cdb.append(cgot);                                        // EBX = localgot
-        cdb.append(gencs(CNIL,LARGECODE ? 0x9A : 0xE8,0,FLfunc,s));  // CALL s
+        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+        {
+            // Note: not for OSX
+            /* Pass EBX on the stack instead, this is because EBX is used
+             * for shared library function calls
+             */
+            if (config.flags3 & CFG3pic)
+            {
+                load_localgot(cdb);     // EBX gets set to this value
+            }
+        }
+
+        cdb.gencs(LARGECODE ? 0x9A : 0xE8,0,FLfunc,s);  // CALL s
         if (nalign)
             cod3_stackadj(cdb, -nalign);
         calledafunc = 1;
@@ -2589,7 +2599,7 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
     if (I16)
         stackpush -= cinfo->pop;
     regm_t retregs = I16 ? cinfo->retregs16 : cinfo->retregs32;
-    cdb.append(cpop);
+    cdb.append(cdbpop);
     fixresult(cdb,e,retregs,pretregs);
 }
 
@@ -2978,7 +2988,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
         cod3_stackadj(cdb, numalign);
-        cdb.append(genadjesp(CNIL, numalign));
+        cdb.genadjesp(numalign);
         stackpush += numalign;
         stackpushsave += numalign;
     }
@@ -3033,8 +3043,8 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 if (mi & tosave)
                 {
                     unsigned idx;
-                    cdbsave.append(regsave.save(CNIL, j, &idx));
-                    cdbrestore.append(regsave.restore(CNIL, j, idx));
+                    regsave.save(cdbsave, j, &idx);
+                    regsave.restore(cdbrestore, j, idx);
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
                     tosave &= ~mi;
@@ -3054,7 +3064,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else if (numalign)
             {
                 cod3_stackadj(cdb, numalign);
-                cdb.append(genadjesp(CNIL, numalign));
+                cdb.genadjesp(numalign);
                 stackpush += numalign;
             }
         }
@@ -3094,8 +3104,8 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         if (mi & tosave)
                         {
                             unsigned idx;
-                            cdbsave.append(regsave.save(CNIL, j, &idx));
-                            cdbrestore.append(regsave.restore(CNIL, j, idx));
+                            regsave.save(cdbsave, j, &idx);
+                            regsave.restore(cdbrestore, j, idx);
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
                             tosave &= ~mi;
@@ -3137,7 +3147,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                                 checkSetVex(cdb.last(),ty1);
                             }
                             else
-                                cdb.append(genmovreg(CNIL, preg, lreg));
+                                genmovreg(cdb, preg, lreg);
                         }
                     }
                     else
@@ -3150,7 +3160,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                                 checkSetVex(cdb.last(),ty2);
                             }
                             else
-                                cdb.append(genmovreg(CNIL, preg2, mreg));
+                                genmovreg(cdb, preg2, mreg);
                         }
                     }
                 }
@@ -3190,7 +3200,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             else
             {
                 cod3_stackadj(cdb, sz);
-                cdb.append(genadjesp(CNIL, sz));
+                cdb.genadjesp(sz);
                 stackpush += sz;
             }
         }
@@ -3379,7 +3389,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
             if (s != tls_get_addr_sym)
             {
                 //printf("call %s\n", s->Sident);
-                cdbe.append(load_localgot());
+                load_localgot(cdb);
                 cdbe.gencs(0xE8,0,fl,s);    // CALL extern
             }
             else if (I64)
@@ -3412,7 +3422,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
         elem *e11 = e1->E1;
         tym_t e11ty = tybasic(e11->Ety);
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
-        cdb.append(load_localgot());
+        load_localgot(cdb);
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic && I32)
             keepmsk |= mBX;
@@ -3551,7 +3561,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
 
     if (retregs & mST0)
     {
-        cdb.append(genadjfpu(CNIL, 1));
+        cdb.genadjfpu(1);
         if (*pretregs)                  // if we want the result
         {   //assert(stackused == 0);
             push87(cdb);                // one item on 8087 stack
@@ -3564,7 +3574,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
     }
     else if (retregs & mST01)
     {
-        cdb.append(genadjfpu(CNIL, 2));
+        cdb.genadjfpu(2);
         if (*pretregs)                  // if we want the result
         {   assert(stackused == 0);
             push87(cdb);
@@ -3836,7 +3846,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
 
         cod3_stackadj(cdb, sz);
         stackpush += sz;
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
 
         // Find OPstrthis and set it to stackpush
         exp2_setstrthis(e1,NULL,stackpush,NULL);
@@ -3854,7 +3864,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         regm_t retregs = allregs;
         unsigned reg;
         allocreg(cdb,&retregs,&reg,TYoffset);
-        cdb.append(genregs(CNIL,0x89,SP,reg));        // MOV reg,SP
+        genregs(cdb,0x89,SP,reg);        // MOV reg,SP
         if (I64)
             code_orrex(cdb.last(), REX_W);
         unsigned np = stackpush - e->EV.Vuns;         // stack delta to parameter
@@ -3868,7 +3878,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         if (reg & 8)
             code_orrex(cdb.last(), REX_B);
         stackpush += REGSIZE;
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
         freenode(e);
         return;
     }
@@ -3986,11 +3996,11 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     {
                         cdb.genc1(0xFF,buildModregrm(2,6,rm),FLconst,pushsize * (npushes - 1));  // PUSH [reg]
                         code_orflag(cdb.last(),seg);
-                        cdb.append(genadjesp(CNIL,pushsize));
+                        cdb.genadjesp(pushsize);
                     }
                     cdb.gen2(0xFF,buildModregrm(0,6,rm));     // PUSH [reg]
                     cdb.last()->Iflags |= seg;
-                    cdb.append(genadjesp(CNIL,pushsize));
+                    cdb.genadjesp(pushsize);
                 }
                 else if (sz)
                 {
@@ -4010,7 +4020,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     cdb.genc2(0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
                     genjmp(cdb,0xE2,FLcode,(block *)c3);        // LOOP c3
                     regimmed_set(CX,0);
-                    cdb.append(genadjesp(CNIL,sz));
+                    cdb.genadjesp(sz);
                 }
                 stackpush += sz;
                 freenode(e);
@@ -4045,7 +4055,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             {
                 assert(sz >= REGSIZE * 2);
                 loadea(cdb,e,&cs,0xFF,6,sz - REGSIZE,0,0); // PUSH EA+4
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 stackpush += REGSIZE;
                 sz -= REGSIZE;
 
@@ -4055,7 +4065,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     {
                         cs.IEVoffset1 -= REGSIZE;
                         cdb.gen(&cs);                    // PUSH EA+...
-                        cdb.append(genadjesp(CNIL,REGSIZE));
+                        cdb.genadjesp(REGSIZE);
                         stackpush += REGSIZE;
                         sz -= REGSIZE;
                     }
@@ -4070,18 +4080,18 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     loadea(cdb,e,&cs,0xFF,6,DOUBLESIZE - REGSIZE,0,0); // PUSH EA+6
                     cs.IEVoffset1 -= REGSIZE;
                     cdb.gen(&cs);                    // PUSH EA+4
-                    cdb.append(genadjesp(CNIL,REGSIZE));
+                    cdb.genadjesp(REGSIZE);
                     getlvalue_lsw(&cs);
                     cdb.gen(&cs);                    // PUSH EA+2
                 }
                 else /* TYlong */
                     loadea(cdb,e,&cs,0xFF,6,REGSIZE,0,0); // PUSH EA+2
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             stackpush += sz;
             getlvalue_lsw(&cs);
             cdb.gen(&cs);                            // PUSH EA
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
             freenode(e);
             return;
         }
@@ -4105,7 +4115,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             cdb.gen1(0x06 + segreg);            // PUSH SEGREG
             if (I32 && stackalign == 2)
                 code_orflag(cdb.last(),CFopsize);        // push a word
-            cdb.append(genadjesp(CNIL,stackalign));
+            cdb.genadjesp(stackalign);
             stackpush += stackalign;
             pushParams(cdb,e1,stackalign);
             freenode(e);
@@ -4133,7 +4143,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             stackpush += sz;
             cdb.gen1(0x06 +           // PUSH SEGREG
                     (((fl == FLfunc || s->ty() & mTYcs) ? 1 : segfl[fl]) << 3));
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
 
             if (config.target_cpu >= TARGET_80286 && !e->Ecount)
             {
@@ -4146,8 +4156,8 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 regm_t retregs;
                 offsetinreg(cdb,e,&retregs);
                 unsigned reg = findreg(retregs);
-                cdb.append(genpush(CNIL,reg));             // PUSH reg
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                genpush(cdb,reg);                    // PUSH reg
+                cdb.genadjesp(REGSIZE);
             }
             return;
         }
@@ -4159,7 +4169,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 // PUSH SEG e
                 cdb.gencs(0x68,0,FLextern,s);
                 cdb.last()->Iflags = CFseg;
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             getoffset(cdb,e,STACK);
             freenode(e);
@@ -4193,13 +4203,13 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             cs.Irex = 0;
             loadea(cdb,e,&cs,0xFF,6,sz - regsize,RMload,0);    // PUSH EA+sz-2
             code_orflag(cdb.last(),flag);
-            cdb.append(genadjesp(CNIL,REGSIZE));
+            cdb.genadjesp(REGSIZE);
             stackpush += sz;
             while ((targ_int)(sz -= regsize) > 0)
             {
                 loadea(cdb,e,&cs,0xFF,6,sz - regsize,RMload,0);
                 code_orflag(cdb.last(),flag);
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
             }
             freenode(e);
             return;
@@ -4222,7 +4232,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             assert(sz == 12);
             targ_int value = ((unsigned short *)&e->EV.Vldouble)[4];
             stackpush += sz;
-            cdb.append(genadjesp(NULL,sz));
+            cdb.genadjesp(sz);
             for (int i = 2; i >= 0; i--)
             {
                 unsigned reg;
@@ -4253,7 +4263,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             break;
 
         stackpush += sz;
-        cdb.append(genadjesp(NULL,sz));
+        cdb.genadjesp(sz);
         targ_uns *pi = (targ_uns *) &e->EV.Vdouble;
         targ_ushort *ps = (targ_ushort *) pi;
         targ_ullong *pl = (targ_ullong *)pi;
@@ -4303,7 +4313,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             {
                 regwithvalue(cdb,allregs,value,&reg,0);
             Preg:
-                cdb.append(genpush(CNIL,reg));         // PUSH reg
+                genpush(cdb,reg);         // PUSH reg
             }
             code_orflag(cdb.last(),flag);              // operand size
         } while (i);
@@ -4320,7 +4330,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         regm_t retregs = XMMREGS;
         codelem(cdb,e,&retregs,FALSE);
         stackpush += sz;
-        cdb.append(genadjesp(CNIL,sz));
+        cdb.genadjesp(sz);
         cod3_stackadj(cdb, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
@@ -4335,7 +4345,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             retregs = tycomplex(tym) ? mST01 : mST0;
             codelem(cdb,e,&retregs,FALSE);
             stackpush += sz;
-            cdb.append(genadjesp(CNIL,sz));
+            cdb.genadjesp(sz);
             cod3_stackadj(cdb, sz);
             unsigned op;
             unsigned r;
@@ -4382,7 +4392,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 retregs = IDXREGS;                             // get an index reg
                 unsigned reg;
                 allocreg(cdb,&retregs,&reg,TYoffset);
-                cdb.append(genregs(CNIL,0x89,SP,reg));         // MOV reg,SP
+                genregs(cdb,0x89,SP,reg);         // MOV reg,SP
                 pop87();
                 cdb.gen2(op,modregrm(0,r,regtorm[reg]));       // FSTP [reg]
             }
@@ -4402,14 +4412,14 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         stackpush += sz;
     if (sz <= REGSIZE)
     {
-        cdb.append(genpush(CNIL,findreg(retregs)));        // PUSH reg
-        cdb.append(genadjesp(CNIL,REGSIZE));
+        genpush(cdb,findreg(retregs));        // PUSH reg
+        cdb.genadjesp(REGSIZE);
     }
     else if (sz == REGSIZE * 2)
     {
-        cdb.append(genpush(CNIL,findregmsw(retregs)));     // PUSH msreg
-        cdb.append(genpush(CNIL,findreglsw(retregs)));     // PUSH lsreg
-        cdb.append(genadjesp(CNIL,sz));
+        genpush(cdb,findregmsw(retregs));     // PUSH msreg
+        genpush(cdb,findreglsw(retregs));     // PUSH lsreg
+        cdb.genadjesp(sz);
     }
 }
 
@@ -4497,7 +4507,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (e->Eoper == OPconst)
         {       /* TRUE:        OR SP,SP        (SP is never 0)         */
                 /* FALSE:       CMP SP,SP       (always equal)          */
-                cdb.append(genregs(CNIL,(boolres(e)) ? 0x09 : 0x39,SP,SP));
+                genregs(cdb,(boolres(e)) ? 0x09 : 0x39,SP,SP);
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
         }
@@ -4652,7 +4662,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             if (forregs & mES)
             {
                 movregconst(cdb,reg,msw,0); // MOV reg,segment
-                cdb.append(genregs(CNIL,0x8E,0,reg));    // MOV ES,reg
+                genregs(cdb,0x8E,0,reg);    // MOV ES,reg
                 msw = lsw;                               // MOV reg,offset
             }
             else
@@ -4776,7 +4786,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             loadea(cdb,e,&cs,op,nreg,0,0,0);    // MOV nregL,data
             if (reg != nreg)
             {
-                cdb.append(genmovreg(CNIL,reg,nreg));   // MOV reg,nreg
+                genmovreg(cdb,reg,nreg);   // MOV reg,nreg
                 cssave(e,mask[nreg],FALSE);
             }
         }
@@ -4826,7 +4836,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             do
             {
                 loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 stackpush += REGSIZE;
                 i -= REGSIZE;
             }
@@ -4852,7 +4862,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             do
             {
                 loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
-                cdb.append(genadjesp(CNIL,REGSIZE));
+                cdb.genadjesp(REGSIZE);
                 stackpush += REGSIZE;
                 i -= REGSIZE;
             }

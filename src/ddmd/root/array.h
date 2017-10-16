@@ -98,7 +98,13 @@ struct Array
                 memcpy(data, &smallarray[0], dim * sizeof(*data));
             }
             else
-            {   allocdim = dim + nentries;
+            {
+                /* Increase size by 1.5x to avoid excessive memory fragmentation
+                 */
+                d_size_t increment = dim / 2;
+                if (nentries > increment)       // if 1.5 is not enough
+                    increment = nentries;
+                allocdim = dim + increment;
                 data = (TYPE *)mem.xrealloc(data, allocdim * sizeof(*data));
             }
         }

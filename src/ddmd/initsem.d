@@ -5,12 +5,13 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _init.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/initsem.d, _initsem.d)
  */
 
 module ddmd.initsem;
 
-import core.stdc.stdio;
+// Online documentation: https://dlang.org/phobos/ddmd_initsem.html
+
 import core.checkedint;
 
 import ddmd.aggregate;
@@ -31,12 +32,62 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
-alias semantic = ddmd.expressionsem.semantic;
-alias semanticY = ddmd.expressionsem.semanticY;
+/***********************
+ * Translate init to an `Expression` in order to infer the type.
+ * Params:
+ *      init = `Initializer` AST node
+ *      sc = context
+ * Returns:
+ *      an equivalent `ExpInitializer` if successful, or `ErrorInitializer` if it cannot be translated
+ */
+extern (C++) Initializer inferType(Initializer init, Scope* sc)
+{
+    scope v = new InferTypeVisitor(sc);
+    init.accept(v);
+    return v.result;
+}
+
+/***********************
+ * Translate init to an `Expression`.
+ * Params:
+ *      init = `Initializer` AST node
+ *      t = if not `null`, type to coerce expression to
+ * Returns:
+ *      `Expression` created, `null` if cannot, `ErrorExp` for other errors
+ */
+extern (C++) Expression initializerToExpression(Initializer init, Type t = null)
+{
+    scope v = new InitToExpressionVisitor(t);
+    init.accept(v);
+    return v.result;
+}
+
+/******************************************
+ * Perform semantic analysis on init.
+ * Params:
+ *      init = Initializer AST node
+ *      sc = context
+ *      t = type that the initializer needs to become
+ *      needInterpret = if CTFE needs to be run on this,
+ *                      such as if it is the initializer for a const declaration
+ * Returns:
+ *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
+ *      were encountered
+ */
+extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
+{
+    scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
+    init.accept(v);
+    return v.result;
+}
+
+/* ****************************** Implementation ************************ */
+
 
 private extern(C++) final class InitializerSemanticVisitor : Visitor
 {
@@ -252,7 +303,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             if (idx)
             {
                 sc = sc.startCTFE();
-                idx = idx.semantic(sc);
+                idx = idx.expressionSemantic(sc);
                 sc = sc.endCTFE();
                 idx = idx.ctfeInterpret();
                 i.index[j] = idx;
@@ -334,7 +385,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         //printf("ExpInitializer::semantic(%s), type = %s\n", exp.toChars(), t.toChars());
         if (needInterpret)
             sc = sc.startCTFE();
-        i.exp = i.exp.semantic(sc);
+        i.exp = i.exp.expressionSemantic(sc);
         i.exp = resolveProperties(sc, i.exp);
         if (needInterpret)
             sc = sc.endCTFE();
@@ -426,7 +477,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 e = new StructLiteralExp(i.loc, sd, null);
                 e = new DotIdExp(i.loc, e, Id.ctor);
                 e = new CallExp(i.loc, e, i.exp);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 if (needInterpret)
                     i.exp = e.ctfeInterpret();
                 else
@@ -450,7 +501,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         {
             // Look for mismatch of compile-time known length to emit
             // better diagnostic message, as same as AssignExp::semantic.
-            if (tb.ty == Tsarray && i.exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCHnomatch)
+            if (tb.ty == Tsarray && i.exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCH.nomatch)
             {
                 uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
                 uinteger_t dim2 = dim1;
@@ -486,14 +537,6 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         //printf("-ExpInitializer::semantic(): "); exp.print();
         result = i;
     }
-}
-
-// Performs semantic analisys on Initializer AST nodes
-extern (C++) Initializer semantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
-{
-    scope v = new InitializerSemanticVisitor(sc, t, needInterpret);
-    init.accept(v);
-    return v.result;
 }
 
 private extern(C++) final class InferTypeVisitor : Visitor
@@ -601,7 +644,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
     override void visit(ExpInitializer init)
     {
         //printf("ExpInitializer::inferType() %s\n", toChars());
-        init.exp = init.exp.semantic(sc);
+        init.exp = init.exp.expressionSemantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (init.exp.op == TOKtype)
@@ -658,16 +701,6 @@ private extern(C++) final class InferTypeVisitor : Visitor
         }
         result = init;
     }
-}
-
-/* Translates to an expression to infer type.
- * Returns ExpInitializer or ErrorInitializer.
- */
-extern (C++) Initializer inferType(Initializer init, Scope* sc)
-{
-    scope v = new InferTypeVisitor(sc);
-    init.accept(v);
-    return v.result;
 }
 
 private extern(C++) final class InitToExpressionVisitor : Visitor
@@ -869,12 +902,4 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
         }
         result = i.exp;
     }
-}
-
-// Converts an initializer to an expression.
-public extern (C++) Expression initializerToExpression(Initializer i, Type t = null)
-{
-    scope v = new InitToExpressionVisitor(t);
-    i.accept(v);
-    return v.result;
 }

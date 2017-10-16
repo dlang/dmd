@@ -57,12 +57,14 @@ import ddmd.lib;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.s2ir;
+import ddmd.semantic;
 import ddmd.statement;
 import ddmd.target;
 import ddmd.tocsym;
 import ddmd.toctype;
 import ddmd.toir;
 import ddmd.toobj;
+import ddmd.typesem;
 import ddmd.utils;
 
 extern (C++):
@@ -292,8 +294,6 @@ void obj_end(Library library, File *objfile)
     }
     objbuf.pend = null;
     objbuf.p = null;
-    objbuf.len = 0;
-    objbuf.inc = 0;
 }
 
 bool obj_includelib(const(char)* name)
@@ -1185,7 +1185,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
              */
             StringExp se = StringExp.create(Loc(), s.Sident.ptr);
             se.type = Type.tstring;
-            se.type = se.type.semantic(Loc(), null);
+            se.type = se.type.typeSemantic(Loc(), null);
             Expressions *exps = new Expressions();
             exps.push(se);
             FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");

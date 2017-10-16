@@ -57,9 +57,11 @@ import ddmd.root.outbuffer;
 import ddmd.root.rmem;
 import ddmd.root.rootobject;
 import ddmd.safe;
+import ddmd.semantic;
 import ddmd.sideeffect;
 import ddmd.target;
 import ddmd.tokens;
+import ddmd.typesem;
 import ddmd.utf;
 import ddmd.visitor;
 
@@ -145,10 +147,10 @@ L1:
                     e1.type = s.isClassDeclaration().type;
                     e1.type = e1.type.addMod(t.mod);
                     if (n > 1)
-                        e1 = e1.semantic(sc);
+                        e1 = e1.expressionSemantic(sc);
                 }
                 else
-                    e1 = e1.semantic(sc);
+                    e1 = e1.expressionSemantic(sc);
                 goto L1;
             }
 
@@ -165,10 +167,16 @@ L1:
 
 /****************************************
  * Resolve a symbol `s` and wraps it in an expression object.
+ *
  * Params:
- *      hasOverloads = works if the aliased symbol is a function.
- *          true:  it's overloaded and will be resolved later.
- *          false: it's exact function symbol.
+ *      loc = location of use of `s`
+ *      sc = context
+ *      s = symbol to resolve
+ *      hasOverloads = applies if `s` represents a function.
+ *          true means it's overloaded and will be resolved later,
+ *          false means it's the exact function symbol.
+ * Returns:
+ *      `s` turned into an expression, `ErrorExp` if an error occurred
  */
 Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
 {
@@ -230,7 +238,7 @@ Lagain:
             }
             e = v.expandInitializer(loc);
             v.inuse++;
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             v.inuse--;
             return e;
         }
@@ -243,14 +251,14 @@ Lagain:
             e = new DotVarExp(loc, new ThisExp(loc), v);
         else
             e = new VarExp(loc, v);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         return e;
     }
     if (auto fld = s.isFuncLiteralDeclaration())
     {
         //printf("'%s' is a function literal\n", fld.toChars());
         e = new FuncExp(loc, fld);
-        return e.semantic(sc);
+        return e.expressionSemantic(sc);
     }
     if (auto f = s.isFuncDeclaration())
     {
@@ -285,27 +293,27 @@ Lagain:
             return new ErrorExp();
         }
         auto ie = new ScopeExp(loc, imp.pkg);
-        return ie.semantic(sc);
+        return ie.expressionSemantic(sc);
     }
     if (Package pkg = s.isPackage())
     {
         auto ie = new ScopeExp(loc, pkg);
-        return ie.semantic(sc);
+        return ie.expressionSemantic(sc);
     }
     if (Module mod = s.isModule())
     {
         auto ie = new ScopeExp(loc, mod);
-        return ie.semantic(sc);
+        return ie.expressionSemantic(sc);
     }
     if (Nspace ns = s.isNspace())
     {
         auto ie = new ScopeExp(loc, ns);
-        return ie.semantic(sc);
+        return ie.expressionSemantic(sc);
     }
 
     if (Type t = s.getType())
     {
-        return (new TypeExp(loc, t)).semantic(sc);
+        return (new TypeExp(loc, t)).expressionSemantic(sc);
     }
 
     if (TupleDeclaration tup = s.isTupleDeclaration())
@@ -314,7 +322,7 @@ Lagain:
             e = new DotVarExp(loc, new ThisExp(loc), tup);
         else
             e = new TupleExp(loc, tup);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -327,7 +335,7 @@ Lagain:
         if (!s.isTemplateInstance())
             goto Lagain;
         e = new ScopeExp(loc, ti);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         return e;
     }
     if (TemplateDeclaration td = s.isTemplateDeclaration())
@@ -341,7 +349,7 @@ Lagain:
         }
         else
             e = new TemplateExp(loc, td);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         return e;
     }
 
@@ -354,7 +362,7 @@ Lagain:
  * scopes until a function is found.
  *
  * Params:
- *      sc = context
+ *      sc = where to start looking for the enclosing function
  * Returns:
  *      Found function if it satisfies `isThis()`, otherwise `null`
  */
@@ -405,6 +413,12 @@ Lno:
 }
 
 /***********************************
+ * Determine if a `this` is needed to access `d`.
+ * Params:
+ *      sc = context
+ *      d = declaration to check
+ * Returns:
+ *      true means a `this` is needed
  */
 extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
 {
@@ -470,7 +484,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         FuncDeclaration fd = null;
         if (e2)
         {
-            e2 = e2.semantic(sc);
+            e2 = e2.expressionSemantic(sc);
             if (e2.op == TOKerror)
                 return new ErrorExp();
             e2 = resolveProperties(sc, e2);
@@ -493,7 +507,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             if (fd)
             {
                 Expression e = new CallExp(loc, e1, e2);
-                return e.semantic(sc);
+                return e.expressionSemantic(sc);
             }
         }
         {
@@ -516,7 +530,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 Expression e = new CallExp(loc, e1);
                 if (e2)
                     e = new AssignExp(loc, e, e2);
-                return e.semantic(sc);
+                return e.expressionSemantic(sc);
             }
         }
         if (e2)
@@ -585,7 +599,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
         assert(s);
         if (e2)
         {
-            e2 = e2.semantic(sc);
+            e2 = e2.expressionSemantic(sc);
             if (e2.op == TOKerror)
                 return new ErrorExp();
             e2 = resolveProperties(sc, e2);
@@ -601,7 +615,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                 assert(fd.type.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 Expression e = new CallExp(loc, e1, e2);
-                return e.semantic(sc);
+                return e.expressionSemantic(sc);
             }
         }
         {
@@ -617,7 +631,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
                     Expression e = new CallExp(loc, e1);
                     if (e2)
                         e = new AssignExp(loc, e, e2);
-                    return e.semantic(sc);
+                    return e.expressionSemantic(sc);
                 }
             }
         }
@@ -627,7 +641,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             assert(fd.type.ty == Tfunction);
             TypeFunction tf = cast(TypeFunction)fd.type;
             Expression e = new CallExp(loc, e1, e2);
-            return e.semantic(sc);
+            return e.expressionSemantic(sc);
         }
         if (e2)
             goto Leprop;
@@ -652,7 +666,7 @@ extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression 
             if (ve.var.storage_class & STClazy)
             {
                 Expression e = new CallExp(loc, e1);
-                return e.semantic(sc);
+                return e.expressionSemantic(sc);
             }
         }
         else if (e1.op == TOKdotvar)
@@ -1009,7 +1023,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
                     return new ErrorExp();
                 }
                 Expression key = (*ce.arguments)[0];
-                key = key.semantic(sc);
+                key = key.expressionSemantic(sc);
                 key = resolveProperties(sc, key);
 
                 TypeAArray taa = cast(TypeAArray)t;
@@ -1033,7 +1047,7 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
                 if (isDotOpDispatch(ey))
                 {
                     uint errors = global.startGagging();
-                    e = ce.syntaxCopy().semantic(sc);
+                    e = ce.syntaxCopy().expressionSemantic(sc);
                     if (!global.endGagging(errors))
                         return e;
                     /* fall down to UFCS */
@@ -1099,7 +1113,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
     if (e2)
     {
         // run semantic without gagging
-        e2 = e2.semantic(sc);
+        e2 = e2.expressionSemantic(sc);
 
         /* f(e1) = e2
          */
@@ -1125,13 +1139,13 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             {
                 checkPropertyCall(ex, e1);
                 ex = new AssignExp(loc, ex, e2);
-                return ex.semantic(sc);
+                return ex.expressionSemantic(sc);
             }
         }
         else
         {
             // strict setter prints errors if fails
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         }
         checkPropertyCall(e, e1);
         return e;
@@ -1144,9 +1158,9 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
         arguments.setDim(1);
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         checkPropertyCall(e, e1);
-        return e.semantic(sc);
+        return e.expressionSemantic(sc);
     }
 }
 
@@ -1163,7 +1177,7 @@ extern (C++) bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool pre
             Expression e = (*exps)[i];
             if (e)
             {
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 if (e.op == TOKerror)
                     err = true;
                 if (preserveErrors || e.op != TOKerror)
@@ -1363,7 +1377,7 @@ extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type
             condexp.e1 = e0;
             condexp.e2 = e;
             condexp.loc = e.loc;
-            Expression ex = condexp.semantic(sc);
+            Expression ex = condexp.expressionSemantic(sc);
             if (ex.op == TOKerror)
                 e = ex;
             else
@@ -1604,7 +1618,7 @@ extern (C++) Expression doCopyOrMove(Scope *sc, Expression e)
  */
 extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
 {
-    //printf("functionParameters()\n");
+    //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
     assert(arguments);
     assert(fd || tf.next);
     size_t nargs = arguments ? arguments.dim : 0;
@@ -1693,7 +1707,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
                 {
                     MATCH m;
-                    if ((m = arg.implicitConvTo(p.type)) > MATCHnomatch)
+                    if ((m = arg.implicitConvTo(p.type)) > MATCH.nomatch)
                     {
                         if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
                             goto L2;
@@ -1769,7 +1783,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     }
                     break;
                 }
-                arg = arg.semantic(sc);
+                arg = arg.expressionSemantic(sc);
                 //printf("\targ = '%s'\n", arg.toChars());
                 arguments.setDim(i + 1);
                 (*arguments)[i] = arg;
@@ -2073,7 +2087,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             gate.semantic(sc);
 
             auto ae = new DeclarationExp(loc, gate);
-            eprefix = ae.semantic(sc);
+            eprefix = ae.expressionSemantic(sc);
         }
 
         for (ptrdiff_t i = start; i != end; i += step)
@@ -2122,22 +2136,22 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                     // edtor => (__gate || edtor)
                     assert(tmp.edtor);
                     Expression e = tmp.edtor;
-                    e = new OrOrExp(e.loc, new VarExp(e.loc, gate), e);
-                    tmp.edtor = e.semantic(sc);
+                    e = new LogicalExp(e.loc, TOKoror, new VarExp(e.loc, gate), e);
+                    tmp.edtor = e.expressionSemantic(sc);
                     //printf("edtor: %s\n", tmp.edtor.toChars());
                 }
 
                 // eprefix => (eprefix, auto __pfx/y = arg)
                 auto ae = new DeclarationExp(loc, tmp);
-                eprefix = Expression.combine(eprefix, ae.semantic(sc));
+                eprefix = Expression.combine(eprefix, ae.expressionSemantic(sc));
 
                 // arg => __pfx/y
                 arg = new VarExp(loc, tmp);
-                arg = arg.semantic(sc);
+                arg = arg.expressionSemantic(sc);
                 if (isRef)
                 {
                     arg = new PtrExp(loc, arg);
-                    arg = arg.semantic(sc);
+                    arg = arg.expressionSemantic(sc);
                 }
 
                 /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
@@ -2151,7 +2165,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 if (i == lastthrow)
                 {
                     auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), new IntegerExp(gate.loc, 1, Type.tbool));
-                    eprefix = Expression.combine(eprefix, e.semantic(sc));
+                    eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
                     gate = null;
                 }
             }
@@ -2185,7 +2199,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         }
         auto tup = new TypeTuple(args);
         Expression e = new TypeidExp(loc, tup);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         arguments.insert(0, e);
     }
 
@@ -2193,13 +2207,13 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     if (isCtorCall)
     {
         //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd.toChars(), fd.type.toChars(),
-        //    wildmatch, tf.isWild(), fd.isolateReturn());
+        //    wildmatch, tf.isWild(), fd.isReturnIsolated());
         if (!tthis)
         {
             assert(sc.intypeof || global.errors);
             tthis = fd.isThis().type.addMod(fd.type.mod);
         }
-        if (tf.isWild() && !fd.isolateReturn())
+        if (tf.isWild() && !fd.isReturnIsolated())
         {
             if (wildmatch)
                 tret = tret.substWildTo(wildmatch);
@@ -2538,14 +2552,14 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
         ae.lengthVar = null; // Create it only if required
         ae.currentDimension = i; // Dimension for $, if required
 
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
 
         if (ae.lengthVar && sc.func)
         {
             // If $ was used, declare it now
             Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
-            de = de.semantic(sc);
+            de = de.expressionSemantic(sc);
             *pe0 = Expression.combine(*pe0, de);
         }
         sc = sc.pop();
@@ -2556,7 +2570,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
             auto tiargs = new Objects();
             Expression edim = new IntegerExp(ae.loc, i, Type.tsize_t);
-            edim = edim.semantic(sc);
+            edim = edim.expressionSemantic(sc);
             tiargs.push(edim);
 
             auto fargs = new Expressions();
@@ -2573,7 +2587,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
             e = new DotTemplateInstanceExp(ae.loc, ae.e1, slice.ident, tiargs);
             e = new CallExp(ae.loc, e, fargs);
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
         }
 
         if (!e.type)
@@ -2610,7 +2624,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
     for (size_t i = 0; i < 2; ++i)
     {
         Expression e = i == 0 ? ie.lwr : ie.upr;
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
         if (!e.type)
         {
@@ -2624,7 +2638,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
     {
         // If $ was used, declare it now
         Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
-        de = de.semantic(sc);
+        de = de.expressionSemantic(sc);
         *pe0 = Expression.combine(*pe0, de);
     }
 
@@ -2645,7 +2659,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
 StringExp semanticString(Scope *sc, Expression exp, const char* s)
 {
     sc = sc.startCTFE();
-    exp = exp.semantic(sc);
+    exp = exp.expressionSemantic(sc);
     exp = resolveProperties(sc, exp);
     sc = sc.endCTFE();
 
@@ -3498,7 +3512,7 @@ extern (C++) abstract class Expression : RootObject
             if (fd)
             {
                 e = new CastExp(loc, e, Type.tbool);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
 
@@ -5035,7 +5049,7 @@ extern (C++) final class StructLiteralExp : Expression
             auto tmp = copyToTemp(0, buf.ptr, this);
             Expression ae = new DeclarationExp(loc, tmp);
             Expression e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-            e = e.semantic(sc);
+            e = e.expressionSemantic(sc);
             return e;
         }
         return this;
@@ -5550,7 +5564,7 @@ extern (C++) final class FuncExp : Expression
             {
                 if (!flag)
                     error("cannot match function literal to delegate type '%s'", to.toChars());
-                return MATCHnomatch;
+                return MATCH.nomatch;
             }
             tof = cast(TypeFunction)to.nextOf();
         }
@@ -5560,7 +5574,7 @@ extern (C++) final class FuncExp : Expression
             {
                 if (!flag)
                     error("cannot match delegate literal to function pointer type '%s'", to.toChars());
-                return MATCHnomatch;
+                return MATCH.nomatch;
             }
             tof = cast(TypeFunction)to.nextOf();
         }
@@ -5572,7 +5586,7 @@ extern (C++) final class FuncExp : Expression
             L1:
                 if (!flag)
                     error("cannot infer parameter types from %s", to.toChars());
-                return MATCHnomatch;
+                return MATCH.nomatch;
             }
 
             // Parameter types inference from 'tof'
@@ -5613,26 +5627,26 @@ extern (C++) final class FuncExp : Expression
                 fd.treq = to;
 
             auto ti = new TemplateInstance(loc, td, tiargs);
-            Expression ex = (new ScopeExp(loc, ti)).semantic(td._scope);
+            Expression ex = (new ScopeExp(loc, ti)).expressionSemantic(td._scope);
 
             // Reset inference target for the later re-semantic
             fd.treq = null;
 
             if (ex.op == TOKerror)
-                return MATCHnomatch;
+                return MATCH.nomatch;
             if (ex.op != TOKfunction)
                 goto L1;
             return (cast(FuncExp)ex).matchType(to, sc, presult, flag);
         }
 
         if (!tof || !tof.next)
-            return MATCHnomatch;
+            return MATCH.nomatch;
 
         assert(type && type != Type.tvoid);
         TypeFunction tfx = cast(TypeFunction)fd.type;
         bool convertMatch = (type.ty != to.ty);
 
-        if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCHconvert)
+        if (fd.inferRetType && tfx.next.implicitConvTo(tof.next) == MATCH.convert)
         {
             /* If return type is inferred and covariant return,
              * tweak return statements to required return type.
@@ -5671,12 +5685,12 @@ extern (C++) final class FuncExp : Expression
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
 
         MATCH m = tx.implicitConvTo(to);
-        if (m > MATCHnomatch)
+        if (m > MATCH.nomatch)
         {
-            // MATCHexact:      exact type match
-            // MATCHconst:      covairiant type match (eg. attributes difference)
-            // MATCHconvert:    context conversion
-            m = convertMatch ? MATCHconvert : tx.equals(to) ? MATCHexact : MATCHconst;
+            // MATCH.exact:      exact type match
+            // MATCH.constant:      covairiant type match (eg. attributes difference)
+            // MATCH.convert:    context conversion
+            m = convertMatch ? MATCH.convert : tx.equals(to) ? MATCH.exact : MATCH.constant;
 
             if (presult)
             {
@@ -6448,7 +6462,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
             return true;
 
         Expression e = new DotIdExp(loc, e1, ti.name);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         if (e.op == TOKdot)
             e = (cast(DotExp)e).e2;
 
@@ -6635,7 +6649,7 @@ extern (C++) final class CallExp : UnaExp
                 auto de = new DeclarationExp(loc, tmp);
                 auto ve = new VarExp(loc, tmp);
                 Expression e = new CommaExp(loc, de, ve);
-                e = e.semantic(sc);
+                e = e.expressionSemantic(sc);
                 return e;
             }
         }
@@ -7700,6 +7714,14 @@ extern (C++) final class UshrAssignExp : BinAssignExp
 }
 
 /***********************************************************
+ * The ~= operator. It can have one of the following operators:
+ *
+ * TOKcatass      - appending T[] to T[]
+ * TOKcatelemass  - appending T to T[]
+ * TOKcatdcharass - appending dchar to T[]
+ *
+ * The parser initially sets it to TOKcatass, and semantic() later decides which
+ * of the three it will be set to.
  */
 extern (C++) final class CatAssignExp : BinAssignExp
 {
@@ -7935,38 +7957,14 @@ extern (C++) final class XorExp : BinExp
 }
 
 /***********************************************************
+ * http://dlang.org/spec/expression.html#andand_expressions
  * http://dlang.org/spec/expression.html#oror_expressions
  */
-extern (C++) final class OrOrExp : BinExp
+extern (C++) final class LogicalExp : BinExp
 {
-    extern (D) this(Loc loc, Expression e1, Expression e2)
+    extern (D) this(Loc loc, TOK op, Expression e1, Expression e2)
     {
-        super(loc, TOKoror, __traits(classInstanceSize, OrOrExp), e1, e2);
-    }
-
-    override Expression toBoolean(Scope* sc)
-    {
-        auto ex2 = e2.toBoolean(sc);
-        if (ex2.op == TOKerror)
-            return ex2;
-        e2 = ex2;
-        return this;
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
-/***********************************************************
- * http://dlang.org/spec/expression.html#andand_expressions
- */
-extern (C++) final class AndAndExp : BinExp
-{
-    extern (D) this(Loc loc, Expression e1, Expression e2)
-    {
-        super(loc, TOKandand, __traits(classInstanceSize, AndAndExp), e1, e2);
+        super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
     }
 
     override Expression toBoolean(Scope* sc)
@@ -8179,7 +8177,7 @@ extern (C++) final class CondExp : BinExp
                             vcond.semantic(sc);
 
                             Expression de = new DeclarationExp(ce.econd.loc, vcond);
-                            de = de.semantic(sc);
+                            de = de.expressionSemantic(sc);
 
                             Expression ve = new VarExp(ce.econd.loc, vcond);
                             ce.econd = Expression.combine(de, ve);
@@ -8188,10 +8186,10 @@ extern (C++) final class CondExp : BinExp
                         //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
                         Expression ve = new VarExp(vcond.loc, vcond);
                         if (isThen)
-                            v.edtor = new AndAndExp(v.edtor.loc, ve, v.edtor);
+                            v.edtor = new LogicalExp(v.edtor.loc, TOKandand, ve, v.edtor);
                         else
-                            v.edtor = new OrOrExp(v.edtor.loc, ve, v.edtor);
-                        v.edtor = v.edtor.semantic(sc);
+                            v.edtor = new LogicalExp(v.edtor.loc, TOKoror, ve, v.edtor);
+                        v.edtor = v.edtor.expressionSemantic(sc);
                         //printf("\t--v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
                     }
                 }
@@ -8247,7 +8245,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         if (subop == TOKfilefullpath)
             s = FileName.combine(sc._module.srcfilePath, s);
         Expression e = new StringExp(loc, cast(char*)s);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
     }
@@ -8297,7 +8295,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
         else
             s = sc._module.toPrettyChars();
         Expression e = new StringExp(loc, cast(char*)s);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
     }
@@ -8327,7 +8325,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
         else
             s = "";
         Expression e = new StringExp(loc, cast(char*)s);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
     }
@@ -8369,7 +8367,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         }
 
         Expression e = new StringExp(loc, cast(char*)s);
-        e = e.semantic(sc);
+        e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
     }
