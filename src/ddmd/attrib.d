@@ -439,7 +439,20 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         super(decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
+
         linkage = (p == LINKsystem) ? Target.systemLinkage() : p;
+
+        if (linkage == LINKc)
+        {
+            if (decl)
+            {
+                foreach (d; *decl)
+                {
+                    if (d.isAggregateDeclaration)
+                        d.deprecation("cannot be marked as \"extern (C)\".");
+                }
+            }
+        }
     }
 
     static LinkDeclaration create(LINK p, Dsymbols* decl)

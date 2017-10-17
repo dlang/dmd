@@ -537,6 +537,12 @@ public:
 
     static const(char)* externallyMangledIdentifier(Declaration d)
     {
+        if (d.isFuncDeclaration && d.linkage == LINKc &&
+           (d.parent !is null && !d.parent.isModule && !d.isStatic))
+        {
+            d.deprecation("is declared \"extern (C)\" and it is neither static nor defined at top level.");
+        }
+
         if (!d.parent || d.parent.isModule() || d.linkage == LINKcpp) // if at global scope
         {
             switch (d.linkage)
@@ -565,6 +571,7 @@ public:
     {
         //printf("Declaration.mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
         //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d.linkage);
+
         if (auto id = externallyMangledIdentifier(d))
         {
             buf.writestring(id);
@@ -854,7 +861,7 @@ public:
             mangleIdentifier(s.ident, s);
         else
             toBuffer(s.toChars(), s);
-        //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), id);
+        //printf("Dsymbol.mangle() %s = %s\n", s.toChars(), s.ident);
     }
 
     ////////////////////////////////////////////////////////////////////////////
