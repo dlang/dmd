@@ -37,6 +37,7 @@ import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
@@ -328,7 +329,7 @@ Lagain:
 
     if (TemplateInstance ti = s.isTemplateInstance())
     {
-        ti.semantic(sc);
+        ti.dsymbolSemantic(sc);
         if (!ti.inst || ti.errors)
             return new ErrorExp();
         s = ti.toAlias();
@@ -735,7 +736,7 @@ extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
              */
             if (!tf.deco && ce.f.semanticRun < PASSsemanticdone)
             {
-                ce.f.semantic(null);
+                ce.f.dsymbolSemantic(null);
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
@@ -1570,7 +1571,7 @@ extern (C++) Expression callCpCtor(Scope* sc, Expression e)
              */
             auto tmp = copyToTemp(STCrvalue, "__copytmp", e);
             tmp.storage_class |= STCnodtor;
-            tmp.semantic(sc);
+            tmp.dsymbolSemantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
             Expression ve = new VarExp(e.loc, tmp);
             de.type = Type.tvoid;
@@ -2084,7 +2085,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
             Identifier idtmp = Identifier.generateId("__gate");
             gate = new VarDeclaration(loc, Type.tbool, idtmp, null);
             gate.storage_class |= STCtemp | STCctfe | STCvolatile;
-            gate.semantic(sc);
+            gate.dsymbolSemantic(sc);
 
             auto ae = new DeclarationExp(loc, gate);
             eprefix = ae.expressionSemantic(sc);
@@ -2118,7 +2119,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
                 auto tmp = copyToTemp(0,
                     needsDtor ? "__pfx" : "__pfy",
                     !isRef ? arg : arg.addressOf());
-                tmp.semantic(sc);
+                tmp.dsymbolSemantic(sc);
 
                 /* Modify the destructor so it only runs if gate==false, i.e.,
                  * only if there was a throw while constructing the args
@@ -7859,7 +7860,7 @@ extern (C++) Module loadStdMath()
         if (s.mod)
         {
             s.mod.importAll(null);
-            s.mod.semantic(null);
+            s.mod.dsymbolSemantic(null);
         }
         impStdMath = s;
     }
@@ -8174,7 +8175,7 @@ extern (C++) final class CondExp : BinExp
                         if (!vcond)
                         {
                             vcond = copyToTemp(STCvolatile, "__cond", ce.econd);
-                            vcond.semantic(sc);
+                            vcond.dsymbolSemantic(sc);
 
                             Expression de = new DeclarationExp(ce.econd.loc, vcond);
                             de = de.expressionSemantic(sc);

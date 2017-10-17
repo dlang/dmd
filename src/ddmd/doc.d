@@ -28,6 +28,7 @@ import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.func;
@@ -750,7 +751,7 @@ private size_t getCodeIndent(const(char)* src)
 private void expandTemplateMixinComments(TemplateMixin tm, OutBuffer* buf, Scope* sc)
 {
     if (!tm.semanticRun)
-        tm.semantic(sc);
+        tm.dsymbolSemantic(sc);
     TemplateDeclaration td = (tm && tm.tempdecl) ? tm.tempdecl.isTemplateDeclaration() : null;
     if (td && td.members)
     {

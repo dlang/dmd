@@ -26,6 +26,7 @@ import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
@@ -299,7 +300,7 @@ extern (C++) class FuncDeclaration : Declaration
             uint oldgag = global.gag;
             if (global.gag && !spec)
                 global.gag = 0;
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
             global.gag = oldgag;
             if (spec && global.errors != olderrs)
                 spec.errors = (global.errors - olderrs != 0);
@@ -323,7 +324,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 /* Currently dmd cannot resolve forward references per methods,
                  * then setting SIZOKfwd is too conservative and would break existing code.
-                 * So, just stop method attributes inference until ad.semantic() done.
+                 * So, just stop method attributes inference until ad.dsymbolSemantic() done.
                  */
                 //ad.sizeok = SIZEOKfwd;
             }
@@ -421,7 +422,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (flags & FUNCFLAGinferScope && !(v.storage_class & STCscope))
                 v.storage_class |= STCmaybescope;
 
-            v.semantic(sc);
+            v.dsymbolSemantic(sc);
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
@@ -446,7 +447,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (flags & FUNCFLAGinferScope && !(v.storage_class & STCscope))
                 v.storage_class |= STCmaybescope;
 
-            v.semantic(sc);
+            v.dsymbolSemantic(sc);
             if (!sc.insert(v))
                 assert(0);
             v.parent = this;
@@ -1886,7 +1887,7 @@ extern (C++) class FuncDeclaration : Declaration
 
             /* If inferRetType is true, tret may not be a correct return type yet.
              * So, in here it may be a temporary type for vresult, and after
-             * fbody.semantic() running, vresult.type might be modified.
+             * fbody.dsymbolSemantic() running, vresult.type might be modified.
              */
             vresult = new VarDeclaration(loc, tret, outId ? outId : Id.result, null);
             vresult.storage_class |= STCnodtor;
@@ -1908,7 +1909,7 @@ extern (C++) class FuncDeclaration : Declaration
                 vresult.storage_class |= STCref;
             vresult.type = tret;
 
-            vresult.semantic(sc);
+            vresult.dsymbolSemantic(sc);
 
             if (!sc.insert(vresult))
                 error("out result %s is already defined", vresult.toChars());

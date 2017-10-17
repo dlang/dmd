@@ -16,6 +16,7 @@ import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.globals;
 import ddmd.identifier;
 import ddmd.semantic;
@@ -100,7 +101,7 @@ extern (C++) final class Nspace : ScopeDsymbol
     {
         //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
         if (_scope && !symtab)
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
@@ -148,7 +149,7 @@ extern (C++) final class Nspace : ScopeDsymbol
     {
         //printf("Nspace::setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
-            semantic(this, null); // try to resolve it
+            dsymbolSemantic(this, null); // try to resolve it
         if (members)
         {
             foreach (s; *members)

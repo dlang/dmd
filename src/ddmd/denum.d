@@ -16,6 +16,7 @@ import ddmd.gluelayer;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.expression;
 import ddmd.expressionsem;
 import ddmd.globals;
@@ -133,7 +134,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         if (_scope)
         {
             // Try one last time to resolve this enum
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
         }
 
         if (!members || !symtab || _scope)
@@ -190,7 +191,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             goto Ldone;
 
         if (_scope)
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
         if (errors)
             return errorReturn();
         if (semanticRun == PASSinit || !members)
@@ -256,7 +257,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             return defaultval;
 
         if (_scope)
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
         if (errors)
             goto Lerrors;
         if (semanticRun == PASSinit || !members)
@@ -334,7 +335,7 @@ extern (C++) final class EnumMember : VarDeclaration
      */
     @property ref value() { return (cast(ExpInitializer)_init).exp; }
 
-    // A cast() is injected to 'value' after semantic(),
+    // A cast() is injected to 'value' after dsymbolSemantic(),
     // but 'origValue' will preserve the original value,
     // or previous value + 1 if none was specified.
     Expression origValue;
@@ -363,7 +364,7 @@ extern (C++) final class EnumMember : VarDeclaration
 
     Expression getVarExp(Loc loc, Scope* sc)
     {
-        semantic(this, sc);
+        dsymbolSemantic(this, sc);
         if (errors)
             return new ErrorExp();
         Expression e = new VarExp(loc, this);

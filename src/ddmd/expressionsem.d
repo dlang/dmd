@@ -32,6 +32,7 @@ import ddmd.dimport;
 import ddmd.dmangle;
 import ddmd.dmodule;
 import ddmd.dstruct;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
@@ -819,7 +820,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = exp;
                 return;
             }
-            ti.semantic(sc);
+            ti.dsymbolSemantic(sc);
             if (!ti.inst || ti.errors)
                 return setError();
 
@@ -885,7 +886,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         //printf("sds2 = %s, '%s'\n", sds2.kind(), sds2.toChars());
         //printf("\tparent = '%s'\n", sds2.parent.toChars());
-        sds2.semantic(sc);
+        sds2.dsymbolSemantic(sc);
 
         // (Aggregate|Enum)Declaration
         if (auto t = sds2.getType())
@@ -1378,7 +1379,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("SymOffExp::semantic('%s')\n", e.toChars());
         }
-        //var.semantic(sc);
+        //var.dsymbolSemantic(sc);
         if (!e.type)
             e.type = e.var.type.pointerTo();
 
@@ -1468,7 +1469,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * foo(a=>a); // in IFTI, treq == T delegate(int)
              */
             //if (fd.treq)
-            //    fd.treq = fd.treq.semantic(loc, sc);
+            //    fd.treq = fd.treq.dsymbolSemantic(loc, sc);
 
             exp.genIdent(sc);
 
@@ -1489,7 +1490,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.td)
             {
                 assert(exp.td.parameters && exp.td.parameters.dim);
-                exp.td.semantic(sc);
+                exp.td.dsymbolSemantic(sc);
                 exp.type = Type.tvoid; // temporary type
 
                 if (exp.fd.treq) // defer type determination
@@ -1504,7 +1505,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             uint olderrors = global.errors;
-            exp.fd.semantic(sc);
+            exp.fd.dsymbolSemantic(sc);
             if (olderrors == global.errors)
             {
                 exp.fd.semantic2(sc);
@@ -1571,7 +1572,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.genIdent(sc);
 
             assert(exp.td.parameters && exp.td.parameters.dim);
-            exp.td.semantic(sc);
+            exp.td.dsymbolSemantic(sc);
 
             TypeFunction tfl = cast(TypeFunction)exp.fd.type;
             size_t dim = Parameter.dim(tfl.parameters);
@@ -2554,7 +2555,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Do semantic() on initializer first, so:
             //      int a = a;
             // will be illegal.
-            e.declaration.semantic(sc);
+            e.declaration.dsymbolSemantic(sc);
             s.parent = sc.parent;
         }
 
@@ -2607,7 +2608,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (sc2.stc & (STCpure | STCnothrow | STCnogc))
                 sc2 = sc.push();
             sc2.stc &= ~(STCpure | STCnothrow | STCnogc);
-            e.declaration.semantic(sc2);
+            e.declaration.dsymbolSemantic(sc2);
             if (sc2 != sc)
                 sc2.pop();
             s.parent = sc.parent;
@@ -2804,7 +2805,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     auto args = new Parameters();
                     args.reserve(cd.baseclasses.dim);
                     if (cd.semanticRun < PASSsemanticdone)
-                        cd.semantic(null);
+                        cd.dsymbolSemantic(null);
                     for (size_t i = 0; i < cd.baseclasses.dim; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
@@ -2972,7 +2973,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, &dedtypes, &s);
                     if (m <= MATCH.nomatch)
                         goto Lno;
-                    s.semantic(sc);
+                    s.dsymbolSemantic(sc);
                     if (sc.sds)
                         s.addMember(sc, sc.sds);
                     else if (!sc.insert(s))
@@ -3001,7 +3002,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 s = new TupleDeclaration(e.loc, e.id, &tup.objects);
             else
                 s = new AliasDeclaration(e.loc, e.id, tded);
-            s.semantic(sc);
+            s.dsymbolSemantic(sc);
 
             /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
              * More investigation is needed.
@@ -3589,7 +3590,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             TemplateInstance ti = dti.ti;
             {
                 //assert(ti.needsTypeInference(sc));
-                ti.semantic(sc);
+                ti.dsymbolSemantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return setError();
 
@@ -3608,7 +3609,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (ti)
             {
                 //assert(ti.needsTypeInference(sc));
-                ti.semantic(sc);
+                ti.dsymbolSemantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return setError();
 
@@ -4093,7 +4094,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (fd && f)
                 {
                     v = copyToTemp(0, "__tmpea", exp.e1);
-                    v.semantic(sc);
+                    v.dsymbolSemantic(sc);
                     ea = new DeclarationExp(exp.loc, v);
                     ea.type = v.type;
                 }
@@ -8681,7 +8682,7 @@ L1:
                 goto Lerr;
             if (exp.ti.needsTypeInference(sc))
                 return exp;
-            exp.ti.semantic(sc);
+            exp.ti.dsymbolSemantic(sc);
             if (!exp.ti.inst || exp.ti.errors) // if template failed to expand
                 return new ErrorExp();
 
@@ -8731,7 +8732,7 @@ L1:
             return new ErrorExp();
         if (exp.ti.needsTypeInference(sc))
             return exp;
-        exp.ti.semantic(sc);
+        exp.ti.dsymbolSemantic(sc);
         if (!exp.ti.inst || exp.ti.errors) // if template failed to expand
             return new ErrorExp();
 
@@ -8767,7 +8768,7 @@ L1:
             }
             if (exp.ti.needsTypeInference(sc))
                 return exp;
-            exp.ti.semantic(sc);
+            exp.ti.dsymbolSemantic(sc);
             if (!exp.ti.inst || exp.ti.errors) // if template failed to expand
                 return new ErrorExp();
 

@@ -21,6 +21,7 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -170,7 +171,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto ad = cast(AggregateDeclaration)param;
 
             if (v.semanticRun < PASSsemanticdone)
-                v.semantic(null);
+                v.dsymbolSemantic(null);
             // Return in case a recursive determineFields triggered by v.semantic already finished
             if (ad.sizeok != SIZEOKnone)
                 return 1;
@@ -243,7 +244,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
 
         if (_scope)
-            semantic(this, null);
+            dsymbolSemantic(this, null);
 
         // Determine the instance size of base class first.
         if (auto cd = isClassDeclaration())
@@ -658,7 +659,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             // Emulate vthis.addMember()
             members.push(vthis);
 
-            // Emulate vthis.semantic()
+            // Emulate vthis.dsymbolSemantic()
             vthis.storage_class |= STCfield;
             vthis.parent = this;
             vthis.protection = Prot(PROTpublic);
@@ -703,7 +704,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 {
                     auto f = s.isCtorDeclaration();
                     if (f && f.semanticRun == PASSinit)
-                        f.semantic(null);
+                        f.dsymbolSemantic(null);
                     return 0;
                 }
             }

@@ -21,6 +21,7 @@ import ddmd.gluelayer;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
@@ -467,7 +468,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
              */
             if (!cd.baseClass && cd.semanticRun < PASSsemanticdone && !cd.isInterfaceDeclaration())
             {
-                cd.semantic(null);
+                cd.dsymbolSemantic(null);
                 if (!cd.baseClass && cd.semanticRun < PASSsemanticdone)
                     cd.error("base class is forward referenced by %s", toChars());
             }
@@ -499,7 +500,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             {
                 // must semantic on base class/interfaces
                 ++inuse;
-                semantic(this, null);
+                dsymbolSemantic(this, null);
                 --inuse;
             }
         }
@@ -879,9 +880,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
          * then the class is abstract. Do this by checking the vtbl[].
          * Need to do semantic() on class to fill the vtbl[].
          */
-        this.semantic(null);
+        this.dsymbolSemantic(null);
 
-        /* The next line should work, but does not because when ClassDeclaration.semantic()
+        /* The next line should work, but does not because when ClassDeclaration.dsymbolSemantic()
          * is called recursively it can set PASSsemanticdone without finishing it.
          */
         //if (semanticRun < PASSsemanticdone)
@@ -894,7 +895,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             {
                 auto fd = s.isFuncDeclaration();
                 if (fd && !(fd.storage_class & STCstatic))
-                    fd.semantic(null);
+                    fd.dsymbolSemantic(null);
                 return 0;
             }
 

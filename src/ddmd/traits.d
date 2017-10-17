@@ -21,6 +21,7 @@ import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -627,7 +628,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
         }
         if (s.semanticRun == PASSinit)
-            s.semantic(null);
+            s.dsymbolSemantic(null);
 
         auto protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
         assert(protName);
@@ -1212,7 +1213,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (cd && e.ident == Id.allMembers)
         {
             if (cd.semanticRun < PASSsemanticdone)
-                cd.semantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
+                cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
                                    // Try to resolve forward reference
 
             void pushBaseMembersDg(ClassDeclaration cd)
