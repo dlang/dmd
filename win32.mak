@@ -491,6 +491,9 @@ $(IMPDIR)\core\sys\linux\netinet\in_.d : src\core\sys\linux\netinet\in_.d
 $(IMPDIR)\core\sys\linux\netinet\tcp.d : src\core\sys\linux\netinet\tcp.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
 	copy $** $@
 
