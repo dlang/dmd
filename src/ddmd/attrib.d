@@ -19,6 +19,7 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
@@ -554,7 +555,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
     override Scope* newScope(Scope* sc)
     {
         if (pkg_identifiers)
-            semantic(this, sc);
+            dsymbolSemantic(this, sc);
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.protection, 1, sc.aligndecl, sc.inlining);
     }
 

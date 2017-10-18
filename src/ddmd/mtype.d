@@ -34,6 +34,7 @@ import ddmd.dmangle;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -781,7 +782,7 @@ extern (C++) abstract class Type : RootObject
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
                 if (cd.semanticRun < PASSsemanticdone && !cd.isBaseInfoComplete())
-                    cd.semantic(null);
+                    cd.dsymbolSemantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
                     return 3; // forward references
@@ -6868,7 +6869,7 @@ extern (C++) final class TypeInstance : TypeQualified
         *ps = null;
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
-        tempinst.semantic(sc);
+        tempinst.dsymbolSemantic(sc);
         if (!global.gag && tempinst.errors)
         {
             *pt = terror;
@@ -7347,7 +7348,7 @@ extern (C++) final class TypeStruct : Type
         {
             if (!ti.semanticRun)
             {
-                ti.semantic(sc);
+                ti.dsymbolSemantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
             }
@@ -7407,7 +7408,7 @@ extern (C++) final class TypeStruct : Type
                 }
             }
             if (d.semanticRun == PASSinit)
-                d.semantic(null);
+                d.dsymbolSemantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
@@ -7757,7 +7758,7 @@ extern (C++) final class TypeEnum : Type
             return getProperty(e.loc, ident, flag & 1);
 
         if (sym.semanticRun < PASSsemanticdone)
-            sym.semantic(null);
+            sym.dsymbolSemantic(null);
         if (!sym.members)
         {
             if (!(flag & 1))
@@ -8173,7 +8174,7 @@ extern (C++) final class TypeClass : Type
             if (ident == Id.outer && sym.vthis)
             {
                 if (sym.vthis.semanticRun == PASSinit)
-                    sym.vthis.semantic(null);
+                    sym.vthis.dsymbolSemantic(null);
 
                 if (auto cdp = sym.toParent2().isClassDeclaration())
                 {
@@ -8287,7 +8288,7 @@ extern (C++) final class TypeClass : Type
         {
             if (!ti.semanticRun)
             {
-                ti.semantic(sc);
+                ti.dsymbolSemantic(sc);
                 if (!ti.inst || ti.errors) // if template failed to expand
                     return new ErrorExp();
             }
@@ -8399,7 +8400,7 @@ extern (C++) final class TypeClass : Type
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
             if (d.semanticRun == PASSinit)
-                d.semantic(null);
+                d.dsymbolSemantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
@@ -8451,9 +8452,9 @@ extern (C++) final class TypeClass : Type
         {
             //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to.toChars(), toChars(), cdto.isBaseInfoComplete(), sym.isBaseInfoComplete());
             if (cdto.semanticRun < PASSsemanticdone && !cdto.isBaseInfoComplete())
-                cdto.semantic(null);
+                cdto.dsymbolSemantic(null);
             if (sym.semanticRun < PASSsemanticdone && !sym.isBaseInfoComplete())
-                sym.semantic(null);
+                sym.dsymbolSemantic(null);
             if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
             {
                 //printf("'to' is base\n");

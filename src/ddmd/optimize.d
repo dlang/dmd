@@ -19,6 +19,7 @@ import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.expression;
 import ddmd.expressionsem;
 import ddmd.globals;
@@ -51,7 +52,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
     if (!v)
         return e;
     if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
-        v.semantic(null);
+        v.dsymbolSemantic(null);
     if (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest)
     {
         if (!v.type)

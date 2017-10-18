@@ -30,6 +30,7 @@ import ddmd.dinterpret;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.escape;
@@ -960,7 +961,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             // Extend the life of rvalue aggregate till the end of foreach.
             vinit = copyToTemp(STCrvalue, "__aggr", fs.aggr);
             vinit.endlinnum = fs.endloc.linnum;
-            vinit.semantic(sc);
+            vinit.dsymbolSemantic(sc);
             fs.aggr = new VarExp(fs.aggr.loc, vinit);
         }
 
@@ -1340,7 +1341,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     r = copyToTemp(0, "__r", fs.aggr);
-                    r.semantic(sc);
+                    r.dsymbolSemantic(sc);
                     _init = new ExpStatement(loc, r);
                     if (vinit)
                         _init = new CompoundStatement(loc, new ExpStatement(loc, vinit), _init);
@@ -1373,7 +1374,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 else
                 {
                     auto vd = copyToTemp(STCref, "__front", einit);
-                    vd.semantic(sc);
+                    vd.dsymbolSemantic(sc);
                     makeargs = new ExpStatement(loc, vd);
 
                     Type tfront;
@@ -2033,7 +2034,7 @@ else
             ifs.match = new VarDeclaration(ifs.loc, ifs.prm.type, ifs.prm.ident, ei);
             ifs.match.parent = scd.func;
             ifs.match.storage_class |= ifs.prm.storageClass;
-            ifs.match.semantic(scd);
+            ifs.match.dsymbolSemantic(scd);
 
             auto de = new DeclarationExp(ifs.loc, ifs.match);
             auto ve = new VarExp(ifs.loc, ifs.match);
@@ -2740,7 +2741,7 @@ else
 
     override void visit(ReturnStatement rs)
     {
-        //printf("ReturnStatement.semantic() %p, %s\n", rs, rs.toChars());
+        //printf("ReturnStatement.dsymbolSemantic() %p, %s\n", rs, rs.toChars());
 
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         if (fd.fes)
@@ -3282,7 +3283,7 @@ else
                  *  try { body } finally { _d_monitorexit(tmp); }
                  */
                 auto tmp = copyToTemp(0, "__sync", ss.exp);
-                tmp.semantic(sc);
+                tmp.dsymbolSemantic(sc);
 
                 auto cs = new Statements();
                 cs.push(new ExpStatement(ss.loc, tmp));
@@ -3325,7 +3326,7 @@ else
              * Backend optimizer could remove this unused variable.
              */
             auto v = new VarDeclaration(ss.loc, Type.tvoidptr, Identifier.generateId("__sync"), null);
-            v.semantic(sc);
+            v.dsymbolSemantic(sc);
             cs.push(new ExpStatement(ss.loc, v));
 
             auto args = new Parameters();
@@ -3403,7 +3404,7 @@ else
             {
                 _init = new ExpInitializer(ws.loc, ws.exp);
                 ws.wthis = new VarDeclaration(ws.loc, ws.exp.type, Id.withSym, _init);
-                ws.wthis.semantic(sc);
+                ws.wthis.dsymbolSemantic(sc);
 
                 sym = new WithScopeSymbol(ws);
                 sym.parent = sc.scopesym;
@@ -3423,7 +3424,7 @@ else
                      * }
                      */
                     auto tmp = copyToTemp(0, "__withtmp", ws.exp);
-                    tmp.semantic(sc);
+                    tmp.dsymbolSemantic(sc);
                     auto es = new ExpStatement(ws.loc, tmp);
                     ws.exp = new VarExp(ws.loc, tmp);
                     Statement ss = new ScopeStatement(ws.loc, new CompoundStatement(ws.loc, es, ws), ws.endloc);
@@ -3433,7 +3434,7 @@ else
                 Expression e = ws.exp.addressOf();
                 _init = new ExpInitializer(ws.loc, e);
                 ws.wthis = new VarDeclaration(ws.loc, e.type, Id.withSym, _init);
-                ws.wthis.semantic(sc);
+                ws.wthis.dsymbolSemantic(sc);
                 sym = new WithScopeSymbol(ws);
                 // Need to set the scope to make use of resolveAliasThis
                 sym.setScope(sc);
@@ -3774,7 +3775,7 @@ else
                 s.aliasdecls.push(ad);
             }
 
-            s.semantic(sc);
+            s.dsymbolSemantic(sc);
             Module.addDeferredSemantic2(s);     // https://issues.dlang.org/show_bug.cgi?id=14666
             sc.insert(s);
 
@@ -3864,7 +3865,7 @@ void catchSemantic(Catch c, Scope* sc)
         if (c.ident)
         {
             c.var = new VarDeclaration(c.loc, c.type, c.ident, null);
-            c.var.semantic(sc);
+            c.var.dsymbolSemantic(sc);
             sc.insert(c.var);
         }
         c.handler = c.handler.statementSemantic(sc);

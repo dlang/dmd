@@ -35,6 +35,7 @@ import ddmd.dmodule;
 import ddmd.doc;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
@@ -241,7 +242,7 @@ extern (C++) void genCmain(Scope* sc)
     global.params.verbose = false;
     m.importedFrom = m;
     m.importAll(null);
-    m.semantic(null);
+    m.dsymbolSemantic(null);
     m.semantic2(null);
     m.semantic3(null);
     global.params.verbose = v;
@@ -842,7 +843,7 @@ Language changes listed by -transition=id:
     {
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
-        m.semantic(null);
+        m.dsymbolSemantic(null);
     }
     //if (global.errors)
     //    fatal();

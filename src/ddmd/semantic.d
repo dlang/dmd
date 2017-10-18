@@ -18,46 +18,7 @@ import ddmd.dscope;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.globals;
-import ddmd.init;
-import ddmd.mtype;
-import ddmd.statement;
-
 import ddmd.dsymbolsem;
-import ddmd.statementsem;
-import ddmd.templateparamsem;
-import ddmd.typesem;
-
-/*************************************
- * Does semantic analysis on the public face of declarations.
- */
-extern(C++) void semantic(Dsymbol dsym, Scope* sc)
-{
-    dsymbolSemantic(dsym, sc);
-}
-
-/******************************************
- * Perform semantic analysis on init.
- * Params:
- *      init = Initializer AST node
- *      sc = context
- *      t = type that the initializer needs to become
- *      needInterpret = if CTFE needs to be run on this,
- *                      such as if it is the initializer for a const declaration
- * Returns:
- *      `Initializer` with completed semantic analysis, `ErrorInitializer` if errors
- *      were encountered
- */
-extern(C++) Initializer xxsemantic(Initializer init, Scope* sc, Type t, NeedInterpret needInterpret)
-{
-    import ddmd.initsem;
-    return initializerSemantic(init, sc, t, needInterpret);
-}
-
-// Performs semantic analysis in Statement AST nodes
-extern(C++) Statement xxsemantic(Statement s, Scope* sc)
-{
-    return statementSemantic(s, sc);
-}
 
 /*************************************
  * Does semantic analysis on initializers and members of aggregates.

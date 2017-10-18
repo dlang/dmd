@@ -19,6 +19,7 @@ import ddmd.declaration;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.expression;
 import ddmd.expressionsem;
@@ -316,7 +317,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
+    fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     // https://issues.dlang.org/show_bug.cgi?id=15044
     // fop.semantic3 isn't run here for lazy forward reference resolution.
@@ -524,7 +525,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
+    fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
@@ -644,7 +645,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
+    fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
@@ -757,7 +758,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINKd;
-    fop.semantic(sc2);
+    fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
 
@@ -931,7 +932,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         dd.fbody = (stc & STCdisable) ? null : new CompoundStatement(loc, a);
         sd.postblits.shift(dd);
         sd.members.push(dd);
-        dd.semantic(sc);
+        dd.dsymbolSemantic(sc);
     }
 
     FuncDeclaration xpostblit = null;
@@ -966,7 +967,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         sd.members.push(dd);
-        dd.semantic(sc);
+        dd.dsymbolSemantic(sc);
         xpostblit = dd;
         break;
     }
@@ -975,7 +976,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (xpostblit)
     {
         auto _alias = new AliasDeclaration(Loc(), Id.__xpostblit, xpostblit);
-        _alias.semantic(sc);
+        _alias.dsymbolSemantic(sc);
         sd.members.push(_alias);
         _alias.addMember(sc, sd); // add to symbol table
     }
@@ -1085,7 +1086,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         dd.fbody = new ExpStatement(loc, e);
         ad.dtors.shift(dd);
         ad.members.push(dd);
-        dd.semantic(sc);
+        dd.dsymbolSemantic(sc);
     }
 
     FuncDeclaration xdtor = null;
@@ -1120,7 +1121,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         dd.storage_class |= STCinference;
         dd.fbody = new ExpStatement(loc, e);
         ad.members.push(dd);
-        dd.semantic(sc);
+        dd.dsymbolSemantic(sc);
         xdtor = dd;
         break;
     }
@@ -1129,7 +1130,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     if (xdtor)
     {
         auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor);
-        _alias.semantic(sc);
+        _alias.dsymbolSemantic(sc);
         ad.members.push(_alias);
         _alias.addMember(sc, ad); // add to symbol table
     }
@@ -1183,7 +1184,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
         }
         auto inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
         ad.members.push(inv);
-        inv.semantic(sc);
+        inv.dsymbolSemantic(sc);
         return inv;
     }
 }

@@ -710,7 +710,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 /* If this is an internal alias for selective/renamed import,
                  * load the module first.
                  */
-                _import.semantic(null);
+                _import.dsymbolSemantic(null);
             }
             if (_scope)
             {
@@ -1409,7 +1409,7 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::toAlias('%s', this = %p, aliassym = %p)\n", toChars(), this, aliassym);
         if ((!type || !type.deco) && _scope)
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
 
         assert(this != aliassym);
         Dsymbol s = aliassym ? aliassym.toAlias() : this;

@@ -24,6 +24,7 @@ import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -2307,7 +2308,7 @@ public:
 
             if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
             {
-                v.semantic(null);
+                v.dsymbolSemantic(null);
                 if (v.type.ty == Terror)
                     return CTFEExp.cantexp;
             }

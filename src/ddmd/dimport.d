@@ -17,6 +17,7 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.globals;
@@ -279,7 +280,7 @@ extern (C++) final class Import : Dsymbol
         {
             load(null);
             mod.importAll(null);
-            mod.semantic(null);
+            mod.dsymbolSemantic(null);
         }
         // Forward it to the package/module
         return pkg.search(loc, ident, flags);

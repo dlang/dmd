@@ -749,7 +749,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 // don't add it, if it has no name
                 auto v = new VarDeclaration(loc, fparam.type, fparam.ident, null);
                 v.storage_class = fparam.storageClass;
-                v.semantic(scx);
+                v.dsymbolSemantic(scx);
                 if (!ti.symtab)
                     ti.symtab = new DsymbolTable();
                 if (!scx.insert(v))
@@ -871,7 +871,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 m = m2;
 
             if (!flag)
-                sparam.semantic(paramscope);
+                sparam.dsymbolSemantic(paramscope);
             if (!paramscope.insert(sparam)) // TODO: This check can make more early
             {
                 // in TemplateDeclaration.semantic, and
@@ -1175,7 +1175,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (m < matchTiargs)
                     matchTiargs = m;
 
-                sparam.semantic(paramscope);
+                sparam.dsymbolSemantic(paramscope);
                 if (!paramscope.insert(sparam))
                     goto Lnomatch;
             }
@@ -2080,7 +2080,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (!sc.insert(d))
             error("declaration %s is already defined", tp.ident.toChars());
-        d.semantic(sc);
+        d.dsymbolSemantic(sc);
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
         if (v)
@@ -2371,7 +2371,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (fd.semanticRun < PASSsemanticdone)
         {
             Ungag ungag = fd.ungagSpeculative();
-            fd.semantic(null);
+            fd.dsymbolSemantic(null);
         }
         if (fd.semanticRun == PASSinit)
         {
@@ -2509,7 +2509,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         {
             // Try to fix forward reference. Ungag errors while doing so.
             Ungag ungag = td.ungagSpeculative();
-            td.semantic(td._scope);
+            td.dsymbolSemantic(td._scope);
         }
         if (td.semanticRun == PASSinit)
         {
@@ -5658,7 +5658,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 Initializer _init = new ExpInitializer(loc, ea);
                 auto v = new VarDeclaration(loc, null, ident, _init);
                 v.storage_class = STCmanifest;
-                v.semantic(sc);
+                v.dsymbolSemantic(sc);
                 *psparam = v;
             }
         }
@@ -5934,7 +5934,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Maybe we can resolve it
             if (_scope)
             {
-                semantic(this, _scope);
+                dsymbolSemantic(this, _scope);
             }
             if (!inst)
             {
@@ -6409,7 +6409,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     {
                         // Try to fix forward reference. Ungag errors while doing so.
                         Ungag ungag = td.ungagSpeculative();
-                        td.semantic(td._scope);
+                        td.dsymbolSemantic(td._scope);
                     }
                     if (td.semanticRun == PASSinit)
                     {
@@ -6743,7 +6743,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 TemplateDeclaration td = sa.isTemplateDeclaration();
                 if (td && td.semanticRun == PASSinit && td.literal)
                 {
-                    td.semantic(sc);
+                    td.dsymbolSemantic(sc);
                 }
                 FuncDeclaration fd = sa.isFuncDeclaration();
                 if (fd)
@@ -7073,7 +7073,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         {
                             // Try to fix forward reference. Ungag errors while doing so.
                             Ungag ungag = td.ungagSpeculative();
-                            td.semantic(td._scope);
+                            td.dsymbolSemantic(td._scope);
                         }
                         if (td.semanticRun == PASSinit)
                         {
@@ -7363,7 +7363,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             //if (enclosing)
             //    s.parent = sc.parent;
             //printf("test3: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
-            s.semantic(sc2);
+            s.dsymbolSemantic(sc2);
             //printf("test4: enclosing = %d, s.parent = %s\n", enclosing, s.parent.toChars());
             Module.runDeferredSemantic();
         }
@@ -7565,7 +7565,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
     override int apply(Dsymbol_apply_ft_t fp, void* param)
     {
         if (_scope) // if fwd reference
-            semantic(this, null); // try to resolve it
+            dsymbolSemantic(this, null); // try to resolve it
         if (members)
         {
             for (size_t i = 0; i < members.dim; i++)
@@ -7603,7 +7603,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
     {
         //printf("TemplateMixin.setFieldOffset() %s\n", toChars());
         if (_scope) // if fwd reference
-            semantic(this, null); // try to resolve it
+            dsymbolSemantic(this, null); // try to resolve it
         if (members)
         {
             for (size_t i = 0; i < members.dim; i++)
@@ -7681,7 +7681,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 if (td.semanticRun == PASSinit)
                 {
                     if (td._scope)
-                        td.semantic(td._scope);
+                        td.dsymbolSemantic(td._scope);
                     else
                     {
                         semanticRun = PASSinit;

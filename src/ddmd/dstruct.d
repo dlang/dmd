@@ -19,6 +19,7 @@ import ddmd.declaration;
 import ddmd.dmodule;
 import ddmd.dscope;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.dtemplate;
 import ddmd.errors;
 import ddmd.expression;
@@ -336,7 +337,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
         if (_scope && !symtab)
-            semantic(this, _scope);
+            dsymbolSemantic(this, _scope);
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {

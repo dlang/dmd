@@ -22,6 +22,7 @@ import ddmd.dmangle;
 import ddmd.dscope;
 import ddmd.dstruct;
 import ddmd.dsymbol;
+import ddmd.dsymbolsem;
 import ddmd.errors;
 import ddmd.expression;
 import ddmd.expressionsem;
@@ -522,7 +523,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
              */
             StructDeclaration sd = (cast(TypeStruct)tbase).sym;
             if (sd.semanticRun < PASSsemanticdone)
-                sd.semantic(null);
+                sd.dsymbolSemantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
             //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", toChars(), sd.xeq, sd.xerreq, sd.xhash);
@@ -586,7 +587,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
             if (cd.semanticRun < PASSsemanticdone)
-                cd.semantic(null);
+                cd.dsymbolSemantic(null);
 
             if (!ClassDeclaration.object)
             {

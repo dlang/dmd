@@ -749,7 +749,7 @@ extern (C++) class Dsymbol : RootObject
                 }
                 ti.tempdecl = td;
                 if (!ti.semanticRun)
-                    ti.semantic(sc);
+                    ti.dsymbolSemantic(sc);
                 sm = ti.toAlias();
                 break;
             }
@@ -1568,7 +1568,7 @@ public:
                 parameters.push(p);
                 Type tret = null;
                 tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
-                tfgetmembers = cast(TypeFunction)tfgetmembers.semantic(Loc(), &sc);
+                tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc(), &sc);
             }
             if (fdx)
                 fdx = fdx.overloadExactMatch(tfgetmembers);
@@ -1806,7 +1806,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
-                v.semantic(sc);
+                v.dsymbolSemantic(sc);
                 return v;
             }
             if (type)
@@ -1817,7 +1817,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
                 v.storage_class |= STCtemp | STCstatic | STCconst;
-                v.semantic(sc);
+                v.dsymbolSemantic(sc);
                 return v;
             }
             if (exp.op == TOKindex)
@@ -1956,7 +1956,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 }
                 *pvar = v;
             }
-            (*pvar).semantic(sc);
+            (*pvar).dsymbolSemantic(sc);
             return (*pvar);
         }
         return null;
