@@ -10,7 +10,7 @@
 
 *******************************************************************************/
 
-module core.sys.linux.sys.netinet.tcp;
+module core.sys.linux.netinet.tcp;
 
 /*
 * Copyright (c) 1982, 1986, 1993

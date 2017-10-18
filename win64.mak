@@ -499,6 +499,9 @@ $(IMPDIR)\core\sys\linux\unistd.d : src\core\sys\linux\unistd.d
 $(IMPDIR)\core\sys\linux\netinet\in_.d : src\core\sys\linux\netinet\in_.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\netinet\tcp.d : src\core\sys\linux\netinet\tcp.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
 	copy $** $@
 
@@ -515,9 +518,6 @@ $(IMPDIR)\core\sys\linux\sys\prctl.d : src\core\sys\linux\sys\prctl.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\mman.d : src\core\sys\linux\sys\mman.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
