@@ -434,6 +434,25 @@ extern (C++) TypeTuple toArgTypes(Type t)
                     }
                 }
             }
+            else if (!global.params.is64bit && global.params.isFreeBSD && t.sym.fields.dim == 1 &&
+                (sz == 4 || sz == 8))
+            {
+                /* FreeBSD changed their 32 bit ABI at some point before 10.3 for the following:
+                 *  struct { float f;  } => arg1type is float
+                 *  struct { double d; } => arg1type is double
+                 * Cannot find any documentation on it.
+                 */
+
+                VarDeclaration f = t.sym.fields[0];
+                TypeTuple tup = toArgTypes(f.type);
+                if (tup && tup.arguments.dim == 1)
+                {
+                    Type ft1 = (*tup.arguments)[0].type;
+                    if (ft1.ty == Tfloat32 || ft1.ty == Tfloat64)
+                        t1 = ft1;
+                }
+            }
+
             //printf("\ttoArgTypes() %s => [%s,%s]\n", t.toChars(), t1 ? t1.toChars() : "", t2 ? t2.toChars() : "");
             if (t1)
             {
