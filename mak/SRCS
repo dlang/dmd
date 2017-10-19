@@ -71,6 +71,7 @@ SRCS=\
 	src\core\sys\freebsd\time.d \
 	\
 	src\core\sys\linux\netinet\in_.d \
+	src\core\sys\linux\netinet\tcp.d \
 	src\core\sys\linux\stdio.d \
 	src\core\sys\linux\tipc.d \
 	src\core\sys\linux\sys\inotify.d \
@@ -80,7 +81,6 @@ SRCS=\
 	src\core\sys\linux\sys\sysinfo.d \
 	src\core\sys\linux\sys\time.d \
 	src\core\sys\linux\sys\xattr.d \
-	src\core\sys\linux\sys\netinet\tcp.d \
 	\
 	src\core\sys\posix\dirent.d \
 	src\core\sys\posix\signal.d \
