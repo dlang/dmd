@@ -394,6 +394,9 @@ $(IMPDIR)\core\sys\darwin\mach\semaphore.d : src\core\sys\darwin\mach\semaphore.
 $(IMPDIR)\core\sys\darwin\mach\thread_act.d : src\core\sys\darwin\mach\thread_act.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\darwin\netinet\in_.d : src\core\sys\darwin\netinet\in_.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\darwin\sys\cdefs.d : src\core\sys\darwin\sys\cdefs.d
 	copy $** $@
 
@@ -413,6 +416,9 @@ $(IMPDIR)\core\sys\freebsd\pthread_np.d : src\core\sys\freebsd\pthread_np.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\time.d : src\core\sys\freebsd\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\netinet\in_.d : src\core\sys\freebsd\netinet\in_.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\cdefs.d : src\core\sys\freebsd\sys\cdefs.d
@@ -490,6 +496,15 @@ $(IMPDIR)\core\sys\linux\tipc.d : src\core\sys\linux\tipc.d
 $(IMPDIR)\core\sys\linux\unistd.d : src\core\sys\linux\unistd.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\netinet\in_.d : src\core\sys\linux\netinet\in_.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\netinet\tcp.d : src\core\sys\linux\netinet\tcp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\auxv.d : src\core\sys\linux\sys\auxv.d
 	copy $** $@
 
@@ -506,9 +521,6 @@ $(IMPDIR)\core\sys\linux\sys\prctl.d : src\core\sys\linux\sys\prctl.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\mman.d : src\core\sys\linux\sys\mman.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\linux\sys\netinet\tcp.d : src\core\sys\linux\sys\netinet\tcp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
