@@ -1,3 +1,6 @@
+
+// Interface to <sys/utsname.h>
+
 module core.sys.posix.sys.utsname;
 
 version (OSX)
@@ -48,19 +51,21 @@ else version(Darwin)
 }
 else version(FreeBSD)
 {
-    private enum utsNameLength = 32;
+    //private enum SYS_NMLN = 32;       // old FreeBSD 1.1 ABI
+    private enum SYS_NMLN = 256;
 
     struct utsname
     {
-        char[utsNameLength] sysname;
-        char[utsNameLength] nodename;
-        char[utsNameLength] release;
+        char[SYS_NMLN] sysname;
+        char[SYS_NMLN] nodename;
+        char[SYS_NMLN] release;
         // The field name is version but version is a keyword in D.
-        char[utsNameLength] update;
-        char[utsNameLength] machine;
+        char[SYS_NMLN] update;
+        char[SYS_NMLN] machine;
     }
 
-    int uname(utsname* __name);
+    int __xuname(int, void*);
+    int uname()(utsname* __name) { return __xuname(SYS_NMLN, cast(void*) __name); }
 }
 else version(NetBSD)
 {
@@ -110,4 +115,8 @@ else version(CRuntime_Bionic)
     }
 
     int uname(utsname*);
+}
+else
+{
+    static assert(false, "unsupported system");
 }
