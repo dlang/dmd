@@ -114,9 +114,9 @@ extern (C):
         declarations, including $(D struct) or $(D class), even though
         there is no corresponding match on the $(D C) side. In that case,
         the attribute is ignored. This behavior applies for nested
-        functions and nested variables also. However, if a nested function
-        needs to be called from a $(D C) environment, marking it as
-        $(D static extern (C)) will enable that. 
+        functions and nested variables as well. However, for $(D static) member
+        methods and $(D static) nested functions, adding $(D extern(C)) will
+        change the calling convention, but not the mangling.
         
         $(P D conventions are:)
 
