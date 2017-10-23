@@ -414,6 +414,7 @@ Language changes listed by -transition=id:
   =complex,14488 list all usages of complex or imaginary types
   =field,3449    list all non-mutable fields which occupy an object instance
   =import,10378  revert to single phase name lookup
+  =intpromote,16997 fix integral promotions for unary + - ~ operators
   =tls           list all variables going into thread local storage
 ");
         return EXIT_SUCCESS;
@@ -1549,9 +1550,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (isdigit(cast(char)p[5]))
                     {
-                        long percent;
                         errno = 0;
-                        percent = strtol(p + 5, &p, 10);
+                        const percent = strtol(p + 5, &p, 10);
                         if (*p || errno || percent > 100)
                             goto Lerror;
                         params.covPercent = cast(ubyte)percent;
@@ -1682,9 +1682,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 if (p[8] == '=' && isdigit(cast(char)p[9]))
                 {
-                    long num;
                     errno = 0;
-                    num = strtol(p + 9, &p, 10);
+                    const num = strtol(p + 9, &p, 10);
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
                     global.errorLimit = cast(uint)num;
@@ -1747,9 +1746,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     }
                     if (isdigit(cast(char)p[12]))
                     {
-                        long num;
                         errno = 0;
-                        num = strtol(p + 12, &p, 10);
+                        const num = strtol(p + 12, &p, 10);
                         if (*p || errno || num > INT_MAX)
                             goto Lerror;
                         // Bugzilla issue number
@@ -1763,6 +1761,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                             break;
                         case 14488:
                             params.vcomplex = true;
+                            break;
+                        case 16997:
+                            params.fix16997 = true;
                             break;
                         default:
                             goto Lerror;
@@ -1789,6 +1790,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                             break;
                         case "import":
                             params.bug10378 = true;
+                            break;
+                        case "intpromote":
+                            params.fix16997 = true;
                             break;
                         case "tls":
                             params.vtls = true;
@@ -1998,9 +2002,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (isdigit(cast(char)p[7]))
                     {
-                        long level;
                         errno = 0;
-                        level = strtol(p + 7, &p, 10);
+                        const level = strtol(p + 7, &p, 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
                         DebugCondition.setGlobalLevel(cast(int)level);
@@ -2024,9 +2027,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (isdigit(cast(char)p[9]))
                     {
-                        long level;
                         errno = 0;
-                        level = strtol(p + 9, &p, 10);
+                        const level = strtol(p + 9, &p, 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
                         VersionCondition.setGlobalLevel(cast(int)level);
