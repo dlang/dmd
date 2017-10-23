@@ -110,12 +110,12 @@ $(GNAME LinkageType):
 extern (C):
     int foo(); // call foo() with C conventions
 ---------------
-        Note that $(D extern (C)) can be provided for all types of
-        declarations, including $(D struct) or $(D class), even though
-        there is no corresponding match on the $(D C) side. In that case,
+        Note that `extern(C)` can be provided for all types of
+        declarations, including `struct` or `class`, even though
+        there is no corresponding match on the `C` side. In that case,
         the attribute is ignored. This behavior applies for nested
-        functions and nested variables as well. However, for $(D static) member
-        methods and $(D static) nested functions, adding $(D extern(C)) will
+        functions and nested variables as well. However, for `static` member
+        methods and `static` nested functions, adding `extern(C)` will
         change the calling convention, but not the mangling.
 
         $(P D conventions are:)
