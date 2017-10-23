@@ -214,6 +214,18 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             va = (cast(VarExp)ie.e1).var.isVarDeclaration();
     }
 
+    if (va && e.op == TOKcatelemass)
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=17842
+         * Draw an equivalence between:
+         *   *q = p;
+         * and:
+         *   va ~= e;
+         * since we are not assigning to va, but are assigning indirectly through va.
+         */
+        va = null;
+    }
+
     if (log && va) printf("va: %s\n", va.toChars());
 
     // Try to infer 'scope' for va if in a function not marked @system
