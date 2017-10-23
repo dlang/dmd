@@ -3219,6 +3219,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         SCstring(STCwild, TOKwild),
         SCstring(STCpure, TOKpure),
         SCstring(STCref, TOKref),
+        SCstring(STCreturn, TOKreturn),
         SCstring(STCtls),
         SCstring(STCgshared, TOKgshared),
         SCstring(STCnogc, TOKat, "@nogc"),

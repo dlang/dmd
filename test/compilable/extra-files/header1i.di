@@ -603,3 +603,34 @@ struct Foo3A(T)
 	@disable this(this);
 	@disable this();
 }
+ref @safe int foo(return ref int a)
+{
+	return a;
+}
+@safe int* foo(return scope int* a)
+{
+	return a;
+}
+ref @safe int* foo(return ref scope int* a)
+{
+	return a;
+}
+struct SafeS
+{
+	@safe 
+	{
+		ref return SafeS foo()
+		{
+			return this;
+		}
+		return scope SafeS foo()
+		{
+			return this;
+		}
+		ref return scope SafeS foo()
+		{
+			return this;
+		}
+		int* p;
+	}
+}

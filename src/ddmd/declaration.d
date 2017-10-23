@@ -140,7 +140,7 @@ enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STC
 extern (C++) __gshared const(StorageClass) STCStorageClass =
     (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized |
      STCdeprecated | STCfuture | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest |
-     STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCtls | STCgshared |
+     STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCreturn | STCtls | STCgshared |
      STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable | STClocal);
 
 struct Match
