@@ -3722,6 +3722,201 @@ template _arrayOp(Args...)
     alias _arrayOp = arrayOp!Args;
 }
 
+// switch template - replaces code in rt/switch_.d
+int __switch(T, caseLabels...)(T[] condition)
+{
+    // This closes recursion for other cases.
+    static if (caseLabels.length == 0)
+    {
+        return -1;
+    }
+    else static if (caseLabels.length == 1)
+    {
+        return __cmp(condition, caseLabels[0]) == 0 ? 0 : -1;
+    }
+    // To be adjusted after measurements
+    // Compile-time inlined binary search.
+    else static if (caseLabels.length < 7)
+    {
+        int r = void;
+        if (condition.length == caseLabels[$ / 2].length)
+        {
+            r = __cmp(condition, caseLabels[$ / 2]);
+            if (r == 0) return cast(int) caseLabels.length / 2;
+        }
+        else
+        {
+            // Equivalent to (but faster than) condition.length > caseLabels[$ / 2].length ? 1 : -1
+            r = ((condition.length > caseLabels[$ / 2].length) << 1) - 1;
+        }
+
+        if (r < 0)
+        {
+            // Search the left side
+            return __switch!(T, caseLabels[0 .. $ / 2])(condition);
+        }
+        else
+        {
+            // Search the right side
+            r = __switch!(T, caseLabels[$ / 2 + 1 .. $])(condition);
+            return r != -1 ? cast(int) (caseLabels.length / 2 + 1 + r) : -1;
+        }
+    }
+    else
+    {
+        // Run-time binary search in a static array of labels.
+        static const T[][caseLabels.length] cases =  [ caseLabels ];
+        size_t low = 0;
+        size_t high = cases.length;
+
+        do
+        {
+            auto mid = (low + high) / 2;
+            int r = void;
+            if (condition.length == cases[mid].length)
+            {
+                r = __cmp(condition, cases[mid]);
+                if (r == 0) return cast(int) mid;
+            }
+            else
+            {
+                // Generates better code than "expr ? 1 : -1" on dmd and gdc, same with ldc
+                r = ((condition.length > cases[mid].length) << 1) - 1;
+            }
+
+            if (r > 0) low = mid + 1;
+            else high = mid;
+        }
+        while (low < high);
+
+        // Not found
+        return -1;
+    }
+}
+
+unittest
+{
+    switch (cast(char []) "c")
+    {
+         case "coo":
+         default:
+             break;
+    }
+
+    int bug5381(string s)
+    {
+        switch(s)
+        {
+            case "unittest":        return 1;
+            case "D_Version2":      return 2;
+            case "nonenone":        return 3;
+            case "none":            return 4;
+            case "all":             return 5;
+            default:                return 6;
+        }
+    }
+
+    int rc = bug5381("unittest");
+    assert(rc == 1);
+
+    rc = bug5381("D_Version2");
+    assert(rc == 2);
+
+    rc = bug5381("nonenone");
+    assert(rc == 3);
+
+    rc = bug5381("none");
+    assert(rc == 4);
+
+    rc = bug5381("all");
+    assert(rc == 5);
+
+    rc = bug5381("nonerandom");
+    assert(rc == 6);
+}
+
+unittest
+{
+    switch (cast(wchar []) "c")
+    {
+         case "coo":
+         default:
+             break;
+    }
+
+    int bug5381(wstring s)
+    {
+        switch(s)
+        {
+            case "unittest":        return 1;
+            case "D_Version2":      return 2;
+            case "nonenone":        return 3;
+            case "none":            return 4;
+            case "all":             return 5;
+            default:                return 6;
+        }
+    }
+
+    int rc = bug5381("unittest"w);
+    assert(rc == 1);
+
+    rc = bug5381("D_Version2"w);
+    assert(rc == 2);
+
+    rc = bug5381("nonenone"w);
+    assert(rc == 3);
+
+    rc = bug5381("none"w);
+    assert(rc == 4);
+
+    rc = bug5381("all"w);
+    assert(rc == 5);
+
+    rc = bug5381("nonerandom"w);
+    assert(rc == 6);
+}
+
+unittest
+{
+    switch (cast(dchar []) "c")
+    {
+         case "coo":
+         default:
+             break;
+    }
+
+    int bug5381(dstring s)
+    {
+        switch(s)
+        {
+            case "unittest":        return 1;
+            case "D_Version2":      return 2;
+            case "nonenone":        return 3;
+            case "none":            return 4;
+            case "all":             return 5;
+            default:                return 6;
+        }
+    }
+
+    int rc = bug5381("unittest"d);
+    assert(rc == 1);
+
+    rc = bug5381("D_Version2"d);
+    assert(rc == 2);
+
+    rc = bug5381("nonenone"d);
+    assert(rc == 3);
+
+    rc = bug5381("none"d);
+    assert(rc == 4);
+
+    rc = bug5381("all"d);
+    assert(rc == 5);
+
+    rc = bug5381("nonerandom"d);
+    assert(rc == 6);
+}
+
 // Helper functions
 
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
