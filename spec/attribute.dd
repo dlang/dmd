@@ -117,7 +117,7 @@ extern (C):
         functions and nested variables as well. However, for $(D static) member
         methods and $(D static) nested functions, adding $(D extern(C)) will
         change the calling convention, but not the mangling.
-        
+
         $(P D conventions are:)
 
 ---------------
