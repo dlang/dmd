@@ -2,6 +2,7 @@
  {
   "name" : "json",
   "kind" : "module",
+  "file" : "compilable/json.d",
   "members" : [
    {
     "name" : "_staticCtor1",
@@ -195,7 +196,7 @@
       "storageClass" : [
        "abstract"
       ],
-      "deco" : "FZS4json10__T3FooTiZ3Foo"
+      "deco" : "FZS4json__T3FooTiZQh"
      },
      {
       "name" : "t",
@@ -232,6 +233,7 @@
       "line" : 32,
       "char" : 14,
       "deco" : "i",
+      "offset" : 32
      },
      {
       "name" : "this",
@@ -258,7 +260,7 @@
       "storageClass" : [
        "override"
       ],
-      "deco" : "FZS4json10__T3FooTiZ3Foo",
+      "deco" : "FZS4json__T3FooTiZQh",
       "endline" : 35,
       "endchar" : 61,
       "overrides" : [
@@ -280,6 +282,7 @@
       "char" : 7,
       "deco" : "C4json4Bar2",
       "originalType" : "Bar2",
+      "offset" : 0
      },
      {
       "name" : "U",
@@ -293,6 +296,7 @@
         "line" : 42,
         "char" : 10,
         "deco" : "s",
+        "offset" : 0
        },
        {
         "name" : "i",
@@ -300,6 +304,7 @@
         "line" : 43,
         "char" : 8,
         "deco" : "i",
+        "offset" : 4
        },
        {
         "name" : "o",
@@ -308,6 +313,7 @@
         "char" : 10,
         "deco" : "C6Object",
         "originalType" : "Object",
+        "offset" : 0
        }
       ]
      }
@@ -587,6 +593,7 @@
    {
     "name" : "a0",
     "kind" : "variable",
+    "file" : "compilable/json.d-mixin-116",
     "line" : 116,
     "char" : 5,
     "deco" : "i",
@@ -610,6 +617,7 @@
    },
    {
     "kind" : "template",
+    "file" : "compilable/json.d",
     "line" : 119,
     "char" : 1,
     "name" : "Seq",
@@ -633,6 +641,7 @@
    {
     "name" : "b0",
     "kind" : "alias",
+    "file" : "compilable/json.d-mixin-123",
     "line" : 123,
     "char" : 1
    },
@@ -649,6 +658,111 @@
     "kind" : "alias",
     "line" : 123,
     "char" : 1
+   },
+   {
+    "name" : "foo",
+    "kind" : "function",
+    "file" : "compilable/json.d",
+    "line" : 127,
+    "char" : 9,
+    "deco" : "FNcNfNkKiZi",
+    "parameters" : [
+     {
+      "name" : "a",
+      "deco" : "i",
+      "storageClass" : [
+       "ref",
+       "return"
+      ]
+     }
+    ],
+    "endline" : 130,
+    "endchar" : 1
+   },
+   {
+    "name" : "foo",
+    "kind" : "function",
+    "line" : 132,
+    "char" : 6,
+    "deco" : "FNfMNkPiZQd",
+    "parameters" : [
+     {
+      "name" : "a",
+      "deco" : "Pi",
+      "storageClass" : [
+       "scope",
+       "return"
+      ]
+     }
+    ],
+    "endline" : 135,
+    "endchar" : 1
+   },
+   {
+    "name" : "foo",
+    "kind" : "function",
+    "line" : 137,
+    "char" : 10,
+    "deco" : "FNcNfMNkKPiZQd",
+    "parameters" : [
+     {
+      "name" : "a",
+      "deco" : "Pi",
+      "storageClass" : [
+       "scope",
+       "ref",
+       "return"
+      ]
+     }
+    ],
+    "endline" : 140,
+    "endchar" : 1
+   },
+   {
+    "name" : "SafeS",
+    "kind" : "struct",
+    "line" : 142,
+    "char" : 1,
+    "members" : [
+     {
+      "name" : "foo",
+      "kind" : "function",
+      "line" : 145,
+      "char" : 12,
+      "deco" : "FNcNjNfZS4json5SafeS",
+      "endline" : 148,
+      "endchar" : 2
+     },
+     {
+      "name" : "foo",
+      "kind" : "function",
+      "line" : 150,
+      "char" : 8,
+      "deco" : "FNjNfZS4json5SafeS",
+      "endline" : 153,
+      "endchar" : 2
+     },
+     {
+      "name" : "foo",
+      "kind" : "function",
+      "line" : 155,
+      "char" : 12,
+      "deco" : "FNcNjNfZS4json5SafeS",
+      "endline" : 158,
+      "endchar" : 2
+     },
+     {
+      "name" : "p",
+      "kind" : "variable",
+      "line" : 160,
+      "char" : 7,
+      "storageClass" : [
+       "@safe"
+      ],
+      "deco" : "Pi",
+      "offset" : 0
+     }
+    ]
    }
   ]
  }

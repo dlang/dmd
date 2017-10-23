@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -o- -X -Xf${RESULTS_DIR}/compilable/json.out
+// REQUIRED_ARGS: -dip1000 -o- -X -Xf${RESULTS_DIR}/compilable/json.out
 // POST_SCRIPT: compilable/extra-files/json-postscript.sh
 
 module json;
@@ -121,4 +121,41 @@ alias Seq(T...) = T;
 static foreach(int i, alias a; Seq!(a0, a1, a2))
 {
 	mixin("alias b" ~ i.stringof ~ " = a;");
+}
+
+// return ref, return scope, return ref scope
+ref int foo(return ref int a) @safe
+{
+	return a;
+}
+
+int* foo(return scope int* a) @safe
+{
+	return a;
+}
+
+ref int* foo(scope return ref int* a) @safe
+{
+	return a;
+}
+
+struct SafeS
+{
+@safe:
+	ref SafeS foo() return
+	{
+		return this;
+	}
+
+	SafeS foo() return scope
+	{
+		return this;
+	}
+
+	ref SafeS foo() return scope
+	{
+		return this;
+	}
+
+	int* p;
 }
