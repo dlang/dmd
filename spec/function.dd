@@ -1263,6 +1263,8 @@ ref int escape()
 
 $(P Template functions and lambdas can deduce the `return` attribute.)
 
+$(P `inout ref` parameters imply the `return` attribute.)
+
 $(H3 $(LNAME2 variadic, Variadic Functions))
 
         $(P Functions taking a variable number of arguments are called
