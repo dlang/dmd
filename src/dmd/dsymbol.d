@@ -1300,10 +1300,8 @@ public:
                 {
                     if (flags & SearchImportsOnly)
                         continue;
-                    // compatibility with -transition=import
-                    // https://issues.dlang.org/show_bug.cgi?id=15925
-                    // SearchLocalsOnly should always get set for new lookup rules
-                    sflags |= (flags & SearchLocalsOnly);
+                    // only search locals, but not imports in mixin templates
+                    sflags |= SearchLocalsOnly;
                 }
 
                 /* Don't find private members if ss is a module

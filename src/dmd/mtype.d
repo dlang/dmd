@@ -6550,8 +6550,8 @@ extern (C++) abstract class TypeQualified : Type
                 Dsymbol sm = s.searchX(loc, sc, id, flags);
                 if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
                 {
-                    .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
-                    // sm = null;
+                    .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
+                    sm = null;
                 }
                 if (global.errors != errorsave)
                 {
@@ -7277,31 +7277,8 @@ extern (C++) final class TypeStruct : Type
             return e;
         }
 
-        Dsymbol searchSym()
-        {
-            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-
-            Dsymbol sold = void;
-            if (global.params.bug10378 || global.params.check10378)
-            {
-                sold = sym.search(e.loc, ident, flags);
-                if (!global.params.check10378)
-                    return sold;
-            }
-
-            auto s = sym.search(e.loc, ident, flags | IgnorePrivateImports);
-            if (global.params.check10378)
-            {
-                alias snew = s;
-                if (sold !is snew)
-                    Scope.deprecation10378(e.loc, sold, snew);
-                if (global.params.bug10378)
-                    s = sold;
-            }
-            return s;
-        }
-
-        s = searchSym();
+        int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        s = sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnorePrivateImports);
     L1:
         if (!s)
         {
@@ -7309,8 +7286,7 @@ extern (C++) final class TypeStruct : Type
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
-            // return noMember(sc, e, ident, flag);
+            return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
         {
@@ -8088,36 +8064,8 @@ extern (C++) final class TypeClass : Type
             return e;
         }
 
-        Dsymbol searchSym()
-        {
-            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
-            Dsymbol sold = void;
-            if (global.params.bug10378 || global.params.check10378)
-            {
-                sold = sym.search(e.loc, ident, flags | IgnoreSymbolVisibility);
-                if (!global.params.check10378)
-                    return sold;
-            }
-
-            auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
-            if (!s && !(flags & IgnoreSymbolVisibility))
-            {
-                s = sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
-                if (s && !(flags & IgnoreErrors))
-                    .deprecation(e.loc, "`%s` is not visible from class `%s`", s.toPrettyChars(), sym.toChars());
-            }
-            if (global.params.check10378)
-            {
-                alias snew = s;
-                if (sold !is snew)
-                    Scope.deprecation10378(e.loc, sold, snew);
-                if (global.params.bug10378)
-                    s = sold;
-            }
-            return s;
-        }
-
-        s = searchSym();
+        int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+        s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
     L1:
         if (!s)
         {
@@ -8261,8 +8209,8 @@ extern (C++) final class TypeClass : Type
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
-            // return noMember(sc, e, ident, flag);
+            .error(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
+            return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
         {
