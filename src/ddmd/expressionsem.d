@@ -5396,6 +5396,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             assert(exp.e1.type);
         }
         Type t1 = exp.e1.type.toBasetype();
+        Type oldt2;
 
         /* Run this.e2 semantic.
          * Different from other binary expressions, the analysis of e2
@@ -5414,7 +5415,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (e2x.checkValue())
                 return setError();
+
             exp.e2 = e2x;
+            if (e2x.type)
+                oldt2 = e2x.type;
         }
 
         /* Rewrite tuple assignment as a tuple of assignments.
@@ -6143,6 +6147,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         exp.e2 = e2x;
         t2 = exp.e2.type.toBasetype();
+
+        if (oldt2 && oldt2.isfloating() && exp.e1.type.isfloating() &&
+            exp.e1.type.size() < oldt2.size())
+        {
+            exp.warning("%s = %s is performing truncating conversion",
+                exp.e1.type.toChars(), oldt2.toChars());
+        }
 
         /* Look for array operations
          */

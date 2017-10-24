@@ -6016,12 +6016,11 @@ extern (C++) abstract class BinExp : Expression
 
         // T opAssign floating yields a floating. Prevent truncating conversions (float to int).
         // See issue 3841.
-        // Should we also prevent double to float (type.isfloating() && type.size() < t2.size()) ?
         if (op == TOKaddass || op == TOKminass ||
             op == TOKmulass || op == TOKdivass || op == TOKmodass ||
             op == TOKpowass)
         {
-            if ((type.isintegral() && t2.isfloating()))
+            if ((type.isintegral() && t2.isfloating()) || (type.isfloating() && type.size() < t2.size()))
             {
                 warning("%s %s %s is performing truncating conversion", type.toChars(), Token.toChars(op), t2.toChars());
             }
