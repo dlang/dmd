@@ -127,8 +127,8 @@ private
     extern (C) size_t   gc_reserve( size_t sz ) nothrow;
     extern (C) void     gc_free( void* p ) pure nothrow;
 
-    extern (C) void*   gc_addrOf( void* p ) pure nothrow;
-    extern (C) size_t  gc_sizeOf( void* p ) pure nothrow;
+    extern (C) void*   gc_addrOf( void* p ) pure nothrow @nogc;
+    extern (C) size_t  gc_sizeOf( void* p ) pure nothrow @nogc;
 
     struct BlkInfo_
     {
