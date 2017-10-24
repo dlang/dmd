@@ -22,6 +22,7 @@ $(GNAME TraitsKeyword):
     $(GBLINK isFinalClass)
     $(GBLINK isPOD)
     $(GBLINK isNested)
+    $(GBLINK isFuture)
     $(GBLINK isFloating)
     $(GBLINK isIntegral)
     $(GBLINK isScalar)
@@ -191,6 +192,12 @@ $(H2 $(GNAME isNested))
     Nested types can be  $(DDSUBLINK spec/class, nested, classes),
     $(DDSUBLINK spec/struct, nested, structs), and
     $(DDSUBLINK spec/function, variadicnested, functions).)
+
+$(H2 $(GNAME isFuture))
+
+    $(P Takes one argument. It returns $(D true) if the argument is a symbol
+    marked with the $(D @future) keyword, otherwise $(D false). Currently, only
+    functions and variable declarations have support for the $(D @future) keyword.)
 
 $(H2 $(GNAME isVirtualFunction))
 
