@@ -154,7 +154,8 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     {
                         s = sd.search_correct(id);
                         if (s)
-                            error(i.loc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(i.loc, "`%s` is not a member of `%s`, did you mean %s%s `%s`?",
+                                  id.toChars(), sd.toChars(), s.ident == id ? "non-visible ".ptr : "".ptr, s.kind(), s.toChars());
                         else
                             error(i.loc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         result = new ErrorInitializer();

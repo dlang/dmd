@@ -1382,7 +1382,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (const n = importHint(exp.ident.toChars()))
             exp.error("`%s` is not defined, perhaps `import %s;` is needed?", exp.ident.toChars(), n);
         else if (auto s2 = sc.search_correct(exp.ident))
-            exp.error("undefined identifier `%s`, did you mean %s `%s`?", exp.ident.toChars(), s2.kind(), s2.toChars());
+            exp.error("undefined identifier `%s`, did you mean %s%s `%s`?",
+                      exp.ident.toChars(), s2.ident == exp.ident ? "non-visible ".ptr : "".ptr, s2.kind(), s2.toChars());
         else if (const p = Scope.search_correct_C(exp.ident))
             exp.error("undefined identifier `%s`, did you mean `%s`?", exp.ident.toChars(), p);
         else
@@ -9768,7 +9769,8 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             return null;
         s = ie.sds.search_correct(exp.ident);
         if (s)
-            exp.error("undefined identifier `%s` in %s `%s`, did you mean %s `%s`?", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.kind(), s.toChars());
+            exp.error("undefined identifier `%s` in %s `%s`, did you mean %s%s `%s`?",
+                      exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars(), s.ident == exp.ident ? "non-visible ".ptr : "".ptr, s.kind(), s.toChars());
         else
             exp.error("undefined identifier `%s` in %s `%s`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
         return new ErrorExp();

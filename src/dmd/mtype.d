@@ -2558,7 +2558,8 @@ extern (C++) abstract class Type : RootObject
             if (this != Type.terror)
             {
                 if (s)
-                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toPrettyChars());
+                    error(loc, "no property `%s` for type `%s`, did you mean %s`%s`?",
+                          ident.toChars(), toChars(), s.ident == ident ? "non-visible ".ptr : "".ptr, s.toChars());
                 else
                     error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
             }
@@ -6630,9 +6631,11 @@ extern (C++) abstract class TypeQualified : Type
                         else
                         {
                             assert(id.dyncast() == DYNCAST.identifier);
-                            sm = s.search_correct(cast(Identifier)id);
+                            auto ident = cast(Identifier)id;
+                            sm = s.search_correct(ident);
                             if (sm)
-                                error(loc, "identifier `%s` of `%s` is not defined, did you mean %s `%s`?", id.toChars(), toChars(), sm.kind(), sm.toChars());
+                                error(loc, "identifier `%s` of `%s` is not defined, did you mean %s %s `%s`?",
+                                      id.toChars(), toChars(), s.ident == ident ? "non-visible ".ptr : "".ptr, sm.kind(), sm.toChars());
                             else
                                 error(loc, "identifier `%s` of `%s` is not defined", id.toChars(), toChars());
                         }
@@ -6731,7 +6734,8 @@ extern (C++) abstract class TypeQualified : Type
             if (const n = importHint(p))
                 error(loc, "`%s` is not defined, perhaps `import %s;` ?", p, n);
             else if (auto s2 = sc.search_correct(id))
-                error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2.kind(), s2.toChars());
+                error(loc, "undefined identifier `%s`, did you mean %s%s `%s`?",
+                      p, s2.ident == id ? "non-visible ".ptr : "".ptr, s2.kind(), s2.toChars());
             else if (const q = Scope.search_correct_C(id))
                 error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
             else

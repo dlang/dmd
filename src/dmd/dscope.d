@@ -580,6 +580,10 @@ struct Scope
             return cast(void*)s;
         }
 
+        Dsymbol scopesym = null;
+        // search for exact name ignoring visibility first
+        if (auto s = search(Loc(), ident, &scopesym, IgnoreErrors | IgnoreSymbolVisibility))
+            return s;
         return cast(Dsymbol)speller(ident.toChars(), &scope_search_fp, idchars);
     }
 

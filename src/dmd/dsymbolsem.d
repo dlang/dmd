@@ -1160,7 +1160,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     Dsymbol s = imp.mod.search_correct(imp.names[i]);
                     if (s)
-                        imp.mod.error(imp.loc, "import `%s` not found, did you mean %s `%s`?", imp.names[i].toChars(), s.kind(), s.toPrettyChars());
+                        imp.mod.error(imp.loc, "import `%s` not found, did you mean %s%s `%s`?",
+                            imp.names[i].toChars(), s.ident == imp.names[i] ? "non-visible ".ptr : "".ptr, s.kind(), s.toPrettyChars());
                     else
                         imp.mod.error(imp.loc, "import `%s` not found", imp.names[i].toChars());
                     ad.type = Type.terror;
@@ -3145,7 +3146,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
 
                 if (s)
-                    funcdecl.error("does not override any function, did you mean to override `%s%s`?",
+                    funcdecl.error("does not override any function, did you mean to override %s`%s%s`?",
+                        s.ident == funcdecl.ident ? "non-visible ".ptr : "".ptr,
                         bc.sym.isCPPclass() ? "extern (C++) ".ptr : "".ptr, s.toPrettyChars());
                 else
                     funcdecl.error("does not override any function");
