@@ -5696,7 +5696,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
  * Add destructors
  */
 
-elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
+private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 {
     //printf("appendDtors(%d .. %d)\n", starti, endi);
 
@@ -5778,7 +5778,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 
 elem *toElemDtor(Expression e, IRState *irs)
 {
-    //printf("Expression.toElemDtor() %s\n", toChars());
+    //printf("Expression.toElemDtor() %s\n", e.toChars());
     size_t starti = irs.varsInScope ? irs.varsInScope.dim : 0;
     elem *er = toElem(e, irs);
     size_t endi = irs.varsInScope ? irs.varsInScope.dim : 0;

@@ -1483,16 +1483,20 @@ extern (C++) bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
  */
 extern (C++) Expression valueNoDtor(Expression e)
 {
-    if (e.op == TOKcall)
+    auto ex = e;
+    while (ex.op == TOKcomma)
+        ex = (cast(CommaExp)ex).e2;
+
+    if (ex.op == TOKcall)
     {
         /* The struct value returned from the function is transferred
          * so do not call the destructor on it.
          * Recognize:
          *       ((S _ctmp = S.init), _ctmp).this(...)
          * and make sure the destructor is not called on _ctmp
-         * BUG: if e is a CommaExp, we should go down the right side.
+         * BUG: if ex is a CommaExp, we should go down the right side.
          */
-        CallExp ce = cast(CallExp)e;
+        CallExp ce = cast(CallExp)ex;
         if (ce.e1.op == TOKdotvar)
         {
             DotVarExp dve = cast(DotVarExp)ce.e1;
@@ -1516,9 +1520,9 @@ extern (C++) Expression valueNoDtor(Expression e)
             }
         }
     }
-    else if (e.op == TOKvar)
+    else if (ex.op == TOKvar)
     {
-        auto vtmp = (cast(VarExp)e).var.isVarDeclaration();
+        auto vtmp = (cast(VarExp)ex).var.isVarDeclaration();
         if (vtmp && (vtmp.storage_class & STCrvalue))
         {
             vtmp.storage_class |= STCnodtor;
