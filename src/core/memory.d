@@ -595,14 +595,14 @@ struct GC
      * Returns:
      *  The base address of the memory block referenced by p or null on error.
      */
-    static inout(void)* addrOf( inout(void)* p ) nothrow /* FIXME pure */
+    static inout(void)* addrOf( inout(void)* p ) nothrow @nogc /* FIXME pure */
     {
         return cast(inout(void)*)gc_addrOf(cast(void*)p);
     }
 
 
     /// ditto
-    static void* addrOf(void* p) pure nothrow
+    static void* addrOf(void* p) pure nothrow @nogc
     {
         return gc_addrOf(p);
     }
@@ -621,14 +621,14 @@ struct GC
      * Returns:
      *  The size in bytes of the memory block referenced by p or zero on error.
      */
-    static size_t sizeOf( in void* p ) nothrow
+    static size_t sizeOf( in void* p ) nothrow @nogc /* FIXME pure */
     {
         return gc_sizeOf(cast(void*)p);
     }
 
 
     /// ditto
-    static size_t sizeOf(void* p) pure nothrow
+    static size_t sizeOf(void* p) pure nothrow @nogc
     {
         return gc_sizeOf( p );
     }
