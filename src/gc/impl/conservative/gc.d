@@ -889,7 +889,7 @@ class ConservativeGC : GC
     }
 
 
-    void* addrOf(void *p) nothrow
+    void* addrOf(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -903,7 +903,7 @@ class ConservativeGC : GC
     //
     //
     //
-    void* addrOfNoSync(void *p) nothrow
+    void* addrOfNoSync(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -917,7 +917,7 @@ class ConservativeGC : GC
     }
 
 
-    size_t sizeOf(void *p) nothrow
+    size_t sizeOf(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -931,7 +931,7 @@ class ConservativeGC : GC
     //
     //
     //
-    private size_t sizeOfNoSync(void *p) nothrow
+    private size_t sizeOfNoSync(void *p) nothrow @nogc
     {
         assert (p);
 
@@ -1521,7 +1521,7 @@ struct Gcx
         ConservativeGC._inFinalizer = false;
     }
 
-    Pool* findPool(void* p) pure nothrow
+    Pool* findPool(void* p) pure nothrow @nogc
     {
         return pooltable.findPool(p);
     }
@@ -1530,7 +1530,7 @@ struct Gcx
      * Find base address of block containing pointer p.
      * Returns null if not a gc'd pointer
      */
-    void* findBase(void *p) nothrow
+    void* findBase(void *p) nothrow @nogc
     {
         Pool *pool;
 
@@ -1569,7 +1569,7 @@ struct Gcx
      * Find size of pointer p.
      * Returns 0 if not a gc'd pointer
      */
-    size_t findSize(void *p) nothrow
+    size_t findSize(void *p) nothrow @nogc
     {
         Pool* pool = findPool(p);
         if (pool)
@@ -2882,7 +2882,7 @@ struct Pool
     /**
      * Given a pointer p in the p, return the pagenum.
      */
-    size_t pagenumOf(void *p) const nothrow
+    size_t pagenumOf(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
@@ -2898,7 +2898,7 @@ struct Pool
         return npages == freepages;
     }
 
-    size_t slGetSize(void* p) nothrow
+    size_t slGetSize(void* p) nothrow @nogc
     {
         if (isLargeObject)
             return (cast(LargeObjectPool*)&this).getSize(p);
@@ -3035,7 +3035,7 @@ struct LargeObjectPool
     /**
      * Get size of pointer p in pool.
      */
-    size_t getSize(void *p) const nothrow
+    size_t getSize(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
@@ -3120,7 +3120,7 @@ struct SmallObjectPool
     /**
     * Get size of pointer p in pool.
     */
-    size_t getSize(void *p) const nothrow
+    size_t getSize(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
@@ -3328,7 +3328,7 @@ debug (SENTINEL)
     }
 
 
-    void *sentinel_add(void *p) nothrow
+    void *sentinel_add(void *p) nothrow @nogc
     {
         return p + 2 * size_t.sizeof;
     }
@@ -3354,7 +3354,7 @@ else
     }
 
 
-    void *sentinel_add(void *p) nothrow
+    void *sentinel_add(void *p) nothrow @nogc
     {
         return p;
     }

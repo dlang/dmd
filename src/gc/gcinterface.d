@@ -128,13 +128,13 @@ interface GC
      * Determine the base address of the block containing p.  If p is not a gc
      * allocated pointer, return null.
      */
-    void* addrOf(void* p) nothrow;
+    void* addrOf(void* p) nothrow @nogc;
 
     /**
      * Determine the allocated size of pointer p.  If p is an interior pointer
      * or not a gc allocated pointer, return 0.
      */
-    size_t sizeOf(void* p) nothrow;
+    size_t sizeOf(void* p) nothrow @nogc;
 
     /**
      * Determine the base address of the block containing p.  If p is not a gc
