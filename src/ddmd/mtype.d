@@ -6510,7 +6510,7 @@ extern (C++) abstract class TypeQualified : Type
             if (d && (d.storage_class & STCtemplateparameter))
                 s = s.toAlias();
             else
-                s.checkDeprecated(loc, sc); // check for deprecated aliases
+                s.checkDeprecated(loc, sc, true); // check for deprecated or disabled aliases
             s = s.toAlias();
             //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             for (size_t i = 0; i < idents.dim; i++)
