@@ -8348,8 +8348,17 @@ final class Parser(AST) : Lexer
         if (token.value == TOKquestion)
         {
             nextToken();
-            auto e1 = parseExpression();
-            check(TOKcolon);
+            AST.Expression e1;
+            if (token.value == TOKcolon)
+            {
+                e1 = e;
+                nextToken();
+            }
+            else
+            {
+                e1 = parseExpression();
+                check(TOKcolon);
+            }
             auto e2 = parseCondExp();
             e = new AST.CondExp(loc, e, e1, e2);
         }
