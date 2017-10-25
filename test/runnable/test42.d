@@ -6102,6 +6102,15 @@ void test252()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=7997
+
+void test7997()
+{
+    __gshared int[0] foos;
+    foreach (f; foos) {}
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6401,6 +6410,7 @@ int main()
     test16027();
     test16530();
     test252();
+    test7997();
 
     writefln("Success");
     return 0;

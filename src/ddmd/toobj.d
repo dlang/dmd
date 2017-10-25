@@ -938,25 +938,31 @@ void toObjFile(Dsymbol ds, bool multiobj)
             } while (parent);
             s.Sfl = FLdata;
 
+            if (!sz && vd.type.toBasetype().ty != Tsarray)
+                assert(0); // this shouldn't be possible
+
+            scope dtb = new DtBuilder();
             if (config.objfmt == OBJ_MACH && global.params.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread)
             {
-                scope dtb = new DtBuilder();
-                tlsToDt(vd, s, dtb);
-                s.Sdt = dtb.finish();
+                tlsToDt(vd, s, sz, dtb);
             }
-
+            else if (!sz)
+            {
+                /* Give it a byte of data
+                 * so we can take the 'address' of this symbol
+                 * and avoid problematic behavior of object file format
+                 */
+                dtb.nzeros(1);
+            }
             else if (vd._init)
             {
-                scope dtb = new DtBuilder();
                 initializerToDt(vd, dtb);
-                s.Sdt = dtb.finish();
             }
             else
             {
-                scope dtb = new DtBuilder();
                 Type_toDt(vd.type, dtb);
-                s.Sdt = dtb.finish();
             }
+            s.Sdt = dtb.finish();
 
             // See if we can convert a comdat to a comdef,
             // which saves on exe file space.
@@ -969,17 +975,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 dt2common(&s.Sdt);
             }
 
-            if (!sz && vd.type.toBasetype().ty != Tsarray)
-                assert(0); // this shouldn't be possible
-
-            if (sz || objmod.allowZeroSize())
-            {
-                outdata(s);
-                if (vd.type.isMutable() || !vd._init)
-                    write_pointers(vd.type, s, 0);
-                if (vd.isExport())
-                    objmod.export_symbol(s, 0);
-            }
+            outdata(s);
+            if (vd.type.isMutable() || !vd._init)
+                write_pointers(vd.type, s, 0);
+            if (vd.isExport())
+                objmod.export_symbol(s, 0);
         }
 
         override void visit(EnumDeclaration ed)
@@ -1230,18 +1230,22 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *     size_t offset;
          * }
          *
-         * Input:
-         *      vd  the variable declaration for the symbol
-         *      s   the symbol to output
+         * Params:
+         *      vd = the variable declaration for the symbol
+         *      s = the backend Symbol corresponsing to vd
+         *      sz = data size of s
+         *      dtb = where to put the data
          */
-        static void tlsToDt(VarDeclaration vd, Symbol *s, DtBuilder dtb)
+        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, DtBuilder dtb)
         {
             assert(config.objfmt == OBJ_MACH && global.params.is64bit && (s.Stype.Tty & mTYLINK) == mTYthread);
 
             Symbol *tlvInit = createTLVDataSymbol(vd, s);
             scope tlvInitDtb = new DtBuilder();
 
-            if (vd._init)
+            if (sz == 0)
+                tlvInitDtb.nzeros(1);
+            else if (vd._init)
                 initializerToDt(vd, tlvInitDtb);
             else
                 Type_toDt(vd.type, tlvInitDtb);
