@@ -6111,6 +6111,16 @@ void test7997()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=5332
+
+int[0] arr5332;
+
+void test5332()
+{
+    auto a = arr5332;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6411,6 +6421,7 @@ int main()
     test16530();
     test252();
     test7997();
+    test5332();
 
     writefln("Success");
     return 0;
