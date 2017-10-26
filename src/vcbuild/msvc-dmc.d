@@ -11,6 +11,8 @@ import std.stdio;
 
 int main(string[] args)
 {
+    import std.algorithm: canFind;
+
     auto cl = environment.get("MSVC_CC",
         environment.get("VCINSTALLDIR", `\Program Files (x86)\Microsoft Visual Studio 10.0\VC\`)
             .buildPath("bin", "amd64", "cl.exe"));
@@ -19,6 +21,15 @@ int main(string[] args)
     newArgs ~= `/Ivcbuild`;
     newArgs ~= `/Iddmd\root`;
     newArgs ~= `/FIwarnings.h`;
+
+    enum vs2015 = "Microsoft Visual Studio 14.0";
+    if (environment.get("VCINSTALLDIR", "").canFind(vs2015) || environment.get("MSVC_CC", "").canFind(vs2015))
+    {
+        // either this or /EHsc due to 'noexcept' in system headers
+        newArgs ~= `/D_HAS_EXCEPTIONS=0`;
+        // disable narrowing conversion warnings
+        newArgs ~= `/Wv:18`;
+    }
     bool compilingOnly;
 
     foreach (arg; args[1..$])

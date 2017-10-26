@@ -219,7 +219,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         if (op == OPcolon || op == OPcolon2)
         {
                 L = vec_clone(IN);
-                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
+                switch (int(el_returns(n->E1) * 2) | int(el_returns(n->E2)))
                 {
                     case 3: // E1 and E2 return
                         conpropwalk(n->E1,L);
