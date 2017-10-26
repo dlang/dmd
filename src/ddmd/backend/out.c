@@ -106,6 +106,8 @@ void outdata(symbol *s)
 
     dt_t *dtstart = s->Sdt;
     s->Sdt = NULL;                      // it will be free'd
+    targ_size_t datasize = 0;
+    tym_t ty = s->ty();
 #if SCPP && TARGET_WINDOS
     if (eecontext.EEcompile)
     {   s->Sfl = (s->ty() & mTYfar) ? FLfardata : FLextern;
@@ -113,8 +115,6 @@ void outdata(symbol *s)
         goto Lret;                      // don't output any data
     }
 #endif
-    targ_size_t datasize = 0;
-    tym_t ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
         objmod->export_symbol(s,0);        // export data definition
     for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
@@ -1281,7 +1281,9 @@ STATIC void writefunc2(symbol *sfunc)
                                         // generate new code segment
             }
         cod3_align(cseg);               // align start of function
+#if !HTOD
         objmod->func_start(sfunc);
+#endif
         searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
@@ -1295,7 +1297,9 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     PARSER = 1;
 #endif
+#if !HTOD
     objmod->func_term(sfunc);
+#endif
     if (eecontext.EEcompile == 1)
         goto Ldone;
     if (sfunc->Sclass == SCglobal)
@@ -1488,7 +1492,7 @@ void out_reset()
 symbol *out_readonly_sym(tym_t ty, void *p, int len)
 {
 #if HTOD
-    return;
+    return NULL;
 #endif
 #if 0
     printf("out_readonly_sym(ty = x%x)\n", ty);
