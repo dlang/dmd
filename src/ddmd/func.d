@@ -1288,6 +1288,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isNogc()
     {
+        //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAGnogcInprocess));
         if (flags & FUNCFLAGnogcInprocess)
             setGC();
         return type.toTypeFunction().isnogc;
@@ -1306,6 +1307,13 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool setGC()
     {
+        //printf("setGC() %s\n", toChars());
+        if (flags & FUNCFLAGnogcInprocess && semanticRun < PASSsemantic3 && _scope)
+        {
+            this.semantic2(_scope);
+            this.semantic3(_scope);
+        }
+
         if (flags & FUNCFLAGnogcInprocess)
         {
             flags &= ~FUNCFLAGnogcInprocess;
