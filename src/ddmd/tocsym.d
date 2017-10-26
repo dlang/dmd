@@ -21,7 +21,6 @@ import ddmd.root.rmem;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.complex;
-import ddmd.cppmangle;
 import ddmd.ctfeexpr;
 import ddmd.declaration;
 import ddmd.dclass;
