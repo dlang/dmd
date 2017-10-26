@@ -2014,14 +2014,14 @@ opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-bool asm_isint(const ref OPND o)
+private @safe pure bool asm_isint(const ref OPND o)
 {
     if (o.base || o.s)
         return false;
     return true;
 }
 
-bool asm_isNonZeroInt(const ref OPND o)
+private @safe pure bool asm_isNonZeroInt(const ref OPND o)
 {
     if (o.base || o.s)
         return false;
@@ -2031,27 +2031,18 @@ bool asm_isNonZeroInt(const ref OPND o)
 /*******************************
  */
 
-bool asm_is_fpreg(const(char)* szReg)
+private @safe pure bool asm_is_fpreg(const(char)[] szReg)
 {
-    version (all)
-    {
-        return(szReg[0] == 'S' &&
-               szReg[1] == 'T' &&
-               szReg[2] == 0);
-    }
-    else
-    {
-        return(szReg[2] == '\0' && (szReg[0] == 's' || szReg[0] == 'S') &&
-              (szReg[1] == 't' || szReg[1] == 'T'));
-    }
+    return szReg == "ST";
 }
 
 /*******************************
  * Merge operands o1 and o2 into a single operand, o1.
  */
 
-void asm_merge_opnds(ref OPND o1, ref OPND o2)
+private void asm_merge_opnds(ref OPND o1, ref OPND o2)
 {
+    //printf("asm_merge_opnds()\n");
     debug const(char)* psz;
     debug (EXTRA_DEBUG) debug (debuga)
     {
@@ -4182,7 +4173,7 @@ void asm_primary_exp(out OPND o1)
             }
             // If floating point instruction and id is a floating register
             else if (asmstate.ucItype == ITfloat &&
-                     asm_is_fpreg(asmstate.tok.ident.toChars()))
+                     asm_is_fpreg(asmstate.tok.ident.toString()))
             {
                 asm_token();
                 if (asmstate.tokValue == TOKlparen)
