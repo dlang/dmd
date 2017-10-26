@@ -12,6 +12,7 @@ src/dmd.exe
 -trace.def
 -trace.log
 *.lst
+.dub
 
 # Visual Studio files
 *.exe
