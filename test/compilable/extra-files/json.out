@@ -231,7 +231,7 @@
       "kind" : "variable",
       "protection" : "private",
       "line" : 32,
-      "char" : 14,
+      "char" : 17,
       "deco" : "i",
       "offset" : 32
      },
@@ -279,7 +279,7 @@
       "name" : "bar2",
       "kind" : "variable",
       "line" : 39,
-      "char" : 7,
+      "char" : 10,
       "deco" : "C4json4Bar2",
       "originalType" : "Bar2",
       "offset" : 0
@@ -288,13 +288,13 @@
       "name" : "U",
       "kind" : "union",
       "line" : 40,
-      "char" : 2,
+      "char" : 5,
       "members" : [
        {
         "name" : "s",
         "kind" : "variable",
         "line" : 42,
-        "char" : 10,
+        "char" : 19,
         "deco" : "s",
         "offset" : 0
        },
@@ -302,7 +302,7 @@
         "name" : "i",
         "kind" : "variable",
         "line" : 43,
-        "char" : 8,
+        "char" : 17,
         "deco" : "i",
         "offset" : 4
        },
@@ -310,7 +310,7 @@
         "name" : "o",
         "kind" : "variable",
         "line" : 45,
-        "char" : 10,
+        "char" : 16,
         "deco" : "C6Object",
         "originalType" : "Object",
         "offset" : 0
@@ -320,9 +320,53 @@
     ]
    },
    {
+    "kind" : "template",
+    "line" : 49,
+    "char" : 1,
+    "name" : "Foo3",
+    "parameters" : [
+     {
+      "name" : "b",
+      "kind" : "value",
+      "deco" : "b"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "Foo3",
+      "kind" : "struct",
+      "line" : 49,
+      "char" : 1,
+      "members" : [
+       {
+        "name" : "method1",
+        "kind" : "function",
+        "line" : 52,
+        "char" : 14,
+        "type" : "void()"
+       },
+       {
+        "name" : "method2",
+        "kind" : "function",
+        "line" : 56,
+        "char" : 14,
+        "type" : "void()"
+       },
+       {
+        "name" : "method4",
+        "kind" : "function",
+        "line" : 63,
+        "char" : 10,
+        "type" : "void()"
+       }
+      ]
+     }
+    ]
+   },
+   {
     "name" : "bar",
     "kind" : "function",
-    "line" : 52,
+    "line" : 69,
     "char" : 16,
     "deco" : "FNeKkC4json4Bar2Zi",
     "originalType" : "@trusted myInt(ref uint blah, Bar2 foo = new Bar3(7))",
@@ -340,22 +384,22 @@
       "default" : "new Bar3(7)"
      }
     ],
-    "endline" : 55,
+    "endline" : 72,
     "endchar" : 1
    },
    {
     "name" : "outer",
     "kind" : "function",
-    "line" : 57,
+    "line" : 74,
     "char" : 15,
     "deco" : "FNbNdZi",
-    "endline" : 74,
+    "endline" : 91,
     "endchar" : 1
    },
    {
     "name" : "imports.jsonimport1",
     "kind" : "import",
-    "line" : 77,
+    "line" : 94,
     "char" : 8,
     "protection" : "private",
     "selective" : [
@@ -366,7 +410,7 @@
    {
     "name" : "imports.jsonimport2",
     "kind" : "import",
-    "line" : 78,
+    "line" : 95,
     "char" : 8,
     "protection" : "private",
     "renamed" : {
@@ -377,7 +421,7 @@
    {
     "name" : "imports.jsonimport3",
     "kind" : "import",
-    "line" : 79,
+    "line" : 96,
     "char" : 8,
     "protection" : "private",
     "renamed" : {
@@ -391,19 +435,19 @@
    {
     "name" : "imports.jsonimport4",
     "kind" : "import",
-    "line" : 80,
+    "line" : 97,
     "char" : 8,
     "protection" : "private"
    },
    {
     "name" : "S",
     "kind" : "struct",
-    "line" : 82,
+    "line" : 99,
     "char" : 1,
     "members" : [
      {
       "kind" : "template",
-      "line" : 85,
+      "line" : 102,
       "char" : 5,
       "name" : "this",
       "parameters" : [
@@ -416,7 +460,7 @@
        {
         "name" : "this",
         "kind" : "constructor",
-        "line" : 85,
+        "line" : 102,
         "char" : 5,
         "type" : "(T t)",
         "parameters" : [
@@ -425,7 +469,7 @@
           "type" : "T"
          }
         ],
-        "endline" : 85,
+        "endline" : 102,
         "endchar" : 20
        }
       ]
@@ -435,7 +479,7 @@
    {
     "kind" : "template",
     "protection" : "private",
-    "line" : 89,
+    "line" : 106,
     "char" : 9,
     "name" : "S1_9755",
     "parameters" : [
@@ -448,7 +492,7 @@
      {
       "name" : "S1_9755",
       "kind" : "struct",
-      "line" : 89,
+      "line" : 106,
       "char" : 9,
       "members" : []
      }
@@ -457,7 +501,7 @@
    {
     "kind" : "template",
     "protection" : "package",
-    "line" : 90,
+    "line" : 107,
     "char" : 9,
     "name" : "S2_9755",
     "parameters" : [
@@ -470,7 +514,7 @@
      {
       "name" : "S2_9755",
       "kind" : "struct",
-      "line" : 90,
+      "line" : 107,
       "char" : 9,
       "members" : []
      }
@@ -479,13 +523,13 @@
    {
     "name" : "C_9755",
     "kind" : "class",
-    "line" : 92,
+    "line" : 109,
     "char" : 1,
     "members" : [
      {
       "kind" : "template",
       "protection" : "protected",
-      "line" : 94,
+      "line" : 111,
       "char" : 22,
       "name" : "CI_9755",
       "parameters" : [
@@ -498,7 +542,7 @@
        {
         "name" : "CI_9755",
         "kind" : "class",
-        "line" : 94,
+        "line" : 111,
         "char" : 22,
         "members" : []
        }
@@ -509,7 +553,7 @@
    {
     "name" : "c_10011",
     "kind" : "variable",
-    "line" : 98,
+    "line" : 115,
     "char" : 14,
     "storageClass" : [
      "const"
@@ -521,7 +565,7 @@
    {
     "name" : "Numbers",
     "kind" : "enum",
-    "line" : 101,
+    "line" : 118,
     "char" : 1,
     "baseDeco" : "i",
     "members" : [
@@ -529,56 +573,56 @@
       "name" : "unspecified1",
       "kind" : "enum member",
       "value" : "0",
-      "line" : 103,
+      "line" : 120,
       "char" : 5
      },
      {
       "name" : "one",
       "kind" : "enum member",
       "value" : "2",
-      "line" : 104,
+      "line" : 121,
       "char" : 5
      },
      {
       "name" : "two",
       "kind" : "enum member",
       "value" : "3",
-      "line" : 105,
+      "line" : 122,
       "char" : 5
      },
      {
       "name" : "FILE_NOT_FOUND",
       "kind" : "enum member",
       "value" : "101",
-      "line" : 106,
+      "line" : 123,
       "char" : 5
      },
      {
       "name" : "unspecified3",
       "kind" : "enum member",
       "value" : "102",
-      "line" : 107,
+      "line" : 124,
       "char" : 5
      },
      {
       "name" : "unspecified4",
       "kind" : "enum member",
       "value" : "103",
-      "line" : 108,
+      "line" : 125,
       "char" : 5
      },
      {
       "name" : "four",
       "kind" : "enum member",
       "value" : "4",
-      "line" : 109,
+      "line" : 126,
       "char" : 5
      }
     ]
    },
    {
     "kind" : "template",
-    "line" : 112,
+    "line" : 129,
     "char" : 1,
     "name" : "IncludeConstraint",
     "parameters" : [
@@ -593,8 +637,8 @@
    {
     "name" : "a0",
     "kind" : "variable",
-    "file" : "compilable/json.d-mixin-116",
-    "line" : 116,
+    "file" : "compilable/json.d-mixin-133",
+    "line" : 133,
     "char" : 5,
     "deco" : "i",
     "init" : "1"
@@ -602,7 +646,7 @@
    {
     "name" : "a1",
     "kind" : "variable",
-    "line" : 116,
+    "line" : 133,
     "char" : 5,
     "deco" : "i",
     "init" : "1"
@@ -610,7 +654,7 @@
    {
     "name" : "a2",
     "kind" : "variable",
-    "line" : 116,
+    "line" : 133,
     "char" : 5,
     "deco" : "i",
     "init" : "1"
@@ -618,7 +662,7 @@
    {
     "kind" : "template",
     "file" : "compilable/json.d",
-    "line" : 119,
+    "line" : 136,
     "char" : 1,
     "name" : "Seq",
     "parameters" : [
@@ -631,7 +675,7 @@
      {
       "name" : "Seq",
       "kind" : "alias",
-      "line" : 119,
+      "line" : 136,
       "char" : 1,
       "type" : "T"
      }
@@ -641,29 +685,29 @@
    {
     "name" : "b0",
     "kind" : "alias",
-    "file" : "compilable/json.d-mixin-123",
-    "line" : 123,
+    "file" : "compilable/json.d-mixin-140",
+    "line" : 140,
     "char" : 1
    },
    {},
    {
     "name" : "b1",
     "kind" : "alias",
-    "line" : 123,
+    "line" : 140,
     "char" : 1
    },
    {},
    {
     "name" : "b2",
     "kind" : "alias",
-    "line" : 123,
+    "line" : 140,
     "char" : 1
    },
    {
     "name" : "foo",
     "kind" : "function",
     "file" : "compilable/json.d",
-    "line" : 127,
+    "line" : 144,
     "char" : 9,
     "deco" : "FNcNfNkKiZi",
     "parameters" : [
@@ -676,13 +720,13 @@
       ]
      }
     ],
-    "endline" : 130,
+    "endline" : 147,
     "endchar" : 1
    },
    {
     "name" : "foo",
     "kind" : "function",
-    "line" : 132,
+    "line" : 149,
     "char" : 6,
     "deco" : "FNfMNkPiZQd",
     "parameters" : [
@@ -695,13 +739,13 @@
       ]
      }
     ],
-    "endline" : 135,
+    "endline" : 152,
     "endchar" : 1
    },
    {
     "name" : "foo",
     "kind" : "function",
-    "line" : 137,
+    "line" : 154,
     "char" : 10,
     "deco" : "FNcNfMNkKPiZQd",
     "parameters" : [
@@ -715,46 +759,46 @@
       ]
      }
     ],
-    "endline" : 140,
+    "endline" : 157,
     "endchar" : 1
    },
    {
     "name" : "SafeS",
     "kind" : "struct",
-    "line" : 142,
+    "line" : 159,
     "char" : 1,
     "members" : [
      {
       "name" : "foo",
       "kind" : "function",
-      "line" : 145,
+      "line" : 162,
       "char" : 12,
       "deco" : "FNcNjNfZS4json5SafeS",
-      "endline" : 148,
+      "endline" : 165,
       "endchar" : 2
      },
      {
       "name" : "foo",
       "kind" : "function",
-      "line" : 150,
+      "line" : 167,
       "char" : 8,
       "deco" : "FNjNfZS4json5SafeS",
-      "endline" : 153,
+      "endline" : 170,
       "endchar" : 2
      },
      {
       "name" : "foo",
       "kind" : "function",
-      "line" : 155,
+      "line" : 172,
       "char" : 12,
       "deco" : "FNcNjNfZS4json5SafeS",
-      "endline" : 158,
+      "endline" : 175,
       "endchar" : 2
      },
      {
       "name" : "p",
       "kind" : "variable",
-      "line" : 160,
+      "line" : 177,
       "char" : 7,
       "storageClass" : [
        "@safe"

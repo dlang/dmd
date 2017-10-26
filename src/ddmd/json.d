@@ -563,6 +563,12 @@ public:
         {
             visit(cast(AttribDeclaration)d);
         }
+        Dsymbols* ds = d.decl ? d.decl : d.elsedecl;
+        for (size_t i = 0; i < ds.dim; i++)
+        {
+            Dsymbol s = (*ds)[i];
+            s.accept(this);
+        }
     }
 
     override void visit(TypeInfoDeclaration d)
