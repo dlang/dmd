@@ -17,7 +17,6 @@ import core.stdc.string;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
-import ddmd.cppmangle;
 import ddmd.dclass;
 import ddmd.declaration;
 import ddmd.dmodule;

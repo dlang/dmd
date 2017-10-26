@@ -13,6 +13,7 @@ module ddmd.target;
 // Online documentation: https://dlang.org/phobos/ddmd_target.html
 
 import ddmd.cppmangle;
+import ddmd.cppmanglewin;
 import ddmd.dclass;
 import ddmd.dmodule;
 import ddmd.dsymbol;
