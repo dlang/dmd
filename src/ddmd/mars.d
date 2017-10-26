@@ -1404,7 +1404,7 @@ private void addDefaultVersionIdentifiers()
     if (global.params.useArrayBounds == BOUNDSCHECKoff)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (global.params.betterC)
-        VersionCondition.addPredefinedGlobalIdent("D_betterC");
+        VersionCondition.addPredefinedGlobalIdent("D_BetterC");
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
 

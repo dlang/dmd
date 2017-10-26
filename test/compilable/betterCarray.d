@@ -17,7 +17,7 @@ int foo(int[] a, int i)
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=17787
-version (D_betterC)
+version (D_BetterC)
 {
 }
 else
