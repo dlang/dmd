@@ -681,13 +681,14 @@ struct sockaddr
 alias sockaddr SOCKADDR;
 alias SOCKADDR* PSOCKADDR, LPSOCKADDR;
 
-struct SOCKADDR_STORAGE
+struct sockaddr_storage
 {
     short     ss_family;
     char[6]   __ss_pad1;
     long      __ss_align;
     char[112] __ss_pad2;
 }
+alias sockaddr_storage SOCKADDR_STORAGE;
 alias SOCKADDR_STORAGE* PSOCKADDR_STORAGE;
 
 struct sockaddr_in
