@@ -306,7 +306,7 @@ extern (C++) class Dsymbol : RootObject
         va_end(ap);
     }
 
-    final void checkDeprecated(Loc loc, Scope* sc)
+    final void checkDeprecated(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
     {
         if (global.params.useDeprecated != 1 && isDeprecated())
         {
@@ -345,7 +345,21 @@ extern (C++) class Dsymbol : RootObject
                 if (d.toParent() && d.isPostBlitDeclaration())
                     d.toParent().error(loc, "is not copyable because it is annotated with @disable");
                 else
+                {
+                    // if the function is @disabled, maybe there
+                    // is an overload in the overload set that isn't
+                    if (isAliasedDeclaration)
+                    {
+                        FuncDeclaration fd = d.isFuncDeclaration;
+                        if (fd)
+                        {
+                            for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
+                                if (!(ovl.storage_class & STCdisable))
+                                    return;
+                        }
+                    }
                     error(loc, "is not callable because it is annotated with @disable");
+                }
             }
         }
     }
