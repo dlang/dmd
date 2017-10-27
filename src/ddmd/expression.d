@@ -1148,7 +1148,7 @@ extern (C++) bool checkDefCtor(Loc loc, Type t)
  * Input:
  *      sc      just used to specify the scope of created temporary variable
  */
-extern (C++) Expression callCpCtor(Scope* sc, Expression e)
+private extern (C++) Expression callCpCtor(Scope* sc, Expression e)
 {
     Type tv = e.type.baseElemOf();
     if (tv.ty == Tstruct)
