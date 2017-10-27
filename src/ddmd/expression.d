@@ -586,7 +586,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 /******************************
  * Find symbol in accordance with the UFCS name look up rule
  */
-extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
+private extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 {
     //printf("searchUFCS(ident = %s)\n", ident.toChars());
     Loc loc = ue.loc;
