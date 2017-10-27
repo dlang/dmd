@@ -6672,25 +6672,6 @@ extern (C++) final class PowExp : BinExp
     }
 }
 
-extern (C++) Module loadStdMath()
-{
-    static __gshared Import impStdMath = null;
-    if (!impStdMath)
-    {
-        auto a = new Identifiers();
-        a.push(Id.std);
-        auto s = new Import(Loc(), a, Id.math, null, false);
-        s.load(null);
-        if (s.mod)
-        {
-            s.mod.importAll(null);
-            s.mod.dsymbolSemantic(null);
-        }
-        impStdMath = s;
-    }
-    return impStdMath.mod;
-}
-
 /***********************************************************
  */
 extern (C++) final class ShlExp : BinExp

@@ -1143,6 +1143,25 @@ private extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf
     return (err || olderrors != global.errors);
 }
 
+private extern (C++) Module loadStdMath()
+{
+    static __gshared Import impStdMath = null;
+    if (!impStdMath)
+    {
+        auto a = new Identifiers();
+        a.push(Id.std);
+        auto s = new Import(Loc(), a, Id.math, null, false);
+        s.load(null);
+        if (s.mod)
+        {
+            s.mod.importAll(null);
+            s.mod.dsymbolSemantic(null);
+        }
+        impStdMath = s;
+    }
+    return impStdMath.mod;
+}
+
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
     alias visit = super.visit;
