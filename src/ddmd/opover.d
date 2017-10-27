@@ -1076,8 +1076,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             /* Check for array equality.
              */
-            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-                (t2.ty == Tarray || t2.ty == Tsarray))
+            if ((t1.ty == Tarray || t1.ty == Tsarray)
+                && (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 bool needsDirectEq()
                 {
@@ -1102,7 +1102,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     return (cast(TypeStruct)t).sym.hasIdentityEquals;
                 }
 
-                if (needsDirectEq())
+                if (needsDirectEq() && !(t1.ty == Tarray && t2.ty == Tarray))
                 {
                     /* Rewrite as:
                      *      _ArrayEq(e1, e2)
@@ -1183,6 +1183,9 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 }
                 return;
             }
+
+            if (t1.ty == Tarray && t2.ty == Tarray)
+                return;
 
             /* Check for pointer equality.
              */
@@ -1295,13 +1298,14 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 }
                 result = Expression.combine(Expression.combine(tup1.e0, tup2.e0), result);
                 result = result.expressionSemantic(sc);
+
                 return;
             }
         }
 
         override void visit(CmpExp e)
         {
-            //printf("CmpExp::op_overload() (%s)\n", e.toChars());
+            //printf("CmpExp:: () (%s)\n", e.toChars());
             result = compare_overload(e, sc, Id.cmp);
         }
 

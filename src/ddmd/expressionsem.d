@@ -7863,16 +7863,46 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        Type t1 = exp.e1.type.toBasetype();
+        Type t2 = exp.e2.type.toBasetype();
+
+        bool needsDirectEq(Type t1, Type t2)
+        {
+            Type t1n = t1.nextOf().toBasetype();
+            Type t2n = t2.nextOf().toBasetype();
+            if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) &&
+                 (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) ||
+                (t1n.ty == Tvoid || t2n.ty == Tvoid))
+            {
+                return false;
+            }
+            if (t1n.constOf() != t2n.constOf())
+                return true;
+
+            Type t = t1n;
+            while (t.toBasetype().nextOf())
+                t = t.nextOf().toBasetype();
+            if (t.ty != Tstruct)
+                return false;
+
+            semanticTypeInfo(sc, t);
+            return (cast(TypeStruct)t).sym.hasIdentityEquals;
+        }
+
         if (auto e = exp.op_overload(sc))
         {
             result = e;
             return;
         }
 
-        if (auto e = typeCombine(exp, sc))
+
+        if (!(t1.ty == Tarray && t2.ty == Tarray && needsDirectEq(t1, t2)))
         {
-            result = e;
-            return;
+            if (auto e = typeCombine(exp, sc))
+            {
+                result = e;
+                return;
+            }
         }
 
         auto f1 = checkNonAssignmentArrayOp(exp.e1);
@@ -7883,20 +7913,52 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.type = Type.tbool;
 
         // Special handling for array comparisons
-        if (!arrayTypeCompatible(exp.loc, exp.e1.type, exp.e2.type))
+        if (!(t1.ty == Tarray && t2.ty == Tarray && needsDirectEq(t1, t2)))
         {
-            if (exp.e1.type != exp.e2.type && exp.e1.type.isfloating() && exp.e2.type.isfloating())
+            if (!arrayTypeCompatible(exp.loc, exp.e1.type, exp.e2.type))
             {
-                // Cast both to complex
-                exp.e1 = exp.e1.castTo(sc, Type.tcomplex80);
-                exp.e2 = exp.e2.castTo(sc, Type.tcomplex80);
+                if (exp.e1.type != exp.e2.type && exp.e1.type.isfloating() && exp.e2.type.isfloating())
+                {
+                    // Cast both to complex
+                    exp.e1 = exp.e1.castTo(sc, Type.tcomplex80);
+                    exp.e2 = exp.e2.castTo(sc, Type.tcomplex80);
+                }
             }
         }
+
+        if (t1.ty == Tarray && t2.ty == Tarray)
+        {
+            Type telement  = t1.nextOf().toBasetype();
+            Type telement2 = t2.nextOf().toBasetype();
+
+            //printf("Lowering to __equals %s %s\n", e1.toChars(), e2.toChars());
+
+            // For e1 and e2 of struct type, lowers e1 == e2 to object.__equals(e1, e2)
+            // and e1 != e2 to !(object.__equals(e1, e2)).
+
+            Expression __equals = new IdentifierExp(exp.loc, Id.empty);
+            Identifier id = Identifier.idPool("__equals");
+            __equals = new DotIdExp(exp.loc, __equals, Id.object);
+            __equals = new DotIdExp(exp.loc, __equals, id);
+
+            auto arguments = new Expressions();
+            arguments.push(exp.e1);
+            arguments.push(exp.e2);
+
+            __equals = new CallExp(exp.loc, __equals, arguments);
+            if (exp.op == TOKnotequal)
+            {
+                __equals = new NotExp(exp.loc, __equals);
+            }
+            __equals = __equals.expressionSemantic(sc);
+
+            result = __equals;
+            return;
+        }
+
         if (exp.e1.type.toBasetype().ty == Taarray)
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
 
-        Type t1 = exp.e1.type.toBasetype();
-        Type t2 = exp.e2.type.toBasetype();
 
         if (!Target.isVectorOpSupported(t1, exp.op, t2))
         {
