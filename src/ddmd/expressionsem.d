@@ -481,6 +481,27 @@ private extern (C++) bool preFunctionParameters(Loc loc, Scope* sc, Expressions*
     return err;
 }
 
+/********************************************
+ * Issue an error if default construction is disabled for type t.
+ * Default construction is required for arrays and 'out' parameters.
+ * Returns:
+ *      true    an error was issued
+ */
+private extern (C++) bool checkDefCtor(Loc loc, Type t)
+{
+    t = t.baseElemOf();
+    if (t.ty == Tstruct)
+    {
+        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        if (sd.noDefaultCtor)
+        {
+            sd.error(loc, "default construction is disabled");
+            return true;
+        }
+    }
+    return false;
+}
+
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:

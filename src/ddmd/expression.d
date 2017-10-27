@@ -1120,27 +1120,6 @@ extern (C++) Expression valueNoDtor(Expression e)
     return e;
 }
 
-/********************************************
- * Issue an error if default construction is disabled for type t.
- * Default construction is required for arrays and 'out' parameters.
- * Returns:
- *      true    an error was issued
- */
-extern (C++) bool checkDefCtor(Loc loc, Type t)
-{
-    t = t.baseElemOf();
-    if (t.ty == Tstruct)
-    {
-        StructDeclaration sd = (cast(TypeStruct)t).sym;
-        if (sd.noDefaultCtor)
-        {
-            sd.error(loc, "default construction is disabled");
-            return true;
-        }
-    }
-    return false;
-}
-
 /*********************************************
  * If e is an instance of a struct, and that struct has a copy constructor,
  * rewrite e as:
