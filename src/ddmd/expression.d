@@ -1066,41 +1066,6 @@ extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
     return null;
 }
 
-/****************************************
- * Preprocess arguments to function.
- * Output:
- *      exps[]  tuples expanded, properties resolved, rewritten in place
- * Returns:
- *      true    a semantic error occurred
- */
-extern (C++) bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
-{
-    bool err = false;
-    if (exps)
-    {
-        expandTuples(exps);
-
-        for (size_t i = 0; i < exps.dim; i++)
-        {
-            Expression arg = (*exps)[i];
-            arg = resolveProperties(sc, arg);
-            if (arg.op == TOKtype)
-            {
-                arg.error("cannot pass type %s as a function argument", arg.toChars());
-                arg = new ErrorExp();
-                err = true;
-            }
-            else if (checkNonAssignmentArrayOp(arg))
-            {
-                arg = new ErrorExp();
-                err = true;
-            }
-            (*exps)[i] = arg;
-        }
-    }
-    return err;
-}
-
 /************************************************
  * If we want the value of this expression, but do not want to call
  * the destructor on it.
