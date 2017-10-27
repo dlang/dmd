@@ -21,6 +21,7 @@ import ddmd.arrayop;
 import ddmd.arraytypes;
 import ddmd.attrib;
 import ddmd.astcodegen;
+import ddmd.canthrow;
 import ddmd.dscope;
 import ddmd.dsymbol;
 import ddmd.declaration;
@@ -43,6 +44,7 @@ import ddmd.hdrgen;
 import ddmd.id;
 import ddmd.identifier;
 import ddmd.imphint;
+import ddmd.inline;
 import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.nspace;
@@ -67,6 +69,1098 @@ import ddmd.utils;
 import ddmd.visitor;
 
 enum LOGSEMANTIC = false;
+
+/***************************************
+ * Pull out any properties.
+ */
+private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
+{
+    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token.toChars(e1.op), e1.toChars(), e2 ? e2.toChars() : null);
+    Loc loc = e1.loc;
+
+    OverloadSet os;
+    Dsymbol s;
+    Objects* tiargs;
+    Type tthis;
+    if (e1.op == TOKdot)
+    {
+        DotExp de = cast(DotExp)e1;
+        if (de.e2.op == TOKoverloadset)
+        {
+            tiargs = null;
+            tthis = de.e1.type;
+            os = (cast(OverExp)de.e2).vars;
+            goto Los;
+        }
+    }
+    else if (e1.op == TOKoverloadset)
+    {
+        tiargs = null;
+        tthis = null;
+        os = (cast(OverExp)e1).vars;
+    Los:
+        assert(os);
+        FuncDeclaration fd = null;
+        if (e2)
+        {
+            e2 = e2.expressionSemantic(sc);
+            if (e2.op == TOKerror)
+                return new ErrorExp();
+            e2 = resolveProperties(sc, e2);
+
+            Expressions a;
+            a.push(e2);
+
+            for (size_t i = 0; i < os.a.dim; i++)
+            {
+                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, &a, 1);
+                if (f)
+                {
+                    if (f.errors)
+                        return new ErrorExp();
+                    fd = f;
+                    assert(fd.type.ty == Tfunction);
+                    TypeFunction tf = cast(TypeFunction)fd.type;
+                }
+            }
+            if (fd)
+            {
+                Expression e = new CallExp(loc, e1, e2);
+                return e.expressionSemantic(sc);
+            }
+        }
+        {
+            for (size_t i = 0; i < os.a.dim; i++)
+            {
+                FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, null, 1);
+                if (f)
+                {
+                    if (f.errors)
+                        return new ErrorExp();
+                    fd = f;
+                    assert(fd.type.ty == Tfunction);
+                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    if (!tf.isref && e2)
+                        goto Leproplvalue;
+                }
+            }
+            if (fd)
+            {
+                Expression e = new CallExp(loc, e1);
+                if (e2)
+                    e = new AssignExp(loc, e, e2);
+                return e.expressionSemantic(sc);
+            }
+        }
+        if (e2)
+            goto Leprop;
+    }
+    else if (e1.op == TOKdotti)
+    {
+        DotTemplateInstanceExp dti = cast(DotTemplateInstanceExp)e1;
+        if (!dti.findTempDecl(sc))
+            goto Leprop;
+        if (!dti.ti.semanticTiargs(sc))
+            goto Leprop;
+        tiargs = dti.ti.tiargs;
+        tthis = dti.e1.type;
+        if ((os = dti.ti.tempdecl.isOverloadSet()) !is null)
+            goto Los;
+        if ((s = dti.ti.tempdecl) !is null)
+            goto Lfd;
+    }
+    else if (e1.op == TOKdottd)
+    {
+        DotTemplateExp dte = cast(DotTemplateExp)e1;
+        s = dte.td;
+        tiargs = null;
+        tthis = dte.e1.type;
+        goto Lfd;
+    }
+    else if (e1.op == TOKscope)
+    {
+        s = (cast(ScopeExp)e1).sds;
+        TemplateInstance ti = s.isTemplateInstance();
+        if (ti && !ti.semanticRun && ti.tempdecl)
+        {
+            //assert(ti.needsTypeInference(sc));
+            if (!ti.semanticTiargs(sc))
+                goto Leprop;
+            tiargs = ti.tiargs;
+            tthis = null;
+            if ((os = ti.tempdecl.isOverloadSet()) !is null)
+                goto Los;
+            if ((s = ti.tempdecl) !is null)
+                goto Lfd;
+        }
+    }
+    else if (e1.op == TOKtemplate)
+    {
+        s = (cast(TemplateExp)e1).td;
+        tiargs = null;
+        tthis = null;
+        goto Lfd;
+    }
+    else if (e1.op == TOKdotvar && e1.type && e1.type.toBasetype().ty == Tfunction)
+    {
+        DotVarExp dve = cast(DotVarExp)e1;
+        s = dve.var.isFuncDeclaration();
+        tiargs = null;
+        tthis = dve.e1.type;
+        goto Lfd;
+    }
+    else if (e1.op == TOKvar && e1.type && e1.type.toBasetype().ty == Tfunction)
+    {
+        s = (cast(VarExp)e1).var.isFuncDeclaration();
+        tiargs = null;
+        tthis = null;
+    Lfd:
+        assert(s);
+        if (e2)
+        {
+            e2 = e2.expressionSemantic(sc);
+            if (e2.op == TOKerror)
+                return new ErrorExp();
+            e2 = resolveProperties(sc, e2);
+
+            Expressions a;
+            a.push(e2);
+
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
+            if (fd && fd.type)
+            {
+                if (fd.errors)
+                    return new ErrorExp();
+                assert(fd.type.ty == Tfunction);
+                TypeFunction tf = cast(TypeFunction)fd.type;
+                Expression e = new CallExp(loc, e1, e2);
+                return e.expressionSemantic(sc);
+            }
+        }
+        {
+            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, null, 1);
+            if (fd && fd.type)
+            {
+                if (fd.errors)
+                    return new ErrorExp();
+                assert(fd.type.ty == Tfunction);
+                TypeFunction tf = cast(TypeFunction)fd.type;
+                if (!e2 || tf.isref)
+                {
+                    Expression e = new CallExp(loc, e1);
+                    if (e2)
+                        e = new AssignExp(loc, e, e2);
+                    return e.expressionSemantic(sc);
+                }
+            }
+        }
+        if (FuncDeclaration fd = s.isFuncDeclaration())
+        {
+            // Keep better diagnostic message for invalid property usage of functions
+            assert(fd.type.ty == Tfunction);
+            TypeFunction tf = cast(TypeFunction)fd.type;
+            Expression e = new CallExp(loc, e1, e2);
+            return e.expressionSemantic(sc);
+        }
+        if (e2)
+            goto Leprop;
+    }
+    if (e1.op == TOKvar)
+    {
+        VarExp ve = cast(VarExp)e1;
+        VarDeclaration v = ve.var.isVarDeclaration();
+        if (v && ve.checkPurity(sc, v))
+            return new ErrorExp();
+    }
+    if (e2)
+        return null;
+
+    if (e1.type && e1.op != TOKtype) // function type is not a property
+    {
+        /* Look for e1 being a lazy parameter; rewrite as delegate call
+         */
+        if (e1.op == TOKvar)
+        {
+            VarExp ve = cast(VarExp)e1;
+            if (ve.var.storage_class & STClazy)
+            {
+                Expression e = new CallExp(loc, e1);
+                return e.expressionSemantic(sc);
+            }
+        }
+        else if (e1.op == TOKdotvar)
+        {
+            // Check for reading overlapped pointer field in @safe code.
+            if (checkUnsafeAccess(sc, e1, true, true))
+                return new ErrorExp();
+        }
+        else if (e1.op == TOKdot)
+        {
+            e1.error("expression has no value");
+            return new ErrorExp();
+        }
+        else if (e1.op == TOKcall)
+        {
+            CallExp ce = cast(CallExp)e1;
+            // Check for reading overlapped pointer field in @safe code.
+            if (checkUnsafeAccess(sc, ce.e1, true, true))
+                return new ErrorExp();
+        }
+    }
+
+    if (!e1.type)
+    {
+        error(loc, "cannot resolve type for %s", e1.toChars());
+        e1 = new ErrorExp();
+    }
+    return e1;
+
+Leprop:
+    error(loc, "not a property %s", e1.toChars());
+    return new ErrorExp();
+
+Leproplvalue:
+    error(loc, "%s is not an lvalue", e1.toChars());
+    return new ErrorExp();
+}
+
+extern (C++) Expression resolveProperties(Scope* sc, Expression e)
+{
+    //printf("resolveProperties(%s)\n", e.toChars());
+    e = resolvePropertiesX(sc, e);
+    if (e.checkRightThis(sc))
+        return new ErrorExp();
+    return e;
+}
+
+/****************************************
+ * The common type is determined by applying ?: to each pair.
+ * Output:
+ *      exps[]  properties resolved, implicitly cast to common type, rewritten in place
+ *      *pt     if pt is not NULL, set to the common type
+ * Returns:
+ *      true    a semantic error was detected
+ */
+private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
+{
+    /* Still have a problem with:
+     *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
+     * which works if the array literal is initialized top down with the ubyte[][]
+     * type, but fails with this function doing bottom up typing.
+     */
+
+    //printf("arrayExpressionToCommonType()\n");
+    scope IntegerExp integerexp = new IntegerExp(0);
+    scope CondExp condexp = new CondExp(Loc(), integerexp, null, null);
+
+    Type t0 = null;
+    Expression e0 = null;
+    size_t j0 = ~0;
+
+    for (size_t i = 0; i < exps.dim; i++)
+    {
+        Expression e = (*exps)[i];
+        if (!e)
+            continue;
+
+        e = resolveProperties(sc, e);
+        if (!e.type)
+        {
+            e.error("%s has no value", e.toChars());
+            t0 = Type.terror;
+            continue;
+        }
+        if (e.op == TOKtype)
+        {
+            e.checkValue(); // report an error "type T has no value"
+            t0 = Type.terror;
+            continue;
+        }
+        if (e.type.ty == Tvoid)
+        {
+            // void expressions do not concur to the determination of the common
+            // type.
+            continue;
+        }
+        if (checkNonAssignmentArrayOp(e))
+        {
+            t0 = Type.terror;
+            continue;
+        }
+
+        e = doCopyOrMove(sc, e);
+
+        if (t0 && !t0.equals(e.type))
+        {
+            /* This applies ?: to merge the types. It's backwards;
+             * ?: should call this function to merge types.
+             */
+            condexp.type = null;
+            condexp.e1 = e0;
+            condexp.e2 = e;
+            condexp.loc = e.loc;
+            Expression ex = condexp.expressionSemantic(sc);
+            if (ex.op == TOKerror)
+                e = ex;
+            else
+            {
+                (*exps)[j0] = condexp.e1;
+                e = condexp.e2;
+            }
+        }
+        j0 = i;
+        e0 = e;
+        t0 = e.type;
+        if (e.op != TOKerror)
+            (*exps)[i] = e;
+    }
+
+    if (!t0)
+        t0 = Type.tvoid; // [] is typed as void[]
+    else if (t0.ty != Terror)
+    {
+        for (size_t i = 0; i < exps.dim; i++)
+        {
+            Expression e = (*exps)[i];
+            if (!e)
+                continue;
+
+            e = e.implicitCastTo(sc, t0);
+            //assert(e.op != TOKerror);
+            if (e.op == TOKerror)
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=13024
+                 * a workaround for the bug in typeMerge -
+                 * it should paint e1 and e2 by deduced common type,
+                 * but doesn't in this particular case.
+                 */
+                t0 = Type.terror;
+                break;
+            }
+            (*exps)[i] = e;
+        }
+    }
+    if (pt)
+        *pt = t0;
+
+    return (t0 == Type.terror);
+}
+
+/****************************************
+ * Preprocess arguments to function.
+ * Output:
+ *      exps[]  tuples expanded, properties resolved, rewritten in place
+ * Returns:
+ *      true    a semantic error occurred
+ */
+private bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
+{
+    bool err = false;
+    if (exps)
+    {
+        expandTuples(exps);
+
+        for (size_t i = 0; i < exps.dim; i++)
+        {
+            Expression arg = (*exps)[i];
+            arg = resolveProperties(sc, arg);
+            if (arg.op == TOKtype)
+            {
+                arg.error("cannot pass type %s as a function argument", arg.toChars());
+                arg = new ErrorExp();
+                err = true;
+            }
+            else if (checkNonAssignmentArrayOp(arg))
+            {
+                arg = new ErrorExp();
+                err = true;
+            }
+            (*exps)[i] = arg;
+        }
+    }
+    return err;
+}
+
+/********************************************
+ * Issue an error if default construction is disabled for type t.
+ * Default construction is required for arrays and 'out' parameters.
+ * Returns:
+ *      true    an error was issued
+ */
+private bool checkDefCtor(Loc loc, Type t)
+{
+    t = t.baseElemOf();
+    if (t.ty == Tstruct)
+    {
+        StructDeclaration sd = (cast(TypeStruct)t).sym;
+        if (sd.noDefaultCtor)
+        {
+            sd.error(loc, "default construction is disabled");
+            return true;
+        }
+    }
+    return false;
+}
+
+/****************************************
+ * Now that we know the exact type of the function we're calling,
+ * the arguments[] need to be adjusted:
+ *      1. implicitly convert argument to the corresponding parameter type
+ *      2. add default arguments for any missing arguments
+ *      3. do default promotions on arguments corresponding to ...
+ *      4. add hidden _arguments[] argument
+ *      5. call copy constructor for struct value arguments
+ * Input:
+ *      tf      type of the function
+ *      fd      the function being called, NULL if called indirectly
+ * Output:
+ *      *prettype return type of function
+ *      *peprefix expression to execute before arguments[] are evaluated, NULL if none
+ * Returns:
+ *      true    errors happened
+ */
+private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
+{
+    //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
+    assert(arguments);
+    assert(fd || tf.next);
+    size_t nargs = arguments ? arguments.dim : 0;
+    size_t nparams = Parameter.dim(tf.parameters);
+    uint olderrors = global.errors;
+    bool err = false;
+    *prettype = Type.terror;
+    Expression eprefix = null;
+    *peprefix = null;
+
+    if (nargs > nparams && tf.varargs == 0)
+    {
+        error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", cast(ulong)nparams, cast(ulong)nargs, tf.toChars());
+        return true;
+    }
+
+    // If inferring return type, and semantic3() needs to be run if not already run
+    if (!tf.next && fd.inferRetType)
+    {
+        fd.functionSemantic();
+    }
+    else if (fd && fd.parent)
+    {
+        TemplateInstance ti = fd.parent.isTemplateInstance();
+        if (ti && ti.tempdecl)
+        {
+            fd.functionSemantic3();
+        }
+    }
+    bool isCtorCall = fd && fd.needThis() && fd.isCtorDeclaration();
+
+    size_t n = (nargs > nparams) ? nargs : nparams; // n = max(nargs, nparams)
+
+    /* If the function return type has wildcards in it, we'll need to figure out the actual type
+     * based on the actual argument types.
+     */
+    MOD wildmatch = 0;
+    if (tthis && tf.isWild() && !isCtorCall)
+    {
+        Type t = tthis;
+        if (t.isImmutable())
+            wildmatch = MODimmutable;
+        else if (t.isWildConst())
+            wildmatch = MODwildconst;
+        else if (t.isWild())
+            wildmatch = MODwild;
+        else if (t.isConst())
+            wildmatch = MODconst;
+        else
+            wildmatch = MODmutable;
+    }
+
+    int done = 0;
+    for (size_t i = 0; i < n; i++)
+    {
+        Expression arg;
+
+        if (i < nargs)
+            arg = (*arguments)[i];
+        else
+            arg = null;
+
+        if (i < nparams)
+        {
+            Parameter p = Parameter.getNth(tf.parameters, i);
+
+            if (!arg)
+            {
+                if (!p.defaultArg)
+                {
+                    if (tf.varargs == 2 && i + 1 == nparams)
+                        goto L2;
+                    error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
+                    return true;
+                }
+                arg = p.defaultArg;
+                arg = inlineCopy(arg, sc);
+                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+                arg = arg.resolveLoc(loc, sc);
+                arguments.push(arg);
+                nargs++;
+            }
+
+            if (tf.varargs == 2 && i + 1 == nparams)
+            {
+                //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
+                {
+                    MATCH m;
+                    if ((m = arg.implicitConvTo(p.type)) > MATCH.nomatch)
+                    {
+                        if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
+                            goto L2;
+                        else if (nargs != nparams)
+                        {
+                            error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
+                            return true;
+                        }
+                        goto L1;
+                    }
+                }
+            L2:
+                Type tb = p.type.toBasetype();
+                Type tret = p.isLazyArray();
+                switch (tb.ty)
+                {
+                case Tsarray:
+                case Tarray:
+                    {
+                        /* Create a static array variable v of type arg.type:
+                         *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
+                         *
+                         * The array literal in the initializer of the hidden variable
+                         * is now optimized.
+                         * https://issues.dlang.org/show_bug.cgi?id=2356
+                         */
+                        Type tbn = (cast(TypeArray)tb).next;
+                        Type tsa = tbn.sarrayOf(nargs - i);
+
+                        auto elements = new Expressions();
+                        elements.setDim(nargs - i);
+                        for (size_t u = 0; u < elements.dim; u++)
+                        {
+                            Expression a = (*arguments)[i + u];
+                            if (tret && a.implicitConvTo(tret))
+                            {
+                                a = a.implicitCastTo(sc, tret);
+                                a = a.optimize(WANTvalue);
+                                a = toDelegate(a, a.type, sc);
+                            }
+                            else
+                                a = a.implicitCastTo(sc, tbn);
+                            (*elements)[u] = a;
+                        }
+                        // https://issues.dlang.org/show_bug.cgi?id=14395
+                        // Convert to a static array literal, or its slice.
+                        arg = new ArrayLiteralExp(loc, elements);
+                        arg.type = tsa;
+                        if (tb.ty == Tarray)
+                        {
+                            arg = new SliceExp(loc, arg, null, null);
+                            arg.type = p.type;
+                        }
+                        break;
+                    }
+                case Tclass:
+                    {
+                        /* Set arg to be:
+                         *      new Tclass(arg0, arg1, ..., argn)
+                         */
+                        auto args = new Expressions();
+                        args.setDim(nargs - i);
+                        for (size_t u = i; u < nargs; u++)
+                            (*args)[u - i] = (*arguments)[u];
+                        arg = new NewExp(loc, null, null, p.type, args);
+                        break;
+                    }
+                default:
+                    if (!arg)
+                    {
+                        error(loc, "not enough arguments");
+                        return true;
+                    }
+                    break;
+                }
+                arg = arg.expressionSemantic(sc);
+                //printf("\targ = '%s'\n", arg.toChars());
+                arguments.setDim(i + 1);
+                (*arguments)[i] = arg;
+                nargs = i + 1;
+                done = 1;
+            }
+
+        L1:
+            if (!(p.storageClass & STClazy && p.type.ty == Tvoid))
+            {
+                bool isRef = (p.storageClass & (STCref | STCout)) != 0;
+                if (ubyte wm = arg.type.deduceWild(p.type, isRef))
+                {
+                    if (wildmatch)
+                        wildmatch = MODmerge(wildmatch, wm);
+                    else
+                        wildmatch = wm;
+                    //printf("[%d] p = %s, a = %s, wm = %d, wildmatch = %d\n", i, p.type.toChars(), arg.type.toChars(), wm, wildmatch);
+                }
+            }
+        }
+        if (done)
+            break;
+    }
+    if ((wildmatch == MODmutable || wildmatch == MODimmutable) && tf.next.hasWild() && (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
+    {
+        if (fd)
+        {
+            /* If the called function may return the reference to
+             * outer inout data, it should be rejected.
+             *
+             * void foo(ref inout(int) x) {
+             *   ref inout(int) bar(inout(int)) { return x; }
+             *   struct S { ref inout(int) bar() inout { return x; } }
+             *   bar(int.init) = 1;  // bad!
+             *   S().bar() = 1;      // bad!
+             * }
+             */
+            Dsymbol s = null;
+            if (fd.isThis() || fd.isNested())
+                s = fd.toParent2();
+            for (; s; s = s.toParent2())
+            {
+                if (auto ad = s.isAggregateDeclaration())
+                {
+                    if (ad.isNested())
+                        continue;
+                    break;
+                }
+                if (auto ff = s.isFuncDeclaration())
+                {
+                    if ((cast(TypeFunction)ff.type).iswild)
+                        goto Linouterr;
+
+                    if (ff.isNested() || ff.isThis())
+                        continue;
+                }
+                break;
+            }
+        }
+        else if (tf.isWild())
+        {
+        Linouterr:
+            const(char)* s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+            error(loc, "modify inout to %s is not allowed inside inout function", s);
+            return true;
+        }
+    }
+
+    assert(nargs >= nparams);
+    for (size_t i = 0; i < nargs; i++)
+    {
+        Expression arg = (*arguments)[i];
+        assert(arg);
+        if (i < nparams)
+        {
+            Parameter p = Parameter.getNth(tf.parameters, i);
+            if (!(p.storageClass & STClazy && p.type.ty == Tvoid))
+            {
+                Type tprm = p.type;
+                if (p.type.hasWild())
+                    tprm = p.type.substWildTo(wildmatch);
+                if (!tprm.equals(arg.type))
+                {
+                    //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
+                    arg = arg.implicitCastTo(sc, tprm);
+                    arg = arg.optimize(WANTvalue, (p.storageClass & (STCref | STCout)) != 0);
+                }
+            }
+            if (p.storageClass & STCref)
+            {
+                arg = arg.toLvalue(sc, arg);
+
+                // Look for mutable misaligned pointer, etc., in @safe mode
+                err |= checkUnsafeAccess(sc, arg, false, true);
+            }
+            else if (p.storageClass & STCout)
+            {
+                Type t = arg.type;
+                if (!t.isMutable() || !t.isAssignable()) // check blit assignable
+                {
+                    arg.error("cannot modify struct %s with immutable members", arg.toChars());
+                    err = true;
+                }
+                else
+                {
+                    // Look for misaligned pointer, etc., in @safe mode
+                    err |= checkUnsafeAccess(sc, arg, false, true);
+                    err |= checkDefCtor(arg.loc, t); // t must be default constructible
+                }
+                arg = arg.toLvalue(sc, arg);
+            }
+            else if (p.storageClass & STClazy)
+            {
+                // Convert lazy argument to a delegate
+                if (p.type.ty == Tvoid)
+                    arg = toDelegate(arg, p.type, sc);
+                else
+                    arg = toDelegate(arg, arg.type, sc);
+            }
+            //printf("arg: %s\n", arg.toChars());
+            //printf("type: %s\n", arg.type.toChars());
+
+            if (tf.parameterEscapes(p))
+            {
+                /* Argument value can escape from the called function.
+                 * Check arg to see if it matters.
+                 */
+                if (global.params.vsafe)
+                    err |= checkParamArgumentEscape(sc, fd, p.ident, arg, false);
+            }
+            else
+            {
+                /* Argument value cannot escape from the called function.
+                 */
+                Expression a = arg;
+                if (a.op == TOKcast)
+                    a = (cast(CastExp)a).e1;
+                if (a.op == TOKfunction)
+                {
+                    /* Function literals can only appear once, so if this
+                     * appearance was scoped, there cannot be any others.
+                     */
+                    FuncExp fe = cast(FuncExp)a;
+                    fe.fd.tookAddressOf = 0;
+                }
+                else if (a.op == TOKdelegate)
+                {
+                    /* For passing a delegate to a scoped parameter,
+                     * this doesn't count as taking the address of it.
+                     * We only worry about 'escaping' references to the function.
+                     */
+                    DelegateExp de = cast(DelegateExp)a;
+                    if (de.e1.op == TOKvar)
+                    {
+                        VarExp ve = cast(VarExp)de.e1;
+                        FuncDeclaration f = ve.var.isFuncDeclaration();
+                        if (f)
+                        {
+                            f.tookAddressOf--;
+                            //printf("--tookAddressOf = %d\n", f.tookAddressOf);
+                        }
+                    }
+                }
+            }
+            arg = arg.optimize(WANTvalue, (p.storageClass & (STCref | STCout)) != 0);
+        }
+        else
+        {
+            // These will be the trailing ... arguments
+            // If not D linkage, do promotions
+            if (tf.linkage != LINKd)
+            {
+                // Promote bytes, words, etc., to ints
+                arg = integralPromotions(arg, sc);
+
+                // Promote floats to doubles
+                switch (arg.type.ty)
+                {
+                case Tfloat32:
+                    arg = arg.castTo(sc, Type.tfloat64);
+                    break;
+
+                case Timaginary32:
+                    arg = arg.castTo(sc, Type.timaginary64);
+                    break;
+
+                default:
+                    break;
+                }
+                if (tf.varargs == 1)
+                {
+                    const(char)* p = tf.linkage == LINKc ? "extern(C)" : "extern(C++)";
+                    if (arg.type.ty == Tarray)
+                    {
+                        arg.error("cannot pass dynamic arrays to %s vararg functions", p);
+                        err = true;
+                    }
+                    if (arg.type.ty == Tsarray)
+                    {
+                        arg.error("cannot pass static arrays to %s vararg functions", p);
+                        err = true;
+                    }
+                }
+            }
+
+            // Do not allow types that need destructors
+            if (arg.type.needsDestruction())
+            {
+                arg.error("cannot pass types that need destruction as variadic arguments");
+                err = true;
+            }
+
+            // Convert static arrays to dynamic arrays
+            // BUG: I don't think this is right for D2
+            Type tb = arg.type.toBasetype();
+            if (tb.ty == Tsarray)
+            {
+                TypeSArray ts = cast(TypeSArray)tb;
+                Type ta = ts.next.arrayOf();
+                if (ts.size(arg.loc) == 0)
+                    arg = new NullExp(arg.loc, ta);
+                else
+                    arg = arg.castTo(sc, ta);
+            }
+            if (tb.ty == Tstruct)
+            {
+                //arg = callCpCtor(sc, arg);
+            }
+            // Give error for overloaded function addresses
+            if (arg.op == TOKsymoff)
+            {
+                SymOffExp se = cast(SymOffExp)arg;
+                if (se.hasOverloads && !se.var.isFuncDeclaration().isUnique())
+                {
+                    arg.error("function %s is overloaded", arg.toChars());
+                    err = true;
+                }
+            }
+            if (arg.checkValue())
+                err = true;
+            arg = arg.optimize(WANTvalue);
+        }
+        (*arguments)[i] = arg;
+    }
+
+    /* Remaining problems:
+     * 1. order of evaluation - some function push L-to-R, others R-to-L. Until we resolve what array assignment does (which is
+     *    implemented by calling a function) we'll defer this for now.
+     * 2. value structs (or static arrays of them) that need to be copy constructed
+     * 3. value structs (or static arrays of them) that have destructors, and subsequent arguments that may throw before the
+     *    function gets called (functions normally destroy their parameters)
+     * 2 and 3 are handled by doing the argument construction in 'eprefix' so that if a later argument throws, they are cleaned
+     * up properly. Pushing arguments on the stack then cannot fail.
+     */
+    if (1)
+    {
+        /* TODO: tackle problem 1)
+         */
+        const bool leftToRight = true; // TODO: something like !fd.isArrayOp
+        if (!leftToRight)
+            assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
+
+        const ptrdiff_t start = (leftToRight ? 0 : cast(ptrdiff_t)nargs - 1);
+        const ptrdiff_t end = (leftToRight ? cast(ptrdiff_t)nargs : -1);
+        const ptrdiff_t step = (leftToRight ? 1 : -1);
+
+        /* Compute indices of last throwing argument and first arg needing destruction.
+         * Used to not set up destructors unless an arg needs destruction on a throw
+         * in a later argument.
+         */
+        ptrdiff_t lastthrow = -1;
+        ptrdiff_t firstdtor = -1;
+        for (ptrdiff_t i = start; i != end; i += step)
+        {
+            Expression arg = (*arguments)[i];
+            if (canThrow(arg, sc.func, false))
+                lastthrow = i;
+            if (firstdtor == -1 && arg.type.needsDestruction())
+            {
+                Parameter p = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
+                if (!(p && (p.storageClass & (STClazy | STCref | STCout))))
+                    firstdtor = i;
+            }
+        }
+
+        /* Does problem 3) apply to this call?
+         */
+        const bool needsPrefix = (firstdtor >= 0 && lastthrow >= 0
+            && (lastthrow - firstdtor) * step > 0);
+
+        /* If so, initialize 'eprefix' by declaring the gate
+         */
+        VarDeclaration gate = null;
+        if (needsPrefix)
+        {
+            // eprefix => bool __gate [= false]
+            Identifier idtmp = Identifier.generateId("__gate");
+            gate = new VarDeclaration(loc, Type.tbool, idtmp, null);
+            gate.storage_class |= STCtemp | STCctfe | STCvolatile;
+            gate.dsymbolSemantic(sc);
+
+            auto ae = new DeclarationExp(loc, gate);
+            eprefix = ae.expressionSemantic(sc);
+        }
+
+        for (ptrdiff_t i = start; i != end; i += step)
+        {
+            Expression arg = (*arguments)[i];
+
+            Parameter parameter = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
+            const bool isRef = (parameter && (parameter.storageClass & (STCref | STCout)));
+            const bool isLazy = (parameter && (parameter.storageClass & STClazy));
+
+            /* Skip lazy parameters
+             */
+            if (isLazy)
+                continue;
+
+            /* Do we have a gate? Then we have a prefix and we're not yet past the last throwing arg.
+             * Declare a temporary variable for this arg and append that declaration to 'eprefix',
+             * which will implicitly take care of potential problem 2) for this arg.
+             * 'eprefix' will therefore finally contain all args up to and including the last
+             * potentially throwing arg, excluding all lazy parameters.
+             */
+            if (gate)
+            {
+                const bool needsDtor = (!isRef && arg.type.needsDestruction() && i != lastthrow);
+
+                /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
+                 */
+                auto tmp = copyToTemp(0,
+                    needsDtor ? "__pfx" : "__pfy",
+                    !isRef ? arg : arg.addressOf());
+                tmp.dsymbolSemantic(sc);
+
+                /* Modify the destructor so it only runs if gate==false, i.e.,
+                 * only if there was a throw while constructing the args
+                 */
+                if (!needsDtor)
+                {
+                    if (tmp.edtor)
+                    {
+                        assert(i == lastthrow);
+                        tmp.edtor = null;
+                    }
+                }
+                else
+                {
+                    // edtor => (__gate || edtor)
+                    assert(tmp.edtor);
+                    Expression e = tmp.edtor;
+                    e = new LogicalExp(e.loc, TOKoror, new VarExp(e.loc, gate), e);
+                    tmp.edtor = e.expressionSemantic(sc);
+                    //printf("edtor: %s\n", tmp.edtor.toChars());
+                }
+
+                // eprefix => (eprefix, auto __pfx/y = arg)
+                auto ae = new DeclarationExp(loc, tmp);
+                eprefix = Expression.combine(eprefix, ae.expressionSemantic(sc));
+
+                // arg => __pfx/y
+                arg = new VarExp(loc, tmp);
+                arg = arg.expressionSemantic(sc);
+                if (isRef)
+                {
+                    arg = new PtrExp(loc, arg);
+                    arg = arg.expressionSemantic(sc);
+                }
+
+                /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
+                 * i.e., disable the dtors right after constructing the last throwing arg.
+                 * From now on, the callee will take care of destructing the args because
+                 * the args are implicitly moved into function parameters.
+                 *
+                 * Set gate to null to let the next iterations know they don't need to
+                 * append to eprefix anymore.
+                 */
+                if (i == lastthrow)
+                {
+                    auto e = new AssignExp(gate.loc, new VarExp(gate.loc, gate), new IntegerExp(gate.loc, 1, Type.tbool));
+                    eprefix = Expression.combine(eprefix, e.expressionSemantic(sc));
+                    gate = null;
+                }
+            }
+            else
+            {
+                /* No gate, no prefix to append to.
+                 * Handle problem 2) by calling the copy constructor for value structs
+                 * (or static arrays of them) if appropriate.
+                 */
+                Type tv = arg.type.baseElemOf();
+                if (!isRef && tv.ty == Tstruct)
+                    arg = doCopyOrMove(sc, arg);
+            }
+
+            (*arguments)[i] = arg;
+        }
+    }
+    //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
+
+    // If D linkage and variadic, add _arguments[] as first argument
+    if (tf.linkage == LINKd && tf.varargs == 1)
+    {
+        assert(arguments.dim >= nparams);
+
+        auto args = new Parameters();
+        args.setDim(arguments.dim - nparams);
+        for (size_t i = 0; i < arguments.dim - nparams; i++)
+        {
+            auto arg = new Parameter(STCin, (*arguments)[nparams + i].type, null, null);
+            (*args)[i] = arg;
+        }
+        auto tup = new TypeTuple(args);
+        Expression e = new TypeidExp(loc, tup);
+        e = e.expressionSemantic(sc);
+        arguments.insert(0, e);
+    }
+
+    Type tret = tf.next;
+    if (isCtorCall)
+    {
+        //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd.toChars(), fd.type.toChars(),
+        //    wildmatch, tf.isWild(), fd.isReturnIsolated());
+        if (!tthis)
+        {
+            assert(sc.intypeof || global.errors);
+            tthis = fd.isThis().type.addMod(fd.type.mod);
+        }
+        if (tf.isWild() && !fd.isReturnIsolated())
+        {
+            if (wildmatch)
+                tret = tret.substWildTo(wildmatch);
+            int offset;
+            if (!tret.implicitConvTo(tthis) && !(MODimplicitConv(tret.mod, tthis.mod) && tret.isBaseOf(tthis, &offset) && offset == 0))
+            {
+                const(char)* s1 = tret.isNaked() ? " mutable" : tret.modToChars();
+                const(char)* s2 = tthis.isNaked() ? " mutable" : tthis.modToChars();
+                .error(loc, "inout constructor %s creates%s object, not%s", fd.toPrettyChars(), s1, s2);
+                err = true;
+            }
+        }
+        tret = tthis;
+    }
+    else if (wildmatch && tret)
+    {
+        /* Adjust function return type based on wildmatch
+         */
+        //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret.toChars());
+        tret = tret.substWildTo(wildmatch);
+    }
+    *prettype = tret;
+    *peprefix = eprefix;
+    return (err || olderrors != global.errors);
+}
+
+private Module loadStdMath()
+{
+    static __gshared Import impStdMath = null;
+    if (!impStdMath)
+    {
+        auto a = new Identifiers();
+        a.push(Id.std);
+        auto s = new Import(Loc(), a, Id.math, null, false);
+        s.load(null);
+        if (s.mod)
+        {
+            s.mod.importAll(null);
+            s.mod.dsymbolSemantic(null);
+        }
+        impStdMath = s;
+    }
+    return impStdMath.mod;
+}
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {

@@ -72,6 +72,113 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     return result;
 }
 
+/***********************************************
+ * Mark variable v as modified if it is inside a constructor that var
+ * is a field in.
+ */
+private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+{
+    //printf("modifyFieldVar(var = %s)\n", var.toChars());
+    Dsymbol s = sc.func;
+    while (1)
+    {
+        FuncDeclaration fd = null;
+        if (s)
+            fd = s.isFuncDeclaration();
+        if (fd &&
+            ((fd.isCtorDeclaration() && var.isField()) ||
+             (fd.isStaticCtorDeclaration() && !var.isField())) &&
+            fd.toParent2() == var.toParent2() &&
+            (!e1 || e1.op == TOKthis))
+        {
+            bool result = true;
+
+            var.ctorinit = true;
+            //printf("setting ctorinit\n");
+
+            if (var.isField() && sc.fieldinit && !sc.intypeof)
+            {
+                assert(e1);
+                auto mustInit = ((var.storage_class & STCnodefaultctor) != 0 ||
+                                 var.type.needsNested());
+
+                auto dim = sc.fieldinit_dim;
+                auto ad = fd.isMember2();
+                assert(ad);
+                size_t i;
+                for (i = 0; i < dim; i++) // same as findFieldIndexByName in ctfeexp.c ?
+                {
+                    if (ad.fields[i] == var)
+                        break;
+                }
+                assert(i < dim);
+                uint fi = sc.fieldinit[i];
+
+                if (fi & CSXthis_ctor)
+                {
+                    if (var.type.isMutable() && e1.type.isMutable())
+                        result = false;
+                    else
+                    {
+                        const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
+                        .error(loc, "%s field '%s' initialized multiple times", modStr, var.toChars());
+                    }
+                }
+                else if (sc.noctor || (fi & CSXlabel))
+                {
+                    if (!mustInit && var.type.isMutable() && e1.type.isMutable())
+                        result = false;
+                    else
+                    {
+                        const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
+                        .error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var.toChars());
+                    }
+                }
+
+                sc.fieldinit[i] |= CSXthis_ctor;
+                if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
+                {
+                    foreach (j, v; ad.fields)
+                    {
+                        if (v is var || !var.isOverlappedWith(v))
+                            continue;
+                        v.ctorinit = true;
+                        sc.fieldinit[j] = CSXthis_ctor;
+                    }
+                }
+            }
+            else if (fd != sc.func)
+            {
+                if (var.type.isMutable())
+                    result = false;
+                else if (sc.func.fes)
+                {
+                    const(char)* p = var.isField() ? "field" : var.kind();
+                    .error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
+                        MODtoChars(var.type.mod), p, var.toChars());
+                }
+                else
+                {
+                    const(char)* p = var.isField() ? "field" : var.kind();
+                    .error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
+                        MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
+                }
+            }
+            return result;
+        }
+        else
+        {
+            if (s)
+            {
+                s = s.toParent2();
+                continue;
+            }
+        }
+        break;
+    }
+    return false;
+}
+
 /******************************************
  */
 extern (C++) void ObjectNotFound(Identifier id)
