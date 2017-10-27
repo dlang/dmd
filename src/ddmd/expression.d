@@ -457,7 +457,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * Bugs:
  * This doesn't appear to do anything.
  */
-extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
+private extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
 {
     while (e.op == TOKcomma)
         e = (cast(CommaExp)e).e2;
