@@ -1316,7 +1316,7 @@ private extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Exp
 
 /****************************************************************/
 
-extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
+private extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
     Expression e0;
     Expression e1 = Expression.extractLast(ue.e1, &e0);
