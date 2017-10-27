@@ -457,7 +457,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * Bugs:
  * This doesn't appear to do anything.
  */
-private extern (C++) bool checkPropertyCall(Expression e, Expression emsg)
+private bool checkPropertyCall(Expression e, Expression emsg)
 {
     while (e.op == TOKcomma)
         e = (cast(CommaExp)e).e2;
@@ -586,7 +586,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
 /******************************
  * Find symbol in accordance with the UFCS name look up rule
  */
-private extern (C++) Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
+private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
 {
     //printf("searchUFCS(ident = %s)\n", ident.toChars());
     Loc loc = ue.loc;
@@ -1127,7 +1127,7 @@ extern (C++) Expression valueNoDtor(Expression e)
  * Input:
  *      sc      just used to specify the scope of created temporary variable
  */
-private extern (C++) Expression callCpCtor(Scope* sc, Expression e)
+private Expression callCpCtor(Scope* sc, Expression e)
 {
     Type tv = e.type.baseElemOf();
     if (tv.ty == Tstruct)
@@ -1259,7 +1259,7 @@ extern (C++) DotIdExp typeDotIdExp(Loc loc, Type type, Identifier ident)
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
 
-private extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression e2)
+private Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression e2)
 {
     Expression e;
     switch (op)
@@ -1316,7 +1316,7 @@ private extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Exp
 
 /****************************************************************/
 
-private extern (C++) Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
+private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
 {
     Expression e0;
     Expression e1 = Expression.extractLast(ue.e1, &e0);

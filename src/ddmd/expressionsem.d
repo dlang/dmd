@@ -73,7 +73,7 @@ enum LOGSEMANTIC = false;
 /***************************************
  * Pull out any properties.
  */
-private extern (C++) Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
+private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null)
 {
     //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", Token.toChars(e1.op), e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
@@ -341,7 +341,7 @@ extern (C++) Expression resolveProperties(Scope* sc, Expression e)
  * Returns:
  *      true    a semantic error was detected
  */
-private extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
+private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
 {
     /* Still have a problem with:
      *  ubyte[][] = [ cast(ubyte[])"hello", [1]];
@@ -453,7 +453,7 @@ private extern (C++) bool arrayExpressionToCommonType(Scope* sc, Expressions* ex
  * Returns:
  *      true    a semantic error occurred
  */
-private extern (C++) bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
+private bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
 {
     bool err = false;
     if (exps)
@@ -487,7 +487,7 @@ private extern (C++) bool preFunctionParameters(Loc loc, Scope* sc, Expressions*
  * Returns:
  *      true    an error was issued
  */
-private extern (C++) bool checkDefCtor(Loc loc, Type t)
+private bool checkDefCtor(Loc loc, Type t)
 {
     t = t.baseElemOf();
     if (t.ty == Tstruct)
@@ -519,7 +519,7 @@ private extern (C++) bool checkDefCtor(Loc loc, Type t)
  * Returns:
  *      true    errors happened
  */
-private extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
+private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis, Expressions* arguments, FuncDeclaration fd, Type* prettype, Expression* peprefix)
 {
     //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
     assert(arguments);
@@ -1143,7 +1143,7 @@ private extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf
     return (err || olderrors != global.errors);
 }
 
-private extern (C++) Module loadStdMath()
+private Module loadStdMath()
 {
     static __gshared Import impStdMath = null;
     if (!impStdMath)
