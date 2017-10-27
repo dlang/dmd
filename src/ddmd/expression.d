@@ -1259,7 +1259,7 @@ extern (C++) DotIdExp typeDotIdExp(Loc loc, Type type, Identifier ident)
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
 
-extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression e2)
+private extern (C++) Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression e2)
 {
     Expression e;
     switch (op)
