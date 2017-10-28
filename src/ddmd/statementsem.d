@@ -2928,6 +2928,13 @@ else
                  */
             }
 
+            if (rs && rs.exp && tret && tret.isfloating() && rs.exp.type.isfloating() &&
+                tret.size() < rs.exp.type.size())
+            {
+                rs.warning("return %s from %s function is performing truncating conversion",
+                    rs.exp.type.toChars(), tret.toChars());
+            }
+
             // handle NRVO
             if (fd.nrvo_can && rs.exp.op == TOKvar)
             {
