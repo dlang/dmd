@@ -304,7 +304,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D BigEndian)) , $(ARGS Byte order, most significant first))
 	$(TROW $(ARGS $(D ELFv1)) , $(ARGS The Executable and Linkable Format v1))
 	$(TROW $(ARGS $(D ELFv2)) , $(ARGS The Executable and Linkable Format v2))
-	$(TROW $(ARGS $(D D_betterC)) , $(ARGS $(DDLINK spec/betterc, D as Better C, D as Better C) code
+	$(TROW $(ARGS $(D D_BetterC)) , $(ARGS $(DDLINK spec/betterc, D as Better C, D as Better C) code
 		(command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))) is being generated))
 	$(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
 		(command line switch $(DDSUBLINK dmd, switch-cov, $(TT -cov))) is being generated))
