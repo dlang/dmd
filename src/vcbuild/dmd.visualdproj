@@ -53,7 +53,7 @@
   <cccmd>$(CC) -c</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
-  <imppath />
+  <imppath>..</imppath>
   <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
@@ -155,7 +155,7 @@
   <cccmd>$(CC) -c -cpp -Isrc;src\backend;src\tk;src\root -DMARS -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
-  <imppath />
+  <imppath>..</imppath>
   <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
@@ -257,7 +257,7 @@
   <cccmd>$(CC) -nologo -c -TP -Isrc -Isrc\backend -Isrc\tk -Isrc\root -Isrc\vcbuild -DTARGET_WINDOS=1 -FIvcbuild\warnings.h</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>c:\l\d\dmd2\windows\bin\dmd.exe</program>
-  <imppath />
+  <imppath>..</imppath>
   <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
@@ -359,7 +359,7 @@
   <cccmd>$(CC) -nologo -c -TP -Isrc -Isrc\backend -Isrc\tk -Isrc\root -Isrc\vcbuild -DTARGET_WINDOS=1 -FIvcbuild\warnings.h</cccmd>
   <ccTransOpt>1</ccTransOpt>
   <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
-  <imppath />
+  <imppath>..</imppath>
   <fileImppath>$(OutDir) ..\..\res</fileImppath>
   <outdir>..\..\generated\Windows\$(ConfigurationName)\$(PlatformName)</outdir>
   <objdir>$(OutDir)</objdir>
@@ -473,6 +473,7 @@
    <File path="..\ddmd\console.d" />
    <File path="..\ddmd\constfold.d" />
    <File path="..\ddmd\cppmangle.d" />
+   <File path="..\ddmd\cppmanglewin.d" />
    <File path="..\ddmd\ctfeexpr.d" />
    <File path="..\ddmd\dcast.d" />
    <File path="..\ddmd\dclass.d" />
