@@ -378,3 +378,20 @@ else version (Posix)
     static assert(T.boo.mangleof == "_ZN1T3booE");
 }
 
+/****************************************/
+// https://github.com/dlang/dmd/pull/6658
+// https://issues.dlang.org/show_bug.cgi?id=17947
+
+
+extern (C++, std)
+{
+    struct pair(T1, T2)
+    {
+	void swap(ref pair other);
+    }
+}
+
+version (linux)
+{
+    static assert(std.pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
+}
