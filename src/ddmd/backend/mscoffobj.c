@@ -74,7 +74,7 @@ static Outbuffer *symbuf;
 
 static Outbuffer *syment_buf;   // array of struct syment
 
-static segidx_t segidx_drectve;         // contents of ".drectve" section
+static segidx_t segidx_drectve = UNKNOWN;         // contents of ".drectve" section
 static segidx_t segidx_debugS = UNKNOWN;
 static segidx_t segidx_xdata = UNKNOWN;
 static segidx_t segidx_pdata = UNKNOWN;
@@ -332,6 +332,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     floatused = 0;
 
+    segidx_drectve = UNKNOWN;
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
 
@@ -380,9 +381,6 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     int alignText = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
     int alignData = IMAGE_SCN_ALIGN_16BYTES;
-    addScnhdr(".drectve", IMAGE_SCN_LNK_INFO |
-                          IMAGE_SCN_ALIGN_1BYTES |
-                          IMAGE_SCN_LNK_REMOVE);        // linker commands
     addScnhdr(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
                           IMAGE_SCN_ALIGN_1BYTES |
                           IMAGE_SCN_MEM_READ |
@@ -405,12 +403,11 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     seg_count = 0;
 
-#define SHI_DRECTVE     1
-#define SHI_DEBUGS      2
-#define SHI_DATA        3
-#define SHI_TEXT        4
-#define SHI_UDATA       5
-#define SHI_CDATA       6
+#define SHI_DEBUGS      1
+#define SHI_DATA        2
+#define SHI_TEXT        3
+#define SHI_UDATA       4
+#define SHI_CDATA       5
 
     getsegment2(SHI_TEXT);
     assert(SegData[CODE]->SDseg == CODE);
@@ -424,12 +421,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     getsegment2(SHI_UDATA);
     assert(SegData[UDATA]->SDseg == UDATA);
 
-    segidx_drectve = getsegment2(SHI_DRECTVE);
-
     segidx_debugS  = getsegment2(SHI_DEBUGS);
-
-    SegData[segidx_drectve]->SDbuf->setsize(0);
-    SegData[segidx_drectve]->SDbuf->write("  ", 2);
 
     if (config.fulltypes)
         cv8_initfile(filename);
@@ -1050,10 +1042,11 @@ void MsCoffObj::startaddress(Symbol *s)
 
 bool MsCoffObj::includelib(const char *name)
 {
+    int seg = seg_drectve();
     //dbg_printf("MsCoffObj::includelib(name *%s)\n",name);
-    SegData[segidx_drectve]->SDbuf->write(" /DEFAULTLIB:\"", 14);
-    SegData[segidx_drectve]->SDbuf->write(name, strlen(name));
-    SegData[segidx_drectve]->SDbuf->writeByte('"');
+    SegData[seg]->SDbuf->write(" /DEFAULTLIB:\"", 14);
+    SegData[seg]->SDbuf->write(name, strlen(name));
+    SegData[seg]->SDbuf->writeByte('"');
     return true;
 }
 
@@ -1664,6 +1657,17 @@ segidx_t MsCoffObj::seg_debugT()
     return seg;
 }
 
+segidx_t MsCoffObj::seg_drectve()
+{
+    if (segidx_drectve == UNKNOWN)
+    {
+        segidx_drectve = MsCoffObj::getsegment(".drectve", IMAGE_SCN_LNK_INFO |
+                                          IMAGE_SCN_ALIGN_1BYTES |
+                                          IMAGE_SCN_LNK_REMOVE);        // linker commands
+    }
+    return segidx_drectve;
+}
+
 
 /*******************************
  * Output an alias definition record.
@@ -1784,9 +1788,10 @@ void MsCoffObj::export_symbol(Symbol *s,unsigned argsize)
     char dest[DEST_LEN+1];
     char *destr = obj_mangle2(s, dest);
 
+    int seg = seg_drectve();
     //printf("MsCoffObj::export_symbol(%s,%d)\n",s->Sident,argsize);
-    SegData[segidx_drectve]->SDbuf->write(" /EXPORT:", 9);
-    SegData[segidx_drectve]->SDbuf->write(dest, strlen(dest));
+    SegData[seg]->SDbuf->write(" /EXPORT:", 9);
+    SegData[seg]->SDbuf->write(dest, strlen(dest));
 }
 
 /*******************************
