@@ -107,7 +107,7 @@ extern (C++) UnionExp Not(Type type, Expression e1)
     return ue;
 }
 
-private extern (C++) UnionExp Bool(Type type, Expression e1)
+private UnionExp Bool(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
