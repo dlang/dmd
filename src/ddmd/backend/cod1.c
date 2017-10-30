@@ -1840,6 +1840,7 @@ struct ClibInfo
         #define INFwkdone       4       // if weak extern is already done
         #define INF64           8       // if 64 bit only
         #define INFpushebx      0x10    // push EBX before load_localgot()
+        #define INFpusheabcdx   0x20    // pass EAX/EBX/ECX/EDX on stack, callee does ret 16
     char push87;                        // # of pushes onto the 8087 stack
     char pop87;                         // # of pops off of the 8087 stack
 };
@@ -1920,7 +1921,8 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 }
                 else if (I32 && config.objfmt == OBJ_MSCOFF)
                 {
-                    s = symboly("_ms_alldiv", ALLREGS);
+                    s = symboly("_alldiv", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpusheabcdx;
                     cinfo->retregs32 = mDX|mAX;
                 }
                 else
@@ -1946,8 +1948,9 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 }
                 else if (I32 && config.objfmt == OBJ_MSCOFF)
                 {
-                    s = symboly("_ms_allrem", ALLREGS);
-                    cinfo->retregs32 = mDX|mAX;
+                    s = symboly("_allrem", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpusheabcdx;
+                    cinfo->retregs32 = mAX|mDX;
                 }
                 else
                 {
@@ -1972,7 +1975,8 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 }
                 else if (I32 && config.objfmt == OBJ_MSCOFF)
                 {
-                    s = symboly("_ms_aulldiv", ALLREGS);
+                    s = symboly("_aulldiv", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpusheabcdx;
                     cinfo->retregs32 = mDX|mAX;
                 }
                 else
@@ -1998,8 +2002,9 @@ void getClibInfo(unsigned clib, symbol **ps, ClibInfo **pinfo)
                 }
                 else if (I32 && config.objfmt == OBJ_MSCOFF)
                 {
-                    s = symboly("_ms_aullrem", ALLREGS);
-                    cinfo->retregs32 = mDX|mAX;
+                    s = symboly("_aullrem", mAX|mBX|mCX|mDX);
+                    cinfo->flags = INFpusheabcdx;
+                    cinfo->retregs32 = mAX|mDX;
                 }
                 else
                 {
@@ -2545,9 +2550,10 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
         makeitextern(s);
         int nalign = 0;
         int pushebx = (cinfo->flags & INFpushebx) != 0;
+        int pushall = (cinfo->flags & INFpusheabcdx) != 0;
         if (STACKALIGN == 16)
         {   // Align the stack (assume no args on stack)
-            int npush = (npushed + pushebx) * REGSIZE + stackpush;
+            int npush = (npushed + pushebx + 4 * pushall) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                 cod3_stackadj(cdb, nalign);
@@ -2568,6 +2574,13 @@ void callclib(CodeBuilder& cdb,elem *e,unsigned clib,regm_t *pretregs,regm_t kee
                 cdb.gen1(0x50 + BX);                             // PUSH EBX
                 nalign += REGSIZE;
             }
+        }
+        if(pushall)
+        {
+            cdb.gen1(0x50 + CX);                                 // PUSH ECX
+            cdb.gen1(0x50 + BX);                                 // PUSH EBX
+            cdb.gen1(0x50 + DX);                                 // PUSH EDX
+            cdb.gen1(0x50 + AX);                                 // PUSH EAX
         }
         if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
         {
