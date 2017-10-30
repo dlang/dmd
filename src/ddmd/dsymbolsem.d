@@ -72,6 +72,27 @@ import ddmd.visitor;
 
 enum LOG = false;
 
+private uint setMangleOverride(Dsymbol s, char* sym)
+{
+    AttribDeclaration ad = s.isAttribDeclaration();
+    if (ad)
+    {
+        Dsymbols* decls = ad.include(null, null);
+        uint nestedCount = 0;
+        if (decls && decls.dim)
+            for (size_t i = 0; i < decls.dim; ++i)
+                nestedCount += setMangleOverride((*decls)[i], sym);
+        return nestedCount;
+    }
+    else if (s.isFuncDeclaration() || s.isVarDeclaration())
+    {
+        s.isDeclaration().mangleOverride = sym;
+        return 1;
+    }
+    else
+        return 0;
+}
+
 /*************************************
  * Does semantic analysis on the public face of declarations.
  */
