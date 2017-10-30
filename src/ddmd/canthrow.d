@@ -234,7 +234,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
  * Does symbol, when initialized, throw?
  * Mirrors logic in Dsymbol_toElem().
  */
-extern (C++) bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow)
+private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow)
 {
     AttribDeclaration ad;
     VarDeclaration vd;
