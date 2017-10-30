@@ -22,18 +22,14 @@
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/dlang/tools.
 #
-# install target - requires Phobos (.\phobos.lib)
-#   https://github.com/dlang/phobos
-#
 # zip target - requires Info-ZIP or equivalent (zip32.exe)
 #   http://www.info-zip.org/Zip.html#Downloads
 #
 # Configuration:
 #
-# The easiest and recommended way to configure this makefile is to set DM_HOME
-# in your environment to the location where DMC is installed (the parent of
-# \dm and/or \dmd).  By default, the install target will place the build
-# targets under $DM_HOME\dmd2.
+# The easiest and recommended way to configure this makefile is to add
+# $DM_HOME\dm\bin to your PATH environment to automatically find make and dmc.
+# Set HOST_DC to point to your installed D compiler.
 #
 # Custom CFLAGS may be set in the User configuration section, along with custom
 # LFLAGS.  The difference between CFLAGS and OPT is that CFLAGS primarily
@@ -65,8 +61,6 @@ OS=windows
 
 ##### Directories
 
-# DMC directory
-DMCROOT=$(DM_HOME)\dm
 # DMD source directories
 D=ddmd
 C=$D\backend
@@ -74,7 +68,7 @@ TK=$D\tk
 ROOT=$D\root
 
 # Include directories
-INCLUDE=$(ROOT);$(DMCROOT)\include
+INCLUDE=$(ROOT)
 # Install directory
 INSTALL=..\install
 # Where scp command copies to
