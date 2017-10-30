@@ -97,6 +97,27 @@ private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
     return null;
 }
 
+/***********************************************************
+ * Check an assignment is used as a condition.
+ * Intended to be use before the `semantic` call on `e`.
+ * Params:
+ *  e = condition expression which is not yet run semantic analysis.
+ * Returns:
+ *  `e` or ErrorExp.
+ */
+private Expression checkAssignmentAsCondition(Expression e)
+{
+    auto ec = e;
+    while (ec.op == TOKcomma)
+        ec = (cast(CommaExp)ec).e2;
+    if (ec.op == TOKassign)
+    {
+        ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
+        return new ErrorExp();
+    }
+    return e;
+}
+
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {

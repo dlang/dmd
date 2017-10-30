@@ -49,44 +49,6 @@ import ddmd.staticassert;
 import ddmd.tokens;
 import ddmd.visitor;
 
-/*******************************************
- * Check to see if statement is the innermost labeled statement.
- * Params:
- *      sc = context
- *      statement = Statement to check
- * Returns:
- *      if `true`, then the `LabelStatement`, otherwise `null`
- */
-extern (C++) LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
-{
-    if (sc.slabel && sc.slabel.statement == statement)
-    {
-        return sc.slabel;
-    }
-    return null;
-}
-
-/***********************************************************
- * Check an assignment is used as a condition.
- * Intended to be use before the `semantic` call on `e`.
- * Params:
- *  e = condition expression which is not yet run semantic analysis.
- * Returns:
- *  `e` or ErrorExp.
- */
-Expression checkAssignmentAsCondition(Expression e)
-{
-    auto ec = e;
-    while (ec.op == TOKcomma)
-        ec = (cast(CommaExp)ec).e2;
-    if (ec.op == TOKassign)
-    {
-        ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
-        return new ErrorExp();
-    }
-    return e;
-}
-
 /**
  * Returns:
  *     `TypeIdentifier` corresponding to `object.Throwable`
