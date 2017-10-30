@@ -29,21 +29,38 @@ class Bar2 : Bar!1, Baz!(int, 2, null) {
 }
 
 class Bar3 : Bar2 {
-	private int val;
+    private int val;
     this(int i) { val = i; }
 
     protected override Foo!int baz() { return Foo!int(val); }
 }
 
 struct Foo2 {
-	Bar2 bar2;
-	union U {
-		struct {
-			short s;
-			int i;
-		}
-		Object o;
-	}
+    Bar2 bar2;
+    union U {
+        struct {
+            short s;
+            int i;
+        }
+        Object o;
+    }
+}
+
+struct Foo3(bool b) {
+    version(D_Ddoc) {
+        /// Doc 1
+        void method1();
+    }
+    static if (b) {
+        /// Doc 2
+        void method2();
+    } else {
+        /// Doc 3
+        void method3();
+    }
+
+    /// Doc 4
+    void method4();
 }
 
 /++
@@ -51,26 +68,26 @@ struct Foo2 {
  +/
 @trusted myInt bar(ref uint blah, Bar2 foo = new Bar3(7)) // bug 4477
 {
-	return -1;
+    return -1;
 }
 
 @property int outer() nothrow
 in {
-	assert(true);
+    assert(true);
 }
 out(result) {
-	assert(result == 18);
+    assert(result == 18);
 }
 body {
-	int x = 8;
-	int inner(void* v) nothrow
-	{
-		int y = 2;
-		assert(true);
-		return x + y;
-	}
-	int z = inner(null);
-	return x + z;
+    int x = 8;
+    int inner(void* v) nothrow
+    {
+        int y = 2;
+        assert(true);
+        return x + y;
+    }
+    int z = inner(null);
+    return x + z;
 }
 
 /** Issue 9484 - selective and renamed imports */
