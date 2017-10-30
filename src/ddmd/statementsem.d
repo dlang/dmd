@@ -46,6 +46,7 @@ import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.nogc;
 import ddmd.opover;
+import ddmd.root.outbuffer;
 import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
@@ -53,6 +54,69 @@ import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.semantic;
 import ddmd.visitor;
+
+/*****************************************
+ * CTFE requires FuncDeclaration::labtab for the interpretation.
+ * So fixing the label name inside in/out contracts is necessary
+ * for the uniqueness in labtab.
+ * Params:
+ *      sc = context
+ *      ident = statement label name to be adjusted
+ * Returns:
+ *      adjusted label name
+ */
+private Identifier fixupLabelName(Scope* sc, Identifier ident)
+{
+    uint flags = (sc.flags & SCOPEcontract);
+    const id = ident.toChars();
+    if (flags && flags != SCOPEinvariant && !(id[0] == '_' && id[1] == '_'))
+    {
+        const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
+        OutBuffer buf;
+        buf.printf("%s%s", prefix, ident.toChars());
+
+        ident = Identifier.idPool(buf.peekSlice());
+    }
+    return ident;
+}
+
+/*******************************************
+ * Check to see if statement is the innermost labeled statement.
+ * Params:
+ *      sc = context
+ *      statement = Statement to check
+ * Returns:
+ *      if `true`, then the `LabelStatement`, otherwise `null`
+ */
+private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
+{
+    if (sc.slabel && sc.slabel.statement == statement)
+    {
+        return sc.slabel;
+    }
+    return null;
+}
+
+/***********************************************************
+ * Check an assignment is used as a condition.
+ * Intended to be use before the `semantic` call on `e`.
+ * Params:
+ *  e = condition expression which is not yet run semantic analysis.
+ * Returns:
+ *  `e` or ErrorExp.
+ */
+private Expression checkAssignmentAsCondition(Expression e)
+{
+    auto ec = e;
+    while (ec.op == TOKcomma)
+        ec = (cast(CommaExp)ec).e2;
+    if (ec.op == TOKassign)
+    {
+        ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
+        return new ErrorExp();
+    }
+    return e;
+}
 
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
