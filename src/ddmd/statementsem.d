@@ -80,6 +80,23 @@ private Identifier fixupLabelName(Scope* sc, Identifier ident)
     return ident;
 }
 
+/*******************************************
+ * Check to see if statement is the innermost labeled statement.
+ * Params:
+ *      sc = context
+ *      statement = Statement to check
+ * Returns:
+ *      if `true`, then the `LabelStatement`, otherwise `null`
+ */
+private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
+{
+    if (sc.slabel && sc.slabel.statement == statement)
+    {
+        return sc.slabel;
+    }
+    return null;
+}
+
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 {
