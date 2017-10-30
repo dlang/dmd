@@ -393,7 +393,7 @@ Lneed:
 /*******************************************
  * Check given aggregate actually has an identity opEquals or not.
  */
-private extern (C++) FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
+private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
 {
     Dsymbol eq = search_function(ad, Id.eq);
     if (eq)
