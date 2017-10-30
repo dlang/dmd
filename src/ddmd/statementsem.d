@@ -46,6 +46,7 @@ import ddmd.intrange;
 import ddmd.mtype;
 import ddmd.nogc;
 import ddmd.opover;
+import ddmd.root.outbuffer;
 import ddmd.sideeffect;
 import ddmd.statement;
 import ddmd.target;
@@ -53,6 +54,31 @@ import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.semantic;
 import ddmd.visitor;
+
+/*****************************************
+ * CTFE requires FuncDeclaration::labtab for the interpretation.
+ * So fixing the label name inside in/out contracts is necessary
+ * for the uniqueness in labtab.
+ * Params:
+ *      sc = context
+ *      ident = statement label name to be adjusted
+ * Returns:
+ *      adjusted label name
+ */
+private Identifier fixupLabelName(Scope* sc, Identifier ident)
+{
+    uint flags = (sc.flags & SCOPEcontract);
+    const id = ident.toChars();
+    if (flags && flags != SCOPEinvariant && !(id[0] == '_' && id[1] == '_'))
+    {
+        const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
+        OutBuffer buf;
+        buf.printf("%s%s", prefix, ident.toChars());
+
+        ident = Identifier.idPool(buf.peekSlice());
+    }
+    return ident;
+}
 
 // Performs semantic analysis in Statement AST nodes
 extern(C++) Statement statementSemantic(Statement s, Scope* sc)

@@ -49,31 +49,6 @@ import ddmd.staticassert;
 import ddmd.tokens;
 import ddmd.visitor;
 
-/*****************************************
- * CTFE requires FuncDeclaration::labtab for the interpretation.
- * So fixing the label name inside in/out contracts is necessary
- * for the uniqueness in labtab.
- * Params:
- *      sc = context
- *      ident = statement label name to be adjusted
- * Returns:
- *      adjusted label name
- */
-extern (C++) Identifier fixupLabelName(Scope* sc, Identifier ident)
-{
-    uint flags = (sc.flags & SCOPEcontract);
-    const id = ident.toChars();
-    if (flags && flags != SCOPEinvariant && !(id[0] == '_' && id[1] == '_'))
-    {
-        const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
-        OutBuffer buf;
-        buf.printf("%s%s", prefix, ident.toChars());
-
-        ident = Identifier.idPool(buf.peekSlice());
-    }
-    return ident;
-}
-
 /*******************************************
  * Check to see if statement is the innermost labeled statement.
  * Params:
