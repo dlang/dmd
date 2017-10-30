@@ -23,6 +23,7 @@ import ddmd.expression;
 import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
+import ddmd.identifier;
 import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.root.rootobject;
@@ -65,7 +66,6 @@ private final class CppMangleVisitor : Visitor
     Objects components;         // array of components available for substitution
     OutBuffer* buf;             // append the mangling to buf[]
     bool is_top_level;          // true if ignore 'const' mangling attribute
-    bool components_on;
     Loc loc;                    // location for use in error messages
 
   final:
@@ -109,13 +109,10 @@ private final class CppMangleVisitor : Visitor
     int find(RootObject p)
     {
         //printf("find %p %d %s\n", p, p.dyncast(), p ? p.toChars() : null);
-        if (components_on)
+        foreach (i, component; components)
         {
-            foreach (i, component; components)
-            {
-                if (p == component)
-                    return cast(int)i;
-            }
+            if (p == component)
+                return cast(int)i;
         }
         return -1;
     }
@@ -126,8 +123,22 @@ private final class CppMangleVisitor : Visitor
     void append(RootObject p)
     {
         //printf("append %p %d %s\n", p, p.dyncast(), p ? p.toChars() : "null");
-        if (components_on)
-            components.push(p);
+        components.push(p);
+    }
+
+    /************************
+     * Determine if symbol is indeed the global ::std namespace.
+     * Params:
+     *  s = symbol to check
+     * Returns:
+     *  true if it is ::std
+     */
+    static bool isStd(Dsymbol s)
+    {
+        return (s &&
+                s.ident == Id.std &&    // the right name
+                s.isNspace() &&         // g++ disallows global "std" for other than a namespace
+                !getQualifier(s));      // at global level
     }
 
     /******************************
@@ -280,53 +291,163 @@ private final class CppMangleVisitor : Visitor
     }
 
     /********
+     * See if s is actually an instance of a template
+     * Params:
+     *  s = symbol
+     * Returns:
+     *  if s is instance of a template, return the instance, otherwise return s
+     */
+    Dsymbol getInstance(Dsymbol s)
+    {
+        Dsymbol p = s.toParent();
+        if (p)
+        {
+            if (TemplateInstance ti = p.isTemplateInstance())
+                return ti;
+        }
+        return s;
+    }
+
+    /********
      * Get qualifier for `s`, meaning the symbol
      * that s is in the symbol table of.
      * The module does not count as a qualifier, because C++
      * does not have modules.
      * Params:
      *  s = symbol that may have a qualifier
+     *      s is rewritten to be TemplateInstance if s is one
      * Returns:
      *  qualifier, null if none
      */
-    Dsymbol getQualifier(Dsymbol s)
+    static Dsymbol getQualifier(Dsymbol s)
     {
         Dsymbol p = s.toParent();
         return (p && !p.isModule()) ? p : null;
     }
+
+    // Detect type char
+    static bool isChar(RootObject o)
+    {
+        Type t = isType(o);
+        return (t && t.equals(Type.tchar));
+    }
+
+    // Detect type ::std::char_traits<char>
+    static bool isChar_traits_char(RootObject o)
+    {
+        return isIdent_char(Id.char_traits, o);
+    }
+
+    // Detect type ::std::allocator<char>
+    static bool isAllocator_char(RootObject o)
+    {
+        return isIdent_char(Id.allocator, o);
+    }
+
+    // Detect type ::std::ident<char>
+    static bool isIdent_char(Identifier ident, RootObject o)
+    {
+        Type t = isType(o);
+        if (!t || t.ty != Tstruct)
+            return false;
+        Dsymbol s = (cast(TypeStruct)t).toDsymbol(null);
+        if (s.ident != ident)
+            return false;
+        Dsymbol p = s.toParent();
+        if (!p)
+            return false;
+        TemplateInstance ti = p.isTemplateInstance();
+        if (!ti)
+            return false;
+        Dsymbol q = getQualifier(ti);
+        return isStd(q) && ti.tiargs.dim == 1 && isChar((*ti.tiargs)[0]);
+    }
+
+    /***
+     * Detect template args <char, ::std::char_traits<char>>
+     * and write st if found.
+     * Returns:
+     *  true if found
+     */
+    extern (D) bool char_std_char_traits_char(TemplateInstance ti, string st)
+    {
+        if (ti.tiargs.dim == 2 &&
+            isChar((*ti.tiargs)[0]) &&
+            isChar_traits_char((*ti.tiargs)[1]))
+        {
+            buf.writestring(st.ptr);
+            return true;
+        }
+        return false;
+    }
+
 
     void prefix_name(Dsymbol s)
     {
         //printf("prefix_name(%s)\n", s.toChars());
         if (!substitute(s))
         {
-            Dsymbol p = s.toParent();
-            if (p && p.isTemplateInstance())
+            auto si = getInstance(s);
+            Dsymbol p = getQualifier(si);
+            if (p)
             {
-                s = p;
-                if (find(p.isTemplateInstance().tempdecl) >= 0)
+                if (isStd(p))
                 {
-                    p = null;
-                }
-                else
-                {
-                    p = p.toParent();
-                }
-            }
-            if (p && !p.isModule())
-            {
-                if (p.ident == Id.std && is_initial_qualifier(p))
+                    TemplateInstance ti = si.isTemplateInstance();
+                    if (ti)
+                    {
+                        if (s.ident == Id.allocator)
+                        {
+                            buf.writestring("Sa");
+                            template_args(ti);
+                            append(ti);
+                            return;
+                        }
+                        if (s.ident == Id.basic_string)
+                        {
+                            // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
+                            if (ti.tiargs.dim == 3 &&
+                                isChar((*ti.tiargs)[0]) &&
+                                isChar_traits_char((*ti.tiargs)[1]) &&
+                                isAllocator_char((*ti.tiargs)[2]))
+
+                            {
+                                buf.writestring("Ss");
+                                return;
+                            }
+                            buf.writestring("Sb");      // ::std::basic_string
+                            template_args(ti);
+                            append(ti);
+                            return;
+                        }
+
+                        // ::std::basic_istream<char, ::std::char_traits<char>>
+                        if (s.ident == Id.basic_istream &&
+                            char_std_char_traits_char(ti, "Si"))
+                            return;
+
+                        // ::std::basic_ostream<char, ::std::char_traits<char>>
+                        if (s.ident == Id.basic_ostream &&
+                            char_std_char_traits_char(ti, "So"))
+                            return;
+
+                        // ::std::basic_iostream<char, ::std::char_traits<char>>
+                        if (s.ident == Id.basic_iostream &&
+                            char_std_char_traits_char(ti, "Sd"))
+                            return;
+                    }
                     buf.writestring("St");
+                }
                 else
                     prefix_name(p);
             }
-            source_name(s);
-            if (!(s.ident == Id.std && is_initial_qualifier(s)))
+            source_name(si);
+            if (!isStd(si))
                 /* Do this after the source_name() call to keep components[]
                  * in the right order.
                  * https://issues.dlang.org/show_bug.cgi?id=17947
                  */
-                append(s);
+                append(si);
         }
     }
 
@@ -367,7 +488,7 @@ private final class CppMangleVisitor : Visitor
              * 3. there is no CV-qualifier or a ref-qualifier for a member function
              * ABI 5.1.8
              */
-            if (p.ident == Id.std && is_initial_qualifier(p) && !qualified)
+            if (isStd(p) && !qualified)
             {
                 TemplateInstance ti = se.isTemplateInstance();
                 if (s.ident == Id.allocator)
@@ -377,54 +498,37 @@ private final class CppMangleVisitor : Visitor
                 }
                 else if (s.ident == Id.basic_string)
                 {
-                    components_on = false; // turn off substitutions
-                    buf.writestring("Sb"); // "Sb" is short for ::std::basic_string
-                    size_t off = buf.offset;
-                    template_args(ti);
-                    components_on = true;
-                    // Replace ::std::basic_string < char, ::std::char_traits<char>, ::std::allocator<char> >
-                    // with Ss
-                    //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
-                    if (buf.offset - off >= 26 && memcmp(buf.data + off, "IcSt11char_traitsIcESaIcEE".ptr, 26) == 0)
+                    // ::std::basic_string<char, ::std::char_traits<char>, ::std::allocator<char>>
+                    if (ti.tiargs.dim == 3 &&
+                        isChar((*ti.tiargs)[0]) &&
+                        isChar_traits_char((*ti.tiargs)[1]) &&
+                        isAllocator_char((*ti.tiargs)[2]))
+
                     {
-                        buf.remove(off - 2, 28);
-                        buf.insert(off - 2, "Ss");
+                        buf.writestring("Ss");
                         return;
                     }
-                    buf.setsize(off);
+                    buf.writestring("Sb");      // ::std::basic_string
                     template_args(ti);
-                }
-                else if (s.ident == Id.basic_istream || s.ident == Id.basic_ostream || s.ident == Id.basic_iostream)
-                {
-                    /* Replace
-                     * ::std::basic_istream<char,  std::char_traits<char> > with Si
-                     * ::std::basic_ostream<char,  std::char_traits<char> > with So
-                     * ::std::basic_iostream<char, std::char_traits<char> > with Sd
-                     */
-                    size_t off = buf.offset;
-                    components_on = false; // turn off substitutions
-                    template_args(ti);
-                    components_on = true;
-                    //printf("xx: '%.*s'\n", (int)(buf.offset - off), buf.data + off);
-                    if (buf.offset - off >= 21 && memcmp(buf.data + off, "IcSt11char_traitsIcEE".ptr, 21) == 0)
-                    {
-                        buf.remove(off, 21);
-                        char[2] mbuf;
-                        mbuf[0] = 'S';
-                        mbuf[1] = 'i';
-                        if (s.ident == Id.basic_ostream)
-                            mbuf[1] = 'o';
-                        else if (s.ident == Id.basic_iostream)
-                            mbuf[1] = 'd';
-                        buf.insert(off, mbuf[]);
-                        return;
-                    }
-                    buf.setsize(off);
-                    buf.writestring("St");
-                    source_name(se);
                 }
                 else
                 {
+                    // ::std::basic_istream<char, ::std::char_traits<char>>
+                    if (s.ident == Id.basic_istream)
+                    {
+                        if (char_std_char_traits_char(ti, "Si"))
+                            return;
+                    }
+                    else if (s.ident == Id.basic_ostream)
+                    {
+                        if (char_std_char_traits_char(ti, "So"))
+                            return;
+                    }
+                    else if (s.ident == Id.basic_iostream)
+                    {
+                        if (char_std_char_traits_char(ti, "Sd"))
+                            return;
+                    }
                     buf.writestring("St");
                     source_name(se);
                 }
@@ -522,31 +626,8 @@ private final class CppMangleVisitor : Visitor
                  *          ::= <prefix> <data-member-prefix>
                  */
                 prefix_name(p);
+                //printf("p: %s\n", buf.peekString());
 
-                // See ABI 5.1.8 Compression
-                // Replace ::std::allocator with Sa
-                if (buf.offset >= 17 && memcmp(buf.data, "_ZN3std9allocator".ptr, 17) == 0)
-                {
-                    buf.remove(3, 14);
-                    buf.insert(3, "Sa");
-                }
-                // Replace ::std::basic_string with Sb
-                if (buf.offset >= 21 && memcmp(buf.data, "_ZN3std12basic_string".ptr, 21) == 0)
-                {
-                    buf.remove(3, 18);
-                    buf.insert(3, "Sb");
-                }
-                // Replace ::std with St
-                if (buf.offset >= 7 && memcmp(buf.data, "_ZN3std".ptr, 7) == 0)
-                {
-                    buf.remove(3, 4);
-                    buf.insert(3, "St");
-                }
-                if (buf.offset >= 8 && memcmp(buf.data, "_ZNK3std".ptr, 8) == 0)
-                {
-                    buf.remove(4, 4);
-                    buf.insert(4, "St");
-                }
                 if (d.isDtorDeclaration())
                 {
                     buf.writestring("D1");
@@ -619,7 +700,6 @@ public:
     {
         this.buf = buf;
         this.loc = loc;
-        this.components_on = true;
     }
 
     /*****
@@ -890,6 +970,24 @@ public:
             return writeBasicType(t, 0, 'm');
 
         //printf("TypeStruct %s\n", t.toChars());
+        doSymbol(t);
+    }
+
+    override void visit(TypeEnum t)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        doSymbol(t);
+    }
+
+    /****************
+     * Write structs and enums.
+     * Params:
+     *  t = TypeStruct or TypeEnum
+     */
+    final void doSymbol(Type t)
+    {
         is_top_level = false;
         if (substitute(t))
             return;
@@ -902,12 +1000,12 @@ public:
         }
         else
         {
-            Dsymbol s = t.sym;
+            Dsymbol s = t.toDsymbol(null);
             Dsymbol p = s.toParent();
             if (p && p.isTemplateInstance())
             {
                  /* https://issues.dlang.org/show_bug.cgi?id=17947
-                  * Substitute the template instance symbol, not the struct symbol
+                  * Substitute the template instance symbol, not the struct/enum symbol
                   */
                 if (substitute(p))
                     return;
@@ -921,35 +1019,35 @@ public:
             append(t);
     }
 
-    override void visit(TypeEnum t)
-    {
-        if (t.isImmutable() || t.isShared())
-            return error(t);
-
-        is_top_level = false;
-        if (substitute(t))
-            return;
-        CV_qualifiers(t);
-        if (!substitute(t.sym))
-        {
-            cpp_mangle_name(t.sym, t.isConst());
-        }
-        if (t.isConst())
-            append(t);
-    }
-
     override void visit(TypeClass t)
     {
         if (t.isImmutable() || t.isShared())
             return error(t);
 
+        /* Mangle as a <pointer to><struct>
+         */
         if (substitute(t))
             return;
         if (!is_top_level)
             CV_qualifiers(t);
         is_top_level = false;
         buf.writeByte('P');
+
         CV_qualifiers(t);
+
+        {
+            Dsymbol s = t.toDsymbol(null);
+            Dsymbol p = s.toParent();
+            if (p && p.isTemplateInstance())
+            {
+                 /* https://issues.dlang.org/show_bug.cgi?id=17947
+                  * Substitute the template instance symbol, not the class symbol
+                  */
+                if (substitute(p))
+                    return;
+            }
+        }
+
         if (!substitute(t.sym))
         {
             cpp_mangle_name(t.sym, t.isConst());
