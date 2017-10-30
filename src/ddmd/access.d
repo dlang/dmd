@@ -31,7 +31,7 @@ private enum LOG = false;
 /****************************************
  * Return Prot access for Dsymbol smember in this declaration.
  */
-extern (C++) Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
+private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
 {
     Prot access_ret = Prot(PROTnone);
     static if (LOG)
@@ -203,7 +203,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
 /****************************************
  * Determine if this is the same or friend of cd.
  */
-extern (C++) bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
+private bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
 {
     static if (LOG)
     {
@@ -231,7 +231,7 @@ extern (C++) bool isFriendOf(AggregateDeclaration ad, AggregateDeclaration cd)
 /****************************************
  * Determine if scope sc has package level access to s.
  */
-extern (C++) bool hasPackageAccess(Scope* sc, Dsymbol s)
+private bool hasPackageAccess(Scope* sc, Dsymbol s)
 {
     return hasPackageAccess(sc._module, s);
 }
@@ -313,7 +313,7 @@ extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
 /****************************************
  * Determine if scope sc has protected level access to cd.
  */
-bool hasProtectedAccess(Scope *sc, Dsymbol s)
+private bool hasProtectedAccess(Scope *sc, Dsymbol s)
 {
     if (auto cd = s.isClassMember()) // also includes interfaces
     {
@@ -332,7 +332,7 @@ bool hasProtectedAccess(Scope *sc, Dsymbol s)
 /**********************************
  * Determine if smember has access to private members of this declaration.
  */
-extern (C++) bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
+private bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
 {
     if (smember)
     {
