@@ -33,7 +33,7 @@ import ddmd.utf;
 
 private enum LOG = false;
 
-extern (C++) Expression expType(Type type, Expression e)
+private Expression expType(Type type, Expression e)
 {
     if (type != e.type)
     {
@@ -107,7 +107,7 @@ extern (C++) UnionExp Not(Type type, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp Bool(Type type, Expression e1)
+private extern (C++) UnionExp Bool(Type type, Expression e1)
 {
     UnionExp ue;
     Loc loc = e1.loc;
