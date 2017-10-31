@@ -27,7 +27,7 @@ import ddmd.visitor;
  * It's a bit slower than using virtual functions, but more encapsulated and less brittle.
  * Creating an iterator for this would be much more complex.
  */
-extern (C++) final class PostorderExpressionVisitor : StoppableVisitor
+private extern (C++) final class PostorderExpressionVisitor : StoppableVisitor
 {
     alias visit = super.visit;
 public:
