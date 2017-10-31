@@ -150,3 +150,11 @@ align (true ? 2 : 3):
 align:
     int var2;
 }
+
+// 16649
+void leFoo()()
+{
+    sign = a == 2 ? false : (y < 0) ^ sign;
+    sign = a == 2 ? false : sign ^ (y < 0);
+    sign = 2 + 3 | 7 + 5;
+}
