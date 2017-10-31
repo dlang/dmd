@@ -1034,7 +1034,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPcolon:
         case OPcolon2:
                 tmp = vec_clone(rd);
-                switch (int(el_returns(n->E1) * 2) | int(el_returns(n->E2)))
+                switch (el_returns(n->E1) * 2 | int(el_returns(n->E2)))
                 {
                     case 3: // E1 and E2 return
                         markinvar(n->E1,rd);
