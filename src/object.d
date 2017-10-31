@@ -512,12 +512,10 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
-        import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
+        import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff, 10) ~ "]";
+        return value.toString() ~ "[" ~ unsignedToTempString(len, tmpBuff, 10) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -1741,15 +1739,13 @@ class Throwable : Object
      */
     void toString(scope void delegate(in char[]) sink) const
     {
-        import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
+        import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(sizeToTempString(line, tmpBuff, 10)); sink(")");
+        sink("("); sink(unsignedToTempString(line, tmpBuff, 10)); sink(")");
 
         if (msg.length)
         {
