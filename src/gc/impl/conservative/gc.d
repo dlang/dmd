@@ -2521,12 +2521,12 @@ struct Gcx
 
             log.p = p;
             log.size = size;
-            log.line = GC.line;
-            log.file = GC.file;
+            log.line = ConservativeGC.line;
+            log.file = ConservativeGC.file;
             log.parent = null;
 
-            GC.line = 0;
-            GC.file = null;
+            ConservativeGC.line = 0;
+            ConservativeGC.file = null;
 
             current.push(log);
             //debug(PRINTF) printf("-log_malloc()\n");
