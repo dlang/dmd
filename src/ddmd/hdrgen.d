@@ -2204,7 +2204,8 @@ public:
         /* Despite precedence, we don't allow a<b<c expressions.
          * They must be parenthesized.
          */
-        if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr))
+        if (precedence[e.op] < pr || (pr == PREC.rel && precedence[e.op] == pr)
+            || (pr >= PREC.or && pr <= PREC.and && precedence[e.op] == PREC.rel))
         {
             buf.writeByte('(');
             e.accept(this);
