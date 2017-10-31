@@ -338,6 +338,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     segidx_pdata = UNKNOWN;
     segidx_xdata = UNKNOWN;
+    segidx_debugS = UNKNOWN;
 
     // Initialize buffers
 
@@ -381,10 +382,6 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     int alignText = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
     int alignData = IMAGE_SCN_ALIGN_16BYTES;
-    addScnhdr(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                          IMAGE_SCN_ALIGN_1BYTES |
-                          IMAGE_SCN_MEM_READ |
-                          IMAGE_SCN_MEM_DISCARDABLE);
     addScnhdr(".data$B",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                           alignData |
                           IMAGE_SCN_MEM_READ |
@@ -403,11 +400,10 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     seg_count = 0;
 
-#define SHI_DEBUGS      1
-#define SHI_DATA        2
-#define SHI_TEXT        3
-#define SHI_UDATA       4
-#define SHI_CDATA       5
+#define SHI_DATA        1
+#define SHI_TEXT        2
+#define SHI_UDATA       3
+#define SHI_CDATA       4
 
     getsegment2(SHI_TEXT);
     assert(SegData[CODE]->SDseg == CODE);
@@ -420,8 +416,6 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     getsegment2(SHI_UDATA);
     assert(SegData[UDATA]->SDseg == UDATA);
-
-    segidx_debugS  = getsegment2(SHI_DEBUGS);
 
     if (config.fulltypes)
         cv8_initfile(filename);
@@ -1631,7 +1625,13 @@ segidx_t MsCoffObj::seg_xdata_comdat(symbol *sfunc)
 
 segidx_t MsCoffObj::seg_debugS()
 {
-    // Probably should generate this lazilly, too.
+    if (segidx_debugS == UNKNOWN)
+    {
+        segidx_debugS = MsCoffObj::getsegment(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                          IMAGE_SCN_ALIGN_1BYTES |
+                                          IMAGE_SCN_MEM_READ |
+                                          IMAGE_SCN_MEM_DISCARDABLE);
+    }
     return segidx_debugS;
 }
 
