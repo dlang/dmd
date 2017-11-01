@@ -158,7 +158,7 @@ class ManualGC : GC
         return 0;
     }
 
-    void free(void* p) nothrow
+    void free(void* p) nothrow @nogc
     {
         cstdlib.free(p);
     }
