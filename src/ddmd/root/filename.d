@@ -26,11 +26,10 @@ import ddmd.root.rootobject;
 
 nothrow
 {
-version (Windows) extern (C) int mkdir(const char*);
-version (Windows) alias _mkdir = mkdir;
-version (Posix) extern (C) char* canonicalize_file_name(const char*);
 version (Windows) extern (C) int stricmp(const char*, const char*) pure;
-version (Windows) extern (Windows) DWORD GetFullPathNameA(LPCSTR lpFileName, DWORD nBufferLength, LPSTR lpBuffer, LPSTR* lpFilePart);
+version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
+version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
+version (Posix) extern (C) char* canonicalize_file_name(const char*);
 }
 
 alias Strings = Array!(const(char)*);
@@ -593,16 +592,15 @@ nothrow:
         }
         else version (Windows)
         {
-            DWORD dw;
-            int result;
-            dw = GetFileAttributesA(name);
+            wchar[1024] wnameBuf;
+            const wname = name.toWStringz(wnameBuf);
+            const dw = GetFileAttributesW(&wname[0]);
             if (dw == -1)
-                result = 0;
+                return 0;
             else if (dw & FILE_ATTRIBUTE_DIRECTORY)
-                result = 2;
+                return 2;
             else
-                result = 1;
-            return result;
+                return 1;
         }
         else
         {
@@ -631,6 +629,7 @@ nothrow:
                     }
                     bool r = ensurePathExists(p);
                     mem.xfree(cast(void*)p);
+
                     if (r)
                         return r;
                 }
@@ -644,7 +643,6 @@ nothrow:
                 }
                 if (path[strlen(path) - 1] != sep)
                 {
-                    //printf("mkdir(%s)\n", path);
                     version (Windows)
                     {
                         int r = _mkdir(path);
@@ -664,6 +662,7 @@ nothrow:
                 }
             }
         }
+
         return false;
     }
 
@@ -680,20 +679,37 @@ nothrow:
         }
         else version (Windows)
         {
+            wchar[1024] wpathBuf;
+            const wpath = name.toWStringz(wpathBuf);
+
             /* Apparently, there is no good way to do this on Windows.
              * GetFullPathName isn't it, but use it anyway.
              */
-            DWORD result = GetFullPathNameA(name, 0, null, null);
-            if (result)
+            // First find out how long the buffer has to be.
+            DWORD length16 = GetFullPathNameW(&wpath[0], 0, null, null);
+            if (length16)
             {
-                char* buf = cast(char*)malloc(result);
-                result = GetFullPathNameA(name, result, buf, null);
-                if (result == 0)
+                auto buf = new wchar[length16];
+                length16 = GetFullPathNameW(&wpath[0], length16, &buf[0], null);
+                if (length16 == 0)
                 {
-                    .free(buf);
                     return null;
                 }
-                return buf;
+
+                // allocate enough space for a UTF8 encoding of buf
+                const length8 = length16 * 3 + 1;
+                auto str = new char[length8];
+                size_t strLen;
+
+                try
+                    foreach(char c; buf[0 .. length16]) str[strLen++] = c;
+                catch(Exception _)
+                {
+                    return null;
+                }
+
+                str[strLen] = 0; // null-terminate it
+                return &str[0];
             }
             return null;
         }
@@ -720,4 +736,143 @@ nothrow:
     {
         return str;
     }
+}
+
+version(Windows)
+{
+    /*
+      The code before used the POSIX function `mkdir` on Windows. That
+      function is now deprecated and fails with long paths, so instead
+      we use the newer `CreateDirectoryW`.
+
+      `CreateDirectoryW` is the unicode version of the generic macro
+      `CreateDirectory`.  `CreateDirectoryA` has a file path
+      limitation of 248 characters, `mkdir` fails with less and might
+      fail due to the number of consecutive `..`s in the
+      path. `CreateDirectoryW` also normally has a 248 character
+      limit, unless the path is absolute and starts with `\\?\`. Note
+      that this is different from starting with the almost identical
+      `\\?`.
+
+      Please consult
+      https://msdn.microsoft.com/en-us/library/windows/desktop/aa363855(v=vs.85).aspx
+    */
+    private int _mkdir(const(char)* path) nothrow
+    {
+        import core.stdc.errno: errno, EEXIST, ENOENT;
+
+        // see core.sys.windows.winerror - the reason it's not imported here is because
+        // the autotester's dmd is too old and doesn't have that module
+        enum NO_ERROR = 0;
+        enum ERROR_PATH_NOT_FOUND = 3;
+        enum ERROR_ALREADY_EXISTS = 183;
+
+        SetLastError(NO_ERROR);
+        const createRet = path.extendedPathThen!(p => CreateDirectoryW(&p[0],
+                                                                       null /*securityAttributes*/));
+        const lastError = GetLastError();
+
+        // Preserve compatibility with mkdir since the calling code expects
+        // errno to be set.
+        if (createRet == 0)
+        {
+            switch (lastError)
+            {
+                case ERROR_ALREADY_EXISTS:
+                    errno(EEXIST);
+                    break;
+                case ERROR_PATH_NOT_FOUND:
+                    errno(ENOENT);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // different conventions for CreateDirectory and mkdir
+        return createRet == 0 ? 1 : 0;
+    }
+
+    // Converts a path to one suitable to be passed to Win32 API
+    // functions that can deal with paths longer than 248
+    // characters then calls the supplied function on it.
+    // For more information:
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+    package auto extendedPathThen(alias F)(const(char*) path)
+    {
+        wchar[1024] wpathBuf;
+        // Since the unicode Win32 APIs use UTF16, we need to convert to UTF16
+        const wpath = path.toWStringz(wpathBuf);
+
+        // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
+        // know how larget it has to be, we pass in null and get the needed buffer length
+        // as the return code.
+        const pathLength = GetFullPathNameW(&wpath[0],
+                                            0 /*length8*/,
+                                            null /*output buffer*/,
+                                            null /*filePartBuffer*/);
+        if (pathLength == 0)
+        {
+            return F(""w);
+        }
+
+        // wpath is the UTF16 version of path, but to be able to use
+        // extended paths, we need to prefix with `\\?\` and the absolute
+        // path.
+        static immutable prefix = `\\?\`w;
+
+        // +1 for the null terminator
+        const bufferLength = pathLength + prefix.length + 1;
+
+        wchar[1024] absBuf;
+        auto absPath = bufferLength > absBuf.length ? new wchar[bufferLength] : absBuf[];
+
+        absPath[0 .. prefix.length] = prefix[];
+
+        const absPathRet = GetFullPathNameW(&wpath[0],
+                                            absPath.length - prefix.length,
+                                            &absPath[prefix.length],
+                                            null /*filePartBuffer*/);
+
+        if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
+        {
+            return F(""w);
+        }
+
+        auto extendedPath = absPath[0 .. absPathRet];
+        return F(extendedPath);
+    }
+
+
+    // Converts an UTF8 null-terminated string to an array of wchar that's null
+    // terminated so it can be passed to Win32 APIs.
+    // buf is passed as a scratch space to store the result. If more memory
+    // is needed then toWstringz allocates on the GC heap instead.
+    private wchar[] toWStringz(const(char*) str, wchar[] buf = []) pure nothrow
+    {
+        import core.stdc.string: strlen;
+
+        const length8 = strlen(str);
+
+        // The worst case scenario is that the UTF16 encoding needs two code units,
+        // but if that's true then the UTF8 encoding will be multi-byte. Therefore
+        // the maximum needed space to allocate is a one-to-one scenario.
+        // The +1 is for the null terminator.
+        const length16 = length8 + 1;
+
+        auto wstr = length16 > buf.length ? new wchar[length16] : buf;
+
+        // Using i, wchar c in the foreach doesn't work since then i would
+        // be tied to the length of the UTF8 sequence.
+        size_t wstrLen;
+        try
+            foreach(wchar c; str[0 .. length8]) wstr[wstrLen++] = c;
+        catch(Exception)
+            return null;
+
+        wstr[wstrLen] = 0; // null-terminate it
+
+        return wstr[0 .. wstrLen];
+    }
+
 }
