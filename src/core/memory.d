@@ -125,7 +125,7 @@ private
     extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_extend( void* p, size_t mx, size_t sz, const TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_reserve( size_t sz ) nothrow;
-    extern (C) void     gc_free( void* p ) pure nothrow;
+    extern (C) void     gc_free( void* p ) pure nothrow @nogc;
 
     extern (C) void*   gc_addrOf( void* p ) pure nothrow @nogc;
     extern (C) size_t  gc_sizeOf( void* p ) pure nothrow @nogc;
@@ -574,7 +574,7 @@ struct GC
      * Params:
      *  p = A pointer to the root of a valid memory block or to null.
      */
-    static void free( void* p ) pure nothrow
+    static void free( void* p ) pure nothrow @nogc
     {
         gc_free( p );
     }

@@ -815,7 +815,7 @@ class ConservativeGC : GC
     }
 
 
-    void free(void *p) nothrow
+    void free(void *p) nothrow @nogc
     {
         if (!p || _inFinalizer)
         {
@@ -829,7 +829,7 @@ class ConservativeGC : GC
     //
     //
     //
-    private void freeNoSync(void *p) nothrow
+    private void freeNoSync(void *p) nothrow @nogc
     {
         debug(PRINTF) printf("Freeing %p\n", cast(size_t) p);
         assert (p);
@@ -2533,7 +2533,7 @@ struct Gcx
         }
 
 
-        void log_free(void *p) nothrow
+        void log_free(void *p) nothrow @nogc
         {
             //debug(PRINTF) printf("+log_free(%p)\n", p);
             auto i = current.find(p);
@@ -2611,7 +2611,7 @@ struct Gcx
     {
         void log_init() nothrow { }
         void log_malloc(void *p, size_t size) nothrow { }
-        void log_free(void *p) nothrow { }
+        void log_free(void *p) nothrow @nogc { }
         void log_collect() nothrow { }
         void log_parent(void *p, void *parent) nothrow { }
     }
@@ -2778,7 +2778,7 @@ struct Pool
     /**
      *
      */
-    void clrBits(size_t biti, uint mask) nothrow
+    void clrBits(size_t biti, uint mask) nothrow @nogc
     {
         immutable dataIndex =  biti >> GCBits.BITS_SHIFT;
         immutable bitOffset = biti & GCBits.BITS_MASK;
@@ -3014,7 +3014,7 @@ struct LargeObjectPool
     /**
      * Free npages pages starting with pagenum.
      */
-    void freePages(size_t pagenum, size_t npages) nothrow
+    void freePages(size_t pagenum, size_t npages) nothrow @nogc
     {
         //memset(&pagetable[pagenum], B_FREE, npages);
         if(pagenum < searchStart)
@@ -3316,7 +3316,7 @@ debug (SENTINEL)
     }
 
 
-    void sentinel_Invariant(const void *p) nothrow
+    void sentinel_Invariant(const void *p) nothrow @nogc
     {
         debug
         {
@@ -3334,7 +3334,7 @@ debug (SENTINEL)
     }
 
 
-    void *sentinel_sub(void *p) nothrow
+    void *sentinel_sub(void *p) nothrow @nogc
     {
         return p - 2 * size_t.sizeof;
     }
@@ -3349,7 +3349,7 @@ else
     }
 
 
-    void sentinel_Invariant(const void *p) nothrow
+    void sentinel_Invariant(const void *p) nothrow @nogc
     {
     }
 
@@ -3360,7 +3360,7 @@ else
     }
 
 
-    void *sentinel_sub(void *p) nothrow
+    void *sentinel_sub(void *p) nothrow @nogc
     {
         return p;
     }

@@ -122,7 +122,7 @@ interface GC
     /**
      *
      */
-    void free(void* p) nothrow;
+    void free(void* p) nothrow @nogc;
 
     /**
      * Determine the base address of the block containing p.  If p is not a gc
