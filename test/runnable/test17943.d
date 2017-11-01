@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -O
+
 void main()
 {
     int[32] data;
