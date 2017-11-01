@@ -9,7 +9,25 @@
 
 module ddmd.cppmangle;
 
-// Online documentation: https://dlang.org/phobos/ddmd_cppmangle.html
+
+/**
+ * Do mangling for C++ linkage.
+ *
+ * References:
+ *  Follows Itanium C++ ABI 1.86 section 5.1
+ *  http://refspecs.linux-foundation.org/cxxabi-1.86.html#mangling
+ *  which is where the grammar comments come from.
+ *
+ * Documentation:
+ *  https://dlang.org/phobos/ddmd_cppmangle.html
+ *
+ * Coverage:
+ *  https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/cppmangle.d
+ *
+ * Bugs:
+ *  https://issues.dlang.org/query.cgi
+ *  enter `C++, mangling` as the keywords.
+ */
 
 import core.stdc.string;
 import core.stdc.stdio;
@@ -31,12 +49,6 @@ import ddmd.target;
 import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.visitor;
-
-/* Do mangling for C++ linkage.
- * Follows Itanium C++ ABI 1.86 section 5.1
- * http://refspecs.linux-foundation.org/cxxabi-1.86.html#mangling
- * which is where the grammar comments come from.
- */
 
 extern (C++):
 
@@ -65,7 +77,6 @@ private final class CppMangleVisitor : Visitor
     alias visit = super.visit;
     Objects components;         // array of components available for substitution
     OutBuffer* buf;             // append the mangling to buf[]
-    bool is_top_level;          // true if ignore 'const' mangling attribute
     Loc loc;                    // location for use in error messages
 
   final:
@@ -153,33 +164,41 @@ private final class CppMangleVisitor : Visitor
         if (!ti)                // could happen if std::basic_string is not a template
             return;
         buf.writeByte('I');
-        bool is_var_arg = false;
         foreach (i, o; *ti.tiargs)
         {
-            TemplateParameter tp = null;
-            TemplateValueParameter tv = null;
-            TemplateTupleParameter tt = null;
-            if (!is_var_arg)
-            {
-                TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
-                assert(td);
-                tp = (*td.parameters)[i];
-                tv = tp.isTemplateValueParameter();
-                tt = tp.isTemplateTupleParameter();
-            }
+            TemplateDeclaration td = ti.tempdecl.isTemplateDeclaration();
+            assert(td);
+            TemplateParameter tp = (*td.parameters)[i];
+
             /*
              * <template-arg> ::= <type>               # type or template
              *                ::= X <expression> E     # expression
              *                ::= <expr-primary>       # simple expressions
              *                ::= I <template-arg>* E  # argument pack
              */
-            if (tt)
+            if (TemplateTupleParameter tt = tp.isTemplateTupleParameter())
             {
                 buf.writeByte('I');     // argument pack
-                is_var_arg = true;
-                tp = null;
+
+                // mangle the rest of the arguments as types
+                foreach (j; i .. (*ti.tiargs).dim)
+                {
+                    Type t = isType((*ti.tiargs)[j]);
+                    assert(t);
+                    t.accept(this);
+                }
+
+                buf.writeByte('E');
+                break;
             }
-            if (tv)
+
+            if (tp.isTemplateTypeParameter())
+            {
+                Type t = isType(o);
+                assert(t);
+                t.accept(this);
+            }
+            else if (TemplateValueParameter tv = tp.isTemplateValueParameter())
             {
                 // <expr-primary> ::= L <type> <value number> E  # integer literal
                 if (tv.valType.isintegral())
@@ -188,46 +207,30 @@ private final class CppMangleVisitor : Visitor
                     assert(e);
                     buf.writeByte('L');
                     tv.valType.accept(this);
-                    if (tv.valType.isunsigned())
+                    auto val = e.toUInteger();
+                    if (!tv.valType.isunsigned() && cast(sinteger_t)val < 0)
                     {
-                        buf.printf("%llu", e.toUInteger());
+                        val = -val;
+                        buf.writeByte('n');
                     }
-                    else
-                    {
-                        sinteger_t val = e.toInteger();
-                        if (val < 0)
-                        {
-                            val = -val;
-                            buf.writeByte('n');
-                        }
-                        buf.printf("%lld", val);
-                    }
+                    buf.printf("%llu", val);
                     buf.writeByte('E');
                 }
                 else
                 {
-                    ti.error("Internal Compiler Error: C++ %s template value parameter is not supported", tv.valType.toChars());
+                    ti.error("Internal Compiler Error: C++ `%s` template value parameter is not supported", tv.valType.toChars());
                     fatal();
                 }
-            }
-            else if (!tp || tp.isTemplateTypeParameter())
-            {
-                Type t = isType(o);
-                assert(t);
-                t.accept(this);
             }
             else if (tp.isTemplateAliasParameter())
             {
                 Dsymbol d = isDsymbol(o);
                 Expression e = isExpression(o);
-                if (!d && !e)
-                {
-                    ti.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o.toChars());
-                    fatal();
-                }
                 if (d && d.isFuncDeclaration())
                 {
-                    bool is_nested = d.toParent() && !d.toParent().isModule() && (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINKcpp;
+                    bool is_nested = d.toParent() &&
+                        !d.toParent().isModule() &&
+                        (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINKcpp;
                     if (is_nested)
                         buf.writeByte('X');
                     buf.writeByte('L');
@@ -252,19 +255,19 @@ private final class CppMangleVisitor : Visitor
                 }
                 else
                 {
-                    ti.error("Internal Compiler Error: %s is unsupported parameter for C++ template", o.toChars());
+                    ti.error("Internal Compiler Error: C++ `%s` template alias parameter is not supported", o.toChars());
                     fatal();
                 }
             }
-            else
+            else if (tp.isTemplateThisParameter())
             {
-                ti.error("Internal Compiler Error: C++ templates support only integral value, type parameters, alias templates and alias function parameters");
+                ti.error("Internal Compiler Error: C++ `%s` template this parameter is not supported", o.toChars());
                 fatal();
             }
-        }
-        if (is_var_arg)
-        {
-            buf.writeByte('E');
+            else
+            {
+                assert(0);
+            }
         }
         buf.writeByte('E');
     }
@@ -451,21 +454,6 @@ private final class CppMangleVisitor : Visitor
         }
     }
 
-    /* Is s the initial qualifier?
-     */
-    bool is_initial_qualifier(Dsymbol s)
-    {
-        Dsymbol p = s.toParent();
-        if (p && p.isTemplateInstance())
-        {
-            if (find(p.isTemplateInstance().tempdecl) >= 0)
-            {
-                return true;
-            }
-            p = p.toParent();
-        }
-        return !p || p.isModule();
-    }
 
     void cpp_mangle_name(Dsymbol s, bool qualified)
     {
@@ -603,9 +591,7 @@ private final class CppMangleVisitor : Visitor
             TemplateInstance ti = d.parent.isTemplateInstance();
             assert(ti);
             source_name(ti);
-            this.is_top_level = true;
-            tf.nextOf().accept(this);
-            this.is_top_level = false;
+            headOfType(tf.nextOf());  // mangle return type
         }
         else
         {
@@ -674,15 +660,7 @@ private final class CppMangleVisitor : Visitor
                     t.toChars());
                 fatal();
             }
-            /* If it is a basic, enum or struct type,
-             * then don't mark it const
-             */
-            this.is_top_level = true;
-            if ((t.ty == Tenum || t.ty == Tstruct || t.ty == Tpointer || t.isTypeBasic()) && t.isConst())
-                t.mutableOf().accept(this);
-            else
-                t.accept(this);
-            this.is_top_level = false;
+            headOfType(t);
             ++numparams;
             return 0;
         }
@@ -727,15 +705,34 @@ public:
 
     void error(Type t)
     {
-        if (t.isImmutable() || t.isShared())
+        const(char)* p;
+        if (t.isImmutable())
+            p = "immutable ";
+        else if (t.isShared())
+            p = "shared ";
+        else
+            p = "";
+        t.error(loc, "Internal Compiler Error: %stype `%s` can not be mapped to C++\n", p, t.toChars());
+        fatal(); //Fatal, because this error should be handled in frontend
+    }
+
+    /****************************
+     * Mangle a type,
+     * treating it as a Head followed by a Tail.
+     * Params:
+     *  t = Head of a type
+     */
+    void headOfType(Type t)
+    {
+        if (t.ty == Tclass)
         {
-            t.error(loc, "Internal Compiler Error: shared or immutable types can not be mapped to C++ `%s`", t.toChars());
+            mangleTypeClass(cast(TypeClass)t, true);
         }
         else
         {
-            t.error(loc, "Internal Compiler Error: type `%s` can not be mapped to C++\n", t.toChars());
+            // For value types, strip const/immutable/shared from the head of the type
+            t.mutableOf().unSharedOf().accept(this);
         }
-        fatal(); //Fatal, because this error should be handled in frontend
     }
 
     override void visit(Type t)
@@ -856,7 +853,6 @@ public:
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        is_top_level = false;
         if (substitute(t))
             return;
         append(t);
@@ -884,7 +880,6 @@ public:
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        is_top_level = false;
         if (!substitute(t))
             append(t);
         CV_qualifiers(t);
@@ -897,7 +892,6 @@ public:
         if (t.isImmutable() || t.isShared())
             return error(t);
 
-        is_top_level = false;
         if (substitute(t))
             return;
         CV_qualifiers(t);
@@ -909,7 +903,6 @@ public:
     override void visit(TypeReference t)
     {
         //printf("TypeReference %s\n", t.toChars());
-        is_top_level = false;
         if (substitute(t))
             return;
         buf.writeByte('R');
@@ -919,7 +912,6 @@ public:
 
     override void visit(TypeFunction t)
     {
-        is_top_level = false;
         /*
          *  <function-type> ::= F [Y] <bare-function-type> E
          *  <bare-function-type> ::= <signature type>+
@@ -988,7 +980,6 @@ public:
      */
     final void doSymbol(Type t)
     {
-        is_top_level = false;
         if (substitute(t))
             return;
         CV_qualifiers(t);
@@ -1021,6 +1012,18 @@ public:
 
     override void visit(TypeClass t)
     {
+        mangleTypeClass(t, false);
+    }
+
+    /************************
+     * Mangle a class type.
+     * If it's the head, treat the initial pointer as a value type.
+     * Params:
+     *  t = class type
+     *  head = true for head of a type
+     */
+    void mangleTypeClass(TypeClass t, bool head)
+    {
         if (t.isImmutable() || t.isShared())
             return error(t);
 
@@ -1028,9 +1031,8 @@ public:
          */
         if (substitute(t))
             return;
-        if (!is_top_level)
+        if (!head)
             CV_qualifiers(t);
-        is_top_level = false;
         buf.writeByte('P');
 
         CV_qualifiers(t);

@@ -2,7 +2,6 @@
 // Test C++ name mangling.
 // See Bugs 4059, 5148, 7024, 10058
 
-
 import core.stdc.stdio;
 
 extern (C++) int foob(int i, int j, int k);
@@ -380,6 +379,8 @@ else version (Posix)
 
 /****************************************/
 
+// Special cases of Itanium mangling
+
 extern (C++, std)
 {
     struct pair(T1, T2)
@@ -431,4 +432,15 @@ version (linux)
     static assert(std.basic_istream!(char, std.char_traits!char).fooc.mangleof == "_ZNSi4foocEv");
     static assert(std.basic_ostream!(char, std.char_traits!char).food.mangleof == "_ZNSo4foodEv");
     static assert(std.basic_iostream!(char, std.char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
+}
+
+/**************************************/
+
+alias T36 = int ********** ********** ********** **********;
+
+extern (C++) void test36(T36, T36*) { }
+
+version (linux)
+{
+    static assert(test36.mangleof == "_Z6test36PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPiPS12_");
 }
