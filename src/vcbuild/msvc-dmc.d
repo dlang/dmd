@@ -12,9 +12,12 @@ import std.stdio;
 int main(string[] args)
 {
     import std.conv: to;
+    import std.format: format;
 
+    enum defaultVSVersion = "10.0";
     auto cl = environment.get("MSVC_CC",
-        environment.get("VCINSTALLDIR", `\Program Files (x86)\Microsoft Visual Studio 10.0\VC\`)
+        environment.get("VCINSTALLDIR",
+                        `\Program Files (x86)\Microsoft Visual Studio %s\VC\`.format(defaultVSVersion))
             .buildPath("bin", "amd64", "cl.exe"));
     string[] newArgs = [cl];
     newArgs ~= "/nologo";
@@ -22,7 +25,7 @@ int main(string[] args)
     newArgs ~= `/Iddmd\root`;
     newArgs ~= `/FIwarnings.h`;
 
-    if (environment.get("VisualStudioVersion", "").to!double >= 14.0)
+    if (environment.get("VisualStudioVersion", defaultVSVersion).to!double >= 14.0)
     {
         // either this or /EHsc due to 'noexcept' in system headers
         newArgs ~= `/D_HAS_EXCEPTIONS=0`;
