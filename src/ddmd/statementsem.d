@@ -2510,6 +2510,82 @@ else
             return setError();
         }
 
+
+        if (ss.condition.type.isString())
+        {
+            // Transform a switch with string labels into a switch with integer labels.
+
+            // The integer value of each case corresponds to the index of each label
+            // string in the sorted array of label strings.
+
+            // The value of the integer condition is obtained by calling the druntime template
+            // switch(object.__switch(cond, options...)) {0: {...}, 1: {...}, ...}
+
+            // We sort a copy of the array of labels because we want to do a binary search in object.__switch,
+            // without modifying the order of the case blocks here in the compiler.
+
+            size_t numcases = 0;
+            if (ss.cases)
+                numcases = ss.cases.dim;
+
+            for (size_t i = 0; i < numcases; i++)
+            {
+                CaseStatement cs = (*ss.cases)[i];
+                cs.index = cast(int)i;
+            }
+
+            // Make a copy of all the cases so that qsort doesn't scramble the actual
+            // data we pass to codegen (the order of the cases in the switch).
+            CaseStatements *csCopy = (*ss.cases).copy();
+
+            extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
+            {
+                CaseStatement ox = *cast(CaseStatement *)x;
+                CaseStatement oy = *cast(CaseStatement*)y;
+
+                return ox.compare(oy);
+            }
+
+            if (numcases)
+            {
+                import core.stdc.stdlib;
+                qsort(csCopy.data, numcases, CaseStatement.sizeof, cast(_compare_fp_t)&sort_compare);
+            }
+
+            // The actual lowering
+            auto arguments = new Expressions();
+            arguments.push(ss.condition);
+
+            auto compileTimeArgs = new Objects();
+
+            // The type & label no.
+            compileTimeArgs.push(new TypeExp(ss.loc, ss.condition.type.nextOf()));
+
+            // The switch labels
+            auto caseLabels = new Expressions();
+            foreach (caseString; *csCopy)
+            {
+                compileTimeArgs.push(caseString.exp);
+            }
+
+            Expression sl = new IdentifierExp(ss.loc, Id.empty);
+            sl = new DotIdExp(ss.loc, sl, Id.object);
+            sl = new DotTemplateInstanceExp(ss.loc, sl, Id.__switch, compileTimeArgs);
+
+            sl = new CallExp(ss.loc, sl, arguments);
+            sl.expressionSemantic(sc);
+            ss.condition = sl;
+
+            auto i = 0;
+            foreach (c; *csCopy)
+            {
+                (*ss.cases)[c.index].exp = new IntegerExp(i++);
+            }
+
+            //printf("%s\n", ss._body.toChars());
+            ss.statementSemantic(sc);
+        }
+
         sc.pop();
         result = ss;
     }
