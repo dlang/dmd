@@ -2319,22 +2319,6 @@ elem *toElem(Expression e, IRState *irs)
                 // Should have already been lowered
                 assert(0);
             }
-            else if (cast(int)eop > 1 &&
-                     (t1.ty == Tarray || t1.ty == Tsarray) &&
-                     (t2.ty == Tarray || t2.ty == Tsarray))
-            {
-                Type telement = t1.nextOf().toBasetype();
-
-                elem *ea1 = eval_Darray(ce.e1);
-                elem *ea2 = eval_Darray(ce.e2);
-
-                elem *ep = el_params(getTypeInfo(telement.arrayOf(), irs),
-                        ea2, ea1, null);
-                int rtlfunc = RTLSYM_ARRAYCMP2;
-                e = el_bin(OPcall, TYint, el_var(getRtlsym(rtlfunc)), ep);
-                e = el_bin(eop, TYint, e, el_long(TYint, 0));
-                elem_setLoc(e,ce.loc);
-            }
             else
             {
                 if (cast(int)eop <= 1)
