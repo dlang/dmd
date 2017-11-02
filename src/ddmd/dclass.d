@@ -894,7 +894,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             extern (C++) static int virtualSemantic(Dsymbol s, void* param)
             {
                 auto fd = s.isFuncDeclaration();
-                if (fd && !(fd.storage_class & STCstatic))
+                if (fd && !(fd.storage_class & STCstatic) && !fd.isUnitTestDeclaration())
                     fd.dsymbolSemantic(null);
                 return 0;
             }
