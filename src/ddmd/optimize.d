@@ -610,6 +610,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 // See if we can remove an unnecessary cast
                 ClassDeclaration cdfrom = e.e1.type.isClassHandle();
                 ClassDeclaration cdto = e.type.isClassHandle();
+                if (cdto == ClassDeclaration.object && !cdfrom.isInterfaceDeclaration())
+                    goto L1;    // can always convert a class to Object
                 // Need to determine correct offset before optimizing away the cast.
                 // https://issues.dlang.org/show_bug.cgi?id=16980
                 cdfrom.size(e.loc);
