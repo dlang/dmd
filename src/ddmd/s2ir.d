@@ -557,77 +557,6 @@ extern (C++) class S2irVisitor : Visitor
             return;
         }
 
-        if (s.condition.type.isString())
-        {
-            // Number the cases so we can unscramble things after the sort()
-            for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
-                cs.index = cast(int)i;
-            }
-
-            extern (C) static int sort_compare(const(void*) x, const(void*) y) @trusted
-            {
-                RootObject ox = *cast(RootObject *)x;
-                RootObject oy = *cast(RootObject *)y;
-
-                return ox.compare(oy);
-            }
-
-            if (numcases)
-                qsort(s.cases.data, numcases, RootObject.sizeof, cast(_compare_fp_t)&sort_compare);
-
-            /* Create a sorted array of the case strings, and si
-             * will be the symbol for it.
-             */
-            Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
-            scope dtb = new DtBuilder();
-            dtb.size(numcases);
-            dtb.xoff(si, Target.ptrsize * 2, TYnptr);
-
-            for (size_t i = 0; i < numcases; i++)
-            {   CaseStatement cs = (*s.cases)[i];
-
-                if (cs.exp.op != TOKstring)
-                {   s.error("case '%s' is not a string", cs.exp.toChars()); // BUG: this should be an assert
-                }
-                else
-                {
-                    StringExp se = cast(StringExp)(cs.exp);
-                    Symbol *si2 = toStringSymbol(se);
-                    dtb.size(se.numberOfCodeUnits());
-                    dtb.xoff(si2, 0);
-                }
-            }
-
-            si.Sdt = dtb.finish();
-            si.Sfl = FLdata;
-            outdata(si);
-
-            /* Call:
-             *      _d_switch_string(string[] si, string econd)
-             */
-            if (config.exe == EX_WIN64)
-                econd = addressElem(econd, s.condition.type, true);
-            elem *eparam = el_param(econd, (config.exe == EX_WIN64) ? el_ptr(si) : el_var(si));
-            switch (s.condition.type.nextOf().ty)
-            {
-                case Tchar:
-                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_STRING)), eparam);
-                    break;
-                case Twchar:
-                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_USTRING)), eparam);
-                    break;
-                case Tdchar:        // BUG: implement
-                    econd = el_bin(OPcall, TYint, el_var(getRtlsym(RTLSYM_SWITCH_DSTRING)), eparam);
-                    break;
-                default:
-                    assert(0);
-            }
-            elem_setLoc(econd, s.loc);
-            string = 1;
-        }
-        else
-            string = 0;
         block_appendexp(mystate.switchBlock, econd);
         block_next(blx,BCswitch,null);
 
@@ -646,14 +575,7 @@ extern (C++) class S2irVisitor : Visitor
         for (size_t i = 0; i < numcases; i++)
         {
             CaseStatement cs = (*s.cases)[i];
-            if (string)
-            {
-                pu[cs.index] = i;
-            }
-            else
-            {
-                pu[i] = cs.exp.toInteger();
-            }
+            pu[i] = cs.exp.toInteger();
         }
 
         Statement_toIR(s._body, &mystate);
