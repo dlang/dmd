@@ -2236,8 +2236,6 @@ bool cse_simple(code *c, elem *e)
         if (I64)
         {   if (sz == 8)
                 c->Irex |= REX_W;
-            else if (sz == 1 && reg >= 4)
-                c->Irex |= REX;
         }
 
         return true;
@@ -2260,8 +2258,6 @@ bool cse_simple(code *c, elem *e)
         else if (I64)
         {   if (sz == 8)
                 c->Irex |= REX_W;
-            else if (sz == 1 && reg >= 4)
-                c->Irex |= REX;
         }
 
         return true;

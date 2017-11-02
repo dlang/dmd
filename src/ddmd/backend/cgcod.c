@@ -2407,6 +2407,8 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
                         allocreg(cdb,&retregs,&reg,tym);
                         code *cr = &csextab[i].csimple;
                         cr->setReg(reg);
+                        if (I64 && reg >= 4 && tysize(csextab[i].e->Ety) == 1)
+                            cr->Irex |= REX;
                         cdb.gen(cr);
                         goto L10;
                     }
