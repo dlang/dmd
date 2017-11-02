@@ -323,7 +323,7 @@ STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
                 rdelem(&Gl,&Kl,n->E1);
                 rdelem(&Gr,&Kr,n->E2);
 
-                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
+                switch (el_returns(n->E1) * 2 | int(el_returns(n->E2)))
                 {
                     case 3: // E1 and E2 return
                         /* GEN = (GEN - Kl) | Gl |
