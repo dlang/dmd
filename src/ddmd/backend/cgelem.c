@@ -1055,7 +1055,7 @@ L1:
   if (e2->Eoper == OPrelconst)
   {     if (e1->Eoper == OPrelconst && e1->EV.sp.Vsym == e2->EV.sp.Vsym)
         {       e->Eoper = OPconst;
-                e->EV.Vint = e1->EV.sp.Voffset - e2->EV.sp.Voffset;
+                e->EV.Vllong = e1->EV.sp.Voffset - e2->EV.sp.Voffset;
                 el_free(e1);
                 el_free(e2);
                 return e;
