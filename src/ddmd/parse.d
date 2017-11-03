@@ -7966,6 +7966,13 @@ final class Parser(AST) : Lexer
                                     e = new AST.TypeExp(loc, t);
                                     e = parsePostExp(e);
                                 }
+                                else if (token.value == TOKplusplus || token.value == TOKminusminus)
+                                {
+                                    // if ()++
+                                    // or ()--
+                                    e = new AST.TypeExp(loc, t);
+                                    e = parsePostExp(e);
+                                }
                                 else
                                 {
                                     e = parseUnaryExp();
