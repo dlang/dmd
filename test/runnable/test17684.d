@@ -101,19 +101,19 @@ int intTest(T)()
     assert(t <= 42);
     assert(42 >= t);
 
+    t += 1;
+    assert(t == 43);
+
+    t -= 1;
+    assert(t == 42);
+
     // These currently don't work for properties due to https://issues.dlang.org/show_bug.cgi?id=8006
     static if (!(typeid(T) is typeid(StructProperty!int)) && !(typeid(T) is typeid(ClassProperty!int)))
     {
         t++;              // test a few unary and binary operators
         assert(t == 43);
 
-        t += 1;
-        assert(t == 44);
-
         t--;
-        assert(t == 43);
-
-        t -= 1;
         assert(t == 42);
     }
 
