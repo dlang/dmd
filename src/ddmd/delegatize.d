@@ -10,7 +10,12 @@
 
 module ddmd.delegatize;
 
-// Online documentation: https://dlang.org/phobos/ddmd_delegatize.html
+/**
+ * Documentation:
+ *  https://dlang.org/phobos/ddmd_delegatize.html
+ * Coverage:
+ *  https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/delegatize.d
+ */
 
 import core.stdc.stdio;
 import ddmd.apply;
@@ -28,6 +33,19 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
+
+/*********************************
+ * Convert expression into a delegate.
+ *
+ * Used to convert the argument to a lazy parameter.
+ *
+ * Params:
+ *  e = argument to convert to a delegate
+ *  t = the type to be returned by the delegate
+ *  sc = context
+ * Returns:
+ *  A delegate literal
+ */
 extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t.toChars(), e.toChars());
@@ -36,13 +54,15 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
     if (t.hasWild())
         tf.mod = MODwild;
     auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
+    lambdaSetParent(e, fld);
+
     sc = sc.push();
     sc.parent = fld; // set current function to be the delegate
-    lambdaSetParent(e, sc);
     bool r = lambdaCheckForNestedRef(e, sc);
     sc = sc.pop();
     if (r)
         return new ErrorExp();
+
     Statement s;
     if (t.ty == Tvoid)
         s = new ExpStatement(loc, e);
@@ -56,18 +76,25 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
 
 /******************************************
  * Patch the parent of declarations to be the new function literal.
+ *
+ * Since the expression is going to be moved into a function literal,
+ * the parent for declarations in the expression needs to be
+ * reset to that function literal.
+ * Params:
+ *   e = expression to check
+ *   fd = function literal symbol (the new parent)
  */
-extern (C++) void lambdaSetParent(Expression e, Scope* sc)
+private void lambdaSetParent(Expression e, FuncDeclaration fd)
 {
     extern (C++) final class LambdaSetParent : StoppableVisitor
     {
         alias visit = super.visit;
-        Scope* sc;
+        FuncDeclaration fd;
 
     public:
-        extern (D) this(Scope* sc)
+        extern (D) this(FuncDeclaration fd)
         {
-            this.sc = sc;
+            this.fd = fd;
         }
 
         override void visit(Expression)
@@ -76,7 +103,7 @@ extern (C++) void lambdaSetParent(Expression e, Scope* sc)
 
         override void visit(DeclarationExp e)
         {
-            e.declaration.parent = sc.parent;
+            e.declaration.parent = fd;
         }
 
         override void visit(IndexExp e)
@@ -84,7 +111,7 @@ extern (C++) void lambdaSetParent(Expression e, Scope* sc)
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                e.lengthVar.parent = sc.parent;
+                e.lengthVar.parent = fd;
             }
         }
 
@@ -93,18 +120,24 @@ extern (C++) void lambdaSetParent(Expression e, Scope* sc)
             if (e.lengthVar)
             {
                 //printf("lengthVar\n");
-                e.lengthVar.parent = sc.parent;
+                e.lengthVar.parent = fd;
             }
         }
     }
 
-    scope LambdaSetParent lsp = new LambdaSetParent(sc);
+    scope LambdaSetParent lsp = new LambdaSetParent(fd);
     walkPostorder(e, lsp);
 }
 
 /*******************************************
  * Look for references to variables in a scope enclosing the new function literal.
- * Returns true if error occurs.
+ *
+ * Essentially just calls `checkNestedReference() for each variable reference in `e`.
+ * Params:
+ *      sc = context
+ *      e = expression to check
+ * Returns:
+ *      true if error occurs.
  */
 extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
 {
