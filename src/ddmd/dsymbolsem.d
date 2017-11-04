@@ -10,7 +10,12 @@
 
 module ddmd.dsymbolsem;
 
-// Online documentation: https://dlang.org/phobos/ddmd_dsymbolsem.html
+/**
+ * Documentation:
+ *  https://dlang.org/phobos/ddmd_dsymbolsem.html
+ * Coverage:
+ *  https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/dsymbolsem.d
+ */
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -2610,6 +2615,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         dsym.edtor = dsym.callScopeDtor(sc);
         if (dsym.edtor)
         {
+            /* If dsym is a local variable, who's type is a struct with a scope destructor,
+             * then make dsym scope, too.
+             */
+            if (global.params.vsafe &&
+                !(dsym.storage_class & (STCparameter | STCtemp | STCfield | STCin | STCforeach | STCresult | STCmanifest)) &&
+                !dsym.isDataseg() &&
+                !dsym.doNotInferScope &&
+                dsym.type.hasPointers())
+            {
+                auto tv = dsym.type.baseElemOf();
+                if (tv.ty == Tstruct &&
+                    (cast(TypeStruct)tv).sym.dtor.storage_class & STCscope)
+                {
+                    dsym.storage_class |= STCscope;
+                }
+            }
+
             if (sc.func && dsym.storage_class & (STCstatic | STCgshared))
                 dsym.edtor = dsym.edtor.expressionSemantic(sc._module._scope);
             else
