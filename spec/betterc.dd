@@ -51,6 +51,8 @@ $(OL
     $(LI `unittest` (testing can be as usual with the `-betterC` flag))
 )
 
+The predefined $(LINK2 version.html, version) `D_BetterC` can be used for conditional compilation.
+
 $(SPEC_SUBNAV_PREV simd, Vector Extensions)
 
 )
