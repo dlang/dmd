@@ -14,6 +14,7 @@ module ddmd.globals;
 
 import core.stdc.stdint;
 import core.stdc.stdio;
+//import ddmd.arraytypes;
 import ddmd.root.array;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
@@ -247,6 +248,9 @@ struct Global
     uint errorLimit;
 
     void* console;         // opaque pointer to console for controlling text attributes
+
+//    Identifiers* versionids;    // command line versions and predefined versions
+//    Identifiers* debugids;      // command line debug versions and predefined versions
 
     /* Start gagging. Return the current number of gagged errors
      */
