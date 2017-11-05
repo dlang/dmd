@@ -274,7 +274,7 @@ else version (Alpha)
         MREMAP_FIXED = 2,
     }
 
-    static if (__USE_BSD) enum
+    static if (__USE_MISC) enum
     {
         MADV_NORMAL = 0,
         MADV_RANDOM = 1,
@@ -381,7 +381,7 @@ else version (HPPA)
         MREMAP_FIXED = 2,
     }
 
-    static if (__USE_BSD) enum
+    static if (__USE_MISC) enum
     {
         MADV_NORMAL = 0,
         MADV_RANDOM = 1,
@@ -485,7 +485,7 @@ else version (HPPA64)
         MREMAP_FIXED = 2,
     }
 
-    static if (__USE_BSD) enum
+    static if (__USE_MISC) enum
     {
         MADV_NORMAL = 0,
         MADV_RANDOM = 1,
@@ -651,7 +651,7 @@ else
         MREMAP_FIXED = 2,
     }
 
-    static if (__USE_BSD) enum
+    static if (__USE_MISC) enum
     {
         MADV_NORMAL = 0,
         MADV_RANDOM = 1,
@@ -721,7 +721,7 @@ else version (MIPS64)
 // int munmap(void*, size_t);
 // int mprotect(void *__addr, size_t __len, int __prot);
 // int msync(void *__addr, size_t __len, int __flags);
-static if (__USE_BSD) int madvise(void *__addr, size_t __len, int __advice);
+static if (__USE_MISC) int madvise(void *__addr, size_t __len, int __advice);
 // static if (__USE_XOPEN2K) int posix_madvise(void *__addr, size_t __len, int __advice);
 // int mlock(const(void) *__addr, size_t __len);
 // int munlock(const(void) *__addr, size_t __len);

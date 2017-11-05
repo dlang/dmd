@@ -19,8 +19,6 @@ enum _SVID_SOURCE = true;
 enum _ATFILE_SOURCE = true;
 
 enum __USE_MISC = _BSD_SOURCE || _SVID_SOURCE;
-enum __USE_BSD = _BSD_SOURCE;
-enum __USE_SVID = _SVID_SOURCE;
 enum __USE_ATFILE = _ATFILE_SOURCE;
 enum __USE_GNU = _GNU_SOURCE;
 
