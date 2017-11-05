@@ -590,9 +590,6 @@ extern (C++) final class VersionCondition : DVCondition
     /**
      * Check if a given version identifier is reserved.
      *
-     * Reserved identifier are the one documented below or
-     * those starting with 'D_'.
-     *
      * Params:
      *   ident = identifier being checked
      *
@@ -602,105 +599,104 @@ extern (C++) final class VersionCondition : DVCondition
     extern(D) private static bool isReserved(const(char)[] ident)
     {
         // This list doesn't include "D_*" versions, see the last return
-        static immutable string[] reserved =
-        [
-            "DigitalMars",
-            "GNU",
-            "LDC",
-            "SDC",
-            "Windows",
-            "Win32",
-            "Win64",
-            "linux",
-            "OSX",
-            "iOS",
-            "TVOS",
-            "WatchOS",
-            "FreeBSD",
-            "OpenBSD",
-            "NetBSD",
-            "DragonFlyBSD",
-            "BSD",
-            "Solaris",
-            "Posix",
-            "AIX",
-            "Haiku",
-            "SkyOS",
-            "SysV3",
-            "SysV4",
-            "Hurd",
-            "Android",
-            "Emscripten",
-            "PlayStation",
-            "PlayStation4",
-            "Cygwin",
-            "MinGW",
-            "FreeStanding",
-            "X86",
-            "X86_64",
-            "ARM",
-            "ARM_Thumb",
-            "ARM_SoftFloat",
-            "ARM_SoftFP",
-            "ARM_HardFloat",
-            "AArch64",
-            "AsmJS",
-            "Epiphany",
-            "PPC",
-            "PPC_SoftFloat",
-            "PPC_HardFloat",
-            "PPC64",
-            "IA64",
-            "MIPS32",
-            "MIPS64",
-            "MIPS_O32",
-            "MIPS_N32",
-            "MIPS_O64",
-            "MIPS_N64",
-            "MIPS_EABI",
-            "MIPS_SoftFloat",
-            "MIPS_HardFloat",
-            "MSP430",
-            "NVPTX",
-            "NVPTX64",
-            "RISCV32",
-            "RISCV64",
-            "SPARC",
-            "SPARC_V8Plus",
-            "SPARC_SoftFloat",
-            "SPARC_HardFloat",
-            "SPARC64",
-            "S390",
-            "S390X",
-            "SystemZ",
-            "HPPA",
-            "HPPA64",
-            "SH",
-            "WebAssembly",
-            "Alpha",
-            "Alpha_SoftFloat",
-            "Alpha_HardFloat",
-            "LittleEndian",
-            "BigEndian",
-            "ELFv1",
-            "ELFv2",
-            "CRuntime_Bionic",
-            "CRuntime_DigitalMars",
-            "CRuntime_Glibc",
-            "CRuntime_Microsoft",
-            "CRuntime_Musl",
-            "CRuntime_UClibc",
-            "unittest",
-            "assert",
-            "all",
-            "none"
-        ];
-        foreach (r; reserved)
+        switch (ident)
         {
-            if (ident == r)
+            case "DigitalMars":
+            case "GNU":
+            case "LDC":
+            case "SDC":
+            case "Windows":
+            case "Win32":
+            case "Win64":
+            case "linux":
+            case "OSX":
+            case "iOS":
+            case "TVOS":
+            case "WatchOS":
+            case "FreeBSD":
+            case "OpenBSD":
+            case "NetBSD":
+            case "DragonFlyBSD":
+            case "BSD":
+            case "Solaris":
+            case "Posix":
+            case "AIX":
+            case "Haiku":
+            case "SkyOS":
+            case "SysV3":
+            case "SysV4":
+            case "Hurd":
+            case "Android":
+            case "Emscripten":
+            case "PlayStation":
+            case "PlayStation4":
+            case "Cygwin":
+            case "MinGW":
+            case "FreeStanding":
+            case "X86":
+            case "X86_64":
+            case "ARM":
+            case "ARM_Thumb":
+            case "ARM_SoftFloat":
+            case "ARM_SoftFP":
+            case "ARM_HardFloat":
+            case "AArch64":
+            case "AsmJS":
+            case "Epiphany":
+            case "PPC":
+            case "PPC_SoftFloat":
+            case "PPC_HardFloat":
+            case "PPC64":
+            case "IA64":
+            case "MIPS32":
+            case "MIPS64":
+            case "MIPS_O32":
+            case "MIPS_N32":
+            case "MIPS_O64":
+            case "MIPS_N64":
+            case "MIPS_EABI":
+            case "MIPS_SoftFloat":
+            case "MIPS_HardFloat":
+            case "MSP430":
+            case "NVPTX":
+            case "NVPTX64":
+            case "RISCV32":
+            case "RISCV64":
+            case "SPARC":
+            case "SPARC_V8Plus":
+            case "SPARC_SoftFloat":
+            case "SPARC_HardFloat":
+            case "SPARC64":
+            case "S390":
+            case "S390X":
+            case "SystemZ":
+            case "HPPA":
+            case "HPPA64":
+            case "SH":
+            case "WebAssembly":
+            case "Alpha":
+            case "Alpha_SoftFloat":
+            case "Alpha_HardFloat":
+            case "LittleEndian":
+            case "BigEndian":
+            case "ELFv1":
+            case "ELFv2":
+            case "CRuntime_Bionic":
+            case "CRuntime_DigitalMars":
+            case "CRuntime_Glibc":
+            case "CRuntime_Microsoft":
+            case "CRuntime_Musl":
+            case "CRuntime_UClibc":
+            case "unittest":
+            case "assert":
+            case "all":
+            case "none":
                 return true;
+
+            default:
+                // Anything that starts with "D_" is reserved
+                return (ident.length >= 2 && ident[0 .. 2] == "D_");
         }
-        return (ident.length >= 2 && ident[0 .. 2] == "D_");
     }
 
     /**
