@@ -11,14 +11,13 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/mars.d, _mars.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_mars.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/mars.d
  */
 
 module ddmd.mars;
 
-// Online documentation: https://dlang.org/phobos/ddmd_mars.html
-
 import core.stdc.ctype;
-import core.stdc.errno;
 import core.stdc.limits;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -60,10 +59,6 @@ import ddmd.semantic;
 import ddmd.target;
 import ddmd.tokens;
 import ddmd.utils;
-
-// strtol redeclared here because its signature changed from 2.073 to 2.074
-import core.stdc.config;
-extern(C) c_long strtol(inout(char)* nptr, inout(char)** endptr, int base);
 
 /**
  * Print DMD's logo on stdout
@@ -1498,6 +1493,27 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         errors = true;
     }
 
+    /************************************
+     * Convert string to integer.
+     * Params:
+     *  p = pointer to start of string digits, ending with 0
+     *  max = max allowable value (inclusive)
+     * Returns:
+     *  uint.max on error, otherwise converted integer
+     */
+    static pure uint parseDigits(const(char)*p, const uint max)
+    {
+        uint value;
+        bool overflow;
+        for (uint d; (d = uint(*p) - uint('0')) < 10; ++p)
+        {
+            import core.checkedint : mulu, addu;
+            value = mulu(value, 10, overflow);
+            value = addu(value, d, overflow);
+        }
+        return (overflow || value > max || *p) ? uint.max : value;
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1550,9 +1566,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (isdigit(cast(char)p[5]))
                     {
-                        errno = 0;
-                        const percent = strtol(p + 5, &p, 10);
-                        if (*p || errno || percent > 100)
+                        const percent = parseDigits(p + 5, 100);
+                        if (percent == uint.max)
                             goto Lerror;
                         params.covPercent = cast(ubyte)percent;
                     }
@@ -1682,11 +1697,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 if (p[8] == '=' && isdigit(cast(char)p[9]))
                 {
-                    errno = 0;
-                    const num = strtol(p + 9, &p, 10);
-                    if (*p || errno || num > INT_MAX)
+                    const num = parseDigits(p + 9, int.max);
+                    if (num == uint.max)
                         goto Lerror;
-                    params.errorLimit = cast(uint)num;
+                    params.errorLimit = num;
                 }
                 else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
                 {
@@ -1746,10 +1760,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     }
                     if (isdigit(cast(char)p[12]))
                     {
-                        errno = 0;
-                        const num = strtol(p + 12, &p, 10);
-                        if (*p || errno || num > INT_MAX)
+                        const num = parseDigits(p + 12, int.max);
+                        if (num == uint.max)
                             goto Lerror;
+
                         // Bugzilla issue number
                         switch (num)
                         {
@@ -2002,11 +2016,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (isdigit(cast(char)p[7]))
                     {
-                        errno = 0;
-                        const level = strtol(p + 7, &p, 10);
-                        if (*p || errno || level > INT_MAX)
+                        const level = parseDigits(p + 7, int.max);
+                        if (level == uint.max)
                             goto Lerror;
-                        DebugCondition.setGlobalLevel(cast(int)level);
+
+                        params.debuglevel = level;
                     }
                     else if (Identifier.isValidIdentifier(p + 7))
                         DebugCondition.addGlobalIdent(p[7 .. p.strlen]);
@@ -2027,11 +2041,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (isdigit(cast(char)p[9]))
                     {
-                        errno = 0;
-                        const level = strtol(p + 9, &p, 10);
-                        if (*p || errno || level > INT_MAX)
+                        const level = parseDigits(p + 9, int.max);
+                        if (level == uint.max)
                             goto Lerror;
-                        VersionCondition.setGlobalLevel(cast(int)level);
+                        params.versionlevel = level;
                     }
                     else if (Identifier.isValidIdentifier(p + 9))
                         VersionCondition.addGlobalIdent(p[9 .. p.strlen]);
