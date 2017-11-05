@@ -542,6 +542,85 @@ version( CRuntime_Glibc )
             mcontext_t  uc_mcontext;
         }
     }
+    else version (SPARC64)
+    {
+        enum MC_NGREG = 19;
+        alias mc_greg_t = c_ulong;
+        alias mc_gregset_t = mc_greg_t[MC_NGREG];
+
+        struct mc_fq
+        {
+            c_ulong* mcfq_addr;
+            uint     mcfq_insn;
+        }
+
+        struct mc_fpu_t
+        {
+            union mcfpu_fregs_t
+            {
+                uint[32]    sregs;
+                c_ulong[32] dregs;
+                real[16]    qregs;
+            }
+            mcfpu_fregs_t mcfpu_fregs;
+            c_ulong       mcfpu_fsr;
+            c_ulong       mcfpu_fprs;
+            c_ulong       mcfpu_gsr;
+            mc_fq*        mcfpu_fq;
+            ubyte         mcfpu_qcnt;
+            ubyte         mcfpu_qentsz;
+            ubyte         mcfpu_enab;
+        }
+
+        struct mcontext_t
+        {
+            mc_gregset_t mc_gregs;
+            mc_greg_t    mc_fp;
+            mc_greg_t    mc_i7;
+            mc_fpu_t     mc_fpregs;
+        }
+
+        struct ucontext_t
+        {
+            ucontext_t* uc_link;
+            c_ulong     uc_flags;
+            c_ulong     __uc_sigmask;
+            mcontext_t  uc_mcontext;
+            stack_t     uc_stack;
+            sigset_t    uc_sigmask;
+        }
+
+        /* Location of the users' stored registers relative to R0.
+         * Usage is as an index into a gregset_t array. */
+        enum
+        {
+            REG_PSR = 0,
+            REG_PC  = 1,
+            REG_nPC = 2,
+            REG_Y   = 3,
+            REG_G1  = 4,
+            REG_G2  = 5,
+            REG_G3  = 6,
+            REG_G4  = 7,
+            REG_G5  = 8,
+            REG_G6  = 9,
+            REG_G7  = 10,
+            REG_O0  = 11,
+            REG_O1  = 12,
+            REG_O2  = 13,
+            REG_O3  = 14,
+            REG_O4  = 15,
+            REG_O5  = 16,
+            REG_O6  = 17,
+            REG_O7  = 18,
+            REG_ASI = 19,
+            REG_FPRS = 20,
+        }
+
+        enum NGREG = 21;
+        alias greg_t = c_ulong;
+        alias gregset_t = greg_t[NGREG];
+    }
     else version (SystemZ)
     {
         public import core.sys.posix.signal : sigset_t;

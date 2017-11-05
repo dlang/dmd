@@ -63,9 +63,15 @@ else version (AArch64)
     alias __WORDSIZE __ELF_NATIVE_CLASS;
     alias uint32_t Elf_Symndx;
 }
-else version (SystemZ)
+else version (SPARC64)
 {
     // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/elfclass.h
+    alias __WORDSIZE __ELF_NATIVE_CLASS;
+    alias uint32_t Elf_Symndx;
+}
+else version (SystemZ)
+{
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/s390/bits/elfclass.h
     alias __WORDSIZE __ELF_NATIVE_CLASS;
     alias uint64_t Elf_Symndx;
 }

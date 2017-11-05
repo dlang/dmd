@@ -21,12 +21,14 @@ public enum MSG_NOERROR = 1 << 12; // octal!10000
 public enum  MSG_EXCEPT = 2 << 12; // octal!20000
 public enum    MSG_COPY = 4 << 12; // octal!40000
 
-struct msgbuf {
+struct msgbuf
+{
     c_long mtype;
     char[1] mtext;
-};
+}
 
-struct msginfo {
+struct msginfo
+{
     int msgpool;
     int msgmap;
     int msgmax;
@@ -35,7 +37,7 @@ struct msginfo {
     int msgssz;
     int msgtql;
     ushort msgseg;
-};
+}
 
 version(Alpha)
 {
@@ -56,7 +58,7 @@ version(Alpha)
         pid_t msg_lrpid;
         c_ulong __glibc_reserved1;
         c_ulong __glibc_reserved2;
-    };
+    }
 }
 else version(HPPA)
 {
@@ -65,7 +67,8 @@ else version(HPPA)
     alias c_ulong msglen_t;
 
     // Assuming word size is 32
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         c_ulong __pad1;
         time_t          msg_stime;
@@ -80,7 +83,7 @@ else version(HPPA)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved1;
         c_ulong __glibc_reserved2;
-    };
+    }
 
 }
 else version(MIPS32)
@@ -108,7 +111,7 @@ else version(MIPS32)
         pid_t     msg_lrpid;
         c_ulong   __glibc_reserved4;
         c_ulong   __glibc_reserved5;
-    };
+    }
 }
 else version(MIPS64)
 {
@@ -129,7 +132,7 @@ else version(MIPS64)
         pid_t     msg_lrpid;
         c_ulong   __glibc_reserved4;
         c_ulong   __glibc_reserved5;
-    };
+    }
 }
 else version (PPC)
 {
@@ -138,7 +141,8 @@ else version (PPC)
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         c_ulong __glibc_reserved1;
         time_t          msg_stime;
@@ -153,7 +157,7 @@ else version (PPC)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 }
 else version (PPC64)
 {
@@ -161,7 +165,8 @@ else version (PPC64)
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm  msg_perm;
         time_t    msg_stime;
         time_t    msg_rtime;
@@ -173,7 +178,7 @@ else version (PPC64)
         pid_t     msg_lrpid;
         c_ulong   __glibc_reserved4;
         c_ulong   __glibc_reserved5;
-    };
+    }
 }
 else version (S390)
 {
@@ -182,7 +187,8 @@ else version (S390)
     alias c_ulong msglen_t;
 
     // Assuming wordsize != 64
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         c_ulong __glibc_reserved1;
         time_t          msg_stime;
@@ -197,7 +203,7 @@ else version (S390)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 }
 else version (SystemZ)
 {
@@ -206,7 +212,8 @@ else version (SystemZ)
     alias c_ulong msglen_t;
 
     // Assuming wordsize == 64
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         time_t          msg_stime;
         time_t          msg_rtime;
@@ -218,7 +225,7 @@ else version (SystemZ)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 }
 else version (SPARC)
 {
@@ -227,7 +234,8 @@ else version (SPARC)
     alias c_ulong msglen_t;
 
     // Assuming word size is 32
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         c_ulong __pad1;
         time_t          msg_stime;
@@ -242,7 +250,32 @@ else version (SPARC)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved1;
         c_ulong __glibc_reserved2;
-    };
+    }
+}
+else version (SPARC64)
+{
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/sparc/bits/msq.h
+    alias c_ulong msgqnum_t;
+    alias c_ulong msglen_t;
+
+    // Assuming word size is 32
+    struct msqid_ds
+    {
+        ipc_perm msg_perm;
+        c_ulong __pad1;
+        time_t          msg_stime;
+        c_ulong __pad2;
+        time_t          msg_rtime;
+        c_ulong __pad3;
+        time_t          msg_ctime;
+        c_ulong         __msg_cbytes;
+        msgqnum_t       msg_qnum;
+        msglen_t        msg_qbytes;
+        pid_t           msg_lspid;
+        pid_t           msg_lrpid;
+        c_ulong __glibc_reserved1;
+        c_ulong __glibc_reserved2;
+    }
 }
 else version (X86)
 {
@@ -250,7 +283,8 @@ else version (X86)
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         time_t          msg_stime;
         time_t          msg_rtime;
@@ -262,16 +296,16 @@ else version (X86)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 }
 else version (X86_64)
 {
-    // Can't find adequate bits.h in https://sourceware.org/git/?p=glibc.git;a=tree;f=sysdeps/unix/sysv/linux/x86_64/bits;h=cd03a84463c9393dd751d78fba19e59aad3e0bb3;hb=HEAD
-    // Using the same as in X86 version
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86/bits/msq.h
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         c_ulong __glibc_reserved1;
         time_t          msg_stime;
@@ -286,7 +320,7 @@ else version (X86_64)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 }
 else version (AArch64)
 {
@@ -294,7 +328,8 @@ else version (AArch64)
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         time_t          msg_stime;
         time_t          msg_rtime;
@@ -306,7 +341,7 @@ else version (AArch64)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 }
 else version (ARM)
 {
@@ -314,7 +349,8 @@ else version (ARM)
     alias c_ulong msgqnum_t;
     alias c_ulong msglen_t;
 
-    struct msqid_ds {
+    struct msqid_ds
+    {
         ipc_perm msg_perm;
         c_ulong __glibc_reserved1;
         time_t          msg_stime;
@@ -329,7 +365,7 @@ else version (ARM)
         pid_t           msg_lrpid;
         c_ulong __glibc_reserved4;
         c_ulong __glibc_reserved5;
-    };
+    }
 } else
     static assert(0, "unimplemented");
 
