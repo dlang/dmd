@@ -453,20 +453,6 @@ extern (C++) class DVCondition : Condition
 extern (C++) final class DebugCondition : DVCondition
 {
     /**
-     * Set the global debug level
-     *
-     * Only called from the driver
-     *
-     * Params:
-     *   level = Integer literal to set the global version to
-     */
-    static void setGlobalLevel(uint level)
-    {
-        global.params.debuglevel = level;
-    }
-
-
-    /**
      * Add an user-supplied identifier to the list of global debug identifiers
      *
      * Can be called from either the driver or a `debug = Ident;` statement.
@@ -493,9 +479,9 @@ extern (C++) final class DebugCondition : DVCondition
     /// Ditto
     extern(D) static void addGlobalIdent(const(char)[] ident)
     {
-        if (!global.params.debugids)
-            global.params.debugids = new Strings();
-        global.params.debugids.push(cast(char*)ident);
+        if (!global.debugids)
+            global.debugids = new Identifiers();
+        global.debugids.push(Identifier.idPool(ident));
     }
 
 
@@ -528,13 +514,13 @@ extern (C++) final class DebugCondition : DVCondition
                     inc = 1;
                     definedInModule = true;
                 }
-                else if (findCondition(global.params.debugids, ident))
+                else if (findCondition(global.debugids, ident))
                     inc = 1;
                 else
                 {
                     if (!mod.debugidsNot)
-                        mod.debugidsNot = new Strings();
-                    mod.debugidsNot.push(ident.toChars());
+                        mod.debugidsNot = new Identifiers();
+                    mod.debugidsNot.push(ident);
                 }
             }
             else if (level <= global.params.debuglevel || level <= mod.debuglevel)
@@ -574,19 +560,6 @@ extern (C++) final class DebugCondition : DVCondition
  */
 extern (C++) final class VersionCondition : DVCondition
 {
-    /**
-     * Set the global version level
-     *
-     * Only called from the driver
-     *
-     * Params:
-     *   level = Integer literal to set the global version to
-     */
-    static void setGlobalLevel(uint level)
-    {
-        global.params.versionlevel = level;
-    }
-
     /**
      * Check if a given version identifier is reserved.
      *
@@ -777,9 +750,9 @@ extern (C++) final class VersionCondition : DVCondition
     /// Ditto
     extern(D) static void addPredefinedGlobalIdent(const(char)[] ident)
     {
-        if (!global.params.versionids)
-            global.params.versionids = new Strings();
-        global.params.versionids.push(cast(char*)ident);
+        if (!global.versionids)
+            global.versionids = new Identifiers();
+        global.versionids.push(Identifier.idPool(ident));
     }
 
     /**
@@ -812,13 +785,13 @@ extern (C++) final class VersionCondition : DVCondition
                     inc = 1;
                     definedInModule = true;
                 }
-                else if (findCondition(global.params.versionids, ident))
+                else if (findCondition(global.versionids, ident))
                     inc = 1;
                 else
                 {
                     if (!mod.versionidsNot)
-                        mod.versionidsNot = new Strings();
-                    mod.versionidsNot.push(ident.toChars());
+                        mod.versionidsNot = new Identifiers();
+                    mod.versionidsNot.push(ident);
                 }
             }
             else if (level <= global.params.versionlevel || level <= mod.versionlevel)
@@ -927,14 +900,22 @@ extern (C++) final class StaticIfCondition : Condition
     }
 }
 
-extern (C++) int findCondition(Strings* ids, Identifier ident)
+
+/****************************************
+ * Find `ident` in an array of identifiers.
+ * Params:
+ *      ids = array of identifiers
+ *      ident = identifier to search for
+ * Returns:
+ *      true if found
+ */
+extern (C++) bool findCondition(Identifiers* ids, Identifier ident)
 {
     if (ids)
     {
-        for (size_t i = 0; i < ids.dim; i++)
+        foreach (id; *ids)
         {
-            const(char)* id = (*ids)[i];
-            if (strcmp(id, ident.toChars()) == 0)
+            if (id == ident)
                 return true;
         }
     }

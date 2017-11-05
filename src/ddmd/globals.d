@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import ddmd.root.array;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
+import ddmd.identifier;
 
 template xversion(string s)
 {
@@ -247,6 +248,9 @@ struct Global
     uint errorLimit;
 
     void* console;         // opaque pointer to console for controlling text attributes
+
+    Array!Identifier* versionids;    // command line versions and predefined versions
+    Array!Identifier* debugids;      // command line debug versions and predefined versions
 
     /* Start gagging. Return the current number of gagged errors
      */

@@ -49,6 +49,7 @@ import ddmd.link;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.parse;
+import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.man;
@@ -552,6 +553,14 @@ Language changes listed by -transition=id:
             //fatal();
         }
     }
+
+    // Add in command line versions
+    if (global.params.versionids)
+        foreach (charz; *global.params.versionids)
+            VersionCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
+    if (global.params.debugids)
+        foreach (charz; *global.params.debugids)
+            DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
@@ -2006,17 +2015,21 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         const level = strtol(p + 7, &p, 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
-                        DebugCondition.setGlobalLevel(cast(int)level);
+                        params.debuglevel = cast(uint)level;
                     }
                     else if (Identifier.isValidIdentifier(p + 7))
-                        DebugCondition.addGlobalIdent(p[7 .. p.strlen]);
+                    {
+                        if (!params.debugids)
+                            params.debugids = new Array!(const(char)*);
+                        params.debugids.push(p + 7);
+                    }
                     else
                         goto Lerror;
                 }
                 else if (p[6])
                     goto Lerror;
                 else
-                    DebugCondition.setGlobalLevel(1);
+                    params.debuglevel = 1;
             }
             else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
             {
@@ -2031,10 +2044,14 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         const level = strtol(p + 9, &p, 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
-                        VersionCondition.setGlobalLevel(cast(int)level);
+                        params.versionlevel = cast(uint)level;
                     }
                     else if (Identifier.isValidIdentifier(p + 9))
-                        VersionCondition.addGlobalIdent(p[9 .. p.strlen]);
+                    {
+                        if (!params.versionids)
+                            params.versionids = new Array!(const(char)*);
+                        params.versionids.push(p + 9);
+                    }
                     else
                         goto Lerror;
                 }
