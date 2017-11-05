@@ -158,7 +158,7 @@ extern (C++) void verror(const ref Loc loc, const(char)* format, va_list ap, con
     if (!global.gag)
     {
         verrorPrint(loc, Classification.error, header, format, ap, p1, p2);
-        if (global.errorLimit && global.errors >= global.errorLimit)
+        if (global.params.errorLimit && global.errors >= global.params.errorLimit)
             fatal(); // moderate blizzard of cascading messages
     }
     else

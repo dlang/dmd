@@ -127,6 +127,7 @@ struct Param
 
     CPU cpu;                // CPU instruction set to target
     BOUNDSCHECK useArrayBounds;
+    unsigned errorLimit;
 
     const char *argv0;    // program name
     Array<const char *> *modFileAliasStrings; // array of char*'s of -I module filename alias strings
@@ -223,8 +224,6 @@ struct Global
     FILE *stdmsg;          // where to send verbose messages
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
-
-    unsigned errorLimit;
 
     void* console;         // opaque pointer to console for controlling text attributes
 

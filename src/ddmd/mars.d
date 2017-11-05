@@ -1686,7 +1686,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     const num = strtol(p + 9, &p, 10);
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
-                    global.errorLimit = cast(uint)num;
+                    params.errorLimit = cast(uint)num;
                 }
                 else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
                 {

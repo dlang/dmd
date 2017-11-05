@@ -146,6 +146,7 @@ struct Param
 
     CPU cpu;                // CPU instruction set to target
     BOUNDSCHECK useArrayBounds;
+    uint errorLimit = 20;
 
     const(char)* argv0;                 // program name
     Array!(const(char)*)* modFileAliasStrings; // array of char*'s of -I module filename alias strings
@@ -243,8 +244,6 @@ struct Global
     FILE* stdmsg;           // where to send verbose messages
     uint gag;               // !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      // number of errors reported while gagged
-
-    uint errorLimit;
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -349,7 +348,6 @@ struct Global
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
         main_d = "__main.d";
-        errorLimit = 20;
     }
 }
 
