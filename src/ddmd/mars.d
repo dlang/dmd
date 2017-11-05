@@ -304,6 +304,8 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.useOut = true;
     global.params.useArrayBounds = BOUNDSCHECKdefault; // set correct value later
     global.params.useSwitchError = true;
+    global.params.useModuleInfo = true;
+    global.params.useTypeInfo = true;
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
@@ -505,6 +507,12 @@ Language changes listed by -transition=id:
         global.params.useOut = false;
         global.params.useAssert = false;
         global.params.useSwitchError = false;
+    }
+    if (global.params.betterC)
+    {
+        global.params.useCAsserts = true;
+        global.params.useModuleInfo = false;
+        global.params.useTypeInfo = false;
     }
     if (global.params.useUnitTests)
         global.params.useAssert = true;

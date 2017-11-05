@@ -1962,7 +1962,7 @@ elem *toElem(Expression e, IRState *irs)
             elem *e;
             if (global.params.useAssert)
             {
-                if (global.params.betterC)
+                if (global.params.useCAsserts)
                 {
                     auto econd = toElem(ae.e1, irs);
                     auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
@@ -5929,7 +5929,7 @@ elem *filelinefunction(IRState *irs, Loc *loc)
  */
 elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
 {
-    if (global.params.betterC)
+    if (global.params.useCAsserts)
     {
         return callCAssert(irs, loc, null, null, "array overflow");
     }
