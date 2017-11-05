@@ -112,6 +112,14 @@ else version (MIPS64)
         epoll_data_t data;
     }
 }
+else version (SPARC64)
+{
+    struct epoll_event
+    {
+        uint events;
+        epoll_data_t data;
+    }
+}
 else version (SystemZ)
 {
     struct epoll_event

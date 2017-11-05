@@ -125,6 +125,12 @@ version( GNUFP )
         alias fenv_t = double;
         alias fexcept_t = uint;
     }
+    // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/sparc/fpu/bits/fenv.h
+    else version (SPARC64)
+    {
+        alias fenv_t = ulong;
+        alias fexcept_t = ulong;
+    }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/s390/fpu/bits/fenv.h
     else version (SystemZ)
     {

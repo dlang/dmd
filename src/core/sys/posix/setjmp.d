@@ -58,9 +58,13 @@ version( CRuntime_Glibc )
 
         alias int[6] __jmp_buf;
     }
-    else version ( SPARC )
+    else version (SPARC)
     {
         alias int[3] __jmp_buf;
+    }
+    else version (SPARC64)
+    {
+        alias __jmp_buf = ulong[22];
     }
     else version (AArch64)
     {
