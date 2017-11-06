@@ -1935,11 +1935,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl; size_t idx; }
-    AARange _aaRange(void* aa) pure nothrow @nogc;
-    bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
-    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
-    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc;
-    void _aaRangePopFront(ref AARange r) pure nothrow @nogc;
+    AARange _aaRange(void* aa) pure nothrow @nogc @safe;
+    bool _aaRangeEmpty(AARange r) pure nothrow @nogc @safe;
+    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc @safe;
+    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc @safe;
+    void _aaRangePopFront(ref AARange r) pure nothrow @nogc @safe;
 
     int _aaEqual(in TypeInfo tiRaw, in void* e1, in void* e2);
     hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
@@ -2035,7 +2035,7 @@ V[K] dup(T : V[K], K, V)(T* aa)
     return (*aa).dup;
 }
 
-auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc
+auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -2044,13 +2044,17 @@ auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc
         AARange r;
 
     pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref front() { return *cast(substInout!K*)_aaRangeFrontKey(r); }
-        void popFront() { _aaRangePopFront(r); }
+        @property bool empty()  @safe { return _aaRangeEmpty(r); }
+        @property ref front()
+        {
+            auto p = (() @trusted => cast(substInout!K*) _aaRangeFrontKey(r)) ();
+            return *p;
+        }
+        void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(cast(void*)aa));
+    return Result(_aaRange(() @trusted { return cast(void*)aa; } ()));
 }
 
 auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2058,7 +2062,7 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byKey();
 }
 
-auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc
+auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -2067,13 +2071,17 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc
         AARange r;
 
     pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref front() { return *cast(substInout!V*)_aaRangeFrontValue(r); }
-        void popFront() { _aaRangePopFront(r); }
+        @property bool empty() @safe { return _aaRangeEmpty(r); }
+        @property ref front()
+        {
+            auto p = (() @trusted => cast(substInout!V*) _aaRangeFrontValue(r)) ();
+            return *p;
+        }
+        void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(cast(void*)aa));
+    return Result(_aaRange((() @trusted => cast(void*) aa) ()));
 }
 
 auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2081,7 +2089,7 @@ auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byValue();
 }
 
-auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
+auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -2090,8 +2098,8 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
         AARange r;
 
     pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property auto front() @trusted
+        @property bool empty() @safe { return _aaRangeEmpty(r); }
+        @property auto front()
         {
             static struct Pair
             {
@@ -2100,17 +2108,25 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
                 private void* keyp;
                 private void* valp;
 
-                @property ref key() inout { return *cast(substInout!K*)keyp; }
-                @property ref value() inout { return *cast(substInout!V*)valp; }
+                @property ref key() inout
+                {
+                    auto p = (() @trusted => cast(substInout!K*) keyp) ();
+                    return *p;
+                };
+                @property ref value() inout
+                {
+                    auto p = (() @trusted => cast(substInout!V*) valp) ();
+                    return *p;
+                };
             }
             return Pair(_aaRangeFrontKey(r),
                         _aaRangeFrontValue(r));
         }
-        void popFront() { _aaRangePopFront(r); }
+        void popFront() @safe { return _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(cast(void*)aa));
+    return Result(_aaRange((() @trusted => cast(void*) aa) ()));
 }
 
 auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2180,6 +2196,34 @@ inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
 inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 {
     return (*aa).get(key, defaultValue);
+}
+
+@safe unittest
+{
+    int[string] aa;
+    int a;
+    foreach (val; aa.byKeyValue)
+    {
+        ++aa[val.key];
+        a = val.value;
+    }
+}
+
+unittest
+{
+    static assert(!__traits(compiles,
+        () @safe {
+            struct BadValue
+            {
+                int x;
+                this(this) @safe { *(cast(ubyte*)(null) + 100000) = 5; } // not @safe
+                alias x this;
+            }
+
+            BadValue[int] aa;
+            () @safe { auto x = aa.byKey.front; } ();
+        }
+    ));
 }
 
 pure nothrow unittest

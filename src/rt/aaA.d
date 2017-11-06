@@ -88,7 +88,7 @@ private:
         return used - deleted;
     }
 
-    @property size_t dim() const pure nothrow @nogc
+    @property size_t dim() const pure nothrow @nogc @safe
     {
         return buckets.length;
     }
@@ -183,7 +183,7 @@ private pure nothrow @nogc:
         return hash == HASH_DELETED;
     }
 
-    @property bool filled() const
+    @property bool filled() const @safe
     {
         return cast(ptrdiff_t) hash < 0;
     }
@@ -677,7 +677,7 @@ struct Range
     alias impl this;
 }
 
-extern (C) pure nothrow @nogc
+extern (C) pure nothrow @nogc @safe
 {
     Range _aaRange(AA aa)
     {
@@ -699,16 +699,25 @@ extern (C) pure nothrow @nogc
 
     void* _aaRangeFrontKey(Range r)
     {
+        if (r.idx >= r.dim)
+            return null;
         return r.buckets[r.idx].entry;
     }
 
     void* _aaRangeFrontValue(Range r)
     {
-        return r.buckets[r.idx].entry + r.valoff;
+        if (r.idx >= r.dim)
+            return null;
+
+        auto entry = r.buckets[r.idx].entry;
+        return entry is null ?
+            null :
+            (() @trusted { return entry + r.valoff; } ());
     }
 
     void _aaRangePopFront(ref Range r)
     {
+        if (r.idx >= r.dim) return;
         for (++r.idx; r.idx < r.dim; ++r.idx)
         {
             if (r.buckets[r.idx].filled)
