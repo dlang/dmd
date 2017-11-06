@@ -143,7 +143,7 @@ struct Param
     bool doDocComments;  // process embedded documentation comments
     const char *docdir;  // write documentation file to docdir directory
     const char *docname; // write documentation file to docname
-    Array<const char *> *ddocfiles;  // macro include files for Ddoc
+    Array<const char *> ddocfiles;  // macro include files for Ddoc
 
     bool doHdrGeneration;  // process embedded documentation comments
     const char *hdrdir;    // write 'header' file to docdir directory
@@ -178,10 +178,10 @@ struct Param
     Strings runargs;    // arguments for executable
 
     // Linker stuff
-    Array<const char *> *objfiles;
-    Array<const char *> *linkswitches;
-    Array<const char *> *libfiles;
-    Array<const char *> *dllfiles;
+    Array<const char *> objfiles;
+    Array<const char *> linkswitches;
+    Array<const char *> libfiles;
+    Array<const char *> dllfiles;
     const char *deffile;
     const char *resfile;
     const char *exefile;
