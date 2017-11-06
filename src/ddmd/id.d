@@ -315,6 +315,7 @@ immutable Msgtable[] msgtable =
     { "__cmp" },
     { "__equals"},
     { "__switch"},
+    { "__switch_error"},
 
     // varargs implementation
     { "va_start" },

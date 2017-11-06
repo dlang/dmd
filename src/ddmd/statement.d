@@ -1834,9 +1834,17 @@ extern (C++) final class GotoCaseStatement : Statement
  */
 extern (C++) final class SwitchErrorStatement : Statement
 {
+    Expression exp;
+
     extern (D) this(Loc loc)
     {
         super(loc);
+    }
+
+    final extern (D) this(Loc loc, Expression exp)
+    {
+        super(loc);
+        this.exp = exp;
     }
 
     override void accept(Visitor v)
