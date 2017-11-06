@@ -3889,6 +3889,14 @@ unittest
     testSwitch!dchar;
 }
 
+// Compiler lowers final switch default case to this (which is a runtime error)
+// Old implementation is in core/exception.d
+void __switch_error()(string file = __FILE__, size_t line = __LINE__)
+{
+    import core.exception : __switch_errorT;
+    __switch_errorT(file, line);
+}
+
 // Helper functions
 
 private inout(TypeInfo) getElement(inout TypeInfo value) @trusted pure nothrow
