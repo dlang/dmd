@@ -249,19 +249,22 @@ Outbuffer  *SECbuf;             // Buffer to build section table in
 // not used.
 static int section_cnt; // Number of sections in table
 
-#define SHN_TEXT        1
-#define SHN_RELTEXT     2
-#define SHN_DATA        3
-#define SHN_RELDATA     4
-#define SHN_BSS         5
-#define SHN_RODAT       6
-#define SHN_STRINGS     7
-#define SHN_SYMTAB      8
-#define SHN_SECNAMES    9
-#define SHN_COM         10
-#define SHN_NOTE        11
-#define SHN_GNUSTACK    12
-#define SHN_CDATAREL    13
+enum
+{
+    SHN_TEXT        = 1,
+    SHN_RELTEXT     = 2,
+    SHN_DATA        = 3,
+    SHN_RELDATA     = 4,
+    SHN_BSS         = 5,
+    SHN_RODAT       = 6,
+    SHN_STRINGS     = 7,
+    SHN_SYMTAB      = 8,
+    SHN_SECNAMES    = 9,
+    SHN_COM         = 10,
+    SHN_NOTE        = 11,
+    SHN_GNUSTACK    = 12,
+    SHN_CDATAREL    = 13,
+};
 
 IDXSYM *mapsec2sym;
 #define S2S_INC 20
@@ -271,15 +274,18 @@ IDXSYM *mapsec2sym;
 static int symbol_idx;          // Number of symbols in symbol table
 static int local_cnt;           // Number of symbols with STB_LOCAL
 
-#define STI_FILE 1              // Where file symbol table entry is
-#define STI_TEXT 2
-#define STI_DATA 3
-#define STI_BSS  4
-#define STI_GCC  5              // Where "gcc2_compiled" symbol is */
-#define STI_RODAT 6             // Symbol for readonly data
-#define STI_NOTE 7              // Where note symbol table entry is
-#define STI_COM  8
-#define STI_CDATAREL 9          // Symbol for readonly data with relocations
+enum
+{
+    STI_FILE     = 1,       // Where file symbol table entry is
+    STI_TEXT     = 2,
+    STI_DATA     = 3,
+    STI_BSS      = 4,
+    STI_GCC      = 5,       // Where "gcc2_compiled" symbol is */
+    STI_RODAT    = 6,       // Symbol for readonly data
+    STI_NOTE     = 7,       // Where note symbol table entry is
+    STI_COM      = 8,
+    STI_CDATAREL = 9,       // Symbol for readonly data with relocations
+};
 
 // NOTE: There seems to be a requirement that the read-only data have the
 // same symbol table index and section index. Use section NOTE as a place
@@ -314,19 +320,23 @@ static const char compiler[] = "\0Digital Mars C/C++"
 //      be continuous when adding data. Fix-ups anywhere withing existing data.
 
 #define COMD CDATAREL+1
-#define OB_SEG_SIZ      10              // initial number of segments supported
-#define OB_SEG_INC      10              // increment for additional segments
 
-#define OB_CODE_STR     100000          // initial size for code
-#define OB_CODE_INC     100000          // increment for additional code
-#define OB_DATA_STR     100000          // initial size for data
-#define OB_DATA_INC     100000          // increment for additional data
-#define OB_CDATA_STR      1024          // initial size for data
-#define OB_CDATA_INC      1024          // increment for additional data
-#define OB_COMD_STR        256          // initial size for comments
-                                        // increment as needed
-#define OB_XTRA_STR        250          // initial size for extra segments
-#define OB_XTRA_INC      10000          // increment size
+enum
+{
+    OB_SEG_SIZ      = 10,          // initial number of segments supported
+    OB_SEG_INC      = 10,          // increment for additional segments
+
+    OB_CODE_STR     = 100000,      // initial size for code
+    OB_CODE_INC     = 100000,      // increment for additional code
+    OB_DATA_STR     = 100000,      // initial size for data
+    OB_DATA_INC     = 100000,      // increment for additional data
+    OB_CDATA_STR    =   1024,      // initial size for data
+    OB_CDATA_INC    =   1024,      // increment for additional data
+    OB_COMD_STR     =    256,      // initial size for comments
+                                   // increment as needed
+    OB_XTRA_STR     =    250,      // initial size for extra segments
+    OB_XTRA_INC     =  10000,      // increment size
+};
 
 #define MAP_SEG2SECIDX(seg) (SegData[seg]->SDshtidx)
 #define MAP_SEG2SYMIDX(seg) (SegData[seg]->SDsymidx)
@@ -769,25 +779,29 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         SECbuf->setsize(0);
     section_cnt = 0;
 
+    enum
+    {
+        NAMIDX_NONE      =   0,
+        NAMIDX_SYMTAB    =   1,    // .symtab
+        NAMIDX_STRTAB    =   9,    // .strtab
+        NAMIDX_SHSTRTAB  =  17,    // .shstrtab
+        NAMIDX_TEXT      =  27,    // .text
+        NAMIDX_DATA      =  33,    // .data
+        NAMIDX_BSS       =  39,    // .bss
+        NAMIDX_NOTE      =  44,    // .note
+        NAMIDX_COMMENT   =  50,    // .comment
+        NAMIDX_RODATA    =  59,    // .rodata
+        NAMIDX_GNUSTACK  =  67,    // .note.GNU-stack
+        NAMIDX_CDATAREL  =  83,    // .data.rel.ro
+        NAMIDX_RELTEXT   =  96,    // .rel.text and .rela.text
+        NAMIDX_RELDATA   = 106,    // .rel.data
+        NAMIDX_RELDATA64 = 107,    // .rela.data
+    };
+
     if (I64)
     {
         static char section_names_init64[] =
           "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.note.GNU-stack\0.data.rel.ro\0.rela.text\0.rela.data";
-        #define NAMIDX_NONE      0
-        #define NAMIDX_SYMTAB    1       // .symtab
-        #define NAMIDX_STRTAB    9       // .strtab
-        #define NAMIDX_SHSTRTAB 17      // .shstrtab
-        #define NAMIDX_TEXT     27      // .text
-        #define NAMIDX_DATA     33      // .data
-        #define NAMIDX_BSS      39      // .bss
-        #define NAMIDX_NOTE     44      // .note
-        #define NAMIDX_COMMENT  50      // .comment
-        #define NAMIDX_RODATA   59      // .rodata
-        #define NAMIDX_GNUSTACK 67      // .note.GNU-stack
-        #define NAMIDX_CDATAREL 83      // .data.rel.ro
-        #define NAMIDX_RELTEXT  96      // .rel.text and .rela.text
-        #define NAMIDX_RELDATA  106     // .rel.data
-        #define NAMIDX_RELDATA64 107    // .rela.data
 
         if (section_names)
             section_names->setsize(sizeof(section_names_init64));
