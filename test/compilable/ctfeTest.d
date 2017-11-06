@@ -49,10 +49,10 @@ static assert(fn("LLVM","LLVM"));
 static assert(bangFn("LLVM","HHVM"));
 static assert(!bangFn("LLVM","LLVM"));
 
-string first_1 = "first";
-string second_1 = "second";
-string first_2 = "first";
-string second_2 = "second";
+static immutable string first_1 = "first";
+static immutable string second_1 = "second";
+static immutable string first_2 = "first";
+static immutable string second_2 = "second";
 
 uint alwaysFalse_1()
 {
