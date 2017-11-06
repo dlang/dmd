@@ -310,11 +310,6 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.obj = true;
     global.params.useDeprecated = 2;
     global.params.hdrStripPlainFunctions = true;
-    global.params.linkswitches = new Strings();
-    global.params.libfiles = new Strings();
-    global.params.dllfiles = new Strings();
-    global.params.objfiles = new Strings();
-    global.params.ddocfiles = new Strings();
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
@@ -796,7 +791,7 @@ Language changes listed by -transition=id:
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles.dim; j++)
             {
-                if (m.objfile.name.str == (*global.params.objfiles)[j])
+                if (m.objfile.name.str == global.params.objfiles[j])
                 {
                     global.params.objfiles.remove(j);
                     break;
@@ -961,7 +956,7 @@ Language changes listed by -transition=id:
             else
             {
                 // Generate json file name from first obj name
-                const(char)* n = (*global.params.objfiles)[0];
+                const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
                 //if (!FileName::absolute(name))
                 //    name = FileName::combine(dir, name);
