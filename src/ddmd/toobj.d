@@ -840,7 +840,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (global.params.symdebug)
                     toDebug(sd);
 
-                if (!global.params.betterC)
+                if (global.params.useTypeInfo)
                     genTypeInfo(sd.type, null);
 
                 // Generate static initializer
@@ -1002,7 +1002,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (global.params.symdebug)
                 toDebug(ed);
 
-            if (!global.params.betterC)
+            if (global.params.useTypeInfo)
                 genTypeInfo(ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
