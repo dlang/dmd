@@ -123,6 +123,14 @@ segidx_t seg_tlsseg_bss = UNKNOWN;
  * type. Later, translate to mscoff relocation structure.
  */
 
+enum
+{
+    RELaddr   = 0,     // straight address
+    RELrel    = 1,     // relative to location to be fixed up
+    RELseg    = 2,     // 2 byte section
+    RELaddr32 = 3,     // 4 byte offset
+};
+
 struct Relocation
 {   // Relocations are attached to the struct seg_data they refer to
     targ_size_t offset; // location in segment to be fixed up
@@ -132,10 +140,6 @@ struct Relocation
     unsigned targseg;   // if !=0, then location is to be fixed up
                         // to address of start of this segment
     unsigned char rtype;   // RELxxxx
-#define RELaddr 0       // straight address
-#define RELrel  1       // relative to location to be fixed up
-#define RELseg  2       // 2 byte section
-#define RELaddr32 3     // 4 byte offset
     short val;          // 0, -1, -2, -3, -4, -5
 };
 
@@ -400,10 +404,13 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     seg_count = 0;
 
-#define SHI_DATA        1
-#define SHI_TEXT        2
-#define SHI_UDATA       3
-#define SHI_CDATA       4
+    enum
+    {
+        SHI_DATA       = 1,
+        SHI_TEXT       = 2,
+        SHI_UDATA      = 3,
+        SHI_CDATA      = 4,
+    };
 
     getsegment2(SHI_TEXT);
     assert(SegData[CODE]->SDseg == CODE);

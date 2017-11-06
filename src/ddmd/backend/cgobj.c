@@ -66,90 +66,100 @@ static char __file__[] = __FILE__;      // for tassert.h
  * Record types:
  */
 
-#define RHEADR  0x6E
-#define REGINT  0x70
-#define REDATA  0x72
-#define RIDATA  0x74
-#define OVLDEF  0x76
-#define ENDREC  0x78
-#define BLKDEF  0x7A
-#define BLKEND  0x7C
-//#define DEBSYM        0x7E
-#define THEADR  0x80
-#define LHEADR  0x82
-#define PEDATA  0x84
-#define PIDATA  0x86
-#define COMENT  0x88
-#define MODEND  0x8A
-#define EXTDEF  0x8C
-#define TYPDEF  0x8E
-#define PUBDEF  0x90
-#define PUB386  0x91
-#define LOCSYM  0x92
-#define LINNUM  0x94
-#define LNAMES  0x96
-#define SEGDEF  0x98
-#define SEG386  0x99
-#define GRPDEF  0x9A
-#define FIXUPP  0x9C
-#define FIX386  0x9D
-#define LEDATA  0xA0
-#define LED386  0xA1
-#define LIDATA  0xA2
-#define LID386  0xA3
-#define LIBHED  0xA4
-#define LIBNAM  0xA6
-#define LIBLOC  0xA8
-#define LIBDIC  0xAA
-#define COMDEF  0xB0
-#define LEXTDEF 0xB4
-#define LPUBDEF 0xB6
-#define LCOMDEF 0xB8
-#define CEXTDEF 0xBC
-#define COMDAT  0xC2
-#define LINSYM  0xC4
-#define ALIAS   0xC6
-#define LLNAMES 0xCA
+enum
+{
+    RHEADR  = 0x6E,
+    REGINT  = 0x70,
+    REDATA  = 0x72,
+    RIDATA  = 0x74,
+    OVLDEF  = 0x76,
+    ENDREC  = 0x78,
+    BLKDEF  = 0x7A,
+    BLKEND  = 0x7C,
+//  DEBSYM  = 0x7E,
+    THEADR  = 0x80,
+    LHEADR  = 0x82,
+    PEDATA  = 0x84,
+    PIDATA  = 0x86,
+    COMENT  = 0x88,
+    MODEND  = 0x8A,
+    EXTDEF  = 0x8C,
+    TYPDEF  = 0x8E,
+    PUBDEF  = 0x90,
+    PUB386  = 0x91,
+    LOCSYM  = 0x92,
+    LINNUM  = 0x94,
+    LNAMES  = 0x96,
+    SEGDEF  = 0x98,
+    SEG386  = 0x99,
+    GRPDEF  = 0x9A,
+    FIXUPP  = 0x9C,
+    FIX386  = 0x9D,
+    LEDATA  = 0xA0,
+    LED386  = 0xA1,
+    LIDATA  = 0xA2,
+    LID386  = 0xA3,
+    LIBHED  = 0xA4,
+    LIBNAM  = 0xA6,
+    LIBLOC  = 0xA8,
+    LIBDIC  = 0xAA,
+    COMDEF  = 0xB0,
+    LEXTDEF = 0xB4,
+    LPUBDEF = 0xB6,
+    LCOMDEF = 0xB8,
+    CEXTDEF = 0xBC,
+    COMDAT  = 0xC2,
+    LINSYM  = 0xC4,
+    ALIAS   = 0xC6,
+    LLNAMES = 0xCA,
+};
 
 // Some definitions for .OBJ files. Trial and error to determine which
 // one to use when. Page #s refer to Intel spec on .OBJ files.
 
 // Values for LOCAT byte: (pg. 71)
-#define LOCATselfrel    0x8000
-#define LOCATsegrel     0xC000
+enum
+{
+    LOCATselfrel            = 0x8000,
+    LOCATsegrel             = 0xC000,
+
 // OR'd with one of the following:
-#define LOClobyte               0x0000
-#define LOCbase                 0x0800
-#define LOChibyte               0x1000
-#define LOCloader_resolved      0x1400
+    LOClobyte               = 0x0000,
+    LOCbase                 = 0x0800,
+    LOChibyte               = 0x1000,
+    LOCloader_resolved      = 0x1400,
 
 // Unfortunately, the fixup stuff is different for EASY OMF and Microsoft
-#define EASY_LOCoffset          0x1400          // 32 bit offset
-#define EASY_LOCpointer         0x1800          // 48 bit seg/offset
+    EASY_LOCoffset          = 0x1400,          // 32 bit offset
+    EASY_LOCpointer         = 0x1800,          // 48 bit seg/offset
 
-#define LOC32offset             0x2400
-#define LOC32tlsoffset          0x2800
-#define LOC32pointer            0x2C00
+    LOC32offset             = 0x2400,
+    LOC32tlsoffset          = 0x2800,
+    LOC32pointer            = 0x2C00,
 
-#define LOC16offset             0x0400
-#define LOC16pointer            0x0C00
+    LOC16offset             = 0x0400,
+    LOC16pointer            = 0x0C00,
 
-#define LOCxx                   0x3C00
+    LOCxx                   = 0x3C00
+};
 
 // FDxxxx are constants for the FIXDAT byte in fixup records (pg. 72)
 
-#define FD_F0   0x00            // segment index
-#define FD_F1   0x10            // group index
-#define FD_F2   0x20            // external index
-#define FD_F4   0x40            // canonic frame of LSEG that contains Location
-#define FD_F5   0x50            // Target determines the frame
+enum
+{
+    FD_F0 = 0x00,            // segment index
+    FD_F1 = 0x10,            // group index
+    FD_F2 = 0x20,            // external index
+    FD_F4 = 0x40,            // canonic frame of LSEG that contains Location
+    FD_F5 = 0x50,            // Target determines the frame
 
-#define FD_T0   0               // segment index
-#define FD_T1   1               // group index
-#define FD_T2   2               // external index
-#define FD_T4   4               // segment index, 0 displacement
-#define FD_T5   5               // group index, 0 displacement
-#define FD_T6   6               // external index, 0 displacement
+    FD_T0 = 0,               // segment index
+    FD_T1 = 1,               // group index
+    FD_T2 = 2,               // external index
+    FD_T4 = 4,               // segment index, 0 displacement
+    FD_T5 = 5,               // group index, 0 displacement
+    FD_T6 = 6,               // external index, 0 displacement
+};
 
 /***************
  * Fixup list.
@@ -198,26 +208,29 @@ struct Ledatarec
 
 #define SEG_ATTR(A,C,B,P)       (((A) << 5) | ((C) << 2) | ((B) << 1) | (P))
 
+enum
+{
 // Segment alignment A
-#define SEG_ALIGN0      0       // absolute segment
-#define SEG_ALIGN1      1       // byte align
-#define SEG_ALIGN2      2       // word align
-#define SEG_ALIGN16     3       // paragraph align
-#define SEG_ALIGN4K     4       // 4Kb page align
-#define SEG_ALIGN4      5       // dword align
+    SEG_ALIGN0    = 0,       // absolute segment
+    SEG_ALIGN1    = 1,       // byte align
+    SEG_ALIGN2    = 2,       // word align
+    SEG_ALIGN16   = 3,       // paragraph align
+    SEG_ALIGN4K   = 4,       // 4Kb page align
+    SEG_ALIGN4    = 5,       // dword align
 
 // Segment combine types C
-#define SEG_C_ABS       0
-#define SEG_C_PUBLIC    2
-#define SEG_C_STACK     5
-#define SEG_C_COMMON    6
+    SEG_C_ABS     = 0,
+    SEG_C_PUBLIC  = 2,
+    SEG_C_STACK   = 5,
+    SEG_C_COMMON  = 6,
 
 // Segment type P
-#define USE16   0
-#define USE32   1
+    USE16 = 0,
+    USE32 = 1,
 
-#define USE32_CODE      (4+2)           // use32 + execute/read
-#define USE32_DATA      (4+3)           // use32 + read/write
+    USE32_CODE    = (4+2),          // use32 + execute/read
+    USE32_DATA    = (4+3),          // use32 + read/write
+};
 
 /*****************************
  * Line number support.

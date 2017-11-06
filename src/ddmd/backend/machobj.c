@@ -51,16 +51,19 @@
 #include        "dwarf.h"
 
 // for x86_64
-#define X86_64_RELOC_UNSIGNED           0
-#define X86_64_RELOC_SIGNED             1
-#define X86_64_RELOC_BRANCH             2
-#define X86_64_RELOC_GOT_LOAD           3
-#define X86_64_RELOC_GOT                4
-#define X86_64_RELOC_SUBTRACTOR         5
-#define X86_64_RELOC_SIGNED_1           6
-#define X86_64_RELOC_SIGNED_2           7
-#define X86_64_RELOC_SIGNED_4           8
-#define X86_64_RELOC_TLV                9 // for thread local variables
+enum
+{
+    X86_64_RELOC_UNSIGNED         = 0,
+    X86_64_RELOC_SIGNED           = 1,
+    X86_64_RELOC_BRANCH           = 2,
+    X86_64_RELOC_GOT_LOAD         = 3,
+    X86_64_RELOC_GOT              = 4,
+    X86_64_RELOC_SUBTRACTOR       = 5,
+    X86_64_RELOC_SIGNED_1         = 6,
+    X86_64_RELOC_SIGNED_2         = 7,
+    X86_64_RELOC_SIGNED_4         = 8,
+    X86_64_RELOC_TLV              = 9, // for thread local variables
+};
 
 static Outbuffer *fobjbuf;
 
@@ -156,13 +159,16 @@ static int pointersSeg;                 // segment index for __pointers
 static IDXSTR extdef;
 
 #if 0
-#define STI_FILE 1              // Where file symbol table entry is
-#define STI_TEXT 2
-#define STI_DATA 3
-#define STI_BSS  4
-#define STI_GCC  5              // Where "gcc2_compiled" symbol is */
-#define STI_RODAT 6             // Symbol for readonly data
-#define STI_COM  8
+enum
+{
+    STI_FILE  = 1,            // Where file symbol table entry is
+    STI_TEXT  = 2,
+    STI_DATA  = 3,
+    STI_BSS   = 4,
+    STI_GCC   = 5,            // Where "gcc2_compiled" symbol is */
+    STI_RODAT = 6,            // Symbol for readonly data
+    STI_COM   = 8,
+};
 #endif
 
 // Each compiler segment is a section
@@ -229,6 +235,12 @@ int seg_tlsseg_data = UNKNOWN;
  * type. Later, translate to Mach-O relocation structure.
  */
 
+enum
+{
+    RELaddr = 0,      // straight address
+    RELrel  = 1,      // relative to location to be fixed up
+};
+
 struct Relocation
 {   // Relocations are attached to the struct seg_data they refer to
     targ_size_t offset; // location in segment to be fixed up
@@ -238,8 +250,6 @@ struct Relocation
     unsigned targseg;   // if !=0, then location is to be fixed up
                         // to address of start of this segment
     unsigned char rtype;   // RELxxxx
-#define RELaddr 0       // straight address
-#define RELrel  1       // relative to location to be fixed up
     unsigned char flag; // 1: emit SUBTRACTOR/UNSIGNED pair
     short val;          // 0, -1, -2, -4
 };
