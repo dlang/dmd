@@ -4766,7 +4766,14 @@ final class Parser(AST) : Lexer
             }
             else if (!f.frequire && !f.fensure) // allow these even with no body
             {
-                error("semicolon expected following function declaration");
+                TOK t = token.value;
+                if (t == TOKconst || t == TOKimmutable || t == TOKinout || t == TOKreturn ||
+                        t == TOKshared || t == TOKnothrow || t == TOKpure)
+                    error("'%s' cannot be placed after a template constraint", token.toChars);
+                else if (t == TOKat)
+                    error("attributes cannot be placed after a template constraint");
+                else
+                    error("semicolon expected following function declaration");
             }
             break;
         }
