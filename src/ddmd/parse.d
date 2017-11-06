@@ -4768,7 +4768,7 @@ final class Parser(AST) : Lexer
             {
                 TOK t = token.value;
                 if (t == TOKconst || t == TOKimmutable || t == TOKinout || t == TOKreturn ||
-                    t == TOKshared || t == TOKnothrow || t == TOKpure)
+                        t == TOKshared || t == TOKnothrow || t == TOKpure)
                     error("'%s' cannot be placed after a template constraint", token.toChars);
                 else if (t == TOKat)
                     error("attributes cannot be placed after a template constraint");
