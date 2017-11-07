@@ -48,6 +48,7 @@ import ddmd.link;
 import ddmd.mtype;
 import ddmd.objc;
 import ddmd.parse;
+import ddmd.root.array;
 import ddmd.root.file;
 import ddmd.root.filename;
 import ddmd.root.man;
@@ -299,15 +300,12 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.useOut = true;
     global.params.useArrayBounds = BOUNDSCHECKdefault; // set correct value later
     global.params.useSwitchError = true;
+    global.params.useModuleInfo = true;
+    global.params.useTypeInfo = true;
     global.params.useInline = false;
     global.params.obj = true;
     global.params.useDeprecated = 2;
     global.params.hdrStripPlainFunctions = true;
-    global.params.linkswitches = new Strings();
-    global.params.libfiles = new Strings();
-    global.params.dllfiles = new Strings();
-    global.params.objfiles = new Strings();
-    global.params.ddocfiles = new Strings();
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.is64bit = (size_t.sizeof == 8);
     global.params.mscoff = false;
@@ -501,6 +499,12 @@ Language changes listed by -transition=id:
         global.params.useAssert = false;
         global.params.useSwitchError = false;
     }
+    if (global.params.betterC)
+    {
+        global.params.useCAsserts = true;
+        global.params.useModuleInfo = false;
+        global.params.useTypeInfo = false;
+    }
     if (global.params.useUnitTests)
         global.params.useAssert = true;
     if (!global.params.obj || global.params.lib)
@@ -547,6 +551,14 @@ Language changes listed by -transition=id:
             //fatal();
         }
     }
+
+    // Add in command line versions
+    if (global.params.versionids)
+        foreach (charz; *global.params.versionids)
+            VersionCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
+    if (global.params.debugids)
+        foreach (charz; *global.params.debugids)
+            DebugCondition.addGlobalIdent(charz[0 .. strlen(charz)]);
 
     // Predefined version identifiers
     addDefaultVersionIdentifiers();
@@ -783,7 +795,7 @@ Language changes listed by -transition=id:
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles.dim; j++)
             {
-                if (m.objfile.name.str == (*global.params.objfiles)[j])
+                if (m.objfile.name.str == global.params.objfiles[j])
                 {
                     global.params.objfiles.remove(j);
                     break;
@@ -948,7 +960,7 @@ Language changes listed by -transition=id:
             else
             {
                 // Generate json file name from first obj name
-                const(char)* n = (*global.params.objfiles)[0];
+                const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
                 //if (!FileName::absolute(name))
                 //    name = FileName::combine(dir, name);
@@ -2023,14 +2035,18 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         params.debuglevel = level;
                     }
                     else if (Identifier.isValidIdentifier(p + 7))
-                        DebugCondition.addGlobalIdent(p[7 .. p.strlen]);
+                    {
+                        if (!params.debugids)
+                            params.debugids = new Array!(const(char)*);
+                        params.debugids.push(p + 7);
+                    }
                     else
                         goto Lerror;
                 }
                 else if (p[6])
                     goto Lerror;
                 else
-                    DebugCondition.setGlobalLevel(1);
+                    params.debuglevel = 1;
             }
             else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
             {
@@ -2047,7 +2063,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         params.versionlevel = level;
                     }
                     else if (Identifier.isValidIdentifier(p + 9))
-                        VersionCondition.addGlobalIdent(p[9 .. p.strlen]);
+                    {
+                        if (!params.versionids)
+                            params.versionids = new Array!(const(char)*);
+                        params.versionids.push(p + 9);
+                    }
                     else
                         goto Lerror;
                 }

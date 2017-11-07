@@ -17,6 +17,7 @@ import core.stdc.stdio;
 import ddmd.root.array;
 import ddmd.root.filename;
 import ddmd.root.outbuffer;
+import ddmd.identifier;
 
 template xversion(string s)
 {
@@ -123,6 +124,9 @@ struct Param
     bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
     bool enforcePropertySyntax;
+    bool useCAsserts;       // use C assert() on bounds and contract failures
+    bool useModuleInfo;     // generate runtime module information
+    bool useTypeInfo;       // generate runtime type information
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
@@ -159,7 +163,7 @@ struct Param
     bool doDocComments;                 // process embedded documentation comments
     const(char)* docdir;                // write documentation file to docdir directory
     const(char)* docname;               // write documentation file to docname
-    Array!(const(char)*)* ddocfiles;    // macro include files for Ddoc
+    Array!(const(char)*) ddocfiles;     // macro include files for Ddoc
 
     bool doHdrGeneration;               // process embedded documentation comments
     const(char)* hdrdir;                // write 'header' file to docdir directory
@@ -194,10 +198,10 @@ struct Param
     Strings runargs; // arguments for executable
 
     // Linker stuff
-    Array!(const(char)*)* objfiles;
-    Array!(const(char)*)* linkswitches;
-    Array!(const(char)*)* libfiles;
-    Array!(const(char)*)* dllfiles;
+    Array!(const(char)*) objfiles;
+    Array!(const(char)*) linkswitches;
+    Array!(const(char)*) libfiles;
+    Array!(const(char)*) dllfiles;
     const(char)* deffile;
     const(char)* resfile;
     const(char)* exefile;
@@ -246,6 +250,9 @@ struct Global
     uint gaggedErrors;      // number of errors reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
+
+    Array!Identifier* versionids;    // command line versions and predefined versions
+    Array!Identifier* debugids;      // command line debug versions and predefined versions
 
     /* Start gagging. Return the current number of gagged errors
      */

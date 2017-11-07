@@ -166,7 +166,7 @@ public int runLINK()
             {
                 if (i)
                     cmdbuf.writeByte(' ');
-                const(char)* p = (*global.params.objfiles)[i];
+                const(char)* p = global.params.objfiles[i];
                 const(char)* basename = FileName.removeExt(FileName.name(p));
                 const(char)* ext = FileName.ext(p);
                 if (ext && !strchr(basename, '.'))
@@ -194,7 +194,7 @@ public int runLINK()
                 /* Generate exe file name from first obj name.
                  * No need to add it to cmdbuf because the linker will default to it.
                  */
-                const(char)* n = (*global.params.objfiles)[0];
+                const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
                 global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
             }
@@ -222,7 +222,7 @@ public int runLINK()
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEFAULTLIB:");
-                writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
+                writeFilename(&cmdbuf, global.params.libfiles[i]);
             }
             if (global.params.deffile)
             {
@@ -246,7 +246,7 @@ public int runLINK()
             for (size_t i = 0; i < global.params.linkswitches.dim; i++)
             {
                 cmdbuf.writeByte(' ');
-                cmdbuf.writestring((*global.params.linkswitches)[i]);
+                cmdbuf.writestring(global.params.linkswitches[i]);
             }
             /* Append the path to the VC lib files, and then the SDK lib files
              */
@@ -350,7 +350,7 @@ public int runLINK()
             {
                 if (i)
                     cmdbuf.writeByte('+');
-                const(char)* p = (*global.params.objfiles)[i];
+                const(char)* p = global.params.objfiles[i];
                 const(char)* basename = FileName.removeExt(FileName.name(p));
                 const(char)* ext = FileName.ext(p);
                 if (ext && !strchr(basename, '.'))
@@ -370,7 +370,7 @@ public int runLINK()
                 /* Generate exe file name from first obj name.
                  * No need to add it to cmdbuf because the linker will default to it.
                  */
-                const(char)* n = (*global.params.objfiles)[0];
+                const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
                 global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
             }
@@ -397,7 +397,7 @@ public int runLINK()
             {
                 if (i)
                     cmdbuf.writeByte('+');
-                writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
+                writeFilename(&cmdbuf, global.params.libfiles[i]);
             }
             if (global.params.deffile)
             {
@@ -438,7 +438,7 @@ public int runLINK()
             cmdbuf.writestring("/noi");
             for (size_t i = 0; i < global.params.linkswitches.dim; i++)
             {
-                cmdbuf.writestring((*global.params.linkswitches)[i]);
+                cmdbuf.writestring(global.params.linkswitches[i]);
             }
             cmdbuf.writeByte(';');
             char* p = cmdbuf.peekString();
@@ -490,7 +490,7 @@ public int runLINK()
             }
             free(arg);
         }
-        argv.append(global.params.objfiles);
+        argv.append(&global.params.objfiles);
         version (OSX)
         {
             // If we are on Mac OS X and linking a dynamic library,
@@ -547,7 +547,7 @@ public int runLINK()
         else
         {
             // Generate exe file name from first obj name
-            const(char)* n = (*global.params.objfiles)[0];
+            const(char)* n = global.params.objfiles[0];
             char* ex;
             n = FileName.name(n);
             const(char)* e = FileName.ext(n);
@@ -637,7 +637,7 @@ public int runLINK()
         }
         for (size_t i = 0; i < global.params.linkswitches.dim; i++)
         {
-            const(char)* p = (*global.params.linkswitches)[i];
+            const(char)* p = global.params.linkswitches[i];
             if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
             {
                 // Don't need -Xlinker if switch starts with -l or -L.
@@ -657,7 +657,7 @@ public int runLINK()
          */
         for (size_t i = 0; i < global.params.libfiles.dim; i++)
         {
-            const(char)* p = (*global.params.libfiles)[i];
+            const(char)* p = global.params.libfiles[i];
             size_t plen = strlen(p);
             if (plen > 2 && p[plen - 2] == '.' && p[plen - 1] == 'a')
                 argv.push(p);
@@ -672,7 +672,7 @@ public int runLINK()
         }
         for (size_t i = 0; i < global.params.dllfiles.dim; i++)
         {
-            const(char)* p = (*global.params.dllfiles)[i];
+            const(char)* p = global.params.dllfiles[i];
             argv.push(p);
         }
         /* D runtime libraries must go after user specified libraries

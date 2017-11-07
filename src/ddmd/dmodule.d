@@ -388,12 +388,12 @@ extern (C++) final class Module : Package
     Modules aimports;           // all imported modules
 
     uint debuglevel;            // debug level
-    Strings* debugids;          // debug identifiers
-    Strings* debugidsNot;       // forward referenced debug identifiers
+    Identifiers* debugids;      // debug identifiers
+    Identifiers* debugidsNot;   // forward referenced debug identifiers
 
     uint versionlevel;          // version level
-    Strings* versionids;        // version identifiers
-    Strings* versionidsNot;     // forward referenced version identifiers
+    Identifiers* versionids;    // version identifiers
+    Identifiers* versionidsNot; // forward referenced version identifiers
 
     Macro* macrotable;          // document comment macros
     Escape* escapetable;        // document comment escapes

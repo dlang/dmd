@@ -686,7 +686,7 @@ extern (C++) class S2irVisitor : Visitor
 
         //printf("SwitchErrorStatement.toIR()\n");
         elem *e;
-        if (global.params.betterC)
+        if (global.params.useCAsserts)
         {
             e = callCAssert(irs, s.loc, null, null, "no switch default");
         }
