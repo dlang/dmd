@@ -35,16 +35,11 @@ enum TARGET_WINDOS  = xversion!`Windows`;
 
 enum BOUNDSCHECK : int
 {
-    BOUNDSCHECKdefault,     // initial value
-    BOUNDSCHECKoff,         // never do bounds checking
-    BOUNDSCHECKon,          // always do bounds checking
-    BOUNDSCHECKsafeonly,    // do bounds checking only in @safe functions
+    _default,     // initial value
+    off,          // never do bounds checking
+    on,           // always do bounds checking
+    safeonly,     // do bounds checking only in @safe functions
 }
-
-alias BOUNDSCHECKdefault = BOUNDSCHECK.BOUNDSCHECKdefault;
-alias BOUNDSCHECKoff = BOUNDSCHECK.BOUNDSCHECKoff;
-alias BOUNDSCHECKon = BOUNDSCHECK.BOUNDSCHECKon;
-alias BOUNDSCHECKsafeonly = BOUNDSCHECK.BOUNDSCHECKsafeonly;
 
 enum CPU
 {
