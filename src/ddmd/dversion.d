@@ -85,8 +85,8 @@ extern (C++) final class DebugSymbol : Dsymbol
                     errors = true;
                 }
                 if (!m.debugids)
-                    m.debugids = new Strings();
-                m.debugids.push(ident.toChars());
+                    m.debugids = new Identifiers();
+                m.debugids.push(ident);
             }
         }
         else
@@ -175,8 +175,8 @@ extern (C++) final class VersionSymbol : Dsymbol
                     errors = true;
                 }
                 if (!m.versionids)
-                    m.versionids = new Strings();
-                m.versionids.push(ident.toChars());
+                    m.versionids = new Identifiers();
+                m.versionids.push(ident);
             }
         }
         else
