@@ -232,20 +232,21 @@ struct IRState
     }
 
     /**********************
-     * Returns true if do array bounds checking for the current function
+     * Returns:
+     *    true if do array bounds checking for the current function
      */
     extern (C++) bool arrayBoundsCheck()
     {
         bool result;
         switch (global.params.useArrayBounds)
         {
-        case BOUNDSCHECKoff:
+        case BOUNDSCHECK.off:
             result = false;
             break;
-        case BOUNDSCHECKon:
+        case BOUNDSCHECK.on:
             result = true;
             break;
-        case BOUNDSCHECKsafeonly:
+        case BOUNDSCHECK.safeonly:
             {
                 result = false;
                 FuncDeclaration fd = getFunc();

@@ -298,7 +298,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.useInvariants = true;
     global.params.useIn = true;
     global.params.useOut = true;
-    global.params.useArrayBounds = BOUNDSCHECKdefault; // set correct value later
+    global.params.useArrayBounds = BOUNDSCHECK._default; // set correct value later
     global.params.useSwitchError = true;
     global.params.useModuleInfo = true;
     global.params.useTypeInfo = true;
@@ -486,10 +486,10 @@ Language changes listed by -transition=id:
         if (!global.params.mscrtlib)
             global.params.mscrtlib = "libcmt";
     }
-    if (global.params.useArrayBounds == BOUNDSCHECKdefault)
+    if (global.params.useArrayBounds == BOUNDSCHECK._default)
     {
         // Set the real default value
-        global.params.useArrayBounds = global.params.release ? BOUNDSCHECKsafeonly : BOUNDSCHECKon;
+        global.params.useArrayBounds = global.params.release ? BOUNDSCHECK.safeonly : BOUNDSCHECK.on;
     }
     if (global.params.release)
     {
@@ -1410,7 +1410,7 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition.addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == BOUNDSCHECKoff)
+    if (global.params.useArrayBounds == BOUNDSCHECK.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (global.params.betterC)
         VersionCondition.addPredefinedGlobalIdent("D_BetterC");
@@ -1967,7 +1967,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
-                params.useArrayBounds = BOUNDSCHECKoff;
+                params.useArrayBounds = BOUNDSCHECK.off;
             }
             else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0)
             {
@@ -1977,15 +1977,15 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (strcmp(p + 13, "on") == 0)
                     {
-                        params.useArrayBounds = BOUNDSCHECKon;
+                        params.useArrayBounds = BOUNDSCHECK.on;
                     }
                     else if (strcmp(p + 13, "safeonly") == 0)
                     {
-                        params.useArrayBounds = BOUNDSCHECKsafeonly;
+                        params.useArrayBounds = BOUNDSCHECK.safeonly;
                     }
                     else if (strcmp(p + 13, "off") == 0)
                     {
-                        params.useArrayBounds = BOUNDSCHECKoff;
+                        params.useArrayBounds = BOUNDSCHECK.off;
                     }
                     else
                         goto Lerror;
