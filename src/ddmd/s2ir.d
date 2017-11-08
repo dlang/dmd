@@ -557,6 +557,13 @@ extern (C++) class S2irVisitor : Visitor
             return;
         }
 
+        if (s.condition.type.isString())
+        {
+            // This codepath was replaced by lowering during semantic
+            // to object.__switch in druntime.
+            assert(0);
+        }
+
         block_appendexp(mystate.switchBlock, econd);
         block_next(blx,BCswitch,null);
 

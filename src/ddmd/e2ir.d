@@ -2319,6 +2319,14 @@ elem *toElem(Expression e, IRState *irs)
                 // Should have already been lowered
                 assert(0);
             }
+            else if (cast(int)eop > 1 &&
+                (t1.ty == Tarray || t1.ty == Tsarray) &&
+                (t2.ty == Tarray || t2.ty == Tsarray))
+            {
+                // This codepath was replaced by lowering during semantic
+                // to object.__cmp in druntime.
+                assert(0);
+            }
             else
             {
                 if (cast(int)eop <= 1)
