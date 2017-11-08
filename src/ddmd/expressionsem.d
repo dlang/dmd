@@ -4380,7 +4380,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     sc.fieldinit[i] |= CSXhalt;
             }
 
-            if (!global.params.useAssert)
+            if (global.params.useAssert == CHECKENABLE.off)
             {
                 Expression e = new HaltExp(exp.loc);
                 e = e.expressionSemantic(sc);

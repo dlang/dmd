@@ -2477,7 +2477,7 @@ else
                 needswitcherror = true;
         }
 
-        if (!sc.sw.sdefault && (!ss.isFinal || needswitcherror || global.params.useAssert))
+        if (!sc.sw.sdefault && (!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on))
         {
             ss.hasNoDefault = 1;
 
@@ -2489,7 +2489,7 @@ else
             CompoundStatement cs;
             Statement s;
 
-            if (global.params.useSwitchError)
+            if (global.params.useSwitchError == CHECKENABLE.on)
                 s = new SwitchErrorStatement(ss.loc);
             else
                 s = new ExpStatement(ss.loc, new HaltExp(ss.loc));

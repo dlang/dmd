@@ -33,12 +33,18 @@ enum TARGET_OPENBSD = xversion!`OpenBSD`;
 enum TARGET_SOLARIS = xversion!`Solaris`;
 enum TARGET_WINDOS  = xversion!`Windows`;
 
-enum BOUNDSCHECK : int
+enum CHECKENABLE : ubyte
 {
     _default,     // initial value
-    off,          // never do bounds checking
-    on,           // always do bounds checking
-    safeonly,     // do bounds checking only in @safe functions
+    off,          // never do checking
+    on,           // always do checking
+    safeonly,     // do checking only in @safe functions
+}
+
+enum CHECKACTION : ubyte
+{
+    D,            // call D assert on failure
+    C,            // call C assert on failure
 }
 
 enum CPU
@@ -97,12 +103,10 @@ struct Param
     // 1: silently allow use of deprecated features
     // 2: warn about the use of deprecated features
     byte useDeprecated;
-    bool useAssert;         // generate runtime code for assert()'s
     bool useInvariants;     // generate class invariant checks
     bool useIn;             // generate precondition checks
     bool useOut;            // generate postcondition checks
     bool stackstomp;        // add stack stomping code
-    bool useSwitchError;    // check for switches without a default
     bool useUnitTests;      // generate unittest code
     bool useInline;         // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
@@ -119,7 +123,6 @@ struct Param
     bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
     bool enforcePropertySyntax;
-    bool useCAsserts;       // use C assert() on bounds and contract failures
     bool useModuleInfo;     // generate runtime module information
     bool useTypeInfo;       // generate runtime type information
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
@@ -144,7 +147,12 @@ struct Param
     bool logo;              // print logo;
 
     CPU cpu;                // CPU instruction set to target
-    BOUNDSCHECK useArrayBounds;
+
+    CHECKENABLE useArrayBounds;    // when to generate code for array bounds checks
+    CHECKENABLE useAssert;         // when to generate code for assert()'s
+    CHECKENABLE useSwitchError;    // check for switches without a default
+    CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
+
     uint errorLimit = 20;
 
     const(char)* argv0;                 // program name
