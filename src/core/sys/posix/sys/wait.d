@@ -63,7 +63,7 @@ version( CRuntime_Glibc )
     }
 
     //
-    // NOTE: These macros assume __USE_BSD is not defined in the relevant
+    // NOTE: These macros assume __USE_MISC is not defined in the relevant
     //       C headers as the parameter definition there is different and
     //       much more complicated.
     //
