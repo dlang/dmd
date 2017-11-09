@@ -302,7 +302,7 @@ void test11()
 
 int test17432(scope int delegate() dg)
 {
-	return dg();
+        return dg();
 }
 
 // stripped down version of std.traits.Parameters
@@ -342,6 +342,32 @@ template test14(T)
 test14!(char[] function(return char[])) x14;
 
 /********************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17935
+
+struct ByChunk(IO)
+{
+@safe:
+    ~this() scope
+    {}
+
+    ubyte[] buf;
+    IO io;
+}
+
+struct IO
+{
+    ~this() @safe @nogc scope
+    {}
+}
+
+@safe @nogc void test17395()
+{
+    ubyte[256] buf;
+    auto chunks = ByChunk!IO(buf[], IO());
+    chunks.__xdtor(); // auto-generated inclusive (fields and struct) dtor
+}
+
+/********************************************/
 
 void main()
 {
@@ -359,6 +385,7 @@ void main()
     test7049();
     test16747();
     test11();
+    test17395();
 
     printf("Success\n");
 }

@@ -10,7 +10,12 @@
 
 module ddmd.clone;
 
-// Online documentation: https://dlang.org/phobos/ddmd_clone.html
+/**
+ * Documentation:
+ *  https://dlang.org/phobos/ddmd_clone.html
+ * Coverage:
+ *  https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/clone.d
+ */
 
 import core.stdc.stdio;
 import ddmd.aggregate;
@@ -987,14 +992,20 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
  * Create inclusive destructor for struct/class by aggregating
  * all the destructors in dtors[] with the destructors for
  * all the members.
- * Note the close similarity with StructDeclaration::buildPostBlit(),
+ * Params:
+ *      ad = struct or class to build destructor for
+ *      sc = context
+ * Returns:
+ *      generated function, null if none needed
+ * Note:
+ * Close similarity with StructDeclaration::buildPostBlit(),
  * and the ordering changes (runs backward instead of forwards).
  */
 extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", ad.toChars());
     if (ad.isUnionDeclaration())
-        return null;
+        return null;                    // unions don't have destructors
 
     StorageClass stc = STCsafe | STCnothrow | STCpure | STCnogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
@@ -1033,9 +1044,8 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             ex = new DotVarExp(loc, ex, v);
 
             // This is a hack so we can call destructors on const/immutable objects.
-            ex = new AddrExp(loc, ex);
-            ex = new CastExp(loc, ex, v.type.mutableOf().pointerTo());
-            ex = new PtrExp(loc, ex);
+            // Do it as a type 'paint'.
+            ex = new CastExp(loc, ex, v.type.mutableOf());
             if (stc & STCsafe)
                 stc = (stc & ~STCsafe) | STCtrusted;
 
@@ -1079,7 +1089,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
      */
     if (e || (stc & STCdisable))
     {
-        //printf("Building __fieldDtor()\n");
+        //printf("Building __fieldDtor(), %s\n", e.toChars());
         auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__fieldDtor);
         dd.generated = true;
         dd.storage_class |= STCinference;
@@ -1134,6 +1144,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         ad.members.push(_alias);
         _alias.addMember(sc, ad); // add to symbol table
     }
+
     return xdtor;
 }
 
