@@ -652,6 +652,7 @@ public:
     TOK tok;
 
     FuncExp(Loc loc, Dsymbol *s);
+    bool equals(RootObject *o);
     void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);

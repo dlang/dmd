@@ -594,7 +594,10 @@ void EnumMember::semantic(Scope *sc)
             origValue = e;
 
             if (!ed->isAnonymous())
+            {
                 e = e->castTo(sc, ed->type);
+                e = e->ctfeInterpret();
+            }
         }
         else if (origType)
         {
@@ -626,7 +629,10 @@ void EnumMember::semantic(Scope *sc)
         origValue = e;
 
         if (!ed->isAnonymous())
+        {
             e = e->castTo(sc, ed->type);
+            e = e->ctfeInterpret();
+        }
         value() = e;
     }
     else

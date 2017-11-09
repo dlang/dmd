@@ -5994,7 +5994,6 @@ void TypeFunction::purityLevel()
 
         /* Should catch delegates and function pointers, and fold in their purity
          */
-
         tf->purity = PUREweak;          // err on the side of too strict
         break;
     }
@@ -6928,22 +6927,27 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
              *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
              *      // because getDsymbol() need to work in AliasDeclaration::semantic().
              */
-            if (!v->type || !v->type->deco)
+            if (!v->type ||
+                !v->type->deco && v->inuse)
             {
                 if (v->inuse)   // Bugzilla 9494
-                {
-                    error(loc, "circular reference to '%s'", v->toPrettyChars());
-                    *pe = new ErrorExp();
-                    return;
-                }
-                if (v->semanticRun < PASSsemanticdone && v->_scope)
-                    v->semantic(NULL);
+                    error(loc, "circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+                else
+                    error(loc, "forward reference to %s '%s'", v->kind(), v->toPrettyChars());
+                *pt = Type::terror;
+                return;
             }
-            assert(v->type);        // Bugzilla 14642
             if (v->type->ty == Terror)
                 *pt = Type::terror;
             else
                 *pe = new VarExp(loc, v);
+            return;
+        }
+        if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+        {
+            //printf("'%s' is a function literal\n", fld->toChars());
+            *pe = new FuncExp(loc, fld);
+            *pe = (*pe)->semantic(sc);
             return;
         }
 #if 0
@@ -7153,37 +7157,21 @@ Type *TypeInstance::syntaxCopy()
 void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid)
 {
     // Note close similarity to TypeIdentifier::resolve()
-
-    Dsymbol *s;
-
     *pe = NULL;
     *pt = NULL;
     *ps = NULL;
-
-#if 0
-    if (!idents.dim)
+    //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst->toChars());
+    tempinst->semantic(sc);
+    if (!global.gag && tempinst->errors)
     {
-        error(loc, "template instance '%s' has no identifier", toChars());
+        *pt = terror;
         return;
     }
-#endif
-    //id = (Identifier *)idents.data[0];
-    //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
-    s = tempinst;
-    if (s)
-    {
-        //printf("s = %s\n", s->toChars());
-        s->semantic(sc);
-        if (!global.gag && tempinst->errors)
-        {
-            *pt = terror;
-            return;
-        }
-    }
-    resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
+
+    resolveHelper(loc, sc, tempinst, NULL, pe, pt, ps, intypeid);
     if (*pt)
         *pt = (*pt)->addMod(mod);
-    //printf("pt = '%s'\n", (*pt)->toChars());
+    //if (*pt) printf("pt = '%s'\n", (*pt)->toChars());
 }
 
 Type *TypeInstance::semantic(Loc loc, Scope *sc)
@@ -7543,7 +7531,8 @@ Type *TypeEnum::toBasetype()
 {
     if (!sym->members && !sym->memtype)
         return this;
-    return sym->getMemtype(Loc())->toBasetype();
+    Type *tb = sym->getMemtype(Loc())->toBasetype();
+    return tb->castMod(mod);         // retain modifier bits from 'this'
 }
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -7825,15 +7814,11 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+    assert(e->op != TOKdot);
+
     // Bugzilla 14010
     if (ident == Id::_mangleof)
         return getProperty(e->loc, ident, flag);
-
-    if (!sym->members)
-    {
-        error(e->loc, "struct %s is forward referenced", sym->toChars());
-        return new ErrorExp();
-    }
 
     /* If e.tupleof
      */
@@ -7843,7 +7828,8 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
          * (e.field0, e.field1, e.field2, ...)
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
-        e->type->size();        // do semantic of type
+
+        sym->size(e->loc);      // do semantic of type
 
         Expression *e0 = NULL;
         Expression *ev = e->op == TOKtype ? NULL : e;
@@ -7865,6 +7851,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
             }
             exps->push(ex);
         }
+
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
         sc2->flags = sc->flags | SCOPEnoaccesscheck;
@@ -7873,31 +7860,11 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         return e;
     }
 
-    if (e->op == TOKdot)
-    {
-        DotExp *de = (DotExp *)e;
-        if (de->e1->op == TOKscope)
-        {
-            assert(0);  // cannot find a case where this happens; leave
-                        // assert in until we do
-            ScopeExp *se = (ScopeExp *)de->e1;
-            s = se->sds->search(e->loc, ident);
-            e = de->e1;
-            goto L1;
-        }
-    }
-
     s = searchSymStruct(sc, sym, e, ident);
 L1:
     if (!s)
     {
-        if (sym->_scope)                 // it's a fwd ref, maybe we can resolve it
-        {
-            sym->semantic(NULL);
-            s = searchSymStruct(sc, sym, e, ident);
-        }
-        if (!s)
-            return noMember(sc, e, ident, flag);
+        return noMember(sc, e, ident, flag);
     }
     if (!(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
     {
@@ -7914,27 +7881,32 @@ L1:
         return em->getVarExp(e->loc, sc);
     }
 
-    VarDeclaration *v = s->isVarDeclaration();
-    if (v && (!v->type || !v->type->deco))
+    if (VarDeclaration *v = s->isVarDeclaration())
     {
-        if (v->inuse)   // Bugzilla 9494
+        if (!v->type ||
+            !v->type->deco && v->inuse)
         {
-            e->error("circular reference to '%s'", v->toPrettyChars());
+            if (v->inuse) // Bugzilla 9494
+                e->error("circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+            else
+                e->error("forward reference to %s '%s'", v->kind(), v->toPrettyChars());
             return new ErrorExp();
         }
-        if (v->_scope)
+        if (v->type->ty == Terror)
+            return new ErrorExp();
+
+        if ((v->storage_class & STCmanifest) && v->_init)
         {
-            v->semantic(v->_scope);
-            s = v->toAlias();   // Need this if 'v' is a tuple variable
-            v = s->isVarDeclaration();
+            if (v->inuse)
+            {
+                e->error("circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                return new ErrorExp();
+            }
+            checkAccess(e->loc, sc, NULL, v);
+            Expression *ve = new VarExp(e->loc, v);
+            ve = ve->semantic(sc);
+            return ve;
         }
-    }
-    if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
-    {
-        checkAccess(e->loc, sc, NULL, v);
-        Expression *ve = new VarExp(e->loc, v);
-        ve = ve->semantic(sc);
-        return ve;
     }
 
     if (s->getType())
@@ -7996,11 +7968,11 @@ L1:
     }
 
     Declaration *d = s->isDeclaration();
-#ifdef DEBUG
     if (!d)
-        printf("d = %s '%s'\n", s->kind(), s->toChars());
-#endif
-    assert(d);
+    {
+        e->error("%s.%s is not a declaration", e->toChars(), ident->toChars());
+        return new ErrorExp();
+    }
 
     if (e->op == TOKtype)
     {
@@ -8043,24 +8015,6 @@ L1:
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
         return e;
-    }
-
-    if (v)
-    {
-        if (v->toParent() != sym)
-            sym->error(e->loc, "'%s' is not a member", v->toChars());
-
-#if 0
-        // *(&e + offset)
-        checkAccess(e->loc, sc, e, d);
-        Expression *b = new AddrExp(e->loc, e);
-        b->type = e->type->pointerTo();
-        b = new AddExp(e->loc, b, new IntegerExp(e->loc, v->offset, Type::tint32));
-        b->type = v->type->pointerTo();
-        b = new PtrExp(e->loc, b);
-        b->type = v->type->addMod(e->type->mod);
-        return b;
-#endif
     }
 
     e = new DotVarExp(e->loc, e, d);
@@ -8426,22 +8380,10 @@ static Dsymbol *searchSymClass(Scope *sc, Dsymbol *sym, Expression *e, Identifie
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
     Dsymbol *s;
-
 #if LOGDOTEXP
-    printf("TypeClass::dotExp(e='%s', ident='%s')\n", e->toChars(), ident->toChars());
+    printf("TypeClass::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
-
-    if (e->op == TOKdot)
-    {
-        DotExp *de = (DotExp *)e;
-        if (de->e1->op == TOKscope)
-        {
-            ScopeExp *se = (ScopeExp *)de->e1;
-            s = se->sds->search(e->loc, ident);
-            e = de->e1;
-            goto L1;
-        }
-    }
+    assert(e->op != TOKdot);
 
     // Bugzilla 12543
     if (ident == Id::__sizeof || ident == Id::__xalignof || ident == Id::_mangleof)
@@ -8449,22 +8391,15 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         return Type::getProperty(e->loc, ident, 0);
     }
 
+    /* If e.tupleof
+     */
     if (ident == Id::_tupleof)
     {
         /* Create a TupleExp
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
 
-        /* If this is called in the middle of a class declaration,
-         *  class Inner {
-         *    int x;
-         *    alias typeof(Inner.tupleof) T;
-         *    int y;
-         *  }
-         * then Inner.y will be omitted from the tuple.
-         */
-        // Detect that error, and at least try to run semantic() on it if we can
-        sym->size(e->loc);
+        sym->size(e->loc); // do semantic of type
 
         Expression *e0 = NULL;
         Expression *ev = e->op == TOKtype ? NULL : e;
@@ -8633,14 +8568,12 @@ L1:
             dve->type = sym->vthis->type->addMod(e->type->mod);
             return dve;
         }
-        else
-        {
-            return noMember(sc, e, ident, flag);
-        }
+
+        return noMember(sc, e, ident, flag);
     }
     if (!(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
     {
-        ::deprecation(e->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->_module->toChars());
+        ::deprecation(e->loc, "%s is not visible from module %s", s->toPrettyChars(), sc->_module->toPrettyChars());
         // return noMember(sc, e, ident, flag);
     }
     if (!s->isFuncDeclaration())        // because of overloading
@@ -8653,27 +8586,32 @@ L1:
         return em->getVarExp(e->loc, sc);
     }
 
-    VarDeclaration *v = s->isVarDeclaration();
-    if (v && (!v->type || !v->type->deco))
+    if (VarDeclaration *v = s->isVarDeclaration())
     {
-        if (v->inuse)   // Bugzilla 9494
+        if (!v->type ||
+            !v->type->deco && v->inuse)
         {
-            e->error("circular reference to '%s'", v->toPrettyChars());
+            if (v->inuse) // Bugzilla 9494
+                e->error("circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+            else
+                e->error("forward reference to %s '%s'", v->kind(), v->toPrettyChars());
             return new ErrorExp();
         }
-        if (v->_scope)
+        if (v->type->ty == Terror)
+            return new ErrorExp();
+
+        if ((v->storage_class & STCmanifest) && v->_init)
         {
-            v->semantic(v->_scope);
-            s = v->toAlias();   // Need this if 'v' is a tuple variable
-            v = s->isVarDeclaration();
+            if (v->inuse)
+            {
+                e->error("circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                return new ErrorExp();
+            }
+            checkAccess(e->loc, sc, NULL, v);
+            Expression *ve = new VarExp(e->loc, v);
+            ve = ve->semantic(sc);
+            return ve;
         }
-    }
-    if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
-    {
-        checkAccess(e->loc, sc, NULL, v);
-        Expression *ve = new VarExp(e->loc, v);
-        ve = ve->semantic(sc);
-        return ve;
     }
 
     if (s->getType())
@@ -8746,12 +8684,6 @@ L1:
         /* It's:
          *    Class.d
          */
-
-        // If Class is in a failed template, return an error
-        TemplateInstance *tiparent = d->isInstantiated();
-        if (tiparent && tiparent->errors)
-            return new ErrorExp();
-
         if (TupleDeclaration *tup = d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, tup);
@@ -8839,15 +8771,6 @@ L1:
         Expression *ve = new VarExp(e->loc, d);
         e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
-        return e;
-    }
-
-    if (d->parent && d->toParent()->isModule())
-    {
-        // (e, d)
-        VarExp *ve = new VarExp(e->loc, d);
-        e = new CommaExp(e->loc, e, ve);
-        e->type = d->type;
         return e;
     }
 

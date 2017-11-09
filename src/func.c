@@ -45,6 +45,8 @@ void MODtoBuffer(OutBuffer *buf, MOD mod);
 char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 MATCH MODmethodConv(MOD modfrom, MOD modto);
+void allocFieldinit(Scope *sc, size_t dim);
+void freeFieldinit(Scope *sc);
 
 /* A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
@@ -362,6 +364,63 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     return f;
 }
 
+/**********************************
+ * Decide if attributes for this function can be inferred from examining
+ * the function body.
+ * Returns:
+ *  true if can
+ */
+static bool canInferAttributes(FuncDeclaration *fd, Scope *sc)
+{
+    if (!fd->fbody)
+        return false;
+
+    if (fd->isVirtualMethod())
+        return false;               // since they may be overridden
+
+    if (sc->func &&
+        /********** this is for backwards compatibility for the moment ********/
+        (!fd->isMember() || sc->func->isSafeBypassingInference() && !fd->isInstantiated()))
+        return true;
+
+    if (fd->isFuncLiteralDeclaration() ||               // externs are not possible with literals
+        (fd->storage_class & STCinference) ||           // do attribute inference
+        (fd->inferRetType && !fd->isCtorDeclaration()))
+        return true;
+
+    if (fd->isInstantiated())
+    {
+        TemplateInstance *ti = fd->parent->isTemplateInstance();
+        if (ti == NULL || ti->isTemplateMixin() || ti->tempdecl->ident == fd->ident)
+            return true;
+    }
+
+    return false;
+}
+
+/*****************************************
+ * Initialize for inferring the attributes of this function.
+ */
+static void initInferAttributes(FuncDeclaration *fd)
+{
+    assert(fd->type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)fd->type;
+    if (tf->purity == PUREimpure) // purity not specified
+        fd->flags |= FUNCFLAGpurityInprocess;
+
+    if (tf->trust == TRUSTdefault)
+        fd->flags |= FUNCFLAGsafetyInprocess;
+
+    if (!tf->isnothrow)
+        fd->flags |= FUNCFLAGnothrowInprocess;
+
+    if (!tf->isnogc)
+        fd->flags |= FUNCFLAGnogcInprocess;
+
+    if (!fd->isVirtual() || fd->introducing)
+        fd->flags |= FUNCFLAGreturnInprocess;
+}
+
 // Do the semantic analysis on the external interface to the function.
 
 void FuncDeclaration::semantic(Scope *sc)
@@ -450,21 +509,6 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (sc->func)
         {
-            /* If the parent is @safe, then this function defaults to safe too.
-             */
-            if (tf->trust == TRUSTdefault)
-            {
-                FuncDeclaration *fd = sc->func;
-
-                /* If the parent's @safe-ty is inferred, then this function's @safe-ty needs
-                 * to be inferred first.
-                 * If this function's @safe-ty is inferred, then it needs to be infeerd first.
-                 * (local template function inside @safe function can be inferred to @system).
-                 */
-                if (fd->isSafeBypassingInference() && !isInstantiated())
-                    tf->trust = TRUSTsafe;              // default to @safe
-            }
-
             /* If the nesting parent is pure without inference,
              * then this function defaults to pure too.
              *
@@ -1164,33 +1208,8 @@ Ldone:
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
      */
-    TemplateInstance *ti;
-    if (fbody &&
-        (isFuncLiteralDeclaration() ||
-         (storage_class & STCinference) ||
-         (inferRetType && !isCtorDeclaration()) ||
-         isInstantiated() && !isVirtualMethod() &&
-         !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident)))
-    {
-        if (f->purity == PUREimpure)        // purity not specified
-            flags |= FUNCFLAGpurityInprocess;
-
-        if (f->trust == TRUSTdefault)
-            flags |= FUNCFLAGsafetyInprocess;
-
-        if (!f->isnothrow)
-            flags |= FUNCFLAGnothrowInprocess;
-
-        if (!f->isnogc)
-            flags |= FUNCFLAGnogcInprocess;
-
-        if (!isVirtual() || introducing)
-            flags |= FUNCFLAGreturnInprocess;
-
-        // Initialize for inferring STCscope
-        if (global.params.vsafe)
-            flags |= FUNCFLAGinferScope;
-    }
+    if (canInferAttributes(this, sc))
+        initInferAttributes(this);
 
     Module::dprogress++;
     semanticRun = PASSsemanticdone;
@@ -1562,20 +1581,16 @@ void FuncDeclaration::semantic3(Scope *sc)
             sc2 = sc2->push(sym);
 
             AggregateDeclaration *ad2 = isMember2();
-            unsigned *fieldinit = NULL;
 
             /* If this is a class constructor
              */
             if (ad2 && isCtorDeclaration())
             {
-                fieldinit = (unsigned *)mem.xmalloc(sizeof(unsigned) * ad2->fields.dim);
-                sc2->fieldinit = fieldinit;
-                sc2->fieldinit_dim = ad2->fields.dim;
+                allocFieldinit(sc2, ad2->fields.dim);
                 for (size_t i = 0; i < ad2->fields.dim; i++)
                 {
                     VarDeclaration *v = ad2->fields[i];
                     v->ctorinit = 0;
-                    sc2->fieldinit[i] = 0;
                 }
             }
 
@@ -1688,8 +1703,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         }
                     }
                 }
-                sc2->fieldinit = NULL;
-                sc2->fieldinit_dim = 0;
+                freeFieldinit(sc2);
 
                 if (cd &&
                     !(sc2->callSuper & CSXany_ctor) &&
@@ -1727,7 +1741,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 unsigned int nothrowErrors = global.errors;
                 blockexit = fbody->blockExit(this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors))
-                    ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                    ::error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
@@ -1865,8 +1879,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 nw.visitStmt(fbody);
             }
 
-            if (fieldinit)
-                mem.xfree(fieldinit);
             sc2 = sc2->pop();
         }
 
@@ -2039,11 +2051,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                         s = ::semantic(s, sc2);
 
-                        unsigned int nothrowErrors = global.errors;
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
                         int blockexit = s->blockExit(this, isnothrow);
-                        if (f->isnothrow && (global.errors != nothrowErrors) )
-                            ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
+                        if (f->isnothrow && isnothrow && blockexit & BEthrow)
+                            ::error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                             f->isnothrow = false;
                         if (sbody->blockExit(this, f->isnothrow) == BEfallthru)
@@ -2128,21 +2139,24 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (flags & FUNCFLAGpurityInprocess)
     {
         flags &= ~FUNCFLAGpurityInprocess;
-        if (type == f) f = (TypeFunction *)f->copy();
+        if (type == f)
+            f = (TypeFunction *)f->copy();
         f->purity = PUREfwdref;
     }
 
     if (flags & FUNCFLAGsafetyInprocess)
     {
         flags &= ~FUNCFLAGsafetyInprocess;
-        if (type == f) f = (TypeFunction *)f->copy();
+        if (type == f)
+            f = (TypeFunction *)f->copy();
         f->trust = TRUSTsafe;
     }
 
     if (flags & FUNCFLAGnogcInprocess)
     {
         flags &= ~FUNCFLAGnogcInprocess;
-        if (type == f) f = (TypeFunction *)f->copy();
+        if (type == f)
+            f = (TypeFunction *)f->copy();
         f->isnogc = true;
     }
 
@@ -3717,7 +3731,8 @@ PURE FuncDeclaration::isPure()
     if (purity > PUREweak && isNested())
         purity = PUREweak;
     if (purity > PUREweak && needThis())
-    {   // The attribute of the 'this' reference affects purity strength
+    {
+        // The attribute of the 'this' reference affects purity strength
         if (type->mod & MODimmutable)
             ;
         else if (type->mod & (MODconst | MODwild) && purity >= PUREconst)

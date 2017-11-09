@@ -32,6 +32,7 @@
 #include "utf.h"
 #include "mtype.h"
 
+bool definitelyValueParameter(Expression *e);
 
 /********************************* AttribDeclaration ****************************/
 
@@ -1519,15 +1520,32 @@ void UserAttributeDeclaration::semantic(Scope *sc)
     return AttribDeclaration::semantic(sc);
 }
 
+static void udaExpressionEval(Scope *sc, Expressions *exps)
+{
+    for (size_t i = 0; i < exps->dim; i++)
+    {
+        Expression *e = (*exps)[i];
+        if (e)
+        {
+            e = e->semantic(sc);
+            if (definitelyValueParameter(e))
+                e = e->ctfeInterpret();
+            if (e->op == TOKtuple)
+            {
+                TupleExp *te = (TupleExp *)e;
+                udaExpressionEval(sc, te->exps);
+            }
+            (*exps)[i] = e;
+        }
+    }
+}
+
 void UserAttributeDeclaration::semantic2(Scope *sc)
 {
-    if (decl && atts && atts->dim)
+    if (decl && atts && atts->dim && _scope)
     {
-        if (atts && atts->dim && _scope)
-        {
-            _scope = NULL;
-            arrayExpressionSemantic(atts, sc, true);  // run semantic
-        }
+        _scope = NULL;
+        udaExpressionEval(sc, atts);
     }
 
     AttribDeclaration::semantic2(sc);

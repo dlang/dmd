@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <new>
 
 #include "root.h"
 #include "aggregate.h"
@@ -78,6 +79,11 @@ StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f)
 
 /*******************************************
  * Check given aggregate actually has an identity opAssign or not.
+ * Params:
+ *      ad = struct or class
+ *      sc = current scope
+ * Returns:
+ *      if found, returns FuncDeclaration of opAssign, otherwise null
  */
 FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
 {
@@ -86,24 +92,23 @@ FuncDeclaration *hasIdentityOpAssign(AggregateDeclaration *ad, Scope *sc)
     {
         /* check identity opAssign exists
          */
-        Expression *er = new NullExp(ad->loc, ad->type);    // dummy rvalue
-        Expression *el = new IdentifierExp(ad->loc, Id::p); // dummy lvalue
-        el->type = ad->type;
-        Expressions *a = new Expressions();
-        a->setDim(1);
-        FuncDeclaration *f = NULL;
+        UnionExp er; new(&er) NullExp(ad->loc, ad->type);    // dummy rvalue
+        UnionExp el; new(&el) IdentifierExp(ad->loc, Id::p); // dummy lvalue
+        el.exp()->type = ad->type;
+        Expressions a;
+        a.setDim(1);
 
-        unsigned errors = global.startGagging();    // Do not report errors, even if the
+        unsigned errors = global.startGagging();    // Do not report errors, even if the template opAssign fbody makes it.
         sc = sc->push();
         sc->tinst = NULL;
         sc->minst = NULL;
 
-        for (size_t i = 0; i < 2; i++)
+        a[0] = er.exp();
+        FuncDeclaration *f = resolveFuncCall(ad->loc, sc, assign, NULL, ad->type, &a, 1);
+        if (!f)
         {
-            (*a)[0] = (i == 0 ? er : el);
-            f = resolveFuncCall(ad->loc, sc, assign, NULL, ad->type, a, 1);
-            if (f)
-                break;
+            a[0] = el.exp();
+            f = resolveFuncCall(ad->loc, sc, assign, NULL, ad->type, &a, 1);
         }
 
         sc = sc->pop();
@@ -212,6 +217,25 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     Loc declLoc = sd->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    // One of our sub-field might have `@disable opAssign` so we need to
+    // check for it.
+    // In this event, it will be reflected by having `stc` (opAssign's
+    // storage class) include `STCdisabled`.
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {
+        VarDeclaration *v = sd->fields[i];
+        if (v->storage_class & STCref)
+            continue;
+        if (v->overlapped)
+            continue;
+        Type *tv = v->type->baseElemOf();
+        if (tv->ty != Tstruct)
+            continue;
+
+        StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
+        stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
+    }
+
     if (sd->dtor || sd->postblit)
     {
         if (!sd->type->isAssignable())  // Bugzilla 13044
@@ -219,23 +243,6 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
         stc = mergeFuncAttrs(stc, sd->dtor);
         if (stc & STCsafe)
             stc = (stc & ~STCsafe) | STCtrusted;
-    }
-    else
-    {
-        for (size_t i = 0; i < sd->fields.dim; i++)
-        {
-            VarDeclaration *v = sd->fields[i];
-            if (v->storage_class & STCref)
-                continue;
-            if (v->overlapped)
-                continue;
-            Type *tv = v->type->baseElemOf();
-            if (tv->ty != Tstruct)
-                continue;
-
-            StructDeclaration *sdv = ((TypeStruct *)tv)->sym;
-            stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
-        }
     }
 
     Parameters *fparams = new Parameters;
@@ -316,7 +323,7 @@ FuncDeclaration *buildOpAssign(StructDeclaration *sd, Scope *sc)
     fop->addMember(sc, sd);
     sd->hasIdentityAssign = true;        // temporary mark identity assignable
 
-    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned errors = global.startGagging();    // Do not report errors, even if the template opAssign fbody makes it.
     Scope *sc2 = sc->push();
     sc2->stc = 0;
     sc2->linkage = LINKd;
@@ -407,31 +414,34 @@ FuncDeclaration *hasIdentityOpEquals(AggregateDeclaration *ad,  Scope *sc)
     {
         /* check identity opEquals exists
          */
-        Expression *er = new NullExp(ad->loc, NULL);        // dummy rvalue
-        Expression *el = new IdentifierExp(ad->loc, Id::p); // dummy lvalue
-        Expressions *a = new Expressions();
-        a->setDim(1);
-        for (size_t i = 0; ; i++)
+        UnionExp er; new(&er) NullExp(ad->loc, NULL);        // dummy rvalue
+        UnionExp el; new(&el) IdentifierExp(ad->loc, Id::p); // dummy lvalue
+        Expressions a;
+        a.setDim(1);
+        for (size_t i = 0; i < 5; i++)
         {
             Type *tthis = NULL;         // dead-store to prevent spurious warning
-            if (i == 0) tthis = ad->type;
-            if (i == 1) tthis = ad->type->constOf();
-            if (i == 2) tthis = ad->type->immutableOf();
-            if (i == 3) tthis = ad->type->sharedOf();
-            if (i == 4) tthis = ad->type->sharedConstOf();
-            if (i == 5) break;
+            switch (i)
+            {
+                case 0:  tthis = ad->type;                  break;
+                case 1:  tthis = ad->type->constOf();       break;
+                case 2:  tthis = ad->type->immutableOf();   break;
+                case 3:  tthis = ad->type->sharedOf();      break;
+                case 4:  tthis = ad->type->sharedConstOf(); break;
+                default: assert(0);
+            }
             FuncDeclaration *f = NULL;
 
-            unsigned errors = global.startGagging();    // Do not report errors, even if the
+            unsigned errors = global.startGagging();    // Do not report errors, even if the template opAssign fbody makes it.
             sc = sc->push();
             sc->tinst = NULL;
             sc->minst = NULL;
 
             for (size_t j = 0; j < 2; j++)
             {
-                (*a)[0] = (j == 0 ? er : el);
-                (*a)[0]->type = tthis;
-                f = resolveFuncCall(ad->loc, sc, eq, NULL, tthis, a, 1);
+                a[0] = (j == 0 ? er.exp() : el.exp());
+                a[0]->type = tthis;
+                f = resolveFuncCall(ad->loc, sc, eq, NULL, tthis, &a, 1);
                 if (f)
                     break;
             }

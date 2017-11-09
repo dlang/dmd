@@ -1927,7 +1927,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 err = true;
             arg = arg->optimize(WANTvalue);
         }
-        (*arguments)[i] =  arg;
+        (*arguments)[i] = arg;
     }
 
     /* Remaining problems:
@@ -1941,124 +1941,145 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
      */
     if (1)
     {
-        /* Compute indices of first and last throwing argument.
-         * Used to not set up destructors unless a throw can happen in a later argument.
+        /* TODO: tackle problem 1)
          */
-        bool anythrow = false;
-        size_t firstthrow = ~0;
-        size_t lastthrow = ~0;
-        for (size_t i = 0; i < arguments->dim; ++i)
+        const bool leftToRight = true; // TODO: something like !fd.isArrayOp
+        if (!leftToRight)
+            assert(nargs == nparams); // no variadics for RTL order, as they would probably be evaluated LTR and so add complexity
+
+        const ptrdiff_t start = (leftToRight ? 0 : (ptrdiff_t)nargs - 1);
+        const ptrdiff_t end = (leftToRight ? (ptrdiff_t)nargs : -1);
+        const ptrdiff_t step = (leftToRight ? 1 : -1);
+
+        /* Compute indices of last throwing argument and first arg needing destruction.
+         * Used to not set up destructors unless an arg needs destruction on a throw
+         * in a later argument.
+         */
+        ptrdiff_t lastthrow = -1;
+        ptrdiff_t firstdtor = -1;
+        for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression *arg = (*arguments)[i];
             if (canThrow(arg, sc->func, false))
-            {
-                if (!anythrow)
-                {
-                    anythrow = true;
-                    firstthrow = i;
-                }
                 lastthrow = i;
+            if (firstdtor == -1 && arg->type->needsDestruction())
+            {
+                Parameter *p = (i >= nparams ? NULL : Parameter::getNth(tf->parameters, i));
+                if (!(p && (p->storageClass & (STClazy | STCref | STCout))))
+                    firstdtor = i;
             }
         }
 
-        bool appendToPrefix = false;
+        /* Does problem 3) apply to this call?
+         */
+        const bool needsPrefix = (firstdtor >= 0 && lastthrow >= 0
+            && (lastthrow - firstdtor) * step > 0);
+
+        /* If so, initialize 'eprefix' by declaring the gate
+         */
         VarDeclaration *gate = NULL;
-        for (size_t i = 0; i < arguments->dim; ++i)
+        if (needsPrefix)
+        {
+            // eprefix => bool __gate [= false]
+            Identifier *idtmp = Identifier::generateId("__gate");
+            gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
+            gate->storage_class |= STCtemp | STCctfe | STCvolatile;
+            gate->semantic(sc);
+
+            Expression *ae = new DeclarationExp(loc, gate);
+            eprefix = ae->semantic(sc);
+        }
+
+        for (ptrdiff_t i = start; i != end; i += step)
         {
             Expression *arg = (*arguments)[i];
 
-            /* Skip reference parameters
+            Parameter *parameter = (i >= nparams ? NULL : Parameter::getNth(tf->parameters, i));
+            const bool isRef = (parameter && (parameter->storageClass & (STCref | STCout)));
+            const bool isLazy = (parameter && (parameter->storageClass & STClazy));
+
+            /* Skip lazy parameters
              */
-            if (i < nparams)
-            {
-                Parameter *p = Parameter::getNth(tf->parameters, i);
-                if (p->storageClass & (STClazy | STCref | STCout))
-                    continue;
-            }
+            if (isLazy)
+                continue;
 
-            TypeStruct *ts = NULL;
-            Type *tv = arg->type->baseElemOf();
-            if (tv->ty == Tstruct)
-                ts = (TypeStruct *)tv;
-
-            if (anythrow && i < lastthrow)      // if there are throws after this arg
+            /* Do we have a gate? Then we have a prefix and we're not yet past the last throwing arg.
+             * Declare a temporary variable for this arg and append that declaration to 'eprefix',
+             * which will implicitly take care of potential problem 2) for this arg.
+             * 'eprefix' will therefore finally contain all args up to and including the last
+             * potentially throwing arg, excluding all lazy parameters.
+             */
+            if (gate)
             {
-                if (ts && ts->sym->dtor)
-                {
-                    appendToPrefix = true;
+                const bool needsDtor = (!isRef && arg->type->needsDestruction() && i != lastthrow);
 
-                    // Need the gate because throws may occur after this arg is constructed
-                    if (!gate)
-                    {
-                        Identifier *idtmp = Identifier::generateId("__gate");
-                        gate = new VarDeclaration(loc, Type::tbool, idtmp, NULL);
-                        gate->storage_class |= STCtemp | STCctfe | STCvolatile;
-                        gate->semantic(sc);
-
-                        Expression *ae = new DeclarationExp(loc, gate);
-                        ae = ae->semantic(sc);
-                        eprefix = Expression::combine(eprefix, ae);
-                    }
-                }
-            }
-            if (anythrow && i == lastthrow)
-            {
-                appendToPrefix = false;
-            }
-            if (appendToPrefix) // don't need to add to prefix until there's something to destruct
-            {
-                VarDeclaration *tmp = copyToTemp(0, "__pfx", arg);
+                /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
+                 */
+                VarDeclaration *tmp = tmp = copyToTemp(0,
+                    needsDtor ? "__pfx" : "__pfy",
+                    !isRef ? arg : arg->addressOf());
                 tmp->semantic(sc);
 
-                /* Modify the destructor so it only runs if gate==false
+                /* Modify the destructor so it only runs if gate==false, i.e.,
+                 * only if there was a throw while constructing the args
                  */
-                if (tmp->edtor)
+                if (!needsDtor)
                 {
+                    if (tmp->edtor)
+                    {
+                        assert(i == lastthrow);
+                        tmp->edtor = NULL;
+                    }
+                }
+                else
+                {
+                    // edtor => (__gate || edtor)
+                    assert(tmp->edtor);
                     Expression *e = tmp->edtor;
-                    e = new OrOrExp(e->loc, new VarExp(e->loc, gate), e);       // (gate || destructor)
+                    e = new OrOrExp(e->loc, new VarExp(e->loc, gate), e);
                     tmp->edtor = e->semantic(sc);
                     //printf("edtor: %s\n", tmp->edtor->toChars());
                 }
 
-                // auto __pfx = arg
-                Expression *ae = new DeclarationExp(loc, tmp);
-                ae = ae->semantic(sc);
-                eprefix = Expression::combine(eprefix, ae);
+                // eprefix => (eprefix, auto __pfx/y = arg)
+                DeclarationExp *ae = new DeclarationExp(loc, tmp);
+                eprefix = Expression::combine(eprefix, ae->semantic(sc));
 
+                // arg => __pfx/y
                 arg = new VarExp(loc, tmp);
                 arg = arg->semantic(sc);
-            }
-            else if (ts)
-            {
-                arg = doCopyOrMove(sc, arg);
-            }
-            else if (anythrow && firstthrow <= i && i <= lastthrow && gate)
-            {
-                VarDeclaration *tmp = copyToTemp(0, "__pfy", arg);
-                tmp->semantic(sc);
-
-                Expression *ae = new DeclarationExp(loc, tmp);
-                ae = ae->semantic(sc);
-                eprefix = Expression::combine(eprefix, ae);
-
-                arg = new VarExp(loc, tmp);
-                arg = arg->semantic(sc);
-            }
-
-            if (anythrow && i == lastthrow)
-            {
-                /* Set gate to true after prefix runs
-                 */
-                if (eprefix)
+                if (isRef)
                 {
-                    assert(gate);
-                    // (gate = true)
+                    arg = new PtrExp(loc, arg);
+                    arg = arg->semantic(sc);
+                }
+
+                /* Last throwing arg? Then finalize eprefix => (eprefix, gate = true),
+                 * i.e., disable the dtors right after constructing the last throwing arg.
+                 * From now on, the callee will take care of destructing the args because
+                 * the args are implicitly moved into function parameters.
+                 *
+                 * Set gate to null to let the next iterations know they don't need to
+                 * append to eprefix anymore.
+                 */
+                if (i == lastthrow)
+                {
                     Expression *e = new AssignExp(gate->loc, new VarExp(gate->loc, gate), new IntegerExp(gate->loc, 1, Type::tbool));
-                    e = e->semantic(sc);
-                    eprefix = Expression::combine(eprefix, e);
+                    eprefix = Expression::combine(eprefix, e->semantic(sc));
                     gate = NULL;
                 }
             }
+            else
+            {
+                /* No gate, no prefix to append to.
+                 * Handle problem 2) by calling the copy constructor for value structs
+                 * (or static arrays of them) if appropriate.
+                 */
+                Type *tv = arg->type->baseElemOf();
+                if (!isRef && tv->ty == Tstruct)
+                    arg = doCopyOrMove(sc, arg);
+            }
+
             (*arguments)[i] = arg;
         }
     }
@@ -2603,8 +2624,8 @@ bool Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         FuncDeclaration *ff = outerfunc;
         if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
         {
-            error("pure function '%s' cannot call impure function '%s'",
-                ff->toPrettyChars(), f->toPrettyChars());
+            error("pure %s '%s' cannot call impure %s '%s'",
+                ff->kind(), ff->toPrettyChars(), f->kind(), f->toPrettyChars());
             return true;
         }
     }
@@ -2668,8 +2689,8 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
                 break;
             if (sc->flags & SCOPEcompile ? ff->isPureBypassingInference() >= PUREweak : ff->setImpure())
             {
-                error("pure function '%s' cannot access mutable static data '%s'",
-                    ff->toPrettyChars(), v->toChars());
+                error("pure %s '%s' cannot access mutable static data '%s'",
+                    ff->kind(), ff->toPrettyChars(), v->toChars());
                 err = true;
                 break;
             }
@@ -2717,8 +2738,8 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
             {
                 if (ff->type->isImmutable())
                 {
-                    error("pure immutable nested function '%s' cannot access mutable data '%s'",
-                        ff->toPrettyChars(), v->toChars());
+                    error("pure immutable %s '%s' cannot access mutable data '%s'",
+                        ff->kind(), ff->toPrettyChars(), v->toChars());
                     err = true;
                     break;
                 }
@@ -2728,8 +2749,8 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
             {
                 if (ff->type->isImmutable())
                 {
-                    error("pure immutable member function '%s' cannot access mutable data '%s'",
-                        ff->toPrettyChars(), v->toChars());
+                    error("pure immutable %s '%s' cannot access mutable data '%s'",
+                        ff->kind(), ff->toPrettyChars(), v->toChars());
                     err = true;
                     break;
                 }
@@ -2745,8 +2766,8 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
     {
         if (sc->func->setUnsafe())
         {
-            error("safe function '%s' cannot access __gshared data '%s'",
-                sc->func->toChars(), v->toChars());
+            error("safe %s '%s' cannot access __gshared data '%s'",
+                sc->func->kind(), sc->func->toChars(), v->toChars());
             err = true;
         }
     }
@@ -2778,8 +2799,8 @@ bool Expression::checkSafety(Scope *sc, FuncDeclaration *f)
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
 
-            error("safe function '%s' cannot call system function '%s'",
-                sc->func->toPrettyChars(), f->toPrettyChars());
+            error("@safe %s '%s' cannot call @system %s '%s'",
+                sc->func->kind(), sc->func->toPrettyChars(), f->kind(), f->toPrettyChars());
             return true;
         }
     }
@@ -2810,8 +2831,8 @@ bool Expression::checkNogc(Scope *sc, FuncDeclaration *f)
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
 
-            error("@nogc function '%s' cannot call non-@nogc function '%s'",
-                sc->func->toPrettyChars(), f->toPrettyChars());
+            error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                sc->func->kind(), sc->func->toPrettyChars(), f->kind(), f->toPrettyChars());
             return true;
         }
     }
@@ -3553,16 +3574,23 @@ Lagain:
     if (VarDeclaration *v = s->isVarDeclaration())
     {
         //printf("Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-        if (!v->type)
+        if (!v->type ||                  // during variable type inference
+            !v->type->deco && v->inuse)  // during variable type semantic
         {
-            ::error(loc, "forward reference of %s %s", v->kind(), v->toChars());
+            if (v->inuse)    // variable type depends on the variable itself
+                ::error(loc, "circular reference to %s '%s'", v->kind(), v->toPrettyChars());
+            else             // variable type cannot be determined
+                ::error(loc, "forward reference to %s '%s'", v->kind(), v->toPrettyChars());
             return new ErrorExp();
         }
+        if (v->type->ty == Terror)
+            return new ErrorExp();
+
         if ((v->storage_class & STCmanifest) && v->_init)
         {
             if (v->inuse)
             {
-                ::error(loc, "circular initialization of %s", v->toChars());
+                ::error(loc, "circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
                 return new ErrorExp();
             }
 
@@ -5901,6 +5929,20 @@ FuncExp::FuncExp(Loc loc, Dsymbol *s)
     assert(fd->fbody);
 }
 
+bool FuncExp::equals(RootObject *o)
+{
+    if (this == o)
+        return true;
+    if (o->dyncast() != DYNCAST_EXPRESSION)
+        return false;
+    if (((Expression *)o)->op == TOKfunction)
+    {
+        FuncExp *fe = (FuncExp *)o;
+        return fd == fe->fd;
+    }
+    return false;
+}
+
 void FuncExp::genIdent(Scope *sc)
 {
     if (fd->ident == Id::empty)
@@ -6601,6 +6643,7 @@ Expression *IsExp::semantic(Scope *sc)
     Scope *sc2 = sc->copy();    // keep sc->flags
     sc2->tinst = NULL;
     sc2->minst = NULL;
+    sc2->flags |= SCOPEfullinst;
     Type *t = targ->trySemantic(loc, sc2);
     sc2->pop();
     if (!t)
@@ -7715,14 +7758,32 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (v)
             {
                 //printf("DotIdExp:: Identifier '%s' is a variable, type '%s'\n", toChars(), v->type->toChars());
-                if (!v->type)
+                if (!v->type ||
+                    !v->type->deco && v->inuse)
                 {
                     if (v->inuse)
-                        error("circular reference to '%s'", v->toChars());
+                        error("circular reference to %s '%s'", v->kind(), v->toPrettyChars());
                     else
-                        error("forward reference of %s %s", s->kind(), s->toChars());
+                        error("forward reference to %s '%s'", v->kind(), v->toPrettyChars());
                     return new ErrorExp();
                 }
+                if (v->type->ty == Terror)
+                    return new ErrorExp();
+
+                if ((v->storage_class & STCmanifest) && v->_init)
+                {
+                    if (v->inuse)
+                    {
+                        ::error(loc, "circular initialization of %s '%s'", v->kind(), v->toPrettyChars());
+                        return new ErrorExp();
+                    }
+                    e = v->expandInitializer(loc);
+                    v->inuse++;
+                    e = e->semantic(sc);
+                    v->inuse--;
+                    return e;
+                }
+
                 if (v->needThis())
                 {
                     if (!eleft)
@@ -7964,6 +8025,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             }
             exps->push(e);
         }
+
         Expression *e = new TupleExp(loc, e0, exps);
         e = e->semantic(sc);
         return e;
@@ -9346,17 +9408,20 @@ Lagain:
             bool err = false;
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
             {
-                error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                error("pure %s '%s' cannot call impure %s '%s'",
+                    sc->func->kind(), sc->func->toPrettyChars(), p, e1->toChars());
                 err = true;
             }
             if (!tf->isnogc && sc->func->setGC())
             {
-                error("@nogc function '%s' cannot call non-@nogc %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                error("@nogc %s '%s' cannot call non-@nogc %s '%s'",
+                    sc->func->kind(), sc->func->toPrettyChars(), p, e1->toChars());
                 err = true;
             }
             if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
             {
-                error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                error("@safe %s '%s' cannot call @system %s '%s'",
+                    sc->func->kind(), sc->func->toPrettyChars(), p, e1->toChars());
                 err = true;
             }
             if (err)
@@ -9532,8 +9597,8 @@ Expression *CallExp::addDtorHook(Scope *sc)
              * which the back end will recognize and call dtor on
              */
             VarDeclaration *tmp = copyToTemp(0, "__tmpfordtor", this);
-            Expression *de = new DeclarationExp(loc, tmp);
-            Expression *ve = new VarExp(loc, tmp);
+            DeclarationExp *de = new DeclarationExp(loc, tmp);
+            VarExp *ve = new VarExp(loc, tmp);
             Expression *e = new CommaExp(loc, de, ve);
             e = e->semantic(sc);
             return e;
@@ -10091,32 +10156,34 @@ Expression *DeleteExp::semantic(Scope *sc)
         return e1;
     type = Type::tvoid;
 
+    AggregateDeclaration *ad = NULL;
     Type *tb = e1->type->toBasetype();
     switch (tb->ty)
     {   case Tclass:
-        {   TypeClass *tc = (TypeClass *)tb;
-            ClassDeclaration *cd = tc->sym;
+        {
+            ClassDeclaration *cd = ((TypeClass *)tb)->sym;
 
             if (cd->isCOMinterface())
             {   /* Because COM classes are deleted by IUnknown.Release()
                  */
                 error("cannot delete instance of COM interface %s", cd->toChars());
-                goto Lerr;
+                return new ErrorExp();
             }
+
+            ad = cd;
             break;
         }
         case Tpointer:
             tb = ((TypePointer *)tb)->next->toBasetype();
             if (tb->ty == Tstruct)
             {
-                TypeStruct *ts = (TypeStruct *)tb;
-                StructDeclaration *sd = ts->sym;
-                FuncDeclaration *f = sd->aggDelete;
-                FuncDeclaration *fd = sd->dtor;
+                ad = ((TypeStruct *)tb)->sym;
+                FuncDeclaration *f = ad->aggDelete;
+                FuncDeclaration *fd = ad->dtor;
 
                 if (!f)
                 {
-                    semanticTypeInfo(sc, ts);
+                    semanticTypeInfo(sc, tb);
                     break;
                 }
 
@@ -10139,7 +10206,8 @@ Expression *DeleteExp::semantic(Scope *sc)
                 }
 
                 if (fd)
-                {   Expression *e = ea ? new VarExp(loc, v) : e1;
+                {
+                    Expression *e = ea ? new VarExp(loc, v) : e1;
                     e = new DotVarExp(Loc(), e, fd, false);
                     eb = new CallExp(loc, e);
                     eb = eb->semantic(sc);
@@ -10164,16 +10232,34 @@ Expression *DeleteExp::semantic(Scope *sc)
             Type *tv = tb->nextOf()->baseElemOf();
             if (tv->ty == Tstruct)
             {
-                TypeStruct *ts = (TypeStruct *)tv;
-                StructDeclaration *sd = ts->sym;
-                if (sd->dtor)
-                    semanticTypeInfo(sc, ts);
+                ad = ((TypeStruct *)tv)->sym;
+                if (ad->dtor)
+                    semanticTypeInfo(sc, ad->type);
             }
             break;
         }
         default:
             error("cannot delete type %s", e1->type->toChars());
-            goto Lerr;
+            return new ErrorExp();
+    }
+
+    bool err = false;
+    if (ad)
+    {
+        if (ad->dtor)
+        {
+            err |= checkPurity(sc, ad->dtor);
+            err |= checkSafety(sc, ad->dtor);
+            err |= checkNogc(sc, ad->dtor);
+        }
+        if (ad->aggDelete && tb->ty != Tarray)
+        {
+            err |= checkPurity(sc, ad->aggDelete);
+            err |= checkSafety(sc, ad->aggDelete);
+            err |= checkNogc(sc, ad->aggDelete);
+        }
+        if (err)
+            return new ErrorExp();
     }
 
     if (!sc->intypeof && sc->func &&
@@ -10181,13 +10267,12 @@ Expression *DeleteExp::semantic(Scope *sc)
         sc->func->setUnsafe())
     {
         error("%s is not @safe but is used in @safe function %s", toChars(), sc->func->toChars());
-        goto Lerr;
+        err = true;
     }
+    if (err)
+        return new ErrorExp();
 
     return this;
-
-Lerr:
-    return new ErrorExp();
 }
 
 
@@ -10834,6 +10919,7 @@ Expression *ArrayLengthExp::rewriteOpAssign(BinExp *exp)
          *    (*tmp).length = (*tmp).length op e2
          */
         VarDeclaration *tmp = copyToTemp(0, "__arraylength", new AddrExp(ale->loc, ale->e1));
+
         Expression *e1 = new ArrayLengthExp(ale->loc, new PtrExp(ale->loc, new VarExp(ale->loc, tmp)));
         Expression *elvalue = e1->syntaxCopy();
         e = opAssignToOp(exp->loc, exp->op, e1, exp->e2);
@@ -13487,6 +13573,7 @@ Expression *PowExp::semantic(Scope *sc)
         VarDeclaration *tmp = copyToTemp(0, "__powtmp", e1);
         Expression *de = new DeclarationExp(loc, tmp);
         Expression *ve = new VarExp(loc, tmp);
+
         /* Note that we're reusing ve. This should be ok.
          */
         Expression *me = new MulExp(loc, ve, ve);
@@ -14563,7 +14650,7 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
          *      (ref __dop = e1, __dop).opIndex( ... __dop.opDollar ...)
          *      (ref __dop = e1, __dop).opSlice( ... __dop.opDollar ...)
          */
-        e1 = extractSideEffect(sc, "__dop", &e0, e1);
+        e1 = extractSideEffect(sc, "__dop", &e0, e1, false);
         assert(e1->op == TOKvar);
         VarExp *ve = (VarExp *)e1;
         ve->var->storage_class |= STCexptemp;     // lifetime limited to expression

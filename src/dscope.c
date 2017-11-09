@@ -32,6 +32,20 @@
 
 Scope *Scope::freelist = NULL;
 
+void allocFieldinit(Scope *sc, size_t dim)
+{
+    sc->fieldinit = (unsigned *)mem.xcalloc(sizeof(unsigned), dim);
+    sc->fieldinit_dim = dim;
+}
+
+void freeFieldinit(Scope *sc)
+{
+    if (sc->fieldinit)
+        mem.xfree(sc->fieldinit);
+    sc->fieldinit = NULL;
+    sc->fieldinit_dim = 0;
+}
+
 Scope *Scope::alloc()
 {
     if (freelist)
@@ -179,15 +193,16 @@ Scope *Scope::pop()
     if (enclosing)
     {
         enclosing->callSuper |= callSuper;
-        if (enclosing->fieldinit && fieldinit)
+        if (fieldinit)
         {
-            assert(fieldinit != enclosing->fieldinit);
-
-            size_t dim = fieldinit_dim;
-            for (size_t i = 0; i < dim; i++)
-                enclosing->fieldinit[i] |= fieldinit[i];
-            mem.xfree(fieldinit);
-            fieldinit = NULL;
+            if (enclosing->fieldinit)
+            {
+                assert(fieldinit != enclosing->fieldinit);
+                size_t dim = fieldinit_dim;
+                for (size_t i = 0; i < dim; i++)
+                    enclosing->fieldinit[i] |= fieldinit[i];
+            }
+            freeFieldinit(this);
         }
     }
 
