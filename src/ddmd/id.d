@@ -280,7 +280,7 @@ immutable Msgtable[] msgtable =
     { "FpopBack", "popBack" },
 
     // For internal functions
-    { "aaLen", "_aaLen" },
+    { "aaLen", "__aaLen" },
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
     { "aaRehash", "_aaRehash" },
