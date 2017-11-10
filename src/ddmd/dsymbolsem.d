@@ -1621,7 +1621,8 @@ extern(C++) final class Semantic3Visitor : Visitor
         if (funcdecl.parameters)
         {
             size_t nfparams = Parameter.dim(f.parameters);
-            assert(nfparams == funcdecl.parameters.dim);
+            if (funcdecl.errors)
+                assert(nfparams == funcdecl.parameters.dim);
             foreach (u, v; *funcdecl.parameters)
             {
                 if (v.storage_class & STCmaybescope)
