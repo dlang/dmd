@@ -679,39 +679,33 @@ nothrow:
         }
         else version (Windows)
         {
-            wchar[1024] wpathBuf;
-            const wpath = name.toWStringz(wpathBuf);
+            // Convert to wstring first since otherwise the Win32 APIs have a character limit
+            wchar[1024] wnameBuf;
+            const wname = name.toWStringz(wnameBuf);
 
             /* Apparently, there is no good way to do this on Windows.
              * GetFullPathName isn't it, but use it anyway.
              */
             // First find out how long the buffer has to be.
-            DWORD length16 = GetFullPathNameW(&wpath[0], 0, null, null);
-            if (length16)
-            {
-                auto buf = new wchar[length16];
-                length16 = GetFullPathNameW(&wpath[0], length16, &buf[0], null);
-                if (length16 == 0)
-                {
-                    return null;
-                }
+            auto fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
+            if (!fullPathLength) return null;
+            auto fullPath = new wchar[fullPathLength];
 
-                // allocate enough space for a UTF8 encoding of buf
-                const length8 = length16 * 3 + 1;
-                auto str = new char[length8];
-                size_t strLen;
+            // Actually get the full path name
+            const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], fullPath.length, &fullPath[0], null /*filePart*/);
+            // Unfortunately, when the buffer is large enough the return value is the number of characters
+            // _not_ counting the null terminator, so fullPathLength2 should be smaller
+            assert(fullPathLength == fullPathLengthNoTerminator + 1);
 
-                try
-                    foreach(char c; buf[0 .. length16]) str[strLen++] = c;
-                catch(Exception _)
-                {
-                    return null;
-                }
+            // Find out size of the converted string
+            const retLength = WideCharToMultiByte(CP_ACP, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+            auto ret = new char[retLength];
 
-                str[strLen] = 0; // null-terminate it
-                return &str[0];
-            }
-            return null;
+            // Actually convert to char
+            const retLength2 = WideCharToMultiByte(CP_ACP, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], ret.length, null, null);
+            assert(retLength == retLength2);
+
+            return &ret[0];
         }
         else
         {
@@ -843,36 +837,26 @@ version(Windows)
         return F(extendedPath);
     }
 
-
-    // Converts an UTF8 null-terminated string to an array of wchar that's null
+    // Converts a null-terminated string to an array of wchar that's null
     // terminated so it can be passed to Win32 APIs.
     // buf is passed as a scratch space to store the result. If more memory
     // is needed then toWstringz allocates on the GC heap instead.
-    private wchar[] toWStringz(const(char*) str, wchar[] buf = []) pure nothrow
+    private wchar[] toWStringz(const(char*) str, wchar[] buf = []) nothrow
     {
         import core.stdc.string: strlen;
 
-        const length8 = strlen(str);
+        // cache this for efficiency
+        const strLength = strlen(str) + 1;
+        // first find out how long the buffer must be to store the result
+        const length = MultiByteToWideChar(CP_ACP, 0 /*flags*/, str, strLength, null, 0);
+        if (!length) return null;
 
-        // The worst case scenario is that the UTF16 encoding needs two code units,
-        // but if that's true then the UTF8 encoding will be multi-byte. Therefore
-        // the maximum needed space to allocate is a one-to-one scenario.
-        // The +1 is for the null terminator.
-        const length16 = length8 + 1;
+        auto ret = length > buf.length ? new wchar[length] : buf;
+        // actually do the conversion
+        const length2 = MultiByteToWideChar(CP_ACP, 0 /*flags*/, str, strLength, &ret[0], ret.length);
+        assert(length == length2); // should always be true according to the API
 
-        auto wstr = length16 > buf.length ? new wchar[length16] : buf;
-
-        // Using i, wchar c in the foreach doesn't work since then i would
-        // be tied to the length of the UTF8 sequence.
-        size_t wstrLen;
-        try
-            foreach(wchar c; str[0 .. length8]) wstr[wstrLen++] = c;
-        catch(Exception)
-            return null;
-
-        wstr[wstrLen] = 0; // null-terminate it
-
-        return wstr[0 .. wstrLen];
+        return ret[0 .. length];
     }
 
 }
