@@ -188,9 +188,21 @@ nothrow:
         }
         else version (Windows)
         {
+            import ddmd.root.filename: extendedPathThen;
+
             DWORD size;
             DWORD numread;
-            HANDLE h = CreateFileA(name, GENERIC_READ, FILE_SHARE_READ, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
+
+            // work around Windows file path length limitation
+            // (see documentation for extendedPathThen).
+            HANDLE h = name.extendedPathThen!
+                (p => CreateFileW(&p[0],
+                                  GENERIC_READ,
+                                  FILE_SHARE_READ,
+                                  null,
+                                  OPEN_EXISTING,
+                                  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+                                  null));
             if (h == INVALID_HANDLE_VALUE)
                 goto err1;
             if (!_ref)
@@ -254,11 +266,23 @@ nothrow:
         }
         else version (Windows)
         {
-            DWORD numwritten;
+            import ddmd.root.filename: extendedPathThen;
+
+            DWORD numwritten; // here because of the gotos
             const(char)* name = this.name.toChars();
-            HANDLE h = CreateFileA(name, GENERIC_WRITE, 0, null, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, null);
+            // work around Windows file path length limitation
+            // (see documentation for extendedPathThen).
+            HANDLE h = name.extendedPathThen!
+                (p => CreateFileW(&p[0],
+                                  GENERIC_WRITE,
+                                  0,
+                                  null,
+                                  CREATE_ALWAYS,
+                                  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+                                  null));
             if (h == INVALID_HANDLE_VALUE)
                 goto err;
+
             if (WriteFile(h, buffer, cast(DWORD)len, &numwritten, null) != TRUE)
                 goto err2;
             if (len != numwritten)
