@@ -1244,7 +1244,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                             funcdecl.error("has no return statement, but is expected to return a value of type %s", f.next.toChars());
                         else
                             funcdecl.error("no return exp; or assert(0); at end of function");
-                        if (global.params.useAssert && !global.params.useInline)
+                        if (global.params.useAssert == CHECKENABLE.on && !global.params.useInline)
                         {
                             /* Add an assert(0, msg); where the missing return
                              * should be.

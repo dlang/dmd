@@ -294,12 +294,12 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.argv0 = arguments[0];
     global.params.color = true;
     global.params.link = true;
-    global.params.useAssert = true;
     global.params.useInvariants = true;
     global.params.useIn = true;
     global.params.useOut = true;
-    global.params.useArrayBounds = BOUNDSCHECK._default; // set correct value later
-    global.params.useSwitchError = true;
+    global.params.useArrayBounds = CHECKENABLE._default; // set correct value later
+    global.params.useAssert      = CHECKENABLE._default;
+    global.params.useSwitchError = CHECKENABLE._default;
     global.params.useModuleInfo = true;
     global.params.useTypeInfo = true;
     global.params.useInline = false;
@@ -486,27 +486,39 @@ Language changes listed by -transition=id:
         if (!global.params.mscrtlib)
             global.params.mscrtlib = "libcmt";
     }
-    if (global.params.useArrayBounds == BOUNDSCHECK._default)
-    {
-        // Set the real default value
-        global.params.useArrayBounds = global.params.release ? BOUNDSCHECK.safeonly : BOUNDSCHECK.on;
-    }
     if (global.params.release)
     {
         global.params.useInvariants = false;
         global.params.useIn = false;
         global.params.useOut = false;
-        global.params.useAssert = false;
-        global.params.useSwitchError = false;
+
+        if (global.params.useArrayBounds == CHECKENABLE._default)
+            global.params.useArrayBounds = CHECKENABLE.safeonly;
+
+        if (global.params.useAssert == CHECKENABLE._default)
+            global.params.useAssert = CHECKENABLE.off;
+
+        if (global.params.useSwitchError == CHECKENABLE._default)
+            global.params.useSwitchError = CHECKENABLE.off;
     }
     if (global.params.betterC)
     {
-        global.params.useCAsserts = true;
+        global.params.checkAction = CHECKACTION.C;
         global.params.useModuleInfo = false;
         global.params.useTypeInfo = false;
     }
     if (global.params.useUnitTests)
-        global.params.useAssert = true;
+        global.params.useAssert = CHECKENABLE.on;
+
+    if (global.params.useArrayBounds == CHECKENABLE._default)
+        global.params.useArrayBounds = CHECKENABLE.on;
+
+    if (global.params.useAssert == CHECKENABLE._default)
+        global.params.useAssert = CHECKENABLE.on;
+
+    if (global.params.useSwitchError == CHECKENABLE._default)
+        global.params.useSwitchError = CHECKENABLE.on;
+
     if (!global.params.obj || global.params.lib)
         global.params.link = false;
     if (global.params.link)
@@ -1408,9 +1420,9 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_PIC");
     if (global.params.useUnitTests)
         VersionCondition.addPredefinedGlobalIdent("unittest");
-    if (global.params.useAssert)
+    if (global.params.useAssert == CHECKENABLE.on)
         VersionCondition.addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == BOUNDSCHECK.off)
+    if (global.params.useArrayBounds == CHECKENABLE.off)
         VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
     if (global.params.betterC)
         VersionCondition.addPredefinedGlobalIdent("D_BetterC");
@@ -1967,7 +1979,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.betterC = true;
             else if (strcmp(p + 1, "noboundscheck") == 0)
             {
-                params.useArrayBounds = BOUNDSCHECK.off;
+                params.useArrayBounds = CHECKENABLE.off;
             }
             else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0)
             {
@@ -1977,15 +1989,15 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 {
                     if (strcmp(p + 13, "on") == 0)
                     {
-                        params.useArrayBounds = BOUNDSCHECK.on;
+                        params.useArrayBounds = CHECKENABLE.on;
                     }
                     else if (strcmp(p + 13, "safeonly") == 0)
                     {
-                        params.useArrayBounds = BOUNDSCHECK.safeonly;
+                        params.useArrayBounds = CHECKENABLE.safeonly;
                     }
                     else if (strcmp(p + 13, "off") == 0)
                     {
-                        params.useArrayBounds = BOUNDSCHECK.off;
+                        params.useArrayBounds = CHECKENABLE.off;
                     }
                     else
                         goto Lerror;

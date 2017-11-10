@@ -463,7 +463,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
         int ns = ((fd ? callSideEffectLevel(fd)
                       : callSideEffectLevel(t)) == 2 &&
                   retmethod != RETstack &&
-                  !global.params.useAssert && global.params.optimize);
+                  global.params.useAssert == CHECKENABLE.off && global.params.optimize);
         if (ep)
             e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
         else
@@ -1960,9 +1960,9 @@ elem *toElem(Expression e, IRState *irs)
         {
             //printf("AssertExp.toElem() %s\n", toChars());
             elem *e;
-            if (global.params.useAssert)
+            if (global.params.useAssert == CHECKENABLE.on)
             {
-                if (global.params.useCAsserts)
+                if (global.params.checkAction == CHECKACTION.C)
                 {
                     auto econd = toElem(ae.e1, irs);
                     auto ea = callCAssert(irs, ae.e1.loc, ae.e1, ae.msg, null);
@@ -5921,7 +5921,7 @@ elem *filelinefunction(IRState *irs, Loc *loc)
  */
 elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
 {
-    if (global.params.useCAsserts)
+    if (global.params.checkAction == CHECKACTION.C)
     {
         return callCAssert(irs, loc, null, null, "array overflow");
     }

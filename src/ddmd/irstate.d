@@ -238,15 +238,15 @@ struct IRState
     extern (C++) bool arrayBoundsCheck()
     {
         bool result;
-        switch (global.params.useArrayBounds)
+        final switch (global.params.useArrayBounds)
         {
-        case BOUNDSCHECK.off:
+        case CHECKENABLE.off:
             result = false;
             break;
-        case BOUNDSCHECK.on:
+        case CHECKENABLE.on:
             result = true;
             break;
-        case BOUNDSCHECK.safeonly:
+        case CHECKENABLE.safeonly:
             {
                 result = false;
                 FuncDeclaration fd = getFunc();
@@ -258,7 +258,7 @@ struct IRState
                 }
                 break;
             }
-        default:
+        case CHECKENABLE._default:
             assert(0);
         }
         return result;
