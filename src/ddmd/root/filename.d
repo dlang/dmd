@@ -698,11 +698,11 @@ nothrow:
             assert(fullPathLength == fullPathLengthNoTerminator + 1);
 
             // Find out size of the converted string
-            const retLength = WideCharToMultiByte(CP_ACP, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+            const retLength = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
             auto ret = new char[retLength];
 
             // Actually convert to char
-            const retLength2 = WideCharToMultiByte(CP_ACP, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], ret.length, null, null);
+            const retLength2 = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], ret.length, null, null);
             assert(retLength == retLength2);
 
             return &ret[0];
@@ -848,12 +848,12 @@ version(Windows)
         // cache this for efficiency
         const strLength = strlen(str) + 1;
         // first find out how long the buffer must be to store the result
-        const length = MultiByteToWideChar(CP_ACP, 0 /*flags*/, str, strLength, null, 0);
+        const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, null, 0);
         if (!length) return null;
 
         auto ret = length > buf.length ? new wchar[length] : buf;
         // actually do the conversion
-        const length2 = MultiByteToWideChar(CP_ACP, 0 /*flags*/, str, strLength, &ret[0], ret.length);
+        const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, &ret[0], ret.length);
         assert(length == length2); // should always be true according to the API
 
         return ret[0 .. length];
