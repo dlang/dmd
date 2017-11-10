@@ -17,7 +17,7 @@ src="$bin_base.d"
 echo 'void main() {}' > "${src}"
 
 # Only compile, not link, since optlink can't handle long file names
-$DMD -m"${MODEL}" -I"${DRUNTIME_PATH}/import" -c -of"${bin}" "${src}" || exit 1
+$DMD -m"${MODEL}" "${DFLAGS}" -c -of"${bin}" "${src}" || exit 1
 
 rm -rf "${dir:?}"/"$name"
 
