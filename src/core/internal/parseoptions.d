@@ -3,6 +3,8 @@
 *
 * Copyright: Copyright Digital Mars 2017
 * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+*
+* Source: $(DRUNTIMESRC src/core/internal/parseoptions.d)
 */
 
 module core.internal.parseoptions;
@@ -20,7 +22,14 @@ extern extern(C) __gshared bool rt_envvars_enabled;
 extern extern(C) __gshared bool rt_cmdline_enabled;
 extern extern(C) __gshared string[] rt_options;
 
-// initialize members of struct CFG from rt_config options
+/**
+* initialize members of struct CFG from rt_config options
+*
+* options will be read from the environment, the command line or embedded
+* into the executable as configured (see rt.config)
+*
+* fields of the struct are populated by parseOptions().
+*/
 bool initConfigOptions(CFG)(ref CFG cfg, string cfgname)
 {
     import core.internal.traits : externDFunc;
@@ -40,21 +49,41 @@ bool initConfigOptions(CFG)(ref CFG cfg, string cfgname)
     return s is null;
 }
 
+/**
+* initialize members of struct CFG from a string of sub-options.
+*
+* fields of the struct are populated by listing them as space separated
+* sub-options <field-name>:value, e.g. "precise:1 profile:1"
+*
+* supported field value types:
+*  - strings (without spaces)
+*  - integer types (positive values only)
+*  - bool
+*  - float
+*
+* If the struct has a member "help" it is called if it is found as a sub-option.
+* If the struct has a member "errorName", is used as the name reported in error
+* messages. Otherwise the struct name is used.
+*/
 bool parseOptions(CFG)(ref CFG cfg, string opt)
 {
-    string errName = cfg.errorName;
+    static if (is(typeof(__traits(getMember, CFG, "errorName"))))
+        string errName = cfg.errorName;
+    else
+        string errName = CFG.stringof;
     opt = skip!isspace(opt);
     while (opt.length)
     {
         auto tail = find!(c => c == ':' || c == '=' || c == ' ')(opt);
         auto name = opt[0 .. $ - tail.length];
-        if (name == "help")
-        {
-            version (unittest) {} else
-            cfg.help();
-            opt = skip!isspace(tail);
-            continue;
-        }
+        static if (is(typeof(__traits(getMember, CFG, "help"))))
+            if (name == "help")
+            {
+                version (unittest) {} else
+                cfg.help();
+                opt = skip!isspace(tail);
+                continue;
+            }
         if (tail.length <= 1 || tail[0] == ' ')
             return optError("Missing argument for", name, errName);
         tail = tail[1 .. $];
