@@ -1286,6 +1286,10 @@ private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
             {
                 Expression ee1 = (*es1.elements)[i];
                 Expression ee2 = (*es2.elements)[i];
+
+                // https://issues.dlang.org/show_bug.cgi?id=16284
+                if (ee1.op == TOKvoid && ee2.op == TOKvoid)
+                    continue;
                 if (ee1 == ee2)
                     continue;
                 if (!ee1 || !ee2)
