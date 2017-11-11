@@ -286,9 +286,6 @@ extern (C++) bool discardValue(Expression e)
             }
         }
         return false;
-    case TOKscope:
-        e.error("`%s` has no effect", e.toChars());
-        return true;
     case TOKandand:
     case TOKoror:
         {
@@ -355,7 +352,7 @@ extern (C++) bool discardValue(Expression e)
     default:
         break;
     }
-    e.error("`%s` has no effect in expression `%s`", Token.toChars(e.op), e.toChars());
+    e.error("`%s` has no effect", e.toChars());
     return true;
 }
 
