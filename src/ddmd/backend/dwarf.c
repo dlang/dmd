@@ -1503,7 +1503,9 @@ void dwarf_func_term(Symbol *sfunc)
 {
    //printf("dwarf_func_term(sfunc = '%s')\n", sfunc->Sident);
 
-    if (config.ehmethod == EH_DWARF)
+    // Temporarily disabling EH generation for betterC so scope(exit) and
+    // struct dtors work. This is a filthy hack.
+    if (config.ehmethod == EH_DWARF && !global.params.betterC)
     {
         bool ehunwind = doUnwindEhFrame();
 
