@@ -292,24 +292,6 @@ private int tryMain(size_t argc, const(char)** argv)
     files.reserve(arguments.dim - 1);
     // Set default values
     global.params.argv0 = arguments[0];
-    global.params.color = true;
-    global.params.link = true;
-    global.params.useInvariants = true;
-    global.params.useIn = true;
-    global.params.useOut = true;
-    global.params.useArrayBounds = CHECKENABLE._default; // set correct value later
-    global.params.useAssert      = CHECKENABLE._default;
-    global.params.useSwitchError = CHECKENABLE._default;
-    global.params.useModuleInfo = true;
-    global.params.useTypeInfo = true;
-    global.params.useInline = false;
-    global.params.obj = true;
-    global.params.useDeprecated = 2;
-    global.params.hdrStripPlainFunctions = true;
-    // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
-    global.params.is64bit = (size_t.sizeof == 8);
-    global.params.mscoff = false;
-    global.params.cpu = CPU.baseline;
 
     // Temporary: Use 32 bits as the default on Windows, for config parsing
     static if (TARGET_WINDOS)
