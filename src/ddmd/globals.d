@@ -69,8 +69,8 @@ enum CPU
 // Put command line switches in here
 struct Param
 {
-    bool obj;               // write object file
-    bool link;              // perform link
+    bool obj = true;        // write object file
+    bool link = true;       // perform link
     bool dll;               // generate shared dynamic library
     bool lib;               // write library file instead of object file(s)
     bool multiobj;          // break one object file into multiple ones
@@ -89,7 +89,7 @@ struct Param
     bool alwaysframe;       // always emit standard stack frame
     bool optimize;          // run optimizer
     bool map;               // generate linker .map file
-    bool is64bit;           // generate 64 bit code
+    bool is64bit = (size_t.sizeof == 8);  // generate 64 bit code; true by default for 64 bit dmd
     bool isLP64;            // generate code for LP64
     bool isLinux;           // generate code for linux
     bool isOSX;             // generate code for Mac OSX
@@ -98,17 +98,17 @@ struct Param
     bool isOpenBSD;         // generate code for OpenBSD
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
-    bool mscoff;            // for Win32: write COFF object files instead of OMF
+    bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     // 0: don't allow use of deprecated features
     // 1: silently allow use of deprecated features
     // 2: warn about the use of deprecated features
-    byte useDeprecated;
-    bool useInvariants;     // generate class invariant checks
-    bool useIn;             // generate precondition checks
-    bool useOut;            // generate postcondition checks
-    bool stackstomp;        // add stack stomping code
-    bool useUnitTests;      // generate unittest code
-    bool useInline;         // inline expand functions
+    byte useDeprecated = 2;
+    bool useInvariants = true;  // generate class invariant checks
+    bool useIn = true;          // generate precondition checks
+    bool useOut = true;         // generate postcondition checks
+    bool stackstomp;            // add stack stomping code
+    bool useUnitTests;          // generate unittest code
+    bool useInline = false;     // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
@@ -117,14 +117,14 @@ struct Param
     // 2: informational warnings (no errors)
     byte warnings;
     bool pic;               // generate position-independent-code for shared libs
-    bool color;             // use ANSI colors in console output
+    bool color = true;      // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool nofloat;           // code should not pull in floating point support
     bool ignoreUnsupportedPragmas;  // rather than error on them
     bool enforcePropertySyntax;
-    bool useModuleInfo;     // generate runtime module information
-    bool useTypeInfo;       // generate runtime type information
+    bool useModuleInfo = true;   // generate runtime module information
+    bool useTypeInfo = true;     // generate runtime type information
     bool betterC;           // be a "better C" compiler; no dependency on D runtime
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
@@ -144,13 +144,13 @@ struct Param
     bool usage;             // print usage and exit
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
-    bool logo;              // print logo;
+    bool logo;              // print compiler logo
 
-    CPU cpu;                // CPU instruction set to target
+    CPU cpu = CPU.baseline; // CPU instruction set to target
 
-    CHECKENABLE useArrayBounds;    // when to generate code for array bounds checks
-    CHECKENABLE useAssert;         // when to generate code for assert()'s
-    CHECKENABLE useSwitchError;    // check for switches without a default
+    CHECKENABLE useArrayBounds = CHECKENABLE._default;  // when to generate code for array bounds checks
+    CHECKENABLE useAssert      = CHECKENABLE._default;  // when to generate code for assert()'s
+    CHECKENABLE useSwitchError = CHECKENABLE._default;  // check for switches without a default
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
     uint errorLimit = 20;
@@ -171,7 +171,7 @@ struct Param
     bool doHdrGeneration;               // process embedded documentation comments
     const(char)* hdrdir;                // write 'header' file to docdir directory
     const(char)* hdrname;               // write 'header' file to docname
-    bool hdrStripPlainFunctions;        // strip the bodies of plain (non-template) functions
+    bool hdrStripPlainFunctions = true; // strip the bodies of plain (non-template) functions
 
     bool doJsonGeneration;              // write JSON file
     const(char)* jsonfilename;          // write JSON file to jsonfilename
