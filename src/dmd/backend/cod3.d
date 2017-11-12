@@ -834,7 +834,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
             {   // Swap bs1 and bs2
                 block *btmp;
 
-                jcond ^= 1;
+                jcond = !jcond;
                 btmp = bs1;
                 bs1 = bs2;
                 bs2 = btmp;
@@ -1376,7 +1376,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
             if (n == 0)
                 msw = ms;
             else if (msw != ms)
-                mswsame = 0;
+                mswsame = false;
         }
         else // REGSIZE == 4
         {
@@ -1384,7 +1384,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
             if (n == 0)
                 msw = ms;
             else if (msw != ms)
-                mswsame = 0;
+                mswsame = false;
         }
     }
     p -= ncases;

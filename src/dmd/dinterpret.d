@@ -384,7 +384,7 @@ struct CompiledCtfeFunction
                 // Suppress the check in this case.
                 if (global.gag && ccf.func)
                 {
-                    stop = 1;
+                    stop = true;
                     return;
                 }
                 .error(e.loc, "CTFE internal error: ErrorExp in `%s`\n", ccf.func ? ccf.func.loc.toChars() : ccf.callingloc.toChars());

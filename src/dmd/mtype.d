@@ -2191,7 +2191,7 @@ extern (C++) abstract class Type : RootObject
 
     bool isBaseOf(Type t, int* poffset)
     {
-        return 0; // assume not
+        return false; // assume not
     }
 
     /********************************

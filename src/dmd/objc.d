@@ -418,7 +418,7 @@ extern(C++) private final class Supported : Objc
         {
             auto members = new Dsymbols();
             members.push(classDeclaration);
-            return new ClassDeclaration(loc, Id.Class, metaBases, members, 0);
+            return new ClassDeclaration(loc, Id.Class, metaBases, members, false);
         }
 
         .setMetaclass!newMetaclass(classDeclaration);

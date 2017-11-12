@@ -557,7 +557,7 @@ else
             if (!rretregs)
                 rretregs = mLSW;
             rretregs |= mCX;
-            codelem(cdb,e1,&rretregs,0);
+            codelem(cdb,e1,&rretregs,false);
             retregs &= ~rretregs;
             if (!(retregs & mLSW))
                 retregs |= mLSW & ~rretregs;
@@ -566,7 +566,7 @@ else
         }
         else
         {   // long + hptr
-            codelem(cdb,e1,&retregs,0);
+            codelem(cdb,e1,&retregs,false);
             rretregs = (mLSW | mCX) & ~retregs;
             if (!(rretregs & mLSW))
                 rretregs |= mLSW;

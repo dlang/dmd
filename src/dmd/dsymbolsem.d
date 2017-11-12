@@ -1200,7 +1200,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 }
                                 else
                                 {
-                                    ne.onstack = 1;
+                                    ne.onstack = true;
                                     dsym.onstack = true;
                                 }
                             }
@@ -3264,7 +3264,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                 {
                     //printf("\tintroducing function %s\n", toChars());
-                    funcdecl.introducing = 1;
+                    funcdecl.introducing = true;
                     if (cd.classKind == ClassKind.cpp && Target.reverseCppOverloads)
                     {
                         // with dmc, overloaded functions are grouped and in reverse order

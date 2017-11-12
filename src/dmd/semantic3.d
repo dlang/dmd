@@ -559,12 +559,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     sc2.ctorflow.allocFieldinit(ad2.fields.dim);
                     foreach (v; ad2.fields)
                     {
-                        v.ctorinit = 0;
+                        v.ctorinit = false;
                     }
                 }
 
                 if (!funcdecl.inferRetType && !Target.isReturnOnStack(f, funcdecl.needThis()))
-                    funcdecl.nrvo_can = 0;
+                    funcdecl.nrvo_can = false;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
 
@@ -618,7 +618,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         funcdecl.storage_class &= ~STC.auto_;
                 }
                 if (!Target.isReturnOnStack(f, funcdecl.needThis()))
-                    funcdecl.nrvo_can = 0;
+                    funcdecl.nrvo_can = false;
 
                 if (funcdecl.fbody.isErrorStatement())
                 {

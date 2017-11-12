@@ -3177,10 +3177,10 @@ else
                 {
                     // Function returns a reference
                     if (!inferRef)
-                        fd.nrvo_can = 0;
+                        fd.nrvo_can = false;
                 }
                 else if (!v || v.isOut() || v.isRef())
-                    fd.nrvo_can = 0;
+                    fd.nrvo_can = false;
                 else if (fd.nrvo_var is null)
                 {
                     if (!v.isDataseg() && !v.isParameter() && v.toParent2() == fd)
@@ -3189,18 +3189,18 @@ else
                         fd.nrvo_var = v;
                     }
                     else
-                        fd.nrvo_can = 0;
+                        fd.nrvo_can = false;
                 }
                 else if (fd.nrvo_var != v)
-                    fd.nrvo_can = 0;
+                    fd.nrvo_can = false;
             }
             else //if (!exp.isLvalue())    // keep NRVO-ability
-                fd.nrvo_can = 0;
+                fd.nrvo_can = false;
         }
         else
         {
             // handle NRVO
-            fd.nrvo_can = 0;
+            fd.nrvo_can = false;
 
             // infer return type
             if (fd.inferRetType)

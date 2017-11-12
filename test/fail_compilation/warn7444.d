@@ -57,7 +57,7 @@ No warning
 void test10214()
 {
     bool[1] arr;
-    arr = 0;
+    arr = false;
     pragma(msg, "No warning");
 }
 

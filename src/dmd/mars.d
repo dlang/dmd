@@ -789,9 +789,9 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (mod; modules)
         {
             auto buf = OutBuffer();
-            buf.doindent = 1;
+            buf.doindent = true;
             scope HdrGenState hgs;
-            hgs.fullDump = 1;
+            hgs.fullDump = true;
             scope PrettyPrintVisitor ppv = new PrettyPrintVisitor(&buf, &hgs);
             mod.accept(ppv);
 
@@ -1555,7 +1555,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         {
             static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
             {
-                params.pic = 1;
+                params.pic = true;
             }
             else
             {

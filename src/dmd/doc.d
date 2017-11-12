@@ -2642,7 +2642,7 @@ private void highlightCode3(Scope* sc, OutBuffer* buf, const(char)* p, const(cha
 private void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
 {
     uint errorsave = global.errors;
-    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, 0, 1);
+    scope Lexer lex = new Lexer(null, cast(char*)buf.data, 0, buf.offset - 1, false, true);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf.data;
     //printf("highlightCode2('%.*s')\n", buf.offset - 1, buf.data);

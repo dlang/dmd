@@ -1188,7 +1188,7 @@ final class Parser(AST) : Lexer
             {
                 auto a2 = new AST.Dsymbols();
                 a2.push(v);
-                auto tempdecl = new AST.TemplateDeclaration(loc, ident, tpl, null, a2, 0);
+                auto tempdecl = new AST.TemplateDeclaration(loc, ident, tpl, null, a2, false);
                 s = tempdecl;
             }
             a.push(s);
@@ -4696,7 +4696,7 @@ final class Parser(AST) : Lexer
                 {
                     auto a2 = new AST.Dsymbols();
                     a2.push(s);
-                    auto tempdecl = new AST.TemplateDeclaration(loc, ident, tpl, null, a2, 0);
+                    auto tempdecl = new AST.TemplateDeclaration(loc, ident, tpl, null, a2, false);
                     s = tempdecl;
                 }
                 if (setAlignment)

@@ -2177,7 +2177,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             tf.next = tret;
             if (ad && ad.isStructDeclaration())
-                tf.isref = 1;
+                tf.isref = true;
             //printf("tf = %s\n", tf.toChars());
         }
         else
@@ -6908,7 +6908,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (semanticTiargs(loc, sc, tiargs, 0))
         {
             // cache the result iff semantic analysis succeeded entirely
-            semantictiargsdone = 1;
+            semantictiargsdone = true;
             return true;
         }
         return false;

@@ -68,7 +68,7 @@ enum TEST_EMIT_ALL = 0;
 extern (C++) void genhdrfile(Module m)
 {
     OutBuffer buf;
-    buf.doindent = 1;
+    buf.doindent = true;
     buf.printf("// D import file generated from '%s'", m.srcfile.toChars());
     buf.writenl();
     HdrGenState hgs;

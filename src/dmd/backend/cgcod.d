@@ -173,7 +173,7 @@ version (SCPP)
     allregs = ALLREGS;
     pass = PASSinitial;
     Alloca.init();
-    anyiasm = 0;
+    anyiasm = false;
 
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
@@ -246,7 +246,7 @@ else version (SCPP)
         if (b.Belem)
             resetEcomsub(b.Belem);     // reset all the Ecomsubs
         if (b.BC == BCasm)
-            anyiasm = 1;                // we have inline assembler
+            anyiasm = true;                // we have inline assembler
         if (b.BC == BCret || b.BC == BCretexp)
             nretblocks++;
     }

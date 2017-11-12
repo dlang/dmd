@@ -859,7 +859,7 @@ L1:
   else if (e2.Eoper == OPneg)
   {     e.EV.E2 = el_selecte1(e2);
         e.Eoper = OPmin;
-        again = 1;
+        again = true;
         return e;
   }
   /* Replace (-v + e) with (e + -v)     */
@@ -902,7 +902,7 @@ L1:
                 e.EV.E1.Ety = e1.Ety;
             }
         }
-        again = 1;
+        again = true;
         return e;
   }
   /* Replace (e + e) with (e * 2)       */
@@ -911,7 +911,7 @@ L1:
         e.Eoper = OPmul;
         el_free(e2);
         e.EV.E2 = el_long(e1.Ety,2);
-        again = 1;
+        again = true;
         return e;
   }
   // Replace ((e11 + c) + e2) with ((e11 + e2) + c)
@@ -999,7 +999,7 @@ private elem * elmul(elem *e, goal_t goal)
                     e1.Eoper = OPmul;
                     e.EV.E2 = el_bin(OPmul,tym,e1.EV.E2,e2);
                     e1.EV.E2 = el_copytree(e2);
-                    again = 1;
+                    again = true;
                     return e;
                 }
 
@@ -1008,7 +1008,7 @@ private elem * elmul(elem *e, goal_t goal)
                 {
                     e2.EV.Vullong *= cast(targ_ullong)1 << el_tolong(e1.EV.E2);
                     e1.EV.E2.EV.Vullong = 0;
-                    again = 1;
+                    again = true;
                     return e;
                 }
             }
@@ -1030,7 +1030,7 @@ private elem * elmul(elem *e, goal_t goal)
                 e2.Ety = TYint;
                 e.Eoper = (e.Eoper == OPmul)  /* convert to shift left */
                         ? OPshl : OPshlass;
-                again = 1;
+                again = true;
                 return e;
             }
             else if (el_allbits(e2,-1))
@@ -1048,7 +1048,7 @@ Lneg:
             ? OPneg : OPnegass;
     el_free(e.EV.E2);
     e.EV.E2 = null;
-    again = 1;
+    again = true;
     return e;
 }
 
@@ -3023,7 +3023,7 @@ private elem * elind(elem *e, goal_t goal)
             e.Ety = tym;
             e.EV.E2 = el_una(OPind,tym,e.EV.E2);
             e.EV.E2.ET = t;
-            again = 1;
+            again = true;
             return e;
 
         default:
@@ -3365,7 +3365,7 @@ elem * elstruct(elem *e, goal_t goal)
             if (e.Eoper == OPstreq)
             {   e.Eoper = OPcomma;
                 e = optelem(e,GOALvalue);
-                again = 1;
+                again = true;
             }
             else
                 goto Ldefault;
@@ -4534,7 +4534,7 @@ private elem * ellngsht(elem *e, goal_t goal)
             }
             e1.Ety = ty;
             e = el_selecte1(e);
-            again = 1;
+            again = true;
             return e;
         }
         break;

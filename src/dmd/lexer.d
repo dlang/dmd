@@ -146,7 +146,7 @@ unittest
     /* Not much here, just trying things out.
      */
     string text = "int"; // We rely on the implicit null-terminator
-    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, 0, 0);
+    scope Lexer lex1 = new Lexer(null, text.ptr, 0, text.length, false, false);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOK.int32);
@@ -181,7 +181,7 @@ unittest
 
     foreach (testcase; testcases)
     {
-        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, 0, 0);
+        scope Lexer lex2 = new Lexer(null, testcase.ptr, 0, testcase.length-1, false, false);
         TOK tok = lex2.nextToken();
         size_t iterations = 1;
         while ((tok != TOK.endOfFile) && (iterations++ < testcase.length))
@@ -497,7 +497,7 @@ class Lexer : ErrorHandler
                     Identifier id = Identifier.idPool(cast(char*)t.ptr, cast(uint)(p - t.ptr));
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
-                    anyToken = 1;
+                    anyToken = true;
                     if (*t.ptr == '_') // if special identifier token
                     {
                         __gshared bool initdone = false;

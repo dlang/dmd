@@ -942,7 +942,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Register return style cannot make nrvo.
         // Auto functions keep the nrvo_can flag up to here,
         // so we should eliminate it before entering backend.
-        fd.nrvo_can = 0;
+        fd.nrvo_can = false;
     }
 
     if (fd.vthis)

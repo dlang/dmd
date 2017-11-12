@@ -335,6 +335,18 @@ MATCH implicitConvTo(Expression e, Type t)
             TY toty = t.toBasetype().ty;
             TY oldty = ty;
 
+            // DIP1015 - Stage 1 - Deprecation.  Remove this code when feature is removed.
+            if (m == MATCH.nomatch && t.ty == Tbool)
+                e.deprecation("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                        e.toChars(), e.type.toChars(), t.toChars());
+
+            // https://issues.dlang.org/show_bug.cgi?id=9999
+            // DIP1015 - Stage 2 - Removal - Uncomment when feature is removed, and uncomment
+            // code in test/runnable/test10560.d
+            // @@@DEPRECATED_[version]@@@
+            // if (m == MATCH.nomatch && t.ty == Tbool)
+            //     return;
+
             if (m == MATCH.nomatch && t.ty == Tenum)
                 return;
 
