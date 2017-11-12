@@ -3607,6 +3607,14 @@ else
 
     override void visit(TryCatchStatement tcs)
     {
+        //printf("TryCatchStatement.semantic()\n");
+
+        if (global.params.betterC)
+        {
+            tcs.error("Cannot use try-catch statements with -betterC");
+            return setError();
+        }
+
         uint flags;
         enum FLAGcpp = 1;
         enum FLAGd = 2;
@@ -3765,6 +3773,13 @@ else
     override void visit(ThrowStatement ts)
     {
         //printf("ThrowStatement::semantic()\n");
+
+        if (global.params.betterC)
+        {
+            ts.error("Cannot use throw statements with -betterC");
+            return setError();
+        }
+
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         fd.hasReturnExp |= 2;
 
