@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/nteh.c, backend/nteh.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/nteh.c
  */
 
 // Support for NT exception handling
@@ -542,9 +543,14 @@ code *nteh_patchindex(code* c, int sindex)
 
 void nteh_gensindex(CodeBuilder& cdb, int sindex)
 {
+#if MARS
+    if (config.ehmethod != EH_WIN32)
+        return;
+#endif
+#if SCPP
     if (config.exe != EX_WIN32)
         return;
-
+#endif
     // Generate:
     //  MOV     -4[EBP],sindex
 

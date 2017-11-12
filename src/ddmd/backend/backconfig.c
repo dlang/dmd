@@ -74,7 +74,7 @@ void out_config_init(
     {   config.exe = EX_WIN64;
         config.fpxmmregs = TRUE;
         config.avx = avx;
-        config.ehmethod = EH_DM;
+        config.ehmethod = betterC ? EH_NONE : EH_DM;
 
         // Not sure we really need these two lines, try removing them later
         config.flags |= CFGnoebp;
@@ -85,7 +85,7 @@ void out_config_init(
     else
     {
         config.exe = EX_WIN32;
-        config.ehmethod = EH_WIN32;
+        config.ehmethod = betterC ? EH_NONE : EH_WIN32;
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
     }
 
@@ -96,14 +96,14 @@ void out_config_init(
 #if TARGET_LINUX
     if (model == 64)
     {   config.exe = EX_LINUX64;
-        config.ehmethod = EH_DWARF;
+        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
         config.fpxmmregs = TRUE;
         config.avx = avx;
     }
     else
     {
         config.exe = EX_LINUX;
-        config.ehmethod = EH_DWARF;
+        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -121,12 +121,12 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_OSX64;
         config.fpxmmregs = TRUE;
-        config.ehmethod = EH_DWARF;
+        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
     }
     else
     {
         config.exe = EX_OSX;
-        config.ehmethod = EH_DWARF;
+        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
     }
     config.flags |= CFGnoebp;
     if (!exe)
@@ -140,14 +140,14 @@ void out_config_init(
 #if TARGET_FREEBSD
     if (model == 64)
     {   config.exe = EX_FREEBSD64;
-        config.ehmethod = EH_DWARF;
+        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
         config.fpxmmregs = TRUE;
         config.avx = avx;
     }
     else
     {
         config.exe = EX_FREEBSD;
-        config.ehmethod = EH_DWARF;
+        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -176,7 +176,7 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = EH_DM;
+    config.ehmethod = betterC ? EH_NONE : EH_DM;
 #endif
 #if TARGET_SOLARIS
     if (model == 64)
@@ -195,7 +195,7 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = EH_DM;
+    config.ehmethod = betterC ? EH_NONE : EH_DM;
 #endif
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;
