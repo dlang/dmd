@@ -34,7 +34,7 @@ import ddmd.mtype;
 import ddmd.root.outbuffer;
 import ddmd.visitor;
 
-extern (C++) final class ToJsonVisitor : Visitor
+private extern (C++) final class ToJsonVisitor : Visitor
 {
     alias visit = super.visit;
 public:

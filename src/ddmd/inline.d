@@ -81,7 +81,7 @@ final class InlineDoState
  *  - Copying the trees of the function to be inlined
  *  - Renaming the variables
  */
-extern (C++) final class DoInlineAs(Result) : Visitor
+private extern (C++) final class DoInlineAs(Result) : Visitor
 if (is(Result == Statement) || is(Result == Expression))
 {
     alias visit = super.visit;
@@ -802,7 +802,7 @@ Result doInlineAs(Result)(Expression e, InlineDoState ids)
  * Walk the trees, looking for functions to inline.
  * Inline any that can be.
  */
-extern (C++) final class InlineScanVisitor : Visitor
+private extern (C++) final class InlineScanVisitor : Visitor
 {
     alias visit = super.visit;
 public:
