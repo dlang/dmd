@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/irstate.d, _irstate.d)
+ * Documentation: https://dlang.org/phobos/ddmd_irstate.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/irstate.d
  */
 
 module ddmd.irstate;
-
-// Online documentation: https://dlang.org/phobos/ddmd_irstate.html
 
 import ddmd.root.array;
 
@@ -39,7 +39,7 @@ extern (C++) struct Label
 
 /***********************************************************
  */
-struct IRState
+extern (C++) struct IRState
 {
     IRState* prev;
     Statement statement;
@@ -262,5 +262,19 @@ struct IRState
             assert(0);
         }
         return result;
+    }
+
+    /****************************
+     * Returns:
+     *  true if in a nothrow section of code
+     */
+    bool isNothrow()
+    {
+        /* Note that even nothrow functions can have throwing parts,
+         * so until we do a better job tracking that, this is
+         * the best we can do.
+         * Nothrow needs to be tracked at the Statement level.
+         */
+        return global.params.betterC;
     }
 }
