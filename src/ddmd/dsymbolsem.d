@@ -4567,6 +4567,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             goto Lintro;
                     }
 
+                    if (fdv.isDeprecated)
+                        deprecation(funcdecl.loc, "`%s` is overriding the deprecated method `%s`",
+                                    funcdecl.toPrettyChars, fdv.toPrettyChars);
+
                     // This function overrides fdv
                     if (fdv.isFinalFunc())
                         funcdecl.error("cannot override final function %s", fdv.toPrettyChars());
