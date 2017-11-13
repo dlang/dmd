@@ -4744,9 +4744,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (funcdecl.isOverride)
             {
                 if (funcdecl.storage_class & STCdisable)
-                    funcdecl.deprecation("overridden functions cannot be annotated @disable");
+                    deprecation(funcdecl.loc,
+                                "`%s` cannot be annotated with `@disable` because it is overriding a function in the base class",
+                                funcdecl.toPrettyChars);
                 if (funcdecl.isDeprecated)
-                    funcdecl.deprecation("deprecated functions cannot be annotated @disable");
+                    deprecation(funcdecl.loc,
+                                "`%s` cannot be marked as `deprecated` because it is overriding a function in the base class",
+                                funcdecl.toPrettyChars);
             }
 
         }
