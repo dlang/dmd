@@ -926,7 +926,10 @@ extern(C++) final class Semantic3Visitor : Visitor
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
+                    {
                         funcdecl.error("parameter %s.%s is already defined", funcdecl.toChars(), v.toChars());
+                        funcdecl.errors = true;
+                    }
                     else
                         funcdecl.parameters.push(v);
                     funcdecl.localsymtab.insert(v);
@@ -1623,7 +1626,7 @@ extern(C++) final class Semantic3Visitor : Visitor
         funcdecl.flags &= ~FUNCFLAGinferScope;
 
         // Infer STCscope
-        if (funcdecl.parameters)
+        if (funcdecl.parameters && !funcdecl.errors)
         {
             size_t nfparams = Parameter.dim(f.parameters);
             assert(nfparams == funcdecl.parameters.dim);
