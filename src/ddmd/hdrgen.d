@@ -2314,6 +2314,9 @@ public:
                     goto L4;
                 else
                     assert(0);
+            case Tvoid:
+                buf.writestring("<void>");
+                break;
             default:
                 /* This can happen if errors, such as
                  * the type is painted on like in fromConstInitializer().
