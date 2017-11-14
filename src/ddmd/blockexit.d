@@ -36,34 +36,38 @@ import ddmd.visitor;
  */
 enum BE : int
 {
-    BEnone = 0,
-    BEfallthru = 1,
-    BEthrow    = 2,
-    BEreturn   = 4,
-    BEgoto     = 8,
-    BEhalt     = 0x10,
-    BEbreak    = 0x20,
-    BEcontinue = 0x40,
-    BEerrthrow = 0x80,
-    BEany      = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+    none      = 0,
+    fallthru  = 1,
+    throw_    = 2,
+    return_   = 4,
+    goto_     = 8,
+    halt      = 0x10,
+    break_    = 0x20,
+    continue_ = 0x40,
+    errthrow  = 0x80,
+    any       = (fallthru | throw_ | return_ | goto_ | halt),
 }
 
-alias BEnone = BE.BEnone;
-alias BEfallthru = BE.BEfallthru;
-alias BEthrow = BE.BEthrow;
-alias BEreturn = BE.BEreturn;
-alias BEgoto = BE.BEgoto;
-alias BEhalt = BE.BEhalt;
-alias BEbreak = BE.BEbreak;
-alias BEcontinue = BE.BEcontinue;
-alias BEerrthrow = BE.BEerrthrow;
-alias BEany = BE.BEany;
+alias BEnone     = BE.none;
+alias BEfallthru = BE.fallthru;
+alias BEthrow    = BE.throw_;
+alias BEreturn   = BE.return_;
+alias BEgoto     = BE.goto_;
+alias BEhalt     = BE.halt;
+alias BEbreak    = BE.break_;
+alias BEcontinue = BE.continue_;
+alias BEerrthrow = BE.errthrow;
+alias BEany      = BE.any;
 
 
 
 /*********************************************
- * Only valid after semantic analysis
+ * Determine mask of ways that a statement can exit.
+ *
+ * Only valid after semantic analysis.
  * Params:
+ *   s = statement to check for block exit status
+ *   func = function that statement s is in
  *   mustNotThrow = generate an error if it throws
  * Returns:
  *   BExxxx
@@ -94,7 +98,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
         override void visit(ErrorStatement s)
         {
-            result = BEany;
+            result = BE.none;
         }
 
         override void visit(ExpStatement s)
@@ -528,13 +532,15 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
         override void visit(CompoundAsmStatement s)
         {
-            if (mustNotThrow && !(s.stc & STCnothrow))
-                s.deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
-
             // Assume the worst
             result = BEfallthru | BEreturn | BEgoto | BEhalt;
             if (!(s.stc & STCnothrow))
-                result |= BEthrow;
+            {
+                if (mustNotThrow && !(s.stc & STCnothrow))
+                    s.deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
+                else
+                    result |= BEthrow;
+            }
         }
 
         override void visit(ImportStatement s)
