@@ -951,7 +951,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder
 
 /****************************************************
  */
-extern (C++) class TypeInfoDtVisitor : Visitor
+private extern (C++) class TypeInfoDtVisitor : Visitor
 {
     DtBuilder dtb;
 

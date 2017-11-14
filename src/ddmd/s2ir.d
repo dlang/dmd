@@ -163,7 +163,7 @@ void incUsage(IRState *irs, Loc loc)
 
 void Statement_toIR(Statement s, IRState *irs);
 
-extern (C++) class S2irVisitor : Visitor
+private extern (C++) class S2irVisitor : Visitor
 {
     IRState *irs;
 

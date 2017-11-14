@@ -100,7 +100,7 @@ string astTypeName(` ~ P[0].stringof ~ ` node)
     }
 
     return astTypeNameFunctions ~ `
-extern(C++) final class AstTypeNameVisitor : Visitor
+private extern(C++) final class AstTypeNameVisitor : Visitor
 {
     alias visit = super.visit;
 public :

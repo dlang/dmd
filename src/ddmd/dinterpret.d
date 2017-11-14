@@ -340,7 +340,7 @@ struct CompiledCtfeFunction
     }
 }
 
-extern (C++) final class CtfeCompiler : Visitor
+private extern (C++) final class CtfeCompiler : Visitor
 {
     alias visit = super.visit;
 public:
@@ -1053,7 +1053,7 @@ extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expres
     return e;
 }
 
-extern (C++) final class Interpreter : Visitor
+private extern (C++) final class Interpreter : Visitor
 {
     alias visit = super.visit;
 public:

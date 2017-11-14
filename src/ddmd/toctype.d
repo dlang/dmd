@@ -27,7 +27,7 @@ import ddmd.mtype;
 import ddmd.tocvdebug;
 import ddmd.visitor;
 
-extern (C++) final class ToCtypeVisitor : Visitor
+private extern (C++) final class ToCtypeVisitor : Visitor
 {
     alias visit = super.visit;
 public:
