@@ -592,15 +592,16 @@ nothrow:
         }
         else version (Windows)
         {
-            wchar[1024] wnameBuf;
-            const wname = name.toWStringz(wnameBuf);
-            const dw = GetFileAttributesW(&wname[0]);
-            if (dw == -1)
-                return 0;
-            else if (dw & FILE_ATTRIBUTE_DIRECTORY)
-                return 2;
-            else
-                return 1;
+            return name.toWStringzThen!((wname)
+            {
+                const dw = GetFileAttributesW(&wname[0]);
+                if (dw == -1)
+                    return 0;
+                else if (dw & FILE_ATTRIBUTE_DIRECTORY)
+                    return 2;
+                else
+                    return 1;
+            });
         }
         else
         {
@@ -692,32 +693,32 @@ nothrow:
         else version (Windows)
         {
             // Convert to wstring first since otherwise the Win32 APIs have a character limit
-            wchar[1024] wnameBuf;
-            const wname = name.toWStringz(wnameBuf);
+            return name.toWStringzThen!((wname)
+            {
+                /* Apparently, there is no good way to do this on Windows.
+                 * GetFullPathName isn't it, but use it anyway.
+                 */
+                // First find out how long the buffer has to be.
+                auto fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
+                if (!fullPathLength) return null;
+                auto fullPath = new wchar[fullPathLength];
 
-            /* Apparently, there is no good way to do this on Windows.
-             * GetFullPathName isn't it, but use it anyway.
-             */
-            // First find out how long the buffer has to be.
-            auto fullPathLength = GetFullPathNameW(&wname[0], 0, null, null);
-            if (!fullPathLength) return null;
-            auto fullPath = new wchar[fullPathLength];
+                // Actually get the full path name
+                const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], fullPath.length, &fullPath[0], null /*filePart*/);
+                // Unfortunately, when the buffer is large enough the return value is the number of characters
+                // _not_ counting the null terminator, so fullPathLength2 should be smaller
+                assert(fullPathLength == fullPathLengthNoTerminator + 1);
 
-            // Actually get the full path name
-            const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], fullPath.length, &fullPath[0], null /*filePart*/);
-            // Unfortunately, when the buffer is large enough the return value is the number of characters
-            // _not_ counting the null terminator, so fullPathLength2 should be smaller
-            assert(fullPathLength == fullPathLengthNoTerminator + 1);
+                // Find out size of the converted string
+                const retLength = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
+                auto ret = new char[retLength];
 
-            // Find out size of the converted string
-            const retLength = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, null, 0, null, null);
-            auto ret = new char[retLength];
+                // Actually convert to char
+                const retLength2 = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], ret.length, null, null);
+                assert(retLength == retLength2);
 
-            // Actually convert to char
-            const retLength2 = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], ret.length, null, null);
-            assert(retLength == retLength2);
-
-            return &ret[0];
+                return &ret[0];
+            });
         }
         else
         {
@@ -789,76 +790,83 @@ version(Windows)
      */
     package auto extendedPathThen(alias F)(const(char*) path)
     {
-        wchar[1024] wpathBuf;
-        // Since the unicode Win32 APIs use UTF16, we need to convert to UTF16
-        const wpath = path.toWStringz(wpathBuf);
-
-        // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
-        // know how larget it has to be, we pass in null and get the needed buffer length
-        // as the return code.
-        const pathLength = GetFullPathNameW(&wpath[0],
-                                            0 /*length8*/,
-                                            null /*output buffer*/,
-                                            null /*filePartBuffer*/);
-        if (pathLength == 0)
+        return path.toWStringzThen!((wpath)
         {
-            return F(""w);
-        }
+            // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
+            // know how larget it has to be, we pass in null and get the needed buffer length
+            // as the return code.
+            const pathLength = GetFullPathNameW(&wpath[0],
+                                                0 /*length8*/,
+                                                null /*output buffer*/,
+                                                null /*filePartBuffer*/);
+            if (pathLength == 0)
+            {
+                return F(""w);
+            }
 
-        // wpath is the UTF16 version of path, but to be able to use
-        // extended paths, we need to prefix with `\\?\` and the absolute
-        // path.
-        static immutable prefix = `\\?\`w;
+            // wpath is the UTF16 version of path, but to be able to use
+            // extended paths, we need to prefix with `\\?\` and the absolute
+            // path.
+            static immutable prefix = `\\?\`w;
 
-        // +1 for the null terminator
-        const bufferLength = pathLength + prefix.length + 1;
+            // +1 for the null terminator
+            const bufferLength = pathLength + prefix.length + 1;
 
-        wchar[1024] absBuf;
-        auto absPath = bufferLength > absBuf.length ? new wchar[bufferLength] : absBuf[];
+            wchar[1024] absBuf;
+            auto absPath = bufferLength > absBuf.length ? new wchar[bufferLength] : absBuf[];
 
-        absPath[0 .. prefix.length] = prefix[];
+            absPath[0 .. prefix.length] = prefix[];
 
-        const absPathRet = GetFullPathNameW(&wpath[0],
-                                            absPath.length - prefix.length,
-                                            &absPath[prefix.length],
-                                            null /*filePartBuffer*/);
+            const absPathRet = GetFullPathNameW(&wpath[0],
+                                                absPath.length - prefix.length,
+                                                &absPath[prefix.length],
+                                                null /*filePartBuffer*/);
 
-        if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
-        {
-            return F(""w);
-        }
+            if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
+            {
+                return F(""w);
+            }
 
-        auto extendedPath = absPath[0 .. absPathRet];
-        return F(extendedPath);
+            auto extendedPath = absPath[0 .. absPathRet];
+            return F(extendedPath);
+
+        });
     }
 
     /**********************************
      * Converts a null-terminated string to an array of wchar that's null
-     * terminated so it can be passed to Win32 APIs.
-     * buf is passed as a scratch space to store the result. If more memory
-     * is needed then toWstringz allocates on the GC heap instead.
+     * terminated so it can be passed to Win32 APIs then calls the supplied
+     * function on it.
      * Params:
      *  str = The string to convert.
-     *  buf = The scratch space to use to store the new string.
      * Returns:
-     *  A UTF16 string.
+     *  The result of calling F on the UTF16 version of str.
      */
-    private wchar[] toWStringz(const(char*) str, wchar[] buf = []) nothrow
+    private auto toWStringzThen(alias F)(const(char*) str) nothrow
     {
         import core.stdc.string: strlen;
+        import core.stdc.stdlib: malloc, free;
 
+        wchar[1024] buf;
         // cache this for efficiency
         const strLength = strlen(str) + 1;
         // first find out how long the buffer must be to store the result
         const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, null, 0);
-        if (!length) return null;
+        wchar[] empty;
+        if (!length) return F(empty);
 
-        auto ret = length > buf.length ? new wchar[length] : buf;
+        auto ret = length > buf.length
+            ? (cast(wchar*)malloc(length * wchar.sizeof))[0 .. length]
+            : buf[0 .. length];
+        scope (exit)
+        {
+            if (&ret[0] != &buf[0])
+                free(&ret[0]);
+        }
         // actually do the conversion
         const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, &ret[0], ret.length);
         assert(length == length2); // should always be true according to the API
 
-        return ret[0 .. length];
+        return F(ret);
     }
-
 }
