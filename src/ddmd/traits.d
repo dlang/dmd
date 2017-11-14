@@ -1293,8 +1293,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ex = ex.optimize(WANTvalue);
                 if (sc2.func && sc2.func.type.ty == Tfunction)
                 {
-                    auto tf = cast(TypeFunction)sc2.func.type;
-                    canThrow(ex, sc2.func, tf.isnothrow);
+                    const tf = cast(TypeFunction)sc2.func.type;
+                    err |= canThrow(ex, sc2.func, false) && tf.isnothrow;
                 }
                 ex = checkGC(sc2, ex);
                 if (ex.op == TOKerror)
