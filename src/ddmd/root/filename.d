@@ -734,23 +734,28 @@ nothrow:
 
 version(Windows)
 {
-    /*
-      The code before used the POSIX function `mkdir` on Windows. That
-      function is now deprecated and fails with long paths, so instead
-      we use the newer `CreateDirectoryW`.
-
-      `CreateDirectoryW` is the unicode version of the generic macro
-      `CreateDirectory`.  `CreateDirectoryA` has a file path
-      limitation of 248 characters, `mkdir` fails with less and might
-      fail due to the number of consecutive `..`s in the
-      path. `CreateDirectoryW` also normally has a 248 character
-      limit, unless the path is absolute and starts with `\\?\`. Note
-      that this is different from starting with the almost identical
-      `\\?`.
-
-      Please consult
-      https://msdn.microsoft.com/en-us/library/windows/desktop/aa363855(v=vs.85).aspx
-    */
+    /****************************************************************
+     * The code before used the POSIX function `mkdir` on Windows. That
+     * function is now deprecated and fails with long paths, so instead
+     * we use the newer `CreateDirectoryW`.
+     *
+     * `CreateDirectoryW` is the unicode version of the generic macro
+     * `CreateDirectory`.  `CreateDirectoryA` has a file path
+     *  limitation of 248 characters, `mkdir` fails with less and might
+     *  fail due to the number of consecutive `..`s in the
+     *  path. `CreateDirectoryW` also normally has a 248 character
+     * limit, unless the path is absolute and starts with `\\?\`. Note
+     * that this is different from starting with the almost identical
+     * `\\?`.
+     *
+     * Params:
+     *  path = The path to create.
+     * Returns:
+     *  0 on success, 1 on failure.
+     *
+     * References:
+     *  https://msdn.microsoft.com/en-us/library/windows/desktop/aa363855(v=vs.85).aspx
+     */
     private int _mkdir(const(char)* path) nothrow
     {
         import core.stdc.errno: errno, EEXIST, ENOENT;
@@ -787,11 +792,17 @@ version(Windows)
         return createRet == 0 ? 1 : 0;
     }
 
-    // Converts a path to one suitable to be passed to Win32 API
-    // functions that can deal with paths longer than 248
-    // characters then calls the supplied function on it.
-    // For more information:
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+    /**************************************
+     * Converts a path to one suitable to be passed to Win32 API
+     * functions that can deal with paths longer than 248
+     * characters then calls the supplied function on it.
+     * Params:
+     *  path = The Path to call F on.
+     * Returns:
+     *  The result of calling F on path.
+     * References:
+     *  https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx
+     */
     package auto extendedPathThen(alias F)(const(char*) path)
     {
         wchar[1024] wpathBuf;
@@ -837,10 +848,17 @@ version(Windows)
         return F(extendedPath);
     }
 
-    // Converts a null-terminated string to an array of wchar that's null
-    // terminated so it can be passed to Win32 APIs.
-    // buf is passed as a scratch space to store the result. If more memory
-    // is needed then toWstringz allocates on the GC heap instead.
+    /**********************************
+     * Converts a null-terminated string to an array of wchar that's null
+     * terminated so it can be passed to Win32 APIs.
+     * buf is passed as a scratch space to store the result. If more memory
+     * is needed then toWstringz allocates on the GC heap instead.
+     * Params:
+     *  str = The string to convert.
+     *  buf = The scratch space to use to store the new string.
+     * Returns:
+     *  A UTF16 string.
+     */
     private wchar[] toWStringz(const(char*) str, wchar[] buf = []) nothrow
     {
         import core.stdc.string: strlen;
