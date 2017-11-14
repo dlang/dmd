@@ -656,8 +656,20 @@ nothrow:
                         /* Don't error out if another instance of dmd just created
                          * this directory
                          */
-                        if (errno != EEXIST)
-                            return true;
+                        version (Windows)
+                        {
+                            // see core.sys.windows.winerror - the reason it's not imported here is because
+                            // the autotester's dmd is too old and doesn't have that module
+                            enum ERROR_ALREADY_EXISTS = 183;
+
+                            if (GetLastError() != ERROR_ALREADY_EXISTS)
+                                return true;
+                        }
+                        version (Posix)
+                        {
+                            if (errno != EEXIST)
+                                return true;
+                        }
                     }
                 }
             }
@@ -758,36 +770,8 @@ version(Windows)
      */
     private int _mkdir(const(char)* path) nothrow
     {
-        import core.stdc.errno: errno, EEXIST, ENOENT;
-
-        // see core.sys.windows.winerror - the reason it's not imported here is because
-        // the autotester's dmd is too old and doesn't have that module
-        enum NO_ERROR = 0;
-        enum ERROR_PATH_NOT_FOUND = 3;
-        enum ERROR_ALREADY_EXISTS = 183;
-
-        SetLastError(NO_ERROR);
         const createRet = path.extendedPathThen!(p => CreateDirectoryW(&p[0],
                                                                        null /*securityAttributes*/));
-        const lastError = GetLastError();
-
-        // Preserve compatibility with mkdir since the calling code expects
-        // errno to be set.
-        if (createRet == 0)
-        {
-            switch (lastError)
-            {
-                case ERROR_ALREADY_EXISTS:
-                    errno(EEXIST);
-                    break;
-                case ERROR_PATH_NOT_FOUND:
-                    errno(ENOENT);
-                    break;
-                default:
-                    break;
-            }
-        }
-
         // different conventions for CreateDirectory and mkdir
         return createRet == 0 ? 1 : 0;
     }
