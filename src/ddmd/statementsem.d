@@ -3609,7 +3609,7 @@ else
     {
         //printf("TryCatchStatement.semantic()\n");
 
-        if (global.params.betterC)
+        if (!global.params.useExceptions)
         {
             tcs.error("Cannot use try-catch statements with -betterC");
             return setError();
@@ -3774,7 +3774,7 @@ else
     {
         //printf("ThrowStatement::semantic()\n");
 
-        if (global.params.betterC)
+        if (!global.params.useExceptions)
         {
             ts.error("Cannot use throw statements with -betterC");
             return setError();
