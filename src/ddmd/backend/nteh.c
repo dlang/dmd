@@ -221,13 +221,11 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
  * Return pointer to context symbol.
  */
 
-symbol *nteh_contextsym()
-{   SYMIDX si;
-    symbol *sp;
-
-    for (si = 0; 1; si++)
+Symbol *nteh_contextsym()
+{
+    for (SYMIDX si = 0; 1; si++)
     {   assert(si < globsym.top);
-        sp = globsym.tab[si];
+        Symbol* sp = globsym.tab[si];
         symbol_debug(sp);
         if (strcmp(sp->Sident,s_name_context) == 0)
             return sp;
@@ -683,37 +681,39 @@ void cdsetjmp(CodeBuilder& cdb, elem *e,regm_t *pretregs)
 
 /****************************************
  * Call _local_unwind(), which means call the __finally blocks until
- * index is reached.
+ * stop_index is reached.
+ * Params:
+ *      cdb = append generated code to
+ *      saveregs = registers to save across the generated code
+ *      stop_index = index to stop at
  */
 
-void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index)
+void nteh_unwind(CodeBuilder& cdb,regm_t saveregs,unsigned stop_index)
 {
-    code cs;
-    regm_t desregs;
-    int reg;
-    int local_unwind;
-
     // Shouldn't this always be CX?
 #if SCPP
-    reg = AX;
+    const int reg = AX;
 #else
-    reg = CX;
+    const int reg = CX;
 #endif
 
 #if MARS
-    local_unwind = RTLSYM_D_LOCAL_UNWIND2;
+    // https://github.com/dlang/druntime/blob/master/src/rt/deh_win32.d#L924
+    const int local_unwind = RTLSYM_D_LOCAL_UNWIND2;    // __d_local_unwind2()
 #else
-    local_unwind = RTLSYM_LOCAL_UNWIND2;
+    // dm/src/win32/ehsup.c
+    const int local_unwind = RTLSYM_LOCAL_UNWIND2;      // __local_unwind2()
 #endif
-    desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
+    const regm_t desregs = (~getRtlsym(local_unwind)->Sregsaved & (ALLREGS)) | mask[reg];
     CodeBuilder cdbs;
     CodeBuilder cdbr;
-    gensaverestore(retregs & desregs,cdbs,cdbr);
+    gensaverestore(saveregs & desregs,cdbs,cdbr);
 
     CodeBuilder cdbx;
     getregs(cdbx,desregs);
 
-    cs.Iop = 0x8D;
+    code cs;
+    cs.Iop = LEA;
     cs.Irm = modregrm(2,reg,BPRM);
     cs.Iflags = 0;
     cs.Irex = 0;
@@ -722,19 +722,23 @@ void nteh_unwind(CodeBuilder& cdb,regm_t retregs,unsigned index)
     cs.IEV1.Vint = nteh_EBPoffset_prev();
     cdbx.gen(&cs);                             // LEA  ECX,contextsym
 
-    cdbx.genc2(0x68,0,index);                      // PUSH index
-    cdbx.gen1(0x50 + reg);                         // PUSH ECX
-
-#if MARS
-    //cdbx.gencs(0xB8+AX,0,FLextern,nteh_scopetable());    // MOV EAX,&scope_table
-    cdbx.gencs(0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
-
-    cdbx.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __d_local_unwind2()
-    cod3_stackadj(cdbx, -12);
-#else
-    cdbx.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));        // CALL __local_unwind2()
-    cod3_stackadj(cdbx, -8);
+    int nargs = 0;
+#if SCPP
+    const int take_addr = 1;
+    cdbx.genc2(0x68,0,take_addr);                  // PUSH take_addr
+    ++nargs;
 #endif
+
+    cdbx.genc2(0x68,0,stop_index);                 // PUSH stop_index
+    cdbx.gen1(0x50 + reg);                         // PUSH ECX            ; DEstablisherFrame
+    nargs += 2;
+#if MARS
+    cdbx.gencs(0x68,0,FLextern,nteh_scopetable());      // PUSH &scope_table    ; DHandlerTable
+    ++nargs;
+#endif
+
+    cdbx.gencs(0xE8,0,FLfunc,getRtlsym(local_unwind));  // CALL _local_unwind()
+    cod3_stackadj(cdbx, -nargs * 4);
 
     cdb.append(cdbs);
     cdb.append(cdbx);
