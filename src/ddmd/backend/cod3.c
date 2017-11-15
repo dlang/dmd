@@ -945,8 +945,18 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
         }
 
         case BC_try:
+#if MARS
+            if (config.ehmethod == EH_NONE)
+            {
+            }
+            else
+            if (config.ehmethod == EH_WIN32)
+#endif
+#if SCPP
             if (config.exe == EX_WIN32)
-            {   usednteh |= NTEH_try;
+#endif
+            {
+                usednteh |= NTEH_try;
                 nteh_usevars();
             }
             else
@@ -965,14 +975,18 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                 // JMP bl->nthSucc(1)
                 nextb = bl->nthSucc(1);
 
-//              cdb.append(c);
                 goto L5;
             }
             else
             {
-                // Mark all registers as destroyed. This will prevent
-                // register assignments to variables used in finally blocks.
-                getregsNoSave(lpadregs());
+#if MARS
+                if (config.ehmethod != EH_NONE)
+#endif
+                {
+                    // Mark all registers as destroyed. This will prevent
+                    // register assignments to variables used in finally blocks.
+                    getregsNoSave(lpadregs());
+                }
 
                 assert(!e);
                 // Generate CALL to finalizer code
@@ -1100,7 +1114,12 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                         continue;
                     }
 #endif
+#if MARS
+                    if (config.ehmethod == EH_WIN32)
+#endif
+#if SCPP
                     if (config.exe == EX_WIN32)
+#endif
                     {
                         if (bt->Bscope_index == 0)
                         {
@@ -3012,7 +3031,12 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
             // Don't reorder instructions, as dwarf CFA relies on it
             code_orflag(cdb.last(), CFvolatile);
 #if NTEXCEPTIONS == 2
+#if MARS
+        if (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32))
+#endif
+#if SCPP
         if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32))
+#endif
         {
             nteh_prolog(cdb);
             int sz = nteh_contextsym_size();
