@@ -1294,7 +1294,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (sc2.func && sc2.func.type.ty == Tfunction)
                 {
                     const tf = cast(TypeFunction)sc2.func.type;
-                    err |= canThrow(ex, sc2.func, false) && tf.isnothrow;
+                    err |= tf.isnothrow && canThrow(ex, sc2.func, false);
                 }
                 ex = checkGC(sc2, ex);
                 if (ex.op == TOKerror)
