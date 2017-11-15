@@ -3719,7 +3719,13 @@ else
             return;
         }
 
-        if (tfs._body.blockExit(sc.func, false) == BE.fallthru)
+        auto blockexit = tfs._body.blockExit(sc.func, false);
+
+        if (!global.params.useExceptions)       // if not worrying about exceptions
+            blockexit &= ~BE.throw_;            // don't worry about paths that otherwise may throw
+
+        // Don't care about paths that halt, either
+        if ((blockexit & ~BE.halt) == BE.fallthru)
         {
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;
