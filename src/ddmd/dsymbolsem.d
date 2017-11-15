@@ -1194,14 +1194,14 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                 // Check for errors related to 'nothrow'.
                 const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
-                if (f.isnothrow && blockexit & BEthrow)
+                if (f.isnothrow && blockexit & BE.throw_)
                     error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
 
                 if (funcdecl.flags & FUNCFLAGnothrowInprocess)
                 {
                     if (funcdecl.type == f)
                         f = cast(TypeFunction)f.copy();
-                    f.isnothrow = !(blockexit & BEthrow);
+                    f.isnothrow = !(blockexit & BE.throw_);
                 }
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -1213,7 +1213,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                      *  return this;
                      * to function body
                      */
-                    if (blockexit & BEfallthru)
+                    if (blockexit & BE.fallthru)
                     {
                         Statement s = new ReturnStatement(funcdecl.loc, null);
                         s = s.statementSemantic(sc2);
@@ -1224,7 +1224,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 else if (funcdecl.fes)
                 {
                     // For foreach(){} body, append a return 0;
-                    if (blockexit & BEfallthru)
+                    if (blockexit & BE.fallthru)
                     {
                         Expression e = new IntegerExp(0);
                         Statement s = new ReturnStatement(Loc(), e);
@@ -1236,7 +1236,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 else
                 {
                     const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
-                    if ((blockexit & BEfallthru) && f.next.ty != Tvoid && !inlineAsm)
+                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm)
                     {
                         Expression e;
                         if (!funcdecl.hasReturnExp)
@@ -1502,12 +1502,12 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                             bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAGnothrowInprocess);
                             int blockexit = s.blockExit(funcdecl, isnothrow);
-                            if (f.isnothrow && isnothrow && blockexit & BEthrow)
+                            if (f.isnothrow && isnothrow && blockexit & BE.throw_)
                                 error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
+                            if (funcdecl.flags & FUNCFLAGnothrowInprocess && blockexit & BE.throw_)
                                 f.isnothrow = false;
 
-                            if (sbody.blockExit(funcdecl, f.isnothrow) == BEfallthru)
+                            if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
                                 sbody = new CompoundStatement(Loc(), sbody, s);
                             else
                                 sbody = new TryFinallyStatement(Loc(), sbody, s);
