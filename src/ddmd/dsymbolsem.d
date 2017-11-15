@@ -1192,20 +1192,16 @@ extern(C++) final class Semantic3Visitor : Visitor
                  */
                 funcdecl.buildEnsureRequire();
 
-                int blockexit = BEnone;
-                if (!funcdecl.fbody.isErrorStatement())
+                // Check for errors related to 'nothrow'.
+                const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
+                if (f.isnothrow && blockexit & BEthrow)
+                    error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
+
+                if (funcdecl.flags & FUNCFLAGnothrowInprocess)
                 {
-                    // Check for errors related to 'nothrow'.
-                    uint nothrowErrors = global.errors;
-                    blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow);
-                    if (f.isnothrow && (global.errors != nothrowErrors))
-                        error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                    if (funcdecl.flags & FUNCFLAGnothrowInprocess)
-                    {
-                        if (funcdecl.type == f)
-                            f = cast(TypeFunction)f.copy();
-                        f.isnothrow = !(blockexit & BEthrow);
-                    }
+                    if (funcdecl.type == f)
+                        f = cast(TypeFunction)f.copy();
+                    f.isnothrow = !(blockexit & BEthrow);
                 }
 
                 if (funcdecl.fbody.isErrorStatement())
