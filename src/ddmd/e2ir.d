@@ -5,12 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _e2ir.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
+ * Documentation: https://dlang.org/phobos/ddmd_e2ir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/e2ir.d
  */
 
 module ddmd.e2ir;
-
-// Online documentation: https://dlang.org/phobos/ddmd_e2ir.html
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -5160,8 +5160,17 @@ elem *toElem(Expression e, IRState *irs)
                      */
                     if (vd.needsScopeDtor())
                     {
+                        elem *edtor = toElem(vd.edtor, irs);
                         elem *ed = null;
-                        e = el_ctor_dtor(e, toElem(vd.edtor, irs), &ed);
+                        if (irs.isNothrow())
+                        {
+                            ed = edtor;
+                        }
+                        else
+                        {
+                            // Construct special elems to deal with exceptions
+                            e = el_ctor_dtor(e, edtor, &ed);
+                        }
 
                         // ed needs to be inserted into the code later
                         if (!irs.varsInScope)
