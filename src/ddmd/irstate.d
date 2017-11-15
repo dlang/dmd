@@ -275,6 +275,6 @@ extern (C++) struct IRState
          * the best we can do.
          * Nothrow needs to be tracked at the Statement level.
          */
-        return global.params.betterC;
+        return !global.params.useExceptions;
     }
 }

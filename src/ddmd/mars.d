@@ -488,6 +488,7 @@ Language changes listed by -transition=id:
         global.params.checkAction = CHECKACTION.C;
         global.params.useModuleInfo = false;
         global.params.useTypeInfo = false;
+        global.params.useExceptions = false;
     }
     if (global.params.useUnitTests)
         global.params.useAssert = CHECKENABLE.on;
