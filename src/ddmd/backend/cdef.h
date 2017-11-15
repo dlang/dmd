@@ -640,6 +640,7 @@ enum linkage_t
 enum EHmethod
 {
     EH_NONE,                    // no exception handling
+    EH_SEH,                     // SEH __try, __except, __finally only
     EH_WIN32,                   // Win32 SEH
     EH_WIN64,                   // Win64 SEH (not supported yet)
     EH_DM,                      // Digital Mars method

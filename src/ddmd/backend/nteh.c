@@ -541,14 +541,8 @@ code *nteh_patchindex(code* c, int sindex)
 
 void nteh_gensindex(CodeBuilder& cdb, int sindex)
 {
-#if MARS
-    if (config.ehmethod != EH_WIN32)
+    if (!(config.ehmethod == EH_WIN32 || config.ehmethod == EH_SEH))
         return;
-#endif
-#if SCPP
-    if (config.exe != EX_WIN32)
-        return;
-#endif
     // Generate:
     //  MOV     -4[EBP],sindex
 
