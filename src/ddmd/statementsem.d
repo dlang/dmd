@@ -268,7 +268,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             Identifier id = Identifier.generateId("__o");
 
                             Statement handler = new PeelStatement(sexception);
-                            if (sexception.blockExit(sc.func, false) & BEfallthru)
+                            if (sexception.blockExit(sc.func, false) & BE.fallthru)
                             {
                                 auto ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                                 ts.internalThrow = true;
@@ -2497,7 +2497,7 @@ else
             a.reserve(2);
             sc.sw.sdefault = new DefaultStatement(ss.loc, s);
             a.push(ss._body);
-            if (ss._body.blockExit(sc.func, false) & BEfallthru)
+            if (ss._body.blockExit(sc.func, false) & BE.fallthru)
                 a.push(new BreakStatement(Loc(), null));
             a.push(sc.sw.sdefault);
             cs = new CompoundStatement(ss.loc, a);
@@ -3671,7 +3671,7 @@ else
         /* If the try body never throws, we can eliminate any catches
          * of recoverable exceptions.
          */
-        if (!(tcs._body.blockExit(sc.func, false) & BEthrow) && ClassDeclaration.exception)
+        if (!(tcs._body.blockExit(sc.func, false) & BE.throw_) && ClassDeclaration.exception)
         {
             foreach_reverse (i; 0 .. tcs.catches.dim)
             {
@@ -3719,7 +3719,7 @@ else
             return;
         }
 
-        if (tfs._body.blockExit(sc.func, false) == BEfallthru)
+        if (tfs._body.blockExit(sc.func, false) == BE.fallthru)
         {
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;

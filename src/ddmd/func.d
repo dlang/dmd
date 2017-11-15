@@ -122,7 +122,7 @@ public:
             Identifier id = Identifier.generateId("__o");
 
             Statement handler = new PeelStatement(sexception);
-            if (sexception.blockExit(fd, false) & BEfallthru)
+            if (sexception.blockExit(fd, false) & BE.fallthru)
             {
                 auto ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                 ts.internalThrow = true;
