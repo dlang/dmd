@@ -53,10 +53,6 @@ public:
 
 // The various functions are used only to detect compiler CTFE bugs
 Expression *getValue(VarDeclaration *vd);
-bool hasValue(VarDeclaration *vd);
-void setValueNull(VarDeclaration *vd);
-void setValueWithoutChecking(VarDeclaration *vd, Expression *newval);
-void setValue(VarDeclaration *vd, Expression *newval);
 
 /// Return index of the field, or -1 if not found
 /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration

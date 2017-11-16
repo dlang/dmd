@@ -29,7 +29,6 @@ class ForeachStatement;
 class FuncDeclaration;
 class ExpInitializer;
 class StructDeclaration;
-struct InterState;
 struct CompiledCtfeFunction;
 struct ObjcSelector;
 
