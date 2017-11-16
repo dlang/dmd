@@ -878,16 +878,12 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                     }
                 }
 #endif
-                if (config.exe == EX_WIN32)
+                if (config.ehmethod == EH_WIN32 || config.ehmethod == EH_SEH)
                 {
                     nteh_unwind(cdb,0,toindex);
                 }
 #if MARS
-                else if (
-#if TARGET_WINDOS
-                         config.exe == EX_WIN64 &&
-#endif
-                         toindex + 1 <= fromindex)
+                else if (toindex + 1 <= fromindex)
                 {
                     //c = cat(c, linux_unwind(0, toindex));
                     block *bt;

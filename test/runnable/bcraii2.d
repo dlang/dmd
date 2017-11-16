@@ -9,6 +9,8 @@ extern (C) int main()
     auto j = test(1);
     assert(j == 3);
     assert(Sdtor == 1);
+
+    test2();
     return 0;
 }
 
@@ -45,5 +47,34 @@ struct S
         printf("S.~this()\n");
         ++Sdtor;
     }
+}
+
+/*************************************/
+
+void test2()
+{
+    int i = 3;
+    try
+    {
+        try
+        {
+            ++i;
+            goto L10;
+        }
+        finally
+        {
+            i *= 2;
+            printf("f1\n");
+        }
+    }
+    finally
+    {
+        i += 5;
+        printf("f2\n");
+    }
+
+L10:
+    printf("3\n");
+    assert(i == (3 + 1) * 2 + 5);
 }
 
