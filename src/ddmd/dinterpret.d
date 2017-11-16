@@ -210,7 +210,7 @@ public:
     }
 }
 
-struct InterState
+private struct InterState
 {
     InterState* caller;     // calling function's InterState
     FuncDeclaration fd;     // function being interpreted
@@ -679,7 +679,7 @@ public:
  * Compile this function for CTFE.
  * At present, this merely allocates variables.
  */
-extern (C++) void ctfeCompile(FuncDeclaration fd)
+private void ctfeCompile(FuncDeclaration fd)
 {
     debug (LOGCOMPILE)
     {
@@ -801,7 +801,7 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
  * Return result expression if successful, TOKcantexp if not,
  * or CTFEExp if function returned void.
  */
-extern (C++) Expression interpret(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
+private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions* arguments, Expression thisarg)
 {
     debug (LOG)
     {
@@ -3194,7 +3194,7 @@ public:
         }
     }
 
-    void interpretCommon(BinExp e, fp_t fp)
+    private void interpretCommon(BinExp e, fp_t fp)
     {
         debug (LOG)
         {
@@ -3282,7 +3282,7 @@ public:
             e.error("%s cannot be interpreted at compile time", e.toChars());
     }
 
-    void interpretCompareCommon(BinExp e, fp2_t fp)
+    private void interpretCompareCommon(BinExp e, fp2_t fp)
     {
         debug (LOG)
         {
@@ -3435,7 +3435,7 @@ public:
         return v;
     }
 
-    void interpretAssignCommon(BinExp e, fp_t fp, int post = 0)
+    private void interpretAssignCommon(BinExp e, fp_t fp, int post = 0)
     {
         debug (LOG)
         {
@@ -3901,7 +3901,7 @@ public:
 
     /* Set all sibling fields which overlap with v to VoidExp.
      */
-    void stompOverlappedFields(StructLiteralExp sle, VarDeclaration v)
+    private void stompOverlappedFields(StructLiteralExp sle, VarDeclaration v)
     {
         if (!v.overlapped)
             return;
@@ -3915,7 +3915,7 @@ public:
         }
     }
 
-    Expression assignToLvalue(BinExp e, Expression e1, Expression newval)
+    private Expression assignToLvalue(BinExp e, Expression e1, Expression newval)
     {
         VarDeclaration vd = null;
         Expression* payload = null; // dead-store to prevent spurious warning
@@ -4097,7 +4097,7 @@ public:
      * it returns aggregate[low..upp], except that as an optimisation,
      * if goal == ctfeNeedNothing, it will return NULL
      */
-    Expression interpretAssignToSlice(BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
+    private Expression interpretAssignToSlice(BinExp e, Expression e1, Expression newval, bool isBlockAssignment)
     {
         dinteger_t lowerbound;
         dinteger_t upperbound;
@@ -4638,7 +4638,7 @@ public:
      *  relational sub-expressions can be negated, eg
      *  (!(q1 < p1) && p2 <= q2) is valid.
      */
-    void interpretFourPointerRelation(BinExp e)
+    private void interpretFourPointerRelation(BinExp e)
     {
         assert(e.op == TOKandand || e.op == TOKoror);
 
@@ -4806,7 +4806,7 @@ public:
 
     // Print a stack trace, starting from callingExp which called fd.
     // To shorten the stack trace, try to detect recursion.
-    void showCtfeBackTrace(CallExp callingExp, FuncDeclaration fd)
+    private void showCtfeBackTrace(CallExp callingExp, FuncDeclaration fd)
     {
         if (CtfeStatus.stackTraceCallsToSuppress > 0)
         {
@@ -6279,7 +6279,7 @@ public:
     }
 }
 
-extern (C++) Expression interpret(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
+private Expression interpret(Expression e, InterState* istate, CtfeGoal goal = ctfeNeedRvalue)
 {
     if (!e)
         return null;
@@ -6297,7 +6297,7 @@ extern (C++) Expression interpret(Expression e, InterState* istate, CtfeGoal goa
  *      TOKcantexp      cannot interpret statement at compile time
  *      !NULL   expression from return statement, or thrown exception
  */
-extern (C++) Expression interpret(Statement s, InterState* istate)
+private Expression interpret(Statement s, InterState* istate)
 {
     if (!s)
         return null;
@@ -6310,7 +6310,7 @@ extern (C++) Expression interpret(Statement s, InterState* istate)
  * features removed.
  * In particular, all slices must be resolved.
  */
-extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
+private Expression scrubReturnValue(Loc loc, Expression e)
 {
     if (e.op == TOKclassreference)
     {
@@ -6369,7 +6369,7 @@ extern (C++) Expression scrubReturnValue(Loc loc, Expression e)
 
 // Return true if every element is either void,
 // or is an array literal or struct literal of void elements.
-extern (C++) bool isEntirelyVoid(Expressions* elems)
+private bool isEntirelyVoid(Expressions* elems)
 {
     for (size_t i = 0; i < elems.dim; i++)
     {
@@ -6388,7 +6388,7 @@ extern (C++) bool isEntirelyVoid(Expressions* elems)
 }
 
 // Scrub all members of an array. Return false if error
-extern (C++) Expression scrubArray(Loc loc, Expressions* elems, bool structlit = false)
+private Expression scrubArray(Loc loc, Expressions* elems, bool structlit = false)
 {
     for (size_t i = 0; i < elems.dim; i++)
     {
@@ -6415,7 +6415,7 @@ extern (C++) Expression scrubArray(Loc loc, Expressions* elems, bool structlit =
     return null;
 }
 
-extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
+private Expression scrubCacheValue(Loc loc, Expression e)
 {
     if (e.op == TOKclassreference)
     {
@@ -6465,7 +6465,7 @@ extern (C++) Expression scrubCacheValue(Loc loc, Expression e)
     return e;
 }
 
-extern (C++) Expression scrubArrayCache(Loc loc, Expressions* elems)
+private Expression scrubArrayCache(Loc loc, Expressions* elems)
 {
     for (size_t i = 0; i < elems.dim; i++)
     {
@@ -6479,7 +6479,7 @@ extern (C++) Expression scrubArrayCache(Loc loc, Expressions* elems)
 
 /******************************* Special Functions ***************************/
 
-extern (C++) Expression interpret_length(InterState* istate, Expression earg)
+private Expression interpret_length(InterState* istate, Expression earg)
 {
     //printf("interpret_length()\n");
     earg = interpret(earg, istate);
@@ -6494,7 +6494,7 @@ extern (C++) Expression interpret_length(InterState* istate, Expression earg)
     return e;
 }
 
-extern (C++) Expression interpret_keys(InterState* istate, Expression earg, Type returnType)
+private Expression interpret_keys(InterState* istate, Expression earg, Type returnType)
 {
     debug (LOG)
     {
@@ -6515,7 +6515,7 @@ extern (C++) Expression interpret_keys(InterState* istate, Expression earg, Type
     return copyLiteral(ae).copy();
 }
 
-extern (C++) Expression interpret_values(InterState* istate, Expression earg, Type returnType)
+private Expression interpret_values(InterState* istate, Expression earg, Type returnType)
 {
     debug (LOG)
     {
@@ -6537,7 +6537,7 @@ extern (C++) Expression interpret_values(InterState* istate, Expression earg, Ty
     return copyLiteral(ae).copy();
 }
 
-extern (C++) Expression interpret_dup(InterState* istate, Expression earg)
+private Expression interpret_dup(InterState* istate, Expression earg)
 {
     debug (LOG)
     {
@@ -6565,7 +6565,7 @@ extern (C++) Expression interpret_dup(InterState* istate, Expression earg)
 }
 
 // signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
-extern (C++) Expression interpret_aaApply(InterState* istate, Expression aa, Expression deleg)
+private Expression interpret_aaApply(InterState* istate, Expression aa, Expression deleg)
 {
     aa = interpret(aa, istate);
     if (exceptionOrCantInterpret(aa))
@@ -6624,19 +6624,10 @@ extern (C++) Expression interpret_aaApply(InterState* istate, Expression aa, Exp
     return eresult;
 }
 
-// Helper function: given a function of type A[] f(...),
-// return A[].
-extern (C++) Type returnedArrayType(FuncDeclaration fd)
-{
-    assert(fd.type.ty == Tfunction);
-    assert(fd.type.nextOf().ty == Tarray);
-    return (cast(TypeFunction)fd.type).nextOf();
-}
-
 /* Decoding UTF strings for foreach loops. Duplicates the functionality of
  * the twelve _aApplyXXn functions in aApply.d in the runtime.
  */
-extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expression deleg, bool rvs)
+private Expression foreachApplyUtf(InterState* istate, Expression str, Expression deleg, bool rvs)
 {
     debug (LOG)
     {
@@ -6893,7 +6884,7 @@ extern (C++) Expression foreachApplyUtf(InterState* istate, Expression str, Expr
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
-extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
+private Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
 {
     Expression e = null;
     size_t nargs = arguments ? arguments.dim : 0;
@@ -6990,7 +6981,7 @@ extern (C++) Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDecla
     return e;
 }
 
-extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
+private Expression evaluatePostblit(InterState* istate, Expression e)
 {
     Type tb = e.type.baseElemOf();
     if (tb.ty != Tstruct)
@@ -7021,7 +7012,7 @@ extern (C++) Expression evaluatePostblit(InterState* istate, Expression e)
     assert(0);
 }
 
-extern (C++) Expression evaluateDtor(InterState* istate, Expression e)
+private Expression evaluateDtor(InterState* istate, Expression e)
 {
     Type tb = e.type.baseElemOf();
     if (tb.ty != Tstruct)
@@ -7052,7 +7043,7 @@ extern (C++) Expression evaluateDtor(InterState* istate, Expression e)
 /* Setter functions for CTFE variable values.
  * These functions exist to check for compiler CTFE bugs.
  */
-extern (C++) bool hasValue(VarDeclaration vd)
+private bool hasValue(VarDeclaration vd)
 {
     if (vd.ctfeAdrOnStack == cast(size_t)-1)
         return false;
@@ -7064,18 +7055,13 @@ extern (C++) Expression getValue(VarDeclaration vd)
     return ctfeStack.getValue(vd);
 }
 
-extern (C++) void setValueNull(VarDeclaration vd)
-{
-    ctfeStack.setValue(vd, null);
-}
-
 // Don't check for validity
-extern (C++) void setValueWithoutChecking(VarDeclaration vd, Expression newval)
+private void setValueWithoutChecking(VarDeclaration vd, Expression newval)
 {
     ctfeStack.setValue(vd, newval);
 }
 
-extern (C++) void setValue(VarDeclaration vd, Expression newval)
+private void setValue(VarDeclaration vd, Expression newval)
 {
     version (none)
     {
