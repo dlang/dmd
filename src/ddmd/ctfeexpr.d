@@ -71,7 +71,7 @@ extern (C++) final class ClassReferenceExp : Expression
     }
 
     // Return index of the field, or -1 if not found
-    int getFieldIndex(Type fieldtype, uint fieldoffset)
+    private int getFieldIndex(Type fieldtype, uint fieldoffset)
     {
         ClassDeclaration cd = originalClass();
         uint fieldsSoFar = 0;
@@ -289,7 +289,7 @@ extern (C++) bool needToCopyLiteral(Expression expr)
     }
 }
 
-extern (C++) Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = null)
+private Expressions* copyLiteralArray(Expressions* oldelems, Expression basis = null)
 {
     if (!oldelems)
         return oldelems;
@@ -474,7 +474,7 @@ extern (C++) Expression paintTypeOntoLiteral(Type type, Expression lit)
     return paintTypeOntoLiteralCopy(type, lit).copy();
 }
 
-extern (C++) UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
+private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
 {
     UnionExp ue;
     if (lit.type.equals(type))
@@ -1098,7 +1098,7 @@ extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
  * For string types, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
  */
-extern (C++) int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
+private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
 {
     // Resolve slices, if necessary
     uinteger_t lo1 = 0;
@@ -1155,7 +1155,7 @@ extern (C++) int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t
 /* Given a delegate expression e, return .funcptr.
  * If e is NullExp, return NULL.
  */
-extern (C++) FuncDeclaration funcptrOf(Expression e)
+private FuncDeclaration funcptrOf(Expression e)
 {
     assert(e.type.ty == Tdelegate);
     if (e.op == TOKdelegate)
@@ -1166,7 +1166,7 @@ extern (C++) FuncDeclaration funcptrOf(Expression e)
     return null;
 }
 
-extern (C++) bool isArray(Expression e)
+private bool isArray(Expression e)
 {
     return e.op == TOKarrayliteral || e.op == TOKstring || e.op == TOKslice || e.op == TOKnull;
 }
@@ -1174,7 +1174,7 @@ extern (C++) bool isArray(Expression e)
 /* For strings, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
  */
-extern (C++) int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
+private int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
 {
     if (e1.op == TOKclassreference || e2.op == TOKclassreference)
     {
@@ -1659,37 +1659,6 @@ extern (C++) void assignInPlace(Expression dest, Expression src)
             (*oldelems)[i] = (*newelems)[i];
         }
     }
-}
-
-// Duplicate the elements array, then set field 'indexToChange' = newelem.
-extern (C++) Expressions* changeOneElement(Expressions* oldelems, size_t indexToChange, Expression newelem)
-{
-    auto expsx = new Expressions();
-    ++CtfeStatus.numArrayAllocs;
-    expsx.setDim(oldelems.dim);
-    for (size_t j = 0; j < expsx.dim; j++)
-    {
-        if (j == indexToChange)
-            (*expsx)[j] = newelem;
-        else
-            (*expsx)[j] = (*oldelems)[j];
-    }
-    return expsx;
-}
-
-// Create a new struct literal, which is the same as se except that se.field[offset] = elem
-extern (C++) Expression modifyStructField(Type type, StructLiteralExp se, size_t offset, Expression newval)
-{
-    int fieldi = se.getFieldIndex(newval.type, cast(uint)offset);
-    if (fieldi == -1)
-        return CTFEExp.cantexp;
-    /* Create new struct literal reflecting updated fieldi
-     */
-    Expressions* expsx = changeOneElement(se.elements, fieldi, newval);
-    auto ee = new StructLiteralExp(se.loc, se.sd, expsx);
-    ee.type = se.type;
-    ee.ownedByCtfe = OWNEDctfe;
-    return ee;
 }
 
 // Given an AA literal aae,  set aae[index] = newval and return newval.
