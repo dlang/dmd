@@ -2904,7 +2904,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(PragmaDeclaration pd)
     {
         // Should be merged with PragmaStatement
-        //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
+        //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
         if (pd.ident == Id.msg)
         {
             if (pd.args)
@@ -2917,6 +2917,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     e = resolveProperties(sc, e);
                     sc = sc.endCTFE();
                     // pragma(msg) is allowed to contain types as well as expressions
+                    if (e.type && e.type.ty == Tvoid)
+                    {
+                        error(pd.loc, "Cannot pass argument `%s` to `pragma msg` because it is `void`", e.toChars);
+                        return;
+                    }
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
                     {
