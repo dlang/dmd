@@ -46,8 +46,6 @@ public:
     ClassDeclaration *originalClass();
 
     /// Return index of the field, or -1 if not found
-    int getFieldIndex(Type *fieldtype, unsigned fieldoffset);
-    /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
     void accept(Visitor *v) { v->visit(this); }
@@ -137,7 +135,6 @@ UnionExp copyLiteral(Expression *e);
 
 /// Set this literal to the given type, copying it if necessary
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
-UnionExp paintTypeOntoLiteralCopy(Type *type, Expression *lit);
 
 /// Convert from a CTFE-internal slice, into a normal Expression
 Expression *resolveSlice(Expression *e);
@@ -161,9 +158,6 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
  * assignment.
  */
 void assignInPlace(Expression *dest, Expression *src);
-
-/// Duplicate the elements array, then set field 'indexToChange' = newelem.
-Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expression *newelem);
 
 /// Create a new struct literal, which is the same as se except that se.field[offset] = elem
 Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval);
