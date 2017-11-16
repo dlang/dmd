@@ -1,0 +1,13 @@
+Add support for the elvis operator (?:)
+
+The elvis operator is a particularization of the ternary operator
+that returns its first operand if the operand is true, otherwise
+evaluates and returns the second operand
+-------
+void main()
+{
+    int x = 0;
+    int y = 7;
+    assert((x ?: y) == y);
+    assert((y ?: x) == y);
+}
