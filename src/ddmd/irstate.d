@@ -31,7 +31,7 @@ import ddmd.backend.el;
  * Our label symbol, with vector to keep track of forward references.
  */
 
-extern (C++) struct Label
+struct Label
 {
     block *lblock;      // The block to which the label is defined.
     block *fwdrefs;     // The first use of the label before it is defined.
@@ -39,12 +39,12 @@ extern (C++) struct Label
 
 /***********************************************************
  */
-extern (C++) struct IRState
+struct IRState
 {
     IRState* prev;
     Statement statement;
     Module m;                       // module
-    Dsymbol symbol;
+    private FuncDeclaration symbol; // function that code is being generate for
     Identifier ident;
     Symbol* shidden;                // hidden parameter to function
     Symbol* sthis;                  // 'this' parameter to function (member and nested)
@@ -62,7 +62,7 @@ extern (C++) struct IRState
     block* defaultBlock;
     block* finallyBlock;
 
-    extern (D) this(IRState* irs, Statement s)
+    this(IRState* irs, Statement s)
     {
         prev = irs;
         statement = s;
@@ -79,24 +79,7 @@ extern (C++) struct IRState
         }
     }
 
-    extern (D) this(IRState* irs, Dsymbol s)
-    {
-        prev = irs;
-        symbol = s;
-        if (irs)
-        {
-            m = irs.m;
-            shidden = irs.shidden;
-            sclosure = irs.sclosure;
-            sthis = irs.sthis;
-            blx = irs.blx;
-            deferToObj = irs.deferToObj;
-            varsInScope = irs.varsInScope;
-            labels = irs.labels;
-        }
-    }
-
-    extern (D) this(Module m, Dsymbol s)
+    this(Module m, FuncDeclaration s)
     {
         this.m = m;
         symbol = s;
@@ -109,7 +92,7 @@ extern (C++) struct IRState
      * Returns:
      *  pointer to value if it's there, null if not
      */
-    extern (C++) Label** lookupLabel(Statement s)
+    Label** lookupLabel(Statement s)
     {
         return cast(void*)s in *labels;
     }
@@ -120,12 +103,12 @@ extern (C++) struct IRState
      *  s = key
      *  label = value
      */
-    extern (C++) void insertLabel(Statement s, Label* label)
+    void insertLabel(Statement s, Label* label)
     {
         (*labels)[cast(void*)s] = label;
     }
 
-    extern (C++) block* getBreakBlock(Identifier ident)
+    block* getBreakBlock(Identifier ident)
     {
         IRState* bc;
         if (ident)
@@ -158,7 +141,7 @@ extern (C++) struct IRState
         return null;
     }
 
-    extern (C++) block* getContBlock(Identifier ident)
+    block* getContBlock(Identifier ident)
     {
         IRState* bc;
         if (ident)
@@ -189,7 +172,7 @@ extern (C++) struct IRState
         return null;
     }
 
-    extern (C++) block* getSwitchBlock()
+    block* getSwitchBlock()
     {
         IRState* bc;
         for (bc = &this; bc; bc = bc.prev)
@@ -200,7 +183,7 @@ extern (C++) struct IRState
         return null;
     }
 
-    extern (C++) block* getDefaultBlock()
+    block* getDefaultBlock()
     {
         IRState* bc;
         for (bc = &this; bc; bc = bc.prev)
@@ -211,7 +194,7 @@ extern (C++) struct IRState
         return null;
     }
 
-    extern (C++) block* getFinallyBlock()
+    block* getFinallyBlock()
     {
         IRState* bc;
         for (bc = &this; bc; bc = bc.prev)
@@ -222,20 +205,20 @@ extern (C++) struct IRState
         return null;
     }
 
-    extern (C++) FuncDeclaration getFunc()
+    FuncDeclaration getFunc()
     {
-        IRState* bc;
-        for (bc = &this; bc.prev; bc = bc.prev)
+        for (auto bc = &this; 1; bc = bc.prev)
         {
+            if (!bc.prev)
+                return bc.symbol;
         }
-        return cast(FuncDeclaration)bc.symbol;
     }
 
     /**********************
      * Returns:
      *    true if do array bounds checking for the current function
      */
-    extern (C++) bool arrayBoundsCheck()
+    bool arrayBoundsCheck()
     {
         bool result;
         final switch (global.params.useArrayBounds)
