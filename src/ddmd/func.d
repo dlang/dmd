@@ -144,14 +144,16 @@ public:
     }
 }
 
-enum FUNCFLAGpurityInprocess  = 1;      /// working on determining purity
-enum FUNCFLAGsafetyInprocess  = 2;      /// working on determining safety
-enum FUNCFLAGnothrowInprocess = 4;      /// working on determining nothrow
-enum FUNCFLAGnogcInprocess    = 8;      /// working on determining @nogc
-enum FUNCFLAGreturnInprocess  = 0x10;   /// working on inferring 'return' for parameters
-enum FUNCFLAGinlineScanned    = 0x20;   /// function has been scanned for inline possibilities
-enum FUNCFLAGinferScope       = 0x40;   /// infer 'scope' for parameters
-
+enum FUNCFLAG : uint
+{
+    purityInprocess  = 1,      /// working on determining purity
+    safetyInprocess  = 2,      /// working on determining safety
+    nothrowInprocess = 4,      /// working on determining nothrow
+    nogcInprocess    = 8,      /// working on determining @nogc
+    returnInprocess  = 0x10,   /// working on inferring 'return' for parameters
+    inlineScanned    = 0x20,   /// function has been scanned for inline possibilities
+    inferScope       = 0x40,   /// infer 'scope' for parameters
+}
 
 /***********************************************************
  */
@@ -243,7 +245,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     FuncDeclarations *inlinedNestedCallees;
 
-    uint flags;                         /// FUNCFLAGxxxxx
+    uint flags;                        /// FUNCFLAG.xxxxx
 
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
@@ -419,7 +421,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (tf.isscope)
                     v.storage_class |= STCscope;
             }
-            if (flags & FUNCFLAGinferScope && !(v.storage_class & STCscope))
+            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STCscope))
                 v.storage_class |= STCmaybescope;
 
             v.dsymbolSemantic(sc);
@@ -444,7 +446,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (tf.isscope)
                     v.storage_class |= STCscope;
             }
-            if (flags & FUNCFLAGinferScope && !(v.storage_class & STCscope))
+            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STCscope))
                 v.storage_class |= STCmaybescope;
 
             v.dsymbolSemantic(sc);
@@ -1175,30 +1177,30 @@ extern (C++) class FuncDeclaration : Declaration
         //printf("initInferAttributes() for %s\n", toPrettyChars());
         TypeFunction tf = type.toTypeFunction();
         if (tf.purity == PUREimpure) // purity not specified
-            flags |= FUNCFLAGpurityInprocess;
+            flags |= FUNCFLAG.purityInprocess;
 
         if (tf.trust == TRUSTdefault)
-            flags |= FUNCFLAGsafetyInprocess;
+            flags |= FUNCFLAG.safetyInprocess;
 
         if (!tf.isnothrow)
-            flags |= FUNCFLAGnothrowInprocess;
+            flags |= FUNCFLAG.nothrowInprocess;
 
         if (!tf.isnogc)
-            flags |= FUNCFLAGnogcInprocess;
+            flags |= FUNCFLAG.nogcInprocess;
 
         if (!isVirtual() || introducing)
-            flags |= FUNCFLAGreturnInprocess;
+            flags |= FUNCFLAG.returnInprocess;
 
         // Initialize for inferring STCscope
         if (global.params.vsafe)
-            flags |= FUNCFLAGinferScope;
+            flags |= FUNCFLAG.inferScope;
     }
 
     final PURE isPure()
     {
         //printf("FuncDeclaration::isPure() '%s'\n", toChars());
         TypeFunction tf = type.toTypeFunction();
-        if (flags & FUNCFLAGpurityInprocess)
+        if (flags & FUNCFLAG.purityInprocess)
             setImpure();
         if (tf.purity == PUREfwdref)
             tf.purityLevel();
@@ -1224,7 +1226,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     final PURE isPureBypassingInference()
     {
-        if (flags & FUNCFLAGpurityInprocess)
+        if (flags & FUNCFLAG.purityInprocess)
             return PUREfwdref;
         else
             return isPure();
@@ -1237,9 +1239,9 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool setImpure()
     {
-        if (flags & FUNCFLAGpurityInprocess)
+        if (flags & FUNCFLAG.purityInprocess)
         {
-            flags &= ~FUNCFLAGpurityInprocess;
+            flags &= ~FUNCFLAG.purityInprocess;
             if (fes)
                 fes.func.setImpure();
         }
@@ -1250,19 +1252,19 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isSafe()
     {
-        if (flags & FUNCFLAGsafetyInprocess)
+        if (flags & FUNCFLAG.safetyInprocess)
             setUnsafe();
         return type.toTypeFunction().trust == TRUSTsafe;
     }
 
     final bool isSafeBypassingInference()
     {
-        return !(flags & FUNCFLAGsafetyInprocess) && isSafe();
+        return !(flags & FUNCFLAG.safetyInprocess) && isSafe();
     }
 
     final bool isTrusted()
     {
-        if (flags & FUNCFLAGsafetyInprocess)
+        if (flags & FUNCFLAG.safetyInprocess)
             setUnsafe();
         return type.toTypeFunction().trust == TRUSTtrusted;
     }
@@ -1274,9 +1276,9 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool setUnsafe()
     {
-        if (flags & FUNCFLAGsafetyInprocess)
+        if (flags & FUNCFLAG.safetyInprocess)
         {
-            flags &= ~FUNCFLAGsafetyInprocess;
+            flags &= ~FUNCFLAG.safetyInprocess;
             type.toTypeFunction().trust = TRUSTsystem;
             if (fes)
                 fes.func.setUnsafe();
@@ -1288,15 +1290,15 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isNogc()
     {
-        //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAGnogcInprocess));
-        if (flags & FUNCFLAGnogcInprocess)
+        //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
+        if (flags & FUNCFLAG.nogcInprocess)
             setGC();
         return type.toTypeFunction().isnogc;
     }
 
     final bool isNogcBypassingInference()
     {
-        return !(flags & FUNCFLAGnogcInprocess) && isNogc();
+        return !(flags & FUNCFLAG.nogcInprocess) && isNogc();
     }
 
     /**************************************
@@ -1308,15 +1310,15 @@ extern (C++) class FuncDeclaration : Declaration
     final bool setGC()
     {
         //printf("setGC() %s\n", toChars());
-        if (flags & FUNCFLAGnogcInprocess && semanticRun < PASSsemantic3 && _scope)
+        if (flags & FUNCFLAG.nogcInprocess && semanticRun < PASSsemantic3 && _scope)
         {
             this.semantic2(_scope);
             this.semantic3(_scope);
         }
 
-        if (flags & FUNCFLAGnogcInprocess)
+        if (flags & FUNCFLAG.nogcInprocess)
         {
-            flags &= ~FUNCFLAGnogcInprocess;
+            flags &= ~FUNCFLAG.nogcInprocess;
             type.toTypeFunction().isnogc = false;
             if (fes)
                 fes.func.setGC();

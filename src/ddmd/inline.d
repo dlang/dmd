@@ -1377,7 +1377,7 @@ public:
             printf("FuncDeclaration.inlineScan('%s')\n", fd.toPrettyChars());
         }
         if (fd.isUnitTestDeclaration() && !global.params.useUnitTests ||
-            fd.flags & FUNCFLAGinlineScanned)
+            fd.flags & FUNCFLAG.inlineScanned)
             return;
         if (fd.fbody && !fd.naked)
         {
@@ -1388,7 +1388,7 @@ public:
             {
                 again = false;
                 fd.inlineNest++;
-                fd.flags |= FUNCFLAGinlineScanned;
+                fd.flags |= FUNCFLAG.inlineScanned;
                 inlineScan(fd.fbody);
                 fd.inlineNest--;
             }

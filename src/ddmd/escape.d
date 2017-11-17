@@ -564,7 +564,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if ((v.isScope() || (v.storage_class & STCmaybescope)) &&
             !(v.storage_class & STCreturn) &&
             v.isParameter() &&
-            sc.func.flags & FUNCFLAGreturnInprocess &&
+            sc.func.flags & FUNCFLAG.returnInprocess &&
             p == sc.func)
         {
             inferReturn(sc.func, v);        // infer addition of 'return'
@@ -646,7 +646,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
-            if (fd && sc.func.flags & FUNCFLAGreturnInprocess)
+            if (fd && sc.func.flags & FUNCFLAG.returnInprocess)
             {
                 /* Code like:
                  *   int x;
@@ -667,7 +667,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         if ( (v.storage_class & (STCref | STCout)) &&
             !(v.storage_class & (STCreturn | STCforeach)))
         {
-            if (sc.func.flags & FUNCFLAGreturnInprocess && p == sc.func)
+            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
