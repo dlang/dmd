@@ -920,7 +920,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     stc |= STCparameter;
                     if (f.varargs == 2 && i + 1 == nparams)
                         stc |= STCvariadic;
-                    if (funcdecl.flags & FUNCFLAGinferScope && !(fparam.storageClass & STCscope))
+                    if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STCscope))
                         stc |= STCmaybescope;
                     stc |= fparam.storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                     v.storage_class = stc;
@@ -1197,7 +1197,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 if (f.isnothrow && blockexit & BE.throw_)
                     error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
 
-                if (funcdecl.flags & FUNCFLAGnothrowInprocess)
+                if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
                 {
                     if (funcdecl.type == f)
                         f = cast(TypeFunction)f.copy();
@@ -1500,11 +1500,11 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                             s = s.statementSemantic(sc2);
 
-                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAGnothrowInprocess);
+                            bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
                             int blockexit = s.blockExit(funcdecl, isnothrow);
                             if (f.isnothrow && isnothrow && blockexit & BE.throw_)
                                 error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
-                            if (funcdecl.flags & FUNCFLAGnothrowInprocess && blockexit & BE.throw_)
+                            if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
                                 f.isnothrow = false;
 
                             if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
@@ -1515,7 +1515,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
                 // from this point on all possible 'throwers' are checked
-                funcdecl.flags &= ~FUNCFLAGnothrowInprocess;
+                funcdecl.flags &= ~FUNCFLAG.nothrowInprocess;
 
                 if (funcdecl.isSynchronized())
                 {
@@ -1584,33 +1584,33 @@ extern(C++) final class Semantic3Visitor : Visitor
 
         /* If function survived being marked as impure, then it is pure
          */
-        if (funcdecl.flags & FUNCFLAGpurityInprocess)
+        if (funcdecl.flags & FUNCFLAG.purityInprocess)
         {
-            funcdecl.flags &= ~FUNCFLAGpurityInprocess;
+            funcdecl.flags &= ~FUNCFLAG.purityInprocess;
             if (funcdecl.type == f)
                 f = cast(TypeFunction)f.copy();
             f.purity = PUREfwdref;
         }
 
-        if (funcdecl.flags & FUNCFLAGsafetyInprocess)
+        if (funcdecl.flags & FUNCFLAG.safetyInprocess)
         {
-            funcdecl.flags &= ~FUNCFLAGsafetyInprocess;
+            funcdecl.flags &= ~FUNCFLAG.safetyInprocess;
             if (funcdecl.type == f)
                 f = cast(TypeFunction)f.copy();
             f.trust = TRUSTsafe;
         }
 
-        if (funcdecl.flags & FUNCFLAGnogcInprocess)
+        if (funcdecl.flags & FUNCFLAG.nogcInprocess)
         {
-            funcdecl.flags &= ~FUNCFLAGnogcInprocess;
+            funcdecl.flags &= ~FUNCFLAG.nogcInprocess;
             if (funcdecl.type == f)
                 f = cast(TypeFunction)f.copy();
             f.isnogc = true;
         }
 
-        if (funcdecl.flags & FUNCFLAGreturnInprocess)
+        if (funcdecl.flags & FUNCFLAG.returnInprocess)
         {
-            funcdecl.flags &= ~FUNCFLAGreturnInprocess;
+            funcdecl.flags &= ~FUNCFLAG.returnInprocess;
             if (funcdecl.storage_class & STCreturn)
             {
                 if (funcdecl.type == f)
@@ -1619,7 +1619,7 @@ extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
-        funcdecl.flags &= ~FUNCFLAGinferScope;
+        funcdecl.flags &= ~FUNCFLAG.inferScope;
 
         // Infer STCscope
         if (funcdecl.parameters && !funcdecl.errors)
