@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9290.d(15): Error: slice s1[] is not mutable, struct S has immutable members
-fail_compilation/fail9290.d(16): Error: array s1 is not mutable, struct S has immutable members
+fail_compilation/fail9290.d(15): Error: slice `s1[]` is not mutable, struct `S` has immutable members
+fail_compilation/fail9290.d(16): Error: array `s1` is not mutable, struct `S` has immutable members
 ---
 */
 
