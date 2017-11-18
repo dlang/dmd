@@ -2620,15 +2620,15 @@ void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
   if (!constflag && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~regcon.mvar)
         *pretregs &= ~regcon.mvar;                      /* can't use register vars */
 
-    if (configv.addlinenumbers && e->Esrcpos.Slinnum)
-        cdb.genlinnum(e->Esrcpos);
-
     unsigned op = e->Eoper;
     if (e->Ecount && e->Ecount != e->Ecomsub)     // if common subexp
     {
         comsub(cdb,e,pretregs);
         goto L1;
     }
+
+    if (configv.addlinenumbers && e->Esrcpos.Slinnum)
+        cdb.genlinnum(e->Esrcpos);
 
   switch (op)
   {
