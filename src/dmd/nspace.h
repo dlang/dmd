@@ -24,6 +24,8 @@ class Nspace : public ScopeDsymbol
 {
   public:
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
+    void setScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     int apply(Dsymbol_apply_ft_t fp, void *param);
