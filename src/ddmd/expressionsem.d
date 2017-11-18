@@ -7619,6 +7619,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (t2.ty == Tpointer)
             {
+                // https://issues.dlang.org/show_bug.cgi?id=11006
+                Type p1 = t1.nextOf();
+                Type p2 = t2.nextOf();
+
+                if (!p1.equivalent(p2))
+                {
+                    // Types don't match unless the have the same size
+                    if (p1.size() != p2.size())
+                    {
+                        deprecation(exp.loc,
+                            "Operands point to types of different size; `%s` (%zu bytes), `%s` (%zu bytes).",
+                            p1.toChars(), p1.size(),
+                            p2.toChars(), p2.size());
+                    }
+                }
+
                 // Need to divide the result by the stride
                 // Replace (ptr - ptr) with (ptr - ptr) / stride
                 d_int64 stride;
