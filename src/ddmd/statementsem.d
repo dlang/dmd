@@ -3605,6 +3605,7 @@ else
         result = ws;
     }
 
+    // https://dlang.org/spec/statement.html#TryStatement
     override void visit(TryCatchStatement tcs)
     {
         //printf("TryCatchStatement.semantic()\n");
@@ -3652,6 +3653,7 @@ else
 
         if (sc.func)
         {
+            sc.func.flags |= FUNCFLAG.hasCatches;
             if (flags == (FLAGcpp | FLAGd))
             {
                 tcs.error("cannot mix catching D and C++ exceptions in the same try-catch");
@@ -3679,7 +3681,8 @@ else
 
                 /* If catch exception type is derived from Exception
                  */
-                if (c.type.toBasetype().implicitConvTo(ClassDeclaration.exception.type) && (!c.handler || !c.handler.comeFrom()))
+                if (c.type.toBasetype().implicitConvTo(ClassDeclaration.exception.type) &&
+                    (!c.handler || !c.handler.comeFrom()))
                 {
                     // Remove c from the array of catches
                     tcs.catches.remove(i);

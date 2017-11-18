@@ -1,4 +1,4 @@
-/**
+/***
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -136,6 +136,7 @@ public:
             catches.push(ctch);
 
             Statement s2 = new TryCatchStatement(Loc(), s._body, catches);
+            fd.eh_none = false;
             replaceCurrent(s2);
             s2.accept(this);
         }
@@ -153,6 +154,7 @@ enum FUNCFLAG : uint
     returnInprocess  = 0x10,   /// working on inferring 'return' for parameters
     inlineScanned    = 0x20,   /// function has been scanned for inline possibilities
     inferScope       = 0x40,   /// infer 'scope' for parameters
+    hasCatches       = 0x80,   /// function has try-catch statements
 }
 
 /***********************************************************
@@ -198,6 +200,7 @@ extern (C++) class FuncDeclaration : Declaration
     CompiledCtfeFunction* ctfeCode;     /// Compiled code for interpreter (not actually)
     int inlineNest;                     /// !=0 if nested inline
     bool isArrayOp;                     /// true if array operation
+    bool eh_none;                       /// true if no exception unwinding is needed
 
     bool semantic3Errors;               /// true if errors in semantic3 this function's frame ptr
     ForeachStatement fes;               /// if foreach body, this is the foreach

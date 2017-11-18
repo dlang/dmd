@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod3.c, backend/cod3.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/cod3.c
  */
 
 #if !SPP
@@ -825,7 +826,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             break;
         }
 #if MARS
-        case BCjcatch:
+        case BCjcatch:          // D catch clause of try-catch
+            assert(ehmethod(funcsym_p) != EH_NONE);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             getregs(cdb,lpadregs());
@@ -843,7 +845,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             goto case_goto;
 #endif
 #if SCPP
-        case BCcatch:
+        case BCcatch:           // C++ catch clause of try-catch
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             getregs(cdb,allregs | mES);
@@ -859,7 +861,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             nextb = bl->nthSucc(0);
             if ((MARS ||
                  funcsym_p->Sfunc->Fflags3 & Fnteh) &&
-                config.ehmethod != EH_DWARF &&
+                ehmethod(funcsym_p) != EH_DWARF &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
             {
@@ -878,7 +880,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                     }
                 }
 #endif
-                if (config.ehmethod == EH_WIN32 || config.ehmethod == EH_SEH)
+                if (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) ||
+                    config.ehmethod == EH_SEH)
                 {
                     nteh_unwind(cdb,0,toindex);
                 }
@@ -941,8 +944,12 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
         }
 
         case BC_try:
-            if (config.ehmethod == EH_NONE)
+            if (config.ehmethod == EH_NONE || funcsym_p->Sfunc->Fflags3 & Feh_none)
             {
+                /* Need to use frame pointer to access locals, not the stack pointer,
+                 * because we'll be calling the BC_finally blocks and the stack will be off.
+                 */
+                usednteh |= EHtry;
             }
             else if (config.ehmethod == EH_SEH || config.ehmethod == EH_WIN32)
             {
@@ -954,7 +961,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             goto case_goto;
 
         case BC_finally:
-            if (config.ehmethod == EH_DWARF)
+            if (ehmethod(funcsym_p) == EH_DWARF)
             {
                 // Mark scratch registers as destroyed.
                 getregsNoSave(lpadregs());
@@ -969,7 +976,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
             }
             else
             {
-                if (config.ehmethod == EH_SEH || config.ehmethod == EH_WIN32)
+                if (config.ehmethod == EH_SEH ||
+                    config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none))
                 {
                     // Mark all registers as destroyed. This will prevent
                     // register assignments to variables used in finally blocks.
@@ -988,7 +996,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
 
         case BC_lpad:
         {
-            assert(config.ehmethod == EH_DWARF);
+            assert(ehmethod(funcsym_p) == EH_DWARF);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in finally blocks.
             getregsNoSave(lpadregs());
@@ -1005,7 +1013,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
         {
             regm_t retregs = 0;
             gencodelem(cdb,e,&retregs,TRUE);
-            if (config.ehmethod == EH_DWARF)
+            if (ehmethod(funcsym_p) == EH_DWARF)
             {
             }
             else
@@ -1102,7 +1110,8 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                         continue;
                     }
 #endif
-                    if (config.ehmethod == EH_WIN32 || config.ehmethod == EH_SEH)
+                    if (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) ||
+                        config.ehmethod == EH_SEH)
                     {
                         if (bt->Bscope_index == 0)
                         {
@@ -2979,6 +2988,7 @@ void prolog_16bit_windows_farfunc(CodeBuilder& cdb, tym_t* tyf, bool* pushds)
 
 void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool* enter, int* cfa_offset)
 {
+    //printf("prolog_frame\n");
     *cfa_offset = 0;
 
     if (0 && config.exe == EX_WIN64)
@@ -3000,7 +3010,7 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
         (*xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
 #if NTEXCEPTIONS == 2
-        (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32 || config.ehmethod == EH_SEH)) ||
+        (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) || config.ehmethod == EH_SEH)) ||
 #endif
         (config.target_cpu >= TARGET_80386 &&
          config.flags4 & CFG4speed)
@@ -3014,7 +3024,7 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
             // Don't reorder instructions, as dwarf CFA relies on it
             code_orflag(cdb.last(), CFvolatile);
 #if NTEXCEPTIONS == 2
-        if (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32 || config.ehmethod == EH_SEH))
+        if (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) || config.ehmethod == EH_SEH))
         {
             nteh_prolog(cdb);
             int sz = nteh_contextsym_size();
@@ -3365,7 +3375,7 @@ void prolog_trace(CodeBuilder& cdb, bool farfunc, unsigned* regsaved)
     char name[IDMAX+IDOHD+1];
     size_t len = objmod->mangle(funcsym_p,name);
     assert(len < sizeof(name));
-    cdb.genasm((unsigned char *)name,len);             // append func name
+    cdb.genasm((char *)name,len);             // append func name
 #endif
     *regsaved = s->Sregsaved;
 }

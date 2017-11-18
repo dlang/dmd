@@ -827,6 +827,10 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isVirtual() && (fd.fensure || fd.frequire))
         f.Fflags3 |= Ffakeeh;
 
+    if (fd.eh_none)
+        // Same as config.ehmethod==EH_NONE, but only for this function
+        f.Fflags3 |= Feh_none;
+
     s.Sclass = global.params.isOSX ? SCcomdat : SCglobal;
     for (Dsymbol p = fd.parent; p; p = p.parent)
     {
@@ -1246,7 +1250,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 }
             }
         }
-        insertFinallyBlockCalls(f.Fstartblock);
+        if (!(f.Fflags3 & Feh_none))
+            insertFinallyBlockCalls(f.Fstartblock);
     }
 
     // If static constructor

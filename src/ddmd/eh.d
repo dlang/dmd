@@ -45,14 +45,14 @@ private @property @nogc nothrow auto NPTRSIZE() { return _tysize[TYnptr]; }
 Symbol *except_gentables()
 {
     //printf("except_gentables()\n");
-    if (config.ehmethod == EHmethod.EH_DM)
+    if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags3 & Feh_none))
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
         if (Alloca.size)
             error(null, 0, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", &funcsym_p.Sident[0]);
 
-        char[13+5+1] name;
+        char[13+5+1] name = void;
         __gshared int tmpnum;
         sprintf(name.ptr,"_HandlerTable%d",tmpnum++);
 

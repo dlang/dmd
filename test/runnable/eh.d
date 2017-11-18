@@ -836,6 +836,68 @@ void test17481()
 
 /****************************************************/
 
+// a nothrow function, even though it is not marked as nothrow
+void test12()
+{
+    int i = 3;
+    try
+    {
+        try
+        {
+            ++i;
+            goto L10;
+        }
+        finally
+        {
+            i *= 2;
+            printf("f1\n");
+        }
+    }
+    finally
+    {
+        i += 5;
+        printf("f2\n");
+    }
+
+L10:
+    printf("3\n");
+    assert(i == (3 + 1) * 2 + 5);
+}
+
+/****************************************************/
+
+void foo13() { }
+
+void test13()
+{
+    int i = 3;
+    try
+    {
+        try
+        {
+            foo13(); // compiler assumes it throws
+            ++i;
+            goto L10;
+        }
+        finally
+        {
+            i *= 2;
+            printf("f1\n");
+        }
+    }
+    finally
+    {
+        i += 5;
+        printf("f2\n");
+    }
+
+L10:
+    printf("3\n");
+    assert(i == (3 + 1) * 2 + 5);
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -860,6 +922,8 @@ int main()
     test10();
     test11();
     test17481();
+    test12();
+    test13();
 
     printf("finish\n");
     return 0;

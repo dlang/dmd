@@ -418,8 +418,8 @@ enum
     BFLnostackopt    = 8,       // set when stack elimination should not
                                 // be done
 #if NTEXCEPTIONS
-    BFLehcode        = 0x10,    // set when we need to load exception code
-    BFLunwind        = 0x1000,  // do local_unwind following block
+    BFLehcode        = 0x10,    // BC_filter: need to load exception code
+    BFLunwind        = 0x1000,  // do local_unwind following block (unused)
 #endif
     BFLnomerg        = 0x20,    // do not merge with other blocks
     BFLprolog        = 0x80,    // generate function prolog
@@ -709,6 +709,7 @@ enum
     Fnotailrecursion = 0x4000,  // no tail recursion optimizations
     Ffakeeh          = 0x8000,  // allocate space for NT EH context sym anyway
     Fnothrow         = 0x10000, // function does not throw (even if not marked 'nothrow')
+    Feh_none         = 0x20000, // ehmethod==EH_NONE for this function only
 };
 
 struct func_t
@@ -1411,6 +1412,18 @@ struct Aliassym : Symbol { };
 #else
     inline char *prettyident(Symbol *s) { return s->Sident; }
 #endif
+
+/************************
+ * Params:
+ *      f = function symbol
+ * Returns:
+ *      exception method for f
+ */
+inline EHmethod ehmethod(Symbol *f)
+{
+    return f->Sfunc->Fflags3 & Feh_none ? EH_NONE : config.ehmethod;
+}
+
 
 
 /**********************************

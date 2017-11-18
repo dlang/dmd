@@ -120,7 +120,7 @@ extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(StaticAssert sa)
     {
-        //printf("StaticAssert::semantic2() %s\n", toChars());
+        //printf("StaticAssert::semantic2() %s\n", sa.toChars());
         auto sds = new ScopeDsymbol();
         sc = sc.push(sds);
         sc.tinst = null;
@@ -1197,6 +1197,15 @@ extern(C++) final class Semantic3Visitor : Visitor
                 if (f.isnothrow && blockexit & BE.throw_)
                     error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
 
+                if (!(blockexit & BE.throw_ || funcdecl.flags & FUNCFLAG.hasCatches))
+                {
+                    /* Disable optimization on Win32 due to
+                     * https://issues.dlang.org/show_bug.cgi?id=17997
+                     */
+                    if (!global.params.isWindows || global.params.is64bit)
+                        funcdecl.eh_none = true;         // don't generate unwind tables for this function
+                }
+
                 if (funcdecl.flags & FUNCFLAG.nothrowInprocess)
                 {
                     if (funcdecl.type == f)
@@ -1368,6 +1377,8 @@ extern(C++) final class Semantic3Visitor : Visitor
                 freq = freq.statementSemantic(sc2);
                 freq.blockExit(funcdecl, false);
 
+                funcdecl.eh_none = false;
+
                 sc2 = sc2.pop();
 
                 if (!global.params.useIn)
@@ -1391,6 +1402,8 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                 fens = fens.statementSemantic(sc2);
                 fens.blockExit(funcdecl, false);
+
+                funcdecl.eh_none = false;
 
                 sc2 = sc2.pop();
 
@@ -1501,7 +1514,9 @@ extern(C++) final class Semantic3Visitor : Visitor
                             s = s.statementSemantic(sc2);
 
                             bool isnothrow = f.isnothrow & !(funcdecl.flags & FUNCFLAG.nothrowInprocess);
-                            int blockexit = s.blockExit(funcdecl, isnothrow);
+                            const blockexit = s.blockExit(funcdecl, isnothrow);
+                            if (blockexit & BE.throw_)
+                                funcdecl.eh_none = false;
                             if (f.isnothrow && isnothrow && blockexit & BE.throw_)
                                 error(funcdecl.loc, "nothrow %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
                             if (funcdecl.flags & FUNCFLAG.nothrowInprocess && blockexit & BE.throw_)
