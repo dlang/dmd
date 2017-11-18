@@ -6312,14 +6312,15 @@ static if (is(BCGen))
                 bc_args[i] = argHeapRef;
             }
         }
-
+/+ this seems to be bogus 
         //put in the default args
         foreach(dai;ce.arguments.dim .. nParameters)
         {
             auto defaultArg = Parameter.getNth(tf.parameters, dai).defaultArg;
             Comment("Doing defaultArg " ~ to!string(dai - ce.arguments.dim));
-            //bc_args[dai] = genExpr(defaultArg);
+            bc_args[dai] = genExpr(defaultArg);
         }
++/
         if (thisPtr)
         {
             bc_args[lastArgIndx] = thisPtr;
@@ -6354,11 +6355,13 @@ static if (is(BCGen))
             }
 
             Call(retval, fnValue, bc_args, ce.loc);
-
+            uint arguments_dim = cast(uint) ce.arguments.dim;
             //FIXME figure out what we do in the case where we have more arguments then parameters
+            //TEMPORARY: for now it seems to be enough to only iterate the min of args and params
+
             foreach(i, ref arg;bc_args)
             {
-              if (nParameters > i && Parameter.getNth(tf.parameters, i).storageClass & STCref)
+              if (arguments_dim > i && nParameters > i && Parameter.getNth(tf.parameters, i).storageClass & STCref)
               {
                     auto ce_arg = (*ce.arguments)[i];
                     if (!arg)
