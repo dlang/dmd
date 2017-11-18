@@ -6271,10 +6271,12 @@ static if (is(BCGen))
 
         if (ce.arguments.dim > nParameters)
         {
-            bailout("More arguments then parameters in -- " ~ ce.toString);
-            return ;
+            nParameters = cast(uint) Parameter.dim(tf.parameters);
         }
-        uint lastArgIndx = cast(uint)ce.arguments.dim;//cast(uint)(ce.arguments.dim > nParameters ? ce.arguments.dim : nParameters);
+
+        assert(ce.arguments.dim <= nParameters);
+
+        uint lastArgIndx = cast(uint)(ce.arguments.dim > nParameters ? ce.arguments.dim : nParameters);
         bc_args.length = lastArgIndx + !!(thisPtr);
 
         foreach (i, arg; *ce.arguments)
@@ -6294,7 +6296,7 @@ static if (is(BCGen))
                 }
             }
 
-            if ((*tf.parameters)[i].storageClass & STCref)
+            if (Parameter.getNth(tf.parameters, i).storageClass & STCref)
             {
                 auto argHeapRef = genTemporary(i32Type);
                 auto origArg = bc_args[i];
@@ -6314,7 +6316,7 @@ static if (is(BCGen))
         //put in the default args
         foreach(dai;ce.arguments.dim .. nParameters)
         {
-            auto defaultArg = (*tf.parameters)[dai].defaultArg;
+            auto defaultArg = Parameter.getNth(tf.parameters, dai).defaultArg;
             Comment("Doing defaultArg " ~ to!string(dai - ce.arguments.dim));
             //bc_args[dai] = genExpr(defaultArg);
         }
@@ -6356,7 +6358,7 @@ static if (is(BCGen))
             //FIXME figure out what we do in the case where we have more arguments then parameters
             foreach(i, ref arg;bc_args)
             {
-              if (nParameters > i && (*tf.parameters)[i].storageClass & STCref)
+              if (nParameters > i && Parameter.getNth(tf.parameters, i).storageClass & STCref)
               {
                     auto ce_arg = (*ce.arguments)[i];
                     if (!arg)

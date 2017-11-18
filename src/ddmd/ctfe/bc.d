@@ -2869,7 +2869,7 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                     debug writeln("stackOffsetCall: ", stackOffsetCall);
                 }
 
-                BCValue[16] callArgs = void;
+                BCValue[32] callArgs = void;
 
                 foreach(i,ref arg;call.args)
                 {
