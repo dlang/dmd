@@ -6342,7 +6342,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (exp.op == TOKassign && !tn.baseElemOf().isAssignable())
             {
-                exp.error("slice %s is not mutable, struct %s has immutable members",
+                exp.error("slice `%s` is not mutable, struct `%s` has immutable members",
                     exp.e1.toChars(), tn.baseElemOf().toChars());
                 result = new ErrorExp();
                 return;
@@ -6369,7 +6369,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Type tn = exp.e1.type.nextOf();
                 if (tn && !tn.baseElemOf().isAssignable())
                 {
-                    exp.error("array %s is not mutable, struct %s has immutable members",
+                    exp.error("array `%s` is not mutable, struct `%s` has immutable members",
                         exp.e1.toChars(), tn.baseElemOf().toChars());
                     result = new ErrorExp();
                     return;
