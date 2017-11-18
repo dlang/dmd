@@ -7629,7 +7629,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (p1.size() != p2.size())
                     {
                         deprecation(exp.loc,
-                            "Operands point to types of different size; `%s` (%zu bytes), `%s` (%zu bytes).",
+                            "Operands point to types of different size; `%s` (%llu bytes), `%s` (%llu bytes).",
                             p1.toChars(), p1.size(),
                             p2.toChars(), p2.size());
                     }
