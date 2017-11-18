@@ -7526,6 +7526,11 @@ bool definitelyValueParameter(Expression e)
     if (!v)
         return true;
 
+    // https://issues.dlang.org/show_bug.cgi?id=16685
+    // var.x.y where var is a constant available at compile time
+    if (v.storage_class & STCmanifest)
+        return true;
+
     // TODO: Should we force CTFE if it is a global constant?
     return false;
 }
