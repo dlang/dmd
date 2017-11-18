@@ -64,6 +64,10 @@ else version (CRuntime_Glibc)
     ///
     void __assert_perror_fail(int errnum, const(char)* file, uint line, const(char)* func);
 }
+else version (CRuntime_Bionic)
+{
+    void __assert(const(char)* __file, int __line, const(char)* __msg);
+}
 else
 {
     static assert(0);
