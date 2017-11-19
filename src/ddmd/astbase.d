@@ -434,7 +434,7 @@ struct ASTBase
             return "symbol";
         }
 
-        final void error(A...)(const(char)* format, A args)
+        final void error(const(char)* format, ...)
         {
             va_list ap;
             va_start(ap, format);
