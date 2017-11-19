@@ -2678,7 +2678,7 @@ extern (C++) abstract class Type : RootObject
 
         if (++nest > 500)
         {
-            .error(e.loc, "cannot resolve identifier `%`", ident.toChars());
+            .error(e.loc, "cannot resolve identifier `%s`", ident.toChars());
             return returnExp(flag & 1 ? null : new ErrorExp());
         }
 
