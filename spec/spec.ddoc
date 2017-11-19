@@ -30,6 +30,12 @@ $(T style,
         counter-increment: p;
         content: counter(p) ". ";
     }
+    h1::before, h2::before, h3::before, h4::before, p::before
+    {
+        color: #999;
+        font-size: 80%;
+        margin-right: 0.25em;
+    }
 )
 
 SUBNAV_HEAD = $(DIVC head, $(H5 $1) $(TC p, $4, $(LINK2 $2, $3)))
