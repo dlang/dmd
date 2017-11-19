@@ -3897,6 +3897,21 @@ unittest
 
         rc = bug5381("nonerandom");
         assert(rc == 6);
+
+        static int binarySearch(immutable(T)[] s)
+        {
+            switch(s)
+            {
+                static foreach (i; 0 .. 16)
+                case i.stringof: return i;
+                default: return -1;
+            }
+        }
+        static foreach (i; 0 .. 16)
+            assert(binarySearch(i.stringof) == i);
+        assert(binarySearch("") == -1);
+        assert(binarySearch("sth.") == -1);
+        assert(binarySearch(null) == -1);
     }
     testSwitch!char;
     testSwitch!wchar;
