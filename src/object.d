@@ -3771,7 +3771,7 @@ template _arrayOp(Args...)
  * Returns:
  *      index of match in caseLabels, -1 if not found
 */
-int __switch(T, caseLabels...)(scope T[] condition) pure nothrow @safe @nogc
+int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @safe @nogc
 {
     // This closes recursion for other cases.
     static if (caseLabels.length == 0)
