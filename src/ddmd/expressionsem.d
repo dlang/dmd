@@ -7628,6 +7628,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Types don't match unless the have the same size
                     if (p1.size() != p2.size())
                     {
+                        // Deprecation to remain for at least a year
+                        // See https://github.com/dlang/dmd/pull/7332
                         deprecation(exp.loc,
                             "Operands point to types of different size; `%s` (%llu bytes), `%s` (%llu bytes).",
                             p1.toChars(), p1.size(),
