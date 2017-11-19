@@ -3814,32 +3814,39 @@ int __switch(T, caseLabels...)(T[] condition)
     {
         // Run-time binary search in a static array of labels.
         static const T[][caseLabels.length] cases =  [ caseLabels ];
-        size_t low = 0;
-        size_t high = cases.length;
 
-        do
-        {
-            auto mid = (low + high) / 2;
-            int r = void;
-            if (condition.length == cases[mid].length)
-            {
-                r = __cmp(condition, cases[mid]);
-                if (r == 0) return cast(int) mid;
-            }
-            else
-            {
-                // Generates better code than "expr ? 1 : -1" on dmd and gdc, same with ldc
-                r = ((condition.length > cases[mid].length) << 1) - 1;
-            }
-
-            if (r > 0) low = mid + 1;
-            else high = mid;
-        }
-        while (low < high);
-
-        // Not found
-        return -1;
+        return __switchSearch!T(cases[], condition);
     }
+}
+
+// binary search in sorted string cases, also see `__switch`.
+private int __switchSearch(T)(/*in*/ const scope T[][] cases, /*in*/ const scope T[] condition)
+{
+    size_t low = 0;
+    size_t high = cases.length;
+
+    do
+    {
+        auto mid = (low + high) / 2;
+        int r = void;
+        if (condition.length == cases[mid].length)
+        {
+            r = __cmp(condition, cases[mid]);
+            if (r == 0) return cast(int) mid;
+        }
+        else
+        {
+            // Generates better code than "expr ? 1 : -1" on dmd and gdc, same with ldc
+            r = ((condition.length > cases[mid].length) << 1) - 1;
+        }
+
+        if (r > 0) low = mid + 1;
+        else high = mid;
+    }
+    while (low < high);
+
+    // Not found
+    return -1;
 }
 
 unittest
