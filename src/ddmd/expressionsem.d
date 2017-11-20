@@ -7639,6 +7639,23 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (t2.ty == Tpointer)
             {
+                // https://dlang.org/spec/expression.html#add_expressions
+                // "If both operands are pointers, and the operator is -, the pointers are
+                // subtracted and the result is divided by the size of the type pointed to
+                // by the operands. It is an error if the pointers point to different types."
+                Type p1 = t1.nextOf();
+                Type p2 = t2.nextOf();
+
+                if (!p1.equivalent(p2))
+                {
+                    // Deprecation to remain for at least a year, after which this should be
+                    // changed to an error
+                    // See https://github.com/dlang/dmd/pull/7332
+                    deprecation(exp.loc,
+                        "cannot subtract pointers to different types: `%s` and `%s`.",
+                        t1.toChars(), t2.toChars());
+                }
+
                 // Need to divide the result by the stride
                 // Replace (ptr - ptr) with (ptr - ptr) / stride
                 d_int64 stride;
