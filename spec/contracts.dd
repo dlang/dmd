@@ -76,7 +76,7 @@ do
 }
 ------
 
-    $(P Since $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1003.md, DIP1003 has been applied) 
+    $(P Since $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1003.md, DIP1003 has been applied)
     the actual function body starts with $(D do).
     In the past, $(D body) was used, and could still be encountered in old code bases.
     In the long term, $(D body) may be deprecated, but for now it's allowed
