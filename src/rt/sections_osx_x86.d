@@ -139,7 +139,7 @@ in
     assert(_sections._tlsImage[0].ptr !is null ||
            _sections._tlsImage[1].ptr !is null);
 }
-body
+do
 {
     // NOTE: p is an address in the TLS static data emitted by the
     //       compiler.  If it isn't, something is disastrously wrong.

@@ -137,7 +137,7 @@ inout(char)[] find(alias pred)(inout(char)[] str)
 
 bool parse(T:size_t)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
 in { assert(str.length); }
-body
+do
 {
     size_t i, v;
     for (; i < str.length && isdigit(str[i]); ++i)
@@ -154,7 +154,7 @@ body
 
 bool parse(const(char)[] optname, ref inout(char)[] str, ref bool res, const(char)[] errName)
 in { assert(str.length); }
-body
+do
 {
     if (str[0] == '1' || str[0] == 'y' || str[0] == 'Y')
         res = true;
@@ -168,7 +168,7 @@ body
 
 bool parse(const(char)[] optname, ref inout(char)[] str, ref float res, const(char)[] errName)
 in { assert(str.length); }
-body
+do
 {
     // % uint f %n \0
     char[1 + 10 + 1 + 2 + 1] fmt=void;
@@ -209,7 +209,7 @@ body
 
 bool parse(const(char)[] optname, ref inout(char)[] str, ref inout(char)[] res, const(char)[] errName)
 in { assert(str.length); }
-body
+do
 {
     auto tail = str.find!(c => c == ':' || c == '=' || c == ' ');
     res = str[0 .. $ - tail.length];

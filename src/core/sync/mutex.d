@@ -127,7 +127,7 @@ class Mutex :
         assert(obj.__monitor is null,
             "The provided object has a monitor already set!");
     }
-    body
+    do
     {
         this();
         obj.__monitor = cast(void*) &m_proxy;

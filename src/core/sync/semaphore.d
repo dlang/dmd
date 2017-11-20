@@ -193,7 +193,7 @@ class Semaphore
     {
         assert( !period.isNegative );
     }
-    body
+    do
     {
         version( Windows )
         {

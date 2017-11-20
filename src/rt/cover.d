@@ -35,7 +35,7 @@ private
         {
             assert( i < len );
         }
-        body
+        do
         {
             static if (size_t.sizeof == 8)
                 return ((ptr[i >> 6] & (1L << (i & 63)))) != 0;

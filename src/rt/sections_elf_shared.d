@@ -901,7 +901,7 @@ const(void)[] getCopyRelocSection() nothrow @nogc
 void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules,
                            in void[] copyRelocSection) nothrow @nogc
 in { assert(modules.length); }
-body
+do
 {
     immutable(ModuleInfo)* conflicting;
 
