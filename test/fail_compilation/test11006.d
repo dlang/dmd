@@ -1,9 +1,9 @@
 /* REQUIRED_ARGS: -main -de
  * TEST_OUTPUT:
 ---
-fail_compilation/test11006.d(10): Deprecation: Operands point to types of different size; `void` (1 bytes), `int` (4 bytes).
+fail_compilation/test11006.d(10): Deprecation: cannot subtract pointers to different types: `void*` and `int*`.
 fail_compilation/test11006.d(10):        while evaluating: `static assert(2L == 2L)`
-fail_compilation/test11006.d(11): Deprecation: Operands point to types of different size; `int` (4 bytes), `void` (1 bytes).
+fail_compilation/test11006.d(11): Deprecation: cannot subtract pointers to different types: `int*` and `void*`.
 fail_compilation/test11006.d(11):        while evaluating: `static assert(8L == 8L)`
 ---
  */
