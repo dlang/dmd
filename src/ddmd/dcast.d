@@ -2649,7 +2649,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
  * I.e., make sure that [1,2] is compatible with [],
  * [[1,2]] is compatible with [[]], etc.
  */
-extern (C++) bool isVoidArrayLiteral(Expression e, Type other)
+private bool isVoidArrayLiteral(Expression e, Type other)
 {
     while (e.op == TOKarrayliteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
     {
@@ -2664,28 +2664,6 @@ extern (C++) bool isVoidArrayLiteral(Expression e, Type other)
         return false;
     Type t = e.type;
     return (e.op == TOKarrayliteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
-}
-
-// used by deduceType()
-extern (C++) Type rawTypeMerge(Type t1, Type t2)
-{
-    if (t1.equals(t2))
-        return t1;
-    if (t1.equivalent(t2))
-        return t1.castMod(MODmerge(t1.mod, t2.mod));
-
-    auto t1b = t1.toBasetype();
-    auto t2b = t2.toBasetype();
-    if (t1b.equals(t2b))
-        return t1b;
-    if (t1b.equivalent(t2b))
-        return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
-
-    auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
-    if (ty != Terror)
-        return Type.basic[ty];
-
-    return null;
 }
 
 /**************************************
