@@ -59,7 +59,7 @@ $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 	typical use of this would be in validating the parameters to a function. The post
 	contracts validate the result of the statement. The most typical use of this
 	would be in validating the return value of a function and of any side effects it has.
-	The syntax is:
+	The syntax is:)
 
 ------
 in
@@ -76,12 +76,11 @@ do
 }
 ------
 
-    The actual function body starts with <code>do</code>.
-    In the past, <code>body</code> was used, and could still be encountered in old code bases.
-    In the long term, <code>body</code> may be deprecated, but for now it's still allowed
+    $(P The actual function body starts with $(D do).
+    In the past, $(D body) was used, and could still be encountered in old code bases.
+    In the long term, $(D body) may be deprecated, but for now it's still allowed
     as a keyword in this context and as an identifier in the function body,
-    although <code>do</code> is preferred.
-)
+    although $(D do) is preferred.)
 
 	$(P By definition, if a pre contract fails, then the function received bad
 	parameters.
