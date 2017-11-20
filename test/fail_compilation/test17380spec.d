@@ -1,9 +1,9 @@
 /* REQUIRED_ARGS: -verrors=spec
 TEST_OUTPUT:
 ---
-(spec:1) fail_compilation/test17380spec.d(14): Error: cannot resolve identifier `ThisTypeDoesNotExistsAndCrahesTheCompiler`
-(spec:1) fail_compilation/test17380spec.d(14): Error: no property 'ThisTypeDoesNotExistsAndCrahesTheCompiler' for type 'Uint128'
-fail_compilation/test17380spec.d(14): Error: undefined identifier `ThisTypeDoesNotExistsAndCrahesTheCompiler`
+(spec:1) fail_compilation/test17380spec.d(14): Error: cannot resolve identifier `ThisTypeDoesNotExistAndCrasheTheCompiler`
+(spec:1) fail_compilation/test17380spec.d(14): Error: no property 'ThisTypeDoesNotExistAndCrashesTheCompiler' for type 'Uint128'
+fail_compilation/test17380spec.d(14): Error: undefined identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`
 ---
  */
 
@@ -11,7 +11,7 @@ struct Int128
 {
     Uint128 opCast()
     {
-        return ThisTypeDoesNotExistsAndCrahesTheCompiler;
+        return ThisTypeDoesNotExistAndCrashesTheCompiler;
     }
     alias opCast this;
 }
