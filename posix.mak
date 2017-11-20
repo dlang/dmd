@@ -29,8 +29,22 @@ INSTALL_DIR=../install
 DOCDIR=doc
 IMPDIR=import
 
-OPTIONAL_PIC:=$(if $(PIC),-fPIC,)
 OPTIONAL_COVERAGE:=$(if $(TEST_COVERAGE),-cov,)
+
+# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+# Note that shared libraries and C files are always compiled with PIC.
+ifeq ($(PIC),)
+    ifeq ($(MODEL),64) # x86_64
+        PIC:=1
+    else
+        PIC:=0
+    endif
+endif
+ifeq ($(PIC),1)
+    override PIC:=-fPIC
+else
+    override PIC:=
+endif
 
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
@@ -55,7 +69,7 @@ ifeq (solaris,$(OS))
 endif
 
 # Set DFLAGS
-UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 $(MODEL_FLAG) $(OPTIONAL_PIC) $(OPTIONAL_COVERAGE)
+UDFLAGS:=-conf= -Isrc -Iimport -w -dip1000 $(MODEL_FLAG) $(PIC) $(OPTIONAL_COVERAGE)
 ifeq ($(BUILD),debug)
 	UDFLAGS += -g -debug
 	DFLAGS:=$(UDFLAGS)
