@@ -40,6 +40,7 @@ import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.visitor;
+import ddmd.root.rootobject;
 
 enum LOGSEMANTIC = false;
 
@@ -56,6 +57,31 @@ struct PushAttributes
         p.mods.push(new StringExp(Loc(), cast(char*)str));
         return 0;
     }
+}
+
+/**************************************
+ * Convert `Expression` or `Type` to corresponding `Dsymbol`,
+ * additionally strip off expression contexts.
+ *
+ * Some symbol related `__traits` ignore arguments expression contexts.
+ * For example:
+ *  struct S { void f() {} }
+ *  S s;
+ *  pragma(msg, __traits(isNested, s.f));
+ *  // s.f is DotVarExp, but __traits(isNested) needs a FuncDeclaration.
+ *
+ * This is used for that common `__traits` behavior.
+ */
+private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
+{
+    if (auto e = isExpression(oarg))
+    {
+        if (e.op == TOKdotvar)
+            return (cast(DotVarExp)e).var;
+        if (e.op == TOKdottd)
+            return (cast(DotTemplateExp)e).td;
+    }
+    return getDsymbol(oarg);
 }
 
 extern (C++) __gshared StringTable traitsStringTable;
@@ -422,7 +448,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
             static if (is(T : Dsymbol))
             {
-                auto s = getDsymbol(o);
+                auto s = getDsymbolWithoutExpCtx(o);
                 if (!s)
                     return False();
             }
@@ -530,7 +556,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
         }
@@ -630,7 +656,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else
         {
-            Dsymbol s = getDsymbol(o);
+            Dsymbol s = getDsymbolWithoutExpCtx(o);
             if (!s || !s.ident)
             {
                 e.error("argument `%s` has no identifier", o.toChars());
@@ -655,7 +681,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return new ErrorExp();
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
             if (!isError(o))
@@ -676,7 +702,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
         if (s)
         {
             if (auto fd = s.isFuncDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=8943
@@ -747,6 +773,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         Dsymbol sym = getDsymbol(o);
         if (sym)
         {
+            if (e.ident == Id.hasMember)
+            {
+                if (auto sm = sym.search(e.loc, id))
+                    return True();
+            }
             ex = new DsymbolExp(e.loc, sym);
             ex = new DotIdExp(e.loc, ex, id);
         }
@@ -767,12 +798,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (e.ident == Id.hasMember)
         {
-            if (sym)
-            {
-                if (auto sm = sym.search(e.loc, id))
-                    return True();
-            }
-
             /* Take any errors as meaning it wasn't found
              */
             ex = ex.trySemantic(scx);
@@ -895,7 +920,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
             version (none)
@@ -928,7 +953,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
         auto t = isType(o);
         TypeFunction tf = null;
         if (s)
@@ -1414,7 +1439,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
         if (!s)
         {
             e.error("argument `%s` to __traits(getUnitTests) must be a module or aggregate",
@@ -1475,7 +1500,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
+        auto s = getDsymbolWithoutExpCtx(o);
 
         auto fd = s ? s.isFuncDeclaration() : null;
         if (!fd)
