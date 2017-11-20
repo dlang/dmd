@@ -107,7 +107,7 @@ extern (C++) final class StaticForeach : RootObject
     {
         assert(!!aggrfe ^ !!rangefe);
     }
-    body
+    do
     {
         this.loc = loc;
         this.aggrfe = aggrfe;
@@ -378,7 +378,7 @@ extern (C++) final class StaticForeach : RootObject
     {
         assert(sc);
     }
-    body
+    do
     {
         if (aggrfe)
         {
