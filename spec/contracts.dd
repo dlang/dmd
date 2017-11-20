@@ -76,11 +76,11 @@ do
 }
 ------
 
-    The actual function body starts with the <code>do</code> keyword. 
-    In the past, <code>body</code> was used and it will be still encountered in old code bases. 
-    On the long term, <code>body</code> could be completely unsupported but for now it's still allowed,
-    as a keyword in this context and as an identifier in the function body 
-    although <code>do</code> must be prefered.
+    The actual function body starts with <code>do</code>.
+    In the past, <code>body</code> was used, and could still be encountered in old code bases.
+    In the long term, <code>body</code> may be deprecated, but for now it's still allowed
+    as a keyword in this context and as an identifier in the function body,
+    although <code>do</code> is preferred.
 )
 
 	$(P By definition, if a pre contract fails, then the function received bad
