@@ -29,6 +29,21 @@ ifneq ($(BUILD),release)
     endif
 endif
 
+# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+# Note that shared libraries and C files are always compiled with PIC.
+ifeq ($(PIC),)
+    ifeq ($(MODEL),64) # x86_64
+        PIC:=1
+    else
+        PIC:=0
+    endif
+endif
+ifeq ($(PIC),1)
+    override PIC:=-fPIC
+else
+    override PIC:=
+endif
+
 GIT_HOME=https://github.com/dlang
 TOOLS_DIR=../../tools
 
@@ -161,14 +176,13 @@ MMD=-MMD -MF $(basename $@).deps
 CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
-	$(MODEL_FLAG)
+	$(MODEL_FLAG) $(PIC)
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
     -std=gnu++98
 endif
-# Default D compiler flags for all source files
-DFLAGS= -version=MARS -fPIC
+DFLAGS := -version=MARS $(PIC)
 # Enable D warnings
 DFLAGS += -wi
 
