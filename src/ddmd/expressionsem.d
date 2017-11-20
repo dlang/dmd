@@ -7619,7 +7619,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (t2.ty == Tpointer)
             {
-                // https://issues.dlang.org/show_bug.cgi?id=11006
+                // https://dlang.org/spec/expression.html#add_expressions
+                // "If both operands are pointers, and the operator is -, the pointers are
+                // subtracted and the result is divided by the size of the type pointed to
+                // by the operands. It is an error if the pointers point to different types."
                 Type p1 = t1.nextOf();
                 Type p2 = t2.nextOf();
 
