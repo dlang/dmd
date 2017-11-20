@@ -59,7 +59,7 @@ $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 	typical use of this would be in validating the parameters to a function. The post
 	contracts validate the result of the statement. The most typical use of this
 	would be in validating the return value of a function and of any side effects it has.
-	The syntax is:)
+	The syntax is:
 
 ------
 in
@@ -75,6 +75,14 @@ do
     ...code...
 }
 ------
+
+    The actual function body starts with the <code>do</code> keyword. 
+    In the past, <code>body</code> was used and it will be still encountered in old code bases. 
+    On the long term, <code>body</code> could be completely unsupported but for now it's still allowed,
+    as a keyword in this context and as an identifier in the function body 
+    although <code>do</code> must be prefered.
+)
+
 	$(P By definition, if a pre contract fails, then the function received bad
 	parameters.
 	An AssertError is thrown. If a post contract fails,
