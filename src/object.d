@@ -3771,7 +3771,7 @@ template _arrayOp(Args...)
  * Returns:
  *      index of match in caseLabels, -1 if not found
 */
-int __switch(T, caseLabels...)(T[] condition)
+int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @safe @nogc
 {
     // This closes recursion for other cases.
     static if (caseLabels.length == 0)
@@ -3812,34 +3812,48 @@ int __switch(T, caseLabels...)(T[] condition)
     }
     else
     {
+        // Need immutable array to be accessible in pure code, but case labels are
+        // currently coerced to the switch condition type (e.g. const(char)[]).
+        static immutable T[][caseLabels.length] cases = {
+            auto res = new immutable(T)[][](caseLabels.length);
+            foreach (i, s; caseLabels)
+                res[i] = s.idup;
+            return res;
+        }();
+
         // Run-time binary search in a static array of labels.
-        static const T[][caseLabels.length] cases =  [ caseLabels ];
-        size_t low = 0;
-        size_t high = cases.length;
-
-        do
-        {
-            auto mid = (low + high) / 2;
-            int r = void;
-            if (condition.length == cases[mid].length)
-            {
-                r = __cmp(condition, cases[mid]);
-                if (r == 0) return cast(int) mid;
-            }
-            else
-            {
-                // Generates better code than "expr ? 1 : -1" on dmd and gdc, same with ldc
-                r = ((condition.length > cases[mid].length) << 1) - 1;
-            }
-
-            if (r > 0) low = mid + 1;
-            else high = mid;
-        }
-        while (low < high);
-
-        // Not found
-        return -1;
+        return __switchSearch!T(cases[], condition);
     }
+}
+
+// binary search in sorted string cases, also see `__switch`.
+private int __switchSearch(T)(/*in*/ const scope T[][] cases, /*in*/ const scope T[] condition) pure nothrow @safe @nogc
+{
+    size_t low = 0;
+    size_t high = cases.length;
+
+    do
+    {
+        auto mid = (low + high) / 2;
+        int r = void;
+        if (condition.length == cases[mid].length)
+        {
+            r = __cmp(condition, cases[mid]);
+            if (r == 0) return cast(int) mid;
+        }
+        else
+        {
+            // Generates better code than "expr ? 1 : -1" on dmd and gdc, same with ldc
+            r = ((condition.length > cases[mid].length) << 1) - 1;
+        }
+
+        if (r > 0) low = mid + 1;
+        else high = mid;
+    }
+    while (low < high);
+
+    // Not found
+    return -1;
 }
 
 unittest
@@ -3883,6 +3897,21 @@ unittest
 
         rc = bug5381("nonerandom");
         assert(rc == 6);
+
+        static int binarySearch(immutable(T)[] s)
+        {
+            switch(s)
+            {
+                static foreach (i; 0 .. 16)
+                case i.stringof: return i;
+                default: return -1;
+            }
+        }
+        static foreach (i; 0 .. 16)
+            assert(binarySearch(i.stringof) == i);
+        assert(binarySearch("") == -1);
+        assert(binarySearch("sth.") == -1);
+        assert(binarySearch(null) == -1);
     }
     testSwitch!char;
     testSwitch!wchar;
