@@ -137,6 +137,17 @@ endif
 
 export DMD_TEST_COVERAGE=
 
+# stable dmd version used to build d_do_test
+STABLE_DMD_VER=2.076.1
+STABLE_DMD_ROOT=$(RESULTS_DIR)/stable_dmd-$(STABLE_DMD_VER)
+STABLE_DMD_BASENAME=dmd.$(STABLE_DMD_VER).$(if $(filter win%,$(OS)),windows,$(OS))$(if $(filter $(OS),freebsd),-$(MODEL),).zip
+STABLE_DMD_URL=http://downloads.dlang.org/releases/2.x/$(STABLE_DMD_VER)/$(STABLE_DMD_BASENAME)
+STABLE_DMD_BIN_ROOT=$(STABLE_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))
+STABLE_DMD=$(STABLE_DMD_BIN_ROOT)/dmd
+STABLE_DMD_CONF=$(STABLE_DMD).conf
+STABLE_RDMD=$(STABLE_DMD_BIN_ROOT)/rdmd --compiler=$(STABLE_DMD) -conf=$(STABLE_DMD_CONF)
+STABLE_DUB=$(STABLE_DMD_BIN_ROOT)/dub
+
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
@@ -203,9 +214,21 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(
 	@echo "Running fail compilation tests"
 	$(QUIET)$(MAKE) --no-print-directory run_fail_compilation_tests
 
-$(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
+$(RESULTS_DIR)/d_do_test$(EXE): DFLAGS=
+$(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created $(STABLE_DMD)
 	@echo "Building d_do_test tool"
 	@echo "OS: $(OS)"
-	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -unittest -run d_do_test.d -unittest
-	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
+	$(QUIET)$(STABLE_DMD) -conf=$(STABLE_DMD_CONF) $(MODEL_FLAG) -unittest -run d_do_test.d -unittest
+	$(QUIET)$(STABLE_DMD) -conf=$(STABLE_DMD_CONF) $(MODEL_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
 
+################################################################################
+# stable dmd target
+################################################################################
+
+${STABLE_DMD_ROOT}/.downloaded: ${RESULTS_DIR}/.created
+	mkdir -p ${STABLE_DMD_ROOT}
+	TMPFILE=$$(mktemp ${RESULTS_DIR}/dmd-download-deleteme.XXXXXXXX) && curl -fsSL ${STABLE_DMD_URL} > $${TMPFILE}.zip && \
+		{ unzip -qd ${STABLE_DMD_ROOT} $${TMPFILE}.zip || $? -eq 1; } && rm $${TMPFILE}.zip
+	touch $@
+
+${STABLE_DMD} ${STABLE_RDMD} ${STABLE_DUB}: ${STABLE_DMD_ROOT}/.downloaded
