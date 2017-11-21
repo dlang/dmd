@@ -7283,6 +7283,21 @@ void test12900()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=12929
+
+struct Foo12929
+{
+    union { }
+    int var;
+}
+
+struct Bar12929
+{
+    struct { }
+    int var;
+}
+
+/***************************************************/
 // 12937
 
 void test12937()
