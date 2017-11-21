@@ -216,8 +216,8 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     bool cpp;           // true if this is a C++ interface
     bool isobjc;        // true if this is an Objective-C class/interface
     bool isscope;       // true if this is a scope class
+    private bool inuse;          // to prevent recursive attempts
     Abstract isabstract;
-    int inuse;          // to prevent recursive attempts
     Baseok baseok;      // set the progress of base classes resolving
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
@@ -499,9 +499,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             if (!inuse)
             {
                 // must semantic on base class/interfaces
-                ++inuse;
+                inuse = true;
                 dsymbolSemantic(this, null);
-                --inuse;
+                inuse = false;
             }
         }
 
