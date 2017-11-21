@@ -8,7 +8,7 @@ all:
 	$(QUIET)$(MAKE) -C src -f posix.mak all
 
 auto-tester-build: toolchain-info
-	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
+	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build
 
 auto-tester-test: test
 
