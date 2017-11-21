@@ -14,18 +14,11 @@ SRC:=src
 GENERATED:=./generated
 ROOT:=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 
-# -fPIC is enabled by default and can be disabled with DISABLE_PIC=1
-ifeq (,$(DISABLE_PIC))
-    PIC_FLAG:=-fPIC
-else
-    PIC_FLAG:=
-endif
-
 ifneq (default,$(MODEL))
 	MODEL_FLAG:=-m$(MODEL)
 endif
-CFLAGS:=$(MODEL_FLAG) -Wall
-DFLAGS:=$(MODEL_FLAG) -w -I../../src -I../../import -I$(SRC) -defaultlib= -debuglib= -dip1000 $(PIC_FLAG)
+CFLAGS:=$(MODEL_FLAG) $(PIC) -Wall
+DFLAGS:=$(MODEL_FLAG) $(PIC) -w -I../../src -I../../import -I$(SRC) -defaultlib= -debuglib= -dip1000
 # LINK_SHARED may be set by importing makefile
 DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIMESO),-L$(DRUNTIME))
 ifeq ($(BUILD),debug)
