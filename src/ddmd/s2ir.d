@@ -93,7 +93,7 @@ void srcpos_setLoc(Srcpos *s, Loc loc)
 
 void setScopeIndex(Blockx *blx, block *b, int scope_index)
 {
-    if (config.ehmethod == EHmethod.EH_WIN32)
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
 }
 
@@ -808,7 +808,7 @@ private extern (C++) class S2irVisitor : Visitor
             bc = BCret;
 
         block *finallyBlock;
-        if (config.ehmethod != EHmethod.EH_DWARF &&
+        if ((config.ehmethod != EHmethod.EH_DWARF || irs.isNothrow()) &&
             (finallyBlock = irs.getFinallyBlock()) != null)
         {
             assert(finallyBlock.BC == BC_finally);
@@ -976,6 +976,9 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(TryCatchStatement s)
     {
         Blockx *blx = irs.blx;
+
+        if (blx.funcsym.Sfunc.Fflags3 & Feh_none) printf("visit %s\n", blx.funcsym.Sident.ptr);
+        if (blx.funcsym.Sfunc.Fflags3 & Feh_none) assert(0);
 
         if (config.ehmethod == EHmethod.EH_WIN32)
             nteh_declarvars(blx);
@@ -1251,7 +1254,7 @@ private extern (C++) class S2irVisitor : Visitor
 
         Blockx *blx = irs.blx;
 
-        if (config.ehmethod == EHmethod.EH_WIN32)
+        if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
             nteh_declarvars(blx);
 
         /* Successors to BC_try block:
@@ -1289,7 +1292,7 @@ private extern (C++) class S2irVisitor : Visitor
         block *breakblock = block_calloc(blx);
         block *retblock = block_calloc(blx);
 
-        if (config.ehmethod == EHmethod.EH_DWARF)
+        if (config.ehmethod == EHmethod.EH_DWARF && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
         {
             /* Build this:
              *  BCgoto     [BC_try]
@@ -1541,6 +1544,7 @@ void Statement_toIR(Statement s, IRState *irs)
  * inside a try block to outside.
  * Done after blocks are generated because then we know all
  * the edges of the graph, but before the Bpred's are computed.
+ * Only for EH_DWARF exception unwinding.
  * Params:
  *      startblock = first block in function
  */

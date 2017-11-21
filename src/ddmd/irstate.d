@@ -258,6 +258,8 @@ struct IRState
          * the best we can do.
          * Nothrow needs to be tracked at the Statement level.
          */
-        return !global.params.useExceptions;
+        FuncDeclaration fd;
+        return !global.params.useExceptions ||
+                (fd = getFunc()) !is null && fd.eh_none;
     }
 }

@@ -481,6 +481,7 @@ void builtin_init();
 #define FUNCFLAGreturnInprocess 0x10    // working on inferring 'return' for parameters
 #define FUNCFLAGinlineScanned   0x20    // function has been scanned for inline possibilities
 #define FUNCFLAGinferScope      0x40    // infer 'scope' for parameters
+#define FUNCFLAGhasCatches      0x80    // function has try-catch statements
 
 class FuncDeclaration : public Declaration
 {
@@ -523,6 +524,8 @@ public:
     CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
+    bool eh_none;                       /// true if no exception unwinding is needed
+
     // true if errors in semantic3 this function's frame ptr
     bool semantic3Errors;
     ForeachStatement *fes;              // if foreach body, this is the foreach
