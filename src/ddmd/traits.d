@@ -60,17 +60,24 @@ struct PushAttributes
 }
 
 /**************************************
- * Convert `Expression` or `Type` to corresponding `Dsymbol`,
- * additionally strip off expression contexts.
+ * Convert `Expression` or `Type` to corresponding `Dsymbol`, additionally
+ * stripping off expression contexts.
  *
  * Some symbol related `__traits` ignore arguments expression contexts.
  * For example:
+ * ----
  *  struct S { void f() {} }
  *  S s;
  *  pragma(msg, __traits(isNested, s.f));
- *  // s.f is DotVarExp, but __traits(isNested) needs a FuncDeclaration.
+ *  // s.f is `DotVarExp`, but `__traits(isNested)`` needs a `FuncDeclaration`.
+ * ----
  *
  * This is used for that common `__traits` behavior.
+ *
+ * Input:
+ *      oarg     object to get the symbol for
+ * Returns:
+ *      Dsymbol  the corresponding symbol for oarg
  */
 private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
