@@ -3547,7 +3547,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 if (!em.ed.isAnonymous())
                 {
-                    e = e.castTo(sc, em.ed.type);
+                    e = e.castTo(sc, em.ed.type.addMod(e.type.mod)); // https://issues.dlang.org/show_bug.cgi?id=12385
                     e = e.ctfeInterpret();
                 }
             }
