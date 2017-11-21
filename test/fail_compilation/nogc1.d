@@ -1,6 +1,15 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/nogc1.d(91): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+fail_compilation/nogc1.d(92): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+fail_compilation/nogc1.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+---
+*/
+
 /***************** NewExp *******************/
 
 struct S1 { }
@@ -12,14 +21,14 @@ struct S5 { @nogc new(size_t); }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(27): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(29): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(30): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(32): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(33): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(34): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(35): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc allocator `nogc1.S4.new`
+fail_compilation/nogc1.d(36): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
 fail_compilation/nogc1.d(38): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(39): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(41): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(42): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
+fail_compilation/nogc1.d(43): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(44): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc allocator `nogc1.S4.new`
+fail_compilation/nogc1.d(47): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
 ---
 */
 @nogc void testNew()
@@ -41,13 +50,13 @@ fail_compilation/nogc1.d(38): Error: cannot use `new` in `@nogc` function `nogc1
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(55): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(57): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(58): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(60): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(61): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(62): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(63): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc allocator `nogc1.S4.new`
+fail_compilation/nogc1.d(64): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(66): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(67): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(69): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(70): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
+fail_compilation/nogc1.d(71): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(72): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc allocator `nogc1.S4.new`
 ---
 */
 @nogc void testNewScope()
@@ -72,9 +81,9 @@ fail_compilation/nogc1.d(63): Error: `@nogc` function `nogc1.testNewScope` canno
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(82): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
-fail_compilation/nogc1.d(83): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
-fail_compilation/nogc1.d(84): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
+fail_compilation/nogc1.d(91): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
+fail_compilation/nogc1.d(92): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
+fail_compilation/nogc1.d(93): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
 ---
 */
 @nogc void testDelete(int* p, Object o, S1* s)
