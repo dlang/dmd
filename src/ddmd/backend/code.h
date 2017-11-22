@@ -239,6 +239,7 @@ extern  int reflocal;
 extern  bool anyiasm;
 extern  char calledafunc;
 extern  void(*cdxxx[])(CodeBuilder&,elem *,regm_t *);
+extern  bool calledFinally;
 
 void stackoffsets(int);
 void codgen(Symbol *);

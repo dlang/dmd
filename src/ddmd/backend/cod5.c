@@ -51,6 +51,7 @@ void cod5_prol_epi()
         anyiasm ||
         Alloca.size ||
         usednteh ||
+        calledFinally ||
         tyf & (mTYnaked | mTYloadds) ||
         tym == TYifunc ||
         tym == TYmfunc ||       // can't yet handle ECX passed as parameter

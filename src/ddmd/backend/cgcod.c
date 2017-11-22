@@ -84,6 +84,7 @@ char needframe;         // if TRUE, then we will need the frame
                         // pointer (BP for the 8088)
 char gotref;            // !=0 if the GOTsym was referenced
 unsigned usednteh;              // if !=0, then used NT exception handling
+bool calledFinally;     // true if called a BC_finally block
 
 /* Register contents    */
 con_t regcon;
@@ -174,6 +175,7 @@ tryagain:
     memset(_8087elems,0,sizeof(_8087elems));
 #endif
 
+    calledFinally = false;
     usednteh = 0;
 #if (MARS) && TARGET_WINDOS
     if (sfunc->Sfunc->Fflags3 & Fjmonitor)
