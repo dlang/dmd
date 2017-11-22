@@ -2209,7 +2209,7 @@ regm_t cod3_useBP()
             tyfarfunc(tym) ||
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
-            (usednteh & ~NTEHjmonitor) ||
+            (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
             Alloca.size
            )
             goto Lcant;
@@ -3010,7 +3010,7 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
         (*xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
 #if NTEXCEPTIONS == 2
-        (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) || config.ehmethod == EH_SEH)) ||
+        (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) || config.ehmethod == EH_SEH)) ||
 #endif
         (config.target_cpu >= TARGET_80386 &&
          config.flags4 & CFG4speed)
@@ -3024,7 +3024,7 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
             // Don't reorder instructions, as dwarf CFA relies on it
             code_orflag(cdb.last(), CFvolatile);
 #if NTEXCEPTIONS == 2
-        if (usednteh & ~NTEHjmonitor && (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) || config.ehmethod == EH_SEH))
+        if (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EH_WIN32 && !(funcsym_p->Sfunc->Fflags3 & Feh_none) || config.ehmethod == EH_SEH))
         {
             nteh_prolog(cdb);
             int sz = nteh_contextsym_size();
@@ -3849,7 +3849,7 @@ void epilog(block *b)
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
     }
 
-    if (usednteh & ~NTEHjmonitor && (config.exe == EX_WIN32 || MARS))
+    if (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
         nteh_epilog(cdbx);
     }

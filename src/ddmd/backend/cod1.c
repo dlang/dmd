@@ -2947,7 +2947,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     bool usefuncarg = FALSE;
 #if 0
     printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !Alloca.size,
-        !(usednteh & ~NTEHjmonitor),
+        !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)),
         (int)numpara, !stackpush,
         (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos),
         (!typfunc(tyf) || sf && sf->Sflags & SFLexit), !I16);
