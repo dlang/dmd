@@ -74,7 +74,7 @@ void err_message(const char *,...);
 
 /*******************************/
 
-void mem_setexception(enum MEM_E flag,...)
+void mem_setexception(MEM_E flag,...)
 {   va_list ap;
     typedef int (*fp_t)(void);
 
