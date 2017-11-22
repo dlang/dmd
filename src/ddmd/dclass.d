@@ -179,6 +179,24 @@ struct ClassFlags
     alias hasDtor = Enum.hasDtor;
 }
 
+/**
+ * The ClassKind enum is used in ClassDeclaration AST nodes
+ * to specify the linkage type of the class or if it is an
+ * anonymous class. If the class is anonymous it is also
+ * considered to be a D class.
+ */
+enum ClassKind : int
+{
+    /// the class is a d(efault) class
+    d,
+    /// the class is a C++ interface
+    cpp,
+    /// the class is an Objective-C class/interface
+    objc,
+    /// the class is anonymous
+    anonymous,
+}
+
 /***********************************************************
  */
 extern (C++) class ClassDeclaration : AggregateDeclaration
@@ -212,20 +230,32 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     // the ClassInfo object for this ClassDeclaration
     TypeInfoClassDeclaration vclassinfo;
 
-    bool com;           // true if this is a COM class (meaning it derives from IUnknown)
-    bool cpp;           // true if this is a C++ interface
-    bool isobjc;        // true if this is an Objective-C class/interface
-    bool isscope;       // true if this is a scope class
-    private bool inuse;          // to prevent recursive attempts
+    // true if this is a COM class
+    bool com;
+
+    /// true if this is a scope class
+    bool stack;
+
+    /// specifies whether this is a D, C++, Objective-C or anonymous class/interface
+    ClassKind classKind;
+
+    /// to prevent recursive attempts
+    private bool inuse;
+
     Abstract isabstract;
-    Baseok baseok;      // set the progress of base classes resolving
+
+    /// set the progress of base classes resolving
+    Baseok baseok;
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     final extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
     {
         if (!id)
+        {
             id = Identifier.generateId("__anonclass");
+            classKind = ClassKind.anonymous;
+        }
         assert(id);
 
         super(loc, id);
@@ -584,7 +614,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
-            if (cpp && global.params.isWindows)
+            if (classKind == ClassKind.cpp && global.params.isWindows)
                 structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
         }
         else if (isInterfaceDeclaration())
@@ -599,7 +629,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             alignsize = Target.ptrsize;
             structsize = Target.ptrsize;      // allow room for __vptr
-            if (!cpp)
+            if (classKind != ClassKind.cpp)
                 structsize += Target.ptrsize; // allow room for __monitor
         }
 
@@ -817,7 +847,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final bool isCPPclass() const
     {
-        return cpp;
+        return classKind == ClassKind.cpp;
     }
 
     bool isCPPinterface() const
@@ -932,7 +962,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     int vtblOffset() const
     {
-        return cpp ? 0 : 1;
+        return classKind == ClassKind.cpp ? 0 : 1;
     }
 
     /****************************************
@@ -973,7 +1003,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         if (id == Id.IUnknown) // IUnknown is the root of all COM interfaces
         {
             com = true;
-            cpp = true; // IUnknown is also a C++ interface
+            classKind = ClassKind.cpp; // IUnknown is also a C++ interface
         }
     }
 
@@ -991,9 +1021,9 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         auto sc2 = super.newScope(sc);
         if (com)
             sc2.linkage = LINKwindows;
-        else if (cpp)
+        else if (classKind == ClassKind.cpp)
             sc2.linkage = LINKcpp;
-        else if (isobjc)
+        else if (classKind == ClassKind.objc)
             sc2.linkage = LINKobjc;
         return sc2;
     }
@@ -1087,7 +1117,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
 
     override bool isCPPinterface() const
     {
-        return cpp;
+        return classKind == ClassKind.cpp;
     }
 
     override bool isCOMinterface() const

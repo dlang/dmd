@@ -158,3 +158,15 @@ void leFoo()()
     sign = a == 2 ? false : sign ^ (y < 0);
     sign = 2 + 3 | 7 + 5;
 }
+
+// 17371
+interface LeInterface
+{}
+class LeClass
+{
+    this()
+    {
+        auto foo = new class () LeInterface {};
+    }
+}
+const levar = new class LeClass, LeInterface {};

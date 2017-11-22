@@ -188,12 +188,12 @@ extern(C++) private final class Supported : Objc
 
     override void setObjc(ClassDeclaration cd)
     {
-        cd.isobjc = true;
+        cd.classKind = ClassKind.objc;
     }
 
     override void setObjc(InterfaceDeclaration id)
     {
-        id.isobjc = true;
+        id.classKind = ClassKind.objc;
     }
 
     override void setSelector(FuncDeclaration fd, Scope* sc)

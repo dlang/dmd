@@ -8534,7 +8534,7 @@ extern (C++) final class TypeClass : Type
 
     override bool isscope() const
     {
-        return sym.isscope;
+        return sym.stack;
     }
 
     override bool isBoolean() const

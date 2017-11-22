@@ -4497,7 +4497,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 /* These quirky conditions mimic what VC++ appears to do
                  */
-                if (global.params.mscoff && cd.cpp &&
+                if (global.params.mscoff && cd.classKind == ClassKind.cpp &&
                     cd.baseClass && cd.baseClass.vtbl.dim)
                 {
                     /* if overriding an interface function, then this is not
@@ -4523,7 +4523,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("\tintroducing function %s\n", toChars());
                     funcdecl.introducing = 1;
-                    if (cd.cpp && Target.reverseCppOverloads)
+                    if (cd.classKind == ClassKind.cpp && Target.reverseCppOverloads)
                     {
                         // with dmc, overloaded functions are grouped and in reverse order
                         funcdecl.vtblIndex = cast(int)cd.vtbl.dim;
@@ -5594,14 +5594,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cldec.storage_class & STCauto)
                 cldec.error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
             if (cldec.storage_class & STCscope)
-                cldec.isscope = true;
+                cldec.stack = true;
             if (cldec.storage_class & STCabstract)
                 cldec.isabstract = ABSyes;
 
             cldec.userAttribDecl = sc.userAttribDecl;
 
             if (sc.linkage == LINKcpp)
-                cldec.cpp = true;
+                cldec.classKind = ClassKind.cpp;
             if (sc.linkage == LINKobjc)
                 objc.setObjc(cldec);
         }
@@ -5795,7 +5795,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.baseok = BASEOKdone;
 
             // If no base class, and this is not an Object, use Object as base class
-            if (!cldec.baseClass && cldec.ident != Id.Object && !cldec.cpp)
+            if (!cldec.baseClass && cldec.ident != Id.Object && !cldec.classKind == ClassKind.cpp)
             {
                 void badObjectDotD()
                 {
@@ -5829,9 +5829,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (cldec.baseClass.isCOMclass())
                     cldec.com = true;
                 if (cldec.baseClass.isCPPclass())
-                    cldec.cpp = true;
-                if (cldec.baseClass.isscope)
-                    cldec.isscope = true;
+                    cldec.classKind = ClassKind.cpp;
+                if (cldec.baseClass.stack)
+                    cldec.stack = true;
                 cldec.enclosing = cldec.baseClass.enclosing;
                 cldec.storage_class |= cldec.baseClass.storage_class & STC_TYPECTOR;
             }
@@ -5843,7 +5843,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // then this is a COM interface too.
                 if (b.sym.isCOMinterface())
                     cldec.com = true;
-                if (cldec.cpp && !b.sym.isCPPinterface())
+                if (cldec.classKind == ClassKind.cpp && !b.sym.isCPPinterface())
                 {
                     error(cldec.loc, "C++ class '%s' cannot implement D interface '%s'",
                         cldec.toPrettyChars(), b.sym.toPrettyChars());
@@ -5917,7 +5917,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // initialize vtbl
             if (cldec.baseClass)
             {
-                if (cldec.cpp && cldec.baseClass.vtbl.dim == 0)
+                if (cldec.classKind == ClassKind.cpp && cldec.baseClass.vtbl.dim == 0)
                 {
                     cldec.error("C++ base class %s needs at least one virtual function", cldec.baseClass.toChars());
                 }
@@ -6256,7 +6256,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             if (!idec.baseclasses.dim && sc.linkage == LINKcpp)
-                idec.cpp = true;
+                idec.classKind = ClassKind.cpp;
 
             if (sc.linkage == LINKobjc)
                 objc.setObjc(idec);
@@ -6333,7 +6333,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (b.sym.isCOMinterface())
                     idec.com = true;
                 if (b.sym.isCPPinterface())
-                    idec.cpp = true;
+                    idec.classKind = ClassKind.cpp;
             }
 
             interfaceSemantic(idec);

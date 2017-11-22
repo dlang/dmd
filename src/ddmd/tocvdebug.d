@@ -538,7 +538,7 @@ void toDebug(ClassDeclaration cd)
     //printf("ClassDeclaration::toDebug('%s')\n", cd.toChars());
 
     assert(config.fulltypes >= CV4);
-    if (cd.isAnonymous())
+    if (cd.classKind == ClassKind.anonymous)
         return /*0*/;
 
     if (typidx)                 // if reference already generated
