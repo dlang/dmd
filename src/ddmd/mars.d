@@ -1296,6 +1296,7 @@ private void setDefaultLibrary()
 /**
  * Add default `version` identifier for ddmd, and set the
  * target platform in `global`.
+ * https://dlang.org/spec/version.html#predefined-versions
  *
  * Needs to be run after all arguments parsing (command line, DFLAGS environment
  * variable and config file) in order to add final flags (such as `X86_64` or
@@ -1533,17 +1534,17 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         const(char)* p = arguments[i];
         if (*p == '-')
         {
-            if (strcmp(p + 1, "allinst") == 0)
+            if (strcmp(p + 1, "allinst") == 0) // https://dlang.org/dmd-windows.html#switch-allinst
                 params.allInst = true;
-            else if (strcmp(p + 1, "de") == 0)
+            else if (strcmp(p + 1, "de") == 0) // https://dlang.org/dmd-windows.html#switch-de
                 params.useDeprecated = 0;
-            else if (strcmp(p + 1, "d") == 0)
+            else if (strcmp(p + 1, "d") == 0)  // https://dlang.org/dmd-windows.html#switch-d
                 params.useDeprecated = 1;
-            else if (strcmp(p + 1, "dw") == 0)
+            else if (strcmp(p + 1, "dw") == 0) // https://dlang.org/dmd-windows.html#switch-dw
                 params.useDeprecated = 2;
-            else if (strcmp(p + 1, "c") == 0)
+            else if (strcmp(p + 1, "c") == 0)  // https://dlang.org/dmd-windows.html#switch-c
                 params.link = false;
-            else if (memcmp(p + 1, cast(char*)"color", 5) == 0)
+            else if (memcmp(p + 1, cast(char*)"color", 5) == 0) // https://dlang.org/dmd-windows.html#switch-color
             {
                 params.color = true;
                 // Parse:
@@ -1559,11 +1560,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else if (p[6])
                     goto Lerror;
             }
-            else if (memcmp(p + 1, cast(char*)"conf=", 5) == 0)
+            else if (memcmp(p + 1, cast(char*)"conf=", 5) == 0) // https://dlang.org/dmd-windows.html#switch-conf
             {
                 // ignore, already handled above
             }
-            else if (memcmp(p + 1, cast(char*)"cov", 3) == 0)
+            else if (memcmp(p + 1, cast(char*)"cov", 3) == 0) // https://dlang.org/dmd-windows.html#switch-cov
             {
                 params.cov = true;
                 // Parse:
@@ -1610,13 +1611,13 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
             }
-            else if (strcmp(p + 1, "map") == 0)
+            else if (strcmp(p + 1, "map") == 0) // https://dlang.org/dmd-windows.html#switch-map
                 params.map = true;
             else if (strcmp(p + 1, "multiobj") == 0)
                 params.multiobj = true;
-            else if (strcmp(p + 1, "g") == 0)
+            else if (strcmp(p + 1, "g") == 0) // https://dlang.org/dmd-windows.html#switch-g
                 params.symdebug = 1;
-            else if (strcmp(p + 1, "gc") == 0)
+            else if (strcmp(p + 1, "gc") == 0)  // https://dlang.org/dmd-windows.html#switch-gc
             {
                 Loc loc;
                 deprecation(loc, "use -g instead of -gc");
@@ -1628,21 +1629,21 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     params.symdebug = 1;
                 params.symdebugref = true;
             }
-            else if (strcmp(p + 1, "gs") == 0)
+            else if (strcmp(p + 1, "gs") == 0)  // https://dlang.org/dmd-windows.html#switch-gs
                 params.alwaysframe = true;
-            else if (strcmp(p + 1, "gx") == 0)
+            else if (strcmp(p + 1, "gx") == 0)  // https://dlang.org/dmd-windows.html#switch-gx
                 params.stackstomp = true;
             else if (strcmp(p + 1, "gt") == 0)
             {
                 error("use -profile instead of -gt");
                 params.trace = true;
             }
-            else if (strcmp(p + 1, "m32") == 0)
+            else if (strcmp(p + 1, "m32") == 0) // https://dlang.org/dmd-windows.html#switch-m32
             {
                 params.is64bit = false;
                 params.mscoff = false;
             }
-            else if (strcmp(p + 1, "m64") == 0)
+            else if (strcmp(p + 1, "m64") == 0) // https://dlang.org/dmd-windows.html#switch-m64
             {
                 params.is64bit = true;
                 static if (TARGET_WINDOS)
@@ -1650,7 +1651,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     params.mscoff = true;
                 }
             }
-            else if (strcmp(p + 1, "m32mscoff") == 0)
+            else if (strcmp(p + 1, "m32mscoff") == 0) // https://dlang.org/dmd-windows.html#switch-m32mscoff
             {
                 static if (TARGET_WINDOS)
                 {
@@ -1673,7 +1674,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     error("-mscrtlib");
                 }
             }
-            else if (memcmp(p + 1, cast(char*)"profile", 7) == 0)
+            else if (memcmp(p + 1, cast(char*)"profile", 7) == 0) // https://dlang.org/dmd-windows.html#switch-profile
             {
                 // Parse:
                 //      -profile
@@ -1690,17 +1691,17 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     params.trace = true;
             }
-            else if (strcmp(p + 1, "v") == 0)
+            else if (strcmp(p + 1, "v") == 0) // https://dlang.org/dmd-windows.html#switch-v
                 params.verbose = true;
             else if (strcmp(p + 1, "vcg-ast") == 0)
                 params.vcg_ast = true;
-            else if (strcmp(p + 1, "vtls") == 0)
+            else if (strcmp(p + 1, "vtls") == 0) // https://dlang.org/dmd-windows.html#switch-vtls
                 params.vtls = true;
-            else if (strcmp(p + 1, "vcolumns") == 0)
+            else if (strcmp(p + 1, "vcolumns") == 0) // https://dlang.org/dmd-windows.html#switch-vcolumns
                 params.showColumns = true;
-            else if (strcmp(p + 1, "vgc") == 0)
+            else if (strcmp(p + 1, "vgc") == 0) // https://dlang.org/dmd-windows.html#switch-vgc
                 params.vgc = true;
-            else if (memcmp(p + 1, cast(char*)"verrors", 7) == 0)
+            else if (memcmp(p + 1, cast(char*)"verrors", 7) == 0) // https://dlang.org/dmd-windows.html#switch-verrors
             {
                 if (p[8] == '=' && isdigit(cast(char)p[9]))
                 {
@@ -1716,7 +1717,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0)
+            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0) // https://dlang.org/dmd-windows.html#switch-mcpu
             {
                 // Parse:
                 //      -mcpu=identifier
@@ -1754,7 +1755,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (memcmp(p + 1, cast(char*)"transition", 10) == 0)
+            else if (memcmp(p + 1, cast(char*)"transition", 10) == 0) // https://dlang.org/dmd-windows.html#switch-transition
             {
                 // Parse:
                 //      -transition=number
@@ -1828,21 +1829,21 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (strcmp(p + 1, "w") == 0)
+            else if (strcmp(p + 1, "w") == 0)   // https://dlang.org/dmd-windows.html#switch-w
                 params.warnings = 1;
-            else if (strcmp(p + 1, "wi") == 0)
+            else if (strcmp(p + 1, "wi") == 0)  // https://dlang.org/dmd-windows.html#switch-wi
                 params.warnings = 2;
-            else if (strcmp(p + 1, "O") == 0)
+            else if (strcmp(p + 1, "O") == 0)   // https://dlang.org/dmd-windows.html#switch-O
                 params.optimize = true;
             else if (p[1] == 'o')
             {
                 const(char)* path;
                 switch (p[2])
                 {
-                case '-':
+                case '-':                       // https://dlang.org/dmd-windows.html#switch-o-
                     params.obj = false;
                     break;
-                case 'd':
+                case 'd':                       // https://dlang.org/dmd-windows.html#switch-od
                     if (!p[3])
                         goto Lnoarg;
                     path = p + 3 + (p[3] == '=');
@@ -1852,7 +1853,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     }
                     params.objdir = path;
                     break;
-                case 'f':
+                case 'f':                       // https://dlang.org/dmd-windows.html#switch-of
                     if (!p[3])
                         goto Lnoarg;
                     path = p + 3 + (p[3] == '=');
@@ -1862,7 +1863,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     }
                     params.objname = path;
                     break;
-                case 'p':
+                case 'p':                       // https://dlang.org/dmd-windows.html#switch-op
                     if (p[3])
                         goto Lerror;
                     params.preservePaths = true;
@@ -1874,17 +1875,17 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
             }
-            else if (p[1] == 'D')
+            else if (p[1] == 'D')       // https://dlang.org/dmd-windows.html#switch-D
             {
                 params.doDocComments = true;
                 switch (p[2])
                 {
-                case 'd':
+                case 'd':               // https://dlang.org/dmd-windows.html#switch-Dd
                     if (!p[3])
                         goto Lnoarg;
                     params.docdir = p + 3 + (p[3] == '=');
                     break;
-                case 'f':
+                case 'f':               // https://dlang.org/dmd-windows.html#switch-Df
                     if (!p[3])
                         goto Lnoarg;
                     params.docname = p + 3 + (p[3] == '=');
@@ -1895,17 +1896,17 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
             }
-            else if (p[1] == 'H')
+            else if (p[1] == 'H')       // https://dlang.org/dmd-windows.html#switch-H
             {
                 params.doHdrGeneration = true;
                 switch (p[2])
                 {
-                case 'd':
+                case 'd':               // https://dlang.org/dmd-windows.html#switch-Hd
                     if (!p[3])
                         goto Lnoarg;
                     params.hdrdir = p + 3 + (p[3] == '=');
                     break;
-                case 'f':
+                case 'f':               // https://dlang.org/dmd-windows.html#switch-Hf
                     if (!p[3])
                         goto Lnoarg;
                     params.hdrname = p + 3 + (p[3] == '=');
@@ -1916,12 +1917,12 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
             }
-            else if (p[1] == 'X')
+            else if (p[1] == 'X')       // https://dlang.org/dmd-windows.html#switch-X
             {
                 params.doJsonGeneration = true;
                 switch (p[2])
                 {
-                case 'f':
+                case 'f':               // https://dlang.org/dmd-windows.html#switch-Xf
                     if (!p[3])
                         goto Lnoarg;
                     params.jsonfilename = p + 3 + (p[3] == '=');
@@ -1932,23 +1933,23 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
             }
-            else if (strcmp(p + 1, "ignore") == 0)
+            else if (strcmp(p + 1, "ignore") == 0)      // https://dlang.org/dmd-windows.html#switch-ignore
                 params.ignoreUnsupportedPragmas = true;
             else if (strcmp(p + 1, "property") == 0)
                 params.enforcePropertySyntax = true;
-            else if (strcmp(p + 1, "inline") == 0)
+            else if (strcmp(p + 1, "inline") == 0) // https://dlang.org/dmd-windows.html#switch-inline
             {
                 params.useInline = true;
                 params.hdrStripPlainFunctions = false;
             }
-            else if (strcmp(p + 1, "dip25") == 0)
+            else if (strcmp(p + 1, "dip25") == 0)       // https://dlang.org/dmd-windows.html#switch-dip25
                 params.useDIP25 = true;
             else if (strcmp(p + 1, "dip1000") == 0)
             {
                 params.useDIP25 = true;
                 params.vsafe = true;
             }
-            else if (strcmp(p + 1, "lib") == 0)
+            else if (strcmp(p + 1, "lib") == 0) // https://dlang.org/dmd-windows.html#switch-lib
                 params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)
                 params.nofloat = true;
@@ -1956,15 +1957,15 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 // Ignore
             }
-            else if (strcmp(p + 1, "release") == 0)
+            else if (strcmp(p + 1, "release") == 0) // https://dlang.org/dmd-windows.html#switch-release
                 params.release = true;
-            else if (strcmp(p + 1, "betterC") == 0)
+            else if (strcmp(p + 1, "betterC") == 0) // https://dlang.org/dmd-windows.html#switch-betterC
                 params.betterC = true;
-            else if (strcmp(p + 1, "noboundscheck") == 0)
+            else if (strcmp(p + 1, "noboundscheck") == 0) // https://dlang.org/dmd-windows.html#switch-noboundscheck
             {
                 params.useArrayBounds = CHECKENABLE.off;
             }
-            else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0)
+            else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0) // https://dlang.org/dmd-windows.html#switch-boundscheck
             {
                 // Parse:
                 //      -boundscheck=[on|safeonly|off]
@@ -1990,13 +1991,13 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (strcmp(p + 1, "unittest") == 0)
                 params.useUnitTests = true;
-            else if (p[1] == 'I')
+            else if (p[1] == 'I') // https://dlang.org/dmd-windows.html#switch-I
             {
                 if (!params.imppath)
                     params.imppath = new Strings();
                 params.imppath.push(p + 2 + (p[2] == '='));
             }
-            else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=')
+            else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd-windows.html#switch-mv
             {
                 if (p[4] && strchr(p + 5, '='))
                 {
@@ -2007,13 +2008,13 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (p[1] == 'J')
+            else if (p[1] == 'J') // https://dlang.org/dmd-windows.html#switch-J
             {
                 if (!params.fileImppath)
                     params.fileImppath = new Strings();
                 params.fileImppath.push(p + 2 + (p[2] == '='));
             }
-            else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l')
+            else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l') // https://dlang.org/dmd-windows.html#switch-debug
             {
                 // Parse:
                 //      -debug
@@ -2043,7 +2044,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     params.debuglevel = 1;
             }
-            else if (memcmp(p + 1, cast(char*)"version", 7) == 0)
+            else if (memcmp(p + 1, cast(char*)"version", 7) == 0) // https://dlang.org/dmd-windows.html#switch-version
             {
                 // Parse:
                 //      -version=number
@@ -2091,19 +2092,19 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.debugx = true;
             else if (strcmp(p + 1, "-y") == 0)
                 params.debugy = true;
-            else if (p[1] == 'L')
+            else if (p[1] == 'L')       // https://dlang.org/dmd-windows.html#switch-L
             {
                 params.linkswitches.push(p + 2 + (p[2] == '='));
             }
-            else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0)
+            else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0) // https://dlang.org/dmd-windows.html#switch-defaultlib
             {
                 params.defaultlibname = p + 1 + 11;
             }
-            else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)
+            else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)     // https://dlang.org/dmd-windows.html#switch-debuglib
             {
                 params.debuglibname = p + 1 + 9;
             }
-            else if (memcmp(p + 1, cast(char*)"deps", 4) == 0)
+            else if (memcmp(p + 1, cast(char*)"deps", 4) == 0) // https://dlang.org/dmd-windows.html#switch-deps
             {
                 if (params.moduleDeps)
                 {
@@ -2123,16 +2124,16 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 }
                 params.moduleDeps = new OutBuffer();
             }
-            else if (strcmp(p + 1, "main") == 0)
+            else if (strcmp(p + 1, "main") == 0)        // https://dlang.org/dmd-windows.html#switch-main
             {
                 params.addMain = true;
             }
-            else if (memcmp(p + 1, cast(char*)"man", 3) == 0)
+            else if (memcmp(p + 1, cast(char*)"man", 3) == 0)   // https://dlang.org/dmd-windows.html#switch-man
             {
                 params.manual = true;
                 return false;
             }
-            else if (strcmp(p + 1, "run") == 0)
+            else if (strcmp(p + 1, "run") == 0)         // https://dlang.org/dmd-windows.html#switch-run
             {
                 params.run = true;
                 size_t length = argc - i - 1;
