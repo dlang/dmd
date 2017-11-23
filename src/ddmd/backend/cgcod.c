@@ -693,7 +693,7 @@ Lagain:
     spoff = 0;
     char guessneedframe = needframe;
     int cfa_offset = 0;
-//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & ~NTEHjmonitor))
+//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
 //      usednteh |= NTEHpassthru;
 
     /* Compute BP offsets for variables on stack.
@@ -882,7 +882,7 @@ Lagain:
                 farfunc ||
                 config.flags & CFGstack ||
                 xlocalsize >= 0x1000 ||
-                (usednteh & ~NTEHjmonitor) ||
+                (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
                 anyiasm ||
                 Alloca.size
                )
@@ -1257,7 +1257,7 @@ void stackoffsets(int flags)
              */
             if (// Don't share because could stomp on variables
                 // used in finally blocks
-                !(usednteh & ~NTEHjmonitor) &&
+                !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) &&
                 s->Srange && !(s->Sflags & SFLspill))
             {
                 for (size_t i = 0; i < si; i++)
@@ -2906,8 +2906,6 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
  * Turn register mask into a string suitable for printing.
  */
 
-#ifdef DEBUG
-
 const char *regm_str(regm_t rm)
 {
     #define NUM 10
@@ -2946,8 +2944,6 @@ const char *regm_str(regm_t rm)
     assert(strlen(p) <= SMAX);
     return strdup(p);
 }
-
-#endif
 
 /*********************************
  * Scan down comma-expressions.
