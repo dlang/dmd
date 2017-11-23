@@ -704,7 +704,7 @@ nothrow:
                 auto fullPath = new wchar[fullPathLength];
 
                 // Actually get the full path name
-                const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], fullPath.length, &fullPath[0], null /*filePart*/);
+                const fullPathLengthNoTerminator = GetFullPathNameW(&wname[0], cast(uint)fullPath.length, &fullPath[0], null /*filePart*/);
                 // Unfortunately, when the buffer is large enough the return value is the number of characters
                 // _not_ counting the null terminator, so fullPathLength2 should be smaller
                 assert(fullPathLength == fullPathLengthNoTerminator + 1);
@@ -714,7 +714,7 @@ nothrow:
                 auto ret = new char[retLength];
 
                 // Actually convert to char
-                const retLength2 = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], ret.length, null, null);
+                const retLength2 = WideCharToMultiByte(0 /*codepage*/, 0 /*flags*/, &fullPath[0], fullPathLength, &ret[0], cast(int)ret.length, null, null);
                 assert(retLength == retLength2);
 
                 return &ret[0];
@@ -818,7 +818,7 @@ version(Windows)
             absPath[0 .. prefix.length] = prefix[];
 
             const absPathRet = GetFullPathNameW(&wpath[0],
-                                                absPath.length - prefix.length,
+                                                cast(uint)(absPath.length - prefix.length),
                                                 &absPath[prefix.length],
                                                 null /*filePartBuffer*/);
 
@@ -849,7 +849,7 @@ version(Windows)
 
         wchar[1024] buf;
         // cache this for efficiency
-        const strLength = strlen(str) + 1;
+        const int strLength = cast(int)(strlen(str) + 1);
         // first find out how long the buffer must be to store the result
         const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, null, 0);
         wchar[] empty;
@@ -864,7 +864,7 @@ version(Windows)
                 free(&ret[0]);
         }
         // actually do the conversion
-        const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, &ret[0], ret.length);
+        const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, &ret[0], cast(int)ret.length);
         assert(length == length2); // should always be true according to the API
 
         return F(ret);
