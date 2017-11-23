@@ -2443,6 +2443,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (auto e = dsym.type.defaultInit(dsym.loc))
             {
+                // For smaller types, prefer the literal as that has better code gen,
+                // using immediate instructions.
+                // Still call the previous defaultInit, as that does checking for void[n]
+                // initializations.
+                if (dsym.type.size() <= 16)
+                    e = dsym.type.defaultInitLiteral(dsym.loc);
+
                 dsym._init = new ExpInitializer(dsym.loc, e);
             }
 
