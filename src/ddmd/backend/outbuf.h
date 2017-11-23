@@ -90,7 +90,7 @@ struct Outbuffer
     /**
      * Writes an 8 bit byte, no reserve check.
      */
-    void writeByten(char v)
+    void writeByten(unsigned char v)
     {
         *p++ = v;
     }
