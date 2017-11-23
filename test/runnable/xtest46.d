@@ -1,6 +1,6 @@
 // PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
 
-import std.stdio;
+//import std.stdio;
 import core.stdc.stdio;
 
 /******************************************/
@@ -1165,7 +1165,8 @@ pure immutable(T)[] fooPT(T)(immutable(T)[] x, immutable(T)[] y){
 
 void test61()
 {
-  writeln(fooPT("p", "c"));
+    auto s = fooPT("p", "c");
+    printf("%.*s\n", cast(int)s.length, s.ptr);
 }
 
 /***************************************************/
@@ -2020,8 +2021,8 @@ void test96()
 {
     S96!([12, 3]) s1;
     S96!([1, 23]) s2;
-    writeln(s1.content);
-    writeln(s2.content);
+    //writeln(s1.content);
+    //writeln(s2.content);
     assert(!is(typeof(s1) == typeof(s2)));
 }
 
@@ -2213,8 +2214,8 @@ pure int genFactorials(int n) {
 void test107()
 {
     int[6] a;
-    writeln(a);
-    writeln(a.init);
+    //writeln(a);
+    //writeln(a.init);
     assert(a.init == [0,0,0,0,0,0]);
 }
 
@@ -2717,15 +2718,15 @@ void test129()
     assert(foo.value == 5);
 
     foo.add(2);
-    writeln(foo.value);
+    printf("%d\n", foo.value);
     assert(foo.value == 7);
 
     foo.add(3);
-    writeln(foo.value);
+    printf("%d\n", foo.value);
     assert(foo.value == 10);
 
     foo.add(3);
-    writeln(foo.value);
+    printf("%d\n", foo.value);
     assert(foo.value == 13);
 
     void delegate (int) nothrow dg = &foo.add!(int);
@@ -3019,7 +3020,7 @@ struct Perm {
         foreach(elem; input) {
             enforce136(i < 3);
             perm[i++] = elem;
-            std.stdio.stderr.writeln(i);  // Never gets incremented.  Stays at 0.
+            printf("%d\n", i);  // Never gets incremented.  Stays at 0.
         }
     }
 }
@@ -3027,7 +3028,7 @@ struct Perm {
 void test136() {
     byte[] stuff = [0, 1, 2];
     auto perm2 = Perm(stuff);
-    writeln(perm2.perm);  // Prints [2, 0, 0]
+    //writeln(perm2.perm);  // Prints [2, 0, 0]
     assert(perm2.perm[] == [0, 1, 2]);
 }
 
@@ -3320,14 +3321,14 @@ void test146()
 
 struct X147
 {
-    void f()       { writeln("X.f mutable"); }
-    void f() const { writeln("X.f const"); }
+    void f()       { printf("X.f mutable\n"); }
+    void f() const { printf("X.f const\n"); }
 
-    void g()()       { writeln("X.g mutable"); }
-    void g()() const { writeln("X.g const"); }
+    void g()()       { printf("X.g mutable\n"); }
+    void g()() const { printf("X.g const\n"); }
 
-    void opOpAssign(string op)(int n)       { writeln("X+= mutable"); }
-    void opOpAssign(string op)(int n) const { writeln("X+= const"); }
+    void opOpAssign(string op)(int n)       { printf("X+= mutable\n"); }
+    void opOpAssign(string op)(int n) const { printf("X+= const\n"); }
 }
 
 void test147()
