@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/outbuffer.h
+ * https://github.com/dlang/dmd/blob/master/src/root/outbuffer.hpp
  */
 
 #ifndef OUTBUFFER_H
@@ -14,8 +14,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-#include "port.h"
-#include "rmem.h"
+#include "port.hpp"
+#include "rmem.hpp"
 
 #if __DMC__
 #pragma once

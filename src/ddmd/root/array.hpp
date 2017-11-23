@@ -3,7 +3,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/array.h
+ * https://github.com/dlang/dmd/blob/master/src/root/array.hpp
  */
 
 #ifndef ARRAY_H
@@ -18,8 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "object.h"
-#include "rmem.h"
+#include "object.hpp"
+#include "rmem.hpp"
 
 template <typename TYPE>
 struct Array

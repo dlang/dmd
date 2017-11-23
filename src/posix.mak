@@ -158,7 +158,7 @@ endif
 
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
-WARNINGS := -Wall -Wextra \
+WARNINGS := -Wall -Wextra -Werror \
 	-Wno-attributes \
 	-Wno-char-subscripts \
 	-Wno-deprecated \
@@ -199,7 +199,7 @@ WARNINGS += \
 endif
 else
 # Default Warnings
-WARNINGS := -Wno-deprecated -Wstrict-aliasing
+WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
@@ -362,9 +362,9 @@ SRC = $(addprefix $D/, win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h a
 	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
 
-ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
-	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+ROOT_SRC = $(addprefix $(ROOT)/, array.hpp ctfloat.hpp file.hpp filename.hpp \
+	longdouble.hpp newdelete.c object.hpp outbuffer.hpp port.hpp \
+	rmem.hpp root.hpp stringtable.hpp)
 
 GLUE_SRC = \
 	$(addprefix $D/, \
@@ -587,7 +587,7 @@ $(TOOLS_DIR)/checkwhitespace.d:
 ######################################################
 
 checkcxxheaders:
-	$(HOST_CXX) -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
+	$(HOST_CXX) -fsyntax-only $(ROOT_FLAGS) $(filter %.hpp,$(ROOT_SRC))
 	$(HOST_CXX) -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
 
 ######################################################

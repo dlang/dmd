@@ -77,7 +77,7 @@ struct OutBuffer;
 
 #include "globals.h"
 
-#include "ctfloat.h"
+#include "ctfloat.hpp"
 
 #include "complex_t.h"
 

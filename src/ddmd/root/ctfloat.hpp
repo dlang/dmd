@@ -4,13 +4,13 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/ctfloat.h
+ * https://github.com/dlang/dmd/blob/master/src/root/ctfloat.hpp
  */
 
 #ifndef CTFLOAT_H
 #define CTFLOAT_H
 
-#include "longdouble.h"
+#include "longdouble.hpp"
 
 // Type used by the front-end for compile-time reals
 typedef longdouble real_t;

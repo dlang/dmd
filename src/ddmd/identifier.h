@@ -16,8 +16,8 @@
 #pragma once
 #endif /* __DMC__ */
 
-#include "root.h"
-#include "stringtable.h"
+#include "root.hpp"
+#include "stringtable.hpp"
 
 class Identifier : public RootObject
 {

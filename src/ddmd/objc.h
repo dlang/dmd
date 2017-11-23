@@ -12,8 +12,8 @@
 #ifndef DMD_OBJC_H
 #define DMD_OBJC_H
 
-#include "root.h"
-#include "stringtable.h"
+#include "root.hpp"
+#include "stringtable.hpp"
 
 class Identifier;
 class FuncDeclaration;

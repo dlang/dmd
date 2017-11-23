@@ -16,9 +16,9 @@
 #pragma once
 #endif
 
-#include "ctfloat.h"
-#include "outbuffer.h"
-#include "filename.h"
+#include "ctfloat.hpp"
+#include "outbuffer.hpp"
+#include "filename.hpp"
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
