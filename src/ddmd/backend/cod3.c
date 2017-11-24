@@ -754,6 +754,7 @@ static code *callFinallyBlock(block *bf, regm_t retregs)
     CodeBuilder cdbr;
     int nalign = 0;
 
+    calledFinally = true;
     unsigned npush = gensaverestore(retregs,cdbs,cdbr);
 
     if (STACKALIGN == 16)
@@ -949,7 +950,7 @@ void outblkexitcode(CodeBuilder& cdb, block *bl, int& anyspill, const char* sfls
                 /* Need to use frame pointer to access locals, not the stack pointer,
                  * because we'll be calling the BC_finally blocks and the stack will be off.
                  */
-                usednteh |= EHtry;
+                needframe = 1;
             }
             else if (config.ehmethod == EH_SEH || config.ehmethod == EH_WIN32)
             {
@@ -2210,6 +2211,7 @@ regm_t cod3_useBP()
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
             (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
+            calledFinally ||
             Alloca.size
            )
             goto Lcant;

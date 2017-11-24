@@ -1202,7 +1202,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     /* Disable optimization on Win32 due to
                      * https://issues.dlang.org/show_bug.cgi?id=17997
                      */
-                    if (!global.params.isWindows || global.params.is64bit)
+//                    if (!global.params.isWindows || global.params.is64bit)
                         funcdecl.eh_none = true;         // don't generate unwind tables for this function
                 }
 
