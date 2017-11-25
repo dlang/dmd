@@ -563,7 +563,7 @@ $(GNAME StaticForeachStatement):
 	corresponding code with a $(GLINK2 statement, ForeachStatement)/$(GLINK2 statement, ForeachRangeStatement)
 	at compile time. The body of the $(D static foreach) is then copied a
 	number of times that corresponds to the number of elements of the
-	sequence. Within the i-th copy, the name of the $(D static forecah)
+	sequence. Within the i-th copy, the name of the $(D static foreach)
 	variable is bound to the i-th entry of the sequence, either as an $(D enum)
 	variable declaration (for constants) or an $(D alias)
 	declaration (for symbols). (In particular, $(D static foreach)
