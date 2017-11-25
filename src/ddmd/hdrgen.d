@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/hdrgen.d, _hdrgen.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_hdrgen.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/hdrgen.d
  */
 
 module ddmd.hdrgen;
-
-// Online documentation: https://dlang.org/phobos/ddmd_hdrgen.html
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -98,14 +98,14 @@ public:
 
     override void visit(Statement s)
     {
-        buf.printf("Statement::toCBuffer()");
+        buf.writestring("Statement::toCBuffer()");
         buf.writenl();
         assert(0);
     }
 
     override void visit(ErrorStatement s)
     {
-        buf.printf("__error__");
+        buf.writestring("__error__");
         buf.writenl();
     }
 
@@ -514,7 +514,7 @@ public:
 
     override void visit(ReturnStatement s)
     {
-        buf.printf("return ");
+        buf.writestring("return ");
         if (s.exp)
             s.exp.accept(this);
         buf.writeByte(';');
@@ -628,7 +628,7 @@ public:
 
     override void visit(ThrowStatement s)
     {
-        buf.printf("throw ");
+        buf.writestring("throw ");
         s.exp.accept(this);
         buf.writeByte(';');
         buf.writenl();
@@ -1103,7 +1103,7 @@ public:
             buf.writestring(s.ident.toChars());
         else
             buf.printf("%u", s.level);
-        buf.writestring(";");
+        buf.writeByte(';');
         buf.writenl();
     }
 
@@ -1114,7 +1114,7 @@ public:
             buf.writestring(s.ident.toChars());
         else
             buf.printf("%u", s.level);
-        buf.writestring(";");
+        buf.writeByte(';');
         buf.writenl();
     }
 
@@ -1149,7 +1149,7 @@ public:
                 buf.printf("%s.", pid.toChars());
             }
         }
-        buf.printf("%s", imp.id.toChars());
+        buf.writestring(imp.id.toChars());
         if (imp.names.dim)
         {
             buf.writestring(" : ");
@@ -1161,10 +1161,10 @@ public:
                 if (_alias)
                     buf.printf("%s = %s", _alias.toChars(), name.toChars());
                 else
-                    buf.printf("%s", name.toChars());
+                    buf.writestring(name.toChars());
             }
         }
-        buf.printf(";");
+        buf.writeByte(';');
         buf.writenl();
     }
 
@@ -1286,7 +1286,7 @@ public:
     override void visit(AlignDeclaration d)
     {
         if (!d.ealign)
-            buf.printf("align ");
+            buf.writestring("align ");
         else
             buf.printf("align (%s) ", d.ealign.toChars());
         visit(cast(AttribDeclaration)d);
@@ -1294,7 +1294,7 @@ public:
 
     override void visit(AnonDeclaration d)
     {
-        buf.printf(d.isunion ? "union" : "struct");
+        buf.writestring(d.isunion ? "union" : "struct");
         buf.writenl();
         buf.writestring("{");
         buf.writenl();
@@ -2588,7 +2588,7 @@ public:
         if (e.offset)
             buf.printf("(& %s+%u)", e.var.toChars(), e.offset);
         else if (e.var.isTypeInfoDeclaration())
-            buf.printf("%s", e.var.toChars());
+            buf.writestring(e.var.toChars());
         else
             buf.printf("& %s", e.var.toChars());
     }
