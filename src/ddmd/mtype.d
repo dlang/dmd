@@ -166,7 +166,7 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
 /*********************************
  * Store modifier name into buf.
  */
-void MODtoBuffer(OutBuffer* buf, MOD mod)
+void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
 {
     switch (mod)
     {
@@ -215,7 +215,7 @@ void MODtoBuffer(OutBuffer* buf, MOD mod)
 /*********************************
  * Return modifier name.
  */
-char* MODtoChars(MOD mod)
+char* MODtoChars(MOD mod) nothrow
 {
     OutBuffer buf;
     buf.reserve(16);
@@ -605,12 +605,12 @@ extern (C++) abstract class Type : RootObject
         this.ty = ty;
     }
 
-    const(char)* kind() const
+    const(char)* kind() const nothrow pure @nogc @safe
     {
         assert(false); // should be overridden
     }
 
-    final Type copy()
+    final Type copy() nothrow
     {
         Type t = cast(Type)mem.xmalloc(sizeTy[ty]);
         memcpy(cast(void*)t, cast(void*)this, sizeTy[ty]);
@@ -1063,7 +1063,7 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Store this type's modifier name into buf.
      */
-    final void modToBuffer(OutBuffer* buf)
+    final void modToBuffer(OutBuffer* buf) nothrow
     {
         if (mod)
         {
@@ -1075,7 +1075,7 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Return this type's modifier name.
      */
-    final char* modToChars()
+    final char* modToChars() nothrow
     {
         OutBuffer buf;
         buf.reserve(16);
@@ -1178,47 +1178,47 @@ extern (C++) abstract class Type : RootObject
             s.checkDeprecated(loc, sc);
     }
 
-    final bool isConst() const
+    final bool isConst() const nothrow pure @nogc @safe
     {
         return (mod & MODconst) != 0;
     }
 
-    final bool isImmutable() const
+    final bool isImmutable() const nothrow pure @nogc @safe
     {
         return (mod & MODimmutable) != 0;
     }
 
-    final bool isMutable() const
+    final bool isMutable() const nothrow pure @nogc @safe
     {
         return (mod & (MODconst | MODimmutable | MODwild)) == 0;
     }
 
-    final bool isShared() const
+    final bool isShared() const nothrow pure @nogc @safe
     {
         return (mod & MODshared) != 0;
     }
 
-    final bool isSharedConst() const
+    final bool isSharedConst() const nothrow pure @nogc @safe
     {
         return (mod & (MODshared | MODconst)) == (MODshared | MODconst);
     }
 
-    final bool isWild() const
+    final bool isWild() const nothrow pure @nogc @safe
     {
         return (mod & MODwild) != 0;
     }
 
-    final bool isWildConst() const
+    final bool isWildConst() const nothrow pure @nogc @safe
     {
         return (mod & MODwildconst) == MODwildconst;
     }
 
-    final bool isSharedWild() const
+    final bool isSharedWild() const nothrow pure @nogc @safe
     {
         return (mod & (MODshared | MODwild)) == (MODshared | MODwild);
     }
 
-    final bool isNaked() const
+    final bool isNaked() const nothrow pure @nogc @safe
     {
         return mod == 0;
     }
@@ -1227,7 +1227,7 @@ extern (C++) abstract class Type : RootObject
      * Return a copy of this type with all attributes null-initialized.
      * Useful for creating a type with different modifiers.
      */
-    final Type nullAttributes()
+    final Type nullAttributes() nothrow
     {
         uint sz = sizeTy[ty];
         Type t = cast(Type)mem.xmalloc(sz);
