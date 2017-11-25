@@ -37,7 +37,7 @@ enum DYNCAST : int
 
 extern (C++) class RootObject
 {
-    this()
+    this() nothrow pure @nogc @safe
     {
     }
 
@@ -61,12 +61,12 @@ extern (C++) class RootObject
         assert(0);
     }
 
-    void toBuffer(OutBuffer* buf)
+    void toBuffer(OutBuffer* buf) nothrow pure @nogc @safe
     {
         assert(0);
     }
 
-    DYNCAST dyncast() const
+    DYNCAST dyncast() const nothrow pure @nogc @safe
     {
         return DYNCAST.object;
     }
