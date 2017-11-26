@@ -87,9 +87,9 @@ void* mem_malloc(size_t);
 
 @property int REGSIZE() { return _tysize[TYnptr]; }
 
-/* If variable var of type typ is a reference
+/* If variable var is a reference
  */
-bool ISREF(Declaration var, Type tb)
+bool ISREF(Declaration var)
 {
     return (config.exe == EX_WIN64 && var.isParameter() &&
             (var.type.size(Loc()) > REGSIZE || var.storage_class & STClazy))
@@ -423,6 +423,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
                 e.EV.E1.Eoper == OPconst &&
                 isXMMstore(cast(uint)el_tolong(e.EV.E1)))
             {
+                //printf("OPvecsto\n");
                 elem *tmp = e.EV.E1;
                 e.EV.E1 = e.EV.E2.EV.E1;
                 e.EV.E2.EV.E1 = tmp;
@@ -1171,7 +1172,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                     if (se.op == TOKvar)
                         e = el_una(OPind, TYnptr, e);
-                    if (ISREF(se.var, tb) && !(ISWIN64REF(se.var) && v && v.offset && !forceStackAccess))
+                    if (ISREF(se.var) && !(ISWIN64REF(se.var) && v && v.offset && !forceStackAccess))
                         e = el_una(OPind, s.Stype.Tty, e);
                     else if (se.op == TOKsymoff && nrvo)
                     {
@@ -1196,7 +1197,7 @@ elem *toElem(Expression e, IRState *irs)
                         e.ET = Type_toCtype(se.type);
                     elem_setLoc(e, se.loc);
                 }
-                if (ISREF(se.var, tb) && !ISWIN64REF(se.var))
+                if (ISREF(se.var) && !ISWIN64REF(se.var))
                 {
                     e.Ety = TYnptr;
                     e = el_una(OPind, s.Stype.Tty, e);
@@ -1225,7 +1226,7 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_var(toImport(se.var));
                 e = el_una(OPind,s.Stype.Tty,e);
             }
-            else if (ISREF(se.var, tb))
+            else if (ISREF(se.var))
             {
                 // Out parameters are really references
                 e = el_var(s);
@@ -1622,7 +1623,7 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     Symbol *csym = toSymbol(cd);
                     ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_NEWCLASS)),el_ptr(csym));
-                    toTraceGC(irs, ex, &ne.loc);
+                    toTraceGC(irs, ex, ne.loc);
                     ectype = null;
 
                     if (cd.isNested())
@@ -1729,7 +1730,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     int rtl = t.isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                     ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
-                    toTraceGC(irs, ex, &ne.loc);
+                    toTraceGC(irs, ex, ne.loc);
 
                     ectype = null;
                 }
@@ -1787,7 +1788,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_param(e, getTypeInfo(ne.type, irs));
                     int rtl = tda.next.isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
-                    toTraceGC(irs, e, &ne.loc);
+                    toTraceGC(irs, e, ne.loc);
                 }
                 else
                 {
@@ -1809,7 +1810,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_param(e, getTypeInfo(ne.type, irs));
                     int rtl = t.isZeroInit() ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
-                    toTraceGC(irs, e, &ne.loc);
+                    toTraceGC(irs, e, ne.loc);
 
                     e = el_combine(earray, e);
                 }
@@ -1826,7 +1827,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 int rtl = tp.next.isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
-                toTraceGC(irs, e, &ne.loc);
+                toTraceGC(irs, e, ne.loc);
 
                 if (ne.arguments && ne.arguments.dim == 1)
                 {
@@ -2246,7 +2247,7 @@ elem *toElem(Expression e, IRState *irs)
                     ep = addressElem(ep, Type.tvoid.arrayOf());
                 ep = el_param(ep, getTypeInfo(ta, irs));
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATNTX)), ep);
-                toTraceGC(irs, e, &ce.loc);
+                toTraceGC(irs, e, ce.loc);
                 e = el_combine(earr, e);
             }
             else
@@ -2255,7 +2256,7 @@ elem *toElem(Expression e, IRState *irs)
                 elem *e2 = eval_Darray(ce.e2);
                 elem *ep = el_params(e2, e1, getTypeInfo(ta, irs), null);
                 e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYCATT)), ep);
-                toTraceGC(irs, e, &ce.loc);
+                toTraceGC(irs, e, ce.loc);
             }
             elem_setLoc(e,ce.loc);
             result = e;
@@ -2617,7 +2618,7 @@ elem *toElem(Expression e, IRState *irs)
                 int r = t1.nextOf().isZeroInit() ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
 
                 e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(r)), ep);
-                toTraceGC(irs, e, &ae.loc);
+                toTraceGC(irs, e, ae.loc);
 
                 elem_setLoc(e, ae.loc);
                 result = e;
@@ -3176,7 +3177,7 @@ elem *toElem(Expression e, IRState *irs)
                             ? RTLSYM_ARRAYAPPENDCD
                             : RTLSYM_ARRAYAPPENDWD;
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
-                    toTraceGC(irs, e, &ce.loc);
+                    toTraceGC(irs, e, ce.loc);
                     elem_setLoc(e, ce.loc);
                     break;
                 }
@@ -3195,7 +3196,7 @@ elem *toElem(Expression e, IRState *irs)
                         e2 = useOPstrpar(e2);
                     elem *ep = el_params(e2, e1, getTypeInfo(ce.e1.type, irs), null);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDT)), ep);
-                    toTraceGC(irs, e, &ce.loc);
+                    toTraceGC(irs, e, ce.loc);
                     break;
                 }
 
@@ -3233,7 +3234,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *ep = el_param(e1, getTypeInfo(ce.e1.type, irs));
                     ep = el_param(el_long(TYsize_t, 1), ep);
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(RTLSYM_ARRAYAPPENDCTX)), ep);
-                    toTraceGC(irs, e, &ce.loc);
+                    toTraceGC(irs, e, ce.loc);
                     Symbol *stmp = symbol_genauto(Type_toCtype(tb1));
                     e = el_bin(OPeq, TYdarray, el_var(stmp), e);
 
@@ -3960,7 +3961,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(0);
             }
             e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtl)), e);
-            toTraceGC(irs, e, &de.loc);
+            toTraceGC(irs, e, de.loc);
             elem_setLoc(e, de.loc);
             result = e;
         }
@@ -5077,7 +5078,7 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_bin(OPcall, TYnptr,
                     el_var(getRtlsym(RTLSYM_ARRAYLITERALTX)),
                     el_param(el_long(TYsize_t, dim), getTypeInfo(ale.type, irs)));
-                toTraceGC(irs, e, &ale.loc);
+                toTraceGC(irs, e, ale.loc);
 
                 Symbol *stmp = symbol_genauto(Type_toCtype(Type.tvoid.pointerTo()));
                 e = el_bin(OPeq, TYnptr, el_var(stmp), e);
@@ -5400,7 +5401,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 // call _d_assocarrayliteralTX(ti, keys, values)
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_ASSOCARRAYLITERALTX)),e);
-                toTraceGC(irs, e, &aale.loc);
+                toTraceGC(irs, e, aale.loc);
                 if (t != ta)
                     e = addressElem(e, ta);
                 elem_setLoc(e, aale.loc);
@@ -5449,10 +5450,10 @@ elem *toElem(Expression e, IRState *irs)
  * tries to use aligned int stores whereever possible.
  * Update *poffset to end of initialized hole; *poffset will be >= offset2.
  */
-elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
+private elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
 {
     elem *e = null;
-    int basealign = 1;
+    bool basealign = true;
 
     while (*poffset < offset2)
     {
@@ -5463,7 +5464,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
             e1 = el_ptr(stmp);
         if (basealign)
             *poffset &= ~3;
-        basealign = 1;
+        basealign = true;
         size_t sz = maxoff - *poffset;
         tym_t ty;
         switch (sz)
@@ -5472,7 +5473,7 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
             case 2: ty = TYshort;       break;
             case 3:
                 ty = TYshort;
-                basealign = 0;
+                basealign = false;
                 break;
             default:
                 ty = TYlong;
@@ -5694,7 +5695,14 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
 }
 
 /********************************************
- * Add destructors
+ * Append destructors for varsInScope[starti..endi] to er.
+ * Params:
+ *      irs = context
+ *      er = elem to append destructors to
+ *      starti = starting index in varsInScope[]
+ *      endi = ending index in varsInScope[]
+ * Returns:
+ *      er with destructors appended
  */
 
 private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
@@ -5709,20 +5717,20 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
      * going out of the scope starti..endi
      */
     elem *edtors = null;
-    for (size_t i = starti; i != endi; ++i)
+    foreach (i; starti .. endi)
     {
         elem *ed = (*irs.varsInScope)[i];
-        if (ed)
+        if (ed)                                 // if not skipped
         {
             //printf("appending dtor\n");
-            (*irs.varsInScope)[i] = null;
+            (*irs.varsInScope)[i] = null;       // so these are skipped by outer scopes
             edtors = el_combine(ed, edtors);    // execute in reverse order
         }
     }
 
     if (edtors)
     {
-        if (global.params.isWindows && !global.params.is64bit)
+        if (global.params.isWindows && !global.params.is64bit) // Win32
         {
             Blockx *blx = irs.blx;
             nteh_declarvars(blx);
@@ -5774,19 +5782,25 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 
 
 /*******************************************
- * Evaluate Expression, then call destructors on any temporaries in it.
+ * Convert Expression to elem, then append destructors for any
+ * temporaries created in elem.
+ * Params:
+ *      e = Expression to convert
+ *      irstate = context
+ * Returns:
+ *      generated elem tree
  */
 
 elem *toElemDtor(Expression e, IRState *irs)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
-    size_t starti = irs.varsInScope ? irs.varsInScope.dim : 0;
-    elem *er = toElem(e, irs);
-    size_t endi = irs.varsInScope ? irs.varsInScope.dim : 0;
+    const starti = irs.varsInScope ? irs.varsInScope.dim : 0;
+    elem* er = toElem(e, irs);
+    const endi = irs.varsInScope ? irs.varsInScope.dim : 0;
 
     // Add destructors
-    er = appendDtors(irs, er, starti, endi);
-    return er;
+    elem* ex = appendDtors(irs, er, starti, endi);
+    return ex;
 }
 
 
@@ -5813,6 +5827,9 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
 
         if (global.params.isWindows)
         {
+            /* This should be in the back end, but mangleToBuffer() is
+             * in the front end.
+             */
             /* The stringTab pools common strings within an object file.
              * Win32 and Win64 use COMDATs to pool common strings across object files.
              */
@@ -5896,7 +5913,7 @@ Symbol *toStringSymbol(StringExp se)
  * for insertion into the parameter list.
  */
 
-elem *filelinefunction(IRState *irs, Loc *loc)
+private elem *filelinefunction(IRState *irs, const ref Loc loc)
 {
     const(char)* id = loc.filename;
     size_t len = strlen(id);
@@ -5925,6 +5942,9 @@ elem *filelinefunction(IRState *irs, Loc *loc)
 
 /******************************************************
  * Construct elem to run when an array bounds check fails.
+ * Params:
+ *      irs = to get function from
+ *      loc = to get file/line from
  * Returns:
  *      elem generated
  */
@@ -5944,11 +5964,11 @@ elem *buildArrayBoundsError(IRState *irs, const ref Loc loc)
  * Replace call to GC allocator with call to tracing GC allocator.
  * Params:
  *      irs = to get function from
- *      e = elem to modify
- *      eloc = to get file/line from
+ *      e = elem to modify in place
+ *      loc = to get file/line from
  */
 
-void toTraceGC(IRState *irs, elem *e, Loc *loc)
+void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
 {
     static immutable int[2][25] map =
     [
