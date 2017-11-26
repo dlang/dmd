@@ -5,12 +5,12 @@
  * Copyright:   Copyright (c) 1999-2017 by Digital Mars, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toir.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_toir.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/toir.d
  */
 
 module ddmd.toir;
-
-// Online documentation: https://dlang.org/phobos/ddmd_toir.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -871,7 +871,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
         e = el_bin(OPcall, TYnptr, el_var(getRtlsym(RTLSYM_ALLOCMEMORY)), e);
-        toTraceGC(irs, e, &fd.loc);
+        toTraceGC(irs, e, fd.loc);
 
         // Assign block of memory to sclosure
         //    sclosure = allocmemory(sz);
@@ -902,7 +902,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
                 if (v.storage_class & STClazy)
                     tym = TYdelegate;
             }
-            else if (ISREF(v, null))
+            else if (ISREF(v))
                 tym = TYnptr;   // reference parameters are just pointers
             else if (v.storage_class & STClazy)
                 tym = TYdelegate;
