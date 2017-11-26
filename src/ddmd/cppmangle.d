@@ -5,6 +5,8 @@
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/cppmangle.d, _cppmangle.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_cppmangle.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/cppmangle.d
  */
 
 module ddmd.cppmangle;
@@ -213,7 +215,7 @@ private final class CppMangleVisitor : Visitor
                         val = -val;
                         buf.writeByte('n');
                     }
-                    buf.printf("%llu", val);
+                    buf.print(val);
                     buf.writeByte('E');
                 }
                 else
@@ -281,15 +283,17 @@ private final class CppMangleVisitor : Visitor
             if (!substitute(ti.tempdecl))
             {
                 append(ti.tempdecl);
-                const name = ti.tempdecl.toAlias().ident.toChars();
-                buf.printf("%d%s", strlen(name), name);
+                const name = ti.tempdecl.toAlias().ident.toString();
+                buf.print(name.length);
+                buf.writestring(name);
             }
             template_args(ti);
         }
         else
         {
-            const name = s.ident.toChars();
-            buf.printf("%d%s", strlen(name), name);
+            const name = s.ident.toString();
+            buf.print(name.length);
+            buf.writestring(name);
         }
     }
 
@@ -868,7 +872,11 @@ public:
             assert(t.basetype && t.basetype.ty == Tsarray);
             assert((cast(TypeSArray)t.basetype).dim);
             version (none)
-                buf.printf("Dv%llu_", (cast(TypeSArray *)t.basetype).dim.toInteger()); // -- Gnu ABI v.4
+            {
+                buf.writestring("Dv");
+                buf.print((cast(TypeSArray *)t.basetype).dim.toInteger()); // -- Gnu ABI v.4
+                buf.writeByte('_');
+            }
             else
                 buf.writestring("U8__vector"); //-- Gnu ABI v.3
             t.basetype.nextOf().accept(this);
@@ -883,7 +891,9 @@ public:
         if (!substitute(t))
             append(t);
         CV_qualifiers(t);
-        buf.printf("A%llu_", t.dim ? t.dim.toInteger() : 0);
+        buf.writeByte('A');
+        buf.print(t.dim ? t.dim.toInteger() : 0);
+        buf.writeByte('_');
         t.next.accept(this);
     }
 
