@@ -712,6 +712,25 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto s = getDsymbolWithoutExpCtx(o);
         if (s)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=12496
+            // Consider:
+            // class T1
+            // {
+            //     class C(uint value) { }
+            // }
+            // __traits(parent, T1.C!2)
+            if (auto ad = s.isAggregateDeclaration())  // `s` is `C`
+            {
+                if (ad.isNested())                     // `C` is nested
+                {
+                    if (auto p = s.toParent())         // `C`'s parent is `C!2`, believe it or not
+                    {
+                        if (p.isTemplateInstance())    // `C!2` is a template instance
+                            s = p;                     // `C!2`'s parent is `T1`
+                    }
+                }
+            }
+
             if (auto fd = s.isFuncDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=8943
                 s = fd.toAliasFunc();
             if (!s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=8922
