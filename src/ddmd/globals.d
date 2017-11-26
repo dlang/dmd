@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/globals.d, _globals.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_globals.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/globals.d
  */
 
 module ddmd.globals;
@@ -390,6 +392,7 @@ struct Loc
     uint linnum;
     uint charnum;
 
+nothrow:
     extern (D) this(const(char)* filename, uint linnum, uint charnum)
     {
         this.linnum = linnum;
@@ -402,13 +405,17 @@ struct Loc
         OutBuffer buf;
         if (filename)
         {
-            buf.printf("%s", filename);
+            buf.writestring(filename);
         }
         if (linnum)
         {
-            buf.printf("(%d", linnum);
+            buf.writeByte('(');
+            buf.print(linnum);
             if (global.params.showColumns && charnum)
-                buf.printf(",%d", charnum);
+            {
+                buf.writeByte(',');
+                buf.print(charnum);
+            }
             buf.writeByte(')');
         }
         return buf.extractString();

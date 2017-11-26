@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/cond.d, _cond.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_cond.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/cond.d
  */
 
 module ddmd.cond;
@@ -933,7 +935,8 @@ private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[
     escapePath(ob, imod.srcfile.toChars());
     ob.writestring(") : ");
     if (condition.ident)
-        ob.printf("%s\n", condition.ident.toChars());
+        ob.writestring(condition.ident.toString());
     else
-        ob.printf("%d\n", condition.level);
+        ob.print(condition.level);
+    ob.writeByte('\n');
 }
