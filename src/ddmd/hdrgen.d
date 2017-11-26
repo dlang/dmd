@@ -2019,14 +2019,18 @@ public:
 
     override void visit(StaticDtorDeclaration d)
     {
-        if (hgs.hdrgen)
-            return;
         if (stcToBuffer(buf, d.storage_class & ~STCstatic))
             buf.writeByte(' ');
         if (d.isSharedStaticDtorDeclaration())
             buf.writestring("shared ");
         buf.writestring("static ~this()");
-        bodyToBuffer(d);
+        if (hgs.hdrgen && !hgs.tpltMember)
+        {
+            buf.writeByte(';');
+            buf.writenl();
+        }
+        else
+            bodyToBuffer(d);
     }
 
     override void visit(InvariantDeclaration d)
