@@ -260,7 +260,7 @@ public:
             if (p.type)
                 typeToBuffer(p.type, p.ident);
             else
-                buf.writestring(p.ident.toChars());
+                buf.writestring(p.ident.toString());
         }
         buf.writestring("; ");
         s.aggr.accept(this);
@@ -288,7 +288,7 @@ public:
         if (s.prm.type)
             typeToBuffer(s.prm.type, s.prm.ident);
         else
-            buf.writestring(s.prm.ident.toChars());
+            buf.writestring(s.prm.ident.toString());
         buf.writestring("; ");
         s.lwr.accept(this);
         buf.writestring(" .. ");
@@ -337,7 +337,7 @@ public:
             if (p.type)
                 typeToBuffer(p.type, p.ident);
             else
-                buf.writestring(p.ident.toChars());
+                buf.writestring(p.ident.toString());
             buf.writestring(" = ");
         }
         s.condition.accept(this);
@@ -406,7 +406,7 @@ public:
     override void visit(PragmaStatement s)
     {
         buf.writestring("pragma (");
-        buf.writestring(s.ident.toChars());
+        buf.writestring(s.ident.toString());
         if (s.args && s.args.dim)
         {
             buf.writestring(", ");
@@ -527,7 +527,7 @@ public:
         if (s.ident)
         {
             buf.writeByte(' ');
-            buf.writestring(s.ident.toChars());
+            buf.writestring(s.ident.toString());
         }
         buf.writeByte(';');
         buf.writenl();
@@ -539,7 +539,7 @@ public:
         if (s.ident)
         {
             buf.writeByte(' ');
-            buf.writestring(s.ident.toChars());
+            buf.writestring(s.ident.toString());
         }
         buf.writeByte(';');
         buf.writenl();
@@ -645,14 +645,14 @@ public:
     override void visit(GotoStatement s)
     {
         buf.writestring("goto ");
-        buf.writestring(s.ident.toChars());
+        buf.writestring(s.ident.toString());
         buf.writeByte(';');
         buf.writenl();
     }
 
     override void visit(LabelStatement s)
     {
-        buf.writestring(s.ident.toChars());
+        buf.writestring(s.ident.toString());
         buf.writeByte(':');
         buf.writenl();
         if (s.statement)
@@ -728,7 +728,7 @@ public:
         if (ident)
         {
             buf.writeByte(' ');
-            buf.writestring(ident.toChars());
+            buf.writestring(ident.toString());
         }
     }
 
@@ -1003,7 +1003,7 @@ public:
 
     override void visit(TypeIdentifier t)
     {
-        buf.writestring(t.ident.toChars());
+        buf.writestring(t.ident.toString());
         visitTypeQualifiedHelper(t);
     }
 
@@ -1100,9 +1100,9 @@ public:
     {
         buf.writestring("debug = ");
         if (s.ident)
-            buf.writestring(s.ident.toChars());
+            buf.writestring(s.ident.toString());
         else
-            buf.printf("%u", s.level);
+            buf.print(s.level);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -1111,9 +1111,9 @@ public:
     {
         buf.writestring("version = ");
         if (s.ident)
-            buf.writestring(s.ident.toChars());
+            buf.writestring(s.ident.toString());
         else
-            buf.printf("%u", s.level);
+            buf.print(s.level);
         buf.writeByte(';');
         buf.writenl();
     }
@@ -1123,7 +1123,7 @@ public:
         if (em.type)
             typeToBuffer(em.type, em.ident);
         else
-            buf.writestring(em.ident.toChars());
+            buf.writestring(em.ident.toString());
         if (em.value)
         {
             buf.writestring(" = ");
@@ -1171,7 +1171,7 @@ public:
     override void visit(AliasThis d)
     {
         buf.writestring("alias ");
-        buf.writestring(d.ident.toChars());
+        buf.writestring(d.ident.toString());
         buf.writestring(" this;\n");
     }
 
@@ -1311,7 +1311,8 @@ public:
 
     override void visit(PragmaDeclaration d)
     {
-        buf.printf("pragma (%s", d.ident.toChars());
+        buf.writestring("pragma (");
+        buf.writestring(d.ident.toString());
         if (d.args && d.args.dim)
         {
             buf.writestring(", ");
@@ -1409,7 +1410,7 @@ public:
         else
             buf.writestring("template");
         buf.writeByte(' ');
-        buf.writestring(d.ident.toChars());
+        buf.writestring(d.ident.toString());
         buf.writeByte('(');
         visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
         buf.writeByte(')');
@@ -1453,7 +1454,7 @@ public:
         {
             buf.writestring(ad.kind());
             buf.writeByte(' ');
-            buf.writestring(ad.ident.toChars());
+            buf.writestring(ad.ident.toString());
             buf.writeByte('(');
             visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
             buf.writeByte(')');
@@ -1486,7 +1487,7 @@ public:
             if (vd.type)
                 typeToBuffer(vd.type, vd.ident);
             else
-                buf.writestring(vd.ident.toChars());
+                buf.writestring(vd.ident.toString());
             buf.writeByte('(');
             visitTemplateParameters(hgs.ddoc ? d.origParameters : d.parameters);
             buf.writeByte(')');
@@ -1547,7 +1548,7 @@ public:
         if (tm.ident && memcmp(tm.ident.toChars(), cast(const(char)*)"__mixin", 7) != 0)
         {
             buf.writeByte(' ');
-            buf.writestring(tm.ident.toChars());
+            buf.writestring(tm.ident.toString());
         }
         buf.writeByte(';');
         buf.writenl();
@@ -1683,7 +1684,7 @@ public:
         buf.writestring("enum ");
         if (d.ident)
         {
-            buf.writestring(d.ident.toChars());
+            buf.writestring(d.ident.toString());
             buf.writeByte(' ');
         }
         if (d.memtype)
@@ -1717,7 +1718,7 @@ public:
     override void visit(Nspace d)
     {
         buf.writestring("extern (C++, ");
-        buf.writestring(d.ident.toChars());
+        buf.writestring(d.ident.toString());
         buf.writeByte(')');
         buf.writenl();
         buf.writeByte('{');
@@ -1732,7 +1733,8 @@ public:
 
     override void visit(StructDeclaration d)
     {
-        buf.printf("%s ", d.kind());
+        buf.writestring(d.kind());
+        buf.writeByte(' ');
         if (!d.isAnonymous())
             buf.writestring(d.toChars());
         if (!d.members)
@@ -1758,7 +1760,7 @@ public:
         {
             buf.writestring(d.kind());
             buf.writeByte(' ');
-            buf.writestring(d.ident.toChars());
+            buf.writestring(d.ident.toString());
         }
         visitBaseClasses(d);
         if (d.members)
@@ -1797,7 +1799,7 @@ public:
         buf.writestring("alias ");
         if (d.aliassym)
         {
-            buf.writestring(d.ident.toChars());
+            buf.writestring(d.ident.toString());
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
@@ -1812,7 +1814,7 @@ public:
         else
         {
             declstring = (d.ident == Id.string || d.ident == Id.wstring || d.ident == Id.dstring);
-            buf.writestring(d.ident.toChars());
+            buf.writestring(d.ident.toString());
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
@@ -1837,7 +1839,7 @@ public:
         if (anywritten)
         {
             buf.writestring(", ");
-            buf.writestring(v.ident.toChars());
+            buf.writestring(v.ident.toString());
         }
         else
         {
@@ -1846,7 +1848,7 @@ public:
             if (v.type)
                 typeToBuffer(v.type, v.ident);
             else
-                buf.writestring(v.ident.toChars());
+                buf.writestring(v.ident.toString());
         }
         if (v._init)
         {
@@ -2144,7 +2146,9 @@ public:
             //      [0..dim: basis, 1: e1, 5: e5]
             if (basis)
             {
-                buf.printf("0..%llu: ", cast(ulong)expressions.dim);
+                buf.writestring("0..");
+                buf.print(expressions.dim);
+                buf.writestring(": ");
                 expToBuffer(basis, PREC.assign);
             }
             foreach (i, el; *expressions)
@@ -2152,7 +2156,11 @@ public:
                 if (el)
                 {
                     if (basis)
-                        buf.printf(", %llu: ", cast(ulong)i);
+                    {
+                        buf.writestring(", ");
+                        buf.print(i);
+                        buf.writestring(": ");
+                    }
                     else if (i)
                         buf.writestring(", ");
                     expToBuffer(el, PREC.assign);
@@ -2179,7 +2187,7 @@ public:
                     assert(0);
                 if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFUL)
                 {
-                    buf.printf("%llu", uval);
+                    buf.print(uval);
                     return;
                 }
             }
@@ -2332,7 +2340,7 @@ public:
         else if (v & 0x8000000000000000L)
             buf.printf("0x%llx", v);
         else
-            buf.printf("%lld", v);
+            buf.print(v);
     }
 
     override void visit(ErrorExp e)
@@ -2402,7 +2410,7 @@ public:
         if (hgs.hdrgen || hgs.ddoc)
             buf.writestring(e.ident.toHChars2());
         else
-            buf.writestring(e.ident.toChars());
+            buf.writestring(e.ident.toString());
     }
 
     override void visit(DsymbolExp e)
@@ -2600,7 +2608,7 @@ public:
 
     override void visit(OverExp e)
     {
-        buf.writestring(e.vars.ident.toChars());
+        buf.writestring(e.vars.ident.toString());
     }
 
     override void visit(TupleExp e)
@@ -2658,7 +2666,7 @@ public:
     override void visit(TraitsExp e)
     {
         buf.writestring("__traits(");
-        buf.writestring(e.ident.toChars());
+        buf.writestring(e.ident.toString());
         if (e.args)
         {
             foreach (arg; *e.args)
@@ -2744,7 +2752,7 @@ public:
     {
         expToBuffer(e.e1, PREC.primary);
         buf.writeByte('.');
-        buf.writestring(e.ident.toChars());
+        buf.writestring(e.ident.toString());
     }
 
     override void visit(DotTemplateExp e)
@@ -2946,7 +2954,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(TemplateTypeParameter tp)
     {
-        buf.writestring(tp.ident.toChars());
+        buf.writestring(tp.ident.toString());
         if (tp.specType)
         {
             buf.writestring(" : ");
@@ -2971,7 +2979,7 @@ public:
         if (tp.specType)
             typeToBuffer(tp.specType, tp.ident);
         else
-            buf.writestring(tp.ident.toChars());
+            buf.writestring(tp.ident.toString());
         if (tp.specAlias)
         {
             buf.writestring(" : ");
@@ -3001,25 +3009,29 @@ public:
 
     override void visit(TemplateTupleParameter tp)
     {
-        buf.writestring(tp.ident.toChars());
+        buf.writestring(tp.ident.toString());
         buf.writestring("...");
     }
 
     ////////////////////////////////////////////////////////////////////////////
     override void visit(DebugCondition c)
     {
+        buf.writestring("debug (");
         if (c.ident)
-            buf.printf("debug (%s)", c.ident.toChars());
+            buf.writestring(c.ident.toString());
         else
-            buf.printf("debug (%u)", c.level);
+            buf.print(c.level);
+        buf.writeByte(')');
     }
 
     override void visit(VersionCondition c)
     {
+        buf.writestring("version (");
         if (c.ident)
-            buf.printf("version (%s)", c.ident.toChars());
+            buf.writestring(c.ident.toString());
         else
-            buf.printf("version (%u)", c.level);
+            buf.print(c.level);
+        buf.writeByte(')');
     }
 
     override void visit(StaticIfCondition c)
@@ -3054,14 +3066,14 @@ public:
         if (p.storageClass & STCalias)
         {
             if (p.ident)
-                buf.writestring(p.ident.toChars());
+                buf.writestring(p.ident.toString());
         }
         else if (p.type.ty == Tident &&
                  (cast(TypeIdentifier)p.type).ident.toString().length > 3 &&
                  strncmp((cast(TypeIdentifier)p.type).ident.toChars(), "__T", 3) == 0)
         {
             // print parameter name, instead of undetermined type parameter
-            buf.writestring(p.ident.toChars());
+            buf.writestring(p.ident.toString());
         }
         else
             typeToBuffer(p.type, p.ident);
