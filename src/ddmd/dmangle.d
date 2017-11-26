@@ -5,11 +5,11 @@
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dmangle.d, _dmangle.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_dmangle.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/dmangle.d
  */
 
 module ddmd.dmangle;
-
-// Online documentation: https://dlang.org/phobos/ddmd_dmangle.html
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -311,7 +311,7 @@ public:
     {
         visit(cast(Type)t);
         if (t.dim)
-            buf.printf("%u", cast(uint)t.dim.toInteger());
+            buf.print(t.dim.toInteger());
         if (t.next)
             visitWithMask(t.next, t.mod);
     }
@@ -416,7 +416,8 @@ public:
         visit(cast(Type)t);
         const(char)* name = t.ident.toChars();
         size_t len = strlen(name);
-        buf.printf("%u%s", cast(uint)len, name);
+        buf.print(len);
+        buf.writestring(name);
     }
 
     override void visit(TypeEnum t)
@@ -529,7 +530,7 @@ public:
             s.error("excessive length %llu for symbol, possible recursive expansion?", buf.offset + len);
         else
         {
-            buf.printf("%u", cast(uint)len);
+            buf.print(len);
             buf.write(id, len);
         }
     }
@@ -865,9 +866,15 @@ public:
     override void visit(IntegerExp e)
     {
         if (cast(sinteger_t)e.value < 0)
-            buf.printf("N%lld", -e.value);
+        {
+            buf.writeByte('N');
+            buf.print(-e.value);
+        }
         else
-            buf.printf("i%lld", e.value);
+        {
+            buf.writeByte('i');
+            buf.print(e.value);
+        }
     }
 
     override void visit(RealExp e)
@@ -978,7 +985,8 @@ public:
         }
         buf.reserve(1 + 11 + 2 * q.length);
         buf.writeByte(m);
-        buf.printf("%d_", cast(int)q.length); // nbytes <= 11
+        buf.print(q.length);
+        buf.writeByte('_');    // nbytes <= 11
         size_t qi = 0;
         for (char* p = cast(char*)buf.data + buf.offset, pend = p + 2 * q.length; p < pend; p += 2, ++qi)
         {
@@ -993,7 +1001,8 @@ public:
     override void visit(ArrayLiteralExp e)
     {
         size_t dim = e.elements ? e.elements.dim : 0;
-        buf.printf("A%u", cast(uint)dim);
+        buf.writeByte('A');
+        buf.print(dim);
         for (size_t i = 0; i < dim; i++)
         {
             e.getElement(i).accept(this);
@@ -1003,7 +1012,8 @@ public:
     override void visit(AssocArrayLiteralExp e)
     {
         size_t dim = e.keys.dim;
-        buf.printf("A%u", cast(uint)dim);
+        buf.writeByte('A');
+        buf.print(dim);
         for (size_t i = 0; i < dim; i++)
         {
             (*e.keys)[i].accept(this);
@@ -1014,7 +1024,8 @@ public:
     override void visit(StructLiteralExp e)
     {
         size_t dim = e.elements ? e.elements.dim : 0;
-        buf.printf("S%u", cast(uint)dim);
+        buf.writeByte('S');
+        buf.print(dim);
         for (size_t i = 0; i < dim; i++)
         {
             Expression ex = (*e.elements)[i];

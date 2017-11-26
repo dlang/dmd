@@ -342,6 +342,18 @@ struct OutBuffer
         va_end(ap);
     }
 
+    /**************************************
+     * Convert `u` to a string and append it to the buffer.
+     * Params:
+     *  u = integral value to append
+     */
+    extern (C++) void print(ulong u) nothrow
+    {
+        //import core.internal.string;  // not available
+        UnsignedStringBuf buf = void;
+        writestring(unsignedToTempString(u, buf));
+    }
+
     extern (C++) void bracket(char left, char right) nothrow
     {
         reserve(2);
@@ -417,3 +429,34 @@ struct OutBuffer
         return extractData();
     }
 }
+
+/****** copied from core.internal.string *************/
+
+private:
+pure:
+nothrow:
+@nogc:
+
+alias UnsignedStringBuf = char[20];
+
+char[] unsignedToTempString(ulong value, char[] buf, uint radix = 10) @safe
+{
+    size_t i = buf.length;
+    do
+    {
+        if (value < radix)
+        {
+            ubyte x = cast(ubyte)value;
+            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
+            break;
+        }
+        else
+        {
+            ubyte x = cast(ubyte)(value % radix);
+            value = value / radix;
+            buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
+        }
+    } while (value);
+    return buf[i .. $];
+}
+
