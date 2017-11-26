@@ -69,17 +69,17 @@ alias toSymbol = ddmd.tocsym.toSymbol;
 alias toSymbol = ddmd.glue.toSymbol;
 
 
-void elem_setLoc(elem *e, Loc loc)
+void elem_setLoc(elem *e, const ref Loc loc) pure nothrow
 {
-    srcpos_setLoc(&e.Esrcpos, loc);
+    srcpos_setLoc(e.Esrcpos, loc);
 }
 
-void block_setLoc(block *b, Loc loc)
+private void block_setLoc(block *b, const ref Loc loc) pure nothrow
 {
-    srcpos_setLoc(&b.Bsrcpos, loc);
+    srcpos_setLoc(b.Bsrcpos, loc);
 }
 
-void srcpos_setLoc(Srcpos *s, Loc loc)
+private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) pure nothrow
 {
     s.Sfilename = cast(char *)loc.filename;
     s.Slinnum = loc.linnum;
@@ -91,7 +91,7 @@ void srcpos_setLoc(Srcpos *s, Loc loc)
  * Generate code to set index into scope table.
  */
 
-void setScopeIndex(Blockx *blx, block *b, int scope_index)
+private void setScopeIndex(Blockx *blx, block *b, int scope_index)
 {
     if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
@@ -101,7 +101,7 @@ void setScopeIndex(Blockx *blx, block *b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-block *block_calloc(Blockx *blx)
+private block *block_calloc(Blockx *blx)
 {
     block *b = ddmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;
@@ -112,7 +112,7 @@ block *block_calloc(Blockx *blx)
  * Get or create a label declaration.
  */
 
-Label *getLabel(IRState *irs, Blockx *blx, Statement s)
+private Label *getLabel(IRState *irs, Blockx *blx, Statement s)
 {
     Label **slot = irs.lookupLabel(s);
 
@@ -131,7 +131,7 @@ Label *getLabel(IRState *irs, Blockx *blx, Statement s)
  * Convert label to block.
  */
 
-block *labelToBlock(IRState *irs, Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
+private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelDsymbol label, int flag = 0)
 {
     if (!label.statement)
     {
@@ -152,7 +152,7 @@ block *labelToBlock(IRState *irs, Loc loc, Blockx *blx, LabelDsymbol label, int 
  * Add in code to increment usage count for linnum.
  */
 
-void incUsage(IRState *irs, Loc loc)
+private void incUsage(IRState *irs, const ref Loc loc)
 {
 
     if (global.params.cov && loc.linnum)
@@ -161,7 +161,6 @@ void incUsage(IRState *irs, Loc loc)
     }
 }
 
-void Statement_toIR(Statement s, IRState *irs);
 
 private extern (C++) class S2irVisitor : Visitor
 {
