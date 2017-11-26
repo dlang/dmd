@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/identifier.d, _identifier.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_identifier.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/identifier.d
  */
 
 module ddmd.identifier;
-
-// Online documentation: https://dlang.org/phobos/ddmd_identifier.html
 
 import core.stdc.ctype;
 import core.stdc.stdio;
@@ -34,7 +34,7 @@ private:
 
 public:
 
-    extern (D) this(const(char)* string, size_t length, int value)
+    extern (D) this(const(char)* string, size_t length, int value) nothrow
     {
         //printf("Identifier('%s', %d)\n", string, value);
         this.string = string;
@@ -42,13 +42,13 @@ public:
         this.len = length;
     }
 
-    extern (D) this(const(char)* string)
+    extern (D) this(const(char)* string) nothrow
     {
         //printf("Identifier('%s', %d)\n", string, value);
         this(string, strlen(string), TOKidentifier);
     }
 
-    static Identifier create(const(char)* string)
+    static Identifier create(const(char)* string) nothrow
     {
         return new Identifier(string);
     }
@@ -63,22 +63,23 @@ public:
         return strncmp(string, o.toChars(), len + 1);
     }
 
+nothrow:
     override void print() const
     {
         fprintf(stderr, "%s", string);
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars() const pure
     {
         return string;
     }
 
-    extern (D) final const(char)[] toString() const
+    extern (D) final const(char)[] toString() const pure
     {
         return string[0 .. len];
     }
 
-    final int getValue() const
+    final int getValue() const pure
     {
         return value;
     }
@@ -133,7 +134,7 @@ public:
     {
         OutBuffer buf;
         buf.writestring(prefix);
-        buf.printf("%llu", cast(ulong)i);
+        buf.print(i);
         return idPool(buf.peekSlice());
     }
 
