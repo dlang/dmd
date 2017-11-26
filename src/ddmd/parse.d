@@ -4674,7 +4674,7 @@ final class Parser(AST) : Lexer
         {
         case TOKlcurly:
             if (f.frequire || f.fensure)
-                error("missing `body { ... }` after `in` or `out`");
+                error("missing `do { ... }` after `in` or `out`");
             f.fbody = parseStatement(PSsemi);
             f.endloc = endloc;
             break;

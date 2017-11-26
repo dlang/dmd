@@ -1925,7 +1925,7 @@ public:
         }
         if (f.frequire || f.fensure)
         {
-            buf.writestring("body");
+            buf.writestring("do");
             buf.writenl();
         }
         buf.writeByte('{');
