@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/statementsem.d, _statementsem.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_statementsem.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/statementsem.d
  */
 
 module ddmd.statementsem;
@@ -68,12 +70,13 @@ import ddmd.visitor;
 private Identifier fixupLabelName(Scope* sc, Identifier ident)
 {
     uint flags = (sc.flags & SCOPEcontract);
-    const id = ident.toChars();
-    if (flags && flags != SCOPEinvariant && !(id[0] == '_' && id[1] == '_'))
+    const id = ident.toString();
+    if (flags && flags != SCOPEinvariant &&
+        !(id.length >= 2 && id[0] == '_' && id[1] == '_'))  // does not start with "__"
     {
-        const(char)* prefix = flags == SCOPErequire ? "__in_" : "__out_";
         OutBuffer buf;
-        buf.printf("%s%s", prefix, ident.toChars());
+        buf.writestring(flags == SCOPErequire ? "__in_" : "__out_");
+        buf.writestring(ident.toString());
 
         ident = Identifier.idPool(buf.peekSlice());
     }

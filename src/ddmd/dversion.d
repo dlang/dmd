@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/dversion.d, _dversion.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_dversion.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/dversion.d
  */
 
 module ddmd.dversion;
@@ -52,14 +54,14 @@ extern (C++) final class DebugSymbol : Dsymbol
         return ds;
     }
 
-    override const(char)* toChars() const
+    override const(char)* toChars() const nothrow
     {
         if (ident)
             return ident.toChars();
         else
         {
             OutBuffer buf;
-            buf.printf("%d", level);
+            buf.print(level);
             return buf.extractString();
         }
     }
@@ -101,7 +103,7 @@ extern (C++) final class DebugSymbol : Dsymbol
         }
     }
 
-    override const(char)* kind() const
+    override const(char)* kind() const nothrow
     {
         return "debug";
     }
@@ -141,14 +143,14 @@ extern (C++) final class VersionSymbol : Dsymbol
         return ds;
     }
 
-    override const(char)* toChars()
+    override const(char)* toChars() nothrow
     {
         if (ident)
             return ident.toChars();
         else
         {
             OutBuffer buf;
-            buf.printf("%d", level);
+            buf.print(level);
             return buf.extractString();
         }
     }
@@ -191,7 +193,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         }
     }
 
-    override const(char)* kind() const
+    override const(char)* kind() const nothrow
     {
         return "version";
     }
