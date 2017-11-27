@@ -247,6 +247,18 @@ struct ClassFlags
     };
 };
 
+enum ClassKind
+{
+    /// the class is a d(efault) class
+    d,
+    /// the class is a C++ interface
+    cpp,
+    /// the class is an Objective-C class/interface
+    objc,
+    /// the class is anonymous
+    anonymous,
+};
+
 class ClassDeclaration : public AggregateDeclaration
 {
 public:
@@ -273,11 +285,10 @@ public:
 
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
-    bool cpp;                           // true if this is a C++ interface
-    bool isobjc;                        // true if this is an Objective-C class/interface
-    bool isscope;                       // true if this is a scope class
+    bool stack;                       // true if this is a scope class
+    ClassKind classKind;               // specifies the linkage type
+
     Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
-    int inuse;                          // to prevent recursive attempts
     Baseok baseok;                      // set the progress of base classes resolving
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
