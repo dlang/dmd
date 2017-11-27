@@ -106,6 +106,8 @@ export OBJ=.obj
 export DSEP=\\
 export SEP=$(subst /,\,/)
 
+PIC?=0
+
 DRUNTIME_PATH=..\..\druntime
 PHOBOS_PATH=..\..\phobos
 export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
@@ -137,6 +139,21 @@ DMD_MODEL=64
 endif
 export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
 
+# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+# Note that shared libraries and C files are always compiled with PIC.
+ifeq ($(PIC),)
+    ifeq ($(MODEL),64) # x86_64
+        PIC:=1
+    else
+        PIC:=0
+    endif
+endif
+ifeq ($(PIC),1)
+    export PIC_FLAG:=-fPIC
+else
+    export PIC_FLAG:=
+endif
+
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
 # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
@@ -153,6 +170,8 @@ ifeq ($(MODEL),64)
 export D_OBJC=1
 endif
 endif
+
+DEBUG_FLAGS=$(PIC_FLAG) -g
 
 export DMD_TEST_COVERAGE=
 
@@ -224,7 +243,9 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(
 
 $(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
-	@echo "OS: $(OS)"
-	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -unittest -run d_do_test.d -unittest
-	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
+	@echo "OS: '$(OS)'"
+	@echo "MODEL: '$(MODEL)'"
+	@echo "PIC: '$(PIC_FLAG)'"
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -unittest -run d_do_test.d -unittest
+	$(DMD) -conf= $(MODEL_FLAG) $(DEBUG_FLAGS) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
 
