@@ -84,6 +84,21 @@ endif
 
 include ../src/osmodel.mak
 
+# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+# Note that shared libraries and C files are always compiled with PIC.
+ifeq ($(PIC),)
+    ifeq ($(MODEL),64) # x86_64
+        PIC:=1
+    else
+        PIC:=0
+    endif
+endif
+ifeq ($(PIC),1)
+    export PIC_FLAG:=-fPIC
+else
+    export PIC_FLAG:=
+endif
+
 export OS
 
 ifeq (freebsd,$(OS))
@@ -96,7 +111,7 @@ endif
 QUIET=@
 export RESULTS_DIR=test_results
 export MODEL
-export REQUIRED_ARGS=
+export REQUIRED_ARGS+= $(PIC_FLAG)
 
 ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O
@@ -205,7 +220,9 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(
 
 $(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
-	@echo "OS: $(OS)"
-	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -unittest -run d_do_test.d -unittest
-	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
+	@echo "OS: '$(OS)'"
+	@echo "MODEL: '$(MODEL)'"
+	@echo "PIC: '$(PIC_FLAG)'"
+	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -unittest -run d_do_test.d -unittest
+	$(DMD) -conf= $(MODEL_FLAG) $(PIC_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
 
