@@ -1,0 +1,40 @@
+`opDispatch` resolution in `with` statements
+
+`opDispatch` resolution in `with` statements has been modified to bring it into compliance with the existing scope resolution rules in the language specification.  See $(LINK2 $(ROOT_DIR)spec/statement.html#with-statement, WithStatement) in the language specification; specifically 11.19.6.
+
+Prior to this release, the following code would not compile because the compiler would not be able to resolve the second call to `f()`, as `Bar` does not implement `f()` or `opDispatch`.
+-------
+import std.stdio;
+
+struct Foo
+{
+    void opDispatch(string name)()
+    {
+        mixin("writeln(\"Foo.opDispatch!" ~ name ~ "\");");
+    }
+}
+
+struct Bar
+{
+    // `Bar` does not implement `f()` or `opDispatch`
+}
+
+void main()
+{
+    Foo foo;
+    Bar bar;
+
+    with(foo)
+    {
+        f();       // prints "Foo.opDispatch!f"
+        with(bar)
+        {
+            f();   // Prior to this Release: Error: undefined identifer `f`
+                   // Starting with  this release: Prints "Foo.opDispatch!f".
+                   // `f`'s resolution is forwarded up the scope hierarchy.
+        }
+    }
+}
+-------
+
+Starting with this release, the second call to `f()` will be forwarded up the scope hierarchy, matching the implementation of `Foo.opDispatch`.
