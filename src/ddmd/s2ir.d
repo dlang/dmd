@@ -688,21 +688,15 @@ private extern (C++) class S2irVisitor : Visitor
 
     override void visit(SwitchErrorStatement s)
     {
+        // SwitchErrors are lowered to a CallExpression to object.__switch_error() in druntime
+        // We still need the call wrapped in SwitchErrorStatement to pass compiler error checks.
+        assert(s.exp !is null, "SwitchErrorStatement needs to have a valid Expression.");
+
         Blockx *blx = irs.blx;
 
-        //printf("SwitchErrorStatement.toIR()\n");
-        elem *e;
-        if (global.params.checkAction == CHECKACTION.C)
-        {
-            e = callCAssert(irs, s.loc, null, null, "no switch default");
-        }
-        else
-        {
-            auto efilename = el_ptr(toSymbol(cast(Dsymbol)blx._module));
-            auto elinnum = el_long(TYint, s.loc.linnum);
-            e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DSWITCHERR)), el_param(elinnum, efilename));
-        }
-        block_appendexp(blx.curblock, e);
+        //printf("SwitchErrorStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
+        incUsage(irs, s.loc);
+        block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
     }
 
     /**************************************
@@ -827,7 +821,7 @@ private extern (C++) class S2irVisitor : Visitor
         //printf("ExpStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
         incUsage(irs, s.loc);
         if (s.exp)
-            block_appendexp(blx.curblock,toElemDtor(s.exp, irs));
+            block_appendexp(blx.curblock, toElemDtor(s.exp, irs));
     }
 
     /**************************************
