@@ -14,10 +14,10 @@ fi
 libname=${dir}${SEP}link846${LIBEXT}
 
 # build library with -release
-$DMD -m${MODEL} -I${src} -of${libname} -release -boundscheck=off -lib ${src}${SEP}lib846.d
+$DMD -m${MODEL} ${PIC_FLAG} -I${src} -of${libname} -release -boundscheck=off -lib ${src}${SEP}lib846.d
 
 # use lib with -debug
-$DMD -m${MODEL} -I${src} -of${dir}${SEP}link846${EXE} -debug ${src}${SEP}main846.d ${libname}
+$DMD -m${MODEL} ${PIC_FLAG} -I${src} -of${dir}${SEP}link846${EXE} -debug ${src}${SEP}main846.d ${libname}
 
 rm ${libname}
 rm ${dir}/{link846${OBJ},link846${EXE}}

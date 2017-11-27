@@ -11,9 +11,9 @@ else
 fi
 libname=${dir}${SEP}libX${LIBEXT}
 
-$DMD -m${MODEL} -I${src} -of${libname} -lib ${src}${SEP}linkdebug_uni.d ${src}${SEP}linkdebug_range.d ${src}${SEP}linkdebug_primitives.d || exit 1
+$DMD -m${MODEL} ${PIC_FLAG} -I${src} -of${libname} -lib ${src}${SEP}linkdebug_uni.d ${src}${SEP}linkdebug_range.d ${src}${SEP}linkdebug_primitives.d || exit 1
 
-$DMD -m${MODEL} -I${src} -of${dir}${SEP}linkdebug${EXE} -g -debug ${src}${SEP}linkdebug.d ${libname} || exit 1
+$DMD -m${MODEL} ${PIC_FLAG} -I${src} -of${dir}${SEP}linkdebug${EXE} -g -debug ${src}${SEP}linkdebug.d ${libname} || exit 1
 
 rm ${libname}
 rm ${dir}/{linkdebug${OBJ},linkdebug${EXE}}

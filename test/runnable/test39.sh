@@ -6,14 +6,14 @@ output_file=${dir}/test39.sh.out
 
 rm -f ${output_file}
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${output_file}
+$DMD -m${MODEL} ${PIC_FLAG} -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
     exit 1
 fi
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${output_file}
+$DMD -m${MODEL} ${PIC_FLAG} -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
@@ -21,7 +21,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ ${OS} == "win32" -o ${OS} == "win64" ]; then
-    $DMD -m${MODEL} -lib -of${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
+    $DMD -m${MODEL} ${PIC_FLAG} -lib -of${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
     LIBEXT=.lib
 else
     ar -r ${dir}/test39a.a ${dir}/test39a.o >> ${output_file} 2>&1
@@ -33,7 +33,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-$DMD -m${MODEL} -of${dmddir}${SEP}test39${EXE} ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${output_file}
+$DMD -m${MODEL} ${PIC_FLAG} -of${dmddir}${SEP}test39${EXE} ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}
