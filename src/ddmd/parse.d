@@ -4495,7 +4495,7 @@ final class Parser(AST) : Lexer
                 else
                 {
                     if (global.params.requireinit)
-                        error("`%s` was not iniitialized", ident.toChars());
+                        error("`%s` was not initialized", ident.toChars());
                 }
 
 

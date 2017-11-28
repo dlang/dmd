@@ -143,7 +143,6 @@ Where:
   --help           print help and exit
   -I=<directory>   look for imports also in directory
   -ignore          ignore unsupported pragmas
-  -requireinit     emit error for any uninitialized variables
   -inline          do function inlining
   -J=<directory>   look for string imports also in directory
   -L=<linkerflag>  pass linkerflag to link
@@ -167,6 +166,7 @@ Where:
   -profile         profile runtime performance of generated code
   -profile=gc      profile runtime allocations
   -release         compile release version
+  -requireinit     emit error for any uninitialized variables
   -shared          generate shared library (DLL)
   -transition=<id> help with language change identified by 'id'
   -transition=?    list all language changes
