@@ -143,6 +143,7 @@ Where:
   --help           print help and exit
   -I=<directory>   look for imports also in directory
   -ignore          ignore unsupported pragmas
+  -requireinit     emit error for any uninitialized variables
   -inline          do function inlining
   -J=<directory>   look for string imports also in directory
   -L=<linkerflag>  pass linkerflag to link
@@ -2159,6 +2160,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lnoarg;
                 }
             }
+            else if (strcmp(p + 1, "requireinit") == 0) // https://dlang.org/dmd-windows.html#switch-requireinit
+                params.requireinit = true;
             else if (p[1] == '\0')
                 files.push("__stdin.d");
             else

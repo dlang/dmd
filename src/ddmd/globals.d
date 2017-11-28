@@ -142,6 +142,8 @@ struct Param
      * before becoming default.
      */
 
+    bool requireinit;      // emit error for any uninitialized variables
+
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual
     bool usage;             // print usage and exit
