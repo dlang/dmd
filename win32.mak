@@ -2,7 +2,10 @@
 
 MODEL=32
 
-DMD=dmd
+DMD_DIR=..\dmd
+BUILD=release
+OS=windows
+DMD=$(DMD_DIR)\generated\$(OS)\$(BUILD)\$(MODEL)\dmd
 
 CC=dmc
 
