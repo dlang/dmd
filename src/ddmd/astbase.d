@@ -493,6 +493,11 @@ struct ASTBase
             return null;
         }
 
+        override final DYNCAST dyncast() const
+        {
+            return DYNCAST.dsymbol;
+        }
+
         void accept(Visitor v)
         {
             v.visit(this);
@@ -1132,7 +1137,7 @@ struct ASTBase
         bool havetempdecl;
         TemplateInstance inst;
 
-        final extern (D) this(Loc loc, Identifier ident, Objects* tiards)
+        final extern (D) this(Loc loc, Identifier ident, Objects* tiargs)
         {
             super(null);
             this.loc = loc;
@@ -4273,6 +4278,11 @@ struct ASTBase
             }
             e = cast(Expression)mem.xmalloc(size);
             return cast(Expression)memcpy(cast(void*)e, cast(void*)this, size);
+        }
+
+        override final DYNCAST dyncast() const
+        {
+            return DYNCAST.expression;
         }
 
         void accept(Visitor v)
