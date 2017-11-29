@@ -202,6 +202,13 @@ struct UnionMetaData
     enum Size = bc_max_members/8;
 }
 
+__gshared LocType!() lastLoc;
+
+template LocType()
+{
+    import ddmd.globals : Loc;
+    alias LocType = Loc;
+}
 
 static immutable smallIntegers = [BCTypeEnum.i8, BCTypeEnum.i16, BCTypeEnum.u8, BCTypeEnum.u16];
 
@@ -1275,7 +1282,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         if (!arr.heapAddr || !arrayBase)
         {
-           return new NullExp(Loc(), arrayType);
+           return new NullExp(lastLoc, arrayType);
         }
 
 
@@ -1327,7 +1334,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             }
         }
 
-        arrayResult = new ArrayLiteralExp(Loc(), elmExprs);
+        arrayResult = new ArrayLiteralExp(lastLoc, elmExprs);
         arrayResult.ownedByCtfe = OWNEDctfe;
 
         return arrayResult;
@@ -1339,7 +1346,7 @@ Expression toExpression(const BCValue value, Type expressionType,
 
         if (!value.heapAddr)
         {
-           return new NullExp(Loc(), expressionType);
+           return new NullExp(lastLoc, expressionType);
         }
 
         auto length = heapPtr._heap[value.imm32 + SliceDescriptor.LengthOffset];
@@ -1373,7 +1380,7 @@ Expression toExpression(const BCValue value, Type expressionType,
             resultString[i] = cast(char) heapPtr._heap[offset + i];
         resultString[length] = '\0';
 
-        result = new StringExp(Loc(), cast(void*)resultString, length);
+        result = new StringExp(lastLoc, cast(void*)resultString, length);
         (cast(StringExp) result).ownedByCtfe = OWNEDctfe;
     }
     else
@@ -1447,7 +1454,7 @@ Expression toExpression(const BCValue value, Type expressionType,
                 elmExprs.insert(idx, elm);
                 offset += align4(_sharedCtfeState.size(memberType, true));
             }
-            result = new StructLiteralExp(Loc(), sd, elmExprs);
+            result = new StructLiteralExp(lastLoc, sd, elmExprs);
             (cast(StructLiteralExp) result).ownedByCtfe = OWNEDctfe;
         }
         break;
@@ -1473,22 +1480,22 @@ Expression toExpression(const BCValue value, Type expressionType,
         break;
     case Tfloat32:
         {
-            result = new RealExp(Loc(), *cast(float*)&value.imm32, expressionType);
+            result = new RealExp(lastLoc, *cast(float*)&value.imm32, expressionType);
         }
         break;
     case Tfloat64:
         {
-            result = new RealExp(Loc(), *cast(double*)&value.imm64, expressionType);
+            result = new RealExp(lastLoc, *cast(double*)&value.imm64, expressionType);
         }
         break;
     case Tint32, Tuns32, Tint16, Tuns16, Tint8, Tuns8:
         {
-            result = new IntegerExp(Loc(), value.imm32, expressionType);
+            result = new IntegerExp(lastLoc, value.imm32, expressionType);
         }
         break;
     case Tint64, Tuns64:
         {
-            result = new IntegerExp(Loc(), value.imm64, expressionType);
+            result = new IntegerExp(lastLoc, value.imm64, expressionType);
         }
         break;
     case Tpointer:
@@ -1698,6 +1705,8 @@ extern (C++) final class BCTypeVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
+        lastLoc = sd.loc;
+
         auto st = sharedCtfeState.beginStruct(sd);
         bool died;
         __gshared static bcv = new BCV!BCGenT; // TODO don't do this.
@@ -2072,7 +2081,7 @@ extern (C++) final class BCV(BCGenT) : Visitor
         }
         debug(nullPtrCheck)
         {
-            Assert(slice.i32, addError(Loc(), "expandSliceTo: arrPtr must not be null"));
+            Assert(slice.i32, addError(lastLoc, "expandSliceTo: arrPtr must not be null"));
         }
         auto oldBase = getBase(slice);
         auto oldLength = getLength(slice);
@@ -2637,6 +2646,8 @@ public:
 
     override void visit(FuncDeclaration fd)
     {
+        lastLoc = fd.loc;
+
         import ddmd.identifier;
 
         assert(!me || me == fd);
@@ -2787,6 +2798,8 @@ static if (is(BCGen))
 
     override void visit(BinExp e)
     {
+        lastLoc = e.loc;
+
         Line(e.loc.linnum);
         debug (ctfe)
         {
@@ -3256,6 +3269,8 @@ static if (is(BCGen))
 
     override void visit(SymOffExp se)
     {
+        lastLoc = se.loc;
+
         Line(se.loc.linnum);
         //bailout();
         auto vd = se.var.isVarDeclaration();
@@ -3334,6 +3349,8 @@ static if (is(BCGen))
 
     override void visit(IndexExp ie)
     {
+        lastLoc = ie.loc;
+
         Line(ie.loc.linnum);
         auto oldIndexed = currentIndexed;
         scope(exit) currentIndexed = oldIndexed;
@@ -3455,7 +3472,9 @@ static if (is(BCGen))
             //auto arrayLength = genTemporary(BCType(BCTypeEnum.i32));
             //Load32(arrayLength, indexed.i32);
             //Lt3(inBounds,  idx, arrayLength);
+            Assert(indexed.i32, addError(ie.loc, "we indedxed a null array -- " ~ ie.toString));
             auto basePtr = getBase(indexed);
+             
             Mul3(offset, idx, imm32(elemSize));
             Add3(ptr, offset, basePtr);
             if (!retval || !ptr)
@@ -3534,6 +3553,8 @@ static if (is(BCGen))
 
     override void visit(ForStatement fs)
     {
+        lastLoc = fs.loc;
+
         Line(fs.loc.linnum);
         debug (ctfe)
         {
@@ -3613,6 +3634,8 @@ static if (is(BCGen))
 
     override void visit(Expression e)
     {
+        lastLoc = e.loc;
+
         Line(e.loc.linnum);
         debug (ctfe)
         {
@@ -3627,6 +3650,8 @@ static if (is(BCGen))
 
     override void visit(NullExp ne)
     {
+        lastLoc = ne.loc;
+
         Line(ne.loc.linnum);
         retval = BCValue.init;
         retval.vType = BCValueType.Immediate;
@@ -3637,6 +3662,8 @@ static if (is(BCGen))
 
     override void visit(HaltExp he)
     {
+        lastLoc = he.loc;
+
         Line(he.loc.linnum);
         retval = BCValue.init;
         debug (ctfe)
@@ -3645,6 +3672,8 @@ static if (is(BCGen))
 
     override void visit(SliceExp se)
     {
+        lastLoc = se.loc;
+
         Line(se.loc.linnum);
         debug (ctfe)
         {
@@ -3748,6 +3777,8 @@ static if (is(BCGen))
 
     override void visit(DotVarExp dve)
     {
+        lastLoc = dve.loc;
+
         Line(dve.loc.linnum);
         if (dve.e1.type.ty == Tstruct && (cast(TypeStruct) dve.e1.type).sym)
         {
@@ -3844,6 +3875,8 @@ static if (is(BCGen))
 
     override void visit(ArrayLiteralExp ale)
     {
+        lastLoc = ale.loc;
+
         Line(ale.loc.linnum);
         debug (ctfe)
         {
@@ -4021,6 +4054,8 @@ static if (is(BCGen))
 
     override void visit(StructLiteralExp sle)
     {
+        lastLoc = sle.loc;
+
         Line(sle.loc.linnum);
 
         debug (ctfe)
@@ -4156,6 +4191,8 @@ static if (is(BCGen))
 
     override void visit(DollarExp de)
     {
+        lastLoc = de.loc;
+
         Line(de.loc.linnum);
         if (currentIndexed.type == BCTypeEnum.Array
             || currentIndexed.type == BCTypeEnum.Slice
@@ -4173,6 +4210,8 @@ static if (is(BCGen))
 
     override void visit(AddrExp ae)
     {
+        lastLoc = ae.loc;
+
         Line(ae.loc.linnum);
         //bailout("We don't handle AddrExp");
         auto e1 = genExpr(ae.e1, "AddrExp");
@@ -4204,6 +4243,8 @@ static if (is(BCGen))
 
     override void visit(ThisExp te)
     {
+        lastLoc = te.loc;
+
         Line(te.loc.linnum);
         import std.stdio;
 
@@ -4219,12 +4260,16 @@ static if (is(BCGen))
 
     override void visit(ComExp ce)
     {
+        lastLoc = ce.loc;
+
         Line(ce.loc.linnum);
         Not(retval, genExpr(ce.e1));
     }
 
     override void visit(PtrExp pe)
     {
+        lastLoc = pe.loc;
+
         Line(pe.loc.linnum);
         bool isFunctionPtr = pe.type.ty == Tfunction;
         auto addr = genExpr(pe.e1);
@@ -4281,6 +4326,8 @@ static if (is(BCGen))
 
     override void visit(NewExp ne)
     {
+        lastLoc = ne.loc;
+
         Line(ne.loc.linnum);
         auto ptr = genTemporary(i32Type);
         auto type = toBCType(ne.newtype);
@@ -4300,6 +4347,8 @@ static if (is(BCGen))
 
     override void visit(ArrayLengthExp ale)
     {
+        lastLoc = ale.loc;
+
         Line(ale.loc.linnum);
         auto array = genExpr(ale.e1);
         auto arrayType = array.type.type;
@@ -4319,7 +4368,7 @@ static if (is(BCGen))
         debug(nullPtrCheck)
         {
             Comment("SetLengthNullPtrCheck");
-            Assert(arr.i32, addError(Loc(), "setLength: arrPtr must not be null"));
+            Assert(arr.i32, addError(lastLoc, "setLength: arrPtr must not be null"));
         }
         if (SliceDescriptor.LengthOffset)
         {
@@ -4392,7 +4441,7 @@ static if (is(BCGen))
     void setBase(BCValue arr, BCValue newBase)
     {
         BCValue baseAddrPtr;
-        Assert(arr.i32, addError(Loc(), "cannot set setBase of null array"));
+        Assert(arr.i32, addError(lastLoc, "cannot set setBase of null array"));
         if (SliceDescriptor.BaseOffset)
         {
             baseAddrPtr = genTemporary(i32Type);
@@ -4409,7 +4458,7 @@ static if (is(BCGen))
     {
         if (arr)
         {
-            Assert(arr.i32, addError(Loc(), "cannot getBase from null array"));
+            Assert(arr.i32, addError(lastLoc, "cannot getBase from null array " ~ to!string(uniqueCounter++)));
             BCValue baseAddr;
             if (insideArgumentProcessing)
             {
@@ -4551,10 +4600,11 @@ static if (is(BCGen))
     {
         //debug (NullAllocCheck)
         {
-            Assert(arr.i32, addError(Loc(), "trying to set sliceDesc null Array"));
+            Assert(arr.i32, addError(lastLoc, "trying to set sliceDesc null Array"));
         }
 
         auto offset = genTemporary(i32Type);
+        Comment("Add SliceDescriptor.Size");
         Add3(offset, arr.i32, imm32(SliceDescriptor.Size));
 
         setBase(arr.i32, offset);
@@ -4598,6 +4648,8 @@ static if (is(BCGen))
 
     override void visit(VarExp ve)
     {
+        lastLoc = ve.loc;
+
         Line(ve.loc.linnum);
         auto vd = ve.var.isVarDeclaration;
         auto symd = ve.var.isSymbolDeclaration;
@@ -4683,6 +4735,8 @@ static if (is(BCGen))
 
     override void visit(DeclarationExp de)
     {
+        lastLoc = de.loc;
+
         Line(de.loc.linnum);
         auto oldRetval = retval;
         auto vd = de.declaration.isVarDeclaration();
@@ -4759,6 +4813,8 @@ static if (is(BCGen))
 
     override void visit(VarDeclaration vd)
     {
+        lastLoc = vd.loc;
+
         Line(vd.loc.linnum);
         debug (ctfe)
         {
@@ -4822,6 +4878,8 @@ static if (is(BCGen))
 
     override void visit(BinAssignExp e)
     {
+        lastLoc = e.loc;
+
         Line(e.loc.linnum);
         debug (ctfe)
         {
@@ -4973,6 +5031,8 @@ static if (is(BCGen))
 
     override void visit(IntegerExp ie)
     {
+        lastLoc = ie.loc;
+
         Line(ie.loc.linnum);
         debug (ctfe)
         {
@@ -5011,6 +5071,8 @@ static if (is(BCGen))
 
     override void visit(RealExp re)
     {
+        lastLoc = re.loc;
+
         Line(re.loc.linnum);
         debug (ctfe)
         {
@@ -5037,6 +5099,8 @@ static if (is(BCGen))
 
     override void visit(ComplexExp ce)
     {
+        lastLoc = ce.loc;
+
         Line(ce.loc.linnum);
         debug (ctfe)
         {
@@ -5050,6 +5114,8 @@ static if (is(BCGen))
 
     override void visit(StringExp se)
     {
+        lastLoc = se.loc;
+
         Line(se.loc.linnum);
         debug (ctfe)
         {
@@ -5114,6 +5180,8 @@ static if (is(BCGen))
 
     override void visit(CmpExp ce)
     {
+        lastLoc = ce.loc;
+
         Line(ce.loc.linnum);
         debug (ctfe)
         {
@@ -5187,6 +5255,8 @@ static if (is(BCGen))
 /+
     override void visit(ConstructExp ce)
     {
+        lastLoc = ce.loc;
+
         Line(ce.loc.linnum);
         //TODO ConstructExp is basically the same as AssignExp
         // find a way to merge those
@@ -5252,6 +5322,8 @@ static if (is(BCGen))
 
     override void visit(AssignExp ae)
     {
+        lastLoc = ae.loc;
+
         Line(ae.loc.linnum);
         debug (ctfe)
         {
@@ -5742,12 +5814,16 @@ static if (is(BCGen))
 
     override void visit(SwitchErrorStatement _)
     {
+        lastLoc = _.loc;
+
         Line(_.loc.linnum);
         //assert(0, "encounterd SwitchErrorStatement" ~ toString(_));
     }
 
     override void visit(NegExp ne)
     {
+        lastLoc = ne.loc;
+
         Line(ne.loc.linnum);
         retval = assignTo ? assignTo : genTemporary(toBCType(ne.type));
         Sub3(retval, imm32(0), genExpr(ne.e1));
@@ -5755,6 +5831,8 @@ static if (is(BCGen))
 
     override void visit(NotExp ne)
     {
+        lastLoc = ne.loc;
+
         Line(ne.loc.linnum);
         {
             retval = assignTo ? assignTo : genTemporary(i32Type);
@@ -5765,6 +5843,8 @@ static if (is(BCGen))
 
     override void visit(UnrolledLoopStatement uls)
     {
+        lastLoc = uls.loc;
+
         Line(uls.loc.linnum);
         //FIXME This will break if UnrolledLoopStatements are nested,
         // I am not sure if this can ever happen
@@ -5818,6 +5898,8 @@ static if (is(BCGen))
 
     override void visit(ImportStatement _is)
     {
+        lastLoc = _is.loc;
+
         Line(_is.loc.linnum);
         // can be skipped
         return;
@@ -5825,6 +5907,8 @@ static if (is(BCGen))
 
     override void visit(AssertExp ae)
     {
+        lastLoc = ae.loc;
+
         Line(ae.loc.linnum);
 
         if (isBoolExp(ae.e1))
@@ -5848,6 +5932,8 @@ static if (is(BCGen))
 
     override void visit(SwitchStatement ss)
     {
+        lastLoc = ss.loc;
+
         Line(ss.loc.linnum);
         if (switchStateCount)
             bailout("We cannot deal with nested switches right now");
@@ -5968,6 +6054,8 @@ static if (is(BCGen))
 
     override void visit(GotoCaseStatement gcs)
     {
+        lastLoc = gcs.loc;
+
         Line(gcs.loc.linnum);
         with (switchState)
         {
@@ -5978,6 +6066,8 @@ static if (is(BCGen))
 
     override void visit(GotoDefaultStatement gd)
     {
+        lastLoc = gd.loc;
+
         Line(gd.loc.linnum);
         with (switchState)
         {
@@ -6005,6 +6095,8 @@ static if (is(BCGen))
 
     override void visit(GotoStatement gs)
     {
+        lastLoc = gs.loc;
+
         Line(gs.loc.linnum);
         auto ident = cast(void*) gs.ident;
 
@@ -6020,6 +6112,8 @@ static if (is(BCGen))
 
     override void visit(LabelStatement ls)
     {
+        lastLoc = ls.loc;
+
         Line(ls.loc.linnum);
         debug (ctfe)
         {
@@ -6073,6 +6167,8 @@ static if (is(BCGen))
 
     override void visit(ContinueStatement cs)
     {
+        lastLoc = cs.loc;
+
         Line(cs.loc.linnum);
         if (cs.ident)
         {
@@ -6097,6 +6193,8 @@ static if (is(BCGen))
 
     override void visit(BreakStatement bs)
     {
+        lastLoc = bs.loc;
+
         Line(bs.loc.linnum);
         if (bs.ident)
         {
@@ -6138,6 +6236,8 @@ static if (is(BCGen))
 
     override void visit(CallExp ce)
     {
+        lastLoc = ce.loc;
+
         Line(ce.loc.linnum);
         bool wrappingCallFn;
         if (!insideFunction)
@@ -6403,6 +6503,8 @@ static if (is(BCGen))
 
     override void visit(ReturnStatement rs)
     {
+        lastLoc = rs.loc;
+
         Line(rs.loc.linnum);
         debug (ctfe)
         {
@@ -6450,6 +6552,8 @@ static if (is(BCGen))
 
     override void visit(CastExp ce)
     {
+        lastLoc = ce.loc;
+
         Line(ce.loc.linnum);
         //FIXME make this handle casts properly
         //e.g. do truncation and so on
@@ -6581,6 +6685,8 @@ static if (is(BCGen))
 
     override void visit(ExpStatement es)
     {
+        lastLoc = es.loc;
+
         Line(es.loc.linnum);
         debug (ctfe)
         {
@@ -6597,6 +6703,8 @@ static if (is(BCGen))
 
     override void visit(DoStatement ds)
     {
+        lastLoc = ds.loc;
+
         Line(ds.loc.linnum);
         debug (ctfe)
         {
@@ -6635,6 +6743,8 @@ static if (is(BCGen))
 
     override void visit(WithStatement ws)
     {
+        lastLoc = ws.loc;
+
         //Line(ws.loc.linnum);
 
         debug (ctfe)
@@ -6659,6 +6769,8 @@ static if (is(BCGen))
 
     override void visit(Statement s)
     {
+        lastLoc = s.loc;
+
         Line(s.loc.linnum);
         debug (ctfe)
         {
@@ -6672,6 +6784,8 @@ static if (is(BCGen))
 
     override void visit(IfStatement fs)
     {
+        lastLoc = fs.loc;
+
         Line(fs.loc.linnum);
         debug (ctfe)
         {
@@ -6734,6 +6848,8 @@ static if (is(BCGen))
 
     override void visit(ScopeStatement ss)
     {
+        lastLoc = ss.loc;
+
         Line(ss.loc.linnum);
         debug (ctfe)
         {
@@ -6746,6 +6862,8 @@ static if (is(BCGen))
 
     override void visit(CompoundStatement cs)
     {
+        lastLoc = cs.loc;
+
         Line(cs.loc.linnum);
         debug (ctfe)
         {
