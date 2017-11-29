@@ -26,6 +26,7 @@ import ddmd.root.stringtable;
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.attrib;
+import ddmd.canthrow;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
 import ddmd.declaration;
@@ -5174,8 +5175,6 @@ elem *toElem(Expression e, IRState *irs)
                         }
 
                         // ed needs to be inserted into the code later
-                        if (!irs.varsInScope)
-                            irs.varsInScope = new Array!(elem*)();
                         irs.varsInScope.push(ed);
                     }
                 }
@@ -5794,9 +5793,25 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 elem *toElemDtor(Expression e, IRState *irs)
 {
     //printf("Expression.toElemDtor() %s\n", e.toChars());
-    const starti = irs.varsInScope ? irs.varsInScope.dim : 0;
+
+    /* "may" throw may actually be false if we look at a subset of
+     * the function. Here, the subset is `e`. If that subset is nothrow,
+     * we can generate much better code for the destructors for that subset,
+     * even if the rest of the function throws.
+     * If mayThrow is false, it cannot be true for some subset of the function,
+     * so no need to check.
+     * If calling canThrow() here turns out to be too expensive,
+     * it can be enabled only for optimized builds.
+     */
+    const mayThrowSave = irs.mayThrow;
+    if (irs.mayThrow && !canThrow(e, irs.getFunc(), false))
+        irs.mayThrow = false;
+
+    const starti = irs.varsInScope.dim;
     elem* er = toElem(e, irs);
-    const endi = irs.varsInScope ? irs.varsInScope.dim : 0;
+    const endi = irs.varsInScope.dim;
+
+    irs.mayThrow = mayThrowSave;
 
     // Add destructors
     elem* ex = appendDtors(irs, er, starti, endi);

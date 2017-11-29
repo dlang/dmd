@@ -53,8 +53,9 @@ struct IRState
     Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
     elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
-    Array!(elem*)* varsInScope;      // variables that are in scope that will need destruction later
+    Array!(elem*)* varsInScope;     // variables that are in scope that will need destruction later
     Label*[void*]* labels;          // table of labels used/declared in function
+    bool mayThrow;                  // the expression being evaluated may throw
 
     block* breakBlock;
     block* contBlock;
@@ -76,13 +77,19 @@ struct IRState
             deferToObj = irs.deferToObj;
             varsInScope = irs.varsInScope;
             labels = irs.labels;
+            mayThrow = irs.mayThrow;
         }
     }
 
-    this(Module m, FuncDeclaration s)
+    this(Module m, FuncDeclaration fd, Array!(elem*)* varsInScope, Dsymbols* deferToObj, Label*[void*]* labels)
     {
         this.m = m;
-        symbol = s;
+        this.symbol = fd;
+        this.varsInScope = varsInScope;
+        this.deferToObj = deferToObj;
+        this.labels = labels;
+        mayThrow = global.params.useExceptions &&
+                !(fd && fd.eh_none);
     }
 
     /****
@@ -253,13 +260,6 @@ struct IRState
      */
     bool isNothrow()
     {
-        /* Note that even nothrow functions can have throwing parts,
-         * so until we do a better job tracking that, this is
-         * the best we can do.
-         * Nothrow needs to be tracked at the Statement level.
-         */
-        FuncDeclaration fd;
-        return !global.params.useExceptions ||
-                (fd = getFunc()) !is null && fd.eh_none;
+        return !mayThrow;
     }
 }
