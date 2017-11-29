@@ -144,7 +144,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Find all instance fields, then push them into `fields`.
      *
      * Runs semantic() for all instance field variables, but also
-     * the field types can reamin yet not resolved forward references,
+     * the field types can remain yet not resolved forward references,
      * except direct recursive definitions.
      * After the process sizeok is set to SIZEOKfwd.
      *
@@ -513,11 +513,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     /****************************
      * Do byte or word alignment as necessary.
      * Align sizes of 0, as we may not know array sizes yet.
-     *
-     * alignment: struct alignment that is in effect
-     * size: alignment requirement of field
+     * Params:
+     *   alignment = struct alignment that is in effect
+     *   size = alignment requirement of field
+     *   poffset = pointer to offset to be aligned
      */
-    static void alignmember(structalign_t alignment, uint size, uint* poffset)
+    static void alignmember(structalign_t alignment, uint size, uint* poffset) pure nothrow @safe
     {
         //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
         switch (alignment)
