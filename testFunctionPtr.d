@@ -46,7 +46,7 @@ int[] run(int[] arr, bool div2)
 }
 
 
-//static assert(run([3,4,5], true) == [4]);
-//static assert(run([3,4,5], false) == [3,5]);
+static assert(run([3,4,5], true) == [4]);
+static assert(run([3,4,5], false) == [3,5]);
 
 static assert(filterBy([3,4,5], &isDiv2) == [4]);
