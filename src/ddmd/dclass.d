@@ -165,8 +165,6 @@ enum ClassKind : int
     cpp,
     /// the class is an Objective-C class/interface
     objc,
-    /// the class is anonymous
-    anonymous,
 }
 
 /***********************************************************
@@ -214,6 +212,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     /// to prevent recursive attempts
     private bool inuse;
 
+    /// true if this class has an identifier, but was originally declared anonymous
+    /// used in support of https://issues.dlang.org/show_bug.cgi?id=17371
+    private bool isActuallyAnonymous;
+
     Abstract isabstract;
 
     /// set the progress of base classes resolving
@@ -226,7 +228,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         if (!id)
         {
             id = Identifier.generateId("__anonclass");
-            classKind = ClassKind.anonymous;
+            isActuallyAnonymous = true;
         }
         assert(id);
 
@@ -679,6 +681,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
+    }
+
+    override bool isAnonymous()
+    {
+        return isActuallyAnonymous;
     }
 
     final bool isFuncHidden(FuncDeclaration fd)

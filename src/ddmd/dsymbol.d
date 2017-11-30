@@ -269,7 +269,7 @@ extern (C++) class Dsymbol : RootObject
         return false;
     }
 
-    final bool isAnonymous()
+    bool isAnonymous()
     {
         return ident is null;
     }

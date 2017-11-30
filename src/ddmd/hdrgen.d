@@ -1756,7 +1756,7 @@ public:
 
     override void visit(ClassDeclaration d)
     {
-        if (d.classKind != ClassKind.anonymous)
+        if (!d.isAnonymous())
         {
             buf.writestring(d.kind());
             buf.writeByte(' ');
@@ -1783,7 +1783,7 @@ public:
     {
         if (!d || !d.baseclasses.dim)
             return;
-        if (d.classKind != ClassKind.anonymous)
+        if (!d.isAnonymous())
             buf.writestring(" : ");
         foreach (i, b; *d.baseclasses)
         {

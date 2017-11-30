@@ -237,9 +237,7 @@ enum ClassKind
     /// the class is a C++ interface
     cpp,
     /// the class is an Objective-C class/interface
-    objc,
-    /// the class is anonymous
-    anonymous,
+    objc
 };
 
 class ClassDeclaration : public AggregateDeclaration
@@ -268,8 +266,11 @@ public:
 
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     bool com;                           // true if this is a COM class (meaning it derives from IUnknown)
-    bool stack;                       // true if this is a scope class
-    ClassKind classKind;               // specifies the linkage type
+    bool stack;                         // true if this is a scope class
+    ClassKind classKind;                // specifies the linkage type
+    bool inuse;                         // to prevent recursive attempts
+    bool isActuallyAnonymous;           // true if this class has an identifier, but was originally declared anonymous
+                                        // used in support of https://issues.dlang.org/show_bug.cgi?id=17371
 
     Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
     Baseok baseok;                      // set the progress of base classes resolving
