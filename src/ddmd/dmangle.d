@@ -503,20 +503,25 @@ public:
         //printf("fd.type = %s\n", fd.type.toChars());
         if (fd.needThis() || fd.isNested())
             buf.writeByte('M');
-        if (inParent)
+
+        if (!fd.type || fd.type.ty == Terror)
+        {
+            // never should have gotten here, but could be the result of
+            // failed speculative compilation
+            buf.writestring("9__error__FZ");
+
+            //printf("[%s] %s no type\n", fd.loc.toChars(), fd.toChars());
+            //assert(0); // don't mangle function until semantic3 done.
+        }
+        else if (inParent)
         {
             TypeFunction tf = cast(TypeFunction)fd.type;
             TypeFunction tfo = cast(TypeFunction)fd.originalType;
             mangleFuncType(tf, tfo, 0, null);
         }
-        else if (fd.type)
-        {
-            visitWithMask(fd.type, 0);
-        }
         else
         {
-            printf("[%s] %s no type\n", fd.loc.toChars(), fd.toChars());
-            assert(0); // don't mangle function until semantic3 done.
+            visitWithMask(fd.type, 0);
         }
     }
 

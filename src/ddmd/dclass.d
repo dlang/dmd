@@ -875,7 +875,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         /* If the base class is not abstract, then this class cannot
          * be abstract.
          */
-        if (!baseClass || !baseClass.isAbstract())
+        if (!isInterfaceDeclaration() && (!baseClass || !baseClass.isAbstract()))
             return no();
 
         /* If any abstract functions are inherited, but not overridden,

@@ -647,7 +647,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         MATCH m = MATCH.exact;
                         if (e.type.nextOf().mod != tn.mod)
                         {
-                            if (!tn.isConst())
+                            // https://issues.dlang.org/show_bug.cgi?id=16183
+                            if (!tn.isConst() && !tn.isImmutable())
                                 return;
                             m = MATCH.constant;
                         }
