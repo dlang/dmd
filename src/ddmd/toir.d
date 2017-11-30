@@ -12,6 +12,7 @@
 
 module ddmd.toir;
 
+import core.checkedint;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
@@ -59,9 +60,17 @@ extern (C++):
 
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
+ * Sets corresponding bit in bitmap `m.covb[linnum]`.
  * Used to implement -cov switch (coverage analysis).
+ * Params:
+ *      irs = context
+ *      loc = line and file of what line to show usage for
+ * Returns:
+ *      elem that increments the line count
+ * References:
+ * https://dlang.org/dmd-windows.html#switch-cov
  */
-elem *incUsageElem(IRState *irs, Loc loc)
+extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
 {
     uint linnum = loc.linnum;
 
@@ -84,6 +93,8 @@ elem *incUsageElem(IRState *irs, Loc loc)
         *p |= 1 << (linnum & ((*p).sizeof * 8 - 1));
     }
 
+    /* Generate: *(m.cov + linnum * 4) += 1
+     */
     elem *e;
     e = el_ptr(m.cov);
     e = el_bin(OPadd, TYnptr, e, el_long(TYuint, linnum * 4));
@@ -107,7 +118,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
 
     /* These two are compiler generated functions for the in and out contracts,
      * and are called from an overriding function, not just the one they're
-     * nested inside, so this hack is so they'll pass
+     * nested inside, so this hack sets fdparent so it'll pass
      */
     if (fdparent != thisfd && (fd.ident == Id.require || fd.ident == Id.ensure))
     {
@@ -704,16 +715,23 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
 }
 
 
+/**************************************
+ * Go through the variables in function fd that are
+ * to be allocated in a closure, and set the .offset fields
+ * for those variables to their positions relative to the start
+ * of the closure instance.
+ * Also turns off nrvo for closure variables.
+ * Params:
+ *      fd = function
+ */
 void setClosureVarOffset(FuncDeclaration fd)
 {
     if (fd.needsClosure())
     {
         uint offset = Target.ptrsize;      // leave room for previous sthis
 
-        for (size_t i = 0; i < fd.closureVars.dim; i++)
+        foreach (v; fd.closureVars)
         {
-            VarDeclaration v = fd.closureVars[i];
-
             /* Align and allocate space for v in the closure
              * just like AggregateDeclaration.addField() does.
              */
@@ -753,7 +771,7 @@ void setClosureVarOffset(FuncDeclaration fd)
              */
             if (fd.nrvo_can && fd.nrvo_var == v)
             {
-                fd.nrvo_can = 0;
+                fd.nrvo_can = false;
             }
         }
     }
@@ -822,9 +840,8 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
         assert(fd.closureVars.dim);
         assert(fd.closureVars[0].offset >= Target.ptrsize);
-        for (size_t i = 0; i < fd.closureVars.dim; i++)
+        foreach (v; fd.closureVars)
         {
-            VarDeclaration v = fd.closureVars[i];
             //printf("closure var %s\n", v.toChars());
 
             // Hack for the case fail_compilation/fail10666.d,
@@ -857,16 +874,19 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
         // Calculate the size of the closure
         VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
-        uint structsize;
+        typeof(Type.size()) lastsize;
         if (vlast.storage_class & STClazy)
-            structsize = vlast.offset + Target.ptrsize * 2;
+            lastsize = Target.ptrsize * 2;
         else if (vlast.isRef() || vlast.isOut())
-            structsize = vlast.offset + Target.ptrsize;
+            lastsize = Target.ptrsize;
         else
-            structsize = cast(uint)(vlast.offset + vlast.type.size());
-        //printf("structsize = %d\n", structsize);
+            lastsize = vlast.type.size();
+        bool overflow;
+        const structsize = addu(vlast.offset, lastsize, overflow);
+        assert(!overflow && structsize <= uint.max);
+        //printf("structsize = %d\n", cast(uint)structsize);
 
-        Closstru.Ttag.Sstruct.Sstructsize = structsize;
+        Closstru.Ttag.Sstruct.Sstructsize = cast(uint)structsize;
 
         // Allocate memory for the closure
         elem *e = el_long(TYsize_t, structsize);
@@ -889,10 +909,8 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         e = el_combine(e, ex);
 
         // Copy function parameters into closure
-        for (size_t i = 0; i < fd.closureVars.dim; i++)
+        foreach (v; fd.closureVars)
         {
-            VarDeclaration v = fd.closureVars[i];
-
             if (!v.isParameter())
                 continue;
             tym_t tym = totym(v.type);
