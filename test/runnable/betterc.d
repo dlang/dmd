@@ -10,6 +10,17 @@ void test(int ij)
     assert(ij,"it is not zero");
 }
 
+/*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17843
+
+struct S
+{
+    double d = 0.0;
+    int[] x;
+}
+
+/*******************************************/
+
 extern (C) int main()
 {
     test(1);
