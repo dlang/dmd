@@ -1024,3 +1024,11 @@ unittest
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a));
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a2));
 }
+
+// test duplicated keys in AA literal (issue 15290)
+unittest
+{
+    string[int] aa = [ 0: "a", 0: "b" ];
+    assert(aa.length == 1);
+    assert(aa.keys == [ 0 ]);
+}
