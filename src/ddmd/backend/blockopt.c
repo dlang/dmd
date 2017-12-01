@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/blockopt.c, backend/blockopt.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/blockopt.c
  */
 
 
@@ -132,7 +133,7 @@ void block_next(Blockx *bctx,int bc,block *bn)
     bctx->curblock->Bflags |= bctx->flags;
 }
 #else
-void block_next(enum BC bc,block *bn)
+void block_next(int bc,block *bn)
 {
     curblock->BC = bc;
     curblock->Bsymend = globsym.top;
@@ -591,12 +592,18 @@ void blockopt(int iter)
         } while (go.changes);
 #ifdef DEBUG
         if (debugw)
+        {
+            numberBlocks(startblock);
             for (b = startblock; b; b = b->Bnext)
                 WRblock(b);
+        }
 #endif
     }
     else
     {
+#ifdef DEBUG
+        numberBlocks(startblock);
+#endif
         /* canonicalize the trees        */
         for (b = startblock; b; b = b->Bnext)
         {
@@ -630,8 +637,11 @@ void blockopt(int iter)
         comsubs();                      /* eliminate common subexpressions */
 #ifdef DEBUG
         if (debugb)
-                for (b = startblock; b; b = b->Bnext)
-                        WRblock(b);
+        {
+            numberBlocks(startblock);
+            for (b = startblock; b; b = b->Bnext)
+                WRblock(b);
+        }
 #endif
     }
 }
@@ -649,6 +659,7 @@ void brcombine()
     int anychanges;
 
     cmes("brcombine()\n");
+    //numberBlocks(startblock);
     //for (b = startblock; b; b = b->Bnext)
         //WRblock(b);
 

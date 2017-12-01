@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/debug.c, backend/debug.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/debug.c
  */
 
 #if !SPP
@@ -318,25 +319,34 @@ void WRblock(block *b)
         int ncases;
 
         assert(b);
-        printf("***** block %p ", b);
-        WRBC(b->BC);
+        printf("%2d: ", b->Bnumber); WRBC(b->BC);
         if (b->Btry)
-            printf(" Btry=%p",b->Btry);
+            printf(" Btry=B%d",b->Btry ? b->Btry->Bnumber : 0);
         if (b->Bindex)
             printf(" Bindex=%d",b->Bindex);
         if (b->BC == BC_finally)
-            printf(" b_ret=%p", b->BS.BI_FINALLY.b_ret);
+            printf(" b_ret=B%d", b->BS.BI_FINALLY.b_ret ? b->BS.BI_FINALLY.b_ret->Bnumber : 0);
 #if MARS
         if (b->Bsrcpos.Sfilename)
             printf(" %s(%u)", b->Bsrcpos.Sfilename, b->Bsrcpos.Slinnum);
 #endif
         printf("\n");
-        if (b->Belem) elem_print(b->Belem);
+        if (b->Belem)
+        {
+            if (0)
+                elem_print(b->Belem);
+            else
+            {
+                ferr("\t");
+                WReqn(b->Belem);
+                printf(";\n");
+            }
+        }
         if (b->Bpred)
         {
             printf("\tBpred:");
             for (list_t bl = b->Bpred; bl; bl = list_next(bl))
-                printf(" %p",list_block(bl));
+                printf(" B%d",list_block(bl)->Bnumber);
             printf("\n");
         }
         list_t bl = b->Bsucc;
@@ -347,10 +357,10 @@ void WRblock(block *b)
                 assert(pu);
                 ncases = *pu;
                 printf("\tncases = %d\n",ncases);
-                printf("\tdefault: %p\n",list_block(bl));
+                printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl)->Bnumber : 0);
                 while (ncases--)
                 {   bl = list_next(bl);
-                    printf("\tcase %lld: %p\n",(long long)*++pu,list_block(bl));
+                    printf("\tcase %lld: B%d\n",(long long)*++pu,list_block(bl)->Bnumber);
                 }
                 break;
             case BCiftrue:
@@ -371,7 +381,7 @@ void WRblock(block *b)
                 {
                     printf("\tBsucc:");
                     for ( ; bl; bl = list_next(bl))
-                        printf(" %p",list_block(bl));
+                        printf(" B%d",list_block(bl)->Bnumber);
                     printf("\n");
                 }
                 break;
@@ -385,12 +395,24 @@ void WRblock(block *b)
     }
 }
 
+/*****************************
+ * Number the blocks starting at 1.
+ * So much more convenient than pointer values.
+ */
+void numberBlocks(block *startblock)
+{
+    unsigned number = 0;
+    for (block *b = startblock; b; b = b->Bnext)
+        b->Bnumber = ++number;
+}
+
 void WRfunc()
 {
-        block *b;
-
         printf("func: '%s'\n",funcsym_p->Sident);
-        for (b = startblock; b; b = b->Bnext)
+
+        numberBlocks(startblock);
+
+        for (block *b = startblock; b; b = b->Bnext)
                 WRblock(b);
 }
 
