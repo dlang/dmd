@@ -166,6 +166,7 @@ Where:
   -profile         profile runtime performance of generated code
   -profile=gc      profile runtime allocations
   -release         compile release version
+  -requireinit     emit error for any uninitialized variables
   -shared          generate shared library (DLL)
   -transition=<id> help with language change identified by 'id'
   -transition=?    list all language changes
@@ -2159,6 +2160,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lnoarg;
                 }
             }
+            else if (strcmp(p + 1, "requireinit") == 0) // https://dlang.org/dmd-windows.html#switch-requireinit
+                params.requireinit = true;
             else if (p[1] == '\0')
                 files.push("__stdin.d");
             else

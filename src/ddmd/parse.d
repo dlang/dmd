@@ -4492,6 +4492,12 @@ final class Parser(AST) : Lexer
                     nextToken();
                     _init = parseInitializer();
                 }
+                else
+                {
+                    if (global.params.requireinit)
+                        error("`%s` was not initialized", ident.toChars());
+                }
+
 
                 auto v = new AST.VarDeclaration(loc, t, ident, _init);
                 v.storage_class = storage_class;
