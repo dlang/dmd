@@ -144,7 +144,7 @@ out (result)
     foreach(m; result)
         assert(m !is null);
 }
-body
+do
 {
     // _minit directly alters the global _moduleinfo_array
     _minit();

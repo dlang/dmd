@@ -192,7 +192,7 @@ out (result)
     foreach(m; result)
         assert(m !is null);
 }
-body
+do
 {
     auto m = (cast(immutable(ModuleInfo*)*)&_minfo_beg)[1 .. &_minfo_end - &_minfo_beg];
     /* Because of alignment inserted by the linker, various null pointers

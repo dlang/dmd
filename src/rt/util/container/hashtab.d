@@ -54,7 +54,7 @@ struct HashTab(Key, Value)
 
     void remove(in Key key)
     in { assert(key in this); }
-    body
+    do
     {
         ensureNotInOpApply();
 
@@ -163,7 +163,7 @@ private:
     {
         assert(_buckets.length);
     }
-    body
+    do
     {
         immutable ocnt = _buckets.length;
         immutable nmask = 2 * ocnt - 1;
@@ -195,7 +195,7 @@ private:
     {
         assert(_buckets.length >= 2);
     }
-    body
+    do
     {
         immutable ocnt = _buckets.length;
         immutable ncnt = ocnt >> 1;

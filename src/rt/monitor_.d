@@ -21,7 +21,7 @@ in
 {
     assert(ownee.__monitor is null);
 }
-body
+do
 {
     auto m = ensureMonitor(cast(Object) owner);
     auto i = m.impl;
@@ -61,7 +61,7 @@ in
 {
     assert(h !is null, "Synchronized object must not be null.");
 }
-body
+do
 {
     auto m = cast(Monitor*) ensureMonitor(h);
     auto i = m.impl;

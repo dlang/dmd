@@ -737,7 +737,7 @@ in
     assert(ti);
     assert(!(*p).length || (*p).ptr);
 }
-body
+do
 {
     // step 1, get the block
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
@@ -1438,7 +1438,7 @@ in
     assert(ti);
     assert(!(*p).length || (*p).ptr);
 }
-body
+do
 {
     debug(PRINTF)
     {
@@ -1627,7 +1627,7 @@ in
 {
     assert(!(*p).length || (*p).ptr);
 }
-body
+do
 {
     void* newdata;
     auto tinext = unqualify(ti.next);
@@ -2153,7 +2153,7 @@ out (result)
     size_t cap = GC.sizeOf(result.ptr);
     assert(!cap || cap > result.length * sizeelem);
 }
-body
+do
 {
     version (none)
     {

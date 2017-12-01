@@ -744,7 +744,7 @@ class ConservativeGC : GC
     {
         assert(minsize <= maxsize);
     }
-    body
+    do
     {
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         debug (SENTINEL)
@@ -1917,14 +1917,14 @@ struct Gcx
 
         ScanRange pop()
         in { assert(!empty); }
-        body
+        do
         {
             return _p[--_length];
         }
 
         ref inout(ScanRange) opIndex(size_t idx) inout
         in { assert(idx < _length); }
-        body
+        do
         {
             return _p[idx];
         }
@@ -2888,7 +2888,7 @@ struct Pool
         assert(p >= baseAddr);
         assert(p < topAddr);
     }
-    body
+    do
     {
         return cast(size_t)(p - baseAddr) / PAGESIZE;
     }
@@ -3041,7 +3041,7 @@ struct LargeObjectPool
         assert(p >= baseAddr);
         assert(p < topAddr);
     }
-    body
+    do
     {
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
@@ -3126,7 +3126,7 @@ struct SmallObjectPool
         assert(p >= baseAddr);
         assert(p < topAddr);
     }
-    body
+    do
     {
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
