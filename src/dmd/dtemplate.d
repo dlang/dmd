@@ -7220,10 +7220,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                FuncDeclaration fd = d ? d.isFuncDeclaration() : null;
+                bool isTdNestedInFunction = td ? !td.isstatic && td.toParent2().isFuncDeclaration() : false;
+                if ((td && (td.literal || isTdNestedInFunction)) ||
+                    (ti && ti.enclosing) ||
+                    (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!fd || fd.isNested()) &&
+                    !isTemplateMixin()))
                 {
                     // if module level template
-                    if (isstatic)
+                    if (isstatic || isTdNestedInFunction)
                     {
                         Dsymbol dparent = sa.toParent2();
                         if (!enclosing)
