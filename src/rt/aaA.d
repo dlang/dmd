@@ -584,6 +584,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
     void* pkey = keys.ptr;
     void* pval = vals.ptr;
     immutable off = aa.valoff;
+    uint actualLength = 0;
     foreach (_; 0 .. length)
     {
         immutable hash = calcHash(pkey, ti.key);
@@ -595,6 +596,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
             p.hash = hash;
             p.entry = allocEntry(aa, pkey); // move key, no postblit
             aa.firstUsed = min(aa.firstUsed, cast(uint)(p - aa.buckets.ptr));
+            actualLength++;
         }
         else if (aa.entryTI && hasDtor(ti.value))
         {
@@ -608,7 +610,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
         pkey += keysz;
         pval += valsz;
     }
-    aa.used = cast(uint) length;
+    aa.used = actualLength;
     return aa;
 }
 
@@ -1021,4 +1023,12 @@ unittest
 
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a));
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a2));
+}
+
+// test duplicated keys in AA literal (issue 15290)
+unittest
+{
+    string[int] aa = [ 0: "a", 0: "b" ];
+    assert(aa.length == 1);
+    assert(aa.keys == [ 0 ]);
 }
