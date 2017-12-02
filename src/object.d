@@ -3109,7 +3109,7 @@ version (unittest)
 private
 {
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
+    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* arrptr) pure nothrow;
 }
 
 /**
@@ -3125,7 +3125,7 @@ private
  */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
+    return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
 }
 ///
 @safe unittest
@@ -3160,7 +3160,7 @@ private
  */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
+    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
 ///
 unittest
