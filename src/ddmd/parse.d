@@ -4761,7 +4761,7 @@ final class Parser(AST) : Lexer
         default:
             if (literal)
             {
-                const(char)* sbody = (f.frequire || f.fensure) ? "body " : "";
+                const(char)* sbody = (f.frequire || f.fensure) ? "do " : "";
                 error("missing `%s{ ... }` for function literal", sbody);
             }
             else if (!f.frequire && !f.fensure) // allow these even with no body

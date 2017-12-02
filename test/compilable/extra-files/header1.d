@@ -10,6 +10,8 @@ static assert(true, "message");
 
 alias double mydbl;
 
+alias fl = function () in {} body {};
+
 int testmain()
 in
 {
