@@ -158,7 +158,7 @@ endif
 
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
-WARNINGS := -Wall -Wextra \
+WARNINGS := -Wall -Wextra -Werror \
 	-Wno-attributes \
 	-Wno-char-subscripts \
 	-Wno-deprecated \
@@ -199,7 +199,7 @@ WARNINGS += \
 endif
 else
 # Default Warnings
-WARNINGS := -Wno-deprecated -Wstrict-aliasing
+WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
@@ -586,9 +586,11 @@ $(TOOLS_DIR)/checkwhitespace.d:
 
 ######################################################
 
+# See https://github.com/dlang/dmd/pull/7358 for why -xc++ is used here
+# -O is needed for FreeBSD's compiler to silence "-Wuninitialized is not supported without -O"
 checkcxxheaders:
-	$(HOST_CXX) -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
-	$(HOST_CXX) -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
+	$(HOST_CXX) -xc++ -O -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
+	$(HOST_CXX) -xc++ -O -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
 
 ######################################################
 
