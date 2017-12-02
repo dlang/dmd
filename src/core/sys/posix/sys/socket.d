@@ -620,24 +620,24 @@ version( CRuntime_Glibc )
         SHUT_RDWR
     }
 
-    int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
-    int     getpeername(int, sockaddr*, socklen_t*);
-    int     getsockname(int, sockaddr*, socklen_t*);
-    int     getsockopt(int, int, int, void*, socklen_t*);
-    int     listen(int, int);
-    ssize_t recv(int, void*, size_t, int);
-    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
-    ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
-    int     shutdown(int, int);
-    int     socket(int, int, int);
-    int     sockatmark(int);
-    int     socketpair(int, int, int, ref int[2]);
+    int     accept(int, scope sockaddr*, scope socklen_t*);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
+    int     getpeername(int, scope sockaddr*, scope socklen_t*);
+    int     getsockname(int, scope sockaddr*, scope socklen_t*);
+    int     getsockopt(int, int, int, scope void*, scope socklen_t*);
+    int     listen(int, int) @safe;
+    ssize_t recv(int, scope void*, size_t, int);
+    ssize_t recvfrom(int, scope void*, size_t, int, scope sockaddr*, scope socklen_t*);
+    ssize_t recvmsg(int, scope msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
+    int     shutdown(int, int) @safe;
+    int     socket(int, int, int) @safe;
+    int     sockatmark(int) @safe;
+    int     socketpair(int, int, int, ref int[2]) @safe;
 }
 else version( Darwin )
 {
@@ -775,24 +775,24 @@ else version( Darwin )
         SHUT_RDWR
     }
 
-    int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
-    int     getpeername(int, sockaddr*, socklen_t*);
-    int     getsockname(int, sockaddr*, socklen_t*);
-    int     getsockopt(int, int, int, void*, socklen_t*);
-    int     listen(int, int);
-    ssize_t recv(int, void*, size_t, int);
-    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
-    ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
-    int     shutdown(int, int);
-    int     socket(int, int, int);
-    int     sockatmark(int);
-    int     socketpair(int, int, int, ref int[2]);
+    int     accept(int, scope sockaddr*, scope socklen_t*);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
+    int     getpeername(int, scope sockaddr*, scope socklen_t*);
+    int     getsockname(int, scope sockaddr*, scope socklen_t*);
+    int     getsockopt(int, int, int, scope void*, scope socklen_t*);
+    int     listen(int, int) @safe;
+    ssize_t recv(int, scope void*, size_t, int);
+    ssize_t recvfrom(int, scope void*, size_t, int, scope sockaddr*, scope socklen_t*);
+    ssize_t recvmsg(int, scope msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
+    int     shutdown(int, int) @safe;
+    int     socket(int, int, int) @safe;
+    int     sockatmark(int) @safe;
+    int     socketpair(int, int, int, ref int[2]) @safe;
 }
 else version( FreeBSD )
 {
@@ -951,24 +951,24 @@ else version( FreeBSD )
         SHUT_RDWR = 2
     }
 
-    int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
-    int     getpeername(int, sockaddr*, socklen_t*);
-    int     getsockname(int, sockaddr*, socklen_t*);
-    int     getsockopt(int, int, int, void*, socklen_t*);
-    int     listen(int, int);
-    ssize_t recv(int, void*, size_t, int);
-    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
-    ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
-    int     shutdown(int, int);
-    int     socket(int, int, int);
-    int     sockatmark(int);
-    int     socketpair(int, int, int, ref int[2]);
+    int     accept(int, scope sockaddr*, scope socklen_t*);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
+    int     getpeername(int, scope sockaddr*, scope socklen_t*);
+    int     getsockname(int, scope sockaddr*, scope socklen_t*);
+    int     getsockopt(int, int, int, scope void*, scope socklen_t*);
+    int     listen(int, int) @safe;
+    ssize_t recv(int, scope void*, size_t, int);
+    ssize_t recvfrom(int, scope void*, size_t, int, scope sockaddr*, scope socklen_t*);
+    ssize_t recvmsg(int, scope msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
+    int     shutdown(int, int) @safe;
+    int     socket(int, int, int) @safe;
+    int     sockatmark(int) @safe;
+    int     socketpair(int, int, int, ref int[2]) @safe;
 }
 else version(NetBSD)
 {
@@ -1148,24 +1148,24 @@ else version(NetBSD)
         SHUT_RDWR = 2
     }
 
-    int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, socklen_t);
-    int     connect(int, in sockaddr*, socklen_t);
-    int     getpeername(int, sockaddr*, socklen_t*);
-    int     getsockname(int, sockaddr*, socklen_t*);
-    int     getsockopt(int, int, int, void*, socklen_t*);
-    int     listen(int, int);
-    ssize_t recv(int, void*, size_t, int);
-    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
-    ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
-    int     shutdown(int, int);
-    int     socket(int, int, int);
-    int     sockatmark(int);
-    int     socketpair(int, int, int, ref int[2]);
+    int     accept(int, scope sockaddr*, scope socklen_t*);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
+    int     getpeername(int, scope sockaddr*, scope socklen_t*);
+    int     getsockname(int, scope sockaddr*, scope socklen_t*);
+    int     getsockopt(int, int, int, scope void*, scope socklen_t*);
+    int     listen(int, int) @safe;
+    ssize_t recv(int, scope void*, size_t, int);
+    ssize_t recvfrom(int, scope void*, size_t, int, scope sockaddr*, scope socklen_t*);
+    ssize_t recvmsg(int, scope msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
+    int     shutdown(int, int) @safe;
+    int     socket(int, int, int) @safe;
+    int     sockatmark(int) @safe;
+    int     socketpair(int, int, int, ref int[2]) @safe;
 }
 else version (Solaris)
 {
@@ -1296,24 +1296,24 @@ else version (Solaris)
         SHUT_RDWR
     }
 
-    int accept(int, sockaddr*, socklen_t*);
-    int bind(int, in sockaddr*, socklen_t);
-    int connect(int, in sockaddr*, socklen_t);
-    int getpeername(int, sockaddr*, socklen_t*);
-    int getsockname(int, sockaddr*, socklen_t*);
-    int getsockopt(int, int, int, void*, socklen_t*);
-    int listen(int, int);
-    ssize_t recv(int, void*, size_t, int);
-    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
-    ssize_t recvmsg(int, msghdr*, int);
-    ssize_t send(int, in void*, size_t, int);
-    ssize_t sendmsg(int, in msghdr*, int);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int setsockopt(int, int, int, in void*, socklen_t);
-    int shutdown(int, int);
-    int socket(int, int, int);
-    int sockatmark(int);
-    int socketpair(int, int, int, ref int[2]);
+    int     accept(int, scope sockaddr*, scope socklen_t*);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
+    int     getpeername(int, scope sockaddr*, scope socklen_t*);
+    int     getsockname(int, scope sockaddr*, scope socklen_t*);
+    int     getsockopt(int, int, int, scope void*, scope socklen_t*);
+    int     listen(int, int) @safe;
+    ssize_t recv(int, scope void*, size_t, int);
+    ssize_t recvfrom(int, scope void*, size_t, int, scope sockaddr*, scope socklen_t*);
+    ssize_t recvmsg(int, scope msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    ssize_t sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
+    int     shutdown(int, int) @safe;
+    int     socket(int, int, int) @safe;
+    int     sockatmark(int) @safe;
+    int     socketpair(int, int, int, ref int[2]) @safe;
 }
 else version( CRuntime_Bionic )
 {
@@ -1500,23 +1500,24 @@ else version( CRuntime_Bionic )
 
     enum SOCK_RDM = 4;
 
-    int     accept(int, sockaddr*, socklen_t*);
-    int     bind(int, in sockaddr*, int);
-    int     connect(int, in sockaddr*, socklen_t);
-    int     getpeername(int, sockaddr*, socklen_t*);
-    int     getsockname(int, sockaddr*, socklen_t*);
-    int     getsockopt(int, int, int, void*, socklen_t*);
-    int     listen(int, int);
-    ssize_t recv(int, void*, size_t, uint);
-    ssize_t recvfrom(int, void*, size_t, uint, in sockaddr*, socklen_t*);
-    int     recvmsg(int, msghdr*, uint);
-    ssize_t send(int, in void*, size_t, uint);
-    int     sendmsg(int, in msghdr*, uint);
-    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
-    int     setsockopt(int, int, int, in void*, socklen_t);
-    int     shutdown(int, int);
-    int     socket(int, int, int);
-    int     socketpair(int, int, int, ref int[2]);
+    int     accept(int, scope sockaddr*, scope socklen_t*);
+    int     bind(int, const scope sockaddr*, socklen_t);
+    int     connect(int, const scope sockaddr*, socklen_t);
+    int     getpeername(int, scope sockaddr*, scope socklen_t*);
+    int     getsockname(int, scope sockaddr*, scope socklen_t*);
+    int     getsockopt(int, int, int, scope void*, scope socklen_t*);
+    int     listen(int, int) @safe;
+    ssize_t recv(int, scope void*, size_t, int);
+    ssize_t recvfrom(int, scope void*, size_t, int, scope sockaddr*, scope socklen_t*);
+    int     recvmsg(int, scope msghdr*, int);
+    ssize_t send(int, const scope void*, size_t, int);
+    int     sendmsg(int, const scope msghdr*, int);
+    ssize_t sendto(int, const scope void*, size_t, int, const scope sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, const scope void*, socklen_t);
+    int     shutdown(int, int) @safe;
+    int     socket(int, int, int) @safe;
+    int     sockatmark(int) @safe;
+    int     socketpair(int, int, int, ref int[2]) @safe;
 }
 else
 {
