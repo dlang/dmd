@@ -302,6 +302,7 @@ public:
     #define OFFSET_RUNTIME 0x76543210
     #define OFFSET_FWDREF 0x76543211
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
+    bool isAnonymous();
 
     bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
