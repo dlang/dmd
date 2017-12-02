@@ -18,7 +18,7 @@ import ddmd.arraytypes : Expressions, VarDeclarations;
 import std.conv : to;
 
 enum perf = 0;
-enum bailoutMessages = 0;
+enum bailoutMessages = 1;
 enum printResult = 0;
 enum cacheBC = 1;
 enum UseLLVMBackend = 0;
@@ -1578,7 +1578,7 @@ extern (C++) final class BCTypeVisitor : Visitor
         case ENUMTY.Tfloat64:
             return BCType(BCTypeEnum.f52);
         case ENUMTY.Tfloat80:
-            //return BCType(BCTypeEnum.f64);
+            //return BCType(BCTypeEnum.f52);
         case ENUMTY.Timaginary32:
         case ENUMTY.Timaginary64:
         case ENUMTY.Timaginary80:
@@ -4084,7 +4084,8 @@ static if (is(BCGen))
             }
 
             auto ty = _struct.memberTypes[i];
-            if (!ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Slice, BCTypeEnum.Array, BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64]))
+            if (!ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Slice, BCTypeEnum.Array, 
+BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.c8, BCTypeEnum.c16, BCTypeEnum.c32]))
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
@@ -4540,9 +4541,9 @@ static if (is(BCGen))
     void LoadFromHeapRef(BCValue hrv, uint line = __LINE__)
     {
         // import std.stdio; writeln("Calling LoadHeapRef from: ", line); //DEBUGLINE
-        if(hrv.type.type == BCTypeEnum.i64)
+        if(hrv.type.type.anyOf([BCTypeEnum.i64, BCTypeEnum.f52]))
             Load64(hrv, BCValue(hrv.heapRef));
-        else if (hrv.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32]))
+        else if (hrv.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i16, BCTypeEnum.i32, BCTypeEnum.c8, BCTypeEnum.c16, BCTypeEnum.c32, BCTypeEnum.f23]))
             Load32(hrv, BCValue(hrv.heapRef));
         // since the stuff below are heapValues we may not want to do this ??
         else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))
@@ -4554,9 +4555,9 @@ static if (is(BCGen))
 
     void StoreToHeapRef(BCValue hrv)
     {
-        if(hrv.type.type == BCTypeEnum.i64)
+        if(hrv.type.type.anyOf([BCTypeEnum.i64, BCTypeEnum.f52]))
             Store64(BCValue(hrv.heapRef), hrv);
-        else if (hrv.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i32]))
+        else if (hrv.type.type.anyOf([BCTypeEnum.i8, BCTypeEnum.i16, BCTypeEnum.i32, BCTypeEnum.c8, BCTypeEnum.c16, BCTypeEnum.c32, BCTypeEnum.f23]))
             Store32(BCValue(hrv.heapRef), hrv);
         // since the stuff below are heapValues we may not want to do this ??
         else if (hrv.type.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Slice, BCTypeEnum.Array]))

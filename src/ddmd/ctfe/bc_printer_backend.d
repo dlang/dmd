@@ -535,7 +535,7 @@ struct Print_BCGen
 
     void Comment(string comment)
     {
-        result ~= indent ~ "Comment(\"" ~ comment ~ "\");\n";
+        result ~= "\n" ~ indent ~ "Comment(\"" ~ comment ~ "\");\n";
     }
 
     void Line(uint line)
