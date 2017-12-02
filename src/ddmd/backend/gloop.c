@@ -257,8 +257,8 @@ int blockinit()
   assert(i <= maxblks);
   for (i = 0; i < dfotop; i++)
   {     assert(dfo[i]->Bdfoidx == i);
-        if (!dfo[i]->Bdom)
-                dfo[i]->Bdom = vec_calloc(maxblks); /* alloc Bdom vectors */
+        dfo[i]->Bdom = vec_realloc(dfo[i]->Bdom, maxblks); /* alloc Bdom vectors */
+        vec_clear(dfo[i]->Bdom);
   }
   return hasasm;
 }
@@ -275,7 +275,7 @@ int blockinit()
  */
 
 void compdom()
-{ unsigned i;
+{
   unsigned cntr;
   vec_t t1;
   list_t bl;
@@ -287,12 +287,12 @@ void compdom()
   t1 = vec_calloc(vec_numbits(sb->Bdom));       // allocate a temporary
   vec_clear(sb->Bdom);
   vec_setbit(0,sb->Bdom);               // starting block only doms itself
-  for (i = 1; i < dfotop; i++)          // for all except startblock
+  for (int i = 1; i < dfotop; i++)      // for all except startblock
         vec_set(dfo[i]->Bdom);          // dominate all blocks
   cntr = 0;                             // # of times thru loop
   do
   {     chgs = FALSE;
-        for (i = 1; i < dfotop; ++i)    // for each block in dfo[]
+        for (int i = 1; i < dfotop; ++i) // for each block in dfo[]
         {                               // except startblock
                 bl = dfo[i]->Bpred;
                 if (bl)                 // if there are predecessors

@@ -149,6 +149,17 @@ void codgen(Symbol *sfunc)
     Alloca.init();
     anyiasm = 0;
 
+    if (config.exe & (EX_LINUX | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+    {
+        /* The dwarf unwinder for some platforms relies on the function epilog to exist
+         */
+        for (block* b = startblock; b; b = b->Bnext)
+        {
+            if (b->BC == BCexit)
+                b->BC = BCret;
+        }
+    }
+
 tryagain:
     #ifdef DEBUG
     if (debugr)

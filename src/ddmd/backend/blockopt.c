@@ -50,7 +50,8 @@ STATIC void block_check();
 STATIC void brtailrecursion();
 STATIC elem * assignparams(elem **pe,int *psi,elem **pe2);
 STATIC void emptyloops();
-int el_anyframeptr(elem *e);
+STATIC int el_anyframeptr(elem *e);
+STATIC void blassertsplit();
 
 unsigned numblks;       // number of basic blocks in current function
 block *startblock;      /* beginning block of function                  */
@@ -560,15 +561,15 @@ void block_endfunc(int flag)
  */
 
 void blockopt(int iter)
-{   block *b;
-    int count;
-
+{
     if (OPTIMIZER)
     {
+        blassertsplit();                // only need this once
+
         int iterationLimit = 200;
         if (iterationLimit < numblks)
             iterationLimit = numblks;
-        count = 0;
+        int count = 0;
         do
         {
             //printf("changes = %d, count = %d, dfotop = %d\n",go.changes,count,dfotop);
@@ -594,7 +595,7 @@ void blockopt(int iter)
         if (debugw)
         {
             numberBlocks(startblock);
-            for (b = startblock; b; b = b->Bnext)
+            for (block *b = startblock; b; b = b->Bnext)
                 WRblock(b);
         }
 #endif
@@ -605,7 +606,7 @@ void blockopt(int iter)
         numberBlocks(startblock);
 #endif
         /* canonicalize the trees        */
-        for (b = startblock; b; b = b->Bnext)
+        for (block *b = startblock; b; b = b->Bnext)
         {
 #ifdef DEBUG
             if (debugb)
@@ -639,7 +640,7 @@ void blockopt(int iter)
         if (debugb)
         {
             numberBlocks(startblock);
-            for (b = startblock; b; b = b->Bnext)
+            for (block *b = startblock; b; b = b->Bnext)
                 WRblock(b);
         }
 #endif
@@ -1066,8 +1067,6 @@ STATIC void brrear()
 
 void compdfo()
 {
-  int i;
-
   cmes("compdfo()\n");
   assert(OPTIMIZER);
   block_clearvisit();
@@ -1077,26 +1076,22 @@ void compdfo()
 #endif
   assert(maxblks && maxblks >= numblks);
   debug_assert(!PARSER);
-  if (!dfo)
-#if TX86
-        dfo = (block **) util_calloc(sizeof(block *),maxblks);
-#else
-        dfo = (block **) MEM_PARF_CALLOC(sizeof(block *) * maxblks);
-#endif
+  dfo = (block **) util_realloc(dfo, sizeof(block *),maxblks);
+  memset(dfo, 0, sizeof(block *) * maxblks);
   dfotop = numblks;                     /* assign numbers backwards     */
   search(startblock);
   assert(dfotop <= numblks);
   /* Ripple data to the bottom of the array     */
   if (dfotop)                           /* if not at bottom             */
-  {     for (i = 0; i < numblks - dfotop; i++)
+  {     for (unsigned i = 0; i < numblks - dfotop; i++)
         {       dfo[i] = dfo[i + dfotop];
                 dfo[i]->Bdfoidx = i;
         }
   }
   dfotop = numblks - dfotop;
 #if 0
-  for (i = 0; i < dfotop; i++)
-        dbg_printf("dfo[%d] = 0x%x\n",i,dfo[i]);
+  for (unsigned i = 0; i < dfotop; i++)
+        dbg_printf("dfo[%d] = %p\n",i,dfo[i]);
 #endif
 }
 
@@ -2114,7 +2109,7 @@ STATIC int funcsideeffect_walk(elem *e)
  * Determine if there are any OPframeptr's in the tree.
  */
 
-int el_anyframeptr(elem *e)
+STATIC int el_anyframeptr(elem *e)
 {
     while (1)
     {
@@ -2133,5 +2128,113 @@ int el_anyframeptr(elem *e)
     return 0;
 }
 
+
+/**************************************
+ * Split off asserts into their very own BCexit
+ * blocks after the end of the function.
+ * This is because assert calls are never in a hot branch.
+ */
+
+STATIC void blassertsplit()
+{
+    for (block *b = startblock; b; b = b->Bnext)
+    {
+        /* Not sure of effect of jumping out of a try block
+         */
+        if (b->Btry)
+            continue;
+
+        if (b->BC == BCexit)
+            continue;
+
+        list_t bel = list_reverse(bl_enlist(b->Belem));
+    L1:
+        int dctor = 0;
+        for (list_t el = bel; el; el = list_next(el))
+        {
+            elem *e = list_elem(el);
+            if (e->Eoper == OPinfo)
+            {
+                if (e->E1->Eoper == OPdctor)
+                    ++dctor;
+                else if (e->E1->Eoper == OPddtor)
+                    --dctor;
+            }
+            if (dctor == 0 &&   // don't split block between a dctor..ddtor pair
+                e->Eoper == OPoror && e->E2->Eoper == OPcall && e->E2->E1->Eoper == OPvar)
+            {
+                Symbol *f = e->E2->E1->EV.sp.Vsym;
+                if (f->Sflags & SFLexit)
+                {
+                    // Create exit block
+                    ++numblks;
+                    maxblks += 3;
+                    block *bexit = block_calloc();
+                    bexit->BC = BCexit;
+                    bexit->Belem = e->E2;
+
+                    /* Append bexit to block list
+                     */
+                    for (block *bx = b; 1; )
+                    {
+                        block* bxn = bx->Bnext;
+                        if (!bxn)
+                        {
+                            bx->Bnext = bexit;
+                            break;
+                        }
+                        bx = bxn;
+                    }
+
+                    list_ptr(el) = (void *)e->E1;
+                    e->E1 = NULL;
+                    e->E2 = NULL;
+                    el_free(e);
+
+                    /* Split b into two blocks, [b,b2]
+                     */
+                    ++numblks;
+                    maxblks += 3;
+                    block *b2 = block_calloc();
+                    b2->Bnext = b->Bnext;
+                    b->Bnext = b2;
+                    b2->BC = b->BC;
+                    b2->BS = b->BS;
+                    list_t bex = list_next(el);
+                    list_next(el) = NULL;
+                    b->Belem = bl_delist(list_reverse(bel));
+
+                    /* Transfer successors of b to b2.
+                     * Fix up predecessors of successors to b2 to point to b2 instead of b
+                     */
+                    b2->Bsucc = b->Bsucc;
+                    b->Bsucc = NULL;
+                    for (list_t b2sl = b2->Bsucc; b2sl; b2sl = list_next(b2sl))
+                    {
+                        block *b2s = list_block(b2sl);
+                        for (list_t b2spl = b2s->Bpred; b2spl; b2spl = list_next(b2spl))
+                        {
+                            if (list_block(b2spl) == b)
+                                list_ptr(b2spl) = (void *)b2;
+                        }
+                    }
+
+                    b->BC = BCiftrue;
+                    assert(b->Belem);
+                    list_append(&b->Bsucc, b2);
+                    list_append(&b2->Bpred, b);
+                    list_append(&b->Bsucc, bexit);
+                    list_append(&bexit->Bpred, b);
+
+                    b = b2;
+                    bel = bex;  // remainder of expression list goes into b2
+                    go.changes++;
+                    goto L1;
+                }
+            }
+        }
+        b->Belem = bl_delist(list_reverse(bel));
+    }
+}
 
 #endif //!SPP
