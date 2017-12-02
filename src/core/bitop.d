@@ -561,24 +561,17 @@ version (DigitalMars) version (AnyX86) @system // not pure
 int popcnt(uint x) pure
 {
     // Select the fastest method depending on the compiler and CPU architecture
-    version(LDC)
+    version(DigitalMars)
     {
-        return _popcnt(x);
-    }
-    else
-    {
-        version(DigitalMars)
+        static if (is(typeof(_popcnt(uint.max))))
         {
-            static if (is(typeof(_popcnt(uint.max))))
-            {
-                import core.cpuid;
-                if (!__ctfe && hasPopcnt)
-                    return _popcnt(x);
-            }
+            import core.cpuid;
+            if (!__ctfe && hasPopcnt)
+                return _popcnt(x);
         }
-
-        return softPopcnt!uint(x);
     }
+
+    return softPopcnt!uint(x);
 }
 
 unittest
@@ -600,44 +593,37 @@ unittest
 int popcnt(ulong x) pure
 {
     // Select the fastest method depending on the compiler and CPU architecture
-    version(LDC)
+    import core.cpuid;
+
+    static if (size_t.sizeof == uint.sizeof)
     {
-        return _popcnt(x);
+        const sx = Split64(x);
+        version(DigitalMars)
+        {
+            static if (is(typeof(_popcnt(uint.max))))
+            {
+                if (!__ctfe && hasPopcnt)
+                    return _popcnt(sx.lo) + _popcnt(sx.hi);
+            }
+        }
+
+        return softPopcnt!uint(sx.lo) + softPopcnt!uint(sx.hi);
+    }
+    else static if (size_t.sizeof == ulong.sizeof)
+    {
+        version(DigitalMars)
+        {
+            static if (is(typeof(_popcnt(ulong.max))))
+            {
+                if (!__ctfe && hasPopcnt)
+                    return _popcnt(x);
+            }
+        }
+
+        return softPopcnt!ulong(x);
     }
     else
-    {
-        import core.cpuid;
-
-        static if (size_t.sizeof == uint.sizeof)
-        {
-            const sx = Split64(x);
-            version(DigitalMars)
-            {
-                static if (is(typeof(_popcnt(uint.max))))
-                {
-                    if (!__ctfe && hasPopcnt)
-                        return _popcnt(sx.lo) + _popcnt(sx.hi);
-                }
-            }
-
-            return softPopcnt!uint(sx.lo) + softPopcnt!uint(sx.hi);
-        }
-        else static if (size_t.sizeof == ulong.sizeof)
-        {
-            version(DigitalMars)
-            {
-                static if (is(typeof(_popcnt(ulong.max))))
-                {
-                    if (!__ctfe && hasPopcnt)
-                        return _popcnt(x);
-                }
-            }
-
-            return softPopcnt!ulong(x);
-        }
-        else
-            static assert(false);
-    }
+        static assert(false);
 }
 
 unittest
