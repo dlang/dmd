@@ -219,6 +219,48 @@ else version(X86_64)
     alias Elf_Shdr = Elf64_Shdr;
     enum ELFCLASS = ELFCLASS64;
 }
+else version(ARM)
+{
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
+}
+else version(AArch64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(PPC)
+{
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
+}
+else version(PPC64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(MIPS)
+{
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
+}
+else version(MIPS64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(SystemZ)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
 else
 {
     static assert(0, "unsupported architecture");
