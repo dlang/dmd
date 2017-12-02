@@ -12,7 +12,7 @@
 #ifndef INIT_H
 #define INIT_H
 
-#include "root.h"
+#include "root.hpp"
 
 #include "mars.h"
 #include "arraytypes.h"

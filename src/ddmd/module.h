@@ -16,7 +16,7 @@
 #pragma once
 #endif /* __DMC__ */
 
-#include "root.h"
+#include "root.hpp"
 #include "dsymbol.h"
 
 class ClassDeclaration;

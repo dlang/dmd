@@ -23,7 +23,7 @@
 #include        <errno.h>
 #endif
 
-#include        "longdouble.h"
+#include        "longdouble.hpp"
 
 #if _WIN32 && __DMC__
 // from \sc\src\include\setlocal.h

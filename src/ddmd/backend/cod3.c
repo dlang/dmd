@@ -4158,7 +4158,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
             JMP i[EAX]                          jump to virtual function
          */
         unsigned reg = 0;
-        if ((targ_ptrdiff_t)d < 0)
+        if ((int)d < 0)
         {
             d = -d;
             reg = 5;                            // switch from ADD to SUB

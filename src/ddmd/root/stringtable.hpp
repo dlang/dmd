@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/stringtable.h
+ * https://github.com/dlang/dmd/blob/master/src/root/stringtable.hpp
  */
 
 #ifndef STRINGTABLE_H
@@ -14,8 +14,8 @@
 #pragma once
 #endif
 
-#include "root.h"
-#include "rmem.h"   // for d_size_t
+#include "root.hpp"
+#include "rmem.hpp"   // for d_size_t
 
 struct StringEntry;
 

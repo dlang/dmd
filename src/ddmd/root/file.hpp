@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/file.h
+ * https://github.com/dlang/dmd/blob/master/src/root/file.hpp
  */
 
 #ifndef FILE_H
@@ -16,7 +16,7 @@
 
 #include <stddef.h>
 
-#include "array.h"
+#include "array.hpp"
 
 typedef Array<struct File *> Files;
 

@@ -19,7 +19,7 @@
 #include "visitor.h"
 #include "tokens.h"
 
-#include "rmem.h"
+#include "rmem.hpp"
 
 class Type;
 class TypeVector;

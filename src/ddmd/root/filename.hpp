@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * (See accompanying file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
- * https://github.com/dlang/dmd/blob/master/src/root/filename.h
+ * https://github.com/dlang/dmd/blob/master/src/root/filename.hpp
  */
 
 #ifndef FILENAME_H
@@ -14,7 +14,7 @@
 #pragma once
 #endif
 
-#include "array.h"
+#include "array.hpp"
 
 class RootObject;
 

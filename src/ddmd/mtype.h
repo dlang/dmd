@@ -16,9 +16,9 @@
 #pragma once
 #endif /* __DMC__ */
 
-#include "root.h"
-#include "stringtable.h"
-#include "rmem.h" // for d_size_t
+#include "root.hpp"
+#include "stringtable.hpp"
+#include "rmem.hpp" // for d_size_t
 
 #include "arraytypes.h"
 #include "expression.h"
