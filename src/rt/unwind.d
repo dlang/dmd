@@ -11,6 +11,11 @@ module rt.unwind;
 
 import core.stdc.stdint;
 
+version (ARM)
+{
+    version (iOS) {} else version = ARM_EABI_UNWINDER;
+}
+
 extern (C):
 
 alias uintptr_t _Unwind_Word;
@@ -36,6 +41,8 @@ enum
     _URC_INSTALL_CONTEXT = 7,
     _URC_CONTINUE_UNWIND = 8
 }
+version (ARM_EABI_UNWINDER)
+    enum _URC_FAILURE = 9;
 
 alias int _Unwind_Action;
 enum _Unwind_Action _UA_SEARCH_PHASE  = 1;
@@ -48,7 +55,53 @@ alias _Unwind_Exception_Cleanup_Fn = void function(
         _Unwind_Reason_Code reason,
         _Unwind_Exception *exc);
 
-version (X86_64)
+version (ARM_EABI_UNWINDER)
+{
+    align(8) struct _Unwind_Control_Block
+    {
+        ulong exception_class;
+        void function(_Unwind_Reason_Code, _Unwind_Control_Block *) exception_cleanup;
+
+        /* Unwinder cache, private fields for the unwinder's use */
+        struct unwinder_cache_t
+        {
+            uint reserved1; /* init reserved1 to 0, then don't touch */
+            uint reserved2;
+            uint reserved3;
+            uint reserved4;
+            uint reserved5;
+        }
+        unwinder_cache_t unwinder_cache;
+
+        /* Propagation barrier cache (valid after phase 1): */
+        struct barrier_cache_t
+        {
+            uint sp;
+            uint[5] bitpattern;
+        }
+        barrier_cache_t barrier_cache;
+
+        /* Cleanup cache (preserved over cleanup): */
+        struct cleanup_cache_t
+        {
+            uint[4] bitpattern;
+        }
+        cleanup_cache_t cleanup_cache;
+
+        /* Pr cache (for pr's benefit): */
+        struct pr_cache_t
+        {
+            uint fnstart; /* function start address */
+            void* ehtp; /* pointer to EHT entry header word */
+            uint additional;
+            uint reserved1;
+        }
+        pr_cache_t pr_cache;
+    }
+
+    alias _Unwind_Exception = _Unwind_Control_Block;
+}
+else version (X86_64)
 {
     align(16) struct _Unwind_Exception
     {
@@ -92,6 +145,12 @@ void _Unwind_DeleteException(_Unwind_Exception* exception_object);
 void _Unwind_Resume(_Unwind_Exception* exception_object);
 _Unwind_Reason_Code _Unwind_Resume_or_Rethrow(_Unwind_Exception* exception_object);
 _Unwind_Reason_Code _Unwind_Backtrace(_Unwind_Trace_Fn, void*);
+
+version (ARM_EABI_UNWINDER)
+{
+    _Unwind_Reason_Code __gnu_unwind_frame(_Unwind_Exception* exception_object, _Unwind_Context* context);
+    void _Unwind_Complete(_Unwind_Exception* exception_object);
+}
 
 _Unwind_Word _Unwind_GetGR(_Unwind_Context* context, int index);
 void _Unwind_SetGR(_Unwind_Context* context, int index, _Unwind_Word new_value);
