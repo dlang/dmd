@@ -1420,7 +1420,7 @@ code *asm_emit(Loc loc,
             break;
 
         case VEX_NDD:
-            pc.Ivex.vvvv = ~popnd1.base.val;
+            pc.Ivex.vvvv = cast(ubyte) ~int(popnd1.base.val);
 
             asm_make_modrm_byte(
                 auchOpcode.ptr, &usIdx,
@@ -1439,7 +1439,7 @@ code *asm_emit(Loc loc,
 
         case VEX_DDS:
             assert(usNumops == 3);
-            pc.Ivex.vvvv = ~popnd2.base.val;
+            pc.Ivex.vvvv = cast(ubyte) ~int(popnd2.base.val);
 
             asm_make_modrm_byte(
                 auchOpcode.ptr, &usIdx,
@@ -1449,7 +1449,7 @@ code *asm_emit(Loc loc,
             break;
 
         case VEX_NDS:
-            pc.Ivex.vvvv = ~popnd2.base.val;
+            pc.Ivex.vvvv = cast(ubyte) ~int(popnd2.base.val);
 
             if (aoptyTable1 == _m || aoptyTable1 == _rm)
                 asm_make_modrm_byte(
