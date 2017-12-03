@@ -149,9 +149,9 @@ void codgen(Symbol *sfunc)
     Alloca.init();
     anyiasm = 0;
 
-    if (config.exe & (EX_LINUX | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS))
+    if (config.ehmethod == EH_DWARF)
     {
-        /* The dwarf unwinder for some platforms relies on the function epilog to exist
+        /* The dwarf unwinder relies on the function epilog to exist
          */
         for (block* b = startblock; b; b = b->Bnext)
         {
