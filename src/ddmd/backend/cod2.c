@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cod2.c, backend/cod2.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/cod2.c
  */
 
 #if !SPP
@@ -5202,7 +5203,7 @@ void cdvoid(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 void cdhalt(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
-    cdb.gen1(0xF4);            // HLT
+    cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
 }
 
 #endif // !SPP
