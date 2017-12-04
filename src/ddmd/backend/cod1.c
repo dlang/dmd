@@ -4244,17 +4244,17 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         if (I32 && szb == 10)           // special case for long double constants
         {
             assert(sz == 12);
-            targ_int value = ((unsigned short *)&e->EV.Vldouble)[4];
+            targ_int value = e->EV.Vushort8[4]; // pick upper 2 bytes of Vldouble
             stackpush += sz;
             cdb.genadjesp(sz);
-            for (int i = 2; i >= 0; i--)
+            for (int i = 0; i < 3; ++i)
             {
                 unsigned reg;
                 if (reghasvalue(allregs, value, &reg))
                     cdb.gen1(0x50 + reg);           // PUSH reg
                 else
                     cdb.genc2(0x68,0,value);        // PUSH value
-                value = ((unsigned *)&e->EV.Vldouble)[i - 1];
+                value = e->EV.Vulong4[i ^ 1];       // treat Vldouble as 2 element array of 32 bit unsigned
             }
             freenode(e);
             return;
@@ -4278,7 +4278,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
 
         stackpush += sz;
         cdb.genadjesp(sz);
-        targ_uns *pi = (targ_uns *) &e->EV.Vdouble;
+        targ_uns *pi = &e->EV.Vuns;     // point to start of Vdouble
         targ_ushort *ps = (targ_ushort *) pi;
         targ_ullong *pl = (targ_ullong *)pi;
         i /= regsize;
@@ -4696,7 +4696,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             if (I32)
             {
-                targ_long *p = (targ_long *) &e->EV.Vdouble;
+                targ_long *p = (targ_long *)(void*)&e->EV.Vdouble;
                 if (reg >= XMM0)
                 {   /* This comes about because 0, 1, pi, etc., constants don't get stored
                      * in the data segment, because they are x87 opcodes.
@@ -4720,7 +4720,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                 }
             }
             else
-            {   targ_short *p = (targ_short *) &e->EV.Vdouble;
+            {   targ_short *p = &e->EV.Vshort;  // point to start of Vdouble
 
                 assert(reg == AX);
                 movregconst(cdb,AX,p[3],0);   // MOV AX,p[3]
