@@ -351,9 +351,10 @@ void test15289b()
 
 void testShiftRightOnNegative()
 {
+    int neg = -1;
     uint[] arr = [1, 2, 3];
-    uint z = 50 / arr.length;
-    int a = -z;
-    uint b;
-    static assert(!__traits(compiles, b = arr.length >> a));
+    ubyte b;
+    // Shift with negative value returns value in range [0, ulong.max]
+    static assert(!__traits(compiles, b = arr.length >> neg));
+    static assert(!__traits(compiles, b = arr.length << neg));
 }

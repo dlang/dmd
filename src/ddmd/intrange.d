@@ -543,7 +543,7 @@ struct IntRange
     IntRange opBinary(string op : "&")(IntRange rhs) const
     {
         // unsigned or identical sign bits
-        if ((imin.value ^ imax.value) >= 0 && (rhs.imin.value ^ rhs.imax.value) >= 0)
+        if ((imin.negative ^ imax.negative) != 1 && (rhs.imin.negative ^ rhs.imax.negative) != 1)
         {
             return IntRange(minAnd(this, rhs), maxAnd(this, rhs));
         }
@@ -552,7 +552,7 @@ struct IntRange
         IntRange r = IntRange(rhs);
 
         // both intervals span [-1,0]
-        if ((l.imin.value ^ l.imax.value) < 0 && (r.imin.value ^ r.imax.value) < 0)
+        if ((imin.negative ^ imax.negative) != 1 && (rhs.imin.negative ^ rhs.imax.negative) != 1)
         {
             // cannot be larger than either l.max or r.max, set the other one to -1
             SignExtendedNumber max = l.imax.value > r.imax.value ? l.imax : r.imax;
@@ -585,7 +585,7 @@ struct IntRange
     IntRange opBinary(string op : "|")(IntRange rhs) const
     {
         // unsigned or identical sign bits:
-        if ((imin.value ^ imax.value) >= 0 && (rhs.imin.value ^ rhs.imax.value) >= 0)
+        if ((imin.negative ^ imax.negative) == 0 && (rhs.imin.negative ^ rhs.imax.negative) == 0)
         {
             return IntRange(minOr(this, rhs), maxOr(this, rhs));
         }
@@ -594,7 +594,7 @@ struct IntRange
         IntRange r = IntRange(rhs);
 
         // both intervals span [-1,0]
-        if ((l.imin.value ^ l.imax.value) < 0 && (r.imin.value ^ r.imax.value) < 0)
+        if ((imin.negative ^ imax.negative) == 1 && (rhs.imin.negative ^ rhs.imax.negative) == 1)
         {
             // cannot be smaller than either l.min or r.min, set the other one to 0
             SignExtendedNumber min = l.imin.value < r.imin.value ? l.imin : r.imin;
@@ -608,17 +608,19 @@ struct IntRange
         else
         {
             // only one interval spans [-1,0]
-            if ((imin.value ^ imax.value) < 0) swap(l, r); // r spans [-1,0]
+            if ((imin.negative ^ imax.negative) == 1) swap(l, r); // r spans [-1,0]
 
             auto minOrNeg = minOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
             auto minOrPos = minOr(l, IntRange(SignExtendedNumber(0), r.imax));
             auto maxOrNeg = maxOr(l, IntRange(r.imin, SignExtendedNumber(-1)));
             auto maxOrPos = maxOr(l, IntRange(SignExtendedNumber(0), r.imax));
 
-            auto min = minOrNeg < minOrPos ? minOrNeg : minOrPos;
-            auto max = maxOrNeg > maxOrNeg ? maxOrNeg : maxOrPos;
+            auto min = minOrNeg.value < minOrPos.value ? minOrNeg : minOrPos;
+            auto max = maxOrNeg.value > maxOrNeg.value ? maxOrNeg : maxOrPos;
 
-            return IntRange(min, max);
+            auto rz = IntRange(min, max);
+
+            return rz;
         }
     }
 
@@ -665,31 +667,16 @@ struct IntRange
         }
         else
         {
-            if ((rhs.imin.value ^ rhs.imax.value) < 0)
-            {
-                SignExtendedNumber[4] bdy;
-                bdy[0] = imin;
-                bdy[1] = -imin;
-                bdy[2] = -imax;
-                bdy[3] = imax;
+            // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
+            SignExtendedNumber[4] bdy;
+            bdy[0] = imin / rhs.imin;
+            bdy[1] = imin / rhs.imax;
+            bdy[2] = imax / rhs.imin;
+            bdy[3] = imax / rhs.imax;
 
-                auto res = IntRange.fromNumbers4(bdy.ptr);
-                //printf("%u %u %d\n", res.imin.value, res.imax.value);
-                return res;
-            }
-            else
-            {
-                // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
-                SignExtendedNumber[4] bdy;
-                bdy[0] = imin / rhs.imin;
-                bdy[1] = imin / rhs.imax;
-                bdy[2] = imax / rhs.imin;
-                bdy[3] = imax / rhs.imax;
-
-                auto res = IntRange.fromNumbers4(bdy.ptr);
-                //printf("%u %u %d\n", res.imin.value, res.imax.value);
-                return res;
-            }
+            auto res = IntRange.fromNumbers4(bdy.ptr);
+            //printf("%u %u %d\n", res.imin.value, res.imax.value);
+            return res;
         }
     }
 
@@ -771,27 +758,29 @@ struct IntRange
 private:
     // Credits to Timon Gehr maxOr, minOr, maxAnd, minAnd
     // https://github.com/tgehr/d-compiler/blob/master/vrange.d
-    static SignExtendedNumber maxOr(IntRange lhs, IntRange rhs)
+    static SignExtendedNumber maxOr(const IntRange lhs, const IntRange rhs)
     {
         uinteger_t x = 0;
         auto xor = lhs.imax.value ^ rhs.imax.value;
         auto and = lhs.imax.value & rhs.imax.value;
+        auto lhsc = IntRange(lhs);
+        auto rhsc = IntRange(rhs);
 
         for (uinteger_t d = 1LU << (8 * uinteger_t.sizeof - 1); d; d >>= 1)
         {
             if (xor & d)
             {
                 x |= d;
-                if (lhs.imax.value & d)
+                if (lhsc.imax.value & d)
                 {
-                    if (~lhs.imin.value & d) lhs.imin.value = 0;
+                    if (~lhsc.imin.value & d) lhsc.imin.value = 0;
                 }
                 else
                 {
-                    if (~rhs.imin.value & d) rhs.imin.value = 0;
+                    if (~rhsc.imin.value & d) rhsc.imin.value = 0;
                 }
             }
-            else if (lhs.imin.value & rhs.imin.value & d) x |= d;
+            else if (lhsc.imin.value & rhsc.imin.value & d) x |= d;
             else if (and & d)
             {
                 x |= (d << 1) - 1;
@@ -804,27 +793,29 @@ private:
 
     // Credits to Timon Gehr maxOr, minOr, maxAnd, minAnd
     // https://github.com/tgehr/d-compiler/blob/master/vrange.d
-    static SignExtendedNumber minOr(IntRange lhs, IntRange rhs)
+    static SignExtendedNumber minOr(const IntRange lhs, const IntRange rhs)
     {
         return ~maxAnd(~lhs, ~rhs);
     }
 
     // Credits to Timon Gehr maxOr, minOr, maxAnd, minAnd
     // https://github.com/tgehr/d-compiler/blob/master/vrange.d
-    static SignExtendedNumber maxAnd(IntRange lhs, IntRange rhs)
+    static SignExtendedNumber maxAnd(const IntRange lhs, const IntRange rhs)
     {
         uinteger_t x = 0;
+        auto lhsc = IntRange(lhs);
+        auto rhsc = IntRange(rhs);
 
         for (uinteger_t d = 1LU << (8 * uinteger_t.sizeof-  1); d; d >>= 1)
         {
-            if (lhs.imax.value & rhs.imax.value & d)
+            if (lhsc.imax.value & rhsc.imax.value & d)
             {
                 x |= d;
-                if (~lhs.imin.value & d) lhs.imin.value = 0;
-                if (~rhs.imin.value & d) rhs.imin.value = 0;
+                if (~lhsc.imin.value & d) lhsc.imin.value = 0;
+                if (~rhsc.imin.value & d) rhsc.imin.value = 0;
             }
-            else if (~lhs.imin.value & d && lhs.imax.value & d) lhs.imax.value |= d - 1;
-            else if (~rhs.imin.value & d && rhs.imax.value & d) rhs.imax.value |= d - 1;
+            else if (~lhsc.imin.value & d && lhsc.imax.value & d) lhsc.imax.value |= d - 1;
+            else if (~rhsc.imin.value & d && rhsc.imax.value & d) rhsc.imax.value |= d - 1;
         }
 
         return SignExtendedNumber(x);
@@ -832,7 +823,7 @@ private:
 
     // Credits to Timon Gehr maxOr, minOr, maxAnd, minAnd
     // https://github.com/tgehr/d-compiler/blob/master/vrange.d
-    static SignExtendedNumber minAnd(IntRange lhs, IntRange rhs)
+    static SignExtendedNumber minAnd(const IntRange lhs, const IntRange rhs)
     {
         return ~maxOr(~lhs, ~rhs);
     }
