@@ -2731,6 +2731,8 @@ unsigned dwarf_typidx(type *t)
                 1,                      // child (the subrange type)
                 DW_AT_name,             DW_FORM_string,
                 DW_AT_byte_size,        DW_FORM_data1,
+                DW_AT_type,             DW_FORM_ref4,
+                DW_AT_enum_class,       DW_FORM_flag,
                 0,                      0,
             };
             static unsigned char abbrevTypeEnumMember[] =
@@ -2751,6 +2753,7 @@ unsigned dwarf_typidx(type *t)
             if (s->Stypidx)
                 return s->Stypidx;
 
+#if 0
             if (se->SEflags & SENforward)
             {
                 static unsigned char abbrevTypeEnumForward[] =
@@ -2768,6 +2771,7 @@ unsigned dwarf_typidx(type *t)
                 infobuf->writeByte(1);                  // DW_AT_declaration
                 break;                  // don't set Stypidx
             }
+#endif
 
             Outbuffer abuf;             // for abbrev
             abuf.write(abbrevTypeEnum, sizeof(abbrevTypeEnum));
@@ -2788,21 +2792,24 @@ unsigned dwarf_typidx(type *t)
             abuf.writeByte(0);
             membercode = dwarf_abbrev_code(abuf.buf, abuf.size());
 
+            unsigned tbase_idx = dwarf_typidx(tbase);
             idx = infobuf->size();
             infobuf->writeuLEB128(code);
             infobuf->writeString(s->Sident);    // DW_AT_name
             infobuf->writeByte(sz);             // DW_AT_byte_size
+            infobuf->write32(tbase_idx);        // DW_AT_type
+            infobuf->writeByte(1);              // DW_AT_enum_class
 
             for (sl = s->Senumlist; sl; sl = list_next(sl))
             {   symbol *sf = (symbol *)list_ptr(sl);
-                unsigned long value = el_tolongt(sf->Svalue);
+                targ_llong value = el_tolongt(sf->Svalue);
 
                 infobuf->writeuLEB128(membercode);
                 infobuf->writeString(sf->Sident);
                 if (tyuns(tbase->Tty))
-                    infobuf->writeuLEB128(value);
+                    infobuf->writeuLEB128_(value);
                 else
-                    infobuf->writesLEB128(value);
+                    infobuf->writesLEB128_(value);
             }
 
             infobuf->writeByte(0);              // no more children
