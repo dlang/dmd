@@ -1,0 +1,3 @@
+New compiler switch `-nomoduleinfo`
+
+The `-nomoduleinfo` compiler switch disables the generation of $(LINK2 $(ROOT_DIR)phobos/object.html#.ModuleInfo, `object.ModuleInfo`).

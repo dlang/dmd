@@ -158,6 +158,7 @@ Where:
   "%s" /* placeholder for mscrtlib */ ~ "
   -mv=<package.module>=<filespec>  use <filespec> as source file for <package.module>
   -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
+  -nomoduleinfo    don't generate ModuleInfo
   -O               optimize
   -o-              do not write object file
   -od=<directory>  write object & library files to directory
@@ -1989,6 +1990,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
+            else if (strcmp(p + 1, "nomoduleinfo") == 0) // https://dlang.org/dmd-windows.html#switch-nomoduleinfo
+                params.useModuleInfo = false;
             else if (strcmp(p + 1, "unittest") == 0)
                 params.useUnitTests = true;
             else if (p[1] == 'I') // https://dlang.org/dmd-windows.html#switch-I
