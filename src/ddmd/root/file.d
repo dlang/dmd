@@ -21,8 +21,6 @@ import core.sys.windows.windows;
 import ddmd.root.filename;
 import ddmd.root.rmem;
 
-version (Windows) alias WIN32_FIND_DATAA = WIN32_FIND_DATA;
-
 /***********************************************************
  */
 struct File
