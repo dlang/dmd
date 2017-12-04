@@ -349,3 +349,11 @@ void test15289b()
     uint foo = 50 % arr.length;
 }
 
+void testShiftRightOnNegative()
+{
+    uint[] arr = [1, 2, 3];
+    uint z = 50 / arr.length;
+    int a = -z;
+    uint b;
+    static assert(!__traits(compiles, b = arr.length >> a));
+}
