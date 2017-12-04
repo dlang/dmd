@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
+ * Documentation: $(LINK https://dlang.org/phobos/ddmd_glue.html)
+ * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/glue.d)
  */
 
 module ddmd.glue;
-
-// Online documentation: https://dlang.org/phobos/ddmd_glue.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -181,9 +181,16 @@ void obj_write_deferred(Library library)
 
 /***********************************************
  * Generate function that calls array of functions and gates.
+ * Params:
+ *      m = module symbol (for name mangling purposes)
+ *      sctors = array of functions
+ *      ectorgates = array of gates
+ *      id = identifier string for generator function
+ * Returns:
+ *      function Symbol generated
  */
 
-Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
+private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarations *ectorgates,
         const(char)* id)
 {
     Symbol *sctor = null;
@@ -1249,7 +1256,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 }
             }
         }
-        if (!(f.Fflags3 & Feh_none))
+        if (config.ehmethod == EHmethod.EH_NONE || f.Fflags3 & Feh_none)
+            insertFinallyBlockGotos(f.Fstartblock);
+        else if (config.ehmethod == EHmethod.EH_DWARF)
             insertFinallyBlockCalls(f.Fstartblock);
     }
 

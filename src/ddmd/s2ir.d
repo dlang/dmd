@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
+ * Documentation: $(LINK https://dlang.org/phobos/ddmd_s2ir.html)
+ * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/s2ir.d)
  */
 
 module ddmd.s2ir;
-
-// Online documentation: https://dlang.org/phobos/ddmd_s2ir.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -47,6 +47,8 @@ import ddmd.tocsym;
 import ddmd.toir;
 import ddmd.tokens;
 import ddmd.visitor;
+
+import ddmd.tk.dlist;
 
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
@@ -801,7 +803,8 @@ private extern (C++) class S2irVisitor : Visitor
             bc = BCret;
 
         block *finallyBlock;
-        if ((config.ehmethod != EHmethod.EH_DWARF || irs.isNothrow()) &&
+        if (config.ehmethod != EHmethod.EH_DWARF &&
+            !irs.isNothrow() &&
             (finallyBlock = irs.getFinallyBlock()) != null)
         {
             assert(finallyBlock.BC == BC_finally);
@@ -1346,6 +1349,47 @@ private extern (C++) class S2irVisitor : Visitor
 
             block_next(blx,BC_ret,breakblock);
         }
+        else if (config.ehmethod == EHmethod.EH_NONE || blx.funcsym.Sfunc.Fflags3 & Feh_none)
+        {
+            /* Build this:
+             *  BCgoto     [BC_try]
+             *  BC_try     [body] [BC_finally]
+             *  body
+             *  BCgoto     [breakblock]
+             *  BC_finally [BC_lpad] [finalbody] [breakblock]
+             *  BC_lpad    [finalbody]
+             *  finalbody
+             *  BCgoto     [BC_ret]
+             *  BC_ret
+             *  breakblock
+             */
+            blx.curblock.appendSucc(breakblock);
+            block_next(blx,BCgoto,finallyblock);
+
+            block *landingPad = block_goto(blx,BC_finally,null);
+            block_goto(blx,BC_lpad,null);               // lpad is [0]
+            finallyblock.appendSucc(blx.curblock);    // start of finalybody is [1]
+            finallyblock.appendSucc(breakblock);       // breakblock is [2]
+
+            /* Declare flag variable
+             */
+            Symbol *sflag = symbol_name("__flag", SCauto, tstypes[TYint]);
+            symbol_add(sflag);
+            finallyblock.flag = sflag;
+            finallyblock.b_ret = retblock;
+            assert(!finallyblock.Belem);
+
+            landingPad.Belem = el_bin(OPeq, TYvoid, el_var(sflag), el_long(TYint, 0)); // __flag = 0;
+
+            IRState finallyState = IRState(irs, s);
+
+            setScopeIndex(blx, blx.curblock, previndex);
+            if (s.finalbody)
+                Statement_toIR(s.finalbody, &finallyState);
+            block_goto(blx, BCgoto, retblock);
+
+            block_next(blx,BC_ret,breakblock);
+        }
         else
         {
             block_goto(blx,BCgoto, breakblock);
@@ -1544,21 +1588,22 @@ void Statement_toIR(Statement s, IRState *irs)
 
 void insertFinallyBlockCalls(block *startblock)
 {
-    if (config.ehmethod != EHmethod.EH_DWARF)
-        return;
-
     int flagvalue = 0;          // 0 is forunwind_resume
     block *bcret = null;
 
     block *bcretexp = null;
     Symbol *stmp;
 
-    version (none)
+    enum log = false;
+
+    static if (log)
     {
         printf("------- before ----------\n");
+        numberBlocks(startblock);
         for (block *b = startblock; b; b = b.Bnext) WRblock(b);
         printf("-------------------------\n");
     }
+
     block **pb;
     block **pbnext;
     for (pb = &startblock; *pb; pb = pbnext)
@@ -1710,10 +1755,73 @@ void insertFinallyBlockCalls(block *startblock)
     if (bcretexp)
         *pb = bcretexp;
 
-    version (none)
+    static if (log)
     {
         printf("------- after ----------\n");
+        numberBlocks(startblock);
         for (block *b = startblock; b; b = b.Bnext) WRblock(b);
         printf("-------------------------\n");
     }
 }
+
+/***************************************************
+ * Insert gotos to finally blocks when doing a return or goto from
+ * inside a try block to outside.
+ * Done after blocks are generated because then we know all
+ * the edges of the graph, but before the Bpred's are computed.
+ * Only for functions with no exception handling.
+ * Very similar to insertFinallyBlockCalls().
+ * Params:
+ *      startblock = first block in function
+ */
+
+void insertFinallyBlockGotos(block *startblock)
+{
+    enum log = false;
+
+    // Insert all the goto's
+    insertFinallyBlockCalls(startblock);
+
+    /* Remove all the BC_try, BC_finally, BC_lpad and BC_ret
+     * blocks.
+     * Actually, just make them into no-ops and let the optimizer
+     * delete them.
+     */
+    for (block *b = startblock; b; b = b.Bnext)
+    {
+        b.Btry = null;
+        switch (b.BC)
+        {
+            case BC_try:
+                b.BC = BCgoto;
+                list_subtract(&b.Bsucc, b.nthSucc(1));
+                break;
+
+            case BC_finally:
+                b.BC = BCgoto;
+                list_subtract(&b.Bsucc, b.nthSucc(2));
+                list_subtract(&b.Bsucc, b.nthSucc(0));
+                break;
+
+            case BC_lpad:
+                b.BC = BCgoto;
+                break;
+
+            case BC_ret:
+                b.BC = BCexit;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    static if (log)
+    {
+        printf("------- after ----------\n");
+        numberBlocks(startblock);
+        for (block *b = startblock; b; b = b.Bnext) WRblock(b);
+        printf("-------------------------\n");
+    }
+}
+
