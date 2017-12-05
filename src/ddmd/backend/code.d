@@ -16,6 +16,7 @@ module ddmd.backend.code;
 import ddmd.backend.cc;
 import ddmd.backend.cdef;
 import ddmd.backend.code_x86;
+import ddmd.backend.el : elem;
 import ddmd.backend.outbuf;
 import ddmd.backend.type;
 

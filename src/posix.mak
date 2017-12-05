@@ -225,7 +225,7 @@ CXXFLAGS += \
 endif
 DFLAGS := -version=MARS $(PIC)
 # Enable D warnings
-DFLAGS += -wi
+DFLAGS += -w -de
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1

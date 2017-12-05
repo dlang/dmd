@@ -149,7 +149,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
 
                 const name = &string_tab[sym.st_name];
                 //printf("sym st_name = x%x\n", sym.st_name);
-                const pend = memchr(name, 0, string_tab.length - sym.st_name);
+                const pend = cast(const(char*)) memchr(name, 0, string_tab.length - sym.st_name);
                 if (!pend)       // if didn't find terminating 0 inside the string section
                     return corrupt(__LINE__);
                 pAddSymbol(name[0 .. pend - name], 1);
