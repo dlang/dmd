@@ -353,7 +353,9 @@ else
 	BACK_OBJS += elfobj.o
 endif
 
-SRC = $(addprefix $D/, win32.mak posix.mak osmodel.mak aggregate.h aliasthis.h arraytypes.h	\
+SRC_MAKE = posix.mak osmodel.mak
+
+SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	import.h init.h intrange.h json.h \
@@ -368,8 +370,8 @@ ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
 
 GLUE_SRC = \
 	$(addprefix $D/, \
-	toelfdebug.d libelf.d scanelf.d libmach.d scanmach.d \
-	tk.c gluestub.d objc_glue.d)
+	libelf.d scanelf.d libmach.d scanmach.d \
+	objc_glue.d)
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \
@@ -427,16 +429,16 @@ toolchain-info:
 	@echo '==== Toolchain Information ===='
 	@echo
 
-$G/glue.a: $(G_GLUE_OBJS)
+$G/glue.a: $(G_GLUE_OBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_GLUE_OBJS)
 
-$G/backend.a: $(G_OBJS)
+$G/backend.a: $(G_OBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_OBJS)
 
-$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH)
+$G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
-$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH)
+$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH) $(SRC_MAKE)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
 
 parser_test: $G/parser.a $(EX)/test_parser.d $(HOST_DMD_PATH)
@@ -492,7 +494,7 @@ endef
 
 export DEFAULT_DMD_CONF
 
-$G/dmd.conf:
+$G/dmd.conf: $(SRC_MAKE)
 	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## generate a default dmd.conf (for compatibility)
@@ -555,15 +557,15 @@ var.o: $G/optab.c $G/tytab.c
 
 -include $(DEPS)
 
-$(G_OBJS): $G/%.o: $C/%.c posix.mak $(optabgen_files)
+$(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
-$(G_GLUE_OBJS): $G/%.o: $D/%.c posix.mak $(optabgen_files)
+$(G_GLUE_OBJS): $G/%.o: $D/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  GLUE_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
-$G/newdelete.o: $G/%.o: $(ROOT)/%.c posix.mak
+$G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
