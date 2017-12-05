@@ -21,6 +21,7 @@ clean:
 	$(RM) tags
 
 test:
+	echo $(MODEL)
 	$(QUIET)$(MAKE) -C test -f Makefile
 
 html:

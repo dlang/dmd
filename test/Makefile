@@ -86,6 +86,10 @@ include ../src/osmodel.mak
 
 export OS
 
+GENERATED=../generated
+BUILD=release
+G=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
+
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
 else ifeq (netbsd,$(OS))
@@ -112,7 +116,7 @@ export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
 export ARGS=-inline -release -g -O -fPIC
-export DMD=../src/dmd
+export DMD=$G/dmd
 export EXE=
 export OBJ=.o
 export DSEP=/
@@ -122,9 +126,9 @@ DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
 # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 ifeq (1,$(SHARED))
-DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 endif
 export DFLAGS
 endif
