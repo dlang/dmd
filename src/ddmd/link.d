@@ -951,7 +951,7 @@ version (Windows)
         }
 
         /**
-         * retreive options to be passed to the Micrsoft linker
+         * retrieve options to be passed to the Microsoft linker
          * Params:
          *   x64 = target architecture (x86 if false)
          * Returns:
@@ -994,7 +994,7 @@ version (Windows)
         }
 
         /**
-         * retreive path to the Micrsoft linker executable
+         * retrieve path to the Microsoft linker executable
          * also modifies PATH environment variable if necessary to find conditionally loaded DLLs
          * Params:
          *   x64 = target architecture (x86 if false)
@@ -1240,7 +1240,8 @@ version (Windows)
             {
                 const(char)* arch = x64 ? "x64" : "x86";
                 auto sdk = FileName.combine(WindowsSdkDir, "lib");
-                if (FileName.exists(FileName.buildPath(sdk, WindowsSdkVersion, "um", arch, "kernel32.lib"))) // SDK 10.0
+                if (WindowsSdkVersion &&
+                    FileName.exists(FileName.buildPath(sdk, WindowsSdkVersion, "um", arch, "kernel32.lib"))) // SDK 10.0
                     return FileName.buildPath(sdk, WindowsSdkVersion, "um", arch);
                 else if (FileName.exists(FileName.buildPath(sdk, r"win8\um", arch, "kernel32.lib"))) // SDK 8.0
                     return FileName.buildPath(sdk, r"win8\um", arch);
@@ -1277,8 +1278,9 @@ version (Windows)
                         }
             }
             while(FindNextFileA(h, &fileinfo));
-            FindClose(h);
 
+            if (!FindClose(h))
+                res = null;
             return res;
         }
 
@@ -1301,7 +1303,7 @@ version (Windows)
             else
                 enum prefix = r"SOFTWARE\";
 
-            char regPath[260] = void;
+            char[260] regPath = void;
             const len = strlen(softwareKeyPath);
             assert(len + prefix.length < regPath.length);
 
