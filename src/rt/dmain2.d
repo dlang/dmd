@@ -486,12 +486,17 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         {
             auto utResult = runModuleUnitTests();
             assert(utResult.passed <= utResult.executed);
-            if(utResult.passed == utResult.executed)
+            if (utResult.passed == utResult.executed)
             {
-
                 if (utResult.summarize)
-                    .fprintf(.stderr, "%d unittests passed\n", cast(int)utResult.passed);
-                if(utResult.runMain)
+                {
+                    if (utResult.passed == 0)
+                        .fprintf(.stderr, "No unittests run\n");
+                    else
+                        .fprintf(.stderr, "%d unittests passed\n",
+                                 cast(int)utResult.passed);
+                }
+                if (utResult.runMain)
                     tryExec({ result = mainFunc(args); });
                 else
                     result = EXIT_SUCCESS;
@@ -499,7 +504,9 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
             else
             {
                 if (utResult.summarize)
-                    .fprintf(.stderr, "%d/%d unittests FAILED\n", cast(int)(utResult.executed - utResult.passed), cast(int)utResult.executed);
+                    .fprintf(.stderr, "%d/%d unittests FAILED\n",
+                             cast(int)(utResult.executed - utResult.passed),
+                             cast(int)utResult.executed);
                 result = EXIT_FAILURE;
             }
         }

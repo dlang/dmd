@@ -11,7 +11,7 @@ UnitTestResult customModuleUnitTester()
 
 shared static this()
 {
-    Runtime.extModuleUnitTester = &customModuleUnitTester;
+    Runtime.extendedModuleUnitTester = &customModuleUnitTester;
 }
 
 void main()

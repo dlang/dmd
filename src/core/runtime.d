@@ -367,11 +367,11 @@ struct Runtime
      *
      * Example:
      * ---------
-     * version (unittest) shared static this()
+     * shared static this()
      * {
      *     import core.runtime;
      *
-     *     Runtime.extModuleUnitTester = &customModuleUnitTester;
+     *     Runtime.extendedModuleUnitTester = &customModuleUnitTester;
      * }
      *
      * UnitTestResult customModuleUnitTester()
@@ -403,15 +403,21 @@ struct Runtime
      *             }
      *         }
      *     }
-     *     if(result.executed != result.passed)
+     *     if (result.executed != result.passed)
+     *     {
+     *         result.runMain = false;  // don't run main
      *         result.summarize = true; // print failure
+     *     }
      *     else
-     *         result.runMain = true; // all UT passed
+     *     {
+     *         result.runMain = true;    // all UT passed
+     *         result.summarize = false; // be quiet about it.
+     *     }
      *     return result;
      * }
      * ---------
      */
-    static @property void extModuleUnitTester( ExtendedModuleUnitTester h )
+    static @property void extendedModuleUnitTester( ExtendedModuleUnitTester h )
     {
         sm_extModuleUnitTester = h;
     }
@@ -434,7 +440,6 @@ struct Runtime
      *  The current legacy module unit tester handler or null if none has been
      *  set.
      */
-
     static @property ModuleUnitTester moduleUnitTester()
     {
         return sm_moduleUnitTester;
@@ -450,8 +455,7 @@ struct Runtime
      *  The current  module unit tester handler or null if none has been
      *  set.
      */
-
-    static @property ExtendedModuleUnitTester extModuleUnitTester()
+    static @property ExtendedModuleUnitTester extendedModuleUnitTester()
     {
         return sm_extModuleUnitTester;
     }
