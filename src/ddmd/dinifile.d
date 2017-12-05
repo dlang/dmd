@@ -113,7 +113,7 @@ const(char)* readFromEnv(StringTable* environment, const(char)* name)
 {
     const len = strlen(name);
     auto sv = environment.lookup(name, len);
-    if (sv)
+    if (sv && sv.ptrvalue)
         return cast(const(char)*)sv.ptrvalue; // get cached value
     return getenv(name);
 }
@@ -143,6 +143,8 @@ void updateRealEnvironment(StringTable* environment)
         const name = sv.toDchars();
         const namelen = strlen(name);
         const value = cast(const(char)*)sv.ptrvalue;
+        if (!value) // deleted?
+            return 0;
         const valuelen = strlen(value);
         auto s = cast(char*)malloc(namelen + 1 + valuelen + 1);
         assert(s);

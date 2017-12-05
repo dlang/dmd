@@ -319,6 +319,13 @@ nothrow:
         return f;
     }
 
+    static const(char)* buildPath(const(char)* path, const(char)*[] names...)
+    {
+        foreach (const(char)* name; names)
+            path = combine(path, name);
+        return path;
+    }
+
     // Split a path into an Array of paths
     extern (C++) static Strings* splitPath(const(char)* path)
     {

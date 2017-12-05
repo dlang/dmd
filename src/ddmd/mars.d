@@ -340,6 +340,11 @@ private int tryMain(size_t argc, const(char)** argv)
     arch = parse_arch_arg(&arguments, arch);
     arch = parse_arch_arg(&dflags, arch);
     bool is64bit = arch[0] == '6';
+
+    version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
+        if (is64bit || strcmp(arch, "32mscoff") == 0)
+            environment.update("LIB", 3).ptrvalue = null;
+
     char[80] envsection;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
