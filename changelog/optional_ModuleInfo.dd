@@ -1,0 +1,11 @@
+Optional `ModuleInfo`
+
+$(LINK2 $(ROOT_DIR)phobos/object.html#.ModuleInfo, `ModuleInfo`) is not a necessary feature of D.  There are use cases where the program author may choose to provide an alternate implementation of the D runtime that does not include `ModuleInfo`.  This could be for interoperability with other software or to reduce the footprint of D programs in resource constrained platforms.
+
+Prior to this release, the compiler would emit an error if `ModuleInfo` was not declared in the D runtime.
+
+Platform support is provided by the D runtime. `ModuleInfo` is declared in object.d. Therefore, the compiler can see, at compile-time, whether or not the platform has provided support for `ModuleInfo` and generate object code accordingly.
+
+Starting with this release, if `ModuleInfo` is not delared in the D runtime, the compiler will simply not generate `ModuleInfo` instances.
+
+This should reduce friction for those wishing to incrementally port D to new platforms and use D in a more pay-as-you-go fashion.
