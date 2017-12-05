@@ -36,7 +36,7 @@ extern (C++) bool isTrivialExp(Expression e)
 {
     extern (C++) final class IsTrivialExp : StoppableVisitor
     {
-        alias visit = StoppableVisitor.visit;
+        alias visit = super.visit;
     public:
         extern (D) this()
         {
@@ -69,7 +69,7 @@ extern (C++) bool hasSideEffect(Expression e)
 {
     extern (C++) final class LambdaHasSideEffect : StoppableVisitor
     {
-        alias visit = StoppableVisitor.visit;
+        alias visit = super.visit;
     public:
         extern (D) this()
         {

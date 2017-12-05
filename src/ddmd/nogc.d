@@ -29,7 +29,7 @@ import ddmd.visitor;
  */
 extern (C++) final class NOGCVisitor : StoppableVisitor
 {
-    alias visit = StoppableVisitor.visit;
+    alias visit = super.visit;
 public:
     FuncDeclaration f;
     bool err;

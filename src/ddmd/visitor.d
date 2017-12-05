@@ -25,8 +25,8 @@ extern (C++) class GenericVisitor(AST) : ParseTimeVisitor!AST
     void visit(AST.PeelStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.UnrolledLoopStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.SwitchErrorStatement s) { visit(cast(AST.Statement)s); }
-    void visit(AST.DebugStatement s) { visit(cast(AST.DebugStatement)s); }
-    void visit(AST.DtorExpStatement s) { visit(cast(AST.DtorExpStatement)s); }
+    void visit(AST.DebugStatement s) { visit(cast(AST.Statement)s); }
+    void visit(AST.DtorExpStatement s) { visit(cast(AST.ExpStatement)s); }
     void visit(AST.ForwardingStatement s)
     {
         if(s.statement)
@@ -37,7 +37,7 @@ extern (C++) class GenericVisitor(AST) : ParseTimeVisitor!AST
     void visit(AST.WithScopeSymbol s) { visit(cast(AST.ScopeDsymbol)s); }
     void visit(AST.ArrayScopeSymbol s) { visit(cast(AST.ScopeDsymbol)s); }
     void visit(AST.OverDeclaration s) { visit(cast(AST.Declaration)s); }
-    void visit(AST.SymbolDeclaration s) { visit(cast(AST.SymbolDeclaration)s); }
+    void visit(AST.SymbolDeclaration s) { visit(cast(AST.Declaration)s); }
     void visit(AST.ThisDeclaration s) { visit(cast(AST.VarDeclaration)s); }
     void visit(AST.TypeInfoDeclaration s) { visit(cast(AST.VarDeclaration)s); }
     void visit(AST.TypeInfoStructDeclaration s) { visit(cast(AST.TypeInfoDeclaration)s); }

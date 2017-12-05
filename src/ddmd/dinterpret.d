@@ -262,7 +262,7 @@ struct CompiledCtfeFunction
     {
         extern (C++) final class VarWalker : StoppableVisitor
         {
-            alias visit = StoppableVisitor.visit;
+            alias visit = super.visit;
         public:
             CompiledCtfeFunction* ccf;
 

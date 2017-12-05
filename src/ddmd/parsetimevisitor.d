@@ -15,7 +15,6 @@ extern(C++) class ParseTimeVisitor(AST)
     void visit(AST.Expression) { assert(0); }
     void visit(AST.TemplateParameter) { assert(0); }
     void visit(AST.Condition) { assert(0); }
-//    void visit(AST.StaticForeach) { assert(0); }
     void visit(AST.Initializer) { assert(0); }
 
     //=======================================================================================
@@ -69,12 +68,12 @@ extern(C++) class ParseTimeVisitor(AST)
     void visit(AST.PragmaDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.StorageClassDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
     void visit(AST.ConditionalDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
+    void visit(AST.StaticForeachDeclaration s) { visit(cast(AST.AttribDeclaration)s); }
 
     //==============================================================================================
     // Miscellaneous
     void visit(AST.DeprecatedDeclaration s) { visit(cast(AST.StorageClassDeclaration)s); }
     void visit(AST.StaticIfDeclaration s) { visit(cast(AST.ConditionalDeclaration)s); }
-    void visit(AST.StaticForeachDeclaration s) { visit(cast(AST.ConditionalDeclaration)s); }
     void visit(AST.EnumMember s) { visit(cast(AST.VarDeclaration)s); }
     void visit(AST.Module s) { visit(cast(AST.Package)s); }
     void visit(AST.StructDeclaration s) { visit(cast(AST.AggregateDeclaration)s); }
