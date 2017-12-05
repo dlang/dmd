@@ -1,4 +1,4 @@
-/* Copyright (C) 1986-2012 by Digital Mars              */
+/* Copyright (C) 1986-2012 by The D Language Foundation     */
 /* Written by Walter Bright                             */
 /* Bit vector package                                   */
 

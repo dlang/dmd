@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by Digital Mars, All Rights Reserved
+ *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/cdef.h, backend/cdef.h)
@@ -599,18 +599,18 @@ typedef int             SYMIDX;         // symbol table index
 #ifndef COPYRIGHT_SYMBOL
 #define COPYRIGHT_SYMBOL "\xA9"
 #endif
-#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 Digital Mars"
+#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001-2017 The D Language Foundation"
 #else
 #ifdef DEBUG
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) The D Language Foundation 2000-2017.  All Rights Reserved.\n\
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
 #if __linux__
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) The D Language Foundation 2000-2017.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2016.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) The D Language Foundation Mars 2000-2017.  All Rights Reserved.\n\
 Written by Walter Bright"
 #endif
 #endif

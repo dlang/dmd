@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by Digital Mars
+ * Copyright (c) 2013-2014 by The D Language Foundation
  * All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
