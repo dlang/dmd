@@ -85,6 +85,7 @@ endif
 include ../src/osmodel.mak
 
 export OS
+BUILD=release
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
@@ -100,7 +101,6 @@ export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O
-export DMD=../src/dmd.exe
 export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
@@ -110,21 +110,40 @@ DRUNTIME_PATH=..\..\druntime
 PHOBOS_PATH=..\..\phobos
 export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
+
+# auto-tester might run the testsuite with a different $(MODEL) than DMD
+# has been compiled with. Hence we manually check which binary exists.
+# For windows the $(OS) during build is: `windows`
+ifeq (,$(wildcard ../generated/windows/$(BUILD)/64/dmd$(EXE)))
+DMD_MODEL=32
+else
+DMD_MODEL=64
+endif
+export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
+
 else
 export ARGS=-inline -release -g -O -fPIC
-export DMD=../src/dmd
 export EXE=
 export OBJ=.o
 export DSEP=/
 export SEP=/
 
+# auto-tester might run the testsuite with a different $(MODEL) than DMD
+# has been compiled with. Hence we manually check which binary exists.
+ifeq (,$(wildcard ../generated/$(OS)/$(BUILD)/64/dmd))
+DMD_MODEL=32
+else
+DMD_MODEL=64
+endif
+export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
+
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
 # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 ifeq (1,$(SHARED))
-DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 endif
 export DFLAGS
 endif
