@@ -240,7 +240,7 @@ $(SECTION2 $(LEGACY_LNAME2 COM-Interfaces, com-interfaces, COM Interfaces),
 
     $(UL
     $(LI It derives from the interface $(D core.stdc.windows.com.IUnknown).)
-    $(LI It cannot be the argument of a $(I DeleteExpression).)
+    $(LI It cannot be the argument to $(REF1 destroy, object).)
     $(LI References cannot be upcast to the enclosing class object, nor
     can they be downcast to a derived interface. To accomplish this,
     an appropriate $(D QueryInterface()) would have to be implemented
@@ -328,7 +328,7 @@ class Ifoo
     )
 
     $(UL
-    $(LI It cannot be the argument of a $(I DeleteExpression).)
+    $(LI It cannot be the argument to $(REF1 destroy, object).)
     $(LI References cannot be upcast to the enclosing class object, nor
     can they be downcast to a derived interface.)
     $(LI The C++ calling convention is the default convention
