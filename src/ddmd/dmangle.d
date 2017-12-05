@@ -167,7 +167,7 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
 
 private extern (C++) final class Mangler : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
     AA* types;

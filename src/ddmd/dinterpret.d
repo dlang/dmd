@@ -262,7 +262,7 @@ struct CompiledCtfeFunction
     {
         extern (C++) final class VarWalker : StoppableVisitor
         {
-            alias visit = super.visit;
+            alias visit = StoppableVisitor.visit;
         public:
             CompiledCtfeFunction* ccf;
 
@@ -342,7 +342,7 @@ struct CompiledCtfeFunction
 
 private extern (C++) final class CtfeCompiler : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     CompiledCtfeFunction* ccf;
 
@@ -1055,7 +1055,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
 
 private extern (C++) final class Interpreter : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     InterState* istate;
     CtfeGoal goal;

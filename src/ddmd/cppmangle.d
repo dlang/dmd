@@ -76,7 +76,7 @@ const(char)* cppTypeInfoMangleItanium(Dsymbol s)
 
 private final class CppMangleVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
     Objects components;         // array of components available for substitution
     OutBuffer* buf;             // append the mangling to buf[]
     Loc loc;                    // location for use in error messages

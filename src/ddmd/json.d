@@ -36,7 +36,7 @@ import ddmd.visitor;
 
 private extern (C++) final class ToJsonVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     OutBuffer* buf;
     int indentLevel;

@@ -3171,7 +3171,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 {
     extern (C++) final class DeduceType : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         Scope* sc;
         Type tparam;
@@ -4607,7 +4607,7 @@ bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 
 {
     extern (C++) final class ReliesOnTident : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         TemplateParameters* tparams;
         size_t iStart;

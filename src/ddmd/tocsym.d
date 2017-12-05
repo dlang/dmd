@@ -112,7 +112,7 @@ Symbol *toSymbol(Dsymbol s)
 {
     extern (C++) static final class ToSymbol : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
 
         Symbol *result;
 

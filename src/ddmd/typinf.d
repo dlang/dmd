@@ -120,7 +120,7 @@ extern (C++) bool isSpeculativeType(Type t)
 {
     extern (C++) final class SpeculativeTypeVisitor : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         bool result;
 

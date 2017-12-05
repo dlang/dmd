@@ -1164,7 +1164,7 @@ private Module loadStdMath()
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Scope* sc;
     Expression result;

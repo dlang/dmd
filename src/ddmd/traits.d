@@ -184,7 +184,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
 
     extern (C++) final class PointerBitmapVisitor : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         extern (D) this(Array!(d_uns64)* _data, d_uns64 _sz_size_t)
         {

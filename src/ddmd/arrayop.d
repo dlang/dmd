@@ -178,7 +178,7 @@ extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Express
 {
     extern (C++) final class BuildArrayOpVisitor : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
         Scope* sc;
         Objects* tiargs;
         Expressions* args;

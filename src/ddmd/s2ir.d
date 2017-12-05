@@ -173,7 +173,7 @@ private extern (C++) class S2irVisitor : Visitor
         this.irs = irs;
     }
 
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     /****************************************
      * This should be overridden by each statement class.

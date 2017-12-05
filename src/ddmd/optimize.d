@@ -193,7 +193,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
 {
     extern (C++) final class OptimizeVisitor : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         int result;
         bool keepLvalue;

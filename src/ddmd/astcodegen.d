@@ -28,6 +28,7 @@ struct ASTCodegen
     import ddmd.statement;
     import ddmd.staticassert;
     import ddmd.typesem;
+    import ddmd.ctfeexpr;
 
     alias initializerToExpression   = ddmd.initsem.initializerToExpression;
     alias typeToExpression          = ddmd.typesem.typeToExpression;

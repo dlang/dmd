@@ -2,23 +2,22 @@ module ddmd.permissivevisitor;
 
 // Online documentation: https://dlang.org/phobos/ddmd_permissivevisitor.html
 
-import ddmd.astbase;
-import ddmd.astbasevisitor;
+import ddmd.parsetimevisitor;
 
 /** PermissiveVisitor overrides all the visit methods in  the parent class
   * that assert(0) in order to facilitate the traversal of subsets of the AST.
   * It does not implement any visiting logic.
   */
-class PermissiveVisitor: Visitor
+extern(C++) class PermissiveVisitor(AST): ParseTimeVisitor!AST
 {
-    alias visit = super.visit;
+    alias visit = ParseTimeVisitor!AST.visit;
 
-    override void visit(ASTBase.Dsymbol){}
-    override void visit(ASTBase.Parameter){}
-    override void visit(ASTBase.Statement){}
-    override void visit(ASTBase.Type){}
-    override void visit(ASTBase.Expression){}
-    override void visit(ASTBase.TemplateParameter){}
-    override void visit(ASTBase.Condition){}
-    override void visit(ASTBase.Initializer){}
+    override void visit(AST.Dsymbol){}
+    override void visit(AST.Parameter){}
+    override void visit(AST.Statement){}
+    override void visit(AST.Type){}
+    override void visit(AST.Expression){}
+    override void visit(AST.TemplateParameter){}
+    override void visit(AST.Condition){}
+    override void visit(AST.Initializer){}
 }

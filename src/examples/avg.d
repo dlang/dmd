@@ -16,12 +16,12 @@ import ddmd.identifier;
 import std.stdio;
 import std.file;
 
-class FunctionLengthVisitor : TransitiveVisitor
+extern(C++) class FunctionLengthVisitor(AST) : TransitiveVisitor!AST
 {
-    alias visit = super.visit;
+    alias visit = TransitiveVisitor!AST.visit;
     ulong[] lengths;
 
-    double getAvgLen(ASTBase.Module m)
+    double getAvgLen(AST.Module m)
     {
         m.accept(this);
 
@@ -32,7 +32,7 @@ class FunctionLengthVisitor : TransitiveVisitor
         return double(lengths.sum)/lengths.length;
     }
 
-    override void visitFuncBody(ASTBase.FuncDeclaration fd)
+    override void visitFuncBody(AST.FuncDeclaration fd)
     {
         lengths ~= fd.endloc.linnum - fd.loc.linnum;
         super.visitFuncBody(fd);
@@ -58,6 +58,6 @@ void main()
     p.nextToken();
     m.members = p.parseModule();
 
-    scope visitor = new FunctionLengthVisitor();
+    scope visitor = new FunctionLengthVisitor!ASTBase();
     writeln("Average function length: ", visitor.getAvgLen(m));
 }

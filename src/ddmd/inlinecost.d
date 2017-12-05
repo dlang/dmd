@@ -96,7 +96,7 @@ private:
  */
 extern (C++) final class InlineCostVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     int nested;
     bool hasthis;
@@ -285,7 +285,7 @@ public:
         {
             extern (C++) final class LambdaInlineCost : StoppableVisitor
             {
-                alias visit = super.visit;
+                alias visit = StoppableVisitor.visit;
                 InlineCostVisitor icv;
 
             public:
