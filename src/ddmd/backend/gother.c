@@ -5,8 +5,9 @@
  * Copyright:   Copyright (C) 1986-1998 by Symantec
  *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
- * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c, backend/gother.c)
+ * License:     Distributed under the Boost Software License, Version 1.0.
+ *              http://www.boost.org/LICENSE_1_0.txt
+ * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c
  */
 
 #if (SCPP || MARS) && !HTOD
@@ -219,7 +220,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
         if (op == OPcolon || op == OPcolon2)
         {
                 L = vec_clone(IN);
-                switch (el_returns(n->E1) * 2 | int(el_returns(n->E2)))
+                switch (el_returns(n->E1) * 2 | el_returns(n->E2))
                 {
                     case 3: // E1 and E2 return
                         conpropwalk(n->E1,L);
@@ -1663,10 +1664,9 @@ void deadvar()
             {
                 s->Sflags |= SFLdead;
                 if (s->Sflags & GTregcand)
-                {   if (s->Srange)
-                        vec_clear(s->Srange);
-                    else
-                        s->Srange = vec_calloc(maxblks);
+                {
+                    s->Srange = vec_realloc(s->Srange, maxblks);
+                    vec_clear(s->Srange);
                 }
             }
         }
