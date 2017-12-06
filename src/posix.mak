@@ -298,7 +298,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
 	json lib link mars mtype nogc nspace objc opover optimize parse sapply templateparamsem	\
 	semantic sideeffect statement staticassert target typesem traits parsetimevisitor visitor	\
-	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit asttypename printast))
+	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit printast))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
