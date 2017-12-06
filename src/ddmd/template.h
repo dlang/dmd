@@ -86,7 +86,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     bool overloadInsert(Dsymbol *s);
     bool hasStaticCtorOrDtor();
-    const char *kind();
+    const char *kind() const;
     const char *toChars();
 
     Prot prot();
@@ -308,7 +308,7 @@ public:
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
     Dsymbol *toAlias();                 // resolve real symbol
-    const char *kind();
+    const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     const char *toChars();
     const char* toPrettyCharsHelper();
@@ -345,7 +345,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic2(Scope *sc);
-    const char *kind();
+    const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();

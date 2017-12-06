@@ -40,7 +40,7 @@ public:
     unsigned tag;       // auto incremented tag, used to mask package tree in scopes
     Module *mod;        // != NULL if isPkgMod == PKGmodule
 
-    const char *kind();
+    const char *kind() const;
 
     static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
 
@@ -125,7 +125,7 @@ public:
 
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
-    const char *kind();
+    const char *kind() const;
     File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.

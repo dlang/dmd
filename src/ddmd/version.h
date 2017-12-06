@@ -27,7 +27,7 @@ public:
 
     const char *toChars();
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind();
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -40,7 +40,7 @@ public:
 
     const char *toChars();
     void addMember(Scope *sc, ScopeDsymbol *sds);
-    const char *kind();
+    const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };
 
