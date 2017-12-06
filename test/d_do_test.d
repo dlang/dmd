@@ -647,7 +647,10 @@ int main(string[] args)
                     auto script = test_app_dmd_base ~ to!string(i) ~ ".gdb";
                     toCleanup ~= script;
                     with (File(script, "w"))
+                    {
+                        writeln("set disable-randomization off");
                         write(testArgs.gdbScript);
+                    }
                     string command = "gdb "~test_app_dmd~" --batch -x "~script;
                     auto gdb_output = execute(fThisRun, command, true, result_path);
                     if (testArgs.gdbMatch !is null)
