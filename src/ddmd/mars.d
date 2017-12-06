@@ -128,7 +128,8 @@ Where:
   -debuglib=<name> set symbolic debug library to name
   -defaultlib=<name>
                    set default library to name
-  -deps            print module dependencies (imports/file/version/debug/lib)
+  -deps            analyze and print module dependencies (imports/file/version/debug/lib)
+  -deps-           analyze module dependencies without printing them
   -deps=<filename> write module dependencies to filename (only imports)" ~
   "%s" /* placeholder for fpic */ ~ "
   -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
@@ -905,20 +906,23 @@ Language changes listed by -transition=id:
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlinig stage.
-    if (global.params.moduleDeps)
+    if (global.params.moduleDepsEnabled)
     {
         foreach (i; 1 .. modules[0].aimports.dim)
             semantic3OnDependencies(modules[0].aimports[i]);
 
-        OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile)
+        if(global.params.moduleDepsOut)
         {
-            auto deps = File(global.params.moduleDepsFile);
-            deps.setbuffer(cast(void*)ob.data, ob.offset);
-            writeFile(Loc(), &deps);
+            OutBuffer* ob = global.params.moduleDepsOut;
+            if (global.params.moduleDepsFile)
+            {
+                auto deps = File(global.params.moduleDepsFile);
+                deps.setbuffer(cast(void*)ob.data, ob.offset);
+                writeFile(Loc(), &deps);
+            }
+            else
+                printf("%.*s", cast(int)ob.offset, ob.data);
         }
-        else
-            printf("%.*s", cast(int)ob.offset, ob.data);
     }
 
     printCtfePerformanceStats();
@@ -2111,23 +2115,33 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (memcmp(p + 1, cast(char*)"deps", 4) == 0) // https://dlang.org/dmd-windows.html#switch-deps
             {
-                if (params.moduleDeps)
+                if (params.moduleDepsEnabled)
                 {
-                    error("-deps[=file] can only be provided once!");
+                    error("-deps[=file|-] can only be provided once!");
                     break;
                 }
+
                 if (p[5] == '=')
                 {
                     params.moduleDepsFile = p + 1 + 5;
                     if (!params.moduleDepsFile[0])
                         goto Lnoarg;
                 }
+                else if(p[5] == '-')
+                {
+                    // Special case "-deps-", evaluate dependencies but don't output them
+                    if(p[6] != '\0')
+                        goto Lerror;
+                    goto LskipOutBuffer;
+                }
                 else if (p[5] != '\0')
                 {
                     // Else output to stdout.
                     goto Lerror;
                 }
-                params.moduleDeps = new OutBuffer();
+                params.moduleDepsOut = new OutBuffer();
+            LskipOutBuffer:
+                params.moduleDepsEnabled = true;
             }
             else if (strcmp(p + 1, "main") == 0)        // https://dlang.org/dmd-windows.html#switch-main
             {

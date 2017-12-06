@@ -4291,9 +4291,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (global.params.verbose)
             fprintf(global.stdmsg, "file      %.*s\t(%s)\n", cast(int)se.len, se.string, name);
-        if (global.params.moduleDeps !is null)
+        if (global.params.moduleDepsOut !is null)
         {
-            OutBuffer* ob = global.params.moduleDeps;
+            OutBuffer* ob = global.params.moduleDepsOut;
             Module imod = sc.instantiatingModule();
 
             if (!global.params.moduleDepsFile)

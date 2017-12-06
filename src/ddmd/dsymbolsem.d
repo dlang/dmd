@@ -2783,7 +2783,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // don't list pseudo modules __entrypoint.d, __main.d
         // https://issues.dlang.org/show_bug.cgi?id=11117
         // https://issues.dlang.org/show_bug.cgi?id=11164
-        if (global.params.moduleDeps !is null && !(imp.id == Id.object && sc._module.ident == Id.object) &&
+        if (global.params.moduleDepsOut && !(imp.id == Id.object && sc._module.ident == Id.object) &&
             sc._module.ident != Id.entrypoint &&
             strcmp(sc._module.ident.toChars(), "__main") != 0)
         {
@@ -2799,8 +2799,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              *      FilePath
              *          - any string with '(', ')' and '\' escaped with the '\' character
              */
-            OutBuffer* ob = global.params.moduleDeps;
             Module imod = sc.instantiatingModule();
+            OutBuffer* ob = global.params.moduleDepsOut;
             if (!global.params.moduleDepsFile)
                 ob.writestring("depsImport ");
             ob.writestring(imod.toPrettyChars());
@@ -2968,9 +2968,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 name[se.len] = 0;
                 if (global.params.verbose)
                     fprintf(global.stdmsg, "library   %s\n", name);
-                if (global.params.moduleDeps && !global.params.moduleDepsFile)
+                if (global.params.moduleDepsOut && !global.params.moduleDepsFile)
                 {
-                    OutBuffer* ob = global.params.moduleDeps;
+                    OutBuffer* ob = global.params.moduleDepsOut;
                     Module imod = sc.instantiatingModule();
                     ob.writestring("depsLib ");
                     ob.writestring(imod.toPrettyChars());

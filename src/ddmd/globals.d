@@ -189,8 +189,9 @@ struct Param
     const(char)* debuglibname;          // default library for debug builds
     const(char)* mscrtlib;              // MS C runtime library
 
+    bool moduleDepsEnabled;             // true if compiler is to load all module dependencies
     const(char)* moduleDepsFile;        // filename for deps output
-    OutBuffer* moduleDeps;              // contents to be written to deps file
+    OutBuffer* moduleDepsOut;           // contents to be written to deps file, this can only be set if moduleDepsEnabled is true
 
     // Hidden debug switches
     bool debugb;
