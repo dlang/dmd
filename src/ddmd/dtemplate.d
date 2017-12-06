@@ -3601,19 +3601,31 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     return;
                 }
 
-                size_t nfargs = Parameter.dim(t.parameters);
-                size_t nfparams = Parameter.dim(tp.parameters);
-
-                // https://issues.dlang.org/show_bug.cgi?id=2579
-                // Apply function parameter storage classes to parameter types
-                for (size_t i = 0; i < nfparams; i++)
+                foreach (fparam; *tp.parameters)
                 {
-                    Parameter fparam = Parameter.getNth(tp.parameters, i);
+                    // https://issues.dlang.org/show_bug.cgi?id=2579
+                    // Apply function parameter storage classes to parameter types
                     fparam.type = fparam.type.addStorageClass(fparam.storageClass);
                     fparam.storageClass &= ~(STC_TYPECTOR | STCin);
+
+                    // https://issues.dlang.org/show_bug.cgi?id=15243
+                    // Resolve parameter type if it's not related with template parameters
+                    if (!reliesOnTident(fparam.type, parameters, inferStart))
+                    {
+                        auto tx = fparam.type.typeSemantic(Loc(), sc);
+                        if (tx.ty == Terror)
+                        {
+                            result = MATCH.nomatch;
+                            return;
+                        }
+                        fparam.type = tx;
+                    }
                 }
                 //printf("\t. this   = %d, ", t.ty); t.print();
                 //printf("\t. tparam = %d, ", tparam.ty); tparam.print();
+
+                size_t nfargs = Parameter.dim(t.parameters);
+                size_t nfparams = Parameter.dim(tp.parameters);
 
                 /* See if tuple match
                  */
