@@ -102,8 +102,9 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                     //printf("type %p ty %d deco %p\n", type, type.ty, type.deco);
                     //type = type.typeSemantic(loc, sc);
                     //printf("type %s t %s\n", type.deco, t.deco);
+                    auto ts = Type.toAutoQualChars(e.type, t);
                     e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
-                        e.toChars(), e.type.toChars(), t.toChars());
+                        e.toChars(), ts[0], ts[1]);
                 }
             }
             result = new ErrorExp();
