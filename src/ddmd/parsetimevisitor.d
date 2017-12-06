@@ -8,6 +8,7 @@ module ddmd.parsetimevisitor;
   */
 extern(C++) class ParseTimeVisitor(AST)
 {
+public:
     void visit(AST.Dsymbol) { assert(0); }
     void visit(AST.Parameter) { assert(0); }
     void visit(AST.Statement) { assert(0); }
@@ -54,8 +55,8 @@ extern(C++) class ParseTimeVisitor(AST)
     void visit(AST.DeleteDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.StaticCtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
     void visit(AST.StaticDtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
-    void visit(AST.SharedStaticCtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
-    void visit(AST.SharedStaticDtorDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
+    void visit(AST.SharedStaticCtorDeclaration s) { visit(cast(AST.StaticCtorDeclaration)s); }
+    void visit(AST.SharedStaticDtorDeclaration s) { visit(cast(AST.StaticDtorDeclaration)s); }
 
     // AttribDeclarations
     void visit(AST.CompileDeclaration s) { visit(cast(AST.AttribDeclaration)s); }

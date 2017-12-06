@@ -20,7 +20,7 @@ alias Visitor = GenericVisitor!ASTCodegen;
 extern (C++) class GenericVisitor(AST) : ParseTimeVisitor!AST
 {
     alias visit = ParseTimeVisitor!AST.visit;
-
+public:
     void visit(AST.ErrorStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.PeelStatement s) { visit(cast(AST.Statement)s); }
     void visit(AST.UnrolledLoopStatement s) { visit(cast(AST.Statement)s); }
