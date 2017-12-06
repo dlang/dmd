@@ -64,7 +64,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 {
     extern (C++) final class BlockExit : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         FuncDeclaration func;
         bool mustNotThrow;

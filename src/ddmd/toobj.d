@@ -282,7 +282,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
     //printf("toObjFile(%s)\n", ds.toChars());
     extern (C++) final class ToObjFile : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         bool multiobj;
 

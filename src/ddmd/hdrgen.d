@@ -83,7 +83,7 @@ extern (C++) void genhdrfile(Module m)
 
 extern (C++) final class PrettyPrintVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     OutBuffer* buf;
     HdrGenState* hgs;

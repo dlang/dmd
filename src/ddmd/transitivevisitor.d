@@ -2,7 +2,6 @@ module ddmd.transitivevisitor;
 
 // Online documentation: https://dlang.org/phobos/ddmd_transitivevisitor.html
 
-import ddmd.astbase;
 import ddmd.permissivevisitor;
 import ddmd.tokens;
 
@@ -12,31 +11,31 @@ import core.stdc.stdio;
 
 /** Visitor that implements the AST traversal logic. The nodes just accept their children.
   */
-class TransitiveVisitor : PermissiveVisitor
+extern(C++) class TransitiveVisitor(AST) : PermissiveVisitor!AST
 {
-    alias visit = super.visit;
+    alias visit = PermissiveVisitor!AST.visit;
 
 //   Statement Nodes
 //===========================================================
-    override void visit(ASTBase.ExpStatement s)
+    override void visit(AST.ExpStatement s)
     {
         //printf("Visiting ExpStatement\n");
         if (s.exp && s.exp.op == TOKdeclaration)
         {
-            (cast(ASTBase.DeclarationExp)s.exp).declaration.accept(this);
+            (cast(AST.DeclarationExp)s.exp).declaration.accept(this);
             return;
         }
         if (s.exp)
             s.exp.accept(this);
     }
 
-    override void visit(ASTBase.CompileStatement s)
+    override void visit(AST.CompileStatement s)
     {
         //printf("Visiting CompileStatement\n");
         s.exp.accept(this);
     }
 
-    override void visit(ASTBase.CompoundStatement s)
+    override void visit(AST.CompoundStatement s)
     {
         //printf("Visiting CompoundStatement\n");
         foreach (sx; *s.statements)
@@ -46,7 +45,7 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    void visitVarDecl(ASTBase.VarDeclaration v)
+    void visitVarDecl(AST.VarDeclaration v)
     {
         //printf("Visiting VarDeclaration\n");
         if (v.type)
@@ -55,13 +54,13 @@ class TransitiveVisitor : PermissiveVisitor
         {
             auto ie = v._init.isExpInitializer();
             if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
-                (cast(ASTBase.AssignExp)ie.exp).e2.accept(this);
+                (cast(AST.AssignExp)ie.exp).e2.accept(this);
             else
                 v._init.accept(this);
         }
     }
 
-    override void visit(ASTBase.CompoundDeclarationStatement s)
+    override void visit(AST.CompoundDeclarationStatement s)
     {
         //printf("Visiting CompoundDeclarationStatement\n");
         foreach (sx; *s.statements)
@@ -69,7 +68,7 @@ class TransitiveVisitor : PermissiveVisitor
             auto ds = sx ? sx.isExpStatement() : null;
             if (ds && ds.exp.op == TOKdeclaration)
             {
-                auto d = (cast(ASTBase.DeclarationExp)ds.exp).declaration;
+                auto d = (cast(AST.DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
                 if (auto v = d.isVarDeclaration())
                     visitVarDecl(v);
@@ -79,14 +78,14 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.ScopeStatement s)
+    override void visit(AST.ScopeStatement s)
     {
         //printf("Visiting ScopeStatement\n");
         if (s.statement)
             s.statement.accept(this);
     }
 
-    override void visit(ASTBase.WhileStatement s)
+    override void visit(AST.WhileStatement s)
     {
         //printf("Visiting WhileStatement\n");
         s.condition.accept(this);
@@ -94,7 +93,7 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.DoStatement s)
+    override void visit(AST.DoStatement s)
     {
         //printf("Visiting DoStatement\n");
         if (s._body)
@@ -102,7 +101,7 @@ class TransitiveVisitor : PermissiveVisitor
         s.condition.accept(this);
     }
 
-    override void visit(ASTBase.ForStatement s)
+    override void visit(AST.ForStatement s)
     {
         //printf("Visiting ForStatement\n");
         if (s._init)
@@ -115,7 +114,7 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.ForeachStatement s)
+    override void visit(AST.ForeachStatement s)
     {
         //printf("Visiting ForeachStatement\n");
         foreach (p; *s.parameters)
@@ -126,7 +125,7 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.ForeachRangeStatement s)
+    override void visit(AST.ForeachRangeStatement s)
     {
         //printf("Visiting ForeachRangeStatement\n");
         if (s.prm.type)
@@ -137,7 +136,7 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.IfStatement s)
+    override void visit(AST.IfStatement s)
     {
         //printf("Visiting IfStatement\n");
         if (s.prm && s.prm.type)
@@ -148,7 +147,7 @@ class TransitiveVisitor : PermissiveVisitor
             s.elsebody.accept(this);
     }
 
-    override void visit(ASTBase.ConditionalStatement s)
+    override void visit(AST.ConditionalStatement s)
     {
         //printf("Visiting ConditionalStatement\n");
         s.condition.accept(this);
@@ -158,7 +157,7 @@ class TransitiveVisitor : PermissiveVisitor
             s.elsebody.accept(this);
     }
 
-    void visitArgs(ASTBase.Expressions* expressions, ASTBase.Expression basis = null)
+    void visitArgs(AST.Expressions* expressions, AST.Expression basis = null)
     {
         if (!expressions || !expressions.dim)
             return;
@@ -171,7 +170,7 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.PragmaStatement s)
+    override void visit(AST.PragmaStatement s)
     {
         //printf("Visiting PragmaStatement\n");
         if (s.args && s.args.dim)
@@ -180,13 +179,13 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.StaticAssertStatement s)
+    override void visit(AST.StaticAssertStatement s)
     {
         //printf("Visiting StaticAssertStatement\n");
         s.sa.accept(this);
     }
 
-    override void visit(ASTBase.SwitchStatement s)
+    override void visit(AST.SwitchStatement s)
     {
         //printf("Visiting SwitchStatement\n");
         s.condition.accept(this);
@@ -194,14 +193,14 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.CaseStatement s)
+    override void visit(AST.CaseStatement s)
     {
         //printf("Visiting CaseStatement\n");
         s.exp.accept(this);
         s.statement.accept(this);
     }
 
-    override void visit(ASTBase.CaseRangeStatement s)
+    override void visit(AST.CaseRangeStatement s)
     {
         //printf("Visiting CaseRangeStatement\n");
         s.first.accept(this);
@@ -209,27 +208,27 @@ class TransitiveVisitor : PermissiveVisitor
         s.statement.accept(this);
     }
 
-    override void visit(ASTBase.DefaultStatement s)
+    override void visit(AST.DefaultStatement s)
     {
         //printf("Visiting DefaultStatement\n");
         s.statement.accept(this);
     }
 
-    override void visit(ASTBase.GotoCaseStatement s)
+    override void visit(AST.GotoCaseStatement s)
     {
         //printf("Visiting GotoCaseStatement\n");
         if (s.exp)
             s.exp.accept(this);
     }
 
-    override void visit(ASTBase.ReturnStatement s)
+    override void visit(AST.ReturnStatement s)
     {
         //printf("Visiting ReturnStatement\n");
         if (s.exp)
             s.exp.accept(this);
     }
 
-    override void visit(ASTBase.SynchronizedStatement s)
+    override void visit(AST.SynchronizedStatement s)
     {
         //printf("Visiting SynchronizedStatement\n");
         if (s.exp)
@@ -238,7 +237,7 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.WithStatement s)
+    override void visit(AST.WithStatement s)
     {
         //printf("Visiting WithStatement\n");
         s.exp.accept(this);
@@ -246,7 +245,7 @@ class TransitiveVisitor : PermissiveVisitor
             s._body.accept(this);
     }
 
-    override void visit(ASTBase.TryCatchStatement s)
+    override void visit(AST.TryCatchStatement s)
     {
         //printf("Visiting TryCatchStatement\n");
         if (s._body)
@@ -255,40 +254,40 @@ class TransitiveVisitor : PermissiveVisitor
             visit(c);
     }
 
-    override void visit(ASTBase.TryFinallyStatement s)
+    override void visit(AST.TryFinallyStatement s)
     {
         //printf("Visiting TryFinallyStatement\n");
         s._body.accept(this);
         s.finalbody.accept(this);
     }
 
-    override void visit(ASTBase.OnScopeStatement s)
+    override void visit(AST.OnScopeStatement s)
     {
         //printf("Visiting OnScopeStatement\n");
         s.statement.accept(this);
     }
 
-    override void visit(ASTBase.ThrowStatement s)
+    override void visit(AST.ThrowStatement s)
     {
         //printf("Visiting ThrowStatement\n");
         s.exp.accept(this);
     }
 
-    override void visit(ASTBase.LabelStatement s)
+    override void visit(AST.LabelStatement s)
     {
         //printf("Visiting LabelStatement\n");
         if (s.statement)
             s.statement.accept(this);
     }
 
-    override void visit(ASTBase.ImportStatement s)
+    override void visit(AST.ImportStatement s)
     {
         //printf("Visiting ImportStatement\n");
         foreach (imp; *s.imports)
             imp.accept(this);
     }
 
-    void visit(ASTBase.Catch c)
+    void visit(AST.Catch c)
     {
         //printf("Visiting Catch\n");
         if (c.type)
@@ -300,21 +299,21 @@ class TransitiveVisitor : PermissiveVisitor
 //   Type Nodes
 //============================================================
 
-    void visitType(ASTBase.Type t)
+    void visitType(AST.Type t)
     {
         //printf("Visiting Type\n");
         if (!t)
             return;
-        if (t.ty == ASTBase.Tfunction)
+        if (t.ty == AST.Tfunction)
         {
-            visitFunctionType(cast(ASTBase.TypeFunction)t, null);
+            visitFunctionType(cast(AST.TypeFunction)t, null);
             return;
         }
         else
             t.accept(this);
     }
 
-    void visitFunctionType(ASTBase.TypeFunction t, ASTBase.TemplateDeclaration td)
+    void visitFunctionType(AST.TypeFunction t, AST.TemplateDeclaration td)
     {
         if (t.next)
             visitType(t.next);
@@ -326,20 +325,20 @@ class TransitiveVisitor : PermissiveVisitor
         visitParameters(t.parameters);
     }
 
-    void visitParameters(ASTBase.Parameters* parameters)
+    void visitParameters(AST.Parameters* parameters)
     {
         if (parameters)
         {
-            size_t dim = ASTBase.Parameter.dim(parameters);
+            size_t dim = AST.Parameter.dim(parameters);
             foreach(i; 0..dim)
             {
-                ASTBase.Parameter fparam = ASTBase.Parameter.getNth(parameters, i);
+                AST.Parameter fparam = AST.Parameter.getNth(parameters, i);
                 fparam.accept(this);
             }
         }
     }
 
-    override void visit(ASTBase.TypeVector t)
+    override void visit(AST.TypeVector t)
     {
         //printf("Visiting TypeVector\n");
         if (!t.basetype)
@@ -347,101 +346,101 @@ class TransitiveVisitor : PermissiveVisitor
         t.basetype.accept(this);
     }
 
-    override void visit(ASTBase.TypeSArray t)
+    override void visit(AST.TypeSArray t)
     {
         //printf("Visiting TypeSArray\n");
         t.next.accept(this);
     }
 
-    override void visit(ASTBase.TypeDArray t)
+    override void visit(AST.TypeDArray t)
     {
         //printf("Visiting TypeDArray\n");
         t.next.accept(this);
     }
 
-    override void visit(ASTBase.TypeAArray t)
+    override void visit(AST.TypeAArray t)
     {
         //printf("Visiting TypeAArray\n");
         t.next.accept(this);
         t.index.accept(this);
     }
 
-    override void visit(ASTBase.TypePointer t)
+    override void visit(AST.TypePointer t)
     {
         //printf("Visiting TypePointer\n");
-        if (t.next.ty == ASTBase.Tfunction)
+        if (t.next.ty == AST.Tfunction)
         {
-            visitFunctionType(cast(ASTBase.TypeFunction)t.next, null);
+            visitFunctionType(cast(AST.TypeFunction)t.next, null);
         }
         else
             t.next.accept(this);
     }
 
-    override void visit(ASTBase.TypeReference t)
+    override void visit(AST.TypeReference t)
     {
         //printf("Visiting TypeReference\n");
         t.next.accept(this);
     }
 
-    override void visit(ASTBase.TypeFunction t)
+    override void visit(AST.TypeFunction t)
     {
         //printf("Visiting TypeFunction\n");
         visitFunctionType(t, null);
     }
 
-    override void visit(ASTBase.TypeDelegate t)
+    override void visit(AST.TypeDelegate t)
     {
         //printf("Visiting TypeDelegate\n");
-        visitFunctionType(cast(ASTBase.TypeFunction)t.next, null);
+        visitFunctionType(cast(AST.TypeFunction)t.next, null);
     }
 
-    void visitTypeQualified(ASTBase.TypeQualified t)
+    void visitTypeQualified(AST.TypeQualified t)
     {
         //printf("Visiting TypeQualified\n");
         foreach (id; t.idents)
         {
             if (id.dyncast() == DYNCAST.dsymbol)
-                (cast(ASTBase.TemplateInstance)id).accept(this);
+                (cast(AST.TemplateInstance)id).accept(this);
             else if (id.dyncast() == DYNCAST.expression)
-                (cast(ASTBase.Expression)id).accept(this);
+                (cast(AST.Expression)id).accept(this);
             else if (id.dyncast() == DYNCAST.type)
-                (cast(ASTBase.Type)id).accept(this);
+                (cast(AST.Type)id).accept(this);
         }
     }
 
-    override void visit(ASTBase.TypeIdentifier t)
+    override void visit(AST.TypeIdentifier t)
     {
         //printf("Visiting TypeIdentifier\n");
         visitTypeQualified(t);
     }
 
-    override void visit(ASTBase.TypeInstance t)
+    override void visit(AST.TypeInstance t)
     {
         //printf("Visiting TypeInstance\n");
         t.tempinst.accept(this);
         visitTypeQualified(t);
     }
 
-    override void visit(ASTBase.TypeTypeof t)
+    override void visit(AST.TypeTypeof t)
     {
         //printf("Visiting TypeTypeof\n");
         t.exp.accept(this);
         visitTypeQualified(t);
     }
 
-    override void visit(ASTBase.TypeReturn t)
+    override void visit(AST.TypeReturn t)
     {
         //printf("Visiting TypeReturn\n");
         visitTypeQualified(t);
     }
 
-    override void visit(ASTBase.TypeTuple t)
+    override void visit(AST.TypeTuple t)
     {
         //printf("Visiting TypeTuple\n");
         visitParameters(t.arguments);
     }
 
-    override void visit(ASTBase.TypeSlice t)
+    override void visit(AST.TypeSlice t)
     {
         //printf("Visiting TypeSlice\n");
         t.next.accept(this);
@@ -452,7 +451,7 @@ class TransitiveVisitor : PermissiveVisitor
 //      Miscellaneous
 //========================================================
 
-    override void visit(ASTBase.StaticAssert s)
+    override void visit(AST.StaticAssert s)
     {
         //printf("Visiting StaticAssert\n");
         s.exp.accept(this);
@@ -460,7 +459,7 @@ class TransitiveVisitor : PermissiveVisitor
             s.msg.accept(this);
     }
 
-    override void visit(ASTBase.EnumMember em)
+    override void visit(AST.EnumMember em)
     {
         //printf("Visiting EnumMember\n");
         if (em.type)
@@ -471,71 +470,71 @@ class TransitiveVisitor : PermissiveVisitor
 
 //      Declarations
 //=========================================================
-    void visitAttribDeclaration(ASTBase.AttribDeclaration d)
+    void visitAttribDeclaration(AST.AttribDeclaration d)
     {
         if (d.decl)
             foreach (de; *d.decl)
                 de.accept(this);
     }
 
-    override void visit(ASTBase.AttribDeclaration d)
+    override void visit(AST.AttribDeclaration d)
     {
         //printf("Visiting AttribDeclaration\n");
         visitAttribDeclaration(d);
     }
 
-    override void visit(ASTBase.StorageClassDeclaration d)
+    override void visit(AST.StorageClassDeclaration d)
     {
         //printf("Visiting StorageClassDeclaration\n");
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.DeprecatedDeclaration d)
+    override void visit(AST.DeprecatedDeclaration d)
     {
         //printf("Visiting DeprecatedDeclaration\n");
         d.msg.accept(this);
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.LinkDeclaration d)
+    override void visit(AST.LinkDeclaration d)
     {
         //printf("Visiting LinkDeclaration\n");
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.CPPMangleDeclaration d)
+    override void visit(AST.CPPMangleDeclaration d)
     {
         //printf("Visiting CPPMangleDeclaration\n");
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.ProtDeclaration d)
+    override void visit(AST.ProtDeclaration d)
     {
         //printf("Visiting ProtDeclaration\n");
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.AlignDeclaration d)
+    override void visit(AST.AlignDeclaration d)
     {
         //printf("Visiting AlignDeclaration\n");
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.AnonDeclaration d)
+    override void visit(AST.AnonDeclaration d)
     {
         //printf("Visiting AnonDeclaration\n");
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.PragmaDeclaration d)
+    override void visit(AST.PragmaDeclaration d)
     {
         //printf("Visiting PragmaDeclaration\n");
         if (d.args && d.args.dim)
             visitArgs(d.args);
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    override void visit(ASTBase.ConditionalDeclaration d)
+    override void visit(AST.ConditionalDeclaration d)
     {
         //printf("Visiting ConditionalDeclaration\n");
         d.condition.accept(this);
@@ -547,20 +546,20 @@ class TransitiveVisitor : PermissiveVisitor
                 de.accept(this);
     }
 
-    override void visit(ASTBase.CompileDeclaration d)
+    override void visit(AST.CompileDeclaration d)
     {
         //printf("Visiting compileDeclaration\n");
         d.exp.accept(this);
     }
 
-    override void visit(ASTBase.UserAttributeDeclaration d)
+    override void visit(AST.UserAttributeDeclaration d)
     {
         //printf("Visiting UserAttributeDeclaration\n");
         visitArgs(d.atts);
-        visitAttribDeclaration(cast(ASTBase.AttribDeclaration)d);
+        visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    void visitFuncBody(ASTBase.FuncDeclaration f)
+    void visitFuncBody(AST.FuncDeclaration f)
     {
         //printf("Visiting funcBody\n");
         if (!f.fbody)
@@ -572,7 +571,7 @@ class TransitiveVisitor : PermissiveVisitor
         f.fbody.accept(this);
     }
 
-    void visitBaseClasses(ASTBase.ClassDeclaration d)
+    void visitBaseClasses(AST.ClassDeclaration d)
     {
         //printf("Visiting ClassDeclaration\n");
         if (!d || !d.baseclasses.dim)
@@ -581,19 +580,19 @@ class TransitiveVisitor : PermissiveVisitor
             visitType(b.type);
     }
 
-    bool visitEponymousMember(ASTBase.TemplateDeclaration d)
+    bool visitEponymousMember(AST.TemplateDeclaration d)
     {
         //printf("Visiting EponymousMember\n");
         if (!d.members || d.members.dim != 1)
             return false;
-        ASTBase.Dsymbol onemember = (*d.members)[0];
+        AST.Dsymbol onemember = (*d.members)[0];
         if (onemember.ident != d.ident)
             return false;
 
-        if (ASTBase.FuncDeclaration fd = onemember.isFuncDeclaration())
+        if (AST.FuncDeclaration fd = onemember.isFuncDeclaration())
         {
             assert(fd.type);
-            visitFunctionType(cast(ASTBase.TypeFunction)fd.type, d);
+            visitFunctionType(cast(AST.TypeFunction)fd.type, d);
             if (d.constraint)
                 d.constraint.accept(this);
             visitFuncBody(fd);
@@ -601,7 +600,7 @@ class TransitiveVisitor : PermissiveVisitor
             return true;
         }
 
-        if (ASTBase.AggregateDeclaration ad = onemember.isAggregateDeclaration())
+        if (AST.AggregateDeclaration ad = onemember.isAggregateDeclaration())
         {
             visitTemplateParameters(d.parameters);
             if (d.constraint)
@@ -615,7 +614,7 @@ class TransitiveVisitor : PermissiveVisitor
             return true;
         }
 
-        if (ASTBase.VarDeclaration vd = onemember.isVarDeclaration())
+        if (AST.VarDeclaration vd = onemember.isVarDeclaration())
         {
             if (d.constraint)
                 return false;
@@ -624,9 +623,9 @@ class TransitiveVisitor : PermissiveVisitor
             visitTemplateParameters(d.parameters);
             if (vd._init)
             {
-                ASTBase.ExpInitializer ie = vd._init.isExpInitializer();
+                AST.ExpInitializer ie = vd._init.isExpInitializer();
                 if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
-                    (cast(ASTBase.AssignExp)ie.exp).e2.accept(this);
+                    (cast(AST.AssignExp)ie.exp).e2.accept(this);
                 else
                     vd._init.accept(this);
 
@@ -637,7 +636,7 @@ class TransitiveVisitor : PermissiveVisitor
         return false;
     }
 
-    void visitTemplateParameters(ASTBase.TemplateParameters* parameters)
+    void visitTemplateParameters(AST.TemplateParameters* parameters)
     {
         if (!parameters || !parameters.dim)
             return;
@@ -645,7 +644,7 @@ class TransitiveVisitor : PermissiveVisitor
             p.accept(this);
     }
 
-    override void visit(ASTBase.TemplateDeclaration d)
+    override void visit(AST.TemplateDeclaration d)
     {
         //printf("Visiting TemplateDeclaration\n");
         if (visitEponymousMember(d))
@@ -661,15 +660,15 @@ class TransitiveVisitor : PermissiveVisitor
 
     void visitObject(RootObject oarg)
     {
-        if (auto t = ASTBase.isType(oarg))
+        if (auto t = AST.isType(oarg))
         {
             visitType(t);
         }
-        else if (auto e = ASTBase.isExpression(oarg))
+        else if (auto e = AST.isExpression(oarg))
         {
             e.accept(this);
         }
-        else if (auto v = ASTBase.isTuple(oarg))
+        else if (auto v = AST.isTuple(oarg))
         {
             auto args = &v.objects;
             foreach (arg; *args)
@@ -677,7 +676,7 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    void visitTiargs(ASTBase.TemplateInstance ti)
+    void visitTiargs(AST.TemplateInstance ti)
     {
         //printf("Visiting tiargs\n");
         if (!ti.tiargs)
@@ -688,20 +687,20 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.TemplateInstance ti)
+    override void visit(AST.TemplateInstance ti)
     {
         //printf("Visiting TemplateInstance\n");
         visitTiargs(ti);
     }
 
-    override void visit(ASTBase.TemplateMixin tm)
+    override void visit(AST.TemplateMixin tm)
     {
         //printf("Visiting TemplateMixin\n");
         visitType(tm.tqual);
         visitTiargs(tm);
     }
 
-    override void visit(ASTBase.EnumDeclaration d)
+    override void visit(AST.EnumDeclaration d)
     {
         //printf("Visiting EnumDeclaration\n");
         if (d.memtype)
@@ -716,14 +715,14 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.Nspace d)
+    override void visit(AST.Nspace d)
     {
         //printf("Visiting Nspace\n");
         foreach(s; *d.members)
             s.accept(this);
     }
 
-    override void visit(ASTBase.StructDeclaration d)
+    override void visit(AST.StructDeclaration d)
     {
         //printf("Visiting StructDeclaration\n");
         if (!d.members)
@@ -732,7 +731,7 @@ class TransitiveVisitor : PermissiveVisitor
             s.accept(this);
     }
 
-    override void visit(ASTBase.ClassDeclaration d)
+    override void visit(AST.ClassDeclaration d)
     {
         //printf("Visiting ClassDeclaration\n");
         visitBaseClasses(d);
@@ -741,7 +740,7 @@ class TransitiveVisitor : PermissiveVisitor
                 s.accept(this);
     }
 
-    override void visit(ASTBase.AliasDeclaration d)
+    override void visit(AST.AliasDeclaration d)
     {
         //printf("Visting AliasDeclaration\n");
         if (d.aliassym)
@@ -750,82 +749,82 @@ class TransitiveVisitor : PermissiveVisitor
             visitType(d.type);
     }
 
-    override void visit(ASTBase.VarDeclaration d)
+    override void visit(AST.VarDeclaration d)
     {
         //printf("Visiting VarDeclaration\n");
         visitVarDecl(d);
     }
 
-    override void visit(ASTBase.FuncDeclaration f)
+    override void visit(AST.FuncDeclaration f)
     {
         //printf("Visiting FuncDeclaration\n");
-        auto tf = cast(ASTBase.TypeFunction)f.type;
+        auto tf = cast(AST.TypeFunction)f.type;
         visitType(tf);
         visitFuncBody(f);
     }
 
-    override void visit(ASTBase.FuncLiteralDeclaration f)
+    override void visit(AST.FuncLiteralDeclaration f)
     {
         //printf("Visiting FuncLiteralDeclaration\n");
-        if (f.type.ty == ASTBase.Terror)
+        if (f.type.ty == AST.Terror)
             return;
-        ASTBase.TypeFunction tf = cast(ASTBase.TypeFunction)f.type;
+        AST.TypeFunction tf = cast(AST.TypeFunction)f.type;
         if (!f.inferRetType && tf.next)
             visitType(tf.next);
         visitParameters(tf.parameters);
-        ASTBase.CompoundStatement cs = f.fbody.isCompoundStatement();
-        ASTBase.Statement s = !cs ? f.fbody : null;
-        ASTBase.ReturnStatement rs = s ? s.isReturnStatement() : null;
+        AST.CompoundStatement cs = f.fbody.isCompoundStatement();
+        AST.Statement s = !cs ? f.fbody : null;
+        AST.ReturnStatement rs = s ? s.isReturnStatement() : null;
         if (rs && rs.exp)
             rs.exp.accept(this);
         else
             visitFuncBody(f);
     }
 
-    override void visit(ASTBase.PostBlitDeclaration d)
+    override void visit(AST.PostBlitDeclaration d)
     {
         //printf("Visiting PostBlitDeclaration\n");
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.DtorDeclaration d)
+    override void visit(AST.DtorDeclaration d)
     {
         //printf("Visiting DtorDeclaration\n");
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.StaticCtorDeclaration d)
+    override void visit(AST.StaticCtorDeclaration d)
     {
         //printf("Visiting StaticCtorDeclaration\n");
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.StaticDtorDeclaration d)
+    override void visit(AST.StaticDtorDeclaration d)
     {
         //printf("Visiting StaticDtorDeclaration\n");
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.InvariantDeclaration d)
+    override void visit(AST.InvariantDeclaration d)
     {
         //printf("Visiting InvariantDeclaration\n");
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.UnitTestDeclaration d)
+    override void visit(AST.UnitTestDeclaration d)
     {
         //printf("Visiting UnitTestDeclaration\n");
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.NewDeclaration d)
+    override void visit(AST.NewDeclaration d)
     {
         //printf("Visiting NewDeclaration\n");
         visitParameters(d.parameters);
         visitFuncBody(d);
     }
 
-    override void visit(ASTBase.DeleteDeclaration d)
+    override void visit(AST.DeleteDeclaration d)
     {
         //printf("Visiting DeleteDeclaration\n");
         visitParameters(d.parameters);
@@ -835,7 +834,7 @@ class TransitiveVisitor : PermissiveVisitor
 //   Initializers
 //============================================================
 
-    override void visit(ASTBase.StructInitializer si)
+    override void visit(AST.StructInitializer si)
     {
         //printf("Visiting StructInitializer\n");
         foreach (i, const id; si.field)
@@ -843,7 +842,7 @@ class TransitiveVisitor : PermissiveVisitor
                 iz.accept(this);
     }
 
-    override void visit(ASTBase.ArrayInitializer ai)
+    override void visit(AST.ArrayInitializer ai)
     {
         //printf("Visiting ArrayInitializer\n");
         foreach (i, ex; ai.index)
@@ -855,7 +854,7 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.ExpInitializer ei)
+    override void visit(AST.ExpInitializer ei)
     {
         //printf("Visiting ExpInitializer\n");
         ei.exp.accept(this);
@@ -864,13 +863,13 @@ class TransitiveVisitor : PermissiveVisitor
 //      Expressions
 //===================================================
 
-    override void visit(ASTBase.ArrayLiteralExp e)
+    override void visit(AST.ArrayLiteralExp e)
     {
         //printf("Visiting ArrayLiteralExp\n");
         visitArgs(e.elements, e.basis);
     }
 
-    override void visit(ASTBase.AssocArrayLiteralExp e)
+    override void visit(AST.AssocArrayLiteralExp e)
     {
         //printf("Visiting AssocArrayLiteralExp\n");
         foreach (i, key; *e.keys)
@@ -880,20 +879,20 @@ class TransitiveVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.TypeExp e)
+    override void visit(AST.TypeExp e)
     {
         //printf("Visiting TypeExp\n");
         visitType(e.type);
     }
 
-    override void visit(ASTBase.ScopeExp e)
+    override void visit(AST.ScopeExp e)
     {
         //printf("Visiting ScopeExp\n");
         if (e.sds.isTemplateInstance())
             e.sds.accept(this);
     }
 
-    override void visit(ASTBase.NewExp e)
+    override void visit(AST.NewExp e)
     {
         //printf("Visiting NewExp\n");
         if (e.thisexp)
@@ -905,7 +904,7 @@ class TransitiveVisitor : PermissiveVisitor
             visitArgs(e.arguments);
     }
 
-    override void visit(ASTBase.NewAnonClassExp e)
+    override void visit(AST.NewAnonClassExp e)
     {
         //printf("Visiting NewAnonClassExp\n");
         if (e.thisexp)
@@ -918,7 +917,7 @@ class TransitiveVisitor : PermissiveVisitor
             e.cd.accept(this);
     }
 
-    override void visit(ASTBase.TupleExp e)
+    override void visit(AST.TupleExp e)
     {
         //printf("Visiting TupleExp\n");
         if (e.e0)
@@ -926,13 +925,13 @@ class TransitiveVisitor : PermissiveVisitor
         visitArgs(e.exps);
     }
 
-    override void visit(ASTBase.FuncExp e)
+    override void visit(AST.FuncExp e)
     {
         //printf("Visiting FuncExp\n");
         e.fd.accept(this);
     }
 
-    override void visit(ASTBase.DeclarationExp e)
+    override void visit(AST.DeclarationExp e)
     {
         //printf("Visiting DeclarationExp\n");
         if (auto v = e.declaration.isVarDeclaration())
@@ -941,13 +940,13 @@ class TransitiveVisitor : PermissiveVisitor
             e.declaration.accept(this);
     }
 
-    override void visit(ASTBase.TypeidExp e)
+    override void visit(AST.TypeidExp e)
     {
         //printf("Visiting TypeidExp\n");
         visitObject(e.obj);
     }
 
-    override void visit(ASTBase.TraitsExp e)
+    override void visit(AST.TraitsExp e)
     {
         //printf("Visiting TraitExp\n");
         if (e.args)
@@ -955,7 +954,7 @@ class TransitiveVisitor : PermissiveVisitor
                 visitObject(arg);
     }
 
-    override void visit(ASTBase.IsExp e)
+    override void visit(AST.IsExp e)
     {
         //printf("Visiting IsExp\n");
         visitType(e.targ);
@@ -965,32 +964,32 @@ class TransitiveVisitor : PermissiveVisitor
             visitTemplateParameters(e.parameters);
     }
 
-    override void visit(ASTBase.UnaExp e)
+    override void visit(AST.UnaExp e)
     {
         //printf("Visiting UnaExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.BinExp e)
+    override void visit(AST.BinExp e)
     {
         //printf("Visiting BinExp\n");
         e.e1.accept(this);
         e.e2.accept(this);
     }
 
-    override void visit(ASTBase.CompileExp e)
+    override void visit(AST.CompileExp e)
     {
         //printf("Visiting CompileExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.ImportExp e)
+    override void visit(AST.ImportExp e)
     {
         //printf("Visiting ImportExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.AssertExp e)
+    override void visit(AST.AssertExp e)
     {
         //printf("Visiting AssertExp\n");
         e.e1.accept(this);
@@ -998,39 +997,39 @@ class TransitiveVisitor : PermissiveVisitor
             e.msg.accept(this);
     }
 
-    override void visit(ASTBase.DotIdExp e)
+    override void visit(AST.DotIdExp e)
     {
         //printf("Visiting DotIdExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.DotTemplateInstanceExp e)
+    override void visit(AST.DotTemplateInstanceExp e)
     {
         //printf("Visiting DotTemplateInstanceExp\n");
         e.e1.accept(this);
         e.ti.accept(this);
     }
 
-    override void visit(ASTBase.CallExp e)
+    override void visit(AST.CallExp e)
     {
         //printf("Visiting CallExp\n");
         e.e1.accept(this);
         visitArgs(e.arguments);
     }
 
-    override void visit(ASTBase.PtrExp e)
+    override void visit(AST.PtrExp e)
     {
         //printf("Visiting PtrExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.DeleteExp e)
+    override void visit(AST.DeleteExp e)
     {
         //printf("Visiting DeleteExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.CastExp e)
+    override void visit(AST.CastExp e)
     {
         //printf("Visiting CastExp\n");
         if (e.to)
@@ -1038,33 +1037,33 @@ class TransitiveVisitor : PermissiveVisitor
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.IntervalExp e)
+    override void visit(AST.IntervalExp e)
     {
         //printf("Visiting IntervalExp\n");
         e.lwr.accept(this);
         e.upr.accept(this);
     }
 
-    override void visit(ASTBase.ArrayExp e)
+    override void visit(AST.ArrayExp e)
     {
         //printf("Visiting ArrayExp\n");
         e.e1.accept(this);
         visitArgs(e.arguments);
     }
 
-    override void visit(ASTBase.PostExp e)
+    override void visit(AST.PostExp e)
     {
         //printf("Visiting PostExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.PreExp e)
+    override void visit(AST.PreExp e)
     {
         //printf("Visiting PreExp\n");
         e.e1.accept(this);
     }
 
-    override void visit(ASTBase.CondExp e)
+    override void visit(AST.CondExp e)
     {
         //printf("Visiting CondExp\n");
         e.econd.accept(this);
@@ -1075,7 +1074,7 @@ class TransitiveVisitor : PermissiveVisitor
 // Template Parameter
 //===========================================================
 
-    override void visit(ASTBase.TemplateTypeParameter tp)
+    override void visit(AST.TemplateTypeParameter tp)
     {
         //printf("Visiting TemplateTypeParameter\n");
         if (tp.specType)
@@ -1084,13 +1083,13 @@ class TransitiveVisitor : PermissiveVisitor
             visitType(tp.defaultType);
     }
 
-    override void visit(ASTBase.TemplateThisParameter tp)
+    override void visit(AST.TemplateThisParameter tp)
     {
         //printf("Visiting TemplateThisParameter\n");
-        visit(cast(ASTBase.TemplateTypeParameter)tp);
+        visit(cast(AST.TemplateTypeParameter)tp);
     }
 
-    override void visit(ASTBase.TemplateAliasParameter tp)
+    override void visit(AST.TemplateAliasParameter tp)
     {
         //printf("Visiting TemplateAliasParameter\n");
         if (tp.specType)
@@ -1101,7 +1100,7 @@ class TransitiveVisitor : PermissiveVisitor
             visitObject(tp.defaultAlias);
     }
 
-    override void visit(ASTBase.TemplateValueParameter tp)
+    override void visit(AST.TemplateValueParameter tp)
     {
         //printf("Visiting TemplateValueParameter\n");
         visitType(tp.valType);
@@ -1113,13 +1112,13 @@ class TransitiveVisitor : PermissiveVisitor
 
 //===========================================================
 
-    override void visit(ASTBase.StaticIfCondition c)
+    override void visit(AST.StaticIfCondition c)
     {
         //printf("Visiting StaticIfCondition\n");
         c.exp.accept(this);
     }
 
-    override void visit(ASTBase.Parameter p)
+    override void visit(AST.Parameter p)
     {
         //printf("Visiting Parameter\n");
         visitType(p.type);
@@ -1127,7 +1126,7 @@ class TransitiveVisitor : PermissiveVisitor
             p.defaultArg.accept(this);
     }
 
-    override void visit(ASTBase.Module m)
+    override void visit(AST.Module m)
     {
         //printf("Visiting Module\n");
         foreach (s; *m.members)

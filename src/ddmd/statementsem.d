@@ -131,7 +131,7 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
 
 private extern (C++) final class StatementSemanticVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Statement result;
     Scope* sc;

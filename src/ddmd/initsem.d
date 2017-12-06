@@ -91,7 +91,7 @@ extern(C++) Initializer initializerSemantic(Initializer init, Scope* sc, Type t,
 
 private extern(C++) final class InitializerSemanticVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Initializer result;
     Scope* sc;
@@ -541,7 +541,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
 
 private extern(C++) final class InferTypeVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Initializer result;
     Scope* sc;
@@ -705,7 +705,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
 
 private extern(C++) final class InitToExpressionVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Expression result;
     Type itype;

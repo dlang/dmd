@@ -2,7 +2,7 @@ module ddmd.astbase;
 
 // Online documentation: https://dlang.org/phobos/ddmd_astbase.html
 
-import ddmd.astbasevisitor;
+import ddmd.parsetimevisitor;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
@@ -337,6 +337,8 @@ struct ASTBase
     alias RECtypeMask = AliasThisRec.RECtypeMask;
     alias RECtracing = AliasThisRec.RECtracing;
     alias RECtracingDT = AliasThisRec.RECtracingDT;
+
+    alias Visitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) class Dsymbol : RootObject
     {
@@ -5939,11 +5941,6 @@ struct ASTBase
             this.loc = loc;
             this.aggrfe = aggrfe;
             this.rangefe = rangefe;
-        }
-
-        void accept(Visitor v)
-        {
-            v.visit(this);
         }
     }
 

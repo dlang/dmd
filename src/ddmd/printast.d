@@ -34,7 +34,7 @@ private:
 
 extern (C++) final class PrintASTVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     int indent;
 

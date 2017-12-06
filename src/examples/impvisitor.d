@@ -1,6 +1,5 @@
 module examples.impvisitor;
 
-import ddmd.astbase;
 import ddmd.permissivevisitor;
 import ddmd.transitivevisitor;
 
@@ -9,11 +8,11 @@ import ddmd.root.outbuffer;
 
 import core.stdc.stdio;
 
-class ImportVisitor2 : TransitiveVisitor
+extern(C++) class ImportVisitor2(AST) : TransitiveVisitor!AST
 {
-    alias visit = super.visit;
+    alias visit = TransitiveVisitor!AST.visit;
 
-    override void visit(ASTBase.Import imp)
+    override void visit(AST.Import imp)
     {
         if (imp.isstatic)
             printf("static ");
@@ -43,11 +42,11 @@ class ImportVisitor2 : TransitiveVisitor
     }
 }
 
-class ImportVisitor : PermissiveVisitor
+extern(C++) class ImportVisitor(AST) : PermissiveVisitor!AST
 {
-    alias visit = super.visit;
+    alias visit = PermissiveVisitor!AST.visit;
 
-    override void visit(ASTBase.Module m)
+    override void visit(AST.Module m)
     {
         foreach (s; *m.members)
         {
@@ -55,12 +54,12 @@ class ImportVisitor : PermissiveVisitor
         }
     }
 
-    override void visit(ASTBase.Import i)
+    override void visit(AST.Import i)
     {
         printf("import %s", i.toChars());
     }
 
-    override void visit(ASTBase.ImportStatement s)
+    override void visit(AST.ImportStatement s)
     {
             foreach (imp; *s.imports)
             {

@@ -54,7 +54,7 @@ private final class VisualCPPMangler : Visitor
     enum VC_SAVED_TYPE_CNT = 10u;
     enum VC_SAVED_IDENT_CNT = 10u;
 
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
     const(char)*[VC_SAVED_IDENT_CNT] saved_idents;
     Type[VC_SAVED_TYPE_CNT] saved_types;
 

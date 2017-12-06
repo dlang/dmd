@@ -32,7 +32,7 @@ extern (C++) TypeTuple toArgTypes(Type t)
 {
     extern (C++) final class ToArgTypes : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         TypeTuple result;
 

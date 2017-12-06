@@ -84,7 +84,7 @@ final class InlineDoState
 private extern (C++) final class DoInlineAs(Result) : Visitor
 if (is(Result == Statement) || is(Result == Expression))
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     InlineDoState ids;
     Result result;
@@ -804,7 +804,7 @@ Result doInlineAs(Result)(Expression e, InlineDoState ids)
  */
 private extern (C++) final class InlineScanVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 public:
     FuncDeclaration parent;     // function being scanned
     // As the visit method cannot return a value, these variables

@@ -786,7 +786,7 @@ int cvMember(Dsymbol s, ubyte *p)
             result = 0;
         }
 
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
 
         override void visit(Dsymbol s)
         {

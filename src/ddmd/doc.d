@@ -821,7 +821,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class EmitComment : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         OutBuffer* buf;
         Scope* sc;
@@ -1097,7 +1097,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class ToDocBuffer : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         OutBuffer* buf;
         Scope* sc;

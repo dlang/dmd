@@ -109,7 +109,7 @@ extern(C++) void dsymbolSemantic(Dsymbol dsym, Scope* sc)
 
 extern(C++) final class Semantic2Visitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
     Scope* sc;
     this(Scope* sc)
     {
@@ -571,7 +571,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
 
 extern(C++) final class Semantic3Visitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Scope* sc;
     this(Scope* sc)
@@ -1785,7 +1785,7 @@ extern(C++) final class Semantic3Visitor : Visitor
 
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Scope* sc;
     this(Scope* sc)

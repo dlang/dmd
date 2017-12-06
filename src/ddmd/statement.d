@@ -467,7 +467,7 @@ extern (C++) Statement toStatement(Dsymbol s)
 {
     extern (C++) final class ToStmt : Visitor
     {
-        alias visit = super.visit;
+        alias visit = Visitor.visit;
     public:
         Statement result;
 

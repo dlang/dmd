@@ -64,7 +64,7 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
 
 private extern (C++) final class TypeToExpressionVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
 
     Expression result;
     Type itype;
@@ -170,7 +170,7 @@ extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, si
 
 private extern (C++) final class TypeSemanticVisitor : Visitor
 {
-    alias visit = super.visit;
+    alias visit = Visitor.visit;
     Loc loc;
     Scope* sc;
     Type result;
