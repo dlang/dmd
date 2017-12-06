@@ -1353,6 +1353,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // try one last attempt by checking whether the 'wthis' object supports
         // dynamic dispatching via opDispatch.
         // This is done by rewriting this expression as wthis.ident.
+        // The innermost with() scope of the hierarchy to satisfy the condition
+        // above wins.
+        // https://issues.dlang.org/show_bug.cgi?id=6400
         for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
         {
             if (!sc2.scopesym)
@@ -1372,7 +1375,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return;
                     }
                 }
-                break;
             }
         }
 
