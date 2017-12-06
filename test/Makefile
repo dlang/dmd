@@ -67,24 +67,35 @@
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
 	OS:=win64
-	MODEL:=64
+    ifeq (,$(MODEL))
+	    MODEL:=64
+    endif
     else
 	OS:=win32
-	MODEL:=32
+    ifeq (,$(MODEL))
+	    MODEL:=32
+    endif
     endif
 endif
 ifeq (Win_32,$(OS))
     OS:=win32
-    MODEL:=32
+    ifeq (,$(MODEL))
+	    MODEL:=32
+    endif
 endif
 ifeq (Win_64,$(OS))
     OS:=win64
-    MODEL:=64
+    ifeq (,$(MODEL))
+	    MODEL:=64
+    endif
 endif
 
 include ../src/osmodel.mak
 
 export OS
+GENERATED=../generated
+BUILD=release
+G=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
@@ -100,7 +111,7 @@ export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O
-export DMD=../src/dmd.exe
+export DMD=$G/dmd.exe
 export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
