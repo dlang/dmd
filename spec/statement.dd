@@ -1457,21 +1457,22 @@ void main()
 
             with(baz)
             {
-                f();   // prints "Bar.f".  `Baz` does not implement `f()` so resolution is
-                       // forwarded to `with(bar)`'s scope
+                f();   // prints "Bar.f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `with(bar)`'s scope
             }
         }
         with(baz)
         {
-            f();       // prints "Foo.f".  `Baz` does not implement `f()` so resolution is
-                       // forwarded to `with(foo)`'s scope
+            f();       // prints "Foo.f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `with(foo)`'s scope
         }
     }
     with(baz)
     {
-        f();           // prints "f".  `Baz` does not implement `f()` so resolution is forwarded
-                       // to `main`'s scope. `f()` is not implemented in `main`'s scope, so
-                       // resolution is subsequently forward to module scope.
+        f();           // prints "f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `main`'s scope. `f()` is
+                       // not implemented in `main`'s scope, so resolution is
+                       // subsequently forward to module scope.
     }
 }
 
