@@ -923,9 +923,9 @@ extern (C++) bool findCondition(Identifiers* ids, Identifier ident)
 // Helper for printing dependency information
 private void printDepsConditional(Scope* sc, DVCondition condition, const(char)[] depType)
 {
-    if (!global.params.moduleDeps || global.params.moduleDepsFile)
+    if (!global.params.moduleDepsOut || global.params.moduleDepsFile)
         return;
-    OutBuffer* ob = global.params.moduleDeps;
+    OutBuffer* ob = global.params.moduleDepsOut;
     Module imod = sc ? sc.instantiatingModule() : condition.mod;
     if (!imod)
         return;
