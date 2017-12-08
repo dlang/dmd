@@ -6,7 +6,7 @@ module ddmd.parsetimevisitor;
   * implemented in AST. This visitor is the parent of strict, transitive
   * and permissive visitors.
   */
-extern(C++) class ParseTimeVisitor(AST)
+extern (C++) class ParseTimeVisitor(AST)
 {
 public:
     void visit(AST.Dsymbol) { assert(0); }

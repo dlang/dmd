@@ -20,9 +20,9 @@ import ddmd.visitor;
 
 /** A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
-extern (C++) class StatementRewriteWalker : Visitor
+extern (C++) class StatementRewriteWalker : SemanticTimePermissiveVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticTimePermissiveVisitor.visit;
 
     /* Point the currently visited statement.
      * By using replaceCurrent() method, you can replace AST during walking.
@@ -41,26 +41,10 @@ public:
         *ps = s;
     }
 
-    override void visit(ErrorStatement s)
-    {
-    }
-
     override void visit(PeelStatement s)
     {
         if (s.s)
             visitStmt(s.s);
-    }
-
-    override void visit(ExpStatement s)
-    {
-    }
-
-    override void visit(DtorExpStatement s)
-    {
-    }
-
-    override void visit(CompileStatement s)
-    {
     }
 
     override void visit(CompoundStatement s)
@@ -138,18 +122,6 @@ public:
             visitStmt(s.elsebody);
     }
 
-    override void visit(ConditionalStatement s)
-    {
-    }
-
-    override void visit(PragmaStatement s)
-    {
-    }
-
-    override void visit(StaticAssertStatement s)
-    {
-    }
-
     override void visit(SwitchStatement s)
     {
         if (s._body)
@@ -172,30 +144,6 @@ public:
     {
         if (s.statement)
             visitStmt(s.statement);
-    }
-
-    override void visit(GotoDefaultStatement s)
-    {
-    }
-
-    override void visit(GotoCaseStatement s)
-    {
-    }
-
-    override void visit(SwitchErrorStatement s)
-    {
-    }
-
-    override void visit(ReturnStatement s)
-    {
-    }
-
-    override void visit(BreakStatement s)
-    {
-    }
-
-    override void visit(ContinueStatement s)
-    {
     }
 
     override void visit(SynchronizedStatement s)
@@ -233,35 +181,15 @@ public:
             visitStmt(s.finalbody);
     }
 
-    override void visit(OnScopeStatement s)
-    {
-    }
-
-    override void visit(ThrowStatement s)
-    {
-    }
-
     override void visit(DebugStatement s)
     {
         if (s.statement)
             visitStmt(s.statement);
     }
 
-    override void visit(GotoStatement s)
-    {
-    }
-
     override void visit(LabelStatement s)
     {
         if (s.statement)
             visitStmt(s.statement);
-    }
-
-    override void visit(AsmStatement s)
-    {
-    }
-
-    override void visit(ImportStatement s)
-    {
     }
 }
