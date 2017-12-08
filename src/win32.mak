@@ -139,7 +139,7 @@ DDEBUG=-debug -g -unittest
 # Compile flags
 CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -DTARGET_WINDOS=1 -DDM_TARGET_CPU_X86=1
 # D compile flags
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS
 
