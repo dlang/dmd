@@ -95,6 +95,15 @@ extern (C++) class GenericTransitiveVisitor(AST) : GenericVisitor!AST
 
     mixin MParseVisitMethods!AST;
 
+    override void visit(AST.Dsymbol){}
+    override void visit(AST.Parameter){}
+    override void visit(AST.Statement){}
+    override void visit(AST.Type){}
+    override void visit(AST.Expression){}
+    override void visit(AST.TemplateParameter){}
+    override void visit(AST.Condition){}
+    override void visit(AST.Initializer){}
+
     override void visit(AST.PeelStatement s)
     {
         if (s.s)
