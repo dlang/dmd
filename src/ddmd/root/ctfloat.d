@@ -6,17 +6,19 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/root/ctfloat.d, root/_ctfloat.d)
+ * Documentation: https://dlang.org/phobos/ddmd_root_ctfloat.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/root/ctfloat.d
  */
 
 module ddmd.root.ctfloat;
-
-// Online documentation: https://dlang.org/phobos/ddmd_root_ctfloat.html
 
 static import core.math, core.stdc.math;
 import core.stdc.errno;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
+
+nothrow:
 
 // Type used by the front-end for compile-time reals
 alias real_t = real;
@@ -36,6 +38,7 @@ private
 // Compile-time floating-point helper
 extern (C++) struct CTFloat
 {
+  nothrow:
     version(DigitalMars)
     {
         static __gshared bool yl2x_supported = true;
