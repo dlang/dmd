@@ -12,6 +12,10 @@ module ddmd.visitor;
 
 import ddmd.astcodegen;
 import ddmd.parsetimevisitor;
+import ddmd.tokens;
+import ddmd.transitivevisitor;
+import ddmd.expression;
+import ddmd.root.rootobject;
 
 // Online documentation: https://dlang.org/phobos/ddmd_visitor.html
 
@@ -81,6 +85,108 @@ public:
     void visit(AST.ClassReferenceExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.VoidInitExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ThrownExceptionExp e) { visit(cast(AST.Expression)e); }
+}
+
+alias SemanticTimeTransitiveVisitor = GenericTransitiveVisitor!ASTCodegen;
+
+extern (C++) class GenericTransitiveVisitor(AST) : GenericVisitor!AST
+{
+    alias visit = GenericVisitor!AST.visit;
+
+    mixin MParseVisitMethods!AST;
+
+    override void visit(AST.PeelStatement s)
+    {
+        if (s.s)
+            s.s.accept(this);
+    }
+    override void visit(AST.UnrolledLoopStatement s)
+    {
+        foreach(sx; *s.statements)
+            if (sx)
+                sx.accept(this);
+    }
+    override void visit(AST.DebugStatement s)
+    {
+        if (s.statement)
+            s.statement.accept(this);
+    }
+    override void visit(AST.ForwardingStatement s)
+    {
+        if (s.statement)
+            s.statement.accept(this);
+    }
+    override void visit(AST.StructLiteralExp e)
+    {
+        // CTFE can generate struct literals that contain an AddrExp pointing to themselves,
+        // need to avoid infinite recursion.
+        if (!(e.stageflags & stageToCBuffer))
+        {
+            int old = e.stageflags;
+            e.stageflags |= stageToCBuffer;
+            foreach (el; *e.elements)
+                if (el)
+                    el.accept(this);
+            e.stageflags = old;
+        }
+    }
+    override void visit(AST.DotTemplateExp e)
+    {
+        e.e1.accept(this);
+    }
+    override void visit(AST.DotVarExp e)
+    {
+        e.e1.accept(this);
+    }
+    override void visit(AST.DelegateExp e)
+    {
+        if (!e.func.isNested())
+            e.e1.accept(this);
+    }
+    override void visit(AST.DotTypeExp e)
+    {
+        e.e1.accept(this);
+    }
+    override void visit(AST.VectorExp e)
+    {
+        visitType(e.to);
+        e.e1.accept(this);
+    }
+    override void visit(AST.SliceExp e)
+    {
+        e.e1.accept(this);
+        if (e.upr)
+            e.upr.accept(this);
+        if (e.lwr)
+            e.lwr.accept(this);
+    }
+    override void visit(AST.ArrayLengthExp e)
+    {
+        e.e1.accept(this);
+    }
+    override void visit(AST.DelegatePtrExp e)
+    {
+        e.e1.accept(this);
+    }
+    override void visit(AST.DelegateFuncptrExp e)
+    {
+        e.e1.accept(this);
+    }
+    override void visit(AST.DotExp e)
+    {
+        e.e1.accept(this);
+        e.e2.accept(this);
+    }
+    override void visit(AST.IndexExp e)
+    {
+        e.e1.accept(this);
+        e.e2.accept(this);
+    }
+    override void visit(AST.RemoveExp e)
+    {
+        e.e1.accept(this);
+        e.e2.accept(this);
+    }
 }
 
 extern (C++) class StoppableVisitor : Visitor

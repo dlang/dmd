@@ -44,6 +44,7 @@ struct ASTCodegen
     alias Parameter                 = ddmd.mtype.Parameter;
     alias Taarray                   = ddmd.mtype.Taarray;
     alias Tsarray                   = ddmd.mtype.Tsarray;
+    alias Terror                    = ddmd.mtype.Terror;
 
     alias STCconst                  = ddmd.declaration.STCconst;
     alias STCimmutable              = ddmd.declaration.STCimmutable;
@@ -93,4 +94,8 @@ struct ASTCodegen
     alias stcToBuffer               = ddmd.hdrgen.stcToBuffer;
     alias linkageToChars            = ddmd.hdrgen.linkageToChars;
     alias protectionToChars         = ddmd.hdrgen.protectionToChars;
+
+    alias isType                    = ddmd.dtemplate.isType;
+    alias isExpression              = ddmd.dtemplate.isExpression;
+    alias isTuple                   = ddmd.dtemplate.isTuple;
 }
