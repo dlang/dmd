@@ -2,7 +2,7 @@
 
 import core.vararg;
 
-extern (C) int printf(const(char*) fmt, ...);
+extern (C) int printf(const(char*) fmt, ...) nothrow;
 
 template TypeTuple(T...) { alias TypeTuple = T; }
 
@@ -2778,7 +2778,7 @@ void test9907()
 struct S9985
 {
     ubyte* b;
-    ubyte buf[128];
+    ubyte[128] buf;
     this(this) { assert(0); }
 
     static void* ptr;
@@ -4519,6 +4519,42 @@ void test15661()
 
 /**********************************/
 
+// https://issues.dlang.org/show_bug.cgi?id=18045
+
+struct A18045
+{
+  nothrow:
+    __gshared int r;
+    int state;
+    this(this) { printf("postblit: A(%d)\n", state); r += 1; }
+    ~this() { printf("dtor: A(%d)\n", state); r *= 3; }
+}
+
+A18045 fun18045() nothrow
+{
+    __gshared a = A18045(42);
+    return a;
+}
+
+void test18045() nothrow
+{
+    alias A = A18045;
+
+    __gshared a = A(-42);
+    if (fun18045() == a)
+        assert(0);
+    else
+        assert(A.r == 3);
+
+    A.r = 0;
+    if (a == fun18045())
+        assert(0);
+    else
+        assert(A.r == 3);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -4649,6 +4685,7 @@ int main()
     test64();
     test65();
     test15661();
+    test18045();
 
     printf("Success\n");
     return 0;

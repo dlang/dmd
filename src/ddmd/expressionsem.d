@@ -8947,7 +8947,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(EqualExp exp)
     {
-        //printf("EqualExp::semantic('%s')\n", toChars());
+        //printf("EqualExp::semantic('%s')\n", exp.toChars());
         if (exp.type)
         {
             result = exp;
@@ -9145,6 +9145,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
+
+        if (exp.e1.op == TOKcall)
+            exp.e1 = (cast(CallExp)exp.e1).addDtorHook(sc);
+        if (exp.e2.op == TOKcall)
+            exp.e2 = (cast(CallExp)exp.e2).addDtorHook(sc);
 
         if (exp.e1.type.toBasetype().ty == Tsarray ||
             exp.e2.type.toBasetype().ty == Tsarray)
