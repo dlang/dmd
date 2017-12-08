@@ -20,9 +20,9 @@ import ddmd.visitor;
 
 /** A visitor to walk entire statements and provides ability to replace any sub-statements.
  */
-extern (C++) class StatementRewriteWalker : SemanticTimeTransitiveVisitor
+extern (C++) class StatementRewriteWalker : SemanticTimePermissiveVisitor
 {
-    alias visit = SemanticTimeTransitiveVisitor.visit;
+    alias visit = SemanticTimePermissiveVisitor.visit;
 
     /* Point the currently visited statement.
      * By using replaceCurrent() method, you can replace AST during walking.

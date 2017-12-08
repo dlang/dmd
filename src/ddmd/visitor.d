@@ -20,7 +20,6 @@ import ddmd.root.rootobject;
 // Online documentation: https://dlang.org/phobos/ddmd_visitor.html
 
 alias Visitor = GenericVisitor!ASTCodegen;
-
 extern (C++) class GenericVisitor(AST) : ParseTimeVisitor!AST
 {
     alias visit = ParseTimeVisitor!AST.visit;
@@ -87,13 +86,10 @@ public:
     void visit(AST.ThrownExceptionExp e) { visit(cast(AST.Expression)e); }
 }
 
-alias SemanticTimeTransitiveVisitor = GenericTransitiveVisitor!ASTCodegen;
-
-extern (C++) class GenericTransitiveVisitor(AST) : GenericVisitor!AST
+alias SemanticTimePermissiveVisitor = GenericPermissiveVisitor!ASTCodegen;
+extern (C++) class GenericPermissiveVisitor(AST) : GenericVisitor!AST
 {
     alias visit = GenericVisitor!AST.visit;
-
-    mixin MParseVisitMethods!AST;
 
     override void visit(AST.Dsymbol){}
     override void visit(AST.Parameter){}
@@ -103,6 +99,14 @@ extern (C++) class GenericTransitiveVisitor(AST) : GenericVisitor!AST
     override void visit(AST.TemplateParameter){}
     override void visit(AST.Condition){}
     override void visit(AST.Initializer){}
+}
+
+alias SemanticTimeTransitiveVisitor = GenericTransitiveVisitor!ASTCodegen;
+extern (C++) class GenericTransitiveVisitor(AST) : GenericPermissiveVisitor!AST
+{
+    alias visit = GenericPermissiveVisitor!AST.visit;
+
+    mixin MParseVisitMethods!AST;
 
     override void visit(AST.PeelStatement s)
     {
