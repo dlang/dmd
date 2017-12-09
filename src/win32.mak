@@ -307,6 +307,7 @@ trace:
 
 unittest:
 	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=-debug -g -unittest -cov" "DOPT=" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
+	$(TARGETEXE)
 
 ################################ Libraries ##################################
 

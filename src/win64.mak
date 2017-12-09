@@ -34,6 +34,8 @@ trace : $(DEPENDENCIES)
 clean :
 	del $(DEPENDENCIES) dmd.pdb
 	$(MAKE_WIN32) $@
+unittest: $(DEPENDENCIES)
+	$(MAKE_WIN32) $@
 install : $(DEPENDENCIES)
 	$(MAKE_WIN32) $@
 install-clean : $(DEPENDENCIES)
