@@ -958,6 +958,7 @@ private extern (C++) class S2irVisitor : Visitor
         const int rtlthrow = config.ehmethod == EHmethod.EH_DWARF ? RTLSYM_THROWDWARF : RTLSYM_THROWC;
         e = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtlthrow)),e);
         block_appendexp(blx.curblock, e);
+        block_next(blx, BCexit, null);          // throw never returns
     }
 
     /***************************************
