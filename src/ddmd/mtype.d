@@ -7661,9 +7661,14 @@ extern (C++) final class TypeStruct : Type
         }
         else if (sym.aliasthis && !(att & RECtracing))
         {
-            att = cast(AliasThisRec)(att | RECtracing);
-            m = aliasthisOf().implicitConvTo(to);
-            att = cast(AliasThisRec)(att & ~RECtracing);
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | RECtracing);
+                m = ato.implicitConvTo(to);
+                att = cast(AliasThisRec)(att & ~RECtracing);
+            }
+            else
+                m = MATCH.nomatch; // no match
         }
         else
             m = MATCH.nomatch; // no match
@@ -7688,9 +7693,12 @@ extern (C++) final class TypeStruct : Type
 
         if (t.hasWild() && sym.aliasthis && !(att & RECtracing))
         {
-            att = cast(AliasThisRec)(att | RECtracing);
-            wm = aliasthisOf().deduceWild(t, isRef);
-            att = cast(AliasThisRec)(att & ~RECtracing);
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | RECtracing);
+                wm = ato.deduceWild(t, isRef);
+                att = cast(AliasThisRec)(att & ~RECtracing);
+            }
         }
 
         return wm;
@@ -8465,9 +8473,12 @@ extern (C++) final class TypeClass : Type
         m = MATCH.nomatch;
         if (sym.aliasthis && !(att & RECtracing))
         {
-            att = cast(AliasThisRec)(att | RECtracing);
-            m = aliasthisOf().implicitConvTo(to);
-            att = cast(AliasThisRec)(att & ~RECtracing);
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | RECtracing);
+                m = ato.implicitConvTo(to);
+                att = cast(AliasThisRec)(att & ~RECtracing);
+            }
         }
 
         return m;
@@ -8505,9 +8516,12 @@ extern (C++) final class TypeClass : Type
 
         if (t.hasWild() && sym.aliasthis && !(att & RECtracing))
         {
-            att = cast(AliasThisRec)(att | RECtracing);
-            wm = aliasthisOf().deduceWild(t, isRef);
-            att = cast(AliasThisRec)(att & ~RECtracing);
+            if (auto ato = aliasthisOf())
+            {
+                att = cast(AliasThisRec)(att | RECtracing);
+                wm = ato.deduceWild(t, isRef);
+                att = cast(AliasThisRec)(att & ~RECtracing);
+            }
         }
 
         return wm;
