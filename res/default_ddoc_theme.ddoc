@@ -10,6 +10,12 @@ ESCAPES =
   />/&gt;/
   /&/&amp;/
 
+H1 = <h1>$0</h1>
+H2 = <h2>$0</h2>
+H3 = <h3>$0</h3>
+H4 = <h4>$0</h4>
+H5 = <h5>$0</h5>
+H6 = <h6>$0</h6>
 B = <b>$0</b>
 I = <i>$0</i>
 U = <u>$0</u>
@@ -29,6 +35,7 @@ SMALL = <small>$0</small>
 BR = <br>
 LINK = <a href="$0">$0</a>
 LINK2 = <a href="$1">$+</a>
+QUOTE = <blockquote>$0</blockquote>
 DEPRECATED = $0
 
 RED = <span class="color_red">$0</span>

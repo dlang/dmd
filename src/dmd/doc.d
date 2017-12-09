@@ -1845,6 +1845,29 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
 }
 
 /************************************************
+ * Scan past the given characters.
+ */
+size_t skipchars(OutBuffer* buf, size_t i, string chars)
+{
+    const slice = buf.peekSlice();
+    for (; i < slice.length; i++)
+    {
+        bool contains = false;
+        foreach (char c; chars)
+        {
+            if (slice[i] == c)
+            {
+                contains = true;
+                break;
+            }
+        }
+        if (!contains)
+            break;
+    }
+    return i;
+}
+
+/************************************************
  * Scan forward to one of:
  *      start of identifier
  *      beginning of next line
@@ -2153,6 +2176,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
     int leadingBlank = 1;
+    int headingLevel = 0;
+    size_t iHeadingStart = 0;
+    int quoteLevel = 0;
+    int previousQuoteLevel = 0;
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
@@ -2183,12 +2210,42 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
+            if (headingLevel)
+            {
+                char* heading = cast(char*) "$(H0 ".dup;
+                heading[3] = cast(char) ('0' + headingLevel);
+                buf.insert(iHeadingStart, heading, 5);
+                i += 5;
+                i = buf.insert(i, ")");
+                iHeadingStart = 0;
+                headingLevel = 0;
+            }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
                 i = buf.insert(i, "$(DDOC_BLANKLINE)");
+// TODO: markdowny paragraphy things
             }
             leadingBlank = 1;
+            iHeadingStart = iLineStart;
             iLineStart = i + 1;
+
+            previousQuoteLevel = quoteLevel;
+            if (previousQuoteLevel)
+            {
+                // peek ahead and end quotes as needed
+                quoteLevel = 0;
+                const slice = buf.peekSlice();
+                for (size_t j = i + 1; j < slice.length; j++)
+                {
+                    if (slice[j] == '>')
+                        ++quoteLevel;
+                    else if (slice[j] != ' ' && slice[j] != '\t')
+                        break;
+                }
+                for (; quoteLevel < previousQuoteLevel; ++quoteLevel)
+                    i = buf.insert(i, ")");
+                quoteLevel = 0;
+            }
             break;
         case '<':
             {
@@ -2253,6 +2310,19 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
         case '>':
             {
+                if (leadingBlank && (!inCode || previousQuoteLevel >= quoteLevel))
+                {
+                    ++quoteLevel;
+                    size_t iQuotedStart = skipchars(buf, i + 1, " \t");
+                    buf.remove(i, iQuotedStart - i);
+                    if (quoteLevel > previousQuoteLevel)
+                    {
+                        i = buf.insert(i, "$(QUOTE ");
+                    }
+                    --i;
+                    break;
+                }
+
                 leadingBlank = 0;
                 if (inCode)
                     break;
@@ -2411,6 +2481,126 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+
+        case '#':
+        {
+            /* A line beginning with # indicates a Markdown heading. */
+            if (leadingBlank && !inCode)
+            {
+                iHeadingStart = i;
+                leadingBlank = 0;
+                size_t iSkipped = skipchars(buf, i, "#");
+                headingLevel = cast(int) (iSkipped - iHeadingStart);
+                if (headingLevel > 6)
+                {
+                    headingLevel = 0;
+                    break;
+                }
+                i = skipchars(buf, iSkipped, " \t");
+                // remove the ### prefix
+                buf.remove(iHeadingStart, i - iHeadingStart);
+                i = iHeadingStart;
+
+                // remove any ### suffix
+                size_t j = i;
+                size_t iSuffixStart = 0;
+                bool inWhitespace = false;
+                const slice = buf.peekSlice();
+                for (; j < slice.length; j++)
+                {
+                    switch (slice[j])
+                    {
+                    case '#':
+                        if (!iSuffixStart || inWhitespace)
+                            iSuffixStart = j;
+                        inWhitespace = false;
+                        break;
+                    case ' ':
+                    case '\t':
+                        inWhitespace = true;
+                        break;
+                    case '\r':
+                    case '\n':
+                        goto endHeadingSuffix;
+                    default:
+                        iSuffixStart = 0;
+                        inWhitespace = false;
+                    }
+                }
+                endHeadingSuffix:
+                if (iSuffixStart)
+                    buf.remove(iSuffixStart, j - iSuffixStart);
+            }
+            break;
+        }
+
+        case '=':
+        {
+            /* A line consisting solely of == indicates a Markdown heading on the previous line. */
+            if (leadingBlank && !inCode)
+            {
+                leadingBlank = 0;
+                size_t iAfterUnderline = skipchars(buf, i, "= \t\r");
+                if (iAfterUnderline >= buf.offset)
+                    break;
+                if (buf.data[iAfterUnderline] != '\n')
+                    break;
+                buf.remove(i, iAfterUnderline - i);
+                headingLevel = 1;
+            }
+            break;
+        }
+
+        case '*':
+        {
+            if (inCode)
+                break;
+
+            if (leadingBlank)
+            {
+                /* A line consisting solely of ** indicates a Markdown heading on the previous line. */
+                leadingBlank = 0;
+                size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
+                if (iAfterUnderline >= buf.offset)
+                    break;
+                if (buf.data[iAfterUnderline] != '\n')
+                    break;
+                buf.remove(i, iAfterUnderline - i);
+                headingLevel = 2;
+            }
+            else
+            {
+                // TODO: bold/italic
+            }
+            break;
+        }
+
+        case '\\':
+        {
+            /* Escape Markdown special characters */
+            if (inCode || i >= buf.offset - 1)
+                break;
+            char c1 = buf.data[i+1];
+            if (c1 == '\\'
+                || c1 == '`'
+                || c1 == '*'
+                || c1 == '_'
+                || c1 == '{'
+                || c1 == '}'
+                || c1 == '['
+                || c1 == ']'
+                || c1 == '('
+                || c1 == ')'
+                || c1 == '#'
+                || c1 == '+'
+                || c1 == '-'
+                || c1 == '.'
+                || c1 == '!')
+            {
+                buf.remove(i, 1);
+            }
+            break;
+        }
 
         case '$':
         {
