@@ -1,3 +1,6 @@
+/+dub.sdl:
+dependency "dmd" path="../.."
++/
 // The tests in this module are highlevel and mostly indented to make sure all
 // necessary modules are included in the Dub package.
 
