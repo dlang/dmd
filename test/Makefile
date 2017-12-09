@@ -97,6 +97,7 @@ QUIET=@
 export RESULTS_DIR=test_results
 export MODEL
 export REQUIRED_ARGS=
+BUILD=release
 
 ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O
@@ -112,7 +113,13 @@ export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
 export ARGS=-inline -release -g -O -fPIC
-export DMD=../src/dmd
+# hack around the fact that on auto-tester MODEL isn't set for the testsuite
+ifeq (,$(wildcard ../generated/$(OS)/$(BUILD)/64/dmd))
+REAL_MODEL=32
+else
+REAL_MODEL=64
+endif
+export DMD=../generated/$(OS)/$(BUILD)/$(REAL_MODEL)/dmd
 export EXE=
 export OBJ=.o
 export DSEP=/
@@ -120,11 +127,14 @@ export SEP=/
 
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
+DUB=dub
+# Default DUB flags (DUB uses a different architecture format)
+DUBFLAGS=--compiler=$(abspath $(DMD)) --arch=$(subst 32,x86,$(subst 64,x86_64,$(REAL_MODEL)))
 # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
 SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+DFLAGS=-I$(abspath $(DRUNTIME_PATH))/import -I$(abspath $(PHOBOS_PATH)) -L-L$(abspath $(PHOBOS_PATH))/generated/$(OS)/release/$(MODEL) -fPIC
 ifeq (1,$(SHARED))
-DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(abspath $(PHOBOS_PATH))/generated/$(OS)/release/$(MODEL)
 endif
 export DFLAGS
 endif
@@ -209,3 +219,5 @@ $(RESULTS_DIR)/d_do_test$(EXE): d_do_test.d $(RESULTS_DIR)/.created
 	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -unittest -run d_do_test.d -unittest
 	$(QUIET)$(DMD) -conf= $(MODEL_FLAG) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test$(EXE) d_do_test.d
 
+test_dub:
+	cd ./dub_package && $(DUB) test $(DUBFLAGS) --force -v

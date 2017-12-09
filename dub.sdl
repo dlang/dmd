@@ -4,8 +4,9 @@ authors "Walter Bright"
 copyright "Copyright © 1999-2017, The D Language Foundation"
 license "BSL-1.0"
 
-targetType "none"
+targetType "library"
 dependency ":parser" version="*"
+sourcePaths
 
 subPackage {
   name "root"

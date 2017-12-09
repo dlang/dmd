@@ -66,9 +66,6 @@ rebuild() {
 
 # test druntime, phobos, dmd
 test() {
-    # Temporarily skip testing the DUB package
-    #See also: https://github.com/dlang/dmd/pull/6999
-    #test_dub_package
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
     test_dmd
@@ -76,19 +73,13 @@ test() {
 
 # test dmd
 test_dmd() {
+    make -j$N -C test test_dub MODEL=$MODEL
     # test fewer compiler argument permutations for PRs to reduce CI load
     if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_OS_NAME" == "linux"  ]; then
         make -j$N -C test MODEL=$MODEL # all ARGS by default
     else
         make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
     fi
-}
-
-# test dub package
-test_dub_package() {
-    pushd test/dub_package
-    dub test
-    popd
 }
 
 for proj in druntime phobos; do
