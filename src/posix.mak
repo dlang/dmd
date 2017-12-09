@@ -237,7 +237,7 @@ endif
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
-DFLAGS += -g -debug -unittest
+DFLAGS += -g -debug
 endif
 ifdef ENABLE_RELEASE
 CXXFLAGS += -O2
