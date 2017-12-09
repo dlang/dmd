@@ -3484,7 +3484,7 @@ static if (is(BCGen))
             }
             retval.heapRef = BCHeapRef(ptr);
 
-            if (elemType.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Array, BCTypeEnum.String]))
+            if (elemType.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.Array, BCTypeEnum.String, BCTypeEnum.Slice]))
             {
                 // on structs we return the ptr!
                 Set(retval.i32, ptr);
