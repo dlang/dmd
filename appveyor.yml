@@ -1,0 +1,40 @@
+platform: x64
+environment:
+ matrix:
+  #- DC: dmd
+    #DVersion: nightly
+    #arch: x64
+  - DC: dmd
+    DVersion: nightly
+    arch: x86
+skip_tags: false
+build_script:
+ - ps: wget https://raw.githubusercontent.com/wilzbach/installer/appveyor-script/script/install.ps1 -OutFile install.ps1
+ - ps: .\install.ps1
+ - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %compilersetupargs%
+ - ps: function InstallDMC
+        {
+            pushd c:\\;
+            Invoke-WebRequest "https://github.com/wilzbach/dmc-mirror/raw/master/dm857c.zip" -OutFile "dmc.zip";
+            7z x dmc.zip > $null;
+            $env:PATH = "C:\dm\bin;$($env:PATH)";
+            popd;
+        }
+ - ps: InstallDMC
+
+test_script:
+ - git clone --branch %APPVEYOR_REPO_BRANCH% https://github.com/dlang/druntime ..\druntime
+ - git clone https://github.com/dlang/tools ..\tools
+ - echo %PLATFORM%
+ - echo %Darch%
+ - echo %DC%
+ - echo %PATH%
+ - '%DC% --version'
+ - ps: $env:HOST_DC = "dmd";
+ - ps: if($env:arch -eq "x86"){
+            cd src;
+            make -f win32.mak HOST_DC="dmd";
+        }elseif($env:arch -eq "x64"){
+            cd src;
+            make -f win64.mak HOST_DC="dmd";
+        }
