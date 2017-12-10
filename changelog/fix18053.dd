@@ -1,0 +1,16 @@
+Fix Issue 18053 - mangle long/ulong as int64_t/uint64_t
+
+This is a breaking change (on OSX 64).
+
+Due to the erratic implementation defined behavior of C++ name mangling, it was
+difficult to get D's long/ulong to portably match up with the corresponding
+C++ compiler.
+
+By instead relying on how the corresponding C++ compiler mangled int64_t/uint64_t
+it makes the C++ side of the D<=>C++ interface much simpler.
+
+For the current platforms dmd supports, only the OSX 64 bit mangling changes. In
+this case from 'm' to 'y'.
+
+Note:
+    int64_t and uint64_t are defined in stdint.h
