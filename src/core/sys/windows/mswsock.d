@@ -106,7 +106,7 @@ extern(Windows) {
     const GUID WSAID_CONNECTEX = {0x25a207b9,0xddf3,0x4660,[0x8e,0xe9,0x76,0xe5,0x8c,0x74,0x06,0x3e]};
 }
 
-static if (_WIN32_WINNT => 0x501) {
+static if (_WIN32_WINNT >= 0x501) {
     /*  These appear to be constants for the TRANSMIT_PACKETS_ELEMENT
      *  structure below, so I've given them the same minimum version
      */
@@ -164,7 +164,7 @@ static if (_WIN32_WINNT => 0x501) {
     }
 }
 
-static if (_WIN32_WINNT => 0x600) {
+static if (_WIN32_WINNT >= 0x600) {
     /* TODO: Standard Posix.1g macros as per RFC 2292, with WSA_uglification. */
     /* DK: MinGW doesn't define these, and neither does the MSDN docs.  Might have
        to actually look up RFC 2292... */
@@ -183,7 +183,7 @@ static if (_WIN32_WINNT => 0x600) {
     extern(Windows) BOOL DisconnectEx(SOCKET, LPOVERLAPPED, DWORD, DWORD);
 }
 
-static if (_WIN32_WINNT => 0x501) {
+static if (_WIN32_WINNT >= 0x501) {
     /*  WinXP+, Srv2k3+
      *  ms-help://MS.MSDNQTR.2003FEB.1033/winsock/winsock/wsarecvmsg_2.htm
      */
