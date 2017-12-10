@@ -4037,10 +4037,12 @@ extern (C++) final class NewExp : Expression
     Expressions* newargs;       // Array of Expression's to call new operator
     Type newtype;
     Expressions* arguments;     // Array of Expression's
+
     Expression argprefix;       // expression to be evaluated just before arguments[]
     CtorDeclaration member;     // constructor function
     NewDeclaration allocator;   // allocator function
-    int onstack;                // allocate on stack
+    bool onstack;               // allocate on stack
+    bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
     extern (D) this(Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
     {

@@ -518,7 +518,8 @@ public:
 
     CtorDeclaration *member;    // constructor function
     NewDeclaration *allocator;  // allocator function
-    int onstack;                // allocate on stack
+    bool onstack;               // allocate on stack
+    bool thrownew;              // this NewExp is the expression of a ThrowStatement
 
     static NewExp *create(Loc loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
