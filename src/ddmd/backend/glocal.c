@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/glocal.c, backend/glocal.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/glocal.c
  */
 
 #if !SPP
@@ -25,39 +26,44 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-typedef struct loc_t
+enum
+{
+    LFvolatile     = 1,       // contains volatile refs or defs
+    LFambigref     = 2,       // references ambiguous data
+    LFambigdef     = 4,       // defines ambiguous data
+    LFsymref       = 8,       // reference to symbol s
+    LFsymdef       = 0x10,    // definition of symbol s
+    LFunambigref   = 0x20,    // references unambiguous data other than s
+    LFunambigdef   = 0x40,    // defines unambiguous data other than s
+    LFinp          = 0x80,    // input from I/O port
+    LFoutp         = 0x100,   // output to I/O port
+    LFfloat        = 0x200,   // sets float flags and/or depends on
+                              // floating point settings
+};
+
+struct loc_t
 {
     elem *e;
-    int flags;
-#       define LFvolatile       1       // contains volatile refs or defs
-#       define LFambigref       2       // references ambiguous data
-#       define LFambigdef       4       // defines ambiguous data
-#       define LFsymref         8       // reference to symbol s
-#       define LFsymdef         0x10    // definition of symbol s
-#       define LFunambigref     0x20    // references unambiguous data other than s
-#       define LFunambigdef     0x40    // defines unambiguous data other than s
-#if TX86
-#       define LFinp            0x80    // input from I/O port
-#       define LFoutp           0x100   // output to I/O port
-#endif
-#       define LFfloat          0x200   // sets float flags and/or depends on
-                                        // floating point settings
-} loc_t;
+    int flags;  // LFxxxxx
+};
 
-static loc_t *loctab;
-static unsigned locmax;
-static unsigned loctop;
+struct Loctab
+{
+    loc_t *data;
+    unsigned allocdim;
+    unsigned dim;
+};
 
-STATIC void local_exp(elem *e,int goal);
+STATIC void local_exp(Loctab& lt, elem *e, int goal);
 STATIC int  local_chkrem(elem *e,elem *eu);
-STATIC void local_ins(elem *e);
-STATIC void local_rem(unsigned u);
+STATIC void local_ins(Loctab& lt, elem *e);
+STATIC void local_rem(Loctab& lt, unsigned u);
 STATIC int  local_getflags(elem *e,symbol *s);
-STATIC void local_remove(int flags);
-STATIC void local_ambigref(void);
-STATIC void local_ambigdef(void);
-STATIC void local_symref(symbol *s);
-STATIC void local_symdef(symbol *s);
+STATIC void local_remove(Loctab& lt, int flags);
+STATIC void local_ambigref(Loctab& lt);
+STATIC void local_ambigdef(Loctab& lt);
+STATIC void local_symref(Loctab& lt, symbol *s);
+STATIC void local_symdef(Loctab& lt, symbol *s);
 STATIC bool local_preserveAssignmentTo(tym_t ty);
 
 ///////////////////////////////
@@ -73,17 +79,24 @@ STATIC bool local_preserveAssignmentTo(tym_t ty);
 // temporary generation and register usage.
 
 void localize()
-{   block *b;
-
+{
     cmes("localize()\n");
 
-    // Table should not get any larger than the symbol table
-    locmax = globsym.symmax;
-    loctab = (loc_t *) malloc(locmax * sizeof(*loctab));
+    static Loctab loctab;       // cache the array so it usually won't need reallocating
 
-    for (b = startblock; b; b = b->Bnext)       /* for each block        */
+    Loctab* lt = &loctab;
+
+    // Table should not get any larger than the symbol table
+    if (lt->allocdim < globsym.symmax)
     {
-        loctop = 0;                     // start over for each block
+        lt->allocdim = globsym.symmax;
+        lt->data = (loc_t *) realloc(lt->data, lt->allocdim * sizeof(loc_t));
+        assert(lt->data);
+    }
+
+    for (block *b = startblock; b; b = b->Bnext)       // for each block
+    {
+        lt->dim = 0;                     // start over for each block
         if (b->Belem &&
             /* Overly broad way to account for the case:
              * try
@@ -94,11 +107,9 @@ void localize()
              */
             !b->Btry)
         {
-            local_exp(b->Belem,0);
+            local_exp(*lt,b->Belem,0);
         }
     }
-    free(loctab);
-    locmax = 0;
 }
 
 //////////////////////////////////////
@@ -106,9 +117,8 @@ void localize()
 //      goal    !=0 if we want the result of the expression
 //
 
-STATIC void local_exp(elem *e,int goal)
+STATIC void local_exp(Loctab& lt, elem *e, int goal)
 {   symbol *s;
-    unsigned u;
     elem *e1;
     int op1;
 
@@ -117,24 +127,24 @@ Loop:
     int op = e->Eoper;
     switch (op)
     {   case OPcomma:
-            local_exp(e->E1,0);
+            local_exp(lt,e->E1,0);
             e = e->E2;
             goto Loop;
 
         case OPandand:
         case OPoror:
-            local_exp(e->E1,1);
-            loctop = 0;         // we can do better than this, fix later
+            local_exp(lt,e->E1,1);
+            lt.dim = 0;         // we can do better than this, fix later
             break;
 
         case OPcolon:
         case OPcolon2:
-            loctop = 0;         // we can do better than this, fix later
+            lt.dim = 0;         // we can do better than this, fix later
             break;
 
         case OPinfo:
             if (e->E1->Eoper == OPmark)
-            {   loctop = 0;
+            {   lt.dim = 0;
                 e = e->E2;
                 goto Loop;
             }
@@ -143,37 +153,37 @@ Loop:
         case OPdtor:
         case OPctor:
         case OPdctor:
-            loctop = 0;         // don't move expressions across ctor/dtor
+            lt.dim = 0;         // don't move expressions across ctor/dtor
             break;              // boundaries, it would goof up EH cleanup
 
         case OPddtor:
-            loctop = 0;         // don't move expressions across ctor/dtor
+            lt.dim = 0;         // don't move expressions across ctor/dtor
                                 // boundaries, it would goof up EH cleanup
-            local_exp(e->E1,0);
-            loctop = 0;
+            local_exp(lt,e->E1,0);
+            lt.dim = 0;
             break;
 
         case OPeq:
         case OPstreq:
             e1 = e->E1;
-            local_exp(e->E2,1);
+            local_exp(lt,e->E2,1);
             if (e1->Eoper == OPvar)
             {   s = e1->EV.sp.Vsym;
                 if (s->Sflags & SFLunambig)
-                {   local_symdef(s);
+                {   local_symdef(lt, s);
                     if (!goal)
-                        local_ins(e);
+                        local_ins(lt, e);
                 }
                 else
-                    local_ambigdef();
+                    local_ambigdef(lt);
             }
             else
             {
                 assert(!OTleaf(e1->Eoper));
-                local_exp(e1->E1,1);
+                local_exp(lt,e1->E1,1);
                 if (OTbinary(e1->Eoper))
-                    local_exp(e1->E2,1);
-                local_ambigdef();
+                    local_exp(lt,e1->E2,1);
+                local_ambigdef(lt);
             }
             break;
 
@@ -192,24 +202,23 @@ Loop:
         case OPorass:
         case OPcmpxchg:
             if (ERTOL(e))
-            {   local_exp(e->E2,1);
+            {   local_exp(lt,e->E2,1);
         case OPnegass:
                 e1 = e->E1;
                 op1 = e1->Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(e1->E1,1);
+                    local_exp(lt,e1->E1,1);
                     if (OTbinary(op1))
-                        local_exp(e1->E2,1);
+                        local_exp(lt,e1->E2,1);
                 }
-                else if (loctop && (op == OPaddass || op == OPxorass))
-                {   unsigned u;
-
+                else if (lt.dim && (op == OPaddass || op == OPxorass))
+                {
                     s = e1->EV.sp.Vsym;
-                    for (u = 0; u < loctop; u++)
+                    for (unsigned u = 0; u < lt.dim; u++)
                     {   elem *em;
 
-                        em = loctab[u].e;
+                        em = lt.data[u].e;
                         if (em->Eoper == op &&
                             em->E1->EV.sp.Vsym == s &&
                             tysize(em->Ety) == tysize(e1->Ety) &&
@@ -223,7 +232,7 @@ Loop:
                             e->E2 = el_bin(opeqtoop(op),e->E2->Ety,em->E2,e->E2);
                             em->Eoper = opeqtoop(op);
                             em->E2 = el_copytree(em->E2);
-                            local_rem(u);
+                            local_rem(lt, u);
 #ifdef DEBUG
                             if (debugc)
                             {   dbg_printf("Combined equation ");
@@ -244,43 +253,43 @@ Loop:
                 op1 = e1->Eoper;
                 if (op1 != OPvar)
                 {
-                    local_exp(e1->E1,1);
+                    local_exp(lt,e1->E1,1);
                     if (OTbinary(op1))
-                        local_exp(e1->E2,1);
+                        local_exp(lt,e1->E2,1);
                 }
-                if (loctop)
+                if (lt.dim)
                 {   if (op1 == OPvar &&
                         ((s = e1->EV.sp.Vsym)->Sflags & SFLunambig))
-                        local_symref(s);
+                        local_symref(lt, s);
                     else
-                        local_ambigref();
+                        local_ambigref(lt);
                 }
-                local_exp(e->E2,1);
+                local_exp(lt,e->E2,1);
             }
             if (op1 == OPvar &&
                 ((s = e1->EV.sp.Vsym)->Sflags & SFLunambig))
-            {   local_symref(s);
-                local_symdef(s);
+            {   local_symref(lt, s);
+                local_symdef(lt, s);
                 if (op == OPaddass || op == OPxorass)
-                    local_ins(e);
+                    local_ins(lt, e);
             }
-            else if (loctop)
+            else if (lt.dim)
             {
-                local_remove(LFambigdef | LFambigref);
+                local_remove(lt, LFambigdef | LFambigref);
             }
             break;
         case OPstrlen:
         case OPind:
-            local_exp(e->E1,1);
-            local_ambigref();
+            local_exp(lt,e->E1,1);
+            local_ambigref(lt);
             break;
 
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
-            local_exp(e->E1,1);
-            local_exp(e->E2,1);
-            local_ambigref();
+            local_exp(lt,e->E1,1);
+            local_exp(lt,e->E2,1);
+            local_ambigref(lt);
             break;
 
         case OPstrcpy:
@@ -288,26 +297,26 @@ Loop:
         case OPstrcat:
         case OPcall:
         case OPcallns:
-            local_exp(e->E2,1);
+            local_exp(lt,e->E2,1);
         case OPstrctor:
         case OPucall:
         case OPucallns:
-            local_exp(e->E1,1);
+            local_exp(lt,e->E1,1);
             goto Lrd;
 
         case OPbtc:
         case OPbtr:
         case OPbts:
-            local_exp(e->E1,1);
-            local_exp(e->E2,1);
+            local_exp(lt,e->E1,1);
+            local_exp(lt,e->E2,1);
             goto Lrd;
         case OPasm:
         Lrd:
-            local_remove(LFfloat | LFambigref | LFambigdef);
+            local_remove(lt, LFfloat | LFambigref | LFambigdef);
             break;
 
         case OPmemset:
-            local_exp(e->E2,1);
+            local_exp(lt,e->E2,1);
             if (e->E1->Eoper == OPvar)
             {
                 /* Don't want to rearrange (p = get(); p memset 0;)
@@ -315,27 +324,26 @@ Loop:
                  */
                 s = e->E1->EV.sp.Vsym;
                 if (s->Sflags & SFLunambig)
-                    local_symref(s);
+                    local_symref(lt, s);
                 else
-                    local_ambigref();           // ambiguous reference
+                    local_ambigref(lt);     // ambiguous reference
             }
             else
-                local_exp(e->E1,1);
-            local_ambigdef();
+                local_exp(lt,e->E1,1);
+            local_ambigdef(lt);
             break;
 
         case OPvar:
             s = e->EV.sp.Vsym;
-            if (loctop)
-            {   unsigned u;
-
+            if (lt.dim)
+            {
                 // If potential candidate for replacement
                 if (s->Sflags & SFLunambig)
                 {
-                    for (u = 0; u < loctop; u++)
+                    for (unsigned u = 0; u < lt.dim; u++)
                     {   elem *em;
 
-                        em = loctab[u].e;
+                        em = lt.data[u].e;
                         if (em->E1->EV.sp.Vsym == s &&
                             (em->Eoper == OPeq || em->Eoper == OPstreq))
                         {
@@ -362,14 +370,14 @@ Loop:
                                 em->E1 = em->E2 = NULL;
                                 em->Eoper = OPconst;
                             }
-                            local_rem(u);
+                            local_rem(lt, u);
                             break;
                         }
                     }
-                    local_symref(s);
+                    local_symref(lt, s);
                 }
                 else
-                    local_ambigref();           // ambiguous reference
+                    local_ambigref(lt);     // ambiguous reference
             }
             break;
 
@@ -377,12 +385,12 @@ Loop:
             if (e->E1->Eoper != OPvar)
                 goto case_bin;
             s = e->E1->EV.sp.Vsym;
-            if (loctop)
+            if (lt.dim)
             {
                 if (s->Sflags & SFLunambig)
-                    local_symref(s);
+                    local_symref(lt, s);
                 else
-                    local_ambigref();           // ambiguous reference
+                    local_ambigref(lt);     // ambiguous reference
             }
             goal = 1;
             e = e->E2;
@@ -393,13 +401,13 @@ Loop:
             {   // Since commutative operators may get their leaves
                 // swapped, we eliminate any that may be affected by that.
 
-                for (u = 0; u < loctop;)
+                for (unsigned u = 0; u < lt.dim;)
                 {
                     int f1,f2,f;
                     elem *eu;
 
-                    f = loctab[u].flags;
-                    eu = loctab[u].e;
+                    f = lt.data[u].flags;
+                    eu = lt.data[u].e;
                     s = eu->E1->EV.sp.Vsym;
                     f1 = local_getflags(e->E1,s);
                     f2 = local_getflags(e->E2,s);
@@ -408,9 +416,9 @@ Loop:
                         f & LFambigref && (f1 | f2) & LFambigdef ||
                         f & LFambigdef && (f1 | f2) & (LFambigref | LFambigdef)
                        )
-                        local_rem(u);
+                        local_rem(lt, u);
                     else if (f & LFunambigdef && local_chkrem(e,eu->E2))
-                        local_rem(u);
+                        local_rem(lt, u);
                     else
                         u++;
                 }
@@ -422,7 +430,7 @@ Loop:
             }
         case_bin:
             if (EBIN(e))
-            {   local_exp(e->E1,1);
+            {   local_exp(lt,e->E1,1);
                 goal = 1;
                 e = e->E2;
                 goto Loop;
@@ -439,18 +447,17 @@ Loop:
 //      !=0 if it does
 
 STATIC int local_chkrem(elem *e,elem *eu)
-{   int f1,f2;
-    int op;
-    symbol *s;
+{
     int result = 0;
 
     while (1)
     {   elem_debug(eu);
-        op = eu->Eoper;
+        int op = eu->Eoper;
         if (OTassign(op) && eu->E1->Eoper == OPvar)
-        {   s = eu->E1->EV.sp.Vsym;
-            f1 = local_getflags(e->E1,s);
-            f2 = local_getflags(e->E2,s);
+        {
+            Symbol *s = eu->E1->EV.sp.Vsym;
+            int f1 = local_getflags(e->E1,s);
+            int f2 = local_getflags(e->E2,s);
             if ((f1 | f2) & (LFsymref | LFsymdef))      // if either reference or define
             {   result = 1;
                 break;
@@ -470,9 +477,9 @@ STATIC int local_chkrem(elem *e,elem *eu)
 }
 
 //////////////////////////////////////
-// Add entry e to loctab[]
+// Add entry e to lt.data[]
 
-STATIC void local_ins(elem *e)
+STATIC void local_ins(Loctab& lt, elem *e)
 {
     elem_debug(e);
     if (e->E1->Eoper == OPvar)
@@ -492,29 +499,29 @@ STATIC void local_ins(elem *e)
                 !(e->E1->Ety & mTYvolatile))
             {
                 // Add e to the candidate array
-                //dbg_printf("local_ins('%s'), loctop = %d, locmax = %d\n",s->Sident,loctop,locmax);
-                assert(loctop < locmax);
-                loctab[loctop].e = e;
-                loctab[loctop].flags = flags;
-                loctop++;
+                //dbg_printf("local_ins('%s'), loctop = %d, locmax = %d\n",s->Sident,lt.dim,lt.allocdim);
+                assert(lt.dim < lt.allocdim);
+                lt.data[lt.dim].e = e;
+                lt.data[lt.dim].flags = flags;
+                lt.dim++;
             }
         }
     }
 }
 
 //////////////////////////////////////
-// Remove entry i from loctab[], and then compress the table.
+// Remove entry i from lt.data[], and then compress the table.
 //
 
-STATIC void local_rem(unsigned u)
+STATIC void local_rem(Loctab& lt, unsigned u)
 {
     //dbg_printf("local_rem(%u)\n",u);
-    assert(u < loctop);
-    if (u + 1 != loctop)
-    {   assert(u < loctop);
-        loctab[u] = loctab[loctop - 1];
+    assert(u < lt.dim);
+    if (u + 1 != lt.dim)
+    {   assert(u < lt.dim);
+        lt.data[u] = lt.data[lt.dim - 1];
     }
-    loctop--;
+    --lt.dim;
 }
 
 //////////////////////////////////////
@@ -645,15 +652,14 @@ STATIC int local_getflags(elem *e,symbol *s)
 // Remove all entries with flags set.
 //
 
-STATIC void local_remove(int flags)
-{   unsigned u;
-
-    for (u = 0; u < loctop;)
+STATIC void local_remove(Loctab& lt, int flags)
+{
+    for (unsigned u = 0; u < lt.dim;)
     {
-        if (loctab[u].flags & flags)
-            local_rem(u);
+        if (lt.data[u].flags & flags)
+            local_rem(lt, u);
         else
-            u++;
+            ++u;
     }
 }
 
@@ -661,15 +667,14 @@ STATIC void local_remove(int flags)
 // Ambiguous reference. Remove all with ambiguous defs
 //
 
-STATIC void local_ambigref()
-{   unsigned u;
-
-    for (u = 0; u < loctop;)
+STATIC void local_ambigref(Loctab& lt)
+{
+    for (unsigned u = 0; u < lt.dim;)
     {
-        if (loctab[u].flags & LFambigdef)
-            local_rem(u);
+        if (lt.data[u].flags & LFambigdef)
+            local_rem(lt, u);
         else
-            u++;
+            ++u;
     }
 }
 
@@ -677,15 +682,14 @@ STATIC void local_ambigref()
 // Ambiguous definition. Remove all with ambiguous refs.
 //
 
-STATIC void local_ambigdef()
-{   unsigned u;
-
-    for (u = 0; u < loctop;)
+STATIC void local_ambigdef(Loctab& lt)
+{
+    for (unsigned u = 0; u < lt.dim;)
     {
-        if (loctab[u].flags & (LFambigref | LFambigdef))
-            local_rem(u);
+        if (lt.data[u].flags & (LFambigref | LFambigdef))
+            local_rem(lt, u);
         else
-            u++;
+            ++u;
     }
 }
 
@@ -693,16 +697,15 @@ STATIC void local_ambigdef()
 // Reference to symbol.
 // Remove any that define that symbol.
 
-STATIC void local_symref(symbol *s)
-{   unsigned u;
-
+STATIC void local_symref(Loctab& lt, symbol *s)
+{
     symbol_debug(s);
-    for (u = 0; u < loctop;)
+    for (unsigned u = 0; u < lt.dim;)
     {
-        if (local_getflags(loctab[u].e,s) & LFsymdef)
-            local_rem(u);
+        if (local_getflags(lt.data[u].e,s) & LFsymdef)
+            local_rem(lt, u);
         else
-            u++;
+            ++u;
     }
 }
 
@@ -710,16 +713,15 @@ STATIC void local_symref(symbol *s)
 // Definition of symbol.
 // Remove any that reference that symbol.
 
-STATIC void local_symdef(symbol *s)
-{   unsigned u;
-
+STATIC void local_symdef(Loctab& lt, symbol *s)
+{
     symbol_debug(s);
-    for (u = 0; u < loctop;)
+    for (unsigned u = 0; u < lt.dim;)
     {
-        if (local_getflags(loctab[u].e,s) & (LFsymref | LFsymdef))
-            local_rem(u);
+        if (local_getflags(lt.data[u].e,s) & (LFsymref | LFsymdef))
+            local_rem(lt, u);
         else
-            u++;
+            ++u;
     }
 }
 
