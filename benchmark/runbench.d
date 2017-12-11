@@ -1,3 +1,4 @@
+#!/usr/bin/env rdmd
 /**
  * This is a driver script that runs the benchmarks.
  *
