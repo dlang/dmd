@@ -87,7 +87,9 @@ void runTests(Config cfg)
 
     foreach(bin; sources)
     {
-        import std.datetime, std.algorithm : min;
+        import core.time : Duration;
+        import std.algorithm : min;
+        import std.datetime.stopwatch : AutoStart, StopWatch;
         auto sw = StopWatch(AutoStart.yes);
         auto minDur = Duration.max;
         string minGCProf;
