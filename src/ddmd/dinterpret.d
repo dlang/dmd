@@ -340,9 +340,9 @@ struct CompiledCtfeFunction
     }
 }
 
-private extern (C++) final class CtfeCompiler : Visitor
+private extern (C++) final class CtfeCompiler : SemanticTimeTransitiveVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticTimeTransitiveVisitor.visit;
 public:
     CompiledCtfeFunction* ccf;
 
@@ -370,34 +370,6 @@ public:
             ccf.onExpression(s.exp);
     }
 
-    override void visit(CompoundStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s CompoundStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        for (size_t i = 0; i < s.statements.dim; i++)
-        {
-            Statement sx = (*s.statements)[i];
-            if (sx)
-                ctfeCompile(sx);
-        }
-    }
-
-    override void visit(UnrolledLoopStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s UnrolledLoopStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        for (size_t i = 0; i < s.statements.dim; i++)
-        {
-            Statement sx = (*s.statements)[i];
-            if (sx)
-                ctfeCompile(sx);
-        }
-    }
-
     override void visit(IfStatement s)
     {
         debug (LOGCOMPILE)
@@ -409,16 +381,6 @@ public:
             ctfeCompile(s.ifbody);
         if (s.elsebody)
             ctfeCompile(s.elsebody);
-    }
-
-    override void visit(ScopeStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s ScopeStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s.statement)
-            ctfeCompile(s.statement);
     }
 
     override void visit(OnScopeStatement s)
@@ -500,16 +462,6 @@ public:
         debug (LOGCOMPILE)
         {
             printf("%s CaseStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s.statement)
-            ctfeCompile(s.statement);
-    }
-
-    override void visit(DefaultStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s DefaultStatement::ctfeCompile\n", s.loc.toChars());
         }
         if (s.statement)
             ctfeCompile(s.statement);
@@ -602,18 +554,6 @@ public:
         }
     }
 
-    override void visit(TryFinallyStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s TryFinallyStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s._body)
-            ctfeCompile(s._body);
-        if (s.finalbody)
-            ctfeCompile(s.finalbody);
-    }
-
     override void visit(ThrowStatement s)
     {
         debug (LOGCOMPILE)
@@ -629,16 +569,6 @@ public:
         {
             printf("%s GotoStatement::ctfeCompile\n", s.loc.toChars());
         }
-    }
-
-    override void visit(LabelStatement s)
-    {
-        debug (LOGCOMPILE)
-        {
-            printf("%s LabelStatement::ctfeCompile\n", s.loc.toChars());
-        }
-        if (s.statement)
-            ctfeCompile(s.statement);
     }
 
     override void visit(ImportStatement s)

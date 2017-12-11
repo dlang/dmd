@@ -16,9 +16,9 @@ import ddmd.identifier;
 import std.stdio;
 import std.file;
 
-extern(C++) class FunctionLengthVisitor(AST) : TransitiveVisitor!AST
+extern(C++) class FunctionLengthVisitor(AST) : ParseTimeTransitiveVisitor!AST
 {
-    alias visit = TransitiveVisitor!AST.visit;
+    alias visit = ParseTimeTransitiveVisitor!AST.visit;
     ulong[] lengths;
 
     double getAvgLen(AST.Module m)

@@ -8,9 +8,9 @@ import ddmd.root.outbuffer;
 
 import core.stdc.stdio;
 
-extern(C++) class ImportVisitor2(AST) : TransitiveVisitor!AST
+extern(C++) class ImportVisitor2(AST) : ParseTimeTransitiveVisitor!AST
 {
-    alias visit = TransitiveVisitor!AST.visit;
+    alias visit = ParseTimeTransitiveVisitor!AST.visit;
 
     override void visit(AST.Import imp)
     {

@@ -4,16 +4,24 @@ module ddmd.transitivevisitor;
 
 import ddmd.permissivevisitor;
 import ddmd.tokens;
-
 import ddmd.root.rootobject;
 
 import core.stdc.stdio;
 
 /** Visitor that implements the AST traversal logic. The nodes just accept their children.
   */
-extern(C++) class TransitiveVisitor(AST) : PermissiveVisitor!AST
+extern(C++) class ParseTimeTransitiveVisitor(AST) : PermissiveVisitor!AST
 {
     alias visit = PermissiveVisitor!AST.visit;
+    mixin ParseVisitMethods!AST;
+}
+
+/* This mixin implements the AST traversal logic for parse time AST nodes. The same code
+ * is used for semantic time AST node traversal, so in order to not duplicate the code,
+ * the template mixin is used.
+ */
+package mixin template ParseVisitMethods(AST)
+{
 
 //   Statement Nodes
 //===========================================================
@@ -1135,4 +1143,3 @@ extern(C++) class TransitiveVisitor(AST) : PermissiveVisitor!AST
         }
     }
 }
-
