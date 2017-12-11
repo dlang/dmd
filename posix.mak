@@ -290,6 +290,9 @@ $(ROOT)/benchmark: benchmark/runbench.d
 benchmark: $(ROOT)/benchmark
 	$<
 
+benchmark-compile-only: $(ROOT)/benchmark
+	$< --repeat=0 --dflags=" "
+
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
 
@@ -338,6 +341,6 @@ style: checkwhitespace
 auto-tester-build: target checkwhitespace
 
 .PHONY : auto-tester-test
-auto-tester-test: unittest
+auto-tester-test: unittest benchmark-compile-only
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)

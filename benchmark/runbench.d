@@ -178,6 +178,7 @@ Config parseArgs(string[] args)
            config.passThrough,
            "h|help", &cfg.help,
            "v|verbose", &cfg.verbose,
+           "dflags", &cfg.dflags,
            "r|repeat", &cfg.repeat);
 
     if (args.length >= 2 && !args[1].startsWith("-"))
