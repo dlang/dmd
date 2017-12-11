@@ -19,8 +19,13 @@ import ddmd.root.rootobject;
 
 // Online documentation: https://dlang.org/phobos/ddmd_visitor.html
 
+
+/** Visitor instantianted with the code generation AST family
+ */
 alias Visitor = GenericVisitor!ASTCodegen;
-extern (C++) class GenericVisitor(AST) : ParseTimeVisitor!AST
+
+// Generic visitor which implements a visit method for all the AST nodes.
+private extern (C++) class GenericVisitor(AST) : ParseTimeVisitor!AST
 {
     alias visit = ParseTimeVisitor!AST.visit;
 public:
@@ -86,8 +91,12 @@ public:
     void visit(AST.ThrownExceptionExp e) { visit(cast(AST.Expression)e); }
 }
 
+/** Permissive visitor instantiated with the code generation AST family
+ */
 alias SemanticTimePermissiveVisitor = GenericPermissiveVisitor!ASTCodegen;
-extern (C++) class GenericPermissiveVisitor(AST) : GenericVisitor!AST
+
+// Generic permissive visitor where all the nodes do nothing
+private extern (C++) class GenericPermissiveVisitor(AST) : GenericVisitor!AST
 {
     alias visit = GenericVisitor!AST.visit;
 
@@ -101,34 +110,44 @@ extern (C++) class GenericPermissiveVisitor(AST) : GenericVisitor!AST
     override void visit(AST.Initializer){}
 }
 
+/** Transitive visitor instantiated with the code generation AST family
+ */
 alias SemanticTimeTransitiveVisitor = GenericTransitiveVisitor!ASTCodegen;
-extern (C++) class GenericTransitiveVisitor(AST) : GenericPermissiveVisitor!AST
+
+// The generic TransitiveVisitor implements all the AST nodes traversal logic
+private extern (C++) class GenericTransitiveVisitor(AST) : GenericPermissiveVisitor!AST
 {
     alias visit = GenericPermissiveVisitor!AST.visit;
 
-    mixin MParseVisitMethods!AST;
+    mixin ParseVisitMethods!AST;
 
     override void visit(AST.PeelStatement s)
     {
         if (s.s)
             s.s.accept(this);
     }
+
     override void visit(AST.UnrolledLoopStatement s)
     {
         foreach(sx; *s.statements)
+        {
             if (sx)
                 sx.accept(this);
+        }
     }
+
     override void visit(AST.DebugStatement s)
     {
         if (s.statement)
             s.statement.accept(this);
     }
+
     override void visit(AST.ForwardingStatement s)
     {
         if (s.statement)
             s.statement.accept(this);
     }
+
     override void visit(AST.StructLiteralExp e)
     {
         // CTFE can generate struct literals that contain an AddrExp pointing to themselves,
@@ -143,28 +162,34 @@ extern (C++) class GenericTransitiveVisitor(AST) : GenericPermissiveVisitor!AST
             e.stageflags = old;
         }
     }
+
     override void visit(AST.DotTemplateExp e)
     {
         e.e1.accept(this);
     }
+
     override void visit(AST.DotVarExp e)
     {
         e.e1.accept(this);
     }
+
     override void visit(AST.DelegateExp e)
     {
         if (!e.func.isNested())
             e.e1.accept(this);
     }
+
     override void visit(AST.DotTypeExp e)
     {
         e.e1.accept(this);
     }
+
     override void visit(AST.VectorExp e)
     {
         visitType(e.to);
         e.e1.accept(this);
     }
+
     override void visit(AST.SliceExp e)
     {
         e.e1.accept(this);
@@ -173,28 +198,34 @@ extern (C++) class GenericTransitiveVisitor(AST) : GenericPermissiveVisitor!AST
         if (e.lwr)
             e.lwr.accept(this);
     }
+
     override void visit(AST.ArrayLengthExp e)
     {
         e.e1.accept(this);
     }
+
     override void visit(AST.DelegatePtrExp e)
     {
         e.e1.accept(this);
     }
+
     override void visit(AST.DelegateFuncptrExp e)
     {
         e.e1.accept(this);
     }
+
     override void visit(AST.DotExp e)
     {
         e.e1.accept(this);
         e.e2.accept(this);
     }
+
     override void visit(AST.IndexExp e)
     {
         e.e1.accept(this);
         e.e2.accept(this);
     }
+
     override void visit(AST.RemoveExp e)
     {
         e.e1.accept(this);

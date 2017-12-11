@@ -13,14 +13,14 @@ import core.stdc.stdio;
 extern(C++) class ParseTimeTransitiveVisitor(AST) : PermissiveVisitor!AST
 {
     alias visit = PermissiveVisitor!AST.visit;
-    mixin MParseVisitMethods!AST;
+    mixin ParseVisitMethods!AST;
 }
 
 /* This mixin implements the AST traversal logic for parse time AST nodes. The same code
  * is used for semantic time AST node traversal, so in order to not duplicate the code,
  * the template mixin is used.
  */
-mixin template MParseVisitMethods(AST)
+package mixin template ParseVisitMethods(AST)
 {
 
 //   Statement Nodes
