@@ -53,8 +53,9 @@ void runTests(Config cfg)
     string[] sources;
     string[string] extra_sources;
     auto re = regex(cfg.pattern, "g");
-    auto self = buildPath(".", "runbench.d");
-    foreach(DirEntry src; dirEntries(".", "*.d", SpanMode.depth))
+    auto cwd = __FILE_FULL_PATH__.dirName;
+    auto self = buildPath(cwd, "runbench.d");
+    foreach(DirEntry src; dirEntries(cwd, "*.d", SpanMode.depth))
     {
         if (!src.isFile || src.name == self || src.name.withExtension(".ignore").exists)
             continue;
@@ -69,13 +70,13 @@ void runTests(Config cfg)
             sources ~= src.name;
     }
 
-    immutable bindir = absolutePath("bin");
+    immutable bindir = absolutePath("bin", cwd);
 
     foreach(ref src; sources)
     {
         writeln("COMPILING ", src);
         version (Windows) enum exe = "exe"; else enum exe = "";
-        auto bin = buildPath(bindir, src.chompPrefix("./").setExtension(exe));
+        auto bin = buildPath(bindir, src.relativePath(cwd).setExtension(exe));
         auto cmd = std.string.format("%s %s -op -odobj -of%s %s", cfg.dmd, cfg.dflags, bin, src);
         if (auto ex = src in extra_sources)
             cmd ~= " -I" ~ src[0..$-2] ~ ".extra" ~ *ex;
