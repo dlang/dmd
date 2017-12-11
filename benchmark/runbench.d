@@ -70,9 +70,10 @@ void runTests(Config cfg)
             sources ~= src.name;
     }
 
+    import std.parallelism : parallel;
     immutable bindir = absolutePath("bin", cwd);
 
-    foreach(ref src; sources)
+    foreach(ref src; sources.parallel(1))
     {
         writeln("COMPILING ", src);
         version (Windows) enum exe = "exe"; else enum exe = "";
