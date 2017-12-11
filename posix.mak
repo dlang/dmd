@@ -282,6 +282,14 @@ test/%/.run: test/%/Makefile
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
 		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC)
 
+#################### benchmark suite ##########################
+
+$(ROOT)/benchmark: benchmark/runbench.d
+	$(DMD) -de $< -of$@
+
+benchmark: $(ROOT)/benchmark
+	$<
+
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
 
