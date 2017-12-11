@@ -1,3 +1,7 @@
+#!/usr/bin/env dub
+/+dub.sdl:
+dependency "dmd" path="../.."
++/
 /* This file contains an example on how to use the transitive visitor.
    It implements a visitor which computes the average function length from
    a *.d file.
