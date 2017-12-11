@@ -21,8 +21,6 @@
 
 #if !defined(USE_ASAN_NEW_DELETE)
 
-#if 1
-
 extern "C"
 {
     void *allocmemory(size_t m_size);
@@ -36,24 +34,5 @@ void * operator new(size_t m_size)
 void operator delete(void *p)
 {
 }
-
-#else
-
-void * operator new(size_t m_size)
-{
-    void *p = malloc(m_size);
-    if (p)
-        return p;
-    printf("Error: out of memory\n");
-    exit(EXIT_FAILURE);
-    return p;
-}
-
-void operator delete(void *p)
-{
-    free(p);
-}
-
-#endif
 
 #endif
