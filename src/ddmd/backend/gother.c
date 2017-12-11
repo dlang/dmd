@@ -8,6 +8,7 @@
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              http://www.boost.org/LICENSE_1_0.txt
  * Source:      https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gother.c
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/gother.c
  */
 
 #if (SCPP || MARS) && !HTOD
@@ -95,10 +96,10 @@ Elemdata* Elemdata::find(elem *e)
  */
 
 STATIC void elemdatafree(Elemdata **plist)
-{   Elemdata *el;
+{
     Elemdata *eln;
 
-    for (el = *plist; el; el = eln)
+    for (Elemdata *el = *plist; el; el = eln)
     {   eln = el->next;
         list_free(&el->rdlist);
         MEM_BEF_FREE(el);
@@ -136,8 +137,7 @@ void constprop()
 static block *thisblock;
 
 STATIC void rd_compute()
-{       unsigned i;
-
+{
         cmes("constprop()\n");
         assert(dfo);
         flowrd();               /* compute reaching definitions (rd)    */
@@ -145,7 +145,7 @@ STATIC void rd_compute()
                 return;
         assert(rellist == NULL && inclist == NULL && eqeqlist == NULL);
         block_clearvisit();
-        for (i = 0; i < dfotop; i++)    /* for each block               */
+        for (unsigned i = 0; i < dfotop; i++)    // for each block
         {   block *b = dfo[i];
 
             switch (b->BC)
@@ -160,7 +160,7 @@ STATIC void rd_compute()
             }
         }
 
-        for (i = 0; i < dfotop; i++)    /* for each block               */
+        for (unsigned i = 0; i < dfotop; i++)    // for each block
         {       block *b;
 
                 b = dfo[i];
@@ -380,7 +380,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
  */
 
 STATIC void chkrd(elem *n,list_t rdlist)
-{   unsigned i;
+{
     symbol *sv;
     int unambig;
 
@@ -413,7 +413,7 @@ STATIC void chkrd(elem *n,list_t rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    for (i = 0; i < dfotop; i++)
+    for (unsigned i = 0; i < dfotop; i++)
         if (dfo[i]->BC == BCasm)
             return;
 
@@ -489,7 +489,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
     tym_t nty;
     unsigned nsize;
     targ_size_t noff;
-    list_t l;
 
     //printf("checkprop: "); WReqn(n); printf("\n");
     assert(n && n->Eoper == OPvar);
@@ -502,7 +501,7 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
     nsize = size(nty);
     noff = n->EV.sp.Voffset;
     unambig = sv->Sflags & SFLunambig;
-    for (l = rdlist; l; l = list_next(l))
+    for (list_t l = rdlist; l; l = list_next(l))
     {   elem *d = (elem *) list_ptr(l);
 
         elem_debug(d);
@@ -654,15 +653,14 @@ list_t listrds(vec_t IN,elem *e,vec_t f)
  */
 
 STATIC void eqeqranges()
-{   Elemdata *rel;
-    list_t rdl;
+{
     Symbol *v;
     int sz;
     elem *e;
     targ_llong c;
     int result;
 
-    for (rel = eqeqlist; rel; rel = rel->next)
+    for (Elemdata *rel = eqeqlist; rel; rel = rel->next)
     {
         e = rel->pelem;
         v = e->E1->EV.sp.Vsym;
@@ -672,7 +670,7 @@ STATIC void eqeqranges()
         c = el_tolong(e->E2);
 
         result = -1;                    // result not known yet
-        for (rdl = rel->rdlist; rdl; rdl = list_next(rdl))
+        for (list_t rdl = rel->rdlist; rdl; rdl = list_next(rdl))
         {   elem *erd = (elem *) list_ptr(rdl);
             elem *erd1;
             int szrd;
@@ -717,7 +715,7 @@ STATIC void eqeqranges()
  */
 
 STATIC void intranges()
-{   Elemdata *rel,*iel;
+{
     block *rb,*ib;
     symbol *v;
     elem *rdeq,*rdinc;
@@ -725,7 +723,7 @@ STATIC void intranges()
     targ_llong initial,increment,final;
 
     cmes("intranges()\n");
-    for (rel = rellist; rel; rel = rel->next)
+    for (Elemdata *rel = rellist; rel; rel = rel->next)
     {
         rb = rel->pblock;
         //dbg_printf("rel->pelem: "); WReqn(rel->pelem); dbg_printf("\n");
@@ -766,7 +764,7 @@ STATIC void intranges()
 
         /* Ensure that the only defs reaching the increment elem (rdinc) */
         /* are rdeq and rdinc.                                          */
-        for (iel = inclist; TRUE; iel = iel->next)
+        for (Elemdata *iel = inclist; TRUE; iel = iel->next)
         {   elem *rd1,*rd2;
 
             if (!iel)
@@ -1000,13 +998,12 @@ bool findloopparameters(elem* erel, elem*& rdeq, elem*& rdinc)
  */
 
 STATIC int loopcheck(block *start,block *inc,block *rel)
-{   list_t list;
-    block *b;
-
+{
     if (!(start->Bflags & BFLvisited))
     {   start->Bflags |= BFLvisited;    /* guarantee eventual termination */
-        for (list = start->Bsucc; list; list = list_next(list))
-        {   b = (block *) list_ptr(list);
+        for (list_t list = start->Bsucc; list; list = list_next(list))
+        {
+            block *b = (block *) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
                 return TRUE;
         }
@@ -1023,7 +1020,7 @@ STATIC int loopcheck(block *start,block *inc,block *rel)
 static int recalc;
 
 void copyprop()
-{       unsigned i;
+{
 
         out_regcand(&globsym);
         cmes("copyprop()\n");
@@ -1033,17 +1030,16 @@ Lagain:
         if (go.exptop <= 1)
                 return;                 /* none available               */
 #if 0
-        for (i = 1; i < go.exptop; i++)
+        for (unsigned i = 1; i < go.exptop; i++)
         {       dbg_printf("go.expnod[%d] = (",i);
                 WReqn(go.expnod[i]);
                 dbg_printf(");\n");
         }
 #endif
         recalc = 0;
-        for (i = 0; i < dfotop; i++)    /* for each block               */
-        {       block *b;
-
-                b = dfo[i];
+        for (unsigned i = 0; i < dfotop; i++)    // for each block
+        {
+                block *b = dfo[i];
                 if (b->Belem)
                 {
 #if 0
@@ -1289,12 +1285,10 @@ static vec_t ambigref;          /* vector of assignment elems that      */
                                 /* reference is done (as in *p or call) */
 
 void rmdeadass()
-{       unsigned i,j;
-        vec_t DEAD,POSS;
-
+{
         cmes("rmdeadass()\n");
         flowlv();                       /* compute live variables       */
-        for (i = 0; i < dfotop; i++)    /* for each block b             */
+        for (unsigned i = 0; i < dfotop; i++)    // for each block b
         {       block *b = dfo[i];
 
                 if (!b->Belem)          /* if no elems at all           */
@@ -1310,14 +1304,15 @@ void rmdeadass()
                         assmax = asstop;
                 }
                 /*setvecdim(asstop);*/
-                DEAD = vec_calloc(asstop);
-                POSS = vec_calloc(asstop);
+                vec_t DEAD = vec_calloc(asstop);
+                vec_t POSS = vec_calloc(asstop);
                 ambigref = vec_calloc(asstop);
                 assnum = 0;
                 accumda(b->Belem,DEAD,POSS);    /* compute DEAD and POSS */
                 assert(assnum == asstop);
                 vec_free(ambigref);
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
+                unsigned j;
                 foreach (j,asstop,POSS) /* for each possible dead asg.  */
                 {       symbol *v;      /* v = target of assignment     */
                         elem *n,*nv;
@@ -1451,7 +1446,7 @@ STATIC unsigned numasg(elem *e)
 
 STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
 {       vec_t Pl,Pr,Dl,Dr;
-        unsigned i,op,vecdim;
+        unsigned op,vecdim;
 
         /*chkvecdim(asstop,0);*/
         assert(n && DEAD && POSS);
@@ -1470,7 +1465,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
                 /*   = Pl & Pr | ~P & (Pl | Pr)         */
                 vecdim = vec_dim(DEAD);
-                for (i = 0; i < vecdim; i++)
+                for (unsigned i = 0; i < vecdim; i++)
                 {       DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
                                    (~POSS[i] & (Dl[i] | Dr[i]));
                         POSS[i] = (Pl[i] & Pr[i]) | (~POSS[i] & (Pl[i] | Pr[i]));
@@ -1501,10 +1496,9 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // We have a reference. Clear all bits in POSS that
                 // could be referenced.
 
-                for (i = 0; i < assnum; i++)
-                {   elem *ti;
-
-                    ti = Elvalue(assnod[i]);
+                for (unsigned i = 0; i < assnum; i++)
+                {
+                    elem *ti = Elvalue(assnod[i]);
                     if (v == ti->EV.sp.Vsym &&
                         ((vsize == -1 || tysize(ti->Ety) == -1) ||
                          // If symbol references overlap
@@ -1520,7 +1514,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
 
             case OPasm:         // reference everything
-                for (i = 0; i < assnum; i++)
+                for (unsigned i = 0; i < assnum; i++)
                     vec_clearbit(i,POSS);
                 break;
 
@@ -1586,7 +1580,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         unsigned tsz = tysize(t->Ety);
                         if (n->Eoper == OPstreq)
                             tsz = type_size(n->ET);
-                        for (i = 0; i < assnum; i++)
+                        for (unsigned i = 0; i < assnum; i++)
                         {   elem *ti = Elvalue(assnod[i]);
 
                             unsigned tisz = tysize(ti->Ety);
@@ -1650,14 +1644,13 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
  */
 
 void deadvar()
-{       SYMIDX i;
-
+{
         assert(dfo);
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
         /*setvecdim(dfotop);*/
-        for (i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.top; i++)
         {   symbol *s = globsym.tab[i];
 
             if (s->Sflags & SFLunambig)
@@ -1672,24 +1665,23 @@ void deadvar()
         }
 
         /* Go through trees and "liven" each one we see.        */
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                         dvwalk(dfo[i]->Belem,i);
 
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
-        for (i = 0; i < globsym.top; i++)
-        {       unsigned j;
-
+        for (SYMIDX i = 0; i < globsym.top; i++)
+        {
                 if (globsym.tab[i]->Srange /*&& globsym.tab[i]->Sclass != CLMOS*/)
-                        for (j = 0; j < dfotop; j++)
+                        for (unsigned j = 0; j < dfotop; j++)
                                 if (vec_testbit(i,dfo[j]->Binlv))
                                         vec_setbit(j,globsym.tab[i]->Srange);
         }
 
         /* Print results        */
-        for (i = 0; i < globsym.top; i++)
+        for (SYMIDX i = 0; i < globsym.top; i++)
         {       char *p;
                 symbol *s = globsym.tab[i];
 
@@ -1742,8 +1734,7 @@ static vec_t blockseen; /* which blocks we have visited         */
 
 void verybusyexp()
 {       elem **pn;
-        int i;
-        unsigned j,k,l;
+        unsigned j,l;
 
         cmes("verybusyexp()\n");
         flowvbe();                      /* compute VBEs                 */
@@ -1760,7 +1751,7 @@ void verybusyexp()
 
         /* Go backwards through dfo so that VBEs are evaluated as       */
         /* close as possible to where they are used.                    */
-        for (i = dfotop; --i >= 0;)     /* for each block               */
+        for (int i = dfotop; --i >= 0;)     // for each block
         {       block *b = dfo[i];
                 int done;
 
@@ -1821,10 +1812,9 @@ void verybusyexp()
 #endif
 
                 foreach (j,go.exptop,b->Bout)
-                {       list_t bl;
-
+                {
                         vec_clear(blockseen);
-                        for (bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (list_t bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
                         {       if (killed(j,list_block(bl),b))
                                 {       vec_clearbit(j,b->Bout);
                                         break;
@@ -1842,10 +1832,9 @@ void verybusyexp()
 #endif
 
                 foreach (j,go.exptop,b->Bout)
-                {       list_t bl;
-
+                {
                         vec_clear(blockseen);
-                        for (bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
+                        for (list_t bl = go.expblk[j]->Bpred; bl; bl = list_next(bl))
                         {       if (ispath(j,list_block(bl),b))
                                         goto L2;
                         }
@@ -1863,6 +1852,7 @@ void verybusyexp()
 
                 foreach (j,go.exptop,b->Bout)
                 {
+                        unsigned k;
                         for (k = j + 1; k < go.exptop; k++)
                         {       if (vec_testbit(k,b->Bout) &&
                                     el_match(go.expnod[j],go.expnod[k]))
@@ -1910,14 +1900,13 @@ void verybusyexp()
  */
 
 STATIC int killed(unsigned j,block *bp,block *b)
-{       list_t bl;
-
+{
         if (bp == b || vec_testbit(bp->Bdfoidx,blockseen))
                 return FALSE;
         if (vec_testbit(j,bp->Bkill))
                 return TRUE;
         vec_setbit(bp->Bdfoidx,blockseen);      /* mark as visited              */
-        for (bl = bp->Bpred; bl; bl = list_next(bl))
+        for (list_t bl = bp->Bpred; bl; bl = list_next(bl))
                 if (killed(j,list_block(bl),b))
                         return TRUE;
         return FALSE;
@@ -1933,9 +1922,7 @@ STATIC int killed(unsigned j,block *bp,block *b)
  */
 
 STATIC int ispath(unsigned j,block *bp,block *b)
-{       list_t bl;
-        unsigned i;
-
+{
         /*chkvecdim(go.exptop,0);*/
         if (bp == b) return TRUE;       /* the trivial case             */
         if (vec_testbit(bp->Bdfoidx,blockseen))
@@ -1944,6 +1931,7 @@ STATIC int ispath(unsigned j,block *bp,block *b)
 
         /* FALSE if elem j is used in block bp (and reaches the end     */
         /* of bp, indicated by it being an AE in Bgen)                  */
+        unsigned i;
         foreach (i,go.exptop,bp->Bgen)     /* look thru used expressions   */
         {       if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
                         return FALSE;
@@ -1951,7 +1939,7 @@ STATIC int ispath(unsigned j,block *bp,block *b)
 
         /* Not used in bp, see if there is a path through a predecessor */
         /* of bp                                                        */
-        for (bl = bp->Bpred; bl; bl = list_next(bl))
+        for (list_t bl = bp->Bpred; bl; bl = list_next(bl))
                 if (ispath(j,list_block(bl),b))
                         return TRUE;
 
