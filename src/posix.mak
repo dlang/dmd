@@ -309,8 +309,6 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
 	stringtable hash))
 
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor))
-
 GLUE_OBJS =
 
 ifeq (osx,$(OS))
@@ -438,9 +436,6 @@ $G/backend.a: $(G_OBJS) $(SRC_MAKE)
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
-$G/parser.a: $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS) $(HOST_DMD_PATH) $(SRC_MAKE)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -L-lstdc++ $(DFLAGS) $(PARSER_SRCS) $G/lexer.a $(ROOT_SRCS)
-
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
@@ -464,9 +459,13 @@ unittest: $G/dmd-unittest
 ######## DMD as a library examples
 
 EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor))
 
-$G/examples/%: $(EX)/%.d $G/parser.a $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
+$G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
+	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
+
+$G/examples/%: $(EX)/%.d $G/parser.a $G/dmd
+	CC="$(HOST_CXX)" $G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
 
 build-examples: $(EXAMPLES)
 
