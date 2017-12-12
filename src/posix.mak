@@ -576,7 +576,7 @@ $(TOOLS_DIR)/checkwhitespace.d:
 
 # See https://github.com/dlang/dmd/pull/7358 for why -xc++ is used here
 # -O is needed for FreeBSD's compiler to silence "-Wuninitialized is not supported without -O"
-checkcxxheaders:
+checkcxxheaders: $(ROOT_SRC) $(SRC)
 	$(HOST_CXX) -xc++ -O -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
 	$(HOST_CXX) -xc++ -O -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
 
