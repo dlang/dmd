@@ -1,8 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation\fail8262.d(32): Error: cannot interpret Tuple8262!1 at compile time
-fail_compilation\fail8262.d(27): Error: template instance fail8262.T8262!(Tuple8262!1) error instantiating
-fail_compilation\fail8262.d(19): Error: cannot implicitly convert expression `S(0)` of type `S` to `int`
+fail_compilation/fail8262.d(32): Error: cannot interpret Tuple8262!1 at compile time
+fail_compilation/fail8262.d(27): Error: template instance fail8262.T8262!(Tuple8262!1) error instantiating
+fail_compilation/fail8262.d(19): Error: cannot implicitly convert expression `S(0)` of type `S` to `int`
 ---
  * https://issues.dlang.org/show_bug.cgi?id=8262
  */
