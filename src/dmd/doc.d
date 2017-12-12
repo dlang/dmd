@@ -2222,6 +2222,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
+                for (; quoteLevel > 0; --quoteLevel)
+                    i = buf.insert(i, ")");
+
                 i = buf.insert(i, "$(DDOC_BLANKLINE)");
 // TODO: markdowny paragraphy things
             }
@@ -2242,8 +2245,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     else if (slice[j] != ' ' && slice[j] != '\t')
                         break;
                 }
-                for (; quoteLevel < previousQuoteLevel; ++quoteLevel)
-                    i = buf.insert(i, ")");
+                if (quoteLevel)
+                    for (; quoteLevel < previousQuoteLevel; ++quoteLevel)
+                        i = buf.insert(i, ")");
                 quoteLevel = 0;
             }
             break;
@@ -2310,7 +2314,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
         case '>':
             {
-                if (leadingBlank && (!inCode || previousQuoteLevel >= quoteLevel))
+                if (leadingBlank && (!inCode || previousQuoteLevel > quoteLevel))
                 {
                     ++quoteLevel;
                     size_t iQuotedStart = skipchars(buf, i + 1, " \t");
@@ -2375,6 +2379,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     i--; // point to the ending ) so when the for loop does i++, it will see the next character
                     break;
                 }
+
+                if (leadingBlank)
+                {
+                    // Perhaps we're starting or ending a Markdown code block
+                    size_t iAfterDelimiter = skipchars(buf, i, "`");
+                    if (iAfterDelimiter - i >= 3)
+                        goto case '-';
+                }
+
                 if (inCode)
                     break;
                 inCode = 1;
@@ -2396,6 +2409,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 size_t istart = i;
                 size_t eollen = 0;
                 leadingBlank = 0;
+                char c0 = c; // if we jumped here from case '`'
                 while (1)
                 {
                     ++i;
@@ -2419,7 +2433,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         }
                     }
                     // BUG: handle UTF PS and LS too
-                    if (c != '-')
+                    if (c != c0)
                         goto Lcont;
                 }
                 if (i - istart < 3)
@@ -2428,6 +2442,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // Remove the entire --- line, including blanks and \n
                 buf.remove(iLineStart, i - iLineStart + eollen);
                 i = iLineStart;
+                if (eollen)
+                {
+                    leadingBlank = 1;
+                    previousQuoteLevel = quoteLevel;
+                    quoteLevel = 0;
+                }
                 if (inCode && (i <= iCodeStart))
                 {
                     // Empty code section, just remove it completely.
@@ -2497,6 +2517,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 }
                 i = skipchars(buf, iSkipped, " \t");
+                // require whitespace
+                if (i == iSkipped)
+                {
+                    i = iHeadingStart;
+                    headingLevel = 0;
+                    break;
+                }
                 // remove the ### prefix
                 buf.remove(iHeadingStart, i - iHeadingStart);
                 i = iHeadingStart;
@@ -2511,7 +2538,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     switch (slice[j])
                     {
                     case '#':
-                        if (!iSuffixStart || inWhitespace)
+                        if (inWhitespace)
                             iSuffixStart = j;
                         inWhitespace = false;
                         break;
@@ -2521,13 +2548,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         break;
                     case '\r':
                     case '\n':
-                        goto endHeadingSuffix;
+                        goto LendHeadingSuffix;
                     default:
                         iSuffixStart = 0;
                         inWhitespace = false;
                     }
                 }
-                endHeadingSuffix:
+            LendHeadingSuffix:
                 if (iSuffixStart)
                     buf.remove(iSuffixStart, j - iSuffixStart);
             }
@@ -2553,20 +2580,24 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
         case '*':
         {
-            if (inCode)
+            if (inCode || inBacktick)
                 break;
 
             if (leadingBlank)
             {
                 /* A line consisting solely of ** indicates a Markdown heading on the previous line. */
+                // TODO: what about a HR?
                 leadingBlank = 0;
                 size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
-                if (iAfterUnderline >= buf.offset)
-                    break;
-                if (buf.data[iAfterUnderline] != '\n')
-                    break;
-                buf.remove(i, iAfterUnderline - i);
-                headingLevel = 2;
+                if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
+                {
+                    buf.remove(i, iAfterUnderline - i);
+                    headingLevel = 2;
+                }
+                else
+                {
+                    // TODO: perhaps the start of a list item?
+                }
             }
             else
             {
@@ -2578,7 +2609,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '\\':
         {
             /* Escape Markdown special characters */
-            if (inCode || i >= buf.offset - 1)
+            if (inCode || i+1 >= buf.offset)
                 break;
             char c1 = buf.data[i+1];
             if (c1 == '\\'
