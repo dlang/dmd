@@ -335,3 +335,26 @@ void test10310()
     int y;
     ubyte x = ((y & 252) ^ 2) + 1;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=15289
+void test15289a()
+{
+    int [] arr = [1, 2, 3, 4];
+    uint foo = 50 / arr.length;
+}
+
+void test15289b()
+{
+    int [] arr = [1, 2, 3, 4];
+    uint foo = 50 % arr.length;
+}
+
+void testShiftRightOnNegative()
+{
+    int neg = -1;
+    uint[] arr = [1, 2, 3];
+    ubyte b;
+    // Shift with negative value returns value in range [0, ulong.max]
+    static assert(!__traits(compiles, b = arr.length >> neg));
+    static assert(!__traits(compiles, b = arr.length << neg));
+}
