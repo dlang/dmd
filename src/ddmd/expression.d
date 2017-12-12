@@ -4529,7 +4529,7 @@ extern (C++) final class FuncExp : Expression
         }
         else if (!flag)
         {
-            auto ts = Type.toAutoQualChars(tx, to);
+            auto ts = toAutoQualChars(tx, to);
             error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
                 toChars(), ts[0], ts[1]);
         }

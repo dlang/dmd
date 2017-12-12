@@ -910,18 +910,6 @@ extern (C++) abstract class Type : RootObject
         return buf.extractString();
     }
 
-    static const(char*)[2] toAutoQualChars(Type t1, Type t2)
-    {
-        auto s1 = t1.toChars();
-        auto s2 = t2.toChars();
-        if (strcmp(s1, s2) == 0)
-        {
-            s1 = t1.toPrettyChars(true);
-            s2 = t2.toPrettyChars(true);
-        }
-        return [s1, s2];
-    }
-
     static void _init()
     {
         stringtable._init(14000);
@@ -9182,4 +9170,20 @@ extern (C++) final class Parameter : RootObject
     }
 
     extern (D) static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
+}
+
+/***********************************************************
+ * For printing two types with qualification when necessary.
+ * Disambiguates the case where toChars() on each type match.
+ */
+const(char*)[2] toAutoQualChars(Type t1, Type t2)
+{
+    auto s1 = t1.toChars();
+    auto s2 = t2.toChars();
+    if (strcmp(s1, s2) == 0)
+    {
+        s1 = t1.toPrettyChars(true);
+        s2 = t2.toPrettyChars(true);
+    }
+    return [s1, s2];
 }
