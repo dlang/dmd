@@ -1,21 +1,32 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/bug9631.d(20): Error: cannot implicitly convert expression `F()` of type `bug9631.T1!().F` to `bug9631.T2!().F`
+fail_compilation/bug9631.d(17): Error: cannot implicitly convert expression `F()` of type `bug9631.tem!().F` to `bug9631.F`
 ---
 */
 
-template T1()
+struct F { }
+
+template tem()
 {
     struct F { }
 }
 
-template T2()
+void convert()
 {
-    struct F { }
+    F x = tem!().F();
 }
 
-void main()
+/*
+TEST_OUTPUT:
+---
+fail_compilation/bug9631.d(31): Error: incompatible types for ((x) == (y)): 'bug9631.F' and 'bug9631.tem!().F'
+---
+*/
+
+void equal()
 {
-    T2!().F x = T1!().F();
+    F x;
+    auto y = tem!().F();
+    bool b = x == y;
 }
