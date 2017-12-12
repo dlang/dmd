@@ -3416,9 +3416,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         TypeClass tc = cast(TypeClass)t;
                         if (tc.sym.aliasthis && !(tc.att & RECtracingDT))
                         {
-                            tc.att = cast(AliasThisRec)(tc.att | RECtracingDT);
-                            m = deduceType(t.aliasthisOf(), sc, tparam, parameters, dedtypes, wm);
-                            tc.att = cast(AliasThisRec)(tc.att & ~RECtracingDT);
+                            if (auto ato = t.aliasthisOf())
+                            {
+                                tc.att = cast(AliasThisRec)(tc.att | RECtracingDT);
+                                m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
+                                tc.att = cast(AliasThisRec)(tc.att & ~RECtracingDT);
+                            }
                         }
                     }
                     else if (t.ty == Tstruct)
@@ -3426,9 +3429,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         TypeStruct ts = cast(TypeStruct)t;
                         if (ts.sym.aliasthis && !(ts.att & RECtracingDT))
                         {
-                            ts.att = cast(AliasThisRec)(ts.att | RECtracingDT);
-                            m = deduceType(t.aliasthisOf(), sc, tparam, parameters, dedtypes, wm);
-                            ts.att = cast(AliasThisRec)(ts.att & ~RECtracingDT);
+                            if (auto ato = t.aliasthisOf())
+                            {
+                                ts.att = cast(AliasThisRec)(ts.att | RECtracingDT);
+                                m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
+                                ts.att = cast(AliasThisRec)(ts.att & ~RECtracingDT);
+                            }
                         }
                     }
                 }
