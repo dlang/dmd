@@ -1115,7 +1115,41 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 Symbol *s = toSymbol(f);
                 obj_startaddress(s);
             }
+
             visit(cast(AttribDeclaration)pd);
+
+            if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
+            {
+                immutable isCtor = pd.ident == Id.crt_constructor;
+
+                static uint recurse(Dsymbol s, bool isCtor)
+                {
+                    if (auto ad = s.isAttribDeclaration())
+                    {
+                        uint nestedCount;
+                        auto decls = ad.include(null, null);
+                        if (decls)
+                        {
+                            for (size_t i = 0; i < decls.dim; ++i)
+                                nestedCount += recurse((*decls)[i], isCtor);
+                        }
+                        return nestedCount;
+                    }
+                    else if (auto f = s.isFuncDeclaration())
+                    {
+                        objmod.setModuleCtorDtor(s.csym, isCtor);
+                        if (f.linkage != LINKc)
+                            f.error("must be extern(C) for pragma %s", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
+                        return 1;
+                    }
+                    else
+                        return 0;
+                    assert(0);
+                }
+
+                if (recurse(pd, isCtor) > 1)
+                    pd.error("can only apply to a single declaration");
+            }
         }
 
         override void visit(TemplateInstance ti)
@@ -1486,5 +1520,3 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
     }
     return id_vtbl_dim * Target.ptrsize;
 }
-
-

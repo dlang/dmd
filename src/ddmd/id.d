@@ -299,6 +299,8 @@ immutable Msgtable[] msgtable =
     { "mangle" },
     { "msg" },
     { "startaddress" },
+    { "crt_constructor" },
+    { "crt_destructor" },
 
     // For special functions
     { "tohash", "toHash" },

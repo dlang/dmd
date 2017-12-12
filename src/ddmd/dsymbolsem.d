@@ -3072,6 +3072,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
         }
+        else if (pd.ident == Id.crt_constructor || pd.ident == Id.crt_destructor)
+        {
+            if (pd.args && pd.args.dim != 0)
+                pd.error("takes no argument");
+            goto Ldecl;
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)
