@@ -794,19 +794,15 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
 private void escapeByValue(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
-    extern (C++) final class EscapeVisitor : Visitor
+    extern (C++) final class EscapeVisitor : SemanticTimePermissiveVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticTimePermissiveVisitor.visit;
     public:
         EscapeByResults* er;
 
         extern (D) this(EscapeByResults* er)
         {
             this.er = er;
-        }
-
-        override void visit(Expression e)
-        {
         }
 
         override void visit(AddrExp e)
@@ -1078,19 +1074,15 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 private void escapeByRef(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByRef, e: %s\n", e.loc.toChars(), e.toChars());
-    extern (C++) final class EscapeRefVisitor : Visitor
+    extern (C++) final class EscapeRefVisitor : SemanticTimePermissiveVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticTimePermissiveVisitor.visit;
     public:
         EscapeByResults* er;
 
         extern (D) this(EscapeByResults* er)
         {
             this.er = er;
-        }
-
-        override void visit(Expression e)
-        {
         }
 
         override void visit(VarExp e)
