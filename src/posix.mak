@@ -535,25 +535,6 @@ optabgen.out : $G/optabgen
 
 $(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 
-#########
-# Specific dependencies other than the source file for all objects
-########################################################################
-# If additional flags are needed for a specific file add a _CXXFLAGS as a
-# dependency to the object file and assign the appropriate content.
-
-cg.o: $G/fltables.c
-
-cgcod.o: $G/cdxxx.c
-
-cgelem.o: $G/elxxx.c
-
-debug.o: $G/debtab.c
-
-iasm.o: CXXFLAGS += -fexceptions
-
-var.o: $G/optab.c $G/tytab.c
-
-
 # Generic rules for all source files
 ########################################################################
 # Search the directory $(C) for .c-files when using implicit pattern
@@ -601,11 +582,6 @@ checkcxxheaders:
 
 ######################################################
 
-gcov:
-	gcov $(filter %.c,$(SRC) $(GLUE_SRC))
-
-######################################################
-
 zip:
 	-rm -f dmdsrc.zip
 	zip dmdsrc $(SRC) $(ROOT_SRCS) $(GLUE_SRC) $(BACK_SRC) $(TK_SRC)
@@ -614,11 +590,6 @@ zip:
 
 gitzip:
 	git archive --format=zip HEAD > $(ZIPFILE)
-
-######################################################
-
-../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -Df$@ $<
 
 ################################################################################
 # DDoc documentation generation
