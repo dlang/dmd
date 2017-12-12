@@ -278,6 +278,8 @@ endif
 endif
 
 
+######## DMD frontend source files
+
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle cppmanglewin ctfeexpr dcast dclass declaration delegatize denum dimport	\
@@ -320,6 +322,8 @@ endif
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
+######## DMD backend source files
+
 ifeq (X86,$(TARGET_CPU))
     TARGET_CH = $C/code_x86.h
     TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
@@ -353,20 +357,7 @@ else
 	BACK_OBJS += elfobj.o
 endif
 
-SRC_MAKE = posix.mak osmodel.mak
-
-SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
-	import.h init.h intrange.h json.h \
-	mars.h module.h mtype.h nspace.h objc.h                         \
-	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
-	$(DMD_SRCS)
-
-ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
-	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+######## DMD glue layer and backend
 
 GLUE_SRC = \
 	$(addprefix $D/, \
@@ -407,9 +398,30 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
+######## CXX header files (only needed for checkcxxheaders)
+
+SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
+	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
+	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
+	import.h init.h intrange.h json.h \
+	mars.h module.h mtype.h nspace.h objc.h                         \
+	scope.h statement.h staticassert.h target.h template.h tokens.h	\
+	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
+	$(DMD_SRCS)
+
+ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
+	longdouble.h newdelete.c object.h outbuffer.h port.h \
+	rmem.h root.h stringtable.h)
+
+######## Additional files
+
+SRC_MAKE = posix.mak osmodel.mak
+
 STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
+
+######## Begin build targets
 
 all: dmd
 
