@@ -35,18 +35,6 @@ ifeq (,$(TARGET_CPU))
     TARGET_CPU=X86
 endif
 
-ifeq (X86,$(TARGET_CPU))
-    TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
-else
-    ifeq (stub,$(TARGET_CPU))
-        TARGET_CH = $C/code_stub.h
-        TARGET_OBJS = platform_stub.o
-    else
-        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
-    endif
-endif
-
 # Default to a release built, override with BUILD=debug
 ifeq (,$(BUILD))
 BUILD=release
@@ -331,6 +319,18 @@ else
 endif
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
+
+ifeq (X86,$(TARGET_CPU))
+    TARGET_CH = $C/code_x86.h
+    TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
+else
+    ifeq (stub,$(TARGET_CPU))
+        TARGET_CH = $C/code_stub.h
+        TARGET_OBJS = platform_stub.o
+    else
+        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
+    endif
+endif
 
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
