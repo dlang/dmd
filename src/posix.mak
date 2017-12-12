@@ -35,18 +35,6 @@ ifeq (,$(TARGET_CPU))
     TARGET_CPU=X86
 endif
 
-ifeq (X86,$(TARGET_CPU))
-    TARGET_CH = $C/code_x86.h
-    TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
-else
-    ifeq (stub,$(TARGET_CPU))
-        TARGET_CH = $C/code_stub.h
-        TARGET_OBJS = platform_stub.o
-    else
-        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
-    endif
-endif
-
 # Default to a release built, override with BUILD=debug
 ifeq (,$(BUILD))
 BUILD=release
@@ -290,6 +278,8 @@ endif
 endif
 
 
+######## DMD frontend source files
+
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
 	cppmangle cppmanglewin ctfeexpr dcast dclass declaration delegatize denum dimport	\
@@ -330,6 +320,20 @@ endif
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
+######## DMD backend source files
+
+ifeq (X86,$(TARGET_CPU))
+    TARGET_CH = $C/code_x86.h
+    TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
+else
+    ifeq (stub,$(TARGET_CPU))
+        TARGET_CH = $C/code_stub.h
+        TARGET_OBJS = platform_stub.o
+    else
+        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
+    endif
+endif
+
 BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	glocal.o os.o nteh.o evalu8.o cgcs.o \
 	rtlsym.o cgelem.o cgen.o cgreg.o out.o \
@@ -351,20 +355,7 @@ else
 	BACK_OBJS += elfobj.o
 endif
 
-SRC_MAKE = posix.mak osmodel.mak
-
-SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
-	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
-	import.h init.h intrange.h json.h \
-	mars.h module.h mtype.h nspace.h objc.h                         \
-	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
-	$(DMD_SRCS)
-
-ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
-	longdouble.h newdelete.c object.h outbuffer.h port.h \
-	rmem.h root.h stringtable.h)
+######## DMD glue layer and backend
 
 GLUE_SRC = \
 	$(addprefix $D/, \
@@ -405,9 +396,30 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
+######## CXX header files (only needed for checkcxxheaders)
+
+SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
+	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
+	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
+	import.h init.h intrange.h json.h \
+	mars.h module.h mtype.h nspace.h objc.h                         \
+	scope.h statement.h staticassert.h target.h template.h tokens.h	\
+	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
+	$(DMD_SRCS)
+
+ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
+	longdouble.h newdelete.c object.h outbuffer.h port.h \
+	rmem.h root.h stringtable.h)
+
+######## Additional files
+
+SRC_MAKE = posix.mak osmodel.mak
+
 STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
 DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
+
+######## Begin build targets
 
 all: dmd
 
@@ -538,25 +550,6 @@ optabgen.out : $G/optabgen
 
 $(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 
-#########
-# Specific dependencies other than the source file for all objects
-########################################################################
-# If additional flags are needed for a specific file add a _CXXFLAGS as a
-# dependency to the object file and assign the appropriate content.
-
-cg.o: $G/fltables.c
-
-cgcod.o: $G/cdxxx.c
-
-cgelem.o: $G/elxxx.c
-
-debug.o: $G/debtab.c
-
-iasm.o: CXXFLAGS += -fexceptions
-
-var.o: $G/optab.c $G/tytab.c
-
-
 # Generic rules for all source files
 ########################################################################
 # Search the directory $(C) for .c-files when using implicit pattern
@@ -598,14 +591,9 @@ $(TOOLS_DIR)/checkwhitespace.d:
 
 # See https://github.com/dlang/dmd/pull/7358 for why -xc++ is used here
 # -O is needed for FreeBSD's compiler to silence "-Wuninitialized is not supported without -O"
-checkcxxheaders:
+checkcxxheaders: $(ROOT_SRC) $(SRC)
 	$(HOST_CXX) -xc++ -O -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
 	$(HOST_CXX) -xc++ -O -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
-
-######################################################
-
-gcov:
-	gcov $(filter %.c,$(SRC) $(GLUE_SRC))
 
 ######################################################
 
@@ -617,11 +605,6 @@ zip:
 
 gitzip:
 	git archive --format=zip HEAD > $(ZIPFILE)
-
-######################################################
-
-../changelog.html: ../changelog.dd $(HOST_DMD_PATH)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -Df$@ $<
 
 ################################################################################
 # DDoc documentation generation
@@ -656,7 +639,7 @@ $(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(HOST_DMD_PATH) ;\
 $(DOC_OUTPUT_DIR) :
 	mkdir -p $@
 
-html: $(HTMLS) project.ddoc $D/id.d | $(DOC_OUTPUT_DIR)
+html: $(HTMLS) project.ddoc | $(DOC_OUTPUT_DIR)
 endif
 
 ######################################################
