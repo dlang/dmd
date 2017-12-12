@@ -1,0 +1,36 @@
+-betterC switch now redirects shared static constructors and shared static destructors
+to the C library implementation of how this is done for C and C++ code. This is not
+guaranteed to work on all platforms, as this capability is not required by the C Standard.
+This implementation is for Win32 only. Other platforms will be supported in due course.
+
+Although D guarantees that static construction for imports occurs first,
+no such ordering guarantee is available with -betterC. Typically, however, the order
+matches the order in which object files are presente to the linker.
+
+Example:
+
+---
+import core.stdc.stdio;
+
+shared static this() {
+    printf("hello\n");
+}
+
+shared static ~this() {
+    printf("goodbye\n");
+}
+
+extern (C) int main() {
+    printf("main\n");
+    return 0;
+}
+---
+
+dmd test -betterC
+./test
+
+prints:
+
+hello
+main
+goodbye

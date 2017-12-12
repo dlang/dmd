@@ -209,6 +209,7 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
         }
 
         localgot = null;
+
         sctor = toSymbolX(m, id, SCglobal, t, "FZv");
         cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
         elem *ector = null;
@@ -492,6 +493,14 @@ void genObjFile(Module m, bool multiobj)
         m.ssharedctor = callFuncsAndGates(m, &ssharedctors, cast(StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
         m.sshareddtor = callFuncsAndGates(m, &sshareddtors, null, "__modshareddtor");
         m.stest = callFuncsAndGates(m, &stests, null, "__modtest");
+
+        if (global.params.betterC)
+        {
+            if (m.ssharedctor)
+                objmod.setModuleCtorDtor(m.ssharedctor, true);
+            if (m.sshareddtor)
+                objmod.setModuleCtorDtor(m.sshareddtor, false);
+        }
 
         if (m.doppelganger)
             genModuleInfo(m);
