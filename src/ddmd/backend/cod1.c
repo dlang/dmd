@@ -1315,7 +1315,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
             }
 #endif
         }
-        if (s->ty() & mTYcs && LARGECODE)
+        if (s->ty() & mTYcs && (bool) LARGECODE)
             goto Lfardata;
         goto L3;
     case FLdata:
