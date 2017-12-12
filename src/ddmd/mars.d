@@ -1083,7 +1083,7 @@ Language changes listed by -transition=id:
  * Returns:
  *   Return code of the application
  */
-version(unittest) {} else
+version(NoMain) {} else
 int main()
 {
     import core.memory;
