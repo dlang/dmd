@@ -241,7 +241,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
-	$C\divcoeff.c $C\dwarfeh.c $C\varstats.c $C\varstats.h \
+	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
 	$C\backend.txt
 
 # Toolkit
@@ -508,8 +508,8 @@ $G/cv8.obj : $C\cv8.c
 $G/debug.obj : $C\debug.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\debug
 
-$G/divcoeff.obj : $C\divcoeff.c
-	$(CC) -c -o$@ -cpp -e $(DEBUG) $C\divcoeff
+$G/divcoeff.obj : $C\divcoeff.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\divcoeff
 
 $G/dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dt
