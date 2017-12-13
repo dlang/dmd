@@ -89,7 +89,7 @@ void main()
 
 $(CONSOLE
 > g++ -c foo.cpp
-> dmd bar.d foo.o -L-lstdc++ $(ANDAND) ./bar
+> dmd bar.d foo.o -L-lstdc++ && ./bar
 i = 1
 j = 2
 k = 3
@@ -154,7 +154,7 @@ void bar()
 
 $(CONSOLE
 > dmd -c foo.d
-> g++ bar.cpp foo.o -lphobos2 -pthread -o bar $(ANDAND) ./bar
+> g++ bar.cpp foo.o -lphobos2 -pthread -o bar && ./bar
 i = 6
 j = 7
 k = 8
@@ -307,7 +307,7 @@ $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
 > g++ base.cpp
-> dmd main.d base.o $(ANDAND) ./main
+> dmd main.d base.o && ./main
 5
 20
 a = 1
@@ -370,7 +370,7 @@ int callE(E *e)
 
 $(CONSOLE
 > dmd -c base.d
-> g++ klass.cpp base.o -lphobos2 -pthread -o klass $(ANDAND) ./klass
+> g++ klass.cpp base.o -lphobos2 -pthread -o klass && ./klass
 i = 11
 j = 12
 k = 13
@@ -491,7 +491,7 @@ $(P Compiling, linking, and running produces the output:)
 
 $(CONSOLE
 > g++ -c template.cpp
-> dmd main.d template.o -L-lstdc++ $(ANDAND) ./main
+> dmd main.d template.o -L-lstdc++ && ./main
 A
 B
 C
@@ -915,4 +915,3 @@ $(SPEC_SUBNAV_PREV_NEXT interfaceToC, Interfacing to C, objc_interface, Interfac
 Macros:
     CHAPTER=33
     TITLE=Interfacing to C++
-    ANDAND=$(AMP)$(AMP)
