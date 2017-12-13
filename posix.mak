@@ -301,7 +301,7 @@ benchmark: $(ROOT)/benchmark
 	$<
 
 benchmark-compile-only: $(ROOT)/benchmark
-	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS)"
+	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS) -de"
 
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
