@@ -2583,6 +2583,9 @@ extern (C++) abstract class Type : RootObject
     /***************************************
      * Access the members of the object e. This type is same as e.type.
      * Params:
+     *  sc = instantiating scope
+     *  e = expression to convert
+     *  ident = identifier being used
      *  flag = DotExpFlag bit flags
      * Returns:
      *  resulting expression with e.ident resolved
@@ -9104,6 +9107,7 @@ extern (C++) final class Parameter : RootObject
      * Compute covariance of parameters `this` and `p`
      * as determined by the storage classes of both.
      * Params:
+     *  returnByRef = true if the function returns by ref
      *  p = Parameter to compare with
      * Returns:
      *  true = `this` can be used in place of `p`

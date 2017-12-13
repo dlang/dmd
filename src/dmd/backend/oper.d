@@ -272,7 +272,9 @@ int rel_unord(int op)     { return _rel_unord    [op - RELOPMIN]; }
 /****************************************
  * Conversion operators.
  * Convert from conversion operator to conversion index
- * parallel array invconvtab[] in cgelem.c)
+ * parallel array invconvtab[] in cgelem.c
+ * Params:
+ *   op = conversion operator
  */
 int convidx(OPER op) { return op - CNVOPMIN; }
 

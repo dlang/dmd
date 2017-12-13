@@ -519,6 +519,8 @@ extern (C++) class FuncDeclaration : Declaration
      * this function overrides.
      * Prefer an exact match to a covariant one.
      * Params:
+     *      vtbl     = vtable to use
+     *      dim      = maximal vtable dimension
      *      fix17349 = enable fix https://issues.dlang.org/show_bug.cgi?id=17349
      * Returns:
      *      -1      didn't find one
@@ -607,8 +609,6 @@ extern (C++) class FuncDeclaration : Declaration
     /*********************************
      * If function a function in a base class,
      * return that base class.
-     * Params:
-     *  cd = class that function is in
      * Returns:
      *  base class if overriding, null if not
      */
@@ -2446,6 +2446,7 @@ private const(char)* prependSpace(const(char)* str)
  * Params:
  *      loc =           instantiation location
  *      sc =            instantiation scope
+ *      s =             instantiation symbol
  *      tiargs =        initial list of template arguments
  *      tthis =         if !NULL, the `this` argument type
  *      fargs =         arguments to function

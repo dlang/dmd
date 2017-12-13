@@ -83,9 +83,12 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
  * right `this` pointer if var is in an outer class, but our
  * existing `this` pointer is in an inner class.
  * Params:
- *      e1 = existing `this`
+ *      loc = location to use for error messages
+ *      sc = context
  *      ad = struct or class we need the correct `this` for
+ *      e1 = existing `this`
  *      var = the specific member of ad we're accessing
+ *      flag = if true, return `null` instead of throwing an error
  * Returns:
  *      Expression representing the `this` for the var
  */

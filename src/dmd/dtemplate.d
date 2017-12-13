@@ -6116,7 +6116,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Compare proposed template instantiation with existing template instantiation.
      * Note that this is not commutative because of the auto ref check.
      * Params:
-     *  this = proposed template instantiation
      *  o = existing template instantiation
      * Returns:
      *  0 for match, 1 for no match
