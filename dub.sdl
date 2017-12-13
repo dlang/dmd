@@ -100,6 +100,7 @@ subPackage {
     "src/dmd/escape.d" \
     "src/dmd/expression.d" \
     "src/dmd/expressionsem.d" \
+    "src/dmd/frontend.d" \
     "src/dmd/func.d" \
     "src/dmd/gluelayer.d" \
     "src/dmd/hdrgen.d" \
