@@ -899,6 +899,7 @@ extern (C++) abstract class Type : RootObject
         return buf.extractString();
     }
 
+    /// ditto
     final char* toPrettyChars(bool QualifyTypes = false)
     {
         OutBuffer buf;
@@ -9184,4 +9185,25 @@ extern (C++) final class Parameter : RootObject
     }
 
     extern (D) static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
+}
+
+/**
+ * For printing two types with qualification when necessary.
+ * Params:
+ *    t1 = The first type to receive the type name for
+ *    t2 = The second type to receive the type name for
+ * Returns:
+ *    The fully-qualified names of both types if the two type names are not the same,
+ *    or the unqualified names of both types if the two type names are the same.
+ */
+const(char*)[2] toAutoQualChars(Type t1, Type t2)
+{
+    auto s1 = t1.toChars();
+    auto s2 = t2.toChars();
+    if (strcmp(s1, s2) == 0)
+    {
+        s1 = t1.toPrettyChars(true);
+        s2 = t2.toPrettyChars(true);
+    }
+    return [s1, s2];
 }
