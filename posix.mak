@@ -55,6 +55,14 @@ else
 	DOTLIB:=.a
 endif
 
+# build with shared library support
+# (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+
+LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
+
+MAKEFILE = $(firstword $(MAKEFILE_LIST))
+
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 # Set CFLAGS
@@ -113,13 +121,6 @@ ifeq ($(MODEL), 64)
 	OBJS+=$(ROOT)/osx_tls.o
 endif
 endif
-
-# build with shared library support
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-
-LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
-
-MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
