@@ -696,11 +696,12 @@ extern (C) pure nothrow @nogc @safe
 
     bool _aaRangeEmpty(Range r)
     {
-        return r.impl is null || r.idx == r.dim;
+        return r.impl is null || r.idx >= r.dim;
     }
 
     void* _aaRangeFrontKey(Range r)
     {
+        assert(!_aaRangeEmpty(r));
         if (r.idx >= r.dim)
             return null;
         return r.buckets[r.idx].entry;
@@ -708,6 +709,7 @@ extern (C) pure nothrow @nogc @safe
 
     void* _aaRangeFrontValue(Range r)
     {
+        assert(!_aaRangeEmpty(r));
         if (r.idx >= r.dim)
             return null;
 
@@ -1031,4 +1033,22 @@ unittest
     string[int] aa = [ 0: "a", 0: "b" ];
     assert(aa.length == 1);
     assert(aa.keys == [ 0 ]);
+}
+
+// test safety for alias-this'd AA that have unsafe opCast (issue 18071)
+unittest
+{
+    static struct Foo
+    {
+        int[int] aa;
+        auto opCast() pure nothrow @nogc
+        {
+            *cast(uint*)0xdeadbeef = 0xcafebabe;// unsafe
+            return null;
+        }
+        alias aa this;
+    }
+
+    Foo f;
+    () @safe { assert(f.byKey.empty); }();
 }
