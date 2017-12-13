@@ -86,6 +86,15 @@ else
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
 endif
 
+# Set PHOBOS_DFLAGS (for linking against Phobos)
+PHOBOS_PATH=../phobos
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+ROOT_DIR := $(shell pwd)
+PHOBOS_DFLAGS=-conf= $(MODEL_FLAG) -I$(ROOT_DIR)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL) $(PIC)
+ifeq (1,$(SHARED))
+PHOBOS_DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+endif
+
 ROOT_OF_THEM_ALL = generated
 ROOT = $(ROOT_OF_THEM_ALL)/$(OS)/$(BUILD)/$(MODEL)
 OBJDIR=obj/$(OS)/$(BUILD)/$(MODEL)
@@ -285,14 +294,14 @@ test/%/.run: test/%/Makefile
 
 #################### benchmark suite ##########################
 
-$(ROOT)/benchmark: benchmark/runbench.d
-	$(DMD) -de $< -of$@
+$(ROOT)/benchmark: benchmark/runbench.d target
+	$(DMD) $(PHOBOS_DFLAGS) -de $< -of$@
 
 benchmark: $(ROOT)/benchmark
 	$<
 
 benchmark-compile-only: $(ROOT)/benchmark
-	$< --repeat=0 --dflags=" "
+	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS)"
 
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
