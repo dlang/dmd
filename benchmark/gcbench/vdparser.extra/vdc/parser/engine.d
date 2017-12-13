@@ -792,7 +792,10 @@ class Parser
         if(abort || !shift(lexerTok))
             return null;
         if (nodeStack.depth > 1)
-            return parseError("parsing unfinished before end of mixin"), null;
+        {
+            parseError("parsing unfinished before end of mixin");
+            return null;
+        }
         return popNode().members;
     }
 
@@ -831,7 +834,10 @@ class Parser
         if(abort || !shift(lexerTok))
             return null;
         if (nodeStack.depth > 1)
-            return parseError("parsing unfinished before end of mixin"), null;
+        {
+            parseError("parsing unfinished before end of mixin");
+            return null;
+        }
         return popNode();
     }
 
@@ -872,7 +878,8 @@ string readUtf8(string fname)
     static const ubyte[2] bomUTF16LE = [ 0xFF, 0xFE ];             // UTF-16, little-endian
     static const ubyte[3] bomUTF8    = [ 0xEF, 0xBB, 0xBF ];       // UTF-8
 
-    ubyte[] data = cast(ubyte[]) std.file.read(fname);
+    import std.file : read;
+    ubyte[] data = cast(ubyte[]) read(fname);
     if(data.length >= 4 && data[0..4] == bomUTF32BE[])
         foreach(ref d; cast(uint[]) data)
             d = bswap(d);

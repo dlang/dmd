@@ -59,5 +59,6 @@ void doAppend()
             sum += a;
         enforce(sum == 1000 * 999 / 2, "bad sum");
     }
-    running += -1;
+    import core.atomic : atomicOp;
+    atomicOp!"-="(running, 1);
 }

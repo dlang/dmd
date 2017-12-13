@@ -863,9 +863,11 @@ class BasicType2
         switch(p.tok.id)
         {
             mixin(case_TOKs_MemberFunctionAttribute); // no member attributes?
-                auto type = p.topNode!(ast.Type);
-                p.combineAttributes(type.attr, tokenToAttribute(p.tok.id));
-                p.pushState(&shiftAttributes);
+                {
+                    auto type = p.topNode!(ast.Type);
+                    p.combineAttributes(type.attr, tokenToAttribute(p.tok.id));
+                    p.pushState(&shiftAttributes);
+                }
                 return Accept;
             default:
                 return Forward;
@@ -1008,9 +1010,11 @@ class DeclaratorSuffixes
         switch(p.tok.id)
         {
             mixin(case_TOKs_MemberFunctionAttribute);
-                auto param = p.topNode!(ast.ParameterList);
-                p.combineAttributes(param.attr, tokenToAttribute(p.tok.id));
-                p.pushState(&shiftMemberFunctionAttribute);
+                {
+                    auto param = p.topNode!(ast.ParameterList);
+                    p.combineAttributes(param.attr, tokenToAttribute(p.tok.id));
+                    p.pushState(&shiftMemberFunctionAttribute);
+                }
                 return Accept;
             case TOK_if:
                 p.popAppendTopNode!(ast.Declarator, ast.ParameterList)();

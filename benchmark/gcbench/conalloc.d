@@ -53,5 +53,6 @@ void doSha()
         auto sha = new SHA1; // undefined identifier SHA512?
         sha.put(BYTES);
     }
-    running += -1;
+    import core.atomic : atomicOp;
+    atomicOp!"-="(running, 1);
 }
