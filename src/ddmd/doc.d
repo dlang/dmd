@@ -819,9 +819,9 @@ extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
 
 extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
-    extern (C++) final class EmitComment : Visitor
+    extern (C++) final class EmitComment : SemanticTimePermissiveVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticTimePermissiveVisitor.visit;
     public:
         OutBuffer* buf;
         Scope* sc;
@@ -830,38 +830,6 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         {
             this.buf = buf;
             this.sc = sc;
-        }
-
-        override void visit(Dsymbol)
-        {
-        }
-
-        override void visit(InvariantDeclaration)
-        {
-        }
-
-        override void visit(UnitTestDeclaration)
-        {
-        }
-
-        override void visit(PostBlitDeclaration)
-        {
-        }
-
-        override void visit(DtorDeclaration)
-        {
-        }
-
-        override void visit(StaticCtorDeclaration)
-        {
-        }
-
-        override void visit(StaticDtorDeclaration)
-        {
-        }
-
-        override void visit(TypeInfoDeclaration)
-        {
         }
 
         void emit(Scope* sc, Dsymbol s, const(char)* com)
