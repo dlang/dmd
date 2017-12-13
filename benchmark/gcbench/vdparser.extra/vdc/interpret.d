@@ -200,14 +200,14 @@ class Value
         return semanticErrorValue("cannot dereference a ", this);
     }
 
-    @disable final Value interpretProperty(Context ctx, string prop)
+    final Value interpretProperty(Context ctx, string prop)
     {
         if(Value v = _interpretProperty(ctx, prop))
             return v;
         return semanticErrorValue("cannot calculate property ", prop, " of value ", toStr());
     }
 
-    @disable Value _interpretProperty(Context ctx, string prop)
+    Value _interpretProperty(Context ctx, string prop)
     {
         return getType()._interpretProperty(ctx, prop);
     }
@@ -1237,7 +1237,7 @@ class DynArrayValue : ArrayValue!TypeDynamicArray
         return super.toMixin();
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         switch(prop)
         {
@@ -1510,7 +1510,7 @@ class PointerValue : Value
         }
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         switch(prop)
         {
@@ -1688,7 +1688,7 @@ public:
         }
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         switch(prop)
         {
@@ -1864,7 +1864,7 @@ class AggrValue : TupleValue
         return "<notype>" ~ _toStr("{", "}");
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         auto type = getType();
         if(Value v = type.getProperty(this, prop, true))
@@ -2007,7 +2007,7 @@ class ReferenceValueT(T) : ReferenceValue
         return type;
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         if(instance)
             if(Value v = instance._interpretProperty(ctx, prop))

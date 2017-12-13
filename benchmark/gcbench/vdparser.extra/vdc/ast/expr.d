@@ -50,9 +50,9 @@ enum PREC
     unary,
     primary,
 }
-shared static PREC precedence[NumTokens];
+shared static PREC[NumTokens] precedence;
 
-shared static char recursion[NumTokens];
+shared static char[NumTokens] recursion;
 
 ////////////////////////////////////////////////////////////////
 void writeExpr(CodeWriter writer, Expression expr, bool paren)
@@ -1816,7 +1816,8 @@ class IntegerLiteralExpression : PrimaryExpression
             }
             unsigned = true;
         }
-        val = removechars(val, "_");
+        import std.array : replace;
+        val = val.replace("_", "");
         value = parse!ulong(val, radix);
     }
 
@@ -1972,7 +1973,8 @@ class FloatLiteralExpression : PrimaryExpression
                 break;
             val = val[0..$-1];
         }
-        val = removechars(val, "_");
+        import std.array : replace;
+        val = val.replace("_", "");
         value = parse!real(val);
     }
 

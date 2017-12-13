@@ -55,6 +55,14 @@ else
 	DOTLIB:=.a
 endif
 
+# build with shared library support
+# (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+
+LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
+
+MAKEFILE = $(firstword $(MAKEFILE_LIST))
+
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 # Set CFLAGS
@@ -76,6 +84,15 @@ ifeq ($(BUILD),debug)
 else
 	UDFLAGS += -O -release
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
+endif
+
+# Set PHOBOS_DFLAGS (for linking against Phobos)
+PHOBOS_PATH=../phobos
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+ROOT_DIR := $(shell pwd)
+PHOBOS_DFLAGS=-conf= $(MODEL_FLAG) -I$(ROOT_DIR)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL) $(PIC)
+ifeq (1,$(SHARED))
+PHOBOS_DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 endif
 
 ROOT_OF_THEM_ALL = generated
@@ -113,13 +130,6 @@ ifeq ($(MODEL), 64)
 	OBJS+=$(ROOT)/osx_tls.o
 endif
 endif
-
-# build with shared library support
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-
-LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
-
-MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
@@ -282,6 +292,17 @@ test/%/.run: test/%/Makefile
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
 		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC)
 
+#################### benchmark suite ##########################
+
+$(ROOT)/benchmark: benchmark/runbench.d target
+	$(DMD) $(PHOBOS_DFLAGS) -de $< -of$@
+
+benchmark: $(ROOT)/benchmark
+	$<
+
+benchmark-compile-only: $(ROOT)/benchmark
+	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS) -de"
+
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
 
@@ -330,6 +351,6 @@ style: checkwhitespace
 auto-tester-build: target checkwhitespace
 
 .PHONY : auto-tester-test
-auto-tester-test: unittest
+auto-tester-test: unittest benchmark-compile-only
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)

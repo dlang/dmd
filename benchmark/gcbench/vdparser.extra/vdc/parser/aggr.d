@@ -362,15 +362,17 @@ class Constructor
         switch(p.tok.id)
         {
             mixin(case_TOKs_MemberFunctionAttribute);
-                auto ctor = p.topNode!(ast.Constructor);
-                auto list = static_cast!(ast.ParameterList)(ctor.members[$-1]);
-                if(auto attr = tokenToAttribute(p.tok.id))
-                    p.combineAttributes(list.attr, attr);
-                if(auto annot = tokenToAnnotation(p.tok.id))
-                    p.combineAnnotations(list.annotation, annot);
+                {
+                    auto ctor = p.topNode!(ast.Constructor);
+                    auto list = static_cast!(ast.ParameterList)(ctor.members[$-1]);
+                    if(auto attr = tokenToAttribute(p.tok.id))
+                        p.combineAttributes(list.attr, attr);
+                    if(auto annot = tokenToAnnotation(p.tok.id))
+                        p.combineAnnotations(list.annotation, annot);
 
-                p.pushState(&stateMemberFunctionAttributes);
-                return Accept;
+                    p.pushState(&stateMemberFunctionAttributes);
+                    return Accept;
+                }
             case TOK_if:
                 return stateConstraint.shift(p);
             default:

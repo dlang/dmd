@@ -257,7 +257,8 @@ bool _startsWith(string s, string w)
 
 bool parseLong(ref char[] txt, out long res)
 {
-    munch(txt, " \t\n\r");
+    import std.algorithm : among, find;
+    txt = txt.find!(a => !a.among(' ', '\t', '\n', '\r'));
     int n = 0;
     while(n < txt.length && isDigit(txt[n]))
         n++;
@@ -270,7 +271,8 @@ bool parseLong(ref char[] txt, out long res)
 
 char[] parseNonSpace(ref char[] txt)
 {
-    munch(txt, " \t\n\r");
+    import std.algorithm : among, find;
+    txt = txt.find!(a => !a.among(' ', '\t', '\n', '\r'));
     int n = 0;
     while(n < txt.length && !isWhite(txt[n]))
         n++;

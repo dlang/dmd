@@ -53,5 +53,6 @@ void doSha()
     {
         sha.put(BYTES);
     }
-    running += -1;
+    import core.atomic : atomicOp;
+    atomicOp!"-="(running, 1);
 }
