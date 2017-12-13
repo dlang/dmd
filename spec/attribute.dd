@@ -352,8 +352,8 @@ $(GNAME VisibilityAttribute):
     $(D export)
 )
 
-$(P Visibility is an attribute that is one of $(D private), $(D package), $(D
-protected), $(D public), or $(D export). They may be referred to as protection
+$(P Visibility is an attribute that is one of $(D private), $(D package),
+`protected`, $(D public), or $(D export). They may be referred to as protection
 attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
         $(P Symbols with $(D private) visibility can only be accessed from

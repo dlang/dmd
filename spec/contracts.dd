@@ -44,8 +44,8 @@ assert(expression);
 	therefore has undefined behaviour.)
 
 	$(P As a debugging aid, the compiler may insert a runtime check to
-	verify that the expression is indeed true.  If it is false, an $(D
-	AssertError) is thrown.  When compiling for release, this check is not
+	verify that the expression is indeed true.  If it is false, an
+	`AssertError` is thrown.  When compiling for release, this check is not
 	generated.  The special $(D assert(0)) expression, however, is
 	generated even in release mode. See the $(GLINK2 expression,
 	AssertExpression) documentation for more information.)
