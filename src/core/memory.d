@@ -891,9 +891,9 @@ void pureFree(void* ptr) @system pure @nogc nothrow
 
     fakePureFree(y);
 
-    // subtract 2 because snn.lib adds 2 unconditionally before passing
-    //  the size to the Windows API
-    void* z = pureMalloc(size_t.max - 2); // won't affect `errno`
+    // Workaround bug in glibc 2.26
+    // See also: https://issues.dlang.org/show_bug.cgi?id=17956
+    void* z = pureMalloc(size_t.max & ~255); // won't affect `errno`
     assert(errno == fakePureErrno()); // errno shouldn't change
     assert(z is null);
 }
