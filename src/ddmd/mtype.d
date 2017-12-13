@@ -5092,6 +5092,7 @@ extern (C++) final class TypeAArray : TypeArray
         }
         if (ident == Id.length)
         {
+            /*
             static __gshared FuncDeclaration fd_aaLen = null;
             if (fd_aaLen is null)
             {
@@ -5100,12 +5101,27 @@ extern (C++) final class TypeAArray : TypeArray
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PUREconst;
-                tf.isnothrow = true;
+                tf.isnothrow  = true;
                 tf.isnogc = false;
             }
             Expression ev = new VarExp(e.loc, fd_aaLen, false);
             e = new CallExp(e.loc, ev, e);
             e.type = fd_aaLen.type.toTypeFunction().next;
+            */
+
+            Expression al = new IdentifierExp(e.loc, Id.empty);
+            al = new DotIdExp(e.loc, al, Id.object);
+            al = new DotIdExp(e.loc, al, Id.aaLen);
+            al = al.expressionSemantic(sc);
+
+            auto arguments = new Expressions();
+            arguments.push(e);
+
+            //auto params = new Parameters();
+            //params.push(new Parameter(STCin, this, null, null));
+
+            al = new CallExp(e.loc, al, arguments);
+            e = al;
         }
         else
             e = Type.dotExp(sc, e, ident, flag);
