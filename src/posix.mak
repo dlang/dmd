@@ -70,7 +70,7 @@ SYSCONFDIR=/etc
 TMP?=/tmp
 PGO_DIR=$(abspath pgo)
 
-D = ddmd
+D = dmd
 
 C=$D/backend
 TK=$D/tk
@@ -630,10 +630,10 @@ HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
 	$(call D2HTML, $(SRC_DOCUMENTABLES)))
 
 # For each module, define a rule e.g.:
-# ../web/phobos/ddmd_mars.html : ddmd/mars.d $(STDDOC) ; ...
+# ../web/phobos/dmd_mars.html : dmd/mars.d $(STDDOC) ; ...
 $(foreach p,$(SRC_DOCUMENTABLES),$(eval \
 $(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(HOST_DMD_PATH) ;\
-  $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Iddmd\
+  $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Idmd\
   $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
 
 $(DOC_OUTPUT_DIR) :

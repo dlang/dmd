@@ -15,7 +15,7 @@ OS=windows
 .d.exe:
 	$(HOST_DC) -of$@ $<
 
-D=ddmd
+D=dmd
 GEN = ..\generated
 G = $(GEN)\$(OS)\$(BUILD)\$(MODEL)
 OBJ_MSVC=$G/strtold.obj $G\longdouble.obj $G\ldfpu.obj
