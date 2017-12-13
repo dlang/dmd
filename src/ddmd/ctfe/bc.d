@@ -2823,10 +2823,10 @@ const(BCValue) interpret_(const int[] byteCode, const BCValue[] args,
                             else
                             {
                                 // we will now resize the heap to 8 times of it's former size
-                                auto newHeap = new uint[](heapPtr.heapMax * 8);
+                                auto newHeap = new uint[](heapPtr.heapMax * 12);
                                 newHeap[0 .. heapSize] = heapPtr._heap[0 .. heapSize];
                                 heapPtr._heap = newHeap;
-                                heapPtr.heapMax *= 8;
+                                heapPtr.heapMax *= 12;
                             }
                         }
 

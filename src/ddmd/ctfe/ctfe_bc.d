@@ -3050,6 +3050,7 @@ static if (is(BCGen))
                 retval.heapRef = retvalHeapRef;
             }
 
+            //TODO we should handle sign extension before bin-ops of cooercing types
             if ((isFloat(lhs.type) && isFloat(rhs.type) && lhs.type.type == rhs.type.type) || (canHandleBinExpTypes(retval.type.type, lhs.type.type) && canHandleBinExpTypes(retval.type.type, rhs.type.type)) || (e.op == TOKmod && canHandleBinExpTypes(rhs.type.type, retval.type.type)) || ((e.op == TOKequal || e.op == TOKnotequal) && canHandleBinExpTypes(lhs.type.type, rhs.type.type)))
             {
                 const oldDiscardValue = discardValue;
@@ -3105,11 +3106,6 @@ static if (is(BCGen))
 
                 case TOK.TOKor:
                     {
-/*
-                        static if (is(BCGen))
-                            if (lhs.type.type == BCTypeEnum.i32 || rhs.type.type == BCTypeEnum.i32)
-                                bailout("BCGen does not suppport 32bit bit-operations");
-*/
                         Or3(retval, lhs, rhs);
                     }
                     break;
@@ -3283,7 +3279,7 @@ static if (is(BCGen))
             if (v)
             {
                 // Everything in here is highly suspicious!
-                // FIXME Desgin!
+                // FIXME Design!
                 // Things which are already heapValues
                 // don't need to stored ((or do they ??) ... do we need to copy) ?
 
@@ -4413,6 +4409,7 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.c8, BCTypeEnum.c16, BC
                 else
                 {
                     length = genLocal(i32Type, "ArrayLength" ~ to!string(uniqueCounter++));
+                    // TODO: when debugging is finished replace the genLocal() by genTemporary
                     BCValue lengthPtr;
                     // if (arr is null) skip loading the length
                     auto CJskipLoad = beginCndJmp(arr.i32);
@@ -4468,7 +4465,9 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.c8, BCTypeEnum.c16, BC
             }
             else
             {
-                baseAddr = genTemporary(i32Type);
+                baseAddr = genLocal(i32Type, "ArrayBase" ~ to!string(uniqueCounter++));
+                // TODO: when debugging is finished replace the genLocal() by genTemporary
+
                 BCValue baseAddrPtr;
                 if (SliceDescriptor.BaseOffset)
                 {
