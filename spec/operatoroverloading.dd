@@ -574,8 +574,8 @@ $(H3 $(LNAME2 index_assignment_operator, Index Assignment Operator Overloading))
 	$(P If the left hand side of an assignment is an index operation
 	on a struct or class instance,
 	it can be overloaded by providing an $(D opIndexAssign) member function.
-	Expressions of the form $(D a[$(ARGUMENTS)] = c) are rewritten
-	as $(D a.opIndexAssign$(LPAREN)c,$(ARGUMENTS)$(RPAREN)).
+	Expressions of the form `a[`$(ARGUMENTS)`] = c` are rewritten
+	as `a.opIndexAssign$(LPAREN)c,` $(ARGUMENTS)`$(RPAREN)`.
 	)
 
 -------
