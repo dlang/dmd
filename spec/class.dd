@@ -1310,11 +1310,10 @@ $(GNAME ClassArguments):
 
 which is equivalent to:
 
-----
+$(GRAMMAR
 $(D class) $(I Identifier) $(D :) $(I SuperClass) $(I Interfaces) $(I AggregateBody)
-
 $(D new) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN)) $(I Identifier) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN));
-----
+)
 
 where $(I Identifier) is the name generated for the anonymous nested class.
 

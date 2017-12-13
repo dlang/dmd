@@ -695,7 +695,8 @@ class Foo
 
 class Bar : Foo
 {
-    override B test() { return null; } // overrides and is covariant with Foo.test()
+    // overrides and is covariant with Foo.test()
+    override B test() { return null; }
 }
 ------
 
@@ -938,7 +939,7 @@ class D : B
 void main()
 {
     B b = new D;
-    b.foo(); // would compiles and then the most derived would be called even if disabled.
+    b.foo(); // compiles and calls the most derived even if disabled.
 }
 ------
 

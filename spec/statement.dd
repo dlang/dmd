@@ -681,13 +681,13 @@ $(CONSOLE
             import std.traits : ParameterTypeTuple;  // introspection template
 
             int opApply(Dg)(scope Dg dg)
-                if (ParameterTypeTuple!Dg.length == 2)  // foreach function takes 2 parameters
+            if (ParameterTypeTuple!Dg.length == 2) // foreach with 2 parameters
             {
                 return 0;
             }
 
             int opApply(Dg)(scope Dg dg)
-                if (ParameterTypeTuple!Dg.length == 3)  // foreach function takes 3 parameters
+            if (ParameterTypeTuple!Dg.length == 3) // foreach with takes 3 parameters
             {
                 return 0;
             }
