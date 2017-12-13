@@ -66,9 +66,7 @@ rebuild() {
 
 # test druntime, phobos, dmd
 test() {
-    # Temporarily skip testing the DUB package
-    #See also: https://github.com/dlang/dmd/pull/6999
-    #test_dub_package
+    test_dub_package
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL unittest
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
     test_dmd
@@ -86,9 +84,11 @@ test_dmd() {
 
 # test dub package
 test_dub_package() {
+    source ~/dlang/*/activate # activate host compiler
     pushd test/dub_package
-    dub test
+    dub --single --build=unittest parser.d
     popd
+    deactivate
 }
 
 for proj in druntime phobos; do
