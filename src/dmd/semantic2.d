@@ -357,6 +357,19 @@ private extern(C++) final class Semantic2Visitor : Visitor
         }
     }
 
+    override void visit(AliasDeclaration ad)
+    {
+        //printf("AliasDeclaration.semantic2 %s\n", ad.toChars);
+
+        if (!ad.mangleOverride || ad.type.mangleOverride)
+            return;
+
+        // make a copy to make sure the mangling of the original type isn't
+        // overwritten
+        ad.type = ad.type.copy();
+        ad.type.mangleOverride = ad.mangleOverride;
+    }
+
     override void visit(Import i)
     {
         //printf("Import::semantic2('%s')\n", toChars());

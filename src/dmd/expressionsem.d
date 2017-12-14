@@ -9429,7 +9429,17 @@ extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
 
 Expression semanticX(DotIdExp exp, Scope* sc)
 {
-    //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
+    static Expression mangleToBuffer(Node)(Node node, DotIdExp exp, Scope* sc)
+        if (is(Node == Type) || is(Node == Dsymbol))
+    {
+        OutBuffer buf;
+        .mangleToBuffer(node, &buf);
+        const s = buf.peekSlice();
+        auto e = new StringExp(exp.loc, buf.extractString(), s.length);
+        return e.expressionSemantic(sc);
+    }
+
+    //printf("DotIdExp::semanticX(this = %p, '%s')\n", exp, exp.toChars());
     if (Expression ex = unaSemantic(exp, sc))
         return ex;
 
@@ -9455,7 +9465,17 @@ Expression semanticX(DotIdExp exp, Scope* sc)
             {
                 TemplateExp te = cast(TemplateExp)exp.e1;
                 ds = te.fd ? cast(Dsymbol)te.fd : te.td;
+                goto L1;
             }
+        case TOKtype:
+        {
+            auto type = (cast(TypeExp)exp.e1).type;
+
+            if (type.mangleOverride)
+                return mangleToBuffer(type, exp, sc);
+            else
+                break;
+        }
         L1:
             {
                 assert(ds);
@@ -9466,12 +9486,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
                         return new ErrorExp();
                     }
                 }
-                OutBuffer buf;
-                mangleToBuffer(ds, &buf);
-                const s = buf.peekSlice();
-                Expression e = new StringExp(exp.loc, buf.extractString(), s.length);
-                e = e.expressionSemantic(sc);
-                return e;
+                return mangleToBuffer(ds, exp, sc);
             }
         default:
             break;

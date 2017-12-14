@@ -589,6 +589,89 @@ void fooB(void delegate (void delegate()) scope dg)
 //pragma(msg, fooB.mangleof);
 static assert(typeof(fooA).mangleof != typeof(fooB).mangleof);
 
+/***************************************************/
+
+// test overriding mangling for alias declaration
+struct TestOverridingManglingAlias
+{
+    enum baseMangling = "6mangle27TestOverridingManglingAlias";
+
+    // basic type
+
+    // override mangling
+    pragma(mangle, "bar") alias a = int;
+    static assert(a.mangleof == "bar");
+
+    // alias without overriding
+    alias b = int;
+    static assert(b.mangleof == "i");
+
+    // default mangling of basic type
+    static assert(int.mangleof == "i");
+
+    // verify that the alias and the aliased type is the same type
+    pragma(mangle, "bar") alias c = int;
+    static assert(is(int == c));
+
+    // override mangling at intermediate step
+    alias d = int;
+    pragma(mangle, "foo") alias e = d;
+    alias f = e;
+    f g;
+    static assert(g.mangleof == "_D" ~ baseMangling ~ "1g" ~ e.mangleof);
+
+
+
+    // struct
+
+    struct Struct
+    {
+        enum defaultMangling = "S" ~ baseMangling ~"6Struct";
+    }
+
+    // override mangling
+    pragma(mangle, "Bar") alias h = Struct;
+    static assert(h.mangleof == "Bar");
+
+    // alias without overriding
+    alias i = Struct;
+    static assert(i.mangleof == Struct.defaultMangling);
+
+    // default mangling of struct
+    static assert(Struct.mangleof == Struct.defaultMangling);
+
+
+
+    // class
+    struct Class
+    {
+        enum defaultMangling = "S" ~ baseMangling ~ "5Class";
+    }
+
+    // override mangling
+    pragma(mangle, "Bar") alias j = Struct;
+    static assert(j.mangleof == "Bar");
+
+    // alias without overriding
+    alias k = Class;
+    static assert(k.mangleof == Class.defaultMangling);
+
+    // default mangling of class
+    static assert(Class.mangleof == Class.defaultMangling);
+
+
+
+    // function
+
+    // type of parameter is an alias"
+    pragma(mangle, "foo") alias l = int;
+    void m(l);
+    static assert(m.mangleof == "_D" ~ baseMangling ~ "1mMFfooZv");
+
+    // default mangling of function"
+    void n(int);
+    static assert(n.mangleof == "_D" ~ baseMangling ~ "1nMFiZv");
+}
 
 /***************************************************/
 

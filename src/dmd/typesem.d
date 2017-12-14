@@ -1400,6 +1400,7 @@ static Type merge(Type type)
         StringValue* sv = type.stringtable.update(cast(char*)buf.data, buf.offset);
         if (sv.ptrvalue)
         {
+            auto mangleOverride = t.mangleOverride;
             t = cast(Type)sv.ptrvalue;
             debug
             {
@@ -1409,6 +1410,12 @@ static Type merge(Type type)
             }
             assert(t.deco);
             //printf("old value, deco = '%s' %p\n", t.deco, t.deco);
+
+            if (mangleOverride)
+            {
+                t = t.copy();
+                t.mangleOverride = mangleOverride;
+            }
         }
         else
         {

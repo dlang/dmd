@@ -268,7 +268,9 @@ public:
 
     final void mangleType(Type t)
     {
-        if (!backrefType(t))
+        if (t.mangleOverride)
+            buf.writestring(t.mangleOverride);
+        else if (!backrefType(t))
             t.accept(this);
     }
 
@@ -1106,7 +1108,9 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
 {
-    if (t.deco)
+    if (t.mangleOverride)
+        buf.writestring(t.mangleOverride);
+    else if (t.deco)
         buf.writestring(t.deco);
     else
     {

@@ -748,7 +748,12 @@ public:
         else
         {
             // For value types, strip const/immutable/shared from the head of the type
-            t.mutableOf().unSharedOf().accept(this);
+            auto unqualified = t.mutableOf().unSharedOf();
+
+            if (unqualified.mangleOverride)
+                buf.writestring(unqualified.mangleOverride);
+            else
+                unqualified.accept(this);
         }
     }
 
