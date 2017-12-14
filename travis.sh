@@ -86,7 +86,9 @@ test_dmd() {
 test_dub_package() {
     source ~/dlang/*/activate # activate host compiler
     pushd test/dub_package
-    dub --single --build=unittest parser.d
+    for file in *.d ; do
+        dub --single "$file"
+    done
     popd
     deactivate
 }
