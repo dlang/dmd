@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gloop.c, backend/gloop.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/gdag.c
  */
 
 
@@ -209,9 +210,8 @@ loop *loop::mycalloc()
 
 STATIC void freeloop(loop **pl)
 { loop *ln;
-  loop *l;
 
-  for (l = *pl; l; l = ln)
+  for (loop *l = *pl; l; l = ln)
   {     ln = l->Lnext;
         vec_free(l->Lloop);
         vec_free(l->Lexit);
@@ -237,12 +237,9 @@ int blockinit()
   for (i = 0, b = startblock; b; i++, b = b->Bnext)
   {
 #ifdef DEBUG                    /* check integrity of Bpred and Bsucc   */
-        list_t blp;
-
-        for (blp = b->Bpred; blp; blp = list_next(blp))
-        {       list_t bls;
-
-                for (bls = list_block(blp)->Bsucc; bls; bls = list_next(bls))
+        for (list_t blp = b->Bpred; blp; blp = list_next(blp))
+        {
+                for (list_t bls = list_block(blp)->Bsucc; bls; bls = list_next(bls))
                         if (list_block(bls) == b)
                                 goto L1;
                 assert(0);
@@ -255,10 +252,10 @@ int blockinit()
   }
   assert(numblks == i && maxblks);
   assert(i <= maxblks);
-  for (i = 0; i < dfotop; i++)
-  {     assert(dfo[i]->Bdfoidx == i);
-        dfo[i]->Bdom = vec_realloc(dfo[i]->Bdom, maxblks); /* alloc Bdom vectors */
-        vec_clear(dfo[i]->Bdom);
+  for (unsigned j = 0; j < dfotop; j++)
+  {     assert(dfo[j]->Bdfoidx == j);
+        dfo[j]->Bdom = vec_realloc(dfo[j]->Bdom, maxblks); /* alloc Bdom vectors */
+        vec_clear(dfo[j]->Bdom);
   }
   return hasasm;
 }
@@ -335,37 +332,32 @@ bool dom(block *A,block *B)
  */
 
 STATIC void findloops(loop **ploops)
-{ unsigned i;
-  list_t bl;
-  block *b,*s;
+{
+    freeloop(ploops);
 
-  freeloop(ploops);
-
-  //printf("findloops()\n");
-  for (i = 0; i < dfotop; i++)
-        dfo[i]->Bweight = 1;            /* reset Bweights               */
-  for (i = dfotop; i--;)                /* for each block (note reverse */
-                                        /* dfo order, so most nested    */
-                                        /* loops are found first)       */
-  {     b = dfo[i];
+    //printf("findloops()\n");
+    for (unsigned i = 0; i < dfotop; i++)
+        dfo[i]->Bweight = 1;            // reset Bweights
+    for (unsigned i = dfotop; i--;)     // for each block (note reverse
+                                        // dfo order, so most nested
+                                        // loops are found first)
+    {
+        block *b = dfo[i];
         assert(b);
-        for (bl = b->Bsucc; bl; bl = list_next(bl))
-        {       s = list_block(bl);             /* each successor s to b */
+        for (list_t bl = b->Bsucc; bl; bl = list_next(bl))
+        {       block *s = list_block(bl);      // each successor s to b
                 assert(s);
-                if (dom(s,b))                   /* if s dominates b     */
+                if (dom(s,b))                   // if s dominates b
                     buildloop(ploops,s,b);      // we found a loop
         }
-  }
+    }
 
 #ifdef DEBUG
-  if (debugc)
-  { loop *l;
-
-    for (l = *ploops; l; l = l->Lnext)
+    if (debugc)
     {
-        l->print();
+        for (loop *l = *ploops; l; l = l->Lnext)
+            l->print();
     }
-  }
 #endif
 }
 
@@ -391,8 +383,6 @@ STATIC void loop_weight(block *b,int factor)
 
 STATIC void buildloop(loop **ploops,block *head,block *tail)
 { loop *l;
-  unsigned i;
-  list_t bl;
 
   //printf("buildloop()\n");
   /* See if this is part of an existing loop. If so, merge the two.     */
@@ -436,11 +426,12 @@ L1:
    * successors outside the loop).
    */
 
+  unsigned i;
   foreach (i,dfotop,l->Lloop)           /* for each block in this loop  */
   {     if (dfo[i]->BC == BCret || dfo[i]->BC == BCretexp || dfo[i]->BC == BCexit)
                 vec_setbit(i,l->Lexit); /* ret blocks are exit blocks */
         else
-        {       for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
+        {       for (list_t bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         if (!vec_testbit(list_block(bl)->Bdfoidx,l->Lloop))
                         {       vec_setbit(i,l->Lexit);
                                 break;
@@ -453,7 +444,7 @@ L1:
         All other predecessors of head must be inside the loop.
      */
     l->Lpreheader = NULL;
-    for (bl = head->Bpred; bl; bl = list_next(bl))
+    for (list_t bl = head->Bpred; bl; bl = list_next(bl))
     {   block *b = list_block(bl);
 
         if (!vec_testbit(b->Bdfoidx,l->Lloop))  /* if not in loop       */
@@ -476,13 +467,12 @@ L1:
  */
 
 STATIC void insert(block *b, vec_t lv)
-{ list_t bl;
-
+{
   assert(b && lv);
   if (!vec_testbit(b->Bdfoidx,lv))      /* if block is not in loop      */
   {     vec_setbit(b->Bdfoidx,lv);      /* add block to loop            */
         loop_weight(b,1);               // *10 usage count
-        for (bl = b->Bpred; bl; bl = list_next(bl))
+        for (list_t bl = b->Bpred; bl; bl = list_next(bl))
             insert(list_block(bl),lv);  /* insert all its predecessors  */
   }
 }
@@ -550,7 +540,6 @@ STATIC int looprotate(loop *l)
 {
        block *tail = l->Ltail;
        block *head = l->Lhead;
-       block *b;
 
     //printf("looprotate(%p)\n",l);
 
@@ -564,7 +553,7 @@ STATIC int looprotate(loop *l)
         goto Lret;
 
     // Do not rotate if already rotated
-    for (b = tail->Bnext; b; b = b->Bnext)
+    for (block *b = tail->Bnext; b; b = b->Bnext)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
@@ -581,7 +570,7 @@ STATIC int looprotate(loop *l)
         // switches would be too expensive in terms of code
         // generated).
            block *head2;
-           list_t bl, *pbl2, *pbl, *pbln;
+           list_t *pbl2, *pbln;
 
         head2 = block_calloc(); // create new head block
         numblks++;                      // number of blocks in existence
@@ -599,7 +588,7 @@ STATIC int looprotate(loop *l)
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
         pbl2 = &(head2->Bpred);
-        for (pbl = &(head->Bpred); *pbl; pbl = pbln)
+        for (list_t *pbl = &(head->Bpred); *pbl; pbl = pbln)
         {
             if (vec_testbit(list_block(*pbl)->Bdfoidx, l->Lloop))
             {   // if this predecessor is inside the loop
@@ -608,7 +597,7 @@ STATIC int looprotate(loop *l)
                 *pbl = list_next(*pbl);
                 pbln = pbl;                     // don't skip this next one
                 list_next(*pbl2) = NULL;
-                bl = list_block(*pbl2)->Bsucc;
+                list_t bl = list_block(*pbl2)->Bsucc;
                 pbl2 = &(list_next(*pbl2));
                 for (; bl; bl = list_next(bl))
                     if (list_block(bl) == head)
@@ -624,7 +613,7 @@ STATIC int looprotate(loop *l)
         } // for each pred(head)
 
         // succ(head2) = succ(head)
-        for (bl = head->Bsucc; bl; bl = list_next(bl))
+        for (list_t bl = head->Bsucc; bl; bl = list_next(bl))
         {
             list_append(&(head2->Bsucc),list_block(bl));
             list_append(&(list_block(bl)->Bpred),head2);
@@ -653,6 +642,7 @@ STATIC int looprotate(loop *l)
             )
     {   // optimize for space
         // Simply position the header past the tail
+        block *b;
         for (b = startblock; b; b = b->Bnext)
             if (b->Bnext == head)
                 goto L1;                // found parent b of head
@@ -683,7 +673,6 @@ static bool doflow;             // TRUE if flow analysis has to be redone
 
 void loopopt()
 {
-    list_t bl;
     loop *ln;
     vec_t rd;
     loop *startloop;
@@ -738,8 +727,8 @@ restart:
             if (h == startblock)
                 startblock = p;
             else
-            {   block *ph;
-
+            {
+                block *ph;
                 for (ph = startblock; 1; ph = ph->Bnext)
                 {   assert(ph);         /* should have found it         */
                     if (ph->Bnext == h)
@@ -759,18 +748,17 @@ restart:
             cmes3("Adding preheader %p to loop %p\n",p,l);
 
             // Move preds of h that aren't in the loop to preds of p
-            for (bl = h->Bpred; bl;)
+            for (list_t bl = h->Bpred; bl;)
             {   block *b = list_block(bl);
 
                 if (!vec_testbit (b->Bdfoidx, l->Lloop))
-                {   list_t bls;
-
+                {
                     list_append(&(p->Bpred), b);
                     list_subtract(&(h->Bpred), b);
                     bl = h->Bpred;      /* dunno what subtract did      */
 
                     /* Fix up successors of predecessors        */
-                    for (bls = b->Bsucc; bls; bls = list_next(bls))
+                    for (list_t bls = b->Bsucc; bls; bls = list_next(bls))
                         if (list_block(bls) == h)
                                 list_ptr(bls) = (void *)p;
                 }
@@ -855,8 +843,8 @@ restart:
                 vec_copy(rd, b->Binrd); // IN reaching defs
 #if 0
                 dbg_printf("i = %d\n",i);
-                {   int j;
-                    for (j = 0; j < go.deftop; j++)
+                {
+                    for (int j = 0; j < go.deftop; j++)
                         elem_print(go.defnod[j].DNelem);
                 }
                 dbg_printf("rd    : "); vec_println(rd);
@@ -1488,10 +1476,9 @@ STATIC bool refs(symbol *v,elem *n,elem *nstop)
  */
 
 STATIC void movelis(elem *n,block *b,loop *l,int *pdomexit)
-{ unsigned i,j,op;
+{
   vec_t tmp;
   elem *ne,*t,*n2;
-  list_t nl;
   symbol *v;
   tym_t ty;
 
@@ -1499,7 +1486,7 @@ Lnextlis:
   //if (isLI(n)) { printf("movelis("); WReqn(n); printf(")\n"); }
   assert(l && n);
   elem_debug(n);
-  op = n->Eoper;
+  const unsigned op = n->Eoper;
   switch (op)
   {
         case OPvar:
@@ -1542,10 +1529,10 @@ Lnextlis:
 
                 if (!(*pdomexit & 1))                   // if not case 1
                 {
+                    unsigned i;
                     foreach (i,dfotop,l->Lexit)         // for each exit block
-                    {   list_t bl;
-
-                        for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
+                    {
+                        for (list_t bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         {   block *s;           // successor to exit block
 
                             s = list_block(bl);
@@ -1558,6 +1545,7 @@ Lnextlis:
                 }
 
                 tmp = vec_calloc(go.deftop);
+                unsigned i;
                 foreach (i,dfotop,l->Lloop)     // for each block in loop
                 {
                         if (dfo[i] == b)        // except this one
@@ -1569,6 +1557,7 @@ Lnextlis:
 
                         //filterrd(tmp,dfo[i]->Binrd,v);
                         listrds(dfo[i]->Binrd,n->E1,tmp);
+                        unsigned j;
                         foreach (j,go.deftop,tmp)  // for each RD of v in Binrd
                         {   if (go.defnod[j].DNelem == n)
                                         continue;
@@ -1589,6 +1578,7 @@ Lnextlis:
 
                 //filterrd(tmp,b->Binrd,v);
                 listrds(b->Binrd,n->E1,tmp);
+                unsigned j;
                 foreach (j,go.deftop,tmp)          // for each RD of v in Binrd
                 {   if (go.defnod[j].DNelem == n)
                             continue;
@@ -1603,7 +1593,7 @@ Lnextlis:
 
                 // We have an LI assignment, n.
                 // Check to see if the rvalue is already in the preheader.
-                for (nl = l->Llis; nl; nl = list_next(nl))
+                for (list_t nl = l->Llis; nl; nl = list_next(nl))
                 {
                     if (el_match(n->E2,list_elem(nl)->E2))
                     {
@@ -1736,7 +1726,7 @@ L3:
         s = el_basesym(n->E1);
         if (s)
         {
-            for (nl = l->Llis; nl; nl = list_next(nl))
+            for (list_t nl = l->Llis; nl; nl = list_next(nl))
             {   elem *el;
                 tym_t ty2;
 
@@ -1769,7 +1759,7 @@ L3:
 
   // See if it's already been moved
   ty = n->Ety;
-  for (nl = l->Llis; nl; nl = list_next(nl))
+  for (list_t nl = l->Llis; nl; nl = list_next(nl))
   {     elem *el;
         tym_t ty2;
 
@@ -1917,9 +1907,9 @@ STATIC void freeivlist(Iv *biv)
 { Iv *bivnext;
 
   while (biv)
-  {     famlist *fl,*fln;
+  {     famlist *fln;
 
-        for (fl = biv->IVfamily; fl; fl = fln)
+        for (famlist *fl = biv->IVfamily; fl; fl = fln)
         {       el_free(fl->c1);
                 el_free(fl->c2);
                 fln = fl->FLnext;
@@ -2056,7 +2046,6 @@ STATIC void loopiv(loop *l)
 STATIC void findbasivs(loop *l)
 { vec_t poss,notposs;
   elem *n;
-  unsigned i,j;
   bool ambdone;
 
   assert(l);
@@ -2067,7 +2056,7 @@ STATIC void findbasivs(loop *l)
 
   /* for each def in go.defnod[] that is within loop l     */
 
-  for (i = 0; i < go.deftop; i++)
+  for (unsigned i = 0; i < go.deftop; i++)
   {     if (!vec_testbit(go.defnod[i].DNblock->Bdfoidx,l->Lloop))
                 continue;               /* def is not in the loop       */
 
@@ -2104,7 +2093,7 @@ STATIC void findbasivs(loop *l)
                 /* this def as not possible                             */
 
                 if (!ambdone)           /* avoid redundant loops        */
-                {       for (j = 0; j < globsym.top; j++)
+                {       for (unsigned j = 0; j < globsym.top; j++)
                         {       if (!(globsym.tab[j]->Sflags & SFLunambig))
                                         vec_setbit(j,notposs);
                         }
@@ -2119,6 +2108,7 @@ STATIC void findbasivs(loop *l)
   vec_subass(poss,notposs);             /* poss = poss - notposs        */
 
   /* create list of IVs */
+  unsigned i;
   foreach (i,globsym.top,poss)          /* for each basic IV            */
   {     Iv *biv;
         symbol *s;
@@ -2152,6 +2142,7 @@ STATIC void findbasivs(loop *l)
         /* the parent of the increment elem for it.                     */
 
         /* First find the go.defnod[]      */
+        unsigned j;
         for (j = 0; j < go.deftop; j++)
         {       /* If go.defnod is a def of i and it is in the loop        */
                 if (go.defnod[j].DNelem->E1 &&     /* OPasm are def nodes  */
@@ -2185,7 +2176,6 @@ STATIC void findbasivs(loop *l)
 STATIC void findopeqs(loop *l)
 {   vec_t poss,notposs;
     elem *n;
-    unsigned i,j;
     bool ambdone;
 
     assert(l);
@@ -2196,7 +2186,7 @@ STATIC void findopeqs(loop *l)
 
     // for each def in go.defnod[] that is within loop l
 
-    for (i = 0; i < go.deftop; i++)
+    for (unsigned i = 0; i < go.deftop; i++)
     {   if (!vec_testbit(go.defnod[i].DNblock->Bdfoidx,l->Lloop))
                 continue;               // def is not in the loop
 
@@ -2227,7 +2217,7 @@ STATIC void findopeqs(loop *l)
                 // this def as not possible
 
                 if (!ambdone)           // avoid redundant loops
-                {       for (j = 0; j < globsym.top; j++)
+                {       for (unsigned j = 0; j < globsym.top; j++)
                         {       if (!(globsym.tab[j]->Sflags & SFLunambig))
                                         vec_setbit(j,notposs);
                         }
@@ -2252,6 +2242,7 @@ STATIC void findopeqs(loop *l)
     vec_subass(poss,notposs);           // poss = poss - notposs
 
     // create list of IVs
+    unsigned i;
     foreach (i,globsym.top,poss)        // for each opeq IV
     {   Iv *biv;
         symbol *s;
@@ -2278,6 +2269,7 @@ STATIC void findopeqs(loop *l)
         // the parent of the increment elem for it.
 
         // First find the go.defnod[]
+        unsigned j;
         for (j = 0; j < go.deftop; j++)
         {       // If go.defnod is a def of i and it is in the loop
                 if (go.defnod[j].DNelem->E1 &&     // OPasm are def nodes
@@ -2310,21 +2302,20 @@ STATIC void findopeqs(loop *l)
  */
 
 STATIC void findivfams(loop *l)
-{ Iv *biv;
-  unsigned i;
-  famlist *fl;
-
-  cmes2("findivfams(%p)\n",l);
-  for (biv = l->Livlist; biv; biv = biv->IVnext)
-  {     foreach (i,dfotop,l->Lloop)     /* for each block in loop       */
+{
+    cmes2("findivfams(%p)\n",l);
+    for (Iv *biv = l->Livlist; biv; biv = biv->IVnext)
+    {
+        unsigned i;
+        foreach (i,dfotop,l->Lloop)     /* for each block in loop       */
             if (dfo[i]->Belem)
                 ivfamelems(biv,&(dfo[i]->Belem));
         /* Fold all the constant expressions in c1 and c2.      */
-        for (fl = biv->IVfamily; fl; fl = fl->FLnext)
+        for (famlist *fl = biv->IVfamily; fl; fl = fl->FLnext)
         {       fl->c1 = doptelem(fl->c1,GOALvalue | GOALagain);
                 fl->c2 = doptelem(fl->c2,GOALvalue | GOALagain);
         }
-  }
+    }
 }
 
 /*************************
@@ -2336,7 +2327,6 @@ STATIC void findivfams(loop *l)
 STATIC void ivfamelems(Iv *biv,elem **pn)
 { unsigned op;
   tym_t ty,c2ty;
-  famlist *f;
   elem *n,*n1,*n2;
 
   assert(pn);
@@ -2458,7 +2448,7 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
 
         /* Look for function of existing IV                             */
 
-        for (f = biv->IVfamily; f; f = f->FLnext)
+        for (famlist *f = biv->IVfamily; f; f = f->FLnext)
         {       if (*f->FLpelem != n1)          /* not it               */
                         continue;
 
@@ -2511,17 +2501,15 @@ STATIC void ivfamelems(Iv *biv,elem **pn)
  */
 
 STATIC void elimfrivivs(loop *l)
-{   Iv *biv;
-
-    for (biv = l->Livlist; biv; biv = biv->IVnext)
+{
+    for (Iv *biv = l->Livlist; biv; biv = biv->IVnext)
     {   int nfams;
-        famlist *fl;
         int nrefs;
 
         cmes("elimfrivivs()\n");
         /* Compute number of family ivs for biv */
         nfams = 0;
-        for (fl = biv->IVfamily; fl; fl = fl->FLnext)
+        for (famlist *fl = biv->IVfamily; fl; fl = fl->FLnext)
                 nfams++;
         cmes2("nfams = %d\n",nfams);
 
@@ -2534,7 +2522,7 @@ STATIC void elimfrivivs(loop *l)
             (!I16 && nrefs == nfams))
         {   /* Eliminate any family ivs that only differ by a constant  */
             /* from biv                                                 */
-            for (fl = biv->IVfamily; fl; fl = fl->FLnext)
+            for (famlist *fl = biv->IVfamily; fl; fl = fl->FLnext)
             {   elem *ec1 = fl->c1;
                 targ_llong c;
 
@@ -2566,16 +2554,14 @@ STATIC void elimfrivivs(loop *l)
 
 STATIC void intronvars(loop *l)
 {
-    famlist *fl;
-    Iv *biv;
     elem *T, *ne, *t2, *C2, *cmul;
     tym_t ty,tyr;
 
     cmes2("intronvars(%p)\n",l);
-    for (biv = l->Livlist; biv; biv = biv->IVnext)      // for each basic IV
+    for (Iv *biv = l->Livlist; biv; biv = biv->IVnext)      // for each basic IV
     {   elem *bivinc = *biv->IVincr;   /* ptr to increment elem */
 
-        for (fl = biv->IVfamily; fl; fl = fl->FLnext)
+        for (famlist *fl = biv->IVfamily; fl; fl = fl->FLnext)
         {                               /* for each IV in family of biv  */
             if (fl->FLtemp == FLELIM)   /* if already eliminated         */
                 continue;
@@ -2656,14 +2642,13 @@ STATIC void intronvars(loop *l)
 STATIC bool funcprev(Iv *biv,famlist *fl)
 {   tym_t tymin;
     int sz;
-    famlist *fls;
     elem *e1,*e2,*flse1;
 
 #ifdef DEBUG
     if (debugc)
         dbg_printf("funcprev\n");
 #endif
-    for (fls = biv->IVfamily; fls != fl; fls = fls->FLnext)
+    for (famlist *fls = biv->IVfamily; fls != fl; fls = fls->FLnext)
     {   assert(fls);                    /* fl must be in list           */
         if (fls->FLtemp == FLELIM)      /* no iv we can use here        */
                 continue;
@@ -2782,7 +2767,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
 
 STATIC void elimbasivs(loop *l)
 { famlist *fl;
-  Iv *biv;
   unsigned i;
   tym_t ty;
   elem **pref,*fofe,*C2;
@@ -2790,7 +2774,7 @@ STATIC void elimbasivs(loop *l)
   int refcount;
 
   cmes2("elimbasivs(%p)\n",l);
-  for (biv = l->Livlist; biv; biv = biv->IVnext)        // for each basic IV
+  for (Iv *biv = l->Livlist; biv; biv = biv->IVnext)        // for each basic IV
   {
 
         /* Can't eliminate this basic IV if we have a goal for the      */
@@ -2992,9 +2976,8 @@ STATIC void elimbasivs(loop *l)
                 foreach (i,dfotop,l->Lexit)     /* for each exit block  */
                 {       elem *ne;
                         block *b;
-                        list_t bl;
 
-                        for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
+                        for (list_t bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         {                       /* for each successor   */
                                 b = list_block(bl);
                                 if (vec_testbit(b->Bdfoidx,l->Lloop))
@@ -3029,10 +3012,8 @@ STATIC void elimbasivs(loop *l)
                                 /* We have to add a new block if there is */
                                 /* more than one predecessor to b.      */
                                 if (list_next(b->Bpred))
-                                {   block *bn;
-                                    list_t bl2;
-
-                                    bn = block_calloc();
+                                {
+                                    block *bn = block_calloc();
                                     bn->Btry = b->Btry;
                                     numblks++;
                                     assert(numblks <= maxblks);
@@ -3042,7 +3023,7 @@ STATIC void elimbasivs(loop *l)
                                     list_append(&(bn->Bsucc),b);
                                     list_append(&(bn->Bpred),dfo[i]);
                                     list_ptr(bl) = (void *)bn;
-                                    for (bl2 = b->Bpred; bl2;
+                                    for (list_t bl2 = b->Bpred; bl2;
                                          bl2 = list_next(bl2))
                                         if (list_block(bl2) == dfo[i])
                                         {       list_ptr(bl2) = (void *)bn;
@@ -3070,12 +3051,10 @@ STATIC void elimbasivs(loop *l)
         else if (refcount == 0)                 /* if no uses of IV in loop  */
         {       /* Eliminate the basic IV if it is not live on any successor */
                 foreach (i,dfotop,l->Lexit)     /* for each exit block       */
-                {       block *b;
-                        list_t bl;
-
-                        for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
+                {
+                        for (list_t bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                         {                       /* for each successor   */
-                                b = list_block(bl);
+                                block *b = list_block(bl);
                                 if (vec_testbit(b->Bdfoidx,l->Lloop))
                                         continue;       /* inside loop  */
                                 if (vec_testbit(X->Ssymnum,b->Binlv))
@@ -3104,14 +3083,12 @@ STATIC void elimbasivs(loop *l)
 
 STATIC void elimopeqs(loop *l)
 {
-    Iv *biv;
-    unsigned i;
     elem **pref;
     symbol *X;
     int refcount;
 
     cmes2("elimopeqs(%p)\n",l);
-    for (biv = l->Lopeqlist; biv; biv = biv->IVnext)    // for each opeq IV
+    for (Iv *biv = l->Lopeqlist; biv; biv = biv->IVnext)    // for each opeq IV
     {
 
         // Can't eliminate this basic IV if we have a goal for the
@@ -3129,13 +3106,12 @@ STATIC void elimopeqs(loop *l)
             ;
         else if (refcount == 0)                 // if no uses of IV in loop
         {   // Eliminate the basic IV if it is not live on any successor
+            unsigned i;
             foreach (i,dfotop,l->Lexit) // for each exit block
-            {   block *b;
-                list_t bl;
-
-                for (bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
+            {
+                for (list_t bl = dfo[i]->Bsucc; bl; bl = list_next(bl))
                 {   // for each successor
-                    b = list_block(bl);
+                    block *b = list_block(bl);
                     if (vec_testbit(b->Bdfoidx,l->Lloop))
                         continue;       // inside loop
                     if (vec_testbit(X->Ssymnum,b->Binlv))
