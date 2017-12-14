@@ -2035,6 +2035,17 @@ V[K] dup(T : V[K], K, V)(T* aa)
     return (*aa).dup;
 }
 
+// this should never be made public.
+private AARange _aaToRange(T: V[K], K, V)(ref T aa) pure nothrow @nogc @safe
+{
+    // ensure we are dealing with a genuine AA.
+    static if (is(const(V[K]) == const(T)))
+        alias realAA = aa;
+    else
+        const(V[K]) realAA = aa;
+    return _aaRange(() @trusted { return cast(void*)realAA; } ());
+}
+
 auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
@@ -2054,7 +2065,7 @@ auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(() @trusted { return cast(void*)aa; } ()));
+    return Result(_aaToRange(aa));
 }
 
 auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2081,7 +2092,7 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange((() @trusted => cast(void*) aa) ()));
+    return Result(_aaToRange(aa));
 }
 
 auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2126,7 +2137,7 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange((() @trusted => cast(void*) aa) ()));
+    return Result(_aaToRange(aa));
 }
 
 auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
