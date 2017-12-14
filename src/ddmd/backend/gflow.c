@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/ddmd/backend/gflow.c, backend/gflow.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/backend/gflow.c
  */
 
 #if (SCPP || MARS) && !HTOD
@@ -84,17 +85,15 @@ void flowrd()
         /*      Bout = (Bin - Bkill) | Bgen                             */
         /* Using Ullman's algorithm:                                    */
 
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
                 vec_copy(dfo[i]->Boutrd,dfo[i]->Bgen);
 
         tmp = vec_calloc(go.deftop);
         do
         {       anychng = FALSE;
-                for (i = 0; i < dfotop; i++)    /* for each block       */
-                {       block *b;
-                        list_t bp;
-
-                        b = dfo[i];
+                for (unsigned i = 0; i < dfotop; i++)    // for each block
+                {
+                        block *b = dfo[i];
 
                         /* Binrd = union of Boutrds of all predecessors of b */
                         vec_clear(b->Binrd);
@@ -104,7 +103,7 @@ void flowrd()
                              * i = 0;
                              * try { i = 1; throw; } catch () { x = i; }
                              */
-                            for (bp = b->Bpred; bp; bp = list_next(bp))
+                            for (list_t bp = b->Bpred; bp; bp = list_next(bp))
                                 vec_orass(b->Binrd,list_block(bp)->Boutrd);
                         }
                         /* Bout = (Bin - Bkill) | Bgen */
@@ -119,7 +118,7 @@ void flowrd()
 
 #if 0
         dbg_printf("Reaching definitions\n");
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
         {       block *b = dfo[i];
 
                 assert(vec_numbits(b->Binrd) == go.deftop);
@@ -433,7 +432,6 @@ void flowcp()
 
 STATIC void flowaecp()
 {       vec_t tmp;
-        unsigned i;
         bool anychng;
 
         aecpgenkill();          /* Compute Bgen and Bkill for AEs or CPs */
@@ -451,7 +449,7 @@ STATIC void flowaecp()
             vec_copy(startblock->Bout2,startblock->Bgen2); // these never change
 
         /* For all blocks except startblock     */
-        for (i = 1; i < dfotop; i++)
+        for (unsigned i = 1; i < dfotop; i++)
         {       block *b = dfo[i];
 
                 vec_set(b->Bin);        /* Bin = all expressions        */
@@ -470,7 +468,7 @@ STATIC void flowaecp()
         {   anychng = FALSE;
 
             // For all blocks except startblock
-            for (i = 1; i < dfotop; i++)
+            for (unsigned i = 1; i < dfotop; i++)
             {   block *b = dfo[i];
                 list_t bl = b->Bpred;
                 block *bp;
@@ -551,7 +549,7 @@ static block *this_block;
  */
 
 STATIC void aecpgenkill()
-{       unsigned i;
+{
         unsigned exptopsave;
 
         util_free(go.expnod);              /* dump any existing one        */
@@ -560,7 +558,7 @@ STATIC void aecpgenkill()
 
         /* Compute number of expressions */
         go.exptop = 1;                     /* start at 1                   */
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
                 if (dfo[i]->Belem)
                 {       if (flowxx == CP)
                                 numcpelems(dfo[i]->Belem);
@@ -581,7 +579,7 @@ STATIC void aecpgenkill()
 
         exptopsave = go.exptop;
         go.exptop = 1;
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
         {       this_block = dfo[i];    /* so asgexpelems knows about this */
                 if (this_block->Belem)
                         asgexpelems(this_block->Belem);
@@ -601,7 +599,7 @@ STATIC void aecpgenkill()
             {   dbg_printf("vptrkill "); vec_println(go.vptrkill); }
 #endif
 
-        for (i = 0; i < dfotop; i++)    /* for each block               */
+        for (unsigned i = 0; i < dfotop; i++)    // for each block
         {       block *b = dfo[i];
                 elem *e;
 
@@ -636,12 +634,12 @@ STATIC void aecpgenkill()
                             // KILL2 = (KILL - Gr) | Kr
                             // GEN2 = (GEN - Kr) | Gr
 
-                            unsigned j,dim;
+                            unsigned dim;
                             dim = vec_dim(Kr);
                             vec_t KILL = b->Bkill;
                             vec_t GEN = b->Bgen;
 
-                            for (j = 0; j < dim; j++)
+                            for (unsigned j = 0; j < dim; j++)
                             {   vec_base_t KILL1,KILL2,GEN1,GEN2;
 
                                 KILL1 = KILL[j] | Kr[j];
@@ -807,9 +805,7 @@ STATIC void asgexpelems(elem *n)
  */
 
 STATIC void defstarkill()
-{       unsigned i,op;
-        elem *n;
-
+{
         vec_free(go.vptrkill);
         vec_free(go.defkill);
         vec_free(go.starkill);             /* dump any existing ones       */
@@ -825,9 +821,10 @@ STATIC void defstarkill()
 
         if (flowxx == CP)
         {
-            for (i = 1; i < go.exptop; i++)
-            {   n = go.expnod[i];
-                op = n->Eoper;
+            for (unsigned i = 1; i < go.exptop; i++)
+            {
+                elem *n = go.expnod[i];
+                const unsigned op = n->Eoper;
                 assert(op == OPeq || op == OPstreq);
                 assert(n->E1->Eoper==OPvar && n->E2->Eoper==OPvar);
 
@@ -844,9 +841,10 @@ STATIC void defstarkill()
         }
         else
         {
-            for (i = 1; i < go.exptop; i++)
-            {   n = go.expnod[i];
-                op = n->Eoper;
+            for (unsigned i = 1; i < go.exptop; i++)
+            {
+                elem *n = go.expnod[i];
+                const unsigned op = n->Eoper;
                 switch (op)
                 {
                     case OPvar:
@@ -932,11 +930,10 @@ void main()
  */
 
 void genkillae()
-{       unsigned i;
-
+{
         flowxx = AE;
         assert(go.exptop > 1);
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
         {       block *b = dfo[i];
 
                 assert(b);
@@ -987,12 +984,12 @@ STATIC void accumaecp(vec_t g,vec_t k,elem *n)
 }
 
 STATIC void accumaecpx(elem *n)
-{   unsigned i,op;
+{
     elem *t;
 
     assert(n);
     elem_debug(n);
-    op = n->Eoper;
+    const unsigned op = n->Eoper;
 
     switch (op)
     {
@@ -1122,7 +1119,7 @@ STATIC void accumaecpx(elem *n)
 
             assert(t->Eoper == OPvar);
             s = t->EV.sp.Vsym;                  // ptr to var being def'd
-            for (i = 1; i < go.exptop; i++)        /* for each ae elem      */
+            for (unsigned i = 1; i < go.exptop; i++)        // for each ae elem
             {   elem *e = go.expnod[i];
 
                 /* If it could be changed by the definition,     */
@@ -1170,7 +1167,7 @@ STATIC void accumaecpx(elem *n)
             {   vec_orass(KILL,go.starkill);       /* kill all 'starred' refs */
                 vec_subass(GEN,go.starkill);
             }
-            for (i = 1; i < go.exptop; i++)        /* for each ae elem      */
+            for (unsigned i = 1; i < go.exptop; i++)        // for each ae elem
             {   elem *e = go.expnod[i];
                 int eop = e->Eoper;
 
@@ -1221,7 +1218,6 @@ STATIC void accumaecpx(elem *n)
 
 void flowlv()
 {       vec_t tmp,livexit;
-        unsigned i;
         bool anychng;
         unsigned cnt;
 
@@ -1232,7 +1228,7 @@ void flowlv()
         /* from the function.                                           */
 
         livexit = vec_calloc(globsym.top);
-        for (i = 0; i < globsym.top; i++)
+        for (unsigned i = 0; i < globsym.top; i++)
         {       if (globsym.tab[i]->Sflags & SFLlivexit)
                         vec_setbit(i,livexit);
         }
@@ -1242,7 +1238,7 @@ void flowlv()
         /*      Bout = union of Bin of all successors to B.     */
         /* Using Ullman's algorithm:                            */
 
-        for (i = 0; i < dfotop; i++)            /* for each block B     */
+        for (unsigned i = 0; i < dfotop; i++)            // for each block B
         {
                 vec_copy(dfo[i]->Binlv,dfo[i]->Bgen);   /* Binlv = Bgen */
         }
@@ -1253,7 +1249,7 @@ void flowlv()
         {       anychng = FALSE;
 
                 /* For each block B in reverse DFO order        */
-                for (i = dfotop; i--;)
+                for (unsigned i = dfotop; i--;)
                 {       block *b = dfo[i];
                         list_t bl = b->Bsucc;
 
@@ -1283,7 +1279,7 @@ void flowlv()
         vec_free(livexit);
 #if 0
         dbg_printf("Live variables\n");
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
         {       dbg_printf("B%d IN\t",i);
                 vec_println(dfo[i]->Binlv);
                 dbg_printf("B%d GEN\t",i);
@@ -1302,18 +1298,17 @@ void flowlv()
  */
 
 STATIC void lvgenkill()
-{       unsigned i;
-
+{
         /* Compute ambigsym, a vector of all variables that could be    */
         /* referenced by a *e or a call.                                */
 
         assert(ambigsym == NULL);
         ambigsym = vec_calloc(globsym.top);
-        for (i = 0; i < globsym.top; i++)
+        for (unsigned i = 0; i < globsym.top; i++)
                 if (!(globsym.tab[i]->Sflags & SFLunambig))
                         vec_setbit(i,ambigsym);
 
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
         {       block *b = dfo[i];
 
                 vec_free(b->Bgen);
@@ -1523,7 +1518,6 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
 
 void flowvbe()
 {       vec_t tmp;
-        unsigned i;
         bool anychng;
 
         flowxx = VBE;
@@ -1531,7 +1525,7 @@ void flowvbe()
         if (go.exptop <= 1)        /* if no candidates for VBEs            */
                 return;
 
-        /*for (i = 0; i < go.exptop; i++)
+        /*for (unsigned i = 0; i < go.exptop; i++)
                 dbg_printf("go.expnod[%d] = 0x%x\n",i,go.expnod[i]);*/
 
         /* The transfer equation is:                    */
@@ -1542,7 +1536,7 @@ void flowvbe()
         /*dbg_printf("defkill = "); vec_println(go.defkill);
         dbg_printf("starkill = "); vec_println(go.starkill);*/
 
-        for (i = 0; i < dfotop; i++)
+        for (unsigned i = 0; i < dfotop; i++)
         {       block *b = dfo[i];
 
                 /*dbg_printf("block 0x%x\n",b);
@@ -1564,7 +1558,7 @@ void flowvbe()
         {       anychng = FALSE;
 
                 /* for all blocks except return blocks in reverse dfo order */
-                for (i = dfotop; i--;)
+                for (unsigned i = dfotop; i--;)
                 {       block *b = dfo[i];
                         list_t bl;
 
@@ -1725,7 +1719,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                             /* (operators only, as there is no point    */
                             /* to hoisting out variables and constants) */
                             if (!OTleaf(op))
-                            {   for (i = 1; i < go.exptop; i++)
+                            {   for (unsigned i = 1; i < go.exptop; i++)
                                 {       if (op == go.expnod[i]->Eoper &&
                                             i != ne &&
                                             el_match(n,go.expnod[i]))
@@ -1756,7 +1750,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                     s = t->EV.sp.Vsym;  // ptr to var being def'd
                     if (!(s->Sflags & SFLunambig))
                         vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
-                    for (i = 1; i < go.exptop; i++)        /* for each vbe elem */
+                    for (unsigned i = 1; i < go.exptop; i++)        // for each vbe elem
                     {   elem *e = go.expnod[i];
                         unsigned eop = e->Eoper;
 
