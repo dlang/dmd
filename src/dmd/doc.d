@@ -2222,8 +2222,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                for (; quoteLevel > 0; --quoteLevel)
+                for (; previousQuoteLevel > 0; --previousQuoteLevel)
                     i = buf.insert(i, ")");
+                quoteLevel = 0;
 
                 i = buf.insert(i, "$(DDOC_BLANKLINE)");
 // TODO: markdowny paragraphy things
@@ -2232,7 +2233,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             iHeadingStart = iLineStart;
             iLineStart = i + 1;
 
-            previousQuoteLevel = quoteLevel;
+            previousQuoteLevel = previousQuoteLevel > quoteLevel ? previousQuoteLevel : quoteLevel;
             if (previousQuoteLevel)
             {
                 // peek ahead and end quotes as needed
@@ -2246,9 +2247,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         break;
                 }
                 if (quoteLevel)
-                    for (; quoteLevel < previousQuoteLevel; ++quoteLevel)
+                {
+                    for (; quoteLevel < previousQuoteLevel; --previousQuoteLevel)
                         i = buf.insert(i, ")");
-                quoteLevel = 0;
+                    quoteLevel = 0;
+                }
+                else
+                    quoteLevel = previousQuoteLevel;
             }
             break;
         case '<':
@@ -2321,7 +2326,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     buf.remove(i, iQuotedStart - i);
                     if (quoteLevel > previousQuoteLevel)
                     {
-                        i = buf.insert(i, "$(QUOTE ");
+                        i = buf.insert(i, "$(QUOTE\n");
+                        iLineStart = i;
                     }
                     --i;
                     break;
