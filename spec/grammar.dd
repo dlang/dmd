@@ -1559,7 +1559,7 @@ $(GNAME TemplateValueParameterDefault):
 $(GRAMMAR
 $(GNAME TemplateAliasParameter):
     $(D alias) $(I Identifier) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
-    $(D alias) $(GLINK BasicType) $(GLINK Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK TemplateAliasParameterDefault)$(OPT)
+    $(D alias) $(GLINK BasicType) $(GLINK Declarator) $(GLINK TemplateAliasParameterSpecialization)$(OPT) $(GLINK Template$(SHY)Alias$(SHY)Parameter$(SHY)Default)$(OPT)
 
 $(GNAME TemplateAliasParameterSpecialization):
     $(D :) $(GLINK Type)
