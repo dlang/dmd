@@ -11,8 +11,8 @@ else
 fi
 libname=${dir}${SEP}lib15729${LIBEXT}
 
-$DMD -g -m${MODEL} -I${src} -of${libname} -lib ${src}${SEP}lib15729.d || exit 1
-$DMD -g -m${MODEL} -I${src} -of${dir}${SEP}gdb15729${EXE} ${src}${SEP}gdb15729.d ${libname} || exit 1
+$DMD -g -m${MODEL} ${PIC_FLAG} -I${src} -of${libname} -lib ${src}${SEP}lib15729.d || exit 1
+$DMD -g -m${MODEL} ${PIC_FLAG} -I${src} -of${dir}${SEP}gdb15729${EXE} ${src}${SEP}gdb15729.d ${libname} || exit 1
 
 if [ $OS == "linux" ]; then
     cat > ${dir}${SEP}gdb15729.gdb <<-EOF

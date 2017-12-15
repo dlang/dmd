@@ -5,7 +5,7 @@ dir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/test9287.sh.out
 
 echo 'import std.stdio; void main() { writeln("Success"); }' | \
-	$DMD -m${MODEL} -of${dir}${SEP}test9287a${EXE} - || exit 1
+	$DMD -m${MODEL} ${PIC_FLAG} -of${dir}${SEP}test9287a${EXE} - || exit 1
 
 ${RESULTS_DIR}/runnable/test9287a${EXE} > ${output_file}
 
