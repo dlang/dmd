@@ -207,8 +207,8 @@ $(H2 $(LEGACY_LNAME2 Cast, cast, Cast Operator Overloading))
 	$(TABLE2 Cast Operators,
 	$(THEAD $(I op), $(I rewrite))
 	$(TROW
-	$(D cast$(LPAREN))$(I type) $(D $(RPAREN)  $(I e)),
-	$(I e)$(D .opCast!$(LPAREN))$(I type)$(D $(RPAREN)())
+	`cast$(LPAREN)`$(I type)`$(RPAREN)` $(I e),
+	$(I e)`.opCast!$(LPAREN)`$(I type)`$(RPAREN)()`
 	)
 	)
 
@@ -254,8 +254,8 @@ a $(METACODE op) b
 ---
 	$(P is rewritten as both:)
 ---
-a.opBinary!($(DOUBLEQUOTE $(METACODE op)))(b)
-b.opBinaryRight!($(DOUBLEQUOTE $(METACODE op)))(a)
+a.opBinary!($(METACODE "op"))(b)
+b.opBinaryRight!($(METACODE "op"))(a)
 ---
 
 	$(P and the one with the $(SINGLEQUOTE better) match is selected.
@@ -648,7 +648,7 @@ a $(METACODE op)= b
 	$(P is rewritten as:)
 
 ---
-a.opOpAssign!($(DOUBLEQUOTE $(METACODE op)))(b)
+a.opOpAssign!($(METACODE "op"))(b)
 ---
 
 $(H3 $(LNAME2 index_op_assignment, Index Op Assignment Operator Overloading))
@@ -663,7 +663,7 @@ a[$(METACODE $(ARGUMENTS))] $(METACODE op)= c
 	$(P it is rewritten as:)
 
 ---
-a.opIndexOpAssign!($(DOUBLEQUOTE $(METACODE op)))(c, $(METACODE $(ARGUMENTS)))
+a.opIndexOpAssign!($(METACODE "op"))(c, $(METACODE $(ARGUMENTS)))
 ---
 
 $(H3 $(LNAME2 slice_op_assignment, Slice Op Assignment Operator Overloading))
@@ -678,7 +678,7 @@ a[$(METACODE $(SLICE))] $(METACODE op)= c
 	$(P it is rewritten as:)
 
 ---
-a.opIndexOpAssign!($(DOUBLEQUOTE $(METACODE op)))(c, a.opSlice($(METACODE $(SLICE2))))
+a.opIndexOpAssign!($(METACODE "op"))(c, a.opSlice($(METACODE $(SLICE2))))
 ---
 
 	$(P and)
@@ -690,7 +690,7 @@ a[] $(METACODE op)= c
 	$(P it is rewritten as:)
 
 ---
-a.opIndexOpAssign!($(DOUBLEQUOTE $(METACODE op)))(c)
+a.opIndexOpAssign!($(METACODE "op"))(c)
 ---
 
 	$(P For backward compatibility, if the above rewrites fail and

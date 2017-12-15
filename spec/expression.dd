@@ -1060,19 +1060,19 @@ $(P The following forms of slice expression can be convertible to a static array
 type:)
 
         $(DL
-        $(DT $(I e))$(DD An expression that contains no side effects.)
-        $(DT $(D a), $(D b))$(DD Integers (that may be constant-folded).)
+        $(DT $(D e)) $(DD An expression that contains no side effects.)
+        $(DT $(D a), $(D b)) $(DD Integers (that may be constant-folded).)
         )
 
-        $(TABLE
+        $(TABLE2 Computing array lengths during compilation,
         $(THEAD Form, The length calculated at compile time)
         $(TROW $(D arr[]), The compile time length of $(D arr) if it's known.)
         $(TROW $(D arr[a .. b]),               $(D b - a))
-        $(TROW $(D arr[$(I e)-a .. $(I e)]),   $(D a))
-        $(TROW $(D arr[$(I e) .. $(I e)+b]),   $(D b))
-        $(TROW $(D arr[$(I e)-a .. $(I e)+b]), $(D a + b))
-        $(TROW $(D arr[$(I e)+a .. $(I e)+b]), $(D b - a) $(I if) $(D a <= b))
-        $(TROW $(D arr[$(I e)-a .. $(I e)-b]), $(D a - b) $(I if) $(D a >= b))
+        $(TROW $(D arr[e-a .. e]),   $(D a))
+        $(TROW $(D arr[e .. e+b]),   $(D b))
+        $(TROW $(D arr[e-a .. e+b]), $(D a + b))
+        $(TROW $(D arr[e+a .. e+b]), $(D b - a) $(I if) $(D a <= b))
+        $(TROW $(D arr[e-a .. e-b]), $(D a - b) $(I if) $(D a >= b))
         )
 
     $(P If $(I PostfixExpression) is an $(I ExpressionTuple), then
