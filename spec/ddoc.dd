@@ -420,7 +420,7 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
  *	FOO =	now is the time for
  *		all good men
  *	BAR =	bar
- *	MAGENTA =   <font color="magenta">$(DOLLAR)0</font>
+ *	MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
 
@@ -496,13 +496,13 @@ $(P
 
 $(P
     Text inside these sections will be escaped according to the rules described above,
-    then wrapped in a $(D $(DOLLAR)(DDOC_BACKQUOTED)) macro. By default, this macro expands
+    then wrapped in a `$(DDOC_BACKQUOTED)` macro. By default, this macro expands
     to be displayed as an inline text span, formatted as code.
 )
 
 $(P
     A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
-    line or by using the `$(DOLLAR)(BACKTICK)` macro.
+    line or by using the `$(BACKTICK)` macro.
 )
 
 ---
