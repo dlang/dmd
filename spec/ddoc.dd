@@ -496,13 +496,13 @@ $(P
 
 $(P
     Text inside these sections will be escaped according to the rules described above,
-    then wrapped in a `$(DDOC_BACKQUOTED)` macro. By default, this macro expands
+    then wrapped in a `$(RAW_DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
     to be displayed as an inline text span, formatted as code.
 )
 
 $(P
     A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
-    line or by using the `$(BACKTICK)` macro.
+    line or by using the `$(RAW_DOLLAR)(BACKTICK)` macro.
 )
 
 ---
@@ -965,3 +965,4 @@ Macros:
     TITLE=Documentation Generator
     _= Remove the following line when 2.067.0 is used to compile the site.
     BACKTIP=`
+    RAW_DOLLAR=$
