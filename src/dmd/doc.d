@@ -1041,7 +1041,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
              * (only template instantiations).
              * Hence, Ddoc omits attributes from template members.
              */
-            Dsymbols* d = ad.include(null, null);
+            Dsymbols* d = ad.include(null);
             if (d)
             {
                 for (size_t i = 0; i < d.dim; i++)
@@ -1075,7 +1075,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                 return;
             }
             /* If generating doc comment, be careful because if we're inside
-             * a template, then include(NULL, NULL) will fail.
+             * a template, then include(null) will fail.
              */
             Dsymbols* d = cd.decl ? cd.decl : cd.elsedecl;
             for (size_t i = 0; i < d.dim; i++)

@@ -82,7 +82,7 @@ private uint setMangleOverride(Dsymbol s, char* sym)
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)
     {
-        Dsymbols* decls = ad.include(null, null);
+        Dsymbols* decls = ad.include(null);
         uint nestedCount = 0;
         if (decls && decls.dim)
             for (size_t i = 0; i < decls.dim; ++i)
@@ -429,7 +429,7 @@ extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(AttribDeclaration ad)
     {
-        Dsymbols* d = ad.include(sc, null);
+        Dsymbols* d = ad.include(sc);
         if (d)
         {
             Scope* sc2 = ad.newScope(sc);
@@ -1714,7 +1714,7 @@ extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(AttribDeclaration ad)
     {
-        Dsymbols* d = ad.include(sc, null);
+        Dsymbols* d = ad.include(sc);
         if (d)
         {
             Scope* sc2 = ad.newScope(sc);
@@ -2860,7 +2860,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (ad.semanticRun != PASSinit)
             return;
         ad.semanticRun = PASSsemantic;
-        Dsymbols* d = ad.include(sc, null);
+        Dsymbols* d = ad.include(sc);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
         if (d)
         {

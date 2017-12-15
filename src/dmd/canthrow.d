@@ -244,7 +244,7 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
     ad = s.isAttribDeclaration();
     if (ad)
     {
-        Dsymbols* decl = ad.include(null, null);
+        Dsymbols* decl = ad.include(null);
         if (decl && decl.dim)
         {
             for (size_t i = 0; i < decl.dim; i++)

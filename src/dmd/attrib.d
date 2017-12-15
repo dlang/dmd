@@ -44,7 +44,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         this.decl = decl;
     }
 
-    Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    Dsymbols* include(Scope* sc)
     {
         if (errors)
             return null;
@@ -54,7 +54,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final int apply(Dsymbol_apply_ft_t fp, void* param)
     {
-        Dsymbols* d = include(_scope, null);
+        Dsymbols* d = include(_scope);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -113,7 +113,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        Dsymbols* d = include(sc, sds);
+        Dsymbols* d = include(sc);
         if (d)
         {
             Scope* sc2 = newScope(sc);
@@ -130,7 +130,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void setScope(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        Dsymbols* d = include(sc);
         //printf("\tAttribDeclaration::setScope '%s', d = %p\n",toChars(), d);
         if (d)
         {
@@ -147,7 +147,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override void importAll(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        Dsymbols* d = include(sc);
         //printf("\tAttribDeclaration::importAll '%s', d = %p\n", toChars(), d);
         if (d)
         {
@@ -167,7 +167,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
         {
-            Dsymbols* d = include(null, null);
+            Dsymbols* d = include(null);
             if (d)
             {
                 for (size_t i = 0; i < d.dim; i++)
@@ -187,13 +187,13 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override bool oneMember(Dsymbol* ps, Identifier ident)
     {
-        Dsymbols* d = include(null, null);
+        Dsymbols* d = include(null);
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
     override void setFieldOffset(AggregateDeclaration ad, uint* poffset, bool isunion)
     {
-        Dsymbols* d = include(null, null);
+        Dsymbols* d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -206,7 +206,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final bool hasPointers()
     {
-        Dsymbols* d = include(null, null);
+        Dsymbols* d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -221,7 +221,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final bool hasStaticCtorOrDtor()
     {
-        Dsymbols* d = include(null, null);
+        Dsymbols* d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -236,7 +236,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override final void checkCtorConstInit()
     {
-        Dsymbols* d = include(null, null);
+        Dsymbols* d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -251,7 +251,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      */
     override final void addLocalClass(ClassDeclarations* aclasses)
     {
-        Dsymbols* d = include(null, null);
+        Dsymbols* d = include(null);
         if (d)
         {
             for (size_t i = 0; i < d.dim; i++)
@@ -342,7 +342,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 
     override void addMember(Scope* sc, ScopeDsymbol sds)
     {
-        Dsymbols* d = include(sc, sds);
+        Dsymbols* d = include(sc);
         if (d)
         {
             Scope* sc2 = newScope(sc);
@@ -847,7 +847,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
         if (condition.inc)
         {
-            Dsymbols* d = condition.include(null, null) ? decl : elsedecl;
+            Dsymbols* d = condition.include(null) ? decl : elsedecl;
             return Dsymbol.oneMembers(d, ps, ident);
         }
         else
@@ -859,7 +859,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     }
 
     // Decide if 'then' or 'else' code should be included
-    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc)
     {
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
@@ -867,7 +867,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
             return null;
 
         assert(condition);
-        return condition.include(_scope ? _scope : sc, sds) ? decl : elsedecl;
+        return condition.include(_scope ? _scope : sc) ? decl : elsedecl;
     }
 
     override final void addComment(const(char)* comment)
@@ -898,7 +898,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 
     override void setScope(Scope* sc)
     {
-        Dsymbols* d = include(sc, null);
+        Dsymbols* d = include(sc);
         //printf("\tConditionalDeclaration::setScope '%s', d = %p\n",toChars(), d);
         if (d)
         {
@@ -939,7 +939,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
      * Different from other AttribDeclaration subclasses, include() call requires
      * the completion of addMember and setScope phases.
      */
-    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc)
     {
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
 
@@ -950,7 +950,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         {
             assert(scopesym); // addMember is already done
             assert(_scope); // setScope is already done
-            Dsymbols* d = ConditionalDeclaration.include(_scope, scopesym);
+            Dsymbols* d = ConditionalDeclaration.include(_scope);
             if (d && !addisdone)
             {
                 // Add members lazily.
@@ -971,7 +971,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         }
         else
         {
-            return ConditionalDeclaration.include(sc, scopesym);
+            return ConditionalDeclaration.include(sc);
         }
     }
 
@@ -1064,7 +1064,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         return false;
     }
 
-    override Dsymbols* include(Scope* sc, ScopeDsymbol sds)
+    override Dsymbols* include(Scope* sc)
     {
         if (errors)
             return null;

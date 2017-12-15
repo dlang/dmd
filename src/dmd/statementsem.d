@@ -2167,7 +2167,7 @@ else
         // If we can short-circuit evaluate the if statement, don't do the
         // semantic analysis of the skipped code.
         // This feature allows a limited form of conditional compilation.
-        if (cs.condition.include(sc, null))
+        if (cs.condition.include(sc))
         {
             DebugCondition dc = cs.condition.isDebugCondition();
             if (dc)

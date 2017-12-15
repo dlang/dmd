@@ -1066,7 +1066,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(AttribDeclaration ad)
         {
-            Dsymbols *d = ad.include(null, null);
+            Dsymbols *d = ad.include(null);
 
             if (d)
             {
@@ -1127,7 +1127,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     if (auto ad = s.isAttribDeclaration())
                     {
                         uint nestedCount;
-                        auto decls = ad.include(null, null);
+                        auto decls = ad.include(null);
                         if (decls)
                         {
                             for (size_t i = 0; i < decls.dim; ++i)
