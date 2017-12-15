@@ -10,7 +10,7 @@ dependency ":parser" version="*"
 subPackage {
   name "root"
   targetType "library"
-  sourcePaths "src/ddmd/root"
+  sourcePaths "src/dmd/root"
 }
 
 subPackage {
@@ -19,15 +19,15 @@ subPackage {
   sourcePaths
 
   sourceFiles \
-    "src/ddmd/console.d" \
-    "src/ddmd/entity.d" \
-    "src/ddmd/errors.d" \
-    "src/ddmd/globals.d" \
-    "src/ddmd/id.d" \
-    "src/ddmd/identifier.d" \
-    "src/ddmd/lexer.d" \
-    "src/ddmd/tokens.d" \
-    "src/ddmd/utf.d"
+    "src/dmd/console.d" \
+    "src/dmd/entity.d" \
+    "src/dmd/errors.d" \
+    "src/dmd/globals.d" \
+    "src/dmd/id.d" \
+    "src/dmd/identifier.d" \
+    "src/dmd/lexer.d" \
+    "src/dmd/tokens.d" \
+    "src/dmd/utf.d"
 
   preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
   stringImportPaths "generated/dub"
@@ -41,11 +41,11 @@ subPackage {
   sourcePaths
 
   sourceFiles \
-    "src/ddmd/astbase.d" \
-    "src/ddmd/parse.d" \
-    "src/ddmd/transitivevisitor.d" \
-    "src/ddmd/permissivevisitor.d" \
-    "src/ddmd/strictvisitor.d"
+    "src/dmd/astbase.d" \
+    "src/dmd/parse.d" \
+    "src/dmd/transitivevisitor.d" \
+    "src/dmd/permissivevisitor.d" \
+    "src/dmd/strictvisitor.d"
 
   dependency "dmd:lexer" version="*"
 }

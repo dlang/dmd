@@ -62,7 +62,7 @@ OS=windows
 ##### Directories
 
 # DMD source directories
-D=ddmd
+D=dmd
 C=$D\backend
 TK=$D\tk
 ROOT=$D\root

@@ -9,13 +9,13 @@ dependency "dmd" path="../.."
 
 module examples.avg;
 
-import ddmd.astbase;
-import ddmd.parse;
-import ddmd.transitivevisitor;
+import dmd.astbase;
+import dmd.parse;
+import dmd.transitivevisitor;
 
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import dmd.globals;
+import dmd.id;
+import dmd.identifier;
 
 import std.stdio;
 import std.file;
