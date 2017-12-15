@@ -4070,9 +4070,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (m <= MATCH.nomatch)
                         goto Lno;
                     s.dsymbolSemantic(sc);
-                    if (sc.sds)
-                        s.addMember(sc, sc.sds);
-                    else if (!sc.insert(s))
+                    if (!sc.insert(s))
                         e.error("declaration %s is already defined", s.toChars());
 
                     unSpeculative(sc, s);
@@ -4105,8 +4103,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             if (!tup && !sc.insert(s))
                 e.error("declaration %s is already defined", s.toChars());
-            if (sc.sds)
-                s.addMember(sc, sc.sds);
 
             unSpeculative(sc, s);
         }
