@@ -66,11 +66,11 @@
 
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
-	OS:=win64
-	MODEL:=64
+        OS:=win64
+        MODEL:=64
     else
-	OS:=win32
-	MODEL:=32
+        OS:=win32
+        MODEL:=32
     endif
 endif
 ifeq (Win_32,$(OS))
@@ -100,75 +100,75 @@ export MODEL
 export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
-export ARGS=-inline -release -g -O
-export EXE=.exe
-export OBJ=.obj
-export DSEP=\\
-export SEP=$(subst /,\,/)
+    export ARGS=-inline -release -g -O
+    export EXE=.exe
+    export OBJ=.obj
+    export DSEP=\\
+    export SEP=$(subst /,\,/)
 
-PIC?=0
+    PIC?=0
 
-DRUNTIME_PATH=..\..\druntime
-PHOBOS_PATH=..\..\phobos
-export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
-export LIB=$(PHOBOS_PATH)
+    DRUNTIME_PATH=..\..\druntime
+    PHOBOS_PATH=..\..\phobos
+    export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
+    export LIB=$(PHOBOS_PATH)
 
-# auto-tester might run the testsuite with a different $(MODEL) than DMD
-# has been compiled with. Hence we manually check which binary exists.
-# For windows the $(OS) during build is: `windows`
-ifeq (,$(wildcard ../generated/windows/$(BUILD)/64/dmd$(EXE)))
-DMD_MODEL=32
-else
-DMD_MODEL=64
-endif
-export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
-
-else
-export ARGS=-inline -release -g -O -fPIC
-export EXE=
-export OBJ=.o
-export DSEP=/
-export SEP=/
-
-# auto-tester might run the testsuite with a different $(MODEL) than DMD
-# has been compiled with. Hence we manually check which binary exists.
-ifeq (,$(wildcard ../generated/$(OS)/$(BUILD)/64/dmd))
-DMD_MODEL=32
-else
-DMD_MODEL=64
-endif
-export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
-
-# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
-# Note that shared libraries and C files are always compiled with PIC.
-ifeq ($(PIC),)
-    ifeq ($(MODEL),64) # x86_64
-        PIC:=1
+    # auto-tester might run the testsuite with a different $(MODEL) than DMD
+    # has been compiled with. Hence we manually check which binary exists.
+    # For windows the $(OS) during build is: `windows`
+    ifeq (,$(wildcard ../generated/windows/$(BUILD)/64/dmd$(EXE)))
+        DMD_MODEL=32
     else
-        PIC:=0
+        DMD_MODEL=64
     endif
-endif
-ifeq ($(PIC),1)
-    export PIC_FLAG:=-fPIC
-else
-    export PIC_FLAG:=
-endif
+    export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
 
-DRUNTIME_PATH=../../druntime
-PHOBOS_PATH=../../phobos
-# link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
-ifeq (1,$(SHARED))
-DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
-endif
-export DFLAGS
+else
+    export ARGS=-inline -release -g -O -fPIC
+    export EXE=
+    export OBJ=.o
+    export DSEP=/
+    export SEP=/
+
+    # auto-tester might run the testsuite with a different $(MODEL) than DMD
+    # has been compiled with. Hence we manually check which binary exists.
+    ifeq (,$(wildcard ../generated/$(OS)/$(BUILD)/64/dmd))
+        DMD_MODEL=32
+    else
+        DMD_MODEL=64
+    endif
+    export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
+
+    # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
+    # Note that shared libraries and C files are always compiled with PIC.
+    ifeq ($(PIC),)
+        ifeq ($(MODEL),64) # x86_64
+            PIC:=1
+        else
+            PIC:=0
+        endif
+    endif
+    ifeq ($(PIC),1)
+        export PIC_FLAG:=-fPIC
+    else
+        export PIC_FLAG:=
+    endif
+
+    DRUNTIME_PATH=../../druntime
+    PHOBOS_PATH=../../phobos
+    # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
+    SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+    DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+    ifeq (1,$(SHARED))
+        DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+    endif
+    export DFLAGS
 endif
 
 ifeq ($(OS),osx)
-ifeq ($(MODEL),64)
-export D_OBJC=1
-endif
+    ifeq ($(MODEL),64)
+        export D_OBJC=1
+    endif
 endif
 
 DEBUG_FLAGS=$(PIC_FLAG) -g
