@@ -1073,6 +1073,8 @@ Language changes listed by -transition=id:
             }
         }
     }
+    if (global.errors || global.warnings)
+        fatal();
     return status;
 }
 
