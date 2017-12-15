@@ -468,8 +468,8 @@ $(SECTION2 $(GNAME getFunctionVariadicStyle),
     )
 
     $(TABLE2 getFunctionVariadicStyle,
-	$(THEAD string returned, kind, access, example)
-	$(TROW $(D "none"), not a variadic function, &nbsp;, $(D void foo();))
+	$(THEAD result, kind, access, example)
+	$(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
 	$(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
 	$(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
 	$(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
