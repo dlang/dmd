@@ -256,13 +256,13 @@ $(SECTION2 $(LEGACY_LNAME2 COM-Interfaces, com-interfaces, COM Interfaces),
 
     class C : Printer, IUnknown
     {
-        // Implements the IText $(D write) class method.
+        // Implements the IText `write` class method.
         extern(D) void write() { }
 
-        // Overrides the Printer $(D print) class method.
+        // Overrides the Printer `print` class method.
         extern(D) override void print() { }
 
-        // Overrides the Object base class $(D toString) method.
+        // Overrides the Object base class `toString` method.
         extern(D) override string toString() { return "Class C"; }
 
         // Methods of class implementing the IUnknown interface have
