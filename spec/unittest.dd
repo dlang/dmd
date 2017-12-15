@@ -121,14 +121,13 @@ unittest
 
 $(P The above will generate the following documentation:)
 
+$(RAWHTML
 <dl><dt><big><a name="Math"></a>class <u>Math</u>;
-
 </big></dt>
 <dd><u>Math</u> class<br><br>
-<b>Example:</b><pre class="d$(UNDERSCORE)code"><font color="blue">auto</font> math = <font color="blue">new</font> <u>Math</u>;
+<b>Example:</b><pre class="d_code"><font color="blue">auto</font> math = <font color="blue">new</font> <u>Math</u>;
 <font color="blue">auto</font> result = math.add(2, 2);
 </pre><br>
-
 <dl><dt><big><a name="Math.add"></a>int <u>add</u>(int <i>x</i>, int <i>y</i>);
 </big></dt>
 <dd><u>add</u> function<br><br>
@@ -138,6 +137,7 @@ $(P The above will generate the following documentation:)
 </dl>
 </dd>
 </dl>
+)
 
 $(P A unittest which is not documented, or is marked as private will not be
     used to generate code samples.)
@@ -176,25 +176,24 @@ unittest
 
 $(P The above will generate the following documentation:)
 
+$(RAWHTML
 <dl><dt><big><a name="add"></a>int <u>add</u>(int <i>x</i>, int <i>y</i>);
-
 </big></dt>
 <dd><u>add</u> function<br><br>
 <b>Examples:</b><br>
 code sample generated
-<pre class="d$(UNDERSCORE)code">
+<pre class="d_code">
 <font color="blue">assert</font>(<u>add</u>(1, 1) == 2);
 </pre>
 <br><br><b>Examples:</b><br>
 code sample generated, even if it is empty or only includes comments
-
 <pre class="d$(UNDERSCORE)code">
 <font color="green">/** assert(add(4, 4) == 8); */</font>
 </pre>
 <br><br>
 </dd>
 </dl>
-
+)
 
 $(H2 $(LNAME2 versioning, Versioning))
 

@@ -105,4 +105,5 @@ SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
 SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
 
 CLEAR=<div style="clear:both"></div>
+RAWHTML=$0
 _=
