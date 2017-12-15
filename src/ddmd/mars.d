@@ -2156,7 +2156,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
                         break;
                     }
-                    files.push(arguments[i + 1]);
+                    if (strcmp(arguments[i + 1], "-") == 0)
+                        files.push("__stdin.d");
+                    else
+                        files.push(arguments[i + 1]);
                     params.runargs.setDim(length - 1);
                     for (size_t j = 0; j < length - 1; ++j)
                     {
