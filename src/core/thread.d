@@ -223,6 +223,8 @@ version( Windows )
 
             void append( Throwable t )
             {
+                if (t.refcount())
+                    ++t.refcount();
                 if( obj.m_unhandled is null )
                     obj.m_unhandled = t;
                 else
@@ -377,6 +379,8 @@ else version( Posix )
 
             void append( Throwable t )
             {
+                if (t.refcount())
+                    ++t.refcount();
                 if( obj.m_unhandled is null )
                     obj.m_unhandled = t;
                 else

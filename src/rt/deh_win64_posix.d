@@ -219,7 +219,7 @@ size_t __eh_find_caller(size_t regbp, size_t *pretaddr)
  * Throw a D object.
  */
 
-extern (C) void _d_throwc(Object h)
+extern (C) void _d_throwc(Throwable h)
 {
     size_t regebp;
 
@@ -241,6 +241,12 @@ extern (C) void _d_throwc(Object h)
         }
     else
         static assert(0);
+
+    /* Increment reference count if `h` is a refcounted Throwable
+     */
+    auto refcount = h.refcount();
+    if (refcount)       // non-zero means it's refcounted
+        h.refcount() = refcount + 1;
 
     _d_createTrace(h, null);
 

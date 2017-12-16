@@ -183,6 +183,12 @@ extern(C) void _d_throwdwarf(Throwable o)
     eh.push();  // add to thrown exception stack
     //printf("_d_throwdwarf: eh = %p, eh.next = %p\n", eh, eh.next);
 
+    /* Increment reference count if `o` is a refcounted Throwable
+     */
+    auto refcount = o.refcount();
+    if (refcount)       // non-zero means it's refcounted
+        o.refcount() = refcount + 1;
+
     /* Called by unwinder when exception object needs destruction by other than our code.
      */
     extern (C) static void exception_cleanup(_Unwind_Reason_Code reason, _Unwind_Exception* eo)
