@@ -452,9 +452,6 @@ $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
-dmd: $G/dmd $G/dmd.conf
-	cp $< .
-
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
