@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3.d(33): Error: incompatible types for ((a) + (b)): both operands are of type 'vec2'
+fail_compilation/fail3.d(41): Error: incompatible types for ((a) + (b)): both operands are of type 'vec2'
 ---
 */
 
@@ -21,6 +21,14 @@ template vector(T)
         r.x = a.x + b.x;
         r.y = a.y + b.y;
         return r;
+    }
+
+    vec2 make2(T x, T y)
+    {
+        vec2 a;
+        a.x = x;
+        a.y = y;
+        return a;
     }
 }
 
