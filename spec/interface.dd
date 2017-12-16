@@ -69,6 +69,17 @@ interface D
 }
 ------
 
+     $(P Interfaces can have function templates in the members.
+         All instantiated functions are implicitly `final`.
+     )
+
+---
+interface D
+{
+    void foo(T)() { }  // ok, it's implicitly final
+}
+---
+
     $(P Classes that inherit from an interface may not override final or
     static interface member functions.)
 
