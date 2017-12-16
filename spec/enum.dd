@@ -260,6 +260,27 @@ enum size = __traits(classInstanceSize, Foo);  // evaluated at compile-time
 	$(P Using manifest constants is an idiomatic D method
 	to force compile-time evaluation of an expression.)
 
+---
+template Foo(T)
+{
+    // Not bad, but the 'size' variable will be located in the executable.
+    const size_t size = T.sizeof;       // evaluated at compile-time
+
+    // ... use of 'size' at compile time ...
+}
+
+template Bar(T)
+{
+    // Better, the manifest constant has no runtime location in the executable.
+    enum size_t size = T.sizeof;        // evaluated at compile-time
+
+    // ... use of 'size' at compile time ...
+
+    // If you take the address of Foo!T.size, it would also go into exe file.
+    auto p = &Foo!T.size;
+}
+---
+
 
 $(SPEC_SUBNAV_PREV_NEXT interface, Interfaces, const3, Type Qualifiers)
 )
