@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// won't work until druntime is updated, so disable XXXEQUIRED_ARGS: -dip1008
+// REQUIRED_ARGS: -dip1008
 
 int bar()
 {
