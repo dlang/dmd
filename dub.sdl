@@ -53,101 +53,16 @@ subPackage {
 subPackage {
   name "frontend"
   targetType "library"
+  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  stringImportPaths "generated/dub"
   stringImportPaths "res"
   versions "NoBackend"
   versions "GC"
   versions "NoMain"
-  sourcePaths
-
-  sourceFiles \
-    "src/dmd/access.d" \
-    "src/dmd/aggregate.d" \
-    "src/dmd/aliasthis.d" \
-    "src/dmd/apply.d" \
-    "src/dmd/argtypes.d" \
-    "src/dmd/arrayop.d" \
-    "src/dmd/arraytypes.d" \
-    "src/dmd/astcodegen.d" \
-    "src/dmd/attrib.d" \
-    "src/dmd/blockexit.d" \
-    "src/dmd/builtin.d" \
-    "src/dmd/canthrow.d" \
-    "src/dmd/clone.d" \
-    "src/dmd/complex.d" \
-    "src/dmd/cond.d" \
-    "src/dmd/constfold.d" \
-    "src/dmd/cppmangle.d" \
-    "src/dmd/cppmanglewin.d" \
-    "src/dmd/ctfeexpr.d" \
-    "src/dmd/dcast.d" \
-    "src/dmd/dclass.d" \
-    "src/dmd/declaration.d" \
-    "src/dmd/delegatize.d" \
-    "src/dmd/denum.d" \
-    "src/dmd/dimport.d" \
-    "src/dmd/dinifile.d" \
-    "src/dmd/dinterpret.d" \
-    "src/dmd/dmacro.d" \
-    "src/dmd/dmangle.d" \
-    "src/dmd/dmodule.d" \
-    "src/dmd/doc.d" \
-    "src/dmd/dscope.d" \
-    "src/dmd/dstruct.d" \
-    "src/dmd/dsymbol.d" \
-    "src/dmd/dsymbolsem.d" \
-    "src/dmd/dtemplate.d" \
-    "src/dmd/dversion.d" \
-    "src/dmd/escape.d" \
-    "src/dmd/expression.d" \
-    "src/dmd/expressionsem.d" \
-    "src/dmd/frontend.d" \
-    "src/dmd/func.d" \
-    "src/dmd/gluelayer.d" \
-    "src/dmd/hdrgen.d" \
-    "src/dmd/id.d" \
-    "src/dmd/impcnvtab.d" \
-    "src/dmd/imphint.d" \
-    "src/dmd/init.d" \
-    "src/dmd/initsem.d" \
-    "src/dmd/inline.d" \
-    "src/dmd/inlinecost.d" \
-    "src/dmd/intrange.d" \
-    "src/dmd/json.d" \
-    "src/dmd/lib.d" \
-    "src/dmd/link.d" \
-    "src/dmd/mars.d" \
-    "src/dmd/mtype.d" \
-    "src/dmd/nogc.d" \
-    "src/dmd/nspace.d" \
-    "src/dmd/objc.d" \
-    "src/dmd/opover.d" \
-    "src/dmd/optimize.d" \
-    "src/dmd/parse.d" \
-    "src/dmd/parsetimevisitor.d" \
-    "src/dmd/printast.d" \
-    "src/dmd/safe.d" \
-    "src/dmd/sapply.d" \
-    "src/dmd/semantic.d" \
-    "src/dmd/sideeffect.d" \
-    "src/dmd/statement.d" \
-    "src/dmd/statement_rewrite_walker.d" \
-    "src/dmd/statementsem.d" \
-    "src/dmd/staticassert.d" \
-    "src/dmd/staticcond.d" \
-    "src/dmd/target.d" \
-    "src/dmd/templateparamsem.d" \
-    "src/dmd/traits.d" \
-    "src/dmd/typesem.d" \
-    "src/dmd/typinf.d" \
-    "src/dmd/utils.d" \
-    "src/dmd/visitor.d"
-
-   sourceFiles "src/dmd/scanelf.d" \
-    "src/dmd/libelf.d" platform="linux"
-
-   sourceFiles "src/dmd/scanmach.d" \
-    "src/dmd/libmach.d" platform="osx"
-
-  dependency "dmd:parser" version="*"
-  dependency "dmd:lexer" version="*"
+  sourcePaths "src/dmd"
+  excludedSourceFiles "src/dmd/backend/*"
+  excludedSourceFiles "src/dmd/{e2ir,eh,glue,iasm,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+  excludedSourceFiles "src/dmd/{scan,lib}{mach,mscoff,omf}.d" platform="linux"
+  excludedSourceFiles "src/dmd/{scan,lib}{elf,mscoff,omf}.d" platform="osx"
+  excludedSourceFiles "src/dmd/{scan,lib}{elf,mach,mscoff}.d" platform="windows"
 }
