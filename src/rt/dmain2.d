@@ -534,15 +534,15 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 
 private void formatThrowable(Throwable t, scope void delegate(in char[] s) nothrow sink)
 {
-    for (; t; t = t.next)
+    foreach (u; t)
     {
-        t.toString(sink); sink("\n");
+        u.toString(sink); sink("\n");
 
-        auto e = cast(Error)t;
+        auto e = cast(Error)u;
         if (e is null || e.bypassedException is null) continue;
 
         sink("=== Bypassed ===\n");
-        for (auto t2 = e.bypassedException; t2; t2 = t2.next)
+        foreach (t2; e.bypassedException)
         {
             t2.toString(sink); sink("\n");
         }

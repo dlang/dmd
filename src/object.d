@@ -1704,11 +1704,38 @@ class Throwable : Object
      * caught $(D Exception) will be chained to the new $(D Throwable) via this
      * field.
      */
-    Throwable   next;
+    private Throwable   nextInChain;
 
     private uint _refcount;     // 0 : allocated by GC
                                 // 1 : allocated by _d_newThrowable()
                                 // 2.. : reference count + 1
+
+    /**
+     * Returns:
+     * A reference to the _next error in the list. This is used when a new
+     * $(D Throwable) is thrown from inside a $(D catch) block. The originally
+     * caught $(D Exception) will be chained to the new $(D Throwable) via this
+     * field.
+     */
+    @property inout(Throwable) next() @safe inout return scope pure nothrow @nogc { return nextInChain; }
+
+    /**
+     * Replace next in chain with `tail`.
+     * Use `chainTogether` instead if at all possible.
+     */
+    @property void next(Throwable tail) @safe scope pure nothrow @nogc
+    {
+        if (tail && tail._refcount)
+            ++tail._refcount;           // increment the replacement *first*
+
+        auto n = nextInChain;
+        nextInChain = null;             // sever the tail before deleting it
+
+        if (n && n._refcount)
+            _d_delThrowable(n);         // now delete the old tail
+
+        nextInChain = tail;             // and set the new tail
+    }
 
     /**
      * Returns:
@@ -1717,6 +1744,21 @@ class Throwable : Object
      *  and >=2 which is the reference count + 1
      */
     @system @nogc final pure nothrow ref uint refcount() return scope { return _refcount; }
+
+    /**
+     * Loop over the chain of Throwables.
+     */
+    int opApply(scope int delegate(Throwable) dg)
+    {
+        int result = 0;
+        for (Throwable t = this; t; t = t.nextInChain)
+        {
+            result = dg(t);
+            if (result)
+                break;
+        }
+        return result;
+    }
 
     /**
      * Append `e2` to chain of exceptions that starts with `e1`.
@@ -1728,31 +1770,33 @@ class Throwable : Object
      */
     static @__future @system @nogc pure nothrow Throwable chainTogether(return scope Throwable e1, return scope Throwable e2)
     {
+        if (e2 && e2.refcount())
+            ++e2.refcount();
         if (!e1)
             return e2;
         if (!e2)
             return e1;
-        for (auto e = e1; 1; e = e.next)
+        for (auto e = e1; 1; e = e.nextInChain)
         {
-            if (!e.next)
+            if (!e.nextInChain)
             {
-                e.next = e2;
+                e.nextInChain = e2;
                 break;
             }
         }
         return e1;
     }
 
-    @nogc @safe pure nothrow this(string msg, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, Throwable nextInChain = null)
     {
         this.msg = msg;
-        this.next = next;
+        this.nextInChain = nextInChain;
         //this.info = _d_traceContext();
     }
 
-    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable nextInChain = null)
     {
-        this(msg, next);
+        this(msg, nextInChain);
         this.file = file;
         this.line = line;
         //this.info = _d_traceContext();
@@ -1760,8 +1804,8 @@ class Throwable : Object
 
     @trusted nothrow ~this()
     {
-        if (next && next._refcount)
-            _d_delThrowable(next);
+        if (nextInChain && nextInChain._refcount)
+            _d_delThrowable(nextInChain);
     }
 
     /**
@@ -1840,19 +1884,19 @@ class Exception : Throwable
 {
 
     /**
-     * Creates a new instance of Exception. The next parameter is used
+     * Creates a new instance of Exception. The nextInChain parameter is used
      * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
      * Exception; the $(D throw) statement should be used for that purpose.
      */
-    @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null)
     {
-        super(msg, file, line, next);
+        super(msg, file, line, nextInChain);
     }
 
-    @nogc @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    @nogc @safe pure nothrow this(string msg, Throwable nextInChain, string file = __FILE__, size_t line = __LINE__)
     {
-        super(msg, file, line, next);
+        super(msg, file, line, nextInChain);
     }
 }
 
@@ -1862,7 +1906,7 @@ unittest
         auto e = new Exception("msg");
         assert(e.file == __FILE__);
         assert(e.line == __LINE__ - 2);
-        assert(e.next is null);
+        assert(e.nextInChain is null);
         assert(e.msg == "msg");
     }
 
@@ -1870,7 +1914,7 @@ unittest
         auto e = new Exception("msg", new Exception("It's an Exception!"), "hello", 42);
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
     }
 
@@ -1878,7 +1922,7 @@ unittest
         auto e = new Exception("msg", "hello", 42, new Exception("It's an Exception!"));
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
     }
 
@@ -1901,20 +1945,20 @@ unittest
 class Error : Throwable
 {
     /**
-     * Creates a new instance of Error. The next parameter is used
+     * Creates a new instance of Error. The nextInChain parameter is used
      * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
      * Error; the $(D throw) statement should be used for that purpose.
      */
-    @nogc @safe pure nothrow this(string msg, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, Throwable nextInChain = null)
     {
-        super(msg, next);
+        super(msg, nextInChain);
         bypassedException = null;
     }
 
-    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable nextInChain = null)
     {
-        super(msg, file, line, next);
+        super(msg, file, line, nextInChain);
         bypassedException = null;
     }
 
@@ -1929,7 +1973,7 @@ unittest
         auto e = new Error("msg");
         assert(e.file is null);
         assert(e.line == 0);
-        assert(e.next is null);
+        assert(e.nextInChain is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -1938,7 +1982,7 @@ unittest
         auto e = new Error("msg", new Exception("It's an Exception!"));
         assert(e.file is null);
         assert(e.line == 0);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -1947,7 +1991,7 @@ unittest
         auto e = new Error("msg", "hello", 42, new Exception("It's an Exception!"));
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
