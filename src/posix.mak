@@ -421,9 +421,9 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 ######## Begin build targets
 
-all: dmd
+all: $G/dmd
 
-auto-tester-build: dmd checkwhitespace checkcxxheaders $G/dmd_frontend
+auto-tester-build: $G/dmd checkwhitespace checkcxxheaders $G/dmd_frontend
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -450,9 +450,6 @@ $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
-
-dmd: $G/dmd $G/dmd.conf
-	cp $< .
 
 ifdef ENABLE_LTO
 $G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
@@ -485,7 +482,6 @@ build-examples: $(EXAMPLES)
 
 clean:
 	rm -R $(GENERATED)
-	rm -f dmd
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
@@ -575,7 +571,7 @@ $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 install: all
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
-	cp dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
+	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
 	cp ../ini/$(OS)/$(bin_dir)/dmd.conf $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd.conf
 	cp $D/boostlicense.txt $(INSTALL_DIR)/dmd-boostlicense.txt
 
