@@ -7,6 +7,7 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod1.c, backend/cod1.c)
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod3.c
  */
 
 #if !SPP
@@ -98,17 +99,23 @@ static void cdisscaledindex(CodeBuilder& cdb,elem *e,regm_t *pidxregs,regm_t kee
  *      0       can't do it
  */
 
-static struct Ssindex
+enum
+{
+    SSFLnobp       = 1,       /// can't have EBP in relconst
+    SSFLnobase1    = 2,       /// no base register for first LEA
+    SSFLnobase     = 4,       /// no base register
+    SSFLlea        = 8,       /// can do it in one LEA
+};
+
+struct Ssindex
 {
     targ_uns product;
     char ss1;
     char ss2;
-    char ssflags;
-        #define SSFLnobp        1       // can't have EBP in relconst
-        #define SSFLnobase1     2       // no base register for first LEA
-        #define SSFLnobase      4       // no base register
-        #define SSFLlea         8       // can do it in one LEA
-} ssindex_array[] =
+    char ssflags;       /// SSFLxxxx
+};
+
+static const Ssindex ssindex_array[] =
 {       {0, 0,0},               // [0] is a place holder
 
         {3, 1,0,SSFLnobp | SSFLlea},
@@ -137,11 +144,10 @@ static struct Ssindex
 };
 
 int ssindex(int op,targ_uns product)
-{   int i;
-
+{
     if (op == OPshl)
         product = 1 << product;
-    for (i = 1; i < arraysize(ssindex_array); i++)
+    for (size_t i = 1; i < arraysize(ssindex_array); i++)
     {
         if (ssindex_array[i].product == product)
             return i;
@@ -1315,7 +1321,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
             }
 #endif
         }
-        if (s->ty() & mTYcs && (bool) LARGECODE)
+        if (s->ty() & mTYcs && LARGECODE)
             goto Lfardata;
         goto L3;
     case FLdata:
@@ -1829,18 +1835,23 @@ void fixresult(CodeBuilder& cdb,elem *e,regm_t retregs,regm_t *pretregs)
 /*******************************
  * Extra information about each CLIB runtime library function.
  */
+
+enum
+{
+    INF32         = 1,      /// if 32 bit only
+    INFfloat      = 2,      /// if this is floating point
+    INFwkdone     = 4,      /// if weak extern is already done
+    INF64         = 8,      /// if 64 bit only
+    INFpushebx    = 0x10,   /// push EBX before load_localgot()
+    INFpusheabcdx = 0x20,   /// pass EAX/EBX/ECX/EDX on stack, callee does ret 16
+};
+
 struct ClibInfo
 {
     regm_t retregs16;   /* registers that 16 bit result is returned in  */
     regm_t retregs32;   /* registers that 32 bit result is returned in  */
     char pop;           /* # of bytes popped off of stack upon return   */
-    char flags;
-        #define INF32           1       // if 32 bit only
-        #define INFfloat        2       // if this is floating point
-        #define INFwkdone       4       // if weak extern is already done
-        #define INF64           8       // if 64 bit only
-        #define INFpushebx      0x10    // push EBX before load_localgot()
-        #define INFpusheabcdx   0x20    // pass EAX/EBX/ECX/EDX on stack, callee does ret 16
+    char flags;         /// INFxxx
     char push87;                        // # of pushes onto the 8087 stack
     char pop87;                         // # of pops off of the 8087 stack
 };

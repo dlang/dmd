@@ -58,12 +58,15 @@ static void doswitch(CodeBuilder& cdb, block *b);
  * bits 2..0:   size of instruction (excluding optional bytes)
  */
 
-#define M 0x80
-#define T 0x40
-#define E 0x20
-#define A 0x10
-#define R 0x08
-#define W 0
+enum
+{
+    M = 0x80,
+    T = 0x40,
+    E = 0x20,
+    A = 0x10,
+    R = 0x08,
+    W = 0,
+};
 
 static unsigned char inssize[256] =
 {       M|2,M|2,M|2,M|2,        T|E|2,T|3,1,1,          /* 00 */
@@ -1913,8 +1916,11 @@ int jmpopcode(elem *e)
 #endif
     };
 
-#define XP      (JP  << 8)
-#define XNP     (JNP << 8)
+    enum
+    {
+        XP     = (JP  << 8),
+        XNP    = (JNP << 8),
+    };
     static const unsigned jfops[1][26] =
     /*   le     gt lt     ge  eqeq    ne     unord lg  leg  ule ul uge  */
     {
@@ -1969,9 +1975,9 @@ int jmpopcode(elem *e)
         {   i = 1;
 
 #if 1
-#define NOSAHF (I64 || config.fpxmmregs)
             if (rel_exception(op) || config.flags4 & CFG4fastfloat)
             {
+                const bool NOSAHF = (I64 || config.fpxmmregs);
                 if (zero)
                 {
                     if (NOSAHF)
@@ -2405,12 +2411,10 @@ void load_localgot(CodeBuilder& cdb)
  *      # of bytes stored
  */
 
-#define ONS_OHD 4               // max # of extra bytes added by obj_namestring()
 
 STATIC int obj_namestring(char *p,const char *name)
-{   unsigned len;
-
-    len = strlen(name);
+{
+    size_t len = strlen(name);
     if (len > 255)
     {
         short *ps = (short *)p;
@@ -2418,6 +2422,7 @@ STATIC int obj_namestring(char *p,const char *name)
         p[1] = 0;
         ps[1] = len;
         memcpy(p + 4,name,len);
+        const int ONS_OHD = 4;           // max # of extra bytes added by obj_namestring()
         len += ONS_OHD;
     }
     else
@@ -4216,12 +4221,10 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
     if ((i & 0xFFFF) != 0xFFFF)                 // if virtual call
     {
 
-#define FARTHIS (tysize(thisty) > REGSIZE)
-#define FARVPTR FARTHIS
+        const bool FARTHIS = (tysize(thisty) > REGSIZE);
+        const bool FARVPTR = FARTHIS;
 
-#if TARGET_SEGMENTED
         assert(thisty != TYvptr);               // can't handle this case
-#endif
 
         if (!I16)
         {
