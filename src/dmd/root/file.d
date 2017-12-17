@@ -194,7 +194,7 @@ nothrow:
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
             HANDLE h = name.extendedPathThen!
-                (p => CreateFileW(&p[0],
+                (p => CreateFileW(p,
                                   GENERIC_READ,
                                   FILE_SHARE_READ,
                                   null,
@@ -271,7 +271,7 @@ nothrow:
             // work around Windows file path length limitation
             // (see documentation for extendedPathThen).
             HANDLE h = name.extendedPathThen!
-                (p => CreateFileW(&p[0],
+                (p => CreateFileW(p,
                                   GENERIC_WRITE,
                                   0,
                                   null,
