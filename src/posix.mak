@@ -515,7 +515,7 @@ endef
 export DEFAULT_DMD_CONF
 
 $G/dmd.conf: $(SRC_MAKE)
-	[ -f $@ ] || echo "$$DEFAULT_DMD_CONF" > $@
+	echo "$$DEFAULT_DMD_CONF" > $@
 
 ######## REMOVE ME after the ddmd -> dmd transition
 dmd.conf:
