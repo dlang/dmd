@@ -381,8 +381,8 @@ struct BitRange
      * Construct a BitRange.
      *
      * Params:
-     *   bitarr - The array of bits to iterate over
-     *   numBits - The total number of valid bits in the given bit array
+     *   bitarr = The array of bits to iterate over
+     *   numBits = The total number of valid bits in the given bit array
      */
     this(const(size_t)* bitarr, size_t numBits) @system
     {
