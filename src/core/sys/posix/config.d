@@ -29,9 +29,15 @@ version (CRuntime_Glibc)
     // man 7 feature_test_macros
     // http://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
     enum _GNU_SOURCE         = false;
-    enum _BSD_SOURCE         = false;
-    enum _SVID_SOURCE        = false;
+    enum _DEFAULT_SOURCE     = false;
     enum _ATFILE_SOURCE      = false;
+
+    // _BSD_SOURCE and _SVID_SOURCE are deprecated aliases for _DEFAULT_SOURCE.
+    deprecated("use _DEFAULT_SOURCE")
+    {
+        enum _BSD_SOURCE = false;
+        enum _SVID_SOURCE = false;
+    }
 
     enum _FILE_OFFSET_BITS   = 64;
     // <sys/cdefs.h>
@@ -49,9 +55,7 @@ version (CRuntime_Glibc)
     enum __USE_XOPEN2K8      = _XOPEN_SOURCE >= 700;
     enum __USE_XOPEN2K8XSI   = _XOPEN_SOURCE >= 700;
 
-    enum __USE_MISC          = _BSD_SOURCE || _SVID_SOURCE;
-    enum __USE_BSD           = _BSD_SOURCE;
-    enum __USE_SVID          = _SVID_SOURCE;
+    enum __USE_MISC          = _DEFAULT_SOURCE;
     enum __USE_ATFILE        = _ATFILE_SOURCE;
     enum __USE_GNU           = _GNU_SOURCE;
     enum __USE_REENTRANT     = _REENTRANT;

@@ -401,6 +401,7 @@ L_integer:
 
     State startDelimiterString(S)(S text, ref size_t pos, ref int nesting)
     {
+        import std.uni : isWhite;
         nesting = 1;
 
         auto startpos = pos;
@@ -414,7 +415,7 @@ L_integer:
             s = State.kStringDelimitedNestedBrace;
         else if(ch == '<')
             s = State.kStringDelimitedNestedAngle;
-        else if(ch == 0 || std.uni.isWhite(ch)) // bad delimiter, fallback to wysiwyg string
+        else if(ch == 0 || isWhite(ch)) // bad delimiter, fallback to wysiwyg string
             s = State.kStringWysiwyg;
         else
         {

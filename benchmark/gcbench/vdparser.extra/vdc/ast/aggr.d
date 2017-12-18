@@ -312,7 +312,7 @@ class Aggregate : Type
         return null;
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         if(Value v = getStaticProperty(prop))
             return v;
@@ -522,7 +522,7 @@ class InheritingAggregate : Aggregate
         return false;
     }
 
-    @disable override Value _interpretProperty(Context ctx, string prop)
+    override Value _interpretProperty(Context ctx, string prop)
     {
         foreach(bc; baseClasses)
             if(Value v = bc._interpretProperty(ctx, prop))
@@ -772,7 +772,7 @@ class BaseClass : Node
         writer("public ", getMember(0)); // protection diffent from C
     }
 
-    @disable Value _interpretProperty(Context ctx, string prop)
+    Value _interpretProperty(Context ctx, string prop)
     {
         if(auto clss = getClass())
             return clss._interpretProperty(ctx, prop);

@@ -378,15 +378,6 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         {
             auto handle = handleForAddr(data._slot);
 
-            if (firstDSO)
-            {
-                /// Assert that the first loaded DSO is druntime itself. Use a
-                /// local druntime symbol (rt_get_bss_start) to get the handle.
-                assert(handleForAddr(data._slot) == handleForAddr(&rt_get_bss_start));
-                _copyRelocSection = getCopyRelocSection();
-            }
-            checkModuleCollisions(info, pdso._moduleGroup.modules, _copyRelocSection);
-
             getDependencies(info, pdso._deps);
             pdso._handle = handle;
             setDSOForHandle(pdso, pdso._handle);
@@ -846,95 +837,6 @@ const(char)[] dsoName(const char* dlpi_name) nothrow @nogc
     // the main executable doesn't have a name in its dlpi_name field
     const char* p = dlpi_name[0] != 0 ? dlpi_name : progname;
     return p[0 .. strlen(p)];
-}
-
-extern(C)
-{
-    void* rt_get_bss_start() @nogc nothrow;
-    void* rt_get_end() @nogc nothrow;
-}
-
-/// get the BSS section of the executable to check for copy relocations
-const(void)[] getCopyRelocSection() nothrow @nogc
-{
-    auto bss_start = rt_get_bss_start();
-    auto bss_end = rt_get_end();
-    immutable bss_size = bss_end - bss_start;
-
-    /**
-       Check whether __bss_start/_end both lie within the executable DSO.same DSO.
-
-       When a C host program dynamically loads druntime, i.e. it isn't linked
-       against, __bss_start/_end might be defined in different DSOs, b/c the
-       linker creates those symbols only when they are used.
-       But as there are no copy relocations when dynamically loading a shared
-       library, we can simply return a null bss range in that case.
-    */
-    if (bss_size <= 0)
-        return null;
-
-    version (linux)
-        enum ElfW!"Addr" exeBaseAddr = 0;
-    else version (FreeBSD)
-        enum ElfW!"Addr" exeBaseAddr = 0;
-    else version (NetBSD)
-        enum ElfW!"Addr" exeBaseAddr = 0;
-
-    dl_phdr_info info = void;
-    findDSOInfoForAddr(bss_start, &info) || assert(0);
-    if (info.dlpi_addr != exeBaseAddr)
-        return null;
-    findDSOInfoForAddr(bss_end - 1, &info) || assert(0);
-    if (info.dlpi_addr != exeBaseAddr)
-        return null;
-
-    return bss_start[0 .. bss_size];
-}
-
-/**
- * Check for module collisions. A module in a shared library collides
- * with an existing module if it's ModuleInfo is interposed (search
- * symbol interposition) by another DSO.  Therefor two modules with the
- * same name do not collide if their DSOs are in separate symbol resolution
- * chains.
- */
-void checkModuleCollisions(in ref dl_phdr_info info, in immutable(ModuleInfo)*[] modules,
-                           in void[] copyRelocSection) nothrow @nogc
-in { assert(modules.length); }
-body
-{
-    immutable(ModuleInfo)* conflicting;
-
-    foreach (m; modules)
-    {
-        auto addr = cast(const(void*))m;
-        if (cast(size_t)(addr - copyRelocSection.ptr) < copyRelocSection.length)
-        {
-            // Module is in .bss of the exe because it was copy relocated
-        }
-        else if (!findSegmentForAddr(info, addr))
-        {
-            // Module is in another DSO
-            conflicting = m;
-            break;
-        }
-    }
-
-    if (conflicting !is null)
-    {
-        dl_phdr_info other=void;
-        findDSOInfoForAddr(conflicting, &other) || assert(0);
-
-        auto modname = conflicting.name;
-        auto loading = dsoName(info.dlpi_name);
-        auto existing = dsoName(other.dlpi_name);
-        fprintf(stderr, "Fatal Error while loading '%.*s':\n\tThe module '%.*s' is already defined in '%.*s'.\n",
-                cast(int)loading.length, loading.ptr,
-                cast(int)modname.length, modname.ptr,
-                cast(int)existing.length, existing.ptr);
-        import core.stdc.stdlib : _Exit;
-        _Exit(1);
-    }
 }
 
 /**************************

@@ -23,7 +23,7 @@ ifneq ($(BUILD),release)
     endif
 endif
 
-DMD=$(DMD_DIR)/generated/$(OS)/release/$(MODEL)/dmd
+DMD=$(DMD_DIR)/generated/$(OS)/$(BUILD)/$(MODEL)/dmd
 INSTALL_DIR=../install
 
 DOCDIR=doc
@@ -55,6 +55,14 @@ else
 	DOTLIB:=.a
 endif
 
+# build with shared library support
+# (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+
+LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
+
+MAKEFILE = $(firstword $(MAKEFILE_LIST))
+
 DDOCFLAGS=-conf= -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 # Set CFLAGS
@@ -76,6 +84,15 @@ ifeq ($(BUILD),debug)
 else
 	UDFLAGS += -O -release
 	DFLAGS:=$(UDFLAGS) -inline # unittests don't compile with -inline
+endif
+
+# Set PHOBOS_DFLAGS (for linking against Phobos)
+PHOBOS_PATH=../phobos
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+ROOT_DIR := $(shell pwd)
+PHOBOS_DFLAGS=-conf= $(MODEL_FLAG) -I$(ROOT_DIR)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL) $(PIC)
+ifeq (1,$(SHARED))
+PHOBOS_DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
 endif
 
 ROOT_OF_THEM_ALL = generated
@@ -106,20 +123,13 @@ SRCS:=$(subst \,/,$(SRCS))
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(ROOT)/errno_c.o $(ROOT)/bss_section.o $(ROOT)/threadasm.o
+OBJS= $(ROOT)/errno_c.o $(ROOT)/threadasm.o
 
 ifeq ($(OS),osx)
 ifeq ($(MODEL), 64)
 	OBJS+=$(ROOT)/osx_tls.o
 endif
 endif
-
-# build with shared library support
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-
-LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
-
-MAKEFILE = $(firstword $(MAKEFILE_LIST))
 
 # use timelimit to avoid deadlocks if available
 TIMELIMIT:=$(if $(shell which timelimit 2>/dev/null || true),timelimit -t 10 ,)
@@ -136,30 +146,32 @@ endif
 
 doc: $(DOCS)
 
-$(DOCDIR)/object.html : src/object.d
+$(DOCDIR)/object.html : src/object.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_%.html : src/core/%.d
+$(DOCDIR)/core_%.html : src/core/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d
+$(DOCDIR)/core_stdc_%.html : src/core/stdc/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_stdcpp_%.html : src/core/stdcpp/%.d
+$(DOCDIR)/core_stdcpp_%.html : src/core/stdcpp/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-$(DOCDIR)/core_sync_%.html : src/core/sync/%.d
+$(DOCDIR)/core_sync_%.html : src/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-changelog.html: changelog.dd
+changelog.html: changelog.dd $(DMD)
 	$(DMD) -Df$@ $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
 
-$(IMPDIR)/core/sync/%.di : src/core/sync/%.d
+$(IMPDIR)/core/sync/%.di : src/core/sync/%.d $(DMD)
 	@mkdir -p $(dir $@)
+	echo $(BUILD)
+	echo $(DMD)
 	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
@@ -178,6 +190,11 @@ $(IMPDIR)/%.di : src/%.di
 $(IMPDIR)/%.d : src/%.d
 	@mkdir -p $(dir $@)
 	cp $< $@
+
+######################## Build DMD if non-existent ##############################
+
+$(DMD):
+	make -C $(DMD_DIR)/src -f posix.mak BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL)
 
 ################### C/ASM Targets ############################
 
@@ -198,22 +215,23 @@ $(ROOT)/threadasm.o : src/core/threadasm.S
 $(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared -fPIC
 dll: $(DRUNTIMESOLIB)
 
-$(DRUNTIMESO): $(OBJS) $(SRCS)
+$(DRUNTIMESO): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(OBJS) $(LINKDL)
 
-$(DRUNTIMESOLIB): $(OBJS) $(SRCS)
+$(DRUNTIMESOLIB): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
 	$(DMD) -conf= -lib -of$(DRUNTIMESOLIB) $(DRUNTIMESOOBJ) $(OBJS)
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS)
+$(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
-	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo test/thread
+	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
+	    test/thread test/unittest
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
@@ -245,7 +263,7 @@ $(addprefix $(ROOT)/unittest/,$(DISABLED_TESTS)) :
 
 ifeq (,$(SHARED))
 
-$(ROOT)/unittest/test_runner: $(OBJS) $(SRCS) src/test_runner.d
+$(ROOT)/unittest/test_runner: $(OBJS) $(SRCS) src/test_runner.d $(DMD)
 	$(DMD) $(UDFLAGS) -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
 
 else
@@ -253,10 +271,10 @@ else
 UT_DRUNTIME:=$(ROOT)/unittest/libdruntime-ut$(DOTDLL)
 
 $(UT_DRUNTIME): UDFLAGS+=-version=Shared -fPIC
-$(UT_DRUNTIME): $(OBJS) $(SRCS)
+$(UT_DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) $(UDFLAGS) -shared -unittest -of$@ $(SRCS) $(OBJS) $(LINKDL) -debuglib= -defaultlib=
 
-$(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d
+$(ROOT)/unittest/test_runner: $(UT_DRUNTIME) src/test_runner.d $(DMD)
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib=
 
 endif
@@ -276,10 +294,21 @@ $(ROOT)/unittest/% : $(ROOT)/unittest/test_runner
 $(addsuffix /.run,$(filter-out test/shared,$(ADDITIONAL_TESTS))): $(DRUNTIME)
 test/shared/.run: $(DRUNTIMESO)
 
-test/%/.run: test/%/Makefile
+test/%/.run: test/%/Makefile $(DMD)
 	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) BUILD=$(BUILD) \
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
 		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC)
+
+#################### benchmark suite ##########################
+
+$(ROOT)/benchmark: benchmark/runbench.d target $(DMD)
+	$(DMD) $(PHOBOS_DFLAGS) -de $< -of$@
+
+benchmark: $(ROOT)/benchmark
+	$<
+
+benchmark-compile-only: $(ROOT)/benchmark $(DMD)
+	DMD=$(DMD) $< --repeat=0 --dflags="$(PHOBOS_DFLAGS) -de"
 
 #################### test for undesired white spaces ##########################
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
@@ -329,6 +358,6 @@ style: checkwhitespace
 auto-tester-build: target checkwhitespace
 
 .PHONY : auto-tester-test
-auto-tester-test: unittest
+auto-tester-test: unittest benchmark-compile-only
 
 .DELETE_ON_ERROR: # GNU Make directive (delete output files on error)

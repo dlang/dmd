@@ -29,14 +29,13 @@ CFLAGS=/Z7 /I"$(VCDIR)"\INCLUDE /I"$(SDKDIR)"\Include
 
 DRUNTIME_BASE=druntime$(MODEL)
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
-GCSTUB=lib\gcstub$(MODEL).obj
 
 # do not preselect a C runtime (extracted from the line above to make the auto tester happy)
 CFLAGS=$(CFLAGS) /Zl
 
 DOCFMT=
 
-target : import copydir copy $(DRUNTIME) $(GCSTUB)
+target : import copydir copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -287,6 +286,9 @@ $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\parseoptions.d : src\core\internal\parseoptions.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\spinlock.d : src\core\internal\spinlock.d
@@ -1272,12 +1274,6 @@ msvc_$(MODEL).obj : src\rt\msvc.c win64.mak
 msvc_math_$(MODEL).obj : src\rt\msvc_math.c win64.mak
 	$(CC) -c -Fo$@ $(CFLAGS) src\rt\msvc_math.c
 
-################### gcstub generation #########################
-
-$(GCSTUB) : src\gcstub\gc.d win64.mak
-	$(DMD) -c -of$(GCSTUB) src\gcstub\gc.d $(DFLAGS)
-
-
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win64.mak
@@ -1313,7 +1309,7 @@ install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
 
 auto-tester-build: target

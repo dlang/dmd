@@ -60,7 +60,7 @@ class Barrier
     {
         assert( limit > 0 );
     }
-    body
+    do
     {
         m_lock  = new Mutex;
         m_cond  = new Condition( m_lock );

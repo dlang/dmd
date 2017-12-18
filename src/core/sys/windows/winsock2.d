@@ -7,6 +7,8 @@
 module core.sys.windows.winsock2;
 version (Windows):
 
+pragma(lib, "ws2_32");
+
 extern(Windows):
 nothrow:
 
@@ -482,54 +484,11 @@ struct in_addr6
 
 @safe pure @nogc
 {
-
-version(BigEndian)
-{
-    ushort htons(ushort x)
-    {
-        return x;
-    }
-
-
-    uint htonl(uint x)
-    {
-        return x;
-    }
+    ushort htons(ushort x);
+    uint htonl(uint x);
+    ushort ntohs(ushort x);
+    uint ntohl(uint x);
 }
-else version(LittleEndian)
-{
-    private import core.bitop;
-
-
-    ushort htons(ushort x)
-    {
-        return cast(ushort)((x >> 8) | (x << 8));
-    }
-
-
-    uint htonl(uint x)
-    {
-        return bswap(x);
-    }
-}
-else
-{
-    static assert(0);
-}
-
-
-ushort ntohs(ushort x)
-{
-    return htons(x);
-}
-
-
-uint ntohl(uint x)
-{
-    return htonl(x);
-}
-
-} // @safe pure @nogc
 
 
 enum: int
@@ -681,13 +640,14 @@ struct sockaddr
 alias sockaddr SOCKADDR;
 alias SOCKADDR* PSOCKADDR, LPSOCKADDR;
 
-struct SOCKADDR_STORAGE
+struct sockaddr_storage
 {
     short     ss_family;
     char[6]   __ss_pad1;
     long      __ss_align;
     char[112] __ss_pad2;
 }
+alias sockaddr_storage SOCKADDR_STORAGE;
 alias SOCKADDR_STORAGE* PSOCKADDR_STORAGE;
 
 struct sockaddr_in

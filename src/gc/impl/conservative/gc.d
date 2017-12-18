@@ -744,7 +744,7 @@ class ConservativeGC : GC
     {
         assert(minsize <= maxsize);
     }
-    body
+    do
     {
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         debug (SENTINEL)
@@ -815,7 +815,7 @@ class ConservativeGC : GC
     }
 
 
-    void free(void *p) nothrow
+    void free(void *p) nothrow @nogc
     {
         if (!p || _inFinalizer)
         {
@@ -829,7 +829,7 @@ class ConservativeGC : GC
     //
     //
     //
-    private void freeNoSync(void *p) nothrow
+    private void freeNoSync(void *p) nothrow @nogc
     {
         debug(PRINTF) printf("Freeing %p\n", cast(size_t) p);
         assert (p);
@@ -889,7 +889,7 @@ class ConservativeGC : GC
     }
 
 
-    void* addrOf(void *p) nothrow
+    void* addrOf(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -903,7 +903,7 @@ class ConservativeGC : GC
     //
     //
     //
-    void* addrOfNoSync(void *p) nothrow
+    void* addrOfNoSync(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -917,7 +917,7 @@ class ConservativeGC : GC
     }
 
 
-    size_t sizeOf(void *p) nothrow
+    size_t sizeOf(void *p) nothrow @nogc
     {
         if (!p)
         {
@@ -931,7 +931,7 @@ class ConservativeGC : GC
     //
     //
     //
-    private size_t sizeOfNoSync(void *p) nothrow
+    private size_t sizeOfNoSync(void *p) nothrow @nogc
     {
         assert (p);
 
@@ -1521,7 +1521,7 @@ struct Gcx
         ConservativeGC._inFinalizer = false;
     }
 
-    Pool* findPool(void* p) pure nothrow
+    Pool* findPool(void* p) pure nothrow @nogc
     {
         return pooltable.findPool(p);
     }
@@ -1530,7 +1530,7 @@ struct Gcx
      * Find base address of block containing pointer p.
      * Returns null if not a gc'd pointer
      */
-    void* findBase(void *p) nothrow
+    void* findBase(void *p) nothrow @nogc
     {
         Pool *pool;
 
@@ -1569,7 +1569,7 @@ struct Gcx
      * Find size of pointer p.
      * Returns 0 if not a gc'd pointer
      */
-    size_t findSize(void *p) nothrow
+    size_t findSize(void *p) nothrow @nogc
     {
         Pool* pool = findPool(p);
         if (pool)
@@ -1917,14 +1917,14 @@ struct Gcx
 
         ScanRange pop()
         in { assert(!empty); }
-        body
+        do
         {
             return _p[--_length];
         }
 
         ref inout(ScanRange) opIndex(size_t idx) inout
         in { assert(idx < _length); }
-        body
+        do
         {
             return _p[idx];
         }
@@ -2521,19 +2521,19 @@ struct Gcx
 
             log.p = p;
             log.size = size;
-            log.line = GC.line;
-            log.file = GC.file;
+            log.line = ConservativeGC.line;
+            log.file = ConservativeGC.file;
             log.parent = null;
 
-            GC.line = 0;
-            GC.file = null;
+            ConservativeGC.line = 0;
+            ConservativeGC.file = null;
 
             current.push(log);
             //debug(PRINTF) printf("-log_malloc()\n");
         }
 
 
-        void log_free(void *p) nothrow
+        void log_free(void *p) nothrow @nogc
         {
             //debug(PRINTF) printf("+log_free(%p)\n", p);
             auto i = current.find(p);
@@ -2611,7 +2611,7 @@ struct Gcx
     {
         void log_init() nothrow { }
         void log_malloc(void *p, size_t size) nothrow { }
-        void log_free(void *p) nothrow { }
+        void log_free(void *p) nothrow @nogc { }
         void log_collect() nothrow { }
         void log_parent(void *p, void *parent) nothrow { }
     }
@@ -2778,7 +2778,7 @@ struct Pool
     /**
      *
      */
-    void clrBits(size_t biti, uint mask) nothrow
+    void clrBits(size_t biti, uint mask) nothrow @nogc
     {
         immutable dataIndex =  biti >> GCBits.BITS_SHIFT;
         immutable bitOffset = biti & GCBits.BITS_MASK;
@@ -2882,13 +2882,13 @@ struct Pool
     /**
      * Given a pointer p in the p, return the pagenum.
      */
-    size_t pagenumOf(void *p) const nothrow
+    size_t pagenumOf(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
         assert(p < topAddr);
     }
-    body
+    do
     {
         return cast(size_t)(p - baseAddr) / PAGESIZE;
     }
@@ -2898,7 +2898,7 @@ struct Pool
         return npages == freepages;
     }
 
-    size_t slGetSize(void* p) nothrow
+    size_t slGetSize(void* p) nothrow @nogc
     {
         if (isLargeObject)
             return (cast(LargeObjectPool*)&this).getSize(p);
@@ -3014,7 +3014,7 @@ struct LargeObjectPool
     /**
      * Free npages pages starting with pagenum.
      */
-    void freePages(size_t pagenum, size_t npages) nothrow
+    void freePages(size_t pagenum, size_t npages) nothrow @nogc
     {
         //memset(&pagetable[pagenum], B_FREE, npages);
         if(pagenum < searchStart)
@@ -3035,13 +3035,13 @@ struct LargeObjectPool
     /**
      * Get size of pointer p in pool.
      */
-    size_t getSize(void *p) const nothrow
+    size_t getSize(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
         assert(p < topAddr);
     }
-    body
+    do
     {
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
@@ -3120,13 +3120,13 @@ struct SmallObjectPool
     /**
     * Get size of pointer p in pool.
     */
-    size_t getSize(void *p) const nothrow
+    size_t getSize(void *p) const nothrow @nogc
     in
     {
         assert(p >= baseAddr);
         assert(p < topAddr);
     }
-    body
+    do
     {
         size_t pagenum = pagenumOf(p);
         Bins bin = cast(Bins)pagetable[pagenum];
@@ -3316,7 +3316,7 @@ debug (SENTINEL)
     }
 
 
-    void sentinel_Invariant(const void *p) nothrow
+    void sentinel_Invariant(const void *p) nothrow @nogc
     {
         debug
         {
@@ -3328,13 +3328,13 @@ debug (SENTINEL)
     }
 
 
-    void *sentinel_add(void *p) nothrow
+    void *sentinel_add(void *p) nothrow @nogc
     {
         return p + 2 * size_t.sizeof;
     }
 
 
-    void *sentinel_sub(void *p) nothrow
+    void *sentinel_sub(void *p) nothrow @nogc
     {
         return p - 2 * size_t.sizeof;
     }
@@ -3349,18 +3349,18 @@ else
     }
 
 
-    void sentinel_Invariant(const void *p) nothrow
+    void sentinel_Invariant(const void *p) nothrow @nogc
     {
     }
 
 
-    void *sentinel_add(void *p) nothrow
+    void *sentinel_add(void *p) nothrow @nogc
     {
         return p;
     }
 
 
-    void *sentinel_sub(void *p) nothrow
+    void *sentinel_sub(void *p) nothrow @nogc
     {
         return p;
     }

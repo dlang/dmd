@@ -20,11 +20,10 @@ CFLAGS=
 
 DRUNTIME_BASE=druntime
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
-GCSTUB=lib\gcstub.obj
 
 DOCFMT=
 
-target : import copydir copy $(DRUNTIME) $(GCSTUB)
+target : import copydir copy $(DRUNTIME)
 
 $(mak\COPY)
 $(mak\DOCS)
@@ -276,6 +275,9 @@ $(IMPDIR)\core\internal\convert.d : src\core\internal\convert.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\hash.d : src\core\internal\hash.d
+	copy $** $@
+
+$(IMPDIR)\core\internal\parseoptions.d : src\core\internal\parseoptions.d
 	copy $** $@
 
 $(IMPDIR)\core\internal\spinlock.d : src\core\internal\spinlock.d
@@ -1300,11 +1302,6 @@ errno_c_$(MODEL).obj : src\core\stdc\errno.c
 rebuild_minit_obj : src\rt\minit.asm
 	$(CC) -c $(CFLAGS) src\rt\minit.asm
 
-################### gcstub generation #########################
-
-$(GCSTUB) : src\gcstub\gc.d win$(MODEL).mak
-	$(DMD) -c -of$(GCSTUB) src\gcstub\gc.d $(DFLAGS)
-
 ################### Library generation #########################
 
 $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
@@ -1326,7 +1323,7 @@ install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	del $(DRUNTIME) $(OBJS_TO_DELETE)
 	rmdir /S /Q $(DOCDIR) $(IMPDIR)
 
 auto-tester-build: target

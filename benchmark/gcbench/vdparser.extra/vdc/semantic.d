@@ -540,8 +540,10 @@ class Project : Node
         src.parsed = mod;
         src.parseErrors = errors;
 
-        if(std.file.exists(fname)) // could be pseudo name
-            src.lastModified = std.file.timeLastModified(fname);
+        import std.file : exists, timeLastModified;
+
+        if(exists(fname)) // could be pseudo name
+            src.lastModified = timeLastModified(fname);
 
         if(src.analyzed)
         {
@@ -616,9 +618,10 @@ class Project : Node
 
     bool addFile(string fname)
     {
+        import std.file : exists, timeLastModified;
         auto src = new SourceModule;
-        if(std.file.exists(fname)) // could be pseudo name
-            src.lastModified = std.file.timeLastModified(fname);
+        if(exists(fname)) // could be pseudo name
+            src.lastModified = timeLastModified(fname);
 
         src.txt = readUtf8(fname);
         mSourcesByFileName[fname] = src;
@@ -665,7 +668,8 @@ class Project : Node
 
     string searchImportFile(string dfile, Node importFrom)
     {
-        if(std.file.exists(dfile))
+        import std.file : exists;
+        if(exists(dfile))
             return dfile;
 
         Options opt = options;
@@ -674,7 +678,7 @@ class Project : Node
                 opt = mod.getOptions();
 
         foreach(dir; opt.importDirs)
-            if(std.file.exists(dir ~ dfile))
+            if(exists(dir ~ dfile))
                 return dir ~ dfile;
         return null;
     }
@@ -784,7 +788,8 @@ class Project : Node
             writer.nl;
         }
 
-        std.file.write(fname, src);
+        import std.file : write;
+        write(fname, src);
     }
 
     override void toD(CodeWriter writer)

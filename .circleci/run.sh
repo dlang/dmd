@@ -92,6 +92,10 @@ setup_repos() {
     done
 }
 
+style() {
+    make -f posix.mak style
+}
+
 coverage() {
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
@@ -112,6 +116,7 @@ codecov()
 case $1 in
     install-deps) install_deps ;;
     setup-repos) setup_repos ;;
+    style) style ;;
     coverage) coverage ;;
     codecov) codecov ;;
 esac

@@ -58,21 +58,21 @@ nothrow:
 
     @property ref inout(T) front() inout
     in { assert(!empty); }
-    body
+    do
     {
         return _ptr[0];
     }
 
     @property ref inout(T) back() inout
     in { assert(!empty); }
-    body
+    do
     {
         return _ptr[_length - 1];
     }
 
     ref inout(T) opIndex(size_t idx) inout
     in { assert(idx < length); }
-    body
+    do
     {
         return _ptr[idx];
     }
@@ -84,7 +84,7 @@ nothrow:
 
     inout(T)[] opSlice(size_t a, size_t b) inout
     in { assert(a < b && b <= length); }
-    body
+    do
     {
         return _ptr[a .. b];
     }
@@ -113,7 +113,7 @@ nothrow:
 
     void remove(size_t idx)
     in { assert(idx < length); }
-    body
+    do
     {
         foreach (i; idx .. length - 1)
             _ptr[i] = _ptr[i+1];

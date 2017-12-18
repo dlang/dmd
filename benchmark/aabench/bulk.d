@@ -89,7 +89,7 @@ void main(string[] args)
         writefln("Key step %27d | %7d | %7d | %7d", 1, -1, cast(int)trot, -cast(int)trot);
         writefln("%15-s | %8s | %7s | %7s | %7s | %7s",
                 "Type", "num", "step", "revstep", "trot", "revtrot");
-    };
+    }
 
     ValueTuple valTuple;
     foreach(v; valTuple)

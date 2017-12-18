@@ -16,6 +16,8 @@ private
     extern (C) void rt_finalize(void *data, bool det=true);
 }
 
+public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
+
 // NOTE: For some reason, this declaration method doesn't work
 //       in this particular file (and this file only).  It must
 //       be a DMD thing.
@@ -512,12 +514,10 @@ class TypeInfo_StaticArray : TypeInfo
 {
     override string toString() const
     {
-        import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
+        import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
-        return value.toString() ~ "[" ~ sizeToTempString(len, tmpBuff, 10) ~ "]";
+        return value.toString() ~ "[" ~ unsignedToTempString(len, tmpBuff, 10) ~ "]";
     }
 
     override bool opEquals(Object o)
@@ -1463,7 +1463,7 @@ const:
         assert(flag >= MItlsctor && flag <= MIname);
         assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
     }
-    body
+    do
     {
         import core.stdc.string : strlen;
 
@@ -1706,6 +1706,18 @@ class Throwable : Object
      */
     Throwable   next;
 
+    private uint _refcount;     // 0 : allocated by GC
+                                // 1 : allocated by _d_newThrowable()
+                                // 2.. : reference count + 1
+
+    /**
+     * Returns:
+     *  mutable reference to the reference count, which is
+     *  0 - allocated by the GC, 1 - allocated by _d_newThrowable(),
+     *  and >=2 which is the reference count + 1
+     */
+    @system @nogc final pure nothrow ref uint refcount() return scope { return _refcount; }
+
     @nogc @safe pure nothrow this(string msg, Throwable next = null)
     {
         this.msg = msg;
@@ -1719,6 +1731,12 @@ class Throwable : Object
         this.file = file;
         this.line = line;
         //this.info = _d_traceContext();
+    }
+
+    @trusted nothrow ~this()
+    {
+        if (next && next._refcount)
+            _d_delThrowable(next);
     }
 
     /**
@@ -1741,15 +1759,13 @@ class Throwable : Object
      */
     void toString(scope void delegate(in char[]) sink) const
     {
-        import core.internal.traits : externDFunc;
-        alias sizeToTempString = externDFunc!("core.internal.string.unsignedToTempString",
-                                              char[] function(ulong, return char[], uint) @safe pure nothrow @nogc);
+        import core.internal.string : unsignedToTempString;
 
         char[20] tmpBuff = void;
 
         sink(typeid(this).name);
         sink("@"); sink(file);
-        sink("("); sink(sizeToTempString(line, tmpBuff, 10)); sink(")");
+        sink("("); sink(unsignedToTempString(line, tmpBuff, 10)); sink(")");
 
         if (msg.length)
         {
@@ -1939,11 +1955,11 @@ extern (C)
     // int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     private struct AARange { void* impl; size_t idx; }
-    AARange _aaRange(void* aa) pure nothrow @nogc;
-    bool _aaRangeEmpty(AARange r) pure nothrow @nogc;
-    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc;
-    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc;
-    void _aaRangePopFront(ref AARange r) pure nothrow @nogc;
+    AARange _aaRange(void* aa) pure nothrow @nogc @safe;
+    bool _aaRangeEmpty(AARange r) pure nothrow @nogc @safe;
+    void* _aaRangeFrontKey(AARange r) pure nothrow @nogc @safe;
+    void* _aaRangeFrontValue(AARange r) pure nothrow @nogc @safe;
+    void _aaRangePopFront(ref AARange r) pure nothrow @nogc @safe;
 
     int _aaEqual(in TypeInfo tiRaw, in void* e1, in void* e2);
     hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
@@ -2039,7 +2055,18 @@ V[K] dup(T : V[K], K, V)(T* aa)
     return (*aa).dup;
 }
 
-auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc
+// this should never be made public.
+private AARange _aaToRange(T: V[K], K, V)(ref T aa) pure nothrow @nogc @safe
+{
+    // ensure we are dealing with a genuine AA.
+    static if (is(const(V[K]) == const(T)))
+        alias realAA = aa;
+    else
+        const(V[K]) realAA = aa;
+    return _aaRange(() @trusted { return cast(void*)realAA; } ());
+}
+
+auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -2048,13 +2075,17 @@ auto byKey(T : V[K], K, V)(T aa) pure nothrow @nogc
         AARange r;
 
     pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref front() { return *cast(substInout!K*)_aaRangeFrontKey(r); }
-        void popFront() { _aaRangePopFront(r); }
+        @property bool empty()  @safe { return _aaRangeEmpty(r); }
+        @property ref front()
+        {
+            auto p = (() @trusted => cast(substInout!K*) _aaRangeFrontKey(r)) ();
+            return *p;
+        }
+        void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(cast(void*)aa));
+    return Result(_aaToRange(aa));
 }
 
 auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2062,7 +2093,7 @@ auto byKey(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byKey();
 }
 
-auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc
+auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -2071,13 +2102,17 @@ auto byValue(T : V[K], K, V)(T aa) pure nothrow @nogc
         AARange r;
 
     pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property ref front() { return *cast(substInout!V*)_aaRangeFrontValue(r); }
-        void popFront() { _aaRangePopFront(r); }
+        @property bool empty() @safe { return _aaRangeEmpty(r); }
+        @property ref front()
+        {
+            auto p = (() @trusted => cast(substInout!V*) _aaRangeFrontValue(r)) ();
+            return *p;
+        }
+        void popFront() @safe { _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(cast(void*)aa));
+    return Result(_aaToRange(aa));
 }
 
 auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2085,7 +2120,7 @@ auto byValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
     return (*aa).byValue();
 }
 
-auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
+auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc @safe
 {
     import core.internal.traits : substInout;
 
@@ -2094,8 +2129,8 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
         AARange r;
 
     pure nothrow @nogc:
-        @property bool empty() { return _aaRangeEmpty(r); }
-        @property auto front() @trusted
+        @property bool empty() @safe { return _aaRangeEmpty(r); }
+        @property auto front()
         {
             static struct Pair
             {
@@ -2104,17 +2139,25 @@ auto byKeyValue(T : V[K], K, V)(T aa) pure nothrow @nogc
                 private void* keyp;
                 private void* valp;
 
-                @property ref key() inout { return *cast(substInout!K*)keyp; }
-                @property ref value() inout { return *cast(substInout!V*)valp; }
+                @property ref key() inout
+                {
+                    auto p = (() @trusted => cast(substInout!K*) keyp) ();
+                    return *p;
+                };
+                @property ref value() inout
+                {
+                    auto p = (() @trusted => cast(substInout!V*) valp) ();
+                    return *p;
+                };
             }
             return Pair(_aaRangeFrontKey(r),
                         _aaRangeFrontValue(r));
         }
-        void popFront() { _aaRangePopFront(r); }
+        void popFront() @safe { return _aaRangePopFront(r); }
         @property Result save() { return this; }
     }
 
-    return Result(_aaRange(cast(void*)aa));
+    return Result(_aaToRange(aa));
 }
 
 auto byKeyValue(T : V[K], K, V)(T* aa) pure nothrow @nogc
@@ -2184,6 +2227,34 @@ inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
 inout(V) get(K, V)(inout(V[K])* aa, K key, lazy inout(V) defaultValue)
 {
     return (*aa).get(key, defaultValue);
+}
+
+@safe unittest
+{
+    int[string] aa;
+    int a;
+    foreach (val; aa.byKeyValue)
+    {
+        ++aa[val.key];
+        a = val.value;
+    }
+}
+
+unittest
+{
+    static assert(!__traits(compiles,
+        () @safe {
+            struct BadValue
+            {
+                int x;
+                this(this) @safe { *(cast(ubyte*)(null) + 100000) = 5; } // not @safe
+                alias x this;
+            }
+
+            BadValue[int] aa;
+            () @safe { auto x = aa.byKey.front; } ();
+        }
+    ));
 }
 
 pure nothrow unittest
@@ -3720,6 +3791,170 @@ template _arrayOp(Args...)
 {
     import core.internal.arrayop;
     alias _arrayOp = arrayOp!Args;
+}
+
+/*
+ * Support for switch statements switching on strings.
+ * Params:
+ *      caseLabels = sorted array of strings generated by compiler. Note the
+                   strings are sorted by length first, and then lexicographically.
+ *      condition = string to look up in table
+ * Returns:
+ *      index of match in caseLabels, -1 if not found
+*/
+int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @safe @nogc
+{
+    // This closes recursion for other cases.
+    static if (caseLabels.length == 0)
+    {
+        return -1;
+    }
+    else static if (caseLabels.length == 1)
+    {
+        return __cmp(condition, caseLabels[0]) == 0 ? 0 : -1;
+    }
+    // To be adjusted after measurements
+    // Compile-time inlined binary search.
+    else static if (caseLabels.length < 7)
+    {
+        int r = void;
+        if (condition.length == caseLabels[$ / 2].length)
+        {
+            r = __cmp(condition, caseLabels[$ / 2]);
+            if (r == 0) return cast(int) caseLabels.length / 2;
+        }
+        else
+        {
+            // Equivalent to (but faster than) condition.length > caseLabels[$ / 2].length ? 1 : -1
+            r = ((condition.length > caseLabels[$ / 2].length) << 1) - 1;
+        }
+
+        if (r < 0)
+        {
+            // Search the left side
+            return __switch!(T, caseLabels[0 .. $ / 2])(condition);
+        }
+        else
+        {
+            // Search the right side
+            r = __switch!(T, caseLabels[$ / 2 + 1 .. $])(condition);
+            return r != -1 ? cast(int) (caseLabels.length / 2 + 1 + r) : -1;
+        }
+    }
+    else
+    {
+        // Need immutable array to be accessible in pure code, but case labels are
+        // currently coerced to the switch condition type (e.g. const(char)[]).
+        static immutable T[][caseLabels.length] cases = {
+            auto res = new immutable(T)[][](caseLabels.length);
+            foreach (i, s; caseLabels)
+                res[i] = s.idup;
+            return res;
+        }();
+
+        // Run-time binary search in a static array of labels.
+        return __switchSearch!T(cases[], condition);
+    }
+}
+
+// binary search in sorted string cases, also see `__switch`.
+private int __switchSearch(T)(/*in*/ const scope T[][] cases, /*in*/ const scope T[] condition) pure nothrow @safe @nogc
+{
+    size_t low = 0;
+    size_t high = cases.length;
+
+    do
+    {
+        auto mid = (low + high) / 2;
+        int r = void;
+        if (condition.length == cases[mid].length)
+        {
+            r = __cmp(condition, cases[mid]);
+            if (r == 0) return cast(int) mid;
+        }
+        else
+        {
+            // Generates better code than "expr ? 1 : -1" on dmd and gdc, same with ldc
+            r = ((condition.length > cases[mid].length) << 1) - 1;
+        }
+
+        if (r > 0) low = mid + 1;
+        else high = mid;
+    }
+    while (low < high);
+
+    // Not found
+    return -1;
+}
+
+unittest
+{
+    static void testSwitch(T)()
+    {
+        switch (cast(T[]) "c")
+        {
+             case "coo":
+             default:
+                 break;
+        }
+
+        static int bug5381(immutable(T)[] s)
+        {
+            switch(s)
+            {
+                case "unittest":        return 1;
+                case "D_Version2":      return 2;
+                case "nonenone":        return 3;
+                case "none":            return 4;
+                case "all":             return 5;
+                default:                return 6;
+            }
+        }
+
+        int rc = bug5381("unittest");
+        assert(rc == 1);
+
+        rc = bug5381("D_Version2");
+        assert(rc == 2);
+
+        rc = bug5381("nonenone");
+        assert(rc == 3);
+
+        rc = bug5381("none");
+        assert(rc == 4);
+
+        rc = bug5381("all");
+        assert(rc == 5);
+
+        rc = bug5381("nonerandom");
+        assert(rc == 6);
+
+        static int binarySearch(immutable(T)[] s)
+        {
+            switch(s)
+            {
+                static foreach (i; 0 .. 16)
+                case i.stringof: return i;
+                default: return -1;
+            }
+        }
+        static foreach (i; 0 .. 16)
+            assert(binarySearch(i.stringof) == i);
+        assert(binarySearch("") == -1);
+        assert(binarySearch("sth.") == -1);
+        assert(binarySearch(null) == -1);
+    }
+    testSwitch!char;
+    testSwitch!wchar;
+    testSwitch!dchar;
+}
+
+// Compiler lowers final switch default case to this (which is a runtime error)
+// Old implementation is in core/exception.d
+void __switch_error()(string file = __FILE__, size_t line = __LINE__)
+{
+    import core.exception : __switch_errorT;
+    __switch_errorT(file, line);
 }
 
 // Helper functions

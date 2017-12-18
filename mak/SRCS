@@ -20,6 +20,7 @@ SRCS=\
 	src\core\internal\arrayop.d \
 	src\core\internal\convert.d \
 	src\core\internal\hash.d \
+	src\core\internal\parseoptions.d \
 	src\core\internal\spinlock.d \
 	src\core\internal\string.d \
 	src\core\internal\traits.d \
@@ -301,6 +302,7 @@ SRCS=\
 	src\rt\deh_win64_posix.d \
 	src\rt\dmain2.d \
 	src\rt\dwarfeh.d \
+	src\rt\ehalloc.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
@@ -319,7 +321,6 @@ SRCS=\
 	src\rt\sections_solaris.d \
 	src\rt\sections_win32.d \
 	src\rt\sections_win64.d \
-	src\rt\switch_.d \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	src\rt\tracegc.d \

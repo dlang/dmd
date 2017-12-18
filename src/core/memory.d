@@ -125,10 +125,10 @@ private
     extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0, const TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_extend( void* p, size_t mx, size_t sz, const TypeInfo = null ) pure nothrow;
     extern (C) size_t   gc_reserve( size_t sz ) nothrow;
-    extern (C) void     gc_free( void* p ) pure nothrow;
+    extern (C) void     gc_free( void* p ) pure nothrow @nogc;
 
-    extern (C) void*   gc_addrOf( void* p ) pure nothrow;
-    extern (C) size_t  gc_sizeOf( void* p ) pure nothrow;
+    extern (C) void*   gc_addrOf( void* p ) pure nothrow @nogc;
+    extern (C) size_t  gc_sizeOf( void* p ) pure nothrow @nogc;
 
     struct BlkInfo_
     {
@@ -574,7 +574,7 @@ struct GC
      * Params:
      *  p = A pointer to the root of a valid memory block or to null.
      */
-    static void free( void* p ) pure nothrow
+    static void free( void* p ) pure nothrow @nogc
     {
         gc_free( p );
     }
@@ -595,14 +595,14 @@ struct GC
      * Returns:
      *  The base address of the memory block referenced by p or null on error.
      */
-    static inout(void)* addrOf( inout(void)* p ) nothrow /* FIXME pure */
+    static inout(void)* addrOf( inout(void)* p ) nothrow @nogc /* FIXME pure */
     {
         return cast(inout(void)*)gc_addrOf(cast(void*)p);
     }
 
 
     /// ditto
-    static void* addrOf(void* p) pure nothrow
+    static void* addrOf(void* p) pure nothrow @nogc
     {
         return gc_addrOf(p);
     }
@@ -621,14 +621,14 @@ struct GC
      * Returns:
      *  The size in bytes of the memory block referenced by p or zero on error.
      */
-    static size_t sizeOf( in void* p ) nothrow
+    static size_t sizeOf( in void* p ) nothrow @nogc /* FIXME pure */
     {
         return gc_sizeOf(cast(void*)p);
     }
 
 
     /// ditto
-    static size_t sizeOf(void* p) pure nothrow
+    static size_t sizeOf(void* p) pure nothrow @nogc
     {
         return gc_sizeOf( p );
     }
@@ -891,9 +891,9 @@ void pureFree(void* ptr) @system pure @nogc nothrow
 
     fakePureFree(y);
 
-    // subtract 2 because snn.lib adds 2 unconditionally before passing
-    //  the size to the Windows API
-    void* z = pureMalloc(size_t.max - 2); // won't affect `errno`
+    // Workaround bug in glibc 2.26
+    // See also: https://issues.dlang.org/show_bug.cgi?id=17956
+    void* z = pureMalloc(size_t.max & ~255); // won't affect `errno`
     assert(errno == fakePureErrno()); // errno shouldn't change
     assert(z is null);
 }

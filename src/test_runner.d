@@ -8,7 +8,7 @@ ModuleInfo* getModuleInfo(string name)
     assert(0, "module '"~name~"' not found");
 }
 
-bool tester()
+UnitTestResult tester()
 {
     return Runtime.args.length > 1 ? testModules() : testAll();
 }
@@ -16,9 +16,11 @@ bool tester()
 string mode;
 
 
-bool testModules()
+UnitTestResult testModules()
 {
-    bool ret = true;
+    UnitTestResult ret;
+    ret.summarize = false;
+    ret.runMain = false;
     foreach(name; Runtime.args[1..$])
     {
         immutable pkg = ".package";
@@ -33,9 +35,11 @@ bool testModules()
     return ret;
 }
 
-bool testAll()
+UnitTestResult testAll()
 {
-    bool ret = true;
+    UnitTestResult ret;
+    ret.summarize = false;
+    ret.runMain = false;
     foreach(moduleInfo; ModuleInfo)
     {
         doTest(moduleInfo, ret);
@@ -45,15 +49,17 @@ bool testAll()
 }
 
 
-void doTest(ModuleInfo* moduleInfo, ref bool ret)
+void doTest(ModuleInfo* moduleInfo, ref UnitTestResult ret)
 {
     if (auto fp = moduleInfo.unitTest)
     {
         auto name = moduleInfo.name;
+        ++ret.executed;
         try
         {
             immutable t0 = MonoTime.currTime;
             fp();
+            ++ret.passed;
             printf("%.3fs PASS %.*s %.*s\n",
                    (MonoTime.currTime - t0).total!"msecs" / 1000.0,
                    cast(uint)mode.length, mode.ptr,
@@ -66,7 +72,6 @@ void doTest(ModuleInfo* moduleInfo, ref bool ret)
                    cast(uint)mode.length, mode.ptr,
                    cast(uint)name.length, name.ptr,
                    cast(uint)msg.length, msg.ptr);
-            ret = false;
         }
     }
 }
@@ -79,7 +84,7 @@ shared static this()
         import core.runtime : dmd_coverSetMerge;
         dmd_coverSetMerge(true);
     }
-    Runtime.moduleUnitTester = &tester;
+    Runtime.extendedModuleUnitTester = &tester;
 
     debug mode = "debug";
     else  mode =  "release";

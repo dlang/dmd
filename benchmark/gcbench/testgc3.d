@@ -6,7 +6,6 @@
  * A 32-bit process can be sensitive to false pointers as hash values
  * in the AAs can reference arbitrary addresses.
  */
-import std.c.stdio;
 import std.conv;
 import std.exception;
 

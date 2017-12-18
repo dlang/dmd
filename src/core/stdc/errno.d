@@ -59,23 +59,15 @@ else version (FreeBSD)
         alias errno = __error;
     }
 }
-else version (linux)
+else version (CRuntime_Bionic)
 {
     extern (C)
     {
-        ref int __errno_location();
-        alias errno = __errno_location;
+        ref int __errno();
+        alias errno = __errno;
     }
 }
 else version (Darwin)
-{
-    extern (C)
-    {
-        ref int __error();
-        alias errno = __error;
-    }
-}
-else version (OSX)
 {
     extern (C)
     {

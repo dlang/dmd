@@ -1,0 +1,49 @@
+`core.runtime` now allows more fine-grained control over unittests.
+
+`core.runtime.extendedModuleUnitTester` property allows specifying information
+about the tests run, and how to handle the result. See documentation for
+`core.runtime.UnitTestResult` for details.
+
+`core.runtime.moduleUnitTester` (setting a unittest handler that returns bool)
+will continue to be supported for legacy projects.
+
+-----------------
+import core.runtime;
+import core.stdc.stdio: printf;
+
+UnitTestResult customTester()
+{
+    UnitTestResult ret;
+
+    // run only the tests in my package
+    immutable prefix = "myPackage.";
+    foreach (m; ModuleInfo)
+    {
+        if (m.unitTest !is null && m.name.length >= prefix.length &&
+              m.name[0 .. prefix.length] == prefix)
+        {
+            ++ret.executed; // count unit tests run
+            try
+            {
+                m.unitTest();
+                ++ret.passed; // count unit tests passed
+            }
+            catch(Throwable t)
+            {
+                auto msg = t.toString();
+                printf("%.*s\n", cast(uint)msg.length, msg.ptr);
+            }
+        }
+    }
+    // always summarize
+    ret.summarize = true;
+    // only unit testing, don't ever run main
+    ret.runMain = false;
+}
+
+version(unittest) static shared this()
+{
+    Runtime.extendedModuleUnitTester = &customTester;
+}
+-----------------
+

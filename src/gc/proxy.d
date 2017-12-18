@@ -142,17 +142,17 @@ extern (C)
         return instance.reserve( sz );
     }
 
-    void gc_free( void* p ) nothrow
+    void gc_free( void* p ) nothrow @nogc
     {
         return instance.free( p );
     }
 
-    void* gc_addrOf( void* p ) nothrow
+    void* gc_addrOf( void* p ) nothrow @nogc
     {
         return instance.addrOf( p );
     }
 
-    size_t gc_sizeOf( void* p ) nothrow
+    size_t gc_sizeOf( void* p ) nothrow @nogc
     {
         return instance.sizeOf( p );
     }

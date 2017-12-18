@@ -184,7 +184,7 @@ class Condition
     {
         assert( !val.isNegative );
     }
-    body
+    do
     {
         version( Windows )
         {

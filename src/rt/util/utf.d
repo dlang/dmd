@@ -215,7 +215,7 @@ dchar decode(in char[] s, ref size_t idx)
     {
         assert(isValidDchar(result));
     }
-    body
+    do
     {
         size_t len = s.length;
         dchar V;
@@ -356,7 +356,7 @@ dchar decode(in wchar[] s, ref size_t idx)
     {
         assert(isValidDchar(result));
     }
-    body
+    do
     {
         string msg;
         dchar V;
@@ -410,7 +410,7 @@ dchar decode(in dchar[] s, ref size_t idx)
     {
         assert(idx >= 0 && idx < s.length);
     }
-    body
+    do
     {
         size_t i = idx;
         dchar c = s[i];
@@ -437,7 +437,7 @@ void encode(ref char[] s, dchar c)
     {
         assert(isValidDchar(c));
     }
-    body
+    do
     {
         char[] r = s;
 
@@ -506,7 +506,7 @@ void encode(ref wchar[] s, dchar c)
     {
         assert(isValidDchar(c));
     }
-    body
+    do
     {
         wchar[] r = s;
 
@@ -532,7 +532,7 @@ void encode(ref dchar[] s, dchar c)
     {
         assert(isValidDchar(c));
     }
-    body
+    do
     {
         s ~= c;
     }
@@ -588,7 +588,7 @@ char[] toUTF8(char[] buf, dchar c)
     {
         assert(isValidDchar(c));
     }
-    body
+    do
     {
         if (c <= 0x7F)
         {
@@ -628,7 +628,7 @@ string toUTF8(string s)
     {
         validate(s);
     }
-    body
+    do
     {
         return s;
     }
@@ -697,7 +697,7 @@ wchar[] toUTF16(wchar[] buf, dchar c)
     {
         assert(isValidDchar(c));
     }
-    body
+    do
     {
         if (c <= 0xFFFF)
         {
@@ -777,7 +777,7 @@ wstring toUTF16(wstring s)
     {
         validate(s);
     }
-    body
+    do
     {
         return s;
     }
@@ -851,7 +851,7 @@ dstring toUTF32(dstring s)
     {
         validate(s);
     }
-    body
+    do
     {
         return s;
     }

@@ -117,9 +117,9 @@ binaries.
 Updating the change log
 -----------------------
 
-It's a good idea to not update the change log in a pull
-request. It tends to create merge conflicts between
-pull requests more often than not.
-
-That said, an occasional pull request to update the
-change log with recent changes (i.e. in a batch) is OK.
+If your pull request isn't a trivial bug fix, it
+should be accompanied by a changelog entry explaining
+the change in more details.
+Please see the [`/changelog`](https://github.com/dlang/druntime/tree/master/changelog)
+directory for detailed instructions.
+DAutoTest will allow you and your reviewers to preview the rendered changelog entry.

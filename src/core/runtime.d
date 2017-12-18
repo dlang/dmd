@@ -37,9 +37,58 @@ extern(C) int rt_init();
 /// C interface for Runtime.terminate, returns 1/0 instead of bool
 extern(C) int rt_term();
 
+/**
+ * This type is returned by the module unit test handler to indicate testing
+ * results.
+ */
+struct UnitTestResult
+{
+    /**
+     * Number of modules which were tested
+     */
+    size_t executed;
+
+    /**
+     * Number of modules passed the unittests
+     */
+    size_t passed;
+
+    /**
+     * Should the main function be run or not? This is ignored if any tests
+     * failed.
+     */
+    bool runMain;
+
+    /**
+     * Should we print a summary of the results?
+     */
+    bool summarize;
+
+    /**
+     * Simple check for whether execution should continue after unit tests
+     * have been run. Works with legacy code that expected a bool return.
+     *
+     * Returns:
+     *    true if execution should continue after testing is complete, false if
+     *    not.
+     */
+    bool opCast(T : bool)() const
+    {
+        return runMain && (executed == passed);
+    }
+
+    /// Simple return code that says unit tests pass, and main should be run
+    enum UnitTestResult pass = UnitTestResult(0, 0, true, false);
+    /// Simple return code that says unit tests failed.
+    enum UnitTestResult fail = UnitTestResult(1, 0, false, false);
+}
+
+/// Legacy module unit test handler
+alias bool function() ModuleUnitTester;
+/// Module unit test handler
+alias UnitTestResult function() ExtendedModuleUnitTester;
 private
 {
-    alias bool function() ModuleUnitTester;
     alias bool function(Object) CollectHandler;
     alias Throwable.TraceInfo function( void* ptr ) TraceHandler;
 
@@ -300,26 +349,39 @@ struct Runtime
      * value of this routine indicates to the runtime whether the tests ran
      * without error.
      *
+     * There are two options for handlers. The `bool` version is deprecated but
+     * will be kept for legacy support. Returning `true` from the handler is
+     * equivalent to returning `UnitTestResult.pass` from the extended version.
+     * Returning `false` from the handler is equivalent to returning
+     * `UnitTestResult.fail` from the extended version.
+     *
+     * See the documentation for `UnitTestResult` to see how you should set up
+     * the return structure.
+     *
+     * See the documentation for `runModuleUnitTests` for how the default
+     * algorithm works, or read the example below.
+     *
      * Params:
-     *  h = The new unit tester.  Set to null to use the default unit tester.
+     *  h = The new unit tester.  Set both to null to use the default unit
+     *  tester.
      *
      * Example:
      * ---------
-     * version (unittest) shared static this()
+     * shared static this()
      * {
      *     import core.runtime;
      *
-     *     Runtime.moduleUnitTester = &customModuleUnitTester;
+     *     Runtime.extendedModuleUnitTester = &customModuleUnitTester;
      * }
      *
-     * bool customModuleUnitTester()
+     * UnitTestResult customModuleUnitTester()
      * {
      *     import std.stdio;
      *
      *     writeln("Using customModuleUnitTester");
      *
      *     // Do the same thing as the default moduleUnitTester:
-     *     size_t failed = 0;
+     *     UnitTestResult result;
      *     foreach (m; ModuleInfo)
      *     {
      *         if (m)
@@ -328,45 +390,82 @@ struct Runtime
      *
      *             if (fp)
      *             {
+     *                 ++result.executed;
      *                 try
      *                 {
      *                     fp();
+     *                     ++result.passed;
      *                 }
      *                 catch (Throwable e)
      *                 {
      *                     writeln(e);
-     *                     failed++;
      *                 }
      *             }
      *         }
      *     }
-     *     return failed == 0;
+     *     if (result.executed != result.passed)
+     *     {
+     *         result.runMain = false;  // don't run main
+     *         result.summarize = true; // print failure
+     *     }
+     *     else
+     *     {
+     *         result.runMain = true;    // all UT passed
+     *         result.summarize = false; // be quiet about it.
+     *     }
+     *     return result;
      * }
      * ---------
      */
+    static @property void extendedModuleUnitTester( ExtendedModuleUnitTester h )
+    {
+        sm_extModuleUnitTester = h;
+    }
+
+    /// Ditto
     static @property void moduleUnitTester( ModuleUnitTester h )
     {
         sm_moduleUnitTester = h;
     }
 
-
     /**
-     * Gets the current module unit tester.
+     * Gets the current legacy module unit tester.
+     *
+     * This property should not be used, but is supported for legacy purposes.
+     *
+     * Note that if the extended unit test handler is set, this handler will
+     * be ignored.
      *
      * Returns:
-     *  The current module unit tester handler or null if none has been set.
+     *  The current legacy module unit tester handler or null if none has been
+     *  set.
      */
     static @property ModuleUnitTester moduleUnitTester()
     {
         return sm_moduleUnitTester;
     }
 
+    /**
+     * Gets the current module unit tester.
+     *
+     * This handler overrides any legacy module unit tester set by the
+     * moduleUnitTester property.
+     *
+     * Returns:
+     *  The current  module unit tester handler or null if none has been
+     *  set.
+     */
+    static @property ExtendedModuleUnitTester extendedModuleUnitTester()
+    {
+        return sm_extModuleUnitTester;
+    }
 
 private:
 
     // NOTE: This field will only ever be set in a static ctor and should
     //       never occur within any but the main thread, so it is safe to
     //       make it __gshared.
+    __gshared ExtendedModuleUnitTester sm_extModuleUnitTester = null;
     __gshared ModuleUnitTester sm_moduleUnitTester = null;
 }
 
@@ -440,14 +539,45 @@ extern (C) void profilegc_setlogfilename(string name);
 
 /**
  * This routine is called by the runtime to run module unit tests on startup.
- * The user-supplied unit tester will be called if one has been supplied,
+ * The user-supplied unit tester will be called if one has been set,
  * otherwise all unit tests will be run in sequence.
  *
+ * If the extended unittest handler is registered, this function returns the
+ * result from that handler directly.
+ *
+ * If a legacy boolean returning custom handler is used, `false` maps to
+ * `UnitTestResult.fail`, and `true` maps to `UnitTestResult.pass`. This was
+ * the original behavior of the unit testing system.
+ *
+ * If no unittest custom handlers are registered, the following algorithm is
+ * executed (the behavior can be affected by the `--DRT-testmode` switch
+ * below):
+ * 1. Run all unit tests, tracking tests executed and passes. For each that
+ *    fails, print the stack trace, and continue.
+ * 2. If there are no failures, set the summarize flag to false, and the
+ *    runMain flag to true.
+ * 3. If there are failures, set the summarize flag to true, and the runMain
+ *    flag to false.
+ *
+ * See the documentation for `UnitTestResult` for details on how the runtime
+ * treats the return value from this function.
+ *
+ * If the switch `--DRT-testmode` is passed to the executable, it can have
+ * one of 3 values:
+ * 1. "run-main": even if unit tests are run (and all pass), main is still run.
+ *    This is currently the default.
+ * 2. "test-or-main": any unit tests present will cause the program to
+ *    summarize the results and exit regardless of the result. This will be the
+ *    default in 2.080.
+ * 3. "test-only", the runtime will always summarize and never run main, even
+ *    if no tests are present.
+ *
+ * This command-line parameter does not affect custom unit test handlers.
+ *
  * Returns:
- *  true if execution should continue after testing is complete and false if
- *  not.  Default behavior is to return true.
+ *   A `UnitTestResult` struct indicating the result of running unit tests.
  */
-extern (C) bool runModuleUnitTests()
+extern (C) UnitTestResult runModuleUnitTests()
 {
     // backtrace
     version( CRuntime_Glibc )
@@ -494,32 +624,60 @@ extern (C) bool runModuleUnitTests()
         }
     }
 
-    if( Runtime.sm_moduleUnitTester is null )
+    if (Runtime.sm_extModuleUnitTester !is null)
+        return Runtime.sm_extModuleUnitTester();
+    else if (Runtime.sm_moduleUnitTester !is null)
+        return Runtime.sm_moduleUnitTester() ? UnitTestResult.pass : UnitTestResult.fail;
+    UnitTestResult results;
+    foreach( m; ModuleInfo )
     {
-        size_t failed = 0;
-        foreach( m; ModuleInfo )
+        if( m )
         {
-            if( m )
-            {
-                auto fp = m.unitTest;
+            auto fp = m.unitTest;
 
-                if( fp )
+            if( fp )
+            {
+                ++results.executed;
+                try
                 {
-                    try
-                    {
-                        fp();
-                    }
-                    catch( Throwable e )
-                    {
-                        _d_print_throwable(e);
-                        failed++;
-                    }
+                    fp();
+                    ++results.passed;
+                }
+                catch( Throwable e )
+                {
+                    _d_print_throwable(e);
                 }
             }
         }
-        return failed == 0;
     }
-    return Runtime.sm_moduleUnitTester();
+    import rt.config : rt_configOption;
+    if (results.passed != results.executed)
+    {
+        // by default, we always print a summary if there are failures.
+        results.summarize = true;
+    }
+    else switch (rt_configOption("testmode"))
+    {
+    case "":
+        // By default, run main. Switch to only doing unit tests in 2.080
+    case "run-main":
+        results.runMain = true;
+        break;
+    case "test-only":
+        // Never run main, always summarize
+        results.summarize = true;
+        break;
+    case "test-or-main":
+        // only run main if there were no tests. Only summarize if we are not
+        // running main.
+        results.runMain = (results.executed == 0);
+        results.summarize = !results.runMain;
+        break;
+    default:
+        throw new Error("Unknown --DRT-testmode option: " ~ rt_configOption("testmode"));
+    }
+
+    return results;
 }
 
 

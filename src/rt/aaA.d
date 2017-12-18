@@ -88,7 +88,7 @@ private:
         return used - deleted;
     }
 
-    @property size_t dim() const pure nothrow @nogc
+    @property size_t dim() const pure nothrow @nogc @safe
     {
         return buckets.length;
     }
@@ -183,7 +183,7 @@ private pure nothrow @nogc:
         return hash == HASH_DELETED;
     }
 
-    @property bool filled() const
+    @property bool filled() const @safe
     {
         return cast(ptrdiff_t) hash < 0;
     }
@@ -584,6 +584,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
     void* pkey = keys.ptr;
     void* pval = vals.ptr;
     immutable off = aa.valoff;
+    uint actualLength = 0;
     foreach (_; 0 .. length)
     {
         immutable hash = calcHash(pkey, ti.key);
@@ -595,6 +596,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
             p.hash = hash;
             p.entry = allocEntry(aa, pkey); // move key, no postblit
             aa.firstUsed = min(aa.firstUsed, cast(uint)(p - aa.buckets.ptr));
+            actualLength++;
         }
         else if (aa.entryTI && hasDtor(ti.value))
         {
@@ -608,7 +610,7 @@ extern (C) Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void
         pkey += keysz;
         pval += valsz;
     }
-    aa.used = cast(uint) length;
+    aa.used = actualLength;
     return aa;
 }
 
@@ -677,7 +679,7 @@ struct Range
     alias impl this;
 }
 
-extern (C) pure nothrow @nogc
+extern (C) pure nothrow @nogc @safe
 {
     Range _aaRange(AA aa)
     {
@@ -694,21 +696,32 @@ extern (C) pure nothrow @nogc
 
     bool _aaRangeEmpty(Range r)
     {
-        return r.impl is null || r.idx == r.dim;
+        return r.impl is null || r.idx >= r.dim;
     }
 
     void* _aaRangeFrontKey(Range r)
     {
+        assert(!_aaRangeEmpty(r));
+        if (r.idx >= r.dim)
+            return null;
         return r.buckets[r.idx].entry;
     }
 
     void* _aaRangeFrontValue(Range r)
     {
-        return r.buckets[r.idx].entry + r.valoff;
+        assert(!_aaRangeEmpty(r));
+        if (r.idx >= r.dim)
+            return null;
+
+        auto entry = r.buckets[r.idx].entry;
+        return entry is null ?
+            null :
+            (() @trusted { return entry + r.valoff; } ());
     }
 
     void _aaRangePopFront(ref Range r)
     {
+        if (r.idx >= r.dim) return;
         for (++r.idx; r.idx < r.dim; ++r.idx)
         {
             if (r.buckets[r.idx].filled)
@@ -1012,4 +1025,30 @@ unittest
 
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a));
     assert(typeid(a).getHash(&a) == typeid(a).getHash(&a2));
+}
+
+// test duplicated keys in AA literal (issue 15290)
+unittest
+{
+    string[int] aa = [ 0: "a", 0: "b" ];
+    assert(aa.length == 1);
+    assert(aa.keys == [ 0 ]);
+}
+
+// test safety for alias-this'd AA that have unsafe opCast (issue 18071)
+unittest
+{
+    static struct Foo
+    {
+        int[int] aa;
+        auto opCast() pure nothrow @nogc
+        {
+            *cast(uint*)0xdeadbeef = 0xcafebabe;// unsafe
+            return null;
+        }
+        alias aa this;
+    }
+
+    Foo f;
+    () @safe { assert(f.byKey.empty); }();
 }
