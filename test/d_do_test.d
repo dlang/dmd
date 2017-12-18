@@ -18,6 +18,9 @@ void usage()
 {
     write("d_do_test <input_dir> <test_name> <test_extension>\n"
           ~ "\n"
+          ~ "   Note: this program is normally called through the Makefile, it"
+          ~ "         is not meant to be called directly by the user.\n"
+          ~ "\n"
           ~ "   input_dir: one of: compilable, fail_compilation, runnable\n"
           ~ "   test_name: basename of test case to run\n"
           ~ "   test_extension: one of: d, html, or sh\n"
@@ -27,15 +30,16 @@ void usage()
           ~ "   relevant environment variables:\n"
           ~ "      ARGS:          set to execute all combinations of\n"
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
-          ~ "      DMD:           compiler to use, ex: ../src/dmd\n"
+          ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
           ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
+          ~ "      MODEL:         32 or 64 (required)\n"
           ~ "   windows vs non-windows portability env vars:\n"
           ~ "      DSEP:          \\\\ or /\n"
-          ~ "      SEP:           \\ or /\n"
-          ~ "      OBJ:          .obj or .o\n"
-          ~ "      EXE:          .exe or <null>\n");
+          ~ "      SEP:           \\ or / (required)\n"
+          ~ "      OBJ:          .obj or .o (required)\n"
+          ~ "      EXE:          .exe or <null> (required)\n");
 }
 
 enum TestMode
@@ -436,7 +440,27 @@ bool compareOutput(string output, string refoutput)
     }
 }
 
+string envGetRequired(in char[] name)
+{
+    auto value = environment.get(name);
+    if(value is null)
+    {
+        writefln("Error: missing environment variable '%s', was this called this through the Makefile?",
+            name);
+        throw new SilentQuit();
+    }
+    return value;
+}
+
+class SilentQuit : Exception { this() { super(null); } }
+
 int main(string[] args)
+{
+    try { return tryMain(args); }
+    catch(SilentQuit) { return 1; }
+}
+
+int tryMain(string[] args)
 {
     if (args.length != 4)
     {
@@ -453,15 +477,15 @@ int main(string[] args)
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
     envData.results_dir   = environment.get("RESULTS_DIR");
-    envData.sep           = environment.get("SEP");
+    envData.sep           = envGetRequired ("SEP");
     envData.dsep          = environment.get("DSEP");
-    envData.obj           = environment.get("OBJ");
-    envData.exe           = environment.get("EXE");
+    envData.obj           = envGetRequired ("OBJ");
+    envData.exe           = envGetRequired ("EXE");
     envData.os            = environment.get("OS");
-    envData.dmd           = replace(environment.get("DMD"), "/", envData.sep);
+    envData.dmd           = replace(envGetRequired("DMD"), "/", envData.sep);
     envData.compiler      = "dmd"; //should be replaced for other compilers
     envData.ccompiler     = environment.get("CC");
-    envData.model         = environment.get("MODEL");
+    envData.model         = envGetRequired("MODEL");
     envData.required_args = environment.get("REQUIRED_ARGS");
     envData.dobjc         = environment.get("D_OBJC") == "1";
     envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
