@@ -23,7 +23,7 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/bug9631.d(41): Error: incompatible types for ((x) == (y)): 'bug9631.S' and 'bug9631.tem!().S'
+fail_compilation/bug9631.d(41): Error: incompatible types for `(x) == (y)`: 'bug9631.S' and 'bug9631.tem!().S'
 ---
 */
 

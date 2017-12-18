@@ -3246,7 +3246,7 @@ public:
             if (cmp == -1)
             {
                 char dir = (e.op == TOKgt || e.op == TOKge) ? '<' : '>';
-                e.error("the ordering of pointers to unrelated memory blocks is indeterminate in CTFE. To check if they point to the same memory block, use both > and < inside && or ||, eg (%s && %s %c= %s + 1)", e.toChars(), e.e1.toChars(), dir, e.e2.toChars());
+                e.error("the ordering of pointers to unrelated memory blocks is indeterminate in CTFE. To check if they point to the same memory block, use both > and < inside && or ||, eg `%s && %s %c= %s + 1`", e.toChars(), e.e1.toChars(), dir, e.e2.toChars());
                 result = CTFEExp.cantexp;
                 return;
             }
