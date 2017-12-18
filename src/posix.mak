@@ -421,8 +421,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 ######## Begin build targets
 
-# Remove ddmd after ddmd -> ddmd transition
-all: $G/dmd $G/ddmd
+all: $G/dmd
 
 auto-tester-build: $G/dmd checkwhitespace checkcxxheaders $G/dmd_frontend
 .PHONY: auto-tester-build
@@ -462,9 +461,6 @@ endif
 
 $G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
-
-# Remove after ddmd -> dmd transition is complete
-$G/ddmd: $G/dmd
 
 unittest: $G/dmd-unittest
 	$<
@@ -516,10 +512,6 @@ export DEFAULT_DMD_CONF
 
 $G/dmd.conf: $(SRC_MAKE)
 	echo "$$DEFAULT_DMD_CONF" > $@
-
-######## REMOVE ME after the ddmd -> dmd transition
-dmd.conf:
-	@echo "Warning: this target doesn't exist anymore. Please use $G/dmd.conf"
 
 ######## optabgen generates some source
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
