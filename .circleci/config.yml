@@ -14,6 +14,9 @@ jobs:
           command: ./.circleci/run.sh setup-repos
           name: Clone DMD
       - run:
+          command: ./.circleci/run.sh style
+          name: Check code style
+      - run:
           command: ./.circleci/run.sh coverage
           name: Run DRuntime testsuite with -cov
       - run:
