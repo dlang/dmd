@@ -1,0 +1,31 @@
+Variadic template arguments no longer require `alias` workaround
+
+Prior to this release, the following code would not compile.
+
+----
+class C(Types...)
+{
+    void apply(U)(U delegate(Types[0]) f0) { }  // Error: cannot deduce function from argument types
+}
+
+void test()
+{
+    C!int c;
+
+    int f(int) { return 0; }
+
+    c.apply(&f);
+}
+----
+
+It could be worked around by `alias`ing the individual template arguments.
+
+----
+class C(Types...)
+{
+    alias Types[0] T0;
+    void apply(U)(U delegate(T0) f0) { }  // OK
+}
+----
+
+Starting with this release, the workaround is no longer required.

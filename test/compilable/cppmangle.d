@@ -2,7 +2,6 @@
 // Test C++ name mangling.
 // See Bugs 4059, 5148, 7024, 10058
 
-
 import core.stdc.stdio;
 
 extern (C++) int foob(int i, int j, int k);
@@ -378,3 +377,70 @@ else version (Posix)
     static assert(T.boo.mangleof == "_ZN1T3booE");
 }
 
+/****************************************/
+
+// Special cases of Itanium mangling
+
+extern (C++, std)
+{
+    struct pair(T1, T2)
+    {
+	void swap(ref pair other);
+    }
+
+    struct allocator(T)
+    {
+	uint fooa() const;
+	uint foob();
+    }
+
+    struct basic_string(T1, T2, T3)
+    {
+	uint fooa();
+    }
+
+    struct basic_istream(T1, T2)
+    {
+	uint fooc();
+    }
+
+    struct basic_ostream(T1, T2)
+    {
+	uint food();
+    }
+
+    struct basic_iostream(T1, T2)
+    {
+	uint fooe();
+    }
+
+    struct char_traits(T)
+    {
+	uint foof();
+    }
+}
+
+version (linux)
+{
+    // https://issues.dlang.org/show_bug.cgi?id=17947
+    static assert(std.pair!(void*, void*).swap.mangleof == "_ZNSt4pairIPvS0_E4swapERS1_");
+
+    static assert(std.allocator!int.fooa.mangleof == "_ZNKSaIiE4fooaEv");
+    static assert(std.allocator!int.foob.mangleof == "_ZNSaIiE4foobEv");
+    static assert(std.basic_string!(char,int,uint).fooa.mangleof == "_ZNSbIcijE4fooaEv");
+    static assert(std.basic_string!(char, std.char_traits!char, std.allocator!char).fooa.mangleof == "_ZNSs4fooaEv");
+    static assert(std.basic_istream!(char, std.char_traits!char).fooc.mangleof == "_ZNSi4foocEv");
+    static assert(std.basic_ostream!(char, std.char_traits!char).food.mangleof == "_ZNSo4foodEv");
+    static assert(std.basic_iostream!(char, std.char_traits!char).fooe.mangleof == "_ZNSd4fooeEv");
+}
+
+/**************************************/
+
+alias T36 = int ********** ********** ********** **********;
+
+extern (C++) void test36(T36, T36*) { }
+
+version (linux)
+{
+    static assert(test36.mangleof == "_Z6test36PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPiPS12_");
+}

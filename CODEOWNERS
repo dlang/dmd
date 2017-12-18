@@ -1,0 +1,43 @@
+# See also:
+# - https://github.com/blog/2392-introducing-code-owners
+# - https://help.github.com/articles/about-codeowners/
+
+# Each line is a file pattern followed by one or more owners (sorted alphabetically).
+# Please feel free to add yourself to a module or create a new mapping.
+# Ideally each module should have two or more owners.
+
+# Code owners are automatically requested for review
+# when someone opens a pull request that modifies code that they own.
+# Later matches take precedence.
+
+src/dmd/access.d @MartinNowak
+src/dmd/astbase* @RazvanN7
+src/dmd/astcodegen.d @RazvanN7
+src/dmd/asttypename.d @UplinkCoder
+src/dmd/builtin.d @klickvebot @WalterBright
+src/dmd/cond.d @mathias-lang-sociomantic @Geod24
+src/dmd/console.d @CyberShadow
+src/dmd/cppmangle.d @ibuclaw
+src/dmd/ctfeexpr.d @UplinkCoder
+src/dmd/doc.d @andralex @jacob-carlborg
+src/dmd/hdrgen.d @UplinkCoder @WalterBright
+src/dmd/mars.d @MartinNowak @mathias-lang-sociomantic @Geod24 @rainers @UplinkCoder @WalterBright
+src/dmd/objc* @jacob-carlborg
+src/dmd/permissivevisitor.d @RazvanN7
+src/dmd/target.d @ibuclaw @MartinNowak
+src/dmd/transitivevisitor.d @RazvanN7
+src/dmd/vcbuild @rainers
+
+# GitHub's implementation of the CODEOWNERS format is buggy, so this might not work
+src/dmd/*.h @ibuclaw
+
+src/dmd/* @WalterBright
+src/dmd/backend/* @WalterBright
+src/dmd/root/* @WalterBright
+src/dmd/tk/* @WalterBright
+
+# CI & automation
+posix.mak @CyberShadow @MartinNowak @wilzbach
+src/posix.mak @CyberShadow @MartinNowak @wilzbach
+circle.sh @CyberShadow @MartinNowak @wilzbach
+travis.sh @CyberShadow @MartinNowak @wilzbach

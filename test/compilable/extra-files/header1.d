@@ -10,6 +10,8 @@ static assert(true, "message");
 
 alias double mydbl;
 
+alias fl = function () in {} body {};
+
 int testmain()
 in
 {
@@ -518,4 +520,41 @@ struct Foo3A(T)
 {
     @disable this(this);
     @disable this();
+}
+
+// return ref, return scope, return ref scope
+ref int foo(return ref int a) @safe
+{
+	return a;
+}
+
+int* foo(return scope int* a) @safe
+{
+	return a;
+}
+
+ref int* foo(scope return ref int* a) @safe
+{
+	return a;
+}
+
+struct SafeS
+{
+@safe:
+	ref SafeS foo() return
+	{
+		return this;
+	}
+
+	SafeS foo() return scope
+	{
+		return this;
+	}
+
+	ref SafeS foo() return scope
+	{
+		return this;
+	}
+
+	int* p;
 }

@@ -18,6 +18,9 @@ void usage()
 {
     write("d_do_test <input_dir> <test_name> <test_extension>\n"
           ~ "\n"
+          ~ "   Note: this program is normally called through the Makefile, it"
+          ~ "         is not meant to be called directly by the user.\n"
+          ~ "\n"
           ~ "   input_dir: one of: compilable, fail_compilation, runnable\n"
           ~ "   test_name: basename of test case to run\n"
           ~ "   test_extension: one of: d, html, or sh\n"
@@ -27,15 +30,16 @@ void usage()
           ~ "   relevant environment variables:\n"
           ~ "      ARGS:          set to execute all combinations of\n"
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
-          ~ "      DMD:           compiler to use, ex: ../src/dmd\n"
+          ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
           ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
+          ~ "      MODEL:         32 or 64 (required)\n"
           ~ "   windows vs non-windows portability env vars:\n"
           ~ "      DSEP:          \\\\ or /\n"
-          ~ "      SEP:           \\ or /\n"
-          ~ "      OBJ:          .obj or .o\n"
-          ~ "      EXE:          .exe or <null>\n");
+          ~ "      SEP:           \\ or / (required)\n"
+          ~ "      OBJ:          .obj or .o (required)\n"
+          ~ "      EXE:          .exe or <null> (required)\n");
 }
 
 enum TestMode
@@ -84,7 +88,7 @@ struct EnvData
     bool coverage_build;
 }
 
-bool findTestParameter(string file, string token, ref string result)
+bool findTestParameter(const ref EnvData envData, string file, string token, ref string result)
 {
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
@@ -99,6 +103,19 @@ bool findTestParameter(string file, string token, ref string result)
     //writeln("found ", token, " in line: '", file[tokenStart .. tokenStart+lineEnd], "'");
 
     result = strip(file[tokenStart+token.length .. tokenStart+lineEnd]);
+    // filter by OS specific setting (os1 os2 ...)
+    if (result.length > 0 && result[0] == '(')
+    {
+        auto close = std.string.indexOf(result, ")");
+        if (close >= 0)
+        {
+            string[] oss = split(result[1 .. close], " ");
+            if (oss.canFind(envData.os))
+                result = result[close + 1..$];
+            else
+                result = null;
+        }
+    }
     // skips the :, if present
     if (result.length > 0 && result[0] == ':')
         result = strip(result[1 .. $]);
@@ -106,7 +123,7 @@ bool findTestParameter(string file, string token, ref string result)
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(file[tokenStart+lineEnd..$], token, result2))
+    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2))
         result ~= " " ~ result2;
 
     return true;
@@ -165,18 +182,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 {
     string file = cast(string)std.file.read(input_file);
 
-    findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
+    findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
     replaceResultsDir(testArgs.requiredArgs, envData);
 
-    if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
+    if (! findTestParameter(envData, file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
 
         string unittestJunk;
-        if(!findTestParameter(file, "unittest", unittestJunk))
+        if(!findTestParameter(envData, file, "unittest", unittestJunk))
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
@@ -192,25 +209,25 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // clean up extra spaces
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
-    findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
+    findTestParameter(envData, file, "EXECUTE_ARGS", testArgs.executeArgs);
     replaceResultsDir(testArgs.executeArgs, envData);
 
     string extraSourcesStr;
-    findTestParameter(file, "EXTRA_SOURCES", extraSourcesStr);
+    findTestParameter(envData, file, "EXTRA_SOURCES", extraSourcesStr);
     testArgs.sources = [input_file];
     // prepend input_dir to each extra source file
     foreach(s; split(extraSourcesStr))
         testArgs.sources ~= input_dir ~ "/" ~ s;
 
     string extraCppSourcesStr;
-    findTestParameter(file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
+    findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
     testArgs.cppSources = [];
     // prepend input_dir to each extra source file
     foreach(s; split(extraCppSourcesStr))
         testArgs.cppSources ~= s;
 
     string extraObjcSourcesStr;
-    auto objc = findTestParameter(file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
+    auto objc = findTestParameter(envData, file, "EXTRA_OBJC_SOURCES", extraObjcSourcesStr);
 
     if (objc && !envData.dobjc)
         return false;
@@ -227,18 +244,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     //writeln ("sources: ", testArgs.sources);
 
     // COMPILE_SEPARATELY can take optional compiler switches when link .o files
-    testArgs.compileSeparately = findTestParameter(file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
+    testArgs.compileSeparately = findTestParameter(envData, file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
 
     string disabledPlatformsStr;
-    findTestParameter(file, "DISABLED", disabledPlatformsStr);
+    findTestParameter(envData, file, "DISABLED", disabledPlatformsStr);
     testArgs.disabledPlatforms = split(disabledPlatformsStr);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
-    findTestParameter(file, "GDB_MATCH", testArgs.gdbMatch);
+    findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
-    if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
+    if (findTestParameter(envData, file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
 
     return true;
@@ -423,7 +440,27 @@ bool compareOutput(string output, string refoutput)
     }
 }
 
+string envGetRequired(in char[] name)
+{
+    auto value = environment.get(name);
+    if(value is null)
+    {
+        writefln("Error: missing environment variable '%s', was this called this through the Makefile?",
+            name);
+        throw new SilentQuit();
+    }
+    return value;
+}
+
+class SilentQuit : Exception { this() { super(null); } }
+
 int main(string[] args)
+{
+    try { return tryMain(args); }
+    catch(SilentQuit) { return 1; }
+}
+
+int tryMain(string[] args)
 {
     if (args.length != 4)
     {
@@ -440,15 +477,15 @@ int main(string[] args)
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
     envData.results_dir   = environment.get("RESULTS_DIR");
-    envData.sep           = environment.get("SEP");
+    envData.sep           = envGetRequired ("SEP");
     envData.dsep          = environment.get("DSEP");
-    envData.obj           = environment.get("OBJ");
-    envData.exe           = environment.get("EXE");
+    envData.obj           = envGetRequired ("OBJ");
+    envData.exe           = envGetRequired ("EXE");
     envData.os            = environment.get("OS");
-    envData.dmd           = replace(environment.get("DMD"), "/", envData.sep);
+    envData.dmd           = replace(envGetRequired("DMD"), "/", envData.sep);
     envData.compiler      = "dmd"; //should be replaced for other compilers
     envData.ccompiler     = environment.get("CC");
-    envData.model         = environment.get("MODEL");
+    envData.model         = envGetRequired("MODEL");
     envData.required_args = environment.get("REQUIRED_ARGS");
     envData.dobjc         = environment.get("D_OBJC") == "1";
     envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
@@ -634,7 +671,10 @@ int main(string[] args)
                     auto script = test_app_dmd_base ~ to!string(i) ~ ".gdb";
                     toCleanup ~= script;
                     with (File(script, "w"))
+                    {
+                        writeln("set disable-randomization off");
                         write(testArgs.gdbScript);
+                    }
                     string command = "gdb "~test_app_dmd~" --batch -x "~script;
                     auto gdb_output = execute(fThisRun, command, true, result_path);
                     if (testArgs.gdbMatch !is null)

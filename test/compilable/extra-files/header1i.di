@@ -5,6 +5,14 @@ pragma (lib, "test");
 pragma (msg, "Hello World");
 static assert(true, "message");
 alias mydbl = double;
+alias fl = function ()
+in
+{
+}
+do
+{
+}
+;
 int testmain()
 in
 {
@@ -14,7 +22,7 @@ out(result)
 {
 	assert(result == 0);
 }
-body
+do
 {
 	float f = (float).infinity;
 	int i = cast(int)f;
@@ -178,10 +186,15 @@ template Foo(T, int V)
 	}
 }
 static this();
+static ~this();
 nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe static ~this();
 nothrow pure @nogc @safe static this();
+nothrow pure @nogc @safe static ~this();
 nothrow pure @nogc @safe shared static this();
+nothrow pure @nogc @safe shared static ~this();
 nothrow pure @nogc @safe shared static this();
+nothrow pure @nogc @safe shared static ~this();
 interface iFoo
 {
 }
@@ -602,4 +615,35 @@ struct Foo3A(T)
 {
 	@disable this(this);
 	@disable this();
+}
+ref @safe int foo(return ref int a)
+{
+	return a;
+}
+@safe int* foo(return scope int* a)
+{
+	return a;
+}
+ref @safe int* foo(return ref scope int* a)
+{
+	return a;
+}
+struct SafeS
+{
+	@safe 
+	{
+		ref return SafeS foo()
+		{
+			return this;
+		}
+		return scope SafeS foo()
+		{
+			return this;
+		}
+		ref return scope SafeS foo()
+		{
+			return this;
+		}
+		int* p;
+	}
 }

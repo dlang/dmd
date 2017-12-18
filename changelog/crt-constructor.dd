@@ -1,0 +1,33 @@
+pragma(crt_constructor) and pragma(crt_destructor) were added
+
+This allows programs to run initialization code before or cleanup code after C
+main.
+
+In particular those pragmas can be used in $(TT -betterC) code as substitutes
+for $(LINK2 $(ROOT_DIR)spec/class.html#shared_static_constructors, `shared static this()`) and
+$(LINK2 $(ROOT_DIR)spec/class.html#shared_static_destructors, `shared static ~this()`).
+
+$(RED Note:) At the time of execution druntime is not initialized.
+
+$(RED Note:) The order in which constructors are executed is unspecified.
+
+---
+import core.stdc.stdio;
+
+pragma(crt_constructor)
+void init()
+{
+    puts("init");
+}
+
+pragma(crt_destructor)
+void fini()
+{
+    puts("fini");
+}
+
+extern(C) int main()
+{
+    puts("main");
+}
+---

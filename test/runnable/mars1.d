@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -mcpu=native
+REQUIRED_ARGS: -mcpu=native -transition=16997 -transition=intpromote
 PERMUTE_ARGS: -O -inline
 */
 
@@ -1677,6 +1677,54 @@ void testdivcmp()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16997
+
+void test16997()
+{
+    /* Exhaustively test all signed and unsigned byte promotions for
+     * - + and ~
+     */
+    for (int i = 0; i < 256; ++i)
+    {
+        ubyte c = cast(ubyte)i;
+
+        int i1 = cast(int)(~c);
+        int i2 = cast(int)(~cast(int)c);
+
+        //printf("%d, %d\n", i1, i2);
+        assert(i1 == i2);
+
+        i1 = cast(int)(+c);
+        i2 = cast(int)(+cast(int)c);
+        assert(i1 == i2);
+
+        i1 = cast(int)(-c);
+        i2 = cast(int)(-cast(int)c);
+        assert(i1 == i2);
+    }
+
+    for (int i = 0; i < 256; ++i)
+    {
+        byte c = cast(byte)i;
+
+        int i1 = cast(int)(~c);
+        int i2 = cast(int)(~cast(int)c);
+
+        //printf("%d, %d\n", i1, i2);
+        assert(i1 == i2);
+
+        i1 = cast(int)(+c);
+        i2 = cast(int)(+cast(int)c);
+        assert(i1 == i2);
+
+        i1 = cast(int)(-c);
+        i2 = cast(int)(-cast(int)c);
+        assert(i1 == i2);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1736,6 +1784,7 @@ int main()
     test6();
     testeqeqranges();
     testdivcmp();
+    test16997();
     printf("Success\n");
     return 0;
 }

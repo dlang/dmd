@@ -5824,10 +5824,15 @@ void test4414() {
     assert(x == 7);
   }
   {
-    auto x = bytes4414()[0..4];
+    auto u = bytes4414();
+    auto x = u[0..4];
     if (x[0] != 7 || x[1] != 8 || x[2] != 9 || x[3] != 10)
         assert(0);
   }
+  assert(bytes4414()[0] == 7);
+  assert(bytes4414()[1] == 8);
+  assert(bytes4414()[2] == 9);
+  assert(bytes4414()[3] == 10);
 }
 
 /***************************************************/
@@ -6099,6 +6104,25 @@ void test252()
         assert(0);
     if ((-1 - y) != ~y)
         assert(0);
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=7997
+
+void test7997()
+{
+    __gshared int[0] foos;
+    foreach (f; foos) {}
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=5332
+
+int[0] arr5332;
+
+void test5332()
+{
+    auto a = arr5332;
 }
 
 /***************************************************/
@@ -6401,6 +6425,8 @@ int main()
     test16027();
     test16530();
     test252();
+    test7997();
+    test5332();
 
     writefln("Success");
     return 0;

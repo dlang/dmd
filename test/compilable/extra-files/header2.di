@@ -108,3 +108,26 @@ align (1) struct S9766
 		align int var2;
 	}
 }
+void leFoo()()
+{
+	sign = a == 2 ? false : (y < 0) ^ sign;
+	sign = a == 2 ? false : sign ^ (y < 0);
+	sign = 2 + 3 | 7 + 5;
+}
+interface LeInterface
+{
+}
+class LeClass
+{
+	this()
+	{
+		auto foo = new class LeInterface
+		{
+		}
+		;
+	}
+}
+const levar = new class LeClass, LeInterface
+{
+}
+;

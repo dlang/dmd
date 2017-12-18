@@ -1,3 +1,7 @@
+#!/usr/bin/env dub
+/+dub.sdl:
+dependency "dmd" path="../.."
++/
 /* This file contains an example on how to use the transitive visitor.
    It implements a visitor which computes the average function length from
    a *.d file.
@@ -5,23 +9,23 @@
 
 module examples.avg;
 
-import ddmd.astbase;
-import ddmd.parse;
-import ddmd.transitivevisitor;
+import dmd.astbase;
+import dmd.parse;
+import dmd.transitivevisitor;
 
-import ddmd.globals;
-import ddmd.id;
-import ddmd.identifier;
+import dmd.globals;
+import dmd.id;
+import dmd.identifier;
 
 import std.stdio;
 import std.file;
 
-class FunctionLengthVisitor : TransitiveVisitor
+extern(C++) class FunctionLengthVisitor(AST) : ParseTimeTransitiveVisitor!AST
 {
-    alias visit = super.visit;
+    alias visit = ParseTimeTransitiveVisitor!AST.visit;
     ulong[] lengths;
 
-    double getAvgLen(ASTBase.Module m)
+    double getAvgLen(AST.Module m)
     {
         m.accept(this);
 
@@ -32,7 +36,7 @@ class FunctionLengthVisitor : TransitiveVisitor
         return double(lengths.sum)/lengths.length;
     }
 
-    override void visitFuncBody(ASTBase.FuncDeclaration fd)
+    override void visitFuncBody(AST.FuncDeclaration fd)
     {
         lengths ~= fd.endloc.linnum - fd.loc.linnum;
         super.visitFuncBody(fd);
@@ -58,6 +62,6 @@ void main()
     p.nextToken();
     m.members = p.parseModule();
 
-    scope visitor = new FunctionLengthVisitor();
+    scope visitor = new FunctionLengthVisitor!ASTBase();
     writeln("Average function length: ", visitor.getAvgLen(m));
 }

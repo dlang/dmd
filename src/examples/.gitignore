@@ -1,0 +1,10 @@
+# Ignore all binary files (files without an extension)
+# Start: Ignore everything
+*
+# Include directories
+!*/
+# Include all files with extensions
+!*.*
+
+# Ignore DUB files
+.dub
