@@ -1,0 +1,21 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/druntime
+    docker:
+      - image: circleci/node:4.8.2
+    parallelism: 1
+    steps:
+      - checkout
+      - run:
+          command: ./.circleci/run.sh install-deps
+          name: Install DMD
+      - run:
+          command: ./.circleci/run.sh setup-repos
+          name: Clone DMD
+      - run:
+          command: ./.circleci/run.sh coverage
+          name: Run DRuntime testsuite with -cov
+      - run:
+          command: ./.circleci/run.sh codecov
+          name: Upload coverage files to CodeCov
