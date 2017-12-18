@@ -1654,16 +1654,6 @@ $(GNAME AssertExpression):
         Contract Programming) support in D.
     )
 
-    $(P The expression $(D assert(0)) is a special case; it
-        signifies that it is unreachable code.
-        Either $(D AssertError) is thrown at runtime if it is reachable,
-        or the execution is halted
-        (on the x86 processor, a $(D HLT) instruction can be used to halt
-        execution).
-        The optimization and code generation phases of compilation may
-        assume that it is unreachable code.
-    )
-
     $(P The second $(I AssignExpression), if present, must be implicitly
         convertible to type $(D const(char)[]).
         It is evaluated if the
@@ -1680,8 +1670,19 @@ $(GNAME AssertExpression):
     $(P When compiled and run, it will produce the message:)
 
 $(CONSOLE
-Error: AssertError Failure test.d(3) an error message
+core.exception.AssertError@test.d(3) an error message
 )
+
+    $(P The expression $(D assert(0)) is a special case; it
+        signifies that it is unreachable code.
+        Without optimizations, an $(D AssertError) is thrown at runtime.
+        In release mode ($(LINK2 $(ROOT_DIR)/dmd.html#switch-release, `-release`))
+        the execution is halted
+        (on the x86 processor, a $(D HLT) instruction can be used to halt
+        execution).
+        The optimization and code generation phases of compilation may
+        assume that it is unreachable code.
+    )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
 
