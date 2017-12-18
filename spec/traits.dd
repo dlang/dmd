@@ -22,6 +22,7 @@ $(GNAME TraitsKeyword):
     $(GBLINK isFinalClass)
     $(GBLINK isPOD)
     $(GBLINK isNested)
+    $(GBLINK isFuture)
     $(GBLINK isFloating)
     $(GBLINK isIntegral)
     $(GBLINK isScalar)
@@ -191,6 +192,12 @@ $(H2 $(GNAME isNested))
     Nested types can be  $(DDSUBLINK spec/class, nested, classes),
     $(DDSUBLINK spec/struct, nested, structs), and
     $(DDSUBLINK spec/function, variadicnested, functions).)
+
+$(H2 $(GNAME isFuture))
+
+    $(P Takes one argument. It returns `true` if the argument is a symbol
+    marked with the `@future` keyword, otherwise `false`. Currently, only
+    functions and variable declarations have support for the `@future` keyword.)
 
 $(H2 $(GNAME isVirtualFunction))
 
@@ -461,8 +468,8 @@ $(SECTION2 $(GNAME getFunctionVariadicStyle),
     )
 
     $(TABLE2 getFunctionVariadicStyle,
-	$(THEAD string returned, kind, access, example)
-	$(TROW $(D "none"), not a variadic function, &nbsp;, $(D void foo();))
+	$(THEAD result, kind, access, example)
+	$(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
 	$(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
 	$(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
 	$(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
@@ -912,7 +919,8 @@ void main()
 {
     auto b = [ __traits(allMembers, D) ];
     writeln(b);
-    // ["__ctor", "__dtor", "foo", "toString", "toHash", "opCmp", "opEquals", "Monitor", "factory"]
+    // ["__ctor", "__dtor", "foo", "toString", "toHash", "opCmp", "opEquals",
+    // "Monitor", "factory"]
 }
 ---
 
@@ -1051,11 +1059,14 @@ $(H2 $(LNAME2 specialkeywords, Special Keywords))
 module test;
 import std.stdio;
 
-void test(string file = __FILE__, size_t line = __LINE__, string mod = __MODULE__,
-          string func = __FUNCTION__, string pretty = __PRETTY_FUNCTION__, string fileFullPath = __FILE_FULL_PATH__)
+void test(string file = __FILE__, size_t line = __LINE__,
+        string mod = __MODULE__, string func = __FUNCTION__,
+        string pretty = __PRETTY_FUNCTION__,
+        string fileFullPath = __FILE_FULL_PATH__)
 {
-    writefln("file: '%s', line: '%s', module: '%s',\nfunction: '%s', pretty function: '%s',\nfile full path: '%s'",
-             file, line, mod, func, pretty, fileFullPath);
+    writefln("file: '%s', line: '%s', module: '%s',\nfunction: '%s', " ~
+        "pretty function: '%s',\nfile full path: '%s'",
+        file, line, mod, func, pretty, fileFullPath);
 }
 
 int main(string[] args)

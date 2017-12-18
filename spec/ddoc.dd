@@ -420,7 +420,7 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
  *	FOO =	now is the time for
  *		all good men
  *	BAR =	bar
- *	MAGENTA =   <font color="magenta">$(DOLLAR)0</font>
+ *	MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
 
@@ -496,13 +496,13 @@ $(P
 
 $(P
     Text inside these sections will be escaped according to the rules described above,
-    then wrapped in a $(D $(DOLLAR)(DDOC_BACKQUOTED)) macro. By default, this macro expands
+    then wrapped in a `$(RAW_DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
     to be displayed as an inline text span, formatted as code.
 )
 
 $(P
     A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
-    line or by using the `$(DOLLAR)(BACKTICK)` macro.
+    line or by using the `$(RAW_DOLLAR)(BACKTICK)` macro.
 )
 
 ---
@@ -739,7 +739,8 @@ $(P
 )
 
 $(DDOCCODE
-DDOC = $(LT)!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"$(GT)
+DDOC = $(LT)!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+        "http://www.w3.org/TR/html4/strict.dtd"$(GT)
     $(LT)html$(GT)$(LT)head$(GT)
     $(LT)META http-equiv="content-type" content="text/html; charset=utf-8"$(GT)
     $(LT)title$(GT)$(DOLLAR)(TITLE)$(LT)/title$(GT)
@@ -962,5 +963,4 @@ $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing 
 Macros:
     CHAPTER=31
     TITLE=Documentation Generator
-    _= Remove the following line when 2.067.0 is used to compile the site.
-    BACKTIP=`
+    RAW_DOLLAR=$

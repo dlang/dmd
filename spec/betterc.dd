@@ -26,7 +26,7 @@ extern(C) void main()
 ---
 
 $(CONSOLE
-> dmd -betterC hello.d $(AMP)$(AMP) ./hello
+> dmd -betterC hello.d && ./hello
 Hello betterC
 )
 
@@ -50,6 +50,8 @@ $(OL
     $(LI Struct deconstructors)
     $(LI `unittest` (testing can be as usual with the `-betterC` flag))
 )
+
+The predefined $(LINK2 version.html, version) `D_BetterC` can be used for conditional compilation.
 
 $(SPEC_SUBNAV_PREV simd, Vector Extensions)
 

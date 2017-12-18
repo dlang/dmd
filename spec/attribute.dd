@@ -37,12 +37,13 @@ $(GNAME Property):
     $(GLINK UserDefinedAttribute)
 
 $(GNAME PropertyIdentifier):
-    $(RELATIVE_LINK2 property, $(D property))
-    $(D safe)
-    $(D trusted)
-    $(D system)
+    $(RELATIVE_LINK2 property, `property`)
+    $(RELATIVE_LINK2 safe, `@safe`)
+    $(RELATIVE_LINK2 safe, `@trusted`)
+    $(RELATIVE_LINK2 safe, `@system`)
     $(RELATIVE_LINK2 disable, $(D disable))
-    $(RELATIVE_LINK2 nogc, $(D nogc))
+    $(RELATIVE_LINK2 nogc, `nogc`)
+    $(RELATIVE_LINK2 disable, `@disable`)
 
 $(GNAME DeclarationBlock):
     $(GLINK2 module, DeclDef)
@@ -110,6 +111,13 @@ $(GNAME LinkageType):
 extern (C):
     int foo(); // call foo() with C conventions
 ---------------
+        Note that `extern(C)` can be provided for all types of
+        declarations, including `struct` or `class`, even though
+        there is no corresponding match on the `C` side. In that case,
+        the attribute is ignored. This behavior applies for nested
+        functions and nested variables as well. However, for `static` member
+        methods and `static` nested functions, adding `extern(C)` will
+        change the calling convention, but not the mangling.
 
         $(P D conventions are:)
 
@@ -212,7 +220,6 @@ struct S
     int b;    // placed at offset 4
     long c;   // placed at offset 8
 }
-
 auto sz = S.sizeof;  // 16
 --------
 
@@ -233,7 +240,6 @@ struct S
     int b;    // placed at offset 1
     long c;   // placed at offset 5
 }
-
 auto sz = S.sizeof;  // 16
 --------
 
@@ -249,7 +255,6 @@ align (2) struct S
     int b;    // placed at offset 1
     long c;   // placed at offset 5
 }
-
 auto sz = S.sizeof;  // 14
 --------
 
@@ -264,7 +269,6 @@ struct S
     byte b;   // placed at offset 4
     short c;  // placed at offset 8
 }
-
 auto sz = S.sizeof;  // 12
 --------
 
@@ -325,9 +329,11 @@ $(GNAME DeprecatedAttribute):
         import std.format;
         enum Message = format("%s and all its members are obsolete", Foobar.stringof);
         deprecated(Message) class Foobar {}
-        auto f = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar and all its members are obsolete
+        auto f = new Foobar();   // Deprecated: class test.Foobar is deprecated - Foobar
+             // and all its members are obsolete
         deprecated(format("%s is also obsolete", "This class")) class BarFoo {}
-        auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This class is also obsolete
+        auto bf = new BarFoo();  // Deprecated: class test.BarFoo is deprecated - This
+             // class is also obsolete
         ---------------
 
         $(P $(D Implementation Note:) The compiler should have a switch
@@ -347,8 +353,8 @@ $(GNAME VisibilityAttribute):
     $(D export)
 )
 
-$(P Visibility is an attribute that is one of $(D private), $(D package), $(D
-protected), $(D public), or $(D export). They may be referred to as protection
+$(P Visibility is an attribute that is one of $(D private), $(D package),
+`protected`, $(D public), or $(D export). They may be referred to as protection
 attributes in documents predating $(LINK2 http://wiki.dlang.org/DIP22, DIP22).)
 
         $(P Symbols with $(D private) visibility can only be accessed from
@@ -497,45 +503,13 @@ void main() { foo(); /* error, foo is disabled */ }
         makes the struct not copyable.
         )
 
+$(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attribute))
+
+    $(P See $(DDSUBLINK function, function-safety, Function Safety).)
+
 $(H2 $(LNAME2 nogc, $(D @nogc) Attribute))
 
-        $(P $(D @nogc) applies to functions, and means that that function does not
-        allocate memory on the GC heap, either directly such as with
-        $(GLINK2 expression, NewExpression) or
-        indirectly through functions it may call, or through language features
-        such as array concatenation and dynamic closures.
-        )
-
-        ---
-        @nogc void foo(char[] a)
-        {
-            auto p = new int;  // error, operator new allocates
-            a ~= 'c';          // error, appending to arrays allocates
-            bar();             // error, bar() may allocate
-        }
-
-        void bar() { }
-        ---
-
-        $(P $(D @nogc) affects the type of the function. An $(D @nogc) function is covariant
-        with a non-$(D @nogc) function.
-        )
-
-        ---
-        void function() fp;
-        void function() @nogc gp;  // pointer to @nogc function
-
-        void foo();
-        @nogc void bar();
-
-        void test()
-        {
-            fp = &foo; // ok
-            fp = &bar; // ok, it's covariant
-            gp = &foo; // error, not contravariant
-            gp = &bar; // ok
-        }
-        ---
+    $(P See $(DDSUBLINK function, nogc-functions, No-GC Functions).)
 
 $(H2 $(LNAME2 property, $(D @property) Attribute))
 
@@ -638,6 +612,10 @@ $(H2 $(LNAME2 auto, $(D auto) Attribute))
 auto i = 6.8;   // declare i as a double
 ---
 
+    $(P For functions, the `auto` attribute means return type inference.
+        See $(DDSUBLINK function, auto-functions, Auto Functions).
+    )
+
 $(H2 $(LNAME2 scope, $(D scope) Attribute))
 
 $(P
@@ -698,16 +676,6 @@ $(P
 
 $(H2 $(LNAME2 uda, User Defined Attributes))
 
-        $(P
-            User Defined Attributes (UDA) are compile time expressions that can be attached
-            to a declaration. These attributes can then be queried, extracted, and manipulated
-            at compile time. There is no runtime component to them.
-        )
-
-        $(P
-            Grammatically, a UDA is a StorageClass:
-        )
-
 $(GRAMMAR
 $(GNAME UserDefinedAttribute):
     $(D @ $(LPAREN)) $(GLINK2 expression, ArgumentList) $(D $(RPAREN))
@@ -717,7 +685,13 @@ $(GNAME UserDefinedAttribute):
     $(D @) $(GLINK2 template, TemplateInstance) $(D $(LPAREN)) $(GLINK2 expression, ArgumentList)$(OPT) $(D $(RPAREN))
 )
 
-And looks like:
+    $(P
+        User Defined Attributes (UDA) are compile-time expressions that can be attached
+        to a declaration. These attributes can then be queried, extracted, and manipulated
+        at compile time. There is no runtime component to them.
+    )
+
+A user-defined attribute looks like:
 
 ---
 @(3) int a;

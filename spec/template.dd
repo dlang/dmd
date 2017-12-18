@@ -1210,7 +1210,8 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
 
                 alias fooX = Foo!(C.num).foo;
 
-                // fooX will become member function implicitly, so &fooX returns delegate object.
+                // fooX will become member function implicitly, so &fooX
+                //     returns a delegate object.
                 static assert(is(typeof(&fooX) == delegate));
 
                 fooX(); // called by using valid 'this' reference.
@@ -1225,7 +1226,8 @@ $(H2 $(LNAME2 nested-templates, Nested Templates))
             int num;
             alias fooX = Foo!num.foo;
 
-            // fooX will become nested function implicitly, so &fooX returns delegate object.
+            // fooX will become nested function implicitly, so &fooX
+            //     returns a delegate object.
             static assert(is(typeof(&fooX) == delegate));
 
             fooX();

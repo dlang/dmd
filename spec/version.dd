@@ -326,6 +326,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
 	$(TROW $(ARGS $(D D_NoBoundsChecks)) , $(ARGS Array bounds checks are disabled
 		(command line switch $(DDSUBLINK dmd, switch-boundscheck, $(TT -boundscheck=off)))))
 	$(TROW $(ARGS $(D D_ObjectiveC)) , $(ARGS The target supports interfacing with Objective-C))
+	$(TROW $(ARGS $(D Std)) , $(ARGS Define when building the standard library))
 	$(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
 		(command line switch $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)))))
 	$(TROW $(ARGS $(D assert)) , $(ARGS Checks are being emitted for $(GLINK2 expression, AssertExpression)s))
@@ -563,7 +564,7 @@ $(GNAME StaticForeachStatement):
 	corresponding code with a $(GLINK2 statement, ForeachStatement)/$(GLINK2 statement, ForeachRangeStatement)
 	at compile time. The body of the $(D static foreach) is then copied a
 	number of times that corresponds to the number of elements of the
-	sequence. Within the i-th copy, the name of the $(D static forecah)
+	sequence. Within the i-th copy, the name of the $(D static foreach)
 	variable is bound to the i-th entry of the sequence, either as an $(D enum)
 	variable declaration (for constants) or an $(D alias)
 	declaration (for symbols). (In particular, $(D static foreach)

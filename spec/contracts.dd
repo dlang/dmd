@@ -44,8 +44,8 @@ assert(expression);
 	therefore has undefined behaviour.)
 
 	$(P As a debugging aid, the compiler may insert a runtime check to
-	verify that the expression is indeed true.  If it is false, an $(D
-	AssertError) is thrown.  When compiling for release, this check is not
+	verify that the expression is indeed true.  If it is false, an
+	`AssertError` is thrown.  When compiling for release, this check is not
 	generated.  The special $(D assert(0)) expression, however, is
 	generated even in release mode. See the $(GLINK2 expression,
 	AssertExpression) documentation for more information.)
@@ -75,15 +75,23 @@ do
     ...code...
 }
 ------
-	$(P By definition, if a pre contract fails, then the function received bad
-	parameters.
-	An AssertError is thrown. If a post contract fails,
-	then there is a bug in the function. An AssertError is thrown.)
 
-	$(P Either the <code>in</code> or the <code>out</code> clause can be omitted.
-	If the <code>out</code> clause is for a function
-	body, the variable <code>result</code> is declared and assigned the return
+    $(P Since $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1003.md, DIP1003 has been applied)
+    the actual function body starts with $(D do).
+    In the past, $(D body) was used, and could still be encountered in old code bases.
+    In the long term, $(D body) may be deprecated, but for now it's allowed
+    as a keyword in this context and as an identifier in the function body,
+    although $(D do) is preferred.)
+
+	$(P By definition, if a pre contract fails, then the function received bad
+	parameters. An `AssertError` is thrown. If a post contract fails,
+	then there is a bug in the function. An `AssertError` is thrown.)
+
+	$(P Either the `in` or the `out` clause can be omitted.
+	If the `out` contract is for a function
+	body, the given `result` variable is declared and assigned the return
 	value of the function. For example, let's implement a square root function:)
+
 ------
 long square_root(long x)
 in
@@ -92,25 +100,29 @@ in
 }
 out (result)
 {
-    assert((result * result) <= x && (result+1) * (result+1) > x);
+    assert(result ^^ 2 <= x && (result + 1) ^^ 2 > x);
 }
 do
 {
     return cast(long)std.math.sqrt(cast(real)x);
 }
 ------
-	$(P The assert's in the in and out bodies are called <dfn>contracts</dfn>.
+	$(P The `assert`s in the `in` and `out` bodies are called $(I contracts).
 	Any other D
 	statement or expression is allowed in the bodies, but it is important
 	to ensure that the
 	code has no side effects, and that the release version of the code
 	will not depend on any 	effects of the code.
-	For a release build of the code, the in and out code is not
+	For a release build of the code, the `in` and `out` code is not
 	inserted.)
 
-	$(P If the function returns a void, there is no result, and so there can be no
-	result declaration in the out clause.
-	In that case, use:)
+$(H3 $(LNAME2 out_without_result, Post Contracts Without a Result Variable))
+
+	$(P If the function returns `void`, there is no result, and so there can be no
+	result variable in the `out` clause. An `out` contract can still be useful,
+	(e.g. to check a global variable or a `ref` parameter was set correctly).)
+
+	$(P Regardless of return type, `out` contracts don't require a result variable:)
 ------
 void func()
 out
@@ -122,12 +134,10 @@ do
     ...
 }
 ------
-	$(P In an out statement, $(I result) is initialized and set to the
-	return value of the function.)
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
-	$(P If a function in a derived class overrides a function in its
+	$(P If a function in a derived class overrides a function from its
 	super class, then only one of
 	the $(D in) contracts of the function and its base functions
 	must be satisfied.
@@ -139,7 +149,7 @@ $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 	$(P A function without an $(D in) contract means that any values
 	of the function parameters are allowed. This implies that if any
 	function in an inheritance hierarchy has no $(D in) contract,
-	then $(D in) contracts on functions overriding it have no useful
+	then any $(D in) contracts on functions overriding it have no useful
 	effect.
 	)
 
@@ -152,7 +162,7 @@ $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 $(H2 $(LNAME2 Invariants, Invariants))
 
 	$(P Invariants are used to specify characteristics of a class or struct that
-	always must be true (except while executing a member function).
+	must always be true (except while executing a member function).
 	For example, a class representing a date might have an invariant that the
 	day must be 1..31 and the hour must be 0..23:
 	)
@@ -177,9 +187,9 @@ class Date
 }
 ------
 
-	$(P The invariant is a contract saying that the asserts must hold true.
+	$(P The invariant is a contract saying that the `assert`s must hold true.
 	The invariant is checked when a class or struct constructor completes,
-	at the start of the class or struct destructor. For public or exported
+	and at the start of the class or struct destructor. For public or exported
 	functions, the order of execution is:
 	)
 
@@ -201,7 +211,7 @@ class Date
 	up being called in an infinitely recursive manner.
 	)
 
-	$(P Invariants are implicitly const.)
+	$(P Invariants are implicitly `const`.)
 
 	$(P Since the invariant is called at the start of public or
 	exported members, such members should not be called from
@@ -240,10 +250,10 @@ assert(&s);               // check that struct S invariant holds
 	$(P Invariants contain assert expressions, and so when they fail,
 	they throw $(D AssertError)s.
 	Class invariants are inherited, that is,
-	any class invariant is implicitly anded with the invariants of its base
+	any class invariant is implicitly in addition to the invariants of its base
 	classes.)
 
-	$(P There can be more than one $(D invariant) per class or struct.)
+	$(P There can be more than one invariant declared per class or struct.)
 
 	$(P When compiling for release, the invariant code is not generated, and the compiled program runs at maximum speed.
 	The compiler is free to assume the invariant holds true, regardless of whether code is generated for it or not, and

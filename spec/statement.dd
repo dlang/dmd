@@ -588,8 +588,8 @@ $(H3 $(LNAME2 foreach_over_struct_and_classes, Foreach over Structs and Classes 
 
     $(P If the aggregate expression is a struct or class object,
         the $(D foreach) is defined by the
-        special $(LEGACY_LNAME2 opApply, op-apply, $(D opApply)) member function, and the $(D
-        foreach_reverse) behavior is defined by the special
+        special $(LEGACY_LNAME2 opApply, op-apply, $(D opApply)) member function, and the
+        `foreach_reverse` behavior is defined by the special
         $(LEGACY_LNAME2 opApplyReverse, op-apply-reverse, $(D opApplyReverse)) member function.
         These functions have the type:
     )
@@ -681,13 +681,13 @@ $(CONSOLE
             import std.traits : ParameterTypeTuple;  // introspection template
 
             int opApply(Dg)(scope Dg dg)
-                if (ParameterTypeTuple!Dg.length == 2)  // foreach function takes 2 parameters
+            if (ParameterTypeTuple!Dg.length == 2) // foreach with 2 parameters
             {
                 return 0;
             }
 
             int opApply(Dg)(scope Dg dg)
-                if (ParameterTypeTuple!Dg.length == 3)  // foreach function takes 3 parameters
+            if (ParameterTypeTuple!Dg.length == 3) // foreach with takes 3 parameters
             {
                 return 0;
             }
@@ -1368,7 +1368,7 @@ with (expression)
 }
 --------------
 
-        $(P Note that $(EXPRESSION) only gets evaluated once.
+        $(P Note that $(EXPRESSION) only gets evaluated once and is not copied.
         The with statement does not change what $(D this) or
         $(D super) refer to.
         )
@@ -1413,6 +1413,70 @@ void main()
 }
 ---
 
+        $(P In nested $(I WithStatement)s, the inner-most scope takes precedence.  If
+        a symbol cannot be resolved at the inner-most scope, resolution is forwarded
+        incrementally up the scope hierarchy.)
+---
+import std.stdio;
+
+struct Foo
+{
+    void f() { writeln("Foo.f"); }
+}
+
+struct Bar
+{
+    void f() { writeln("Bar.f"); }
+}
+
+struct Baz
+{
+    // f() is not implemented
+}
+
+void f()
+{
+    writeln("f");
+}
+
+void main()
+{
+    Foo foo;
+    Bar bar;
+    Baz baz;
+
+    f();               // prints "f"
+
+    with(foo)
+    {
+        f();           // prints "Foo.f"
+
+        with(bar)
+        {
+            f();       // prints "Bar.f"
+
+            with(baz)
+            {
+                f();   // prints "Bar.f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `with(bar)`'s scope
+            }
+        }
+        with(baz)
+        {
+            f();       // prints "Foo.f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `with(foo)`'s scope
+        }
+    }
+    with(baz)
+    {
+        f();           // prints "f".  `Baz` does not implement `f()` so
+                       // resolution is forwarded to `main`'s scope. `f()` is
+                       // not implemented in `main`'s scope, so resolution is
+                       // subsequently forward to module scope.
+    }
+}
+
+---
 
 $(H2 $(LEGACY_LNAME2 SynchronizedStatement, synchronized-statement, Synchronized Statement))
 
@@ -1603,8 +1667,8 @@ $(P The $(I ScopeGuardStatement) executes $(PSCURLYSCOPE) at the close of the
 current scope, rather than at the point where the $(I ScopeGuardStatement)
 appears. $(D scope(exit)) executes $(PSCURLYSCOPE) when the scope exits normally
 or when it exits due to exception unwinding. $(D scope(failure)) executes
-$(PSCURLYSCOPE) when the scope exits due to exception unwinding. $(D
-scope(success)) executes $(PSCURLYSCOPE) when the scope exits normally.)
+$(PSCURLYSCOPE) when the scope exits due to exception unwinding.
+`scope(success)` executes $(PSCURLYSCOPE) when the scope exits normally.)
 
         $(P If there are multiple $(I ScopeGuardStatement)s in a scope, they
         will be executed in the reverse lexical order in which they appear.

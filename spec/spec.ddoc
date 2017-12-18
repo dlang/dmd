@@ -30,6 +30,12 @@ $(T style,
         counter-increment: p;
         content: counter(p) ". ";
     }
+    h1::before, h2::before, h3::before, h4::before, p::before
+    {
+        color: #999;
+        font-size: 80%;
+        margin-right: 0.25em;
+    }
 )
 
 SUBNAV_HEAD = $(DIVC head, $(H5 $1) $(TC p, $4, $(LINK2 $2, $3)))
@@ -82,6 +88,7 @@ $(SUBNAV_TEMPLATE
         )
     )
 )
+SPEC_RUNNABLE_EXAMPLE=$(RUNNABLE_EXAMPLE $0)
 SPEC_SUBNAV_NEXT=
 $(SPEC_NEXT $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
 $(CLEAR)
@@ -99,4 +106,5 @@ SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
 SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
 
 CLEAR=<div style="clear:both"></div>
+RAWHTML=$0
 _=

@@ -130,8 +130,8 @@ directory and file names, and many file systems are not case sensitive. All
 lower case package and module names will minimize problems moving projects
 between dissimilar file systems.)
 
-$(P If the file name of a module is an invalid module name (e.g. $(D
-foo-bar.d)), you may use a module declaration to set a valid module name:)
+$(P If the file name of a module is an invalid module name (e.g.
+`foo-bar.d`), you may use a module declaration to set a valid module name:)
 
 ---------
 module foo_bar;
@@ -420,7 +420,8 @@ void main()
     foo("bar");               // ok, foo is bound into current namespace,
                               // FQN not required
     io.writeln("bar");        // ok, io=std.stdio bound the name io in
-                              // the current namespace to refer to the entire module
+                              // the current namespace to refer to the entire
+                              //   module
     io.foo("bar");            // error, foo is bound into current namespace,
                               // foo is not a member of io
 }

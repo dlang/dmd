@@ -1060,19 +1060,19 @@ $(P The following forms of slice expression can be convertible to a static array
 type:)
 
         $(DL
-        $(DT $(I e))$(DD An expression that contains no side effects.)
-        $(DT $(D a), $(D b))$(DD Integers (that may be constant-folded).)
+        $(DT $(D e)) $(DD An expression that contains no side effects.)
+        $(DT $(D a), $(D b)) $(DD Integers (that may be constant-folded).)
         )
 
-        $(TABLE
+        $(TABLE2 Computing array lengths during compilation,
         $(THEAD Form, The length calculated at compile time)
         $(TROW $(D arr[]), The compile time length of $(D arr) if it's known.)
         $(TROW $(D arr[a .. b]),               $(D b - a))
-        $(TROW $(D arr[$(I e)-a .. $(I e)]),   $(D a))
-        $(TROW $(D arr[$(I e) .. $(I e)+b]),   $(D b))
-        $(TROW $(D arr[$(I e)-a .. $(I e)+b]), $(D a + b))
-        $(TROW $(D arr[$(I e)+a .. $(I e)+b]), $(D b - a) $(I if) $(D a <= b))
-        $(TROW $(D arr[$(I e)-a .. $(I e)-b]), $(D a - b) $(I if) $(D a >= b))
+        $(TROW $(D arr[e-a .. e]),   $(D a))
+        $(TROW $(D arr[e .. e+b]),   $(D b))
+        $(TROW $(D arr[e-a .. e+b]), $(D a + b))
+        $(TROW $(D arr[e+a .. e+b]), $(D b - a) $(I if) $(D a <= b))
+        $(TROW $(D arr[e-a .. e-b]), $(D a - b) $(I if) $(D a >= b))
         )
 
     $(P If $(I PostfixExpression) is an $(I ExpressionTuple), then
@@ -1654,16 +1654,6 @@ $(GNAME AssertExpression):
         Contract Programming) support in D.
     )
 
-    $(P The expression $(D assert(0)) is a special case; it
-        signifies that it is unreachable code.
-        Either $(D AssertError) is thrown at runtime if it is reachable,
-        or the execution is halted
-        (on the x86 processor, a $(D HLT) instruction can be used to halt
-        execution).
-        The optimization and code generation phases of compilation may
-        assume that it is unreachable code.
-    )
-
     $(P The second $(I AssignExpression), if present, must be implicitly
         convertible to type $(D const(char)[]).
         It is evaluated if the
@@ -1680,8 +1670,19 @@ $(GNAME AssertExpression):
     $(P When compiled and run, it will produce the message:)
 
 $(CONSOLE
-Error: AssertError Failure test.d(3) an error message
+core.exception.AssertError@test.d(3) an error message
 )
+
+    $(P The expression $(D assert(0)) is a special case; it
+        signifies that it is unreachable code.
+        Without optimizations, an $(D AssertError) is thrown at runtime.
+        In release mode ($(LINK2 $(ROOT_DIR)/dmd.html#switch-release, `-release`))
+        the execution is halted
+        (on the x86 processor, a $(D HLT) instruction can be used to halt
+        execution).
+        The optimization and code generation phases of compilation may
+        assume that it is unreachable code.
+    )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
 
