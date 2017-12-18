@@ -778,7 +778,7 @@ version(Windows)
      */
     private int _mkdir(const(char)* path) nothrow
     {
-        const createRet = path.extendedPathThen!(p => CreateDirectoryW(&p[0],
+        const createRet = path.extendedPathThen!(p => CreateDirectoryW(p,
                                                                        null /*securityAttributes*/));
         // different conventions for CreateDirectory and mkdir
         return createRet == 0 ? 1 : 0;
@@ -800,15 +800,15 @@ version(Windows)
         return path.toWStringzThen!((wpath)
         {
             // GetFullPathNameW expects a sized buffer to store the result in. Since we don't
-            // know how larget it has to be, we pass in null and get the needed buffer length
+            // know how large it has to be, we pass in null and get the needed buffer length
             // as the return code.
-            const pathLength = GetFullPathNameW(&wpath[0],
+            const pathLength = GetFullPathNameW(wpath,
                                                 0 /*length8*/,
                                                 null /*output buffer*/,
                                                 null /*filePartBuffer*/);
             if (pathLength == 0)
             {
-                return F(""w);
+                return F(""w.ptr);
             }
 
             // wpath is the UTF16 version of path, but to be able to use
@@ -824,18 +824,17 @@ version(Windows)
 
             absPath[0 .. prefix.length] = prefix[];
 
-            const absPathRet = GetFullPathNameW(&wpath[0],
+            const absPathRet = GetFullPathNameW(wpath,
                                                 cast(uint)(absPath.length - prefix.length),
                                                 &absPath[prefix.length],
                                                 null /*filePartBuffer*/);
 
             if (absPathRet == 0 || absPathRet > absPath.length - prefix.length)
             {
-                return F(""w);
+                return F(""w.ptr);
             }
 
-            auto extendedPath = absPath[0 .. absPathRet];
-            return F(extendedPath);
+            return F(absPath.ptr);
 
         });
     }
@@ -859,19 +858,18 @@ version(Windows)
         const int strLength = cast(int)(strlen(str) + 1);
         // first find out how long the buffer must be to store the result
         const length = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, null, 0);
-        wchar[] empty;
-        if (!length) return F(empty);
+        if (!length) return F(""w.ptr);
 
         auto ret = length > buf.length
-            ? (cast(wchar*)malloc(length * wchar.sizeof))[0 .. length]
-            : buf[0 .. length];
+            ? (cast(wchar*)malloc(length * wchar.sizeof))
+            : &buf[0];
         scope (exit)
         {
-            if (&ret[0] != &buf[0])
-                free(&ret[0]);
+            if (ret != &buf[0])
+                free(ret);
         }
         // actually do the conversion
-        const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, &ret[0], cast(int)ret.length);
+        const length2 = MultiByteToWideChar(0 /*codepage*/, 0 /*flags*/, str, strLength, ret, cast(int)length);
         assert(length == length2); // should always be true according to the API
 
         return F(ret);
