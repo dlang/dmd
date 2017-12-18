@@ -1823,6 +1823,18 @@ extern (C++) bool isDitto(const(char)* comment)
     return false;
 }
 
+bool isWhitespace(const(char) c)
+{
+// TODO: unicode whitespace: Zs.
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+bool isPunctuation(const(char) c)
+{
+// TODO: unicode punctuation: Pc, Pd, Pe, Pf, Pi, Po, or Ps.
+    return c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' || c == ':' || c == ';' || c == '<' || c == '=' || c == '>' || c == '?' || c == '@' || c == '[' || c == '\\' || c == ']' || c == '^' || c == '_' || c == '`' || c == '{' || c == '|' || c == '}' || c == '~';
+}
+
 /**********************************************
  * Skip white space.
  */
@@ -2168,6 +2180,14 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
     return false;
 }
 
+struct MarkdownEmphasis
+{
+    size_t iStart;
+    int count;
+    bool leftFlanking;
+    bool rightFlanking;
+}
+
 /**************************************************
  * Highlight text section.
  */
@@ -2180,6 +2200,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iHeadingStart = 0;
     int quoteLevel = 0;
     int previousQuoteLevel = 0;
+    MarkdownEmphasis[] emphases;
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
@@ -2222,6 +2243,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
+                if (emphases.length)
+                    emphases.length = 0;
+
                 for (; previousQuoteLevel > 0; --previousQuoteLevel)
                     i = buf.insert(i, ")");
                 quoteLevel = 0;
@@ -2396,7 +2420,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 if (inCode)
                     break;
-                inCode = 1;
+                inCode = c;
                 inBacktick = 1;
                 codeIndent = 0; // inline code is not indented
                 // All we do here is set the code flags and record
@@ -2404,6 +2428,17 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // so we can easily cancel the inBacktick if we come
                 // across a newline character.
                 iCodeStart = i;
+                break;
+            }
+        case '~':
+            {
+                if (leadingBlank)
+                {
+                    // Perhaps we're starting or ending a Markdown code block
+                    size_t iAfterDelimiter = skipchars(buf, i, "~");
+                    if (iAfterDelimiter - i >= 3)
+                        goto case '-';
+                }
                 break;
             }
         case '-':
@@ -2415,7 +2450,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 size_t istart = i;
                 size_t eollen = 0;
                 leadingBlank = 0;
-                char c0 = c; // if we jumped here from case '`'
+                char c0 = c; // if we jumped here from case '`' or case '~'
                 while (1)
                 {
                     ++i;
@@ -2442,7 +2477,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     if (c != c0)
                         goto Lcont;
                 }
-                if (i - istart < 3)
+                if (i - istart < 3 || (inCode && inCode != c))
                     goto Lcont;
                 // We have the start/end of a code section
                 // Remove the entire --- line, including blanks and \n
@@ -2498,7 +2533,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 else
                 {
                     static __gshared const(char)* d_code = "$(D_CODE ";
-                    inCode = 1;
+                    inCode = c;
                     codeIndent = istart - iLineStart; // save indent count
                     i = buf.insert(i, d_code, strlen(d_code));
                     iCodeStart = i;
@@ -2607,7 +2642,57 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             else
             {
-                // TODO: bold/italic
+                char leftC = i > 0 ? buf.data[i-1] : '\0';
+                size_t iAfterEmphasis = skipchars(buf, i+1, "*");
+                char rightC = iAfterEmphasis < offset ? buf.data[iAfterEmphasis] : '\0';
+                int count = cast(int) (iAfterEmphasis - i);
+                bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
+                bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
+                auto emphasis = MarkdownEmphasis(i, count, leftFlanking, rightFlanking);
+
+                if (!emphasis.leftFlanking && !emphasis.rightFlanking)
+                {
+                    i = iAfterEmphasis - 1;
+                    break;
+                }
+
+                if (emphasis.rightFlanking && emphases.length)
+                {
+                    auto start = emphases[$-1];
+                    if ((emphasis.count + start.count) % 3 != 0)
+                    {
+                        size_t iStart = start.iStart;
+                        if (start.count <= emphasis.count)
+                        {
+                            count = start.count;
+                            emphasis.count -= start.count;
+                            emphasis.iStart += start.count;
+
+                            --emphases.length;
+                        }
+                        else
+                        {
+                            count = emphasis.count;
+                            start.count -= emphasis.count;
+                            iStart += start.count;
+                        }
+
+                        buf.remove(iStart, count);
+                        while (count)
+                        {
+                            buf.insert(i, ")");
+                            string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
+                            count -= count >= 2 ? 2 : 1;
+                            iStart = buf.insert(iStart, macroName);
+                            i += macroName.length;
+                        }
+                    }
+                }
+
+                if (emphasis.count && emphasis.leftFlanking)
+                {
+                    emphases ~= emphasis;
+                }
             }
             break;
         }
@@ -2723,6 +2808,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             break;
         }
     }
+    // TODO: remove the restriction that code blocks must be closed?
     if (inCode)
         error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
 }
