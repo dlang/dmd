@@ -517,6 +517,95 @@ else version(NetBSD)
     int creat(in char*, mode_t);
     int open(in char*, int, ...);
 }
+else version( DragonFlyBSD )
+{
+    enum O_RDONLY       = 0x0000;
+    enum O_WRONLY       = 0x0001;
+    enum O_RDWR         = 0x0002;
+    enum O_ACCMODE      = 0x0003;
+
+    enum FREAD          = 0x0001;
+    enum FWRITE         = 0x0002;
+    enum O_NONBLOCK     = 0x0000004;
+    enum O_APPEND       = 0x0000008;
+    enum O_SHLOCK       = 0x0000010;
+    enum O_EXLOCK       = 0x0000020;
+    enum O_ASYNC        = 0x0000040;
+    enum O_FSYNC        = 0x0000080;
+    enum O_SYNC         = 0x0000080;
+    enum O_NOFOLLOW     = 0x0000100;
+    enum O_CREAT        = 0x0000200;
+    enum O_TRUNC        = 0x0000400;
+    enum O_EXCL         = 0x0000800;
+    enum O_NOCTTY       = 0x0008000;
+    enum O_DIRECT       = 0x0010000;
+    enum O_CLOEXEC      = 0x0020000;
+    enum O_FBLOCKING    = 0x0040000;
+    enum O_FNONBLOCKING = 0x0080000;
+    enum O_FAPPEND      = 0x0100000;
+    enum O_FOFFSET      = 0x0200000;
+    enum O_FSYNCWRITE   = 0x0400000;
+    enum O_FASYNCWRITE  = 0x0800000;
+    enum O_DIRECTORY    = 0x8000000;
+
+    enum FAPPEND        = O_APPEND;
+    enum FASYNC         = O_ASYNC;
+    enum FFSYNC         = O_FSYNC;
+    enum FNONBLOCK      = O_NONBLOCK;
+    enum FNDELAY        = O_NONBLOCK;
+    enum O_NDELAY       = O_NONBLOCK;
+    enum FPOSIXSHM      = O_NOFOLLOW;
+
+    enum FCNTLFLAGS = (FAPPEND|FASYNC|FFSYNC|FNONBLOCK|FPOSIXSHM|O_DIRECT);
+
+    enum F_DUPFD        = 0;
+    enum F_GETFD        = 1;
+    enum F_SETFD        = 2;
+    enum F_GETFL        = 3;
+    enum F_SETFL        = 4;
+    enum F_GETOWN       = 5;
+    enum F_SETOWN       = 6;
+    enum F_GETLK        = 7;
+//    enum F_SETLK        = 8;
+    enum F_SETLK        = 8;
+    enum F_SETLKW       = 9;
+    enum F_OGETLK       = F_GETLK;
+    enum F_OSETLK       = F_SETLK;
+    enum F_OSETLKW      = F_SETLKW;
+    enum F_DUP2FD       = 10;
+    //enum F_GETLK        = 11;
+    //enum F_SETLK        = 12;
+    //enum F_SETLKW       = 13;
+    enum F_DUPFD_CLOEXEC = 17;
+    enum F_DUP2FD_CLOEXEC = 18;
+
+    enum FD_CLOEXEC     = 1;
+
+    enum F_RDLCK        = 1;
+    enum F_UNLCK        = 2;
+    enum F_WRLCK        = 3;
+
+    enum LOCK_SH        = 0x01;
+    enum LOCK_EX        = 0x02;
+    enum LOCK_NB        = 0x04;
+    enum LOCK_UN        = 0x08;
+
+    struct flock
+    {
+        off_t   l_start;
+        off_t   l_len;
+        pid_t   l_pid;
+        short   l_type;
+        short   l_whence;
+    }
+
+    alias oflock = flock;
+
+    int creat(in char*, mode_t);
+    int open(in char*, int, ...);
+    //int fcntl(int, int, ...);  /*defined below*/
+    //int flock(int, int);
+}
 else version (Solaris)
 {
     enum F_DUPFD = 0;

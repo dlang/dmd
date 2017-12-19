@@ -103,6 +103,21 @@ else version( OpenBSD )
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
+else version( DragonFlyBSD )
+{
+    struct sem_t
+    {
+        uint _magic;
+        struct _usem
+        {
+            shared uint _has_waiters;
+            shared uint _count;
+            uint _flags;
+        } _usem _kern;
+    }
+
+    enum SEM_FAILED = cast(sem_t*) null;
+}
 else version (Solaris)
 {
     struct sem_t
@@ -164,6 +179,10 @@ else version(NetBSD)
     int sem_timedwait(sem_t*, in timespec*);
 }
 else version( OpenBSD )
+{
+    int sem_timedwait(sem_t*, in timespec*);
+}
+else version( DragonFlyBSD )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }

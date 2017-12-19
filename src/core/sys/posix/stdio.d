@@ -213,6 +213,8 @@ version( CRuntime_Glibc )                     // as of glibc 1.0x
     version = HaveMemstream;
 else version( FreeBSD )                      // as of FreeBSD 9.2
     version = HaveMemstream;
+else version( DragonFlyBSD )                 // for DragonFlyBSD
+    version = HaveMemstream;
 else version( OpenBSD )                      // as of OpenBSD 5.4
     version = HaveMemstream;
 
@@ -298,6 +300,10 @@ version(NetBSD)
 version( OpenBSD )
 {
     enum P_tmpdir  = "/tmp/";
+}
+version( DragonFlyBSD )
+{
+    enum P_tmpdir  = "/var/tmp/";
 }
 version( Solaris )
 {

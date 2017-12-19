@@ -117,6 +117,17 @@ else version( OpenBSD )
     enum SCHED_OTHER    = 2;
     enum SCHED_RR       = 3;
 }
+else version( DragonFlyBSD )
+{
+    struct sched_param
+    {
+        int sched_priority;
+    }
+
+    enum SCHED_FIFO     = 1;
+    enum SCHED_OTHER    = 2;
+    enum SCHED_RR       = 3;
+}
 else version (Solaris)
 {
     struct sched_param
@@ -183,6 +194,10 @@ else version( OpenBSD )
 {
     int sched_yield();
 }
+else version( DragonFlyBSD )
+{
+    int sched_yield();
+}
 else version (Solaris)
 {
     int sched_yield();
@@ -230,6 +245,12 @@ else version(NetBSD)
     int sched_rr_get_interval(pid_t, timespec*);
 }
 else version( OpenBSD )
+{
+    int sched_get_priority_min(int);
+    int sched_get_priority_max(int);
+    int sched_rr_get_interval(pid_t, timespec*);
+}
+else version( DragonFlyBSD )
 {
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);

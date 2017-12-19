@@ -836,6 +836,71 @@ else version(NetBSD)
 
     }
 }
+else version( DragonFlyBSD )
+{
+    // <machine/ucontext.h>
+    version( X86_64 )
+    {
+      alias long __register_t;
+      alias uint __uint32_t;
+      alias ushort __uint16_t;
+
+      struct mcontext_t {
+        __register_t    mc_onstack;
+        __register_t    mc_rdi;
+        __register_t    mc_rsi;
+        __register_t    mc_rdx;
+        __register_t    mc_rcx;
+        __register_t    mc_r8;
+        __register_t    mc_r9;
+        __register_t    mc_rax;
+        __register_t    mc_rbx;
+        __register_t    mc_rbp;
+        __register_t    mc_r10;
+        __register_t    mc_r11;
+        __register_t    mc_r12;
+        __register_t    mc_r13;
+        __register_t    mc_r14;
+        __register_t    mc_r15;
+        __register_t    mc_xflags;
+        __register_t    mc_trapno;
+        __register_t    mc_addr;
+        __register_t    mc_flags;
+        __register_t    mc_err;
+        __register_t    mc_rip;
+        __register_t    mc_cs;
+        __register_t    mc_rflags;
+        __register_t    mc_rsp;
+        __register_t    mc_ss;
+
+        uint            mc_len;
+        uint            mc_fpformat;
+        uint            mc_ownedfp;
+        uint            mc_reserved;
+        uint[8]         mc_unused;
+        int[256]        mc_fpregs;
+      };  // __attribute__((aligned(64)));
+    }
+    else
+    {
+        static assert(0, "Only X86_64 support on DragonFlyBSD");
+    }
+
+    // <ucontext.h>
+    enum UCF_SWAPPED = 0x00000001;
+
+    struct ucontext_t
+    {
+        sigset_t        uc_sigmask;
+        mcontext_t      uc_mcontext;
+
+        ucontext_t*     uc_link;
+        stack_t         uc_stack;
+        void            function(ucontext_t *, void *) uc_cofunc;
+        void*           uc_arg;
+        int[4]          __spare__;
+    }
+}
 else version ( Solaris )
 {
     alias uint[4] upad128_t;
