@@ -247,7 +247,7 @@ unittest
         {
             assert(f1 == 0 + 0i);
 
-            assert(f1  == f2);
+            assert(f1 == f2);
             assert(f1 !is f2);
             ti = typeid(F);
             assert(ti.getHash(&f1) == ti.getHash(&f2));

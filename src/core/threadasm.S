@@ -13,7 +13,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#if (defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__)) && defined(__ELF__)
+#if (__linux__ || __FreeBSD__ || __NetBSD__ || __DragonFly__) && __ELF__
 /*
  * Mark the resulting object file as not requiring execution permissions on
  * stack memory. The absence of this section would mark the whole resulting

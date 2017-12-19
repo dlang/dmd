@@ -169,6 +169,23 @@ else version(OpenBSD)
     ///
     enum LC_MESSAGES       = 6;
 }
+else version(DragonFlyBSD)
+{
+    ///
+    enum LC_ALL            = 0;
+    ///
+    enum LC_COLLATE        = 1;
+    ///
+    enum LC_CTYPE          = 2;
+    ///
+    enum LC_MONETARY       = 3;
+    ///
+    enum LC_NUMERIC        = 4;
+    ///
+    enum LC_TIME           = 5;
+    ///
+    enum LC_MESSAGES       = 6;
+}
 else version(CRuntime_Bionic)
 {
     enum

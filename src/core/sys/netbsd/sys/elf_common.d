@@ -78,6 +78,7 @@ enum ELFOSABI_NSK =            14;
 enum ELFOSABI_AROS =           15;
 enum ELFOSABI_ARM =            97;
 enum ELFOSABI_STANDALONE =     255;
+enum ELFOSABI_DRAGONFLYBSD =   ELFOSABI_NONE;
 
 extern (D)
 {

@@ -77,6 +77,7 @@ else version(Darwin)  enum RAND_MAX = 0x7fffffff;
 else version(FreeBSD) enum RAND_MAX = 0x7fffffff;
 else version(NetBSD)  enum RAND_MAX = 0x7fffffff;
 else version(OpenBSD) enum RAND_MAX = 0x7fffffff;
+else version(DragonFlyBSD) enum RAND_MAX = 0x7fffffff;
 else version(Solaris) enum RAND_MAX = 0x7fff;
 else version(CRuntime_Bionic) enum RAND_MAX = 0x7fffffff;
 else version(CRuntime_Musl) enum RAND_MAX = 0x7fffffff;
