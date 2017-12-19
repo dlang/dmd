@@ -34,6 +34,22 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #define PRO     (config.target_cpu >= TARGET_PentiumPro)
 #endif
 
+enum
+{
+    FPfstp = 1,       /// FSTP mem
+    FPfld  = 2,       /// FLD mem
+    FPfop  = 3,       /// Fop ST0,mem or Fop ST0
+};
+
+enum
+{
+    CIFLarraybounds = 1,     /// this instruction is a jmp to array bounds
+    CIFLea          = 2,     /// this instruction has a memory-referencing
+                             /// modregrm EA byte
+    CIFLnostage     = 4,     /// don't stage these instructions
+    CIFLpush        = 8,     /// it's a push we can swap around
+};
+
 // Struct where we gather information about an instruction
 struct Cinfo
 {
@@ -45,17 +61,9 @@ struct Cinfo
     // For floating point scheduling
     unsigned char fxch_pre;
     unsigned char fxch_post;
-    unsigned char fp_op;
-        #define FPfstp  1       // FSTP mem
-        #define FPfld   2       // FLD mem
-        #define FPfop   3       // Fop ST0,mem or Fop ST0
+    unsigned char fp_op;        /// FPxxxx
 
-    unsigned char flags;
-#define CIFLarraybounds 1       // this instruction is a jmp to array bounds
-#define CIFLea          2       // this instruction has a memory-referencing
-                                // modregrm EA byte
-#define CIFLnostage     4       // don't stage these instructions
-#define CIFLpush        8       // it's a push we can swap around
+    unsigned char flags;        /// CIFLxxx
 
     unsigned r;         // read mask
     unsigned w;         // write mask
@@ -67,9 +75,8 @@ struct Cinfo
                         // instruction being executed
     int fpuadjust;      // if !=0, then amount FPU stack changes as a result
                         // of this instruction being executed
-#if DEBUG
+
     void print();       // pretty-printer
-#endif
 };
 
 code *simpleops(code *c,regm_t scratch);
@@ -117,13 +124,16 @@ void cgsched_block(block* b)
     }
 }
 
-#define NP      0       // not pairable
-#define PU      1       // pairable in U only, never executed in V
-#define PV      2       // pairable in V only
-#define UV      (PU|PV) // pairable in both U and V
-#define PE      4       // register contention exception
-#define PF      8       // flags contention exception
-#define FX      0x10    // pairable with FXCH instruction
+enum
+{
+    NP    = 0,       /// not pairable
+    PU    = 1,       /// pairable in U only, never executed in V
+    PV    = 2,       /// pairable in V only
+    UV    = (PU|PV), /// pairable in both U and V
+    PE    = 4,       /// register contention exception
+    PF    = 8,       /// flags contention exception
+    FX    = 0x10,    /// pairable with FXCH instruction
+};
 
 static unsigned char pentcycl[256] =
 {
@@ -168,14 +178,17 @@ static unsigned char pentcycl[256] =
  * For each opcode, determine read [0] and written [1] masks.
  */
 
-#define EA      0x100000
-#define R       0x200000        // register (reg of modregrm field)
-#define N       0x400000        // other things modified, not swappable
-#define B       0x800000        // it's a byte operation
-#define C       0x1000000       // floating point flags
-#define mMEM    0x2000000       // memory
-#define S       0x4000000       // floating point stack
-#define F       0x8000000       // flags
+enum
+{
+    EA    = 0x100000,
+    R     = 0x200000,       /// register (reg of modregrm field)
+    N     = 0x400000,       /// other things modified, not swappable
+    B     = 0x800000,       /// it's a byte operation
+    C     = 0x1000000,      /// floating point flags
+    mMEM  = 0x2000000,      /// memory
+    S     = 0x4000000,      /// floating point stack
+    F     = 0x8000000,      /// flags
+};
 
 static unsigned oprw[256][2] =
 {
@@ -2147,8 +2160,7 @@ void Schedule::initialize(int fpustackinit)
  */
 
 code **Schedule::assemble(code **pc)
-{   int i;
-    list_t l;
+{
     code *c;
 
 #ifdef DEBUG
@@ -2157,20 +2169,19 @@ code **Schedule::assemble(code **pc)
     assert(!*pc);
 
     // Try to insert the rest of the staged instructions
+    list_t l;
     for (l = stagelist; l; l = list_next(l))
-    {   Cinfo *ci;
-
-        ci = (Cinfo *)list_ptr(l);
+    {
+        Cinfo* ci = (Cinfo *)list_ptr(l);
         if (!insert(ci))
             break;
     }
 
     // Get the instructions out of the schedule table
     assert((unsigned)tblmax <= TBLMAX);
-    for (i = 0; i < tblmax; i++)
-    {   Cinfo *ci;
-
-        ci = tbl[i];
+    for (int i = 0; i < tblmax; i++)
+    {
+        Cinfo* ci = tbl[i];
 #ifdef DEBUG
         if (debugs)
         {
@@ -2220,9 +2231,8 @@ code **Schedule::assemble(code **pc)
 
         // Put in any FXCH postfix
         if (ci->fxch_post)
-        {   int j;
-
-            for (j = i + 1; j < tblmax; j++)
+        {
+            for (int j = i + 1; j < tblmax; j++)
             {   if (tbl[j])
                 {   if (tbl[j]->fxch_pre == ci->fxch_post)
                     {
@@ -2317,9 +2327,8 @@ int Schedule::insert(Cinfo *ci)
     ic = -1;
     imin = 0;
     for (i = tblmax; i >= 0; i--)
-    {   Cinfo *cit;
-
-        cit = tbl[i];
+    {
+        Cinfo* cit = tbl[i];
         if (!cit)
             continue;
 
@@ -2490,13 +2499,12 @@ Linsert:
     // If it's a scheduled floating point code, we have to adjust
     // the FXCH values
     if (ci->fp_op)
-    {   int j;
-
+    {
         ci->fxch_pre = 0;
         ci->fxch_post = 0;                      // start over again
 
         int fpu = fpustackused;
-        for (j = 0; j < tblmax; j++)
+        for (int j = 0; j < tblmax; j++)
         {
             if (tbl[j])
             {
@@ -2509,7 +2517,7 @@ Linsert:
             }
         }
 
-        for (j = tblmax; j > i; j--)
+        for (int j = tblmax; j > i; j--)
         {
             if (j < TBLMAX && tbl[j])
                 conflict(tbl[j],ci,2);
@@ -2518,14 +2526,12 @@ Linsert:
 
     if (movesp)
     {   // Adjust [ESP] offsets
-        int j;
 
         //printf("\tic = %d, inserting at %d\n",ic,i);
         assert((unsigned)tblmax <= TBLMAX);
-        for (j = ic + 1; j < i; j++)
-        {   Cinfo *cit;
-
-            cit = tbl[j];
+        for (int j = ic + 1; j < i; j++)
+        {
+            Cinfo* cit = tbl[j];
             if (cit)
             {
                 c->IEVpointer1 -= cit->spadjust;
@@ -2539,10 +2545,10 @@ Linsert:
     // Now do a hack. Look back at immediately preceding instructions,
     // and see if we can swap with a push.
     if (0 && movesp)
-    {   int j;
-
+    {
         while (1)
         {
+            int j;
             for (j = 1; i > j; j++)
                 if (tbl[i - j])
                     break;
@@ -2578,7 +2584,6 @@ Linsert:
 
 int Schedule::stage(code *c)
 {   Cinfo *ci;
-    list_t l;
     list_t ln;
     int agi;
 
@@ -2591,11 +2596,10 @@ int Schedule::stage(code *c)
     if (c->Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {
         // Insert anything in stagelist
-        for (l = stagelist; l; l = ln)
-        {   Cinfo *cs;
-
+        for (list_t l = stagelist; l; l = ln)
+        {
             ln = list_next(l);
-            cs = (Cinfo *)list_ptr(l);
+            Cinfo* cs = (Cinfo *)list_ptr(l);
             if (!insert(cs))
                 return 0;
             list_subtract(&stagelist,cs);
@@ -2605,11 +2609,10 @@ int Schedule::stage(code *c)
 
     // Look through stagelist, and insert any AGI conflicting instructions
     agi = 0;
-    for (l = stagelist; l; l = ln)
-    {   Cinfo *cs;
-
+    for (list_t l = stagelist; l; l = ln)
+    {
         ln = list_next(l);
-        cs = (Cinfo *)list_ptr(l);
+        Cinfo* cs = (Cinfo *)list_ptr(l);
         if (pair_agi(cs,ci))
         {
             if (!insert(cs))
@@ -2620,24 +2623,22 @@ int Schedule::stage(code *c)
     }
 
     // Look through stagelist, and insert any other conflicting instructions
-    for (l = stagelist; l; l = ln)
-    {   Cinfo *cs;
-
+    for (list_t l = stagelist; l; l = ln)
+    {
         ln = list_next(l);
-        cs = (Cinfo *)list_ptr(l);
+        Cinfo* cs = (Cinfo *)list_ptr(l);
         if (conflict(cs,ci,0) &&                // if conflict
             !(cs->flags & ci->flags & CIFLpush))
         {
             if (cs->spadjust)
             {
                 // We need to insert all previous adjustments to ESP
-                list_t la,lan;
+                list_t lan;
 
-                for (la = stagelist; la != l; la = lan)
-                {   Cinfo *ca;
-
+                for (list_t la = stagelist; la != l; la = lan)
+                {
                     lan = list_next(la);
-                    ca = (Cinfo *)list_ptr(la);
+                    Cinfo* ca = (Cinfo *)list_ptr(la);
                     if (ca->spadjust)
                     {   if (!insert(ca))
                             goto Lnostage;
@@ -2675,11 +2676,11 @@ Lnostage:
  */
 
 STATIC code * csnip(code *c)
-{   code **pc;
-    unsigned iflags;
-
+{
     if (c)
-    {   iflags = c->Iflags & CFclassinit;
+    {
+        unsigned iflags = c->Iflags & CFclassinit;
+        code **pc;
         while (1)
         {
             pc = &code_next(c);
@@ -2858,13 +2859,12 @@ code *peephole(code *cstart,regm_t scratch)
     //  MOV r1,r2
     //  OP ?,r2
     // to improve pairing
-    code *c;
     code *c1;
     unsigned r1,r2;
     unsigned mod,reg,rm;
 
     //printf("peephole\n");
-    for (c = cstart; c; c = c1)
+    for (code *c = cstart; c; c = c1)
     {
         unsigned char rmn;
 
@@ -3087,7 +3087,6 @@ L1: ;
 
 code *simpleops(code *c,regm_t scratch)
 {   code *cstart;
-    code **pc;
     unsigned reg;
     code *c2;
 
@@ -3100,7 +3099,7 @@ code *simpleops(code *c,regm_t scratch)
     reg = findreg(scratch);
 
     cstart = c;
-    for (pc = &cstart; *pc; pc = &code_next(*pc))
+    for (code** pc = &cstart; *pc; pc = &code_next(*pc))
     {
         c = *pc;
         if (c->Iflags & (CFtarg | CFtarg2 | CFopsize))
@@ -3168,8 +3167,6 @@ code *simpleops(code *c,regm_t scratch)
     return cstart;
 }
 
-#if DEBUG
-static const char *fpops[] = {"fstp","fld","fop"};
 void Cinfo::print()
 {
     Cinfo *ci = this;
@@ -3195,8 +3192,12 @@ void Cinfo::print()
     printf("\n\tr %lx w %lx a %lx reg %x uops %x sibmodrm %x spadjust %ld\n",
             (long)r,(long)w,(long)a,reg,uops,sibmodrm,(long)spadjust);
     if (ci->fp_op)
+    {
+        static const char *fpops[] = {"fstp","fld","fop"};
+
         printf("\tfp_op %s, fxch_pre %x, fxch_post %x\n",
                 fpops[fp_op-1],fxch_pre,fxch_post);
+    }
 }
-#endif
+
 #endif
