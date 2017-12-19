@@ -85,11 +85,16 @@ test_dmd() {
 # test dub package
 test_dub_package() {
     source ~/dlang/*/activate # activate host compiler
-    pushd test/dub_package
-    for file in *.d ; do
-        dub --single "$file"
-    done
-    popd
+    # GDC's standard library is too old for some example scripts
+    if [ "${DMD:-dmd}" == "gdmd" ] ; then
+        echo "Skipping DUB examples on GDC."
+    else
+        pushd test/dub_package
+        for file in *.d ; do
+            dub --single "$file"
+        done
+        popd
+    fi
     deactivate
 }
 
