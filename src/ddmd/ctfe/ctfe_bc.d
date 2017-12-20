@@ -5,6 +5,7 @@ import ddmd.declaration : FuncDeclaration, VarDeclaration, Declaration,
     SymbolDeclaration, STCref;
 import ddmd.dsymbol;
 import ddmd.dstruct;
+import ddmd.dclass;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.statement;
@@ -200,6 +201,11 @@ struct UnionMetaData
 {
     enum VoidInitBitfieldOffset = 0;
     enum Size = bc_max_members/8;
+}
+struct ClassMetaData
+{
+    enum TypeIdIdxOffset = 0;
+    enum Size = 4;
 }
 
 __gshared LocType!() lastLoc;
@@ -712,11 +718,17 @@ struct BCUnion
 
 }
 
+struct BCClass {}
+
 struct SharedCtfeState(BCGenT)
 {
     uint _threadLock;
     BCHeap heap;
     long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
+
+    BCClass[bc_max_classes] classTypes;
+    ClassDeclaration[bc_max_classes] classDeclTypePointers;
+
     StructDeclaration[bc_max_structs] structDeclpointerTypes;
     BCStruct[bc_max_structs] structTypes;
 
