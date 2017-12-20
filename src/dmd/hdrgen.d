@@ -3429,3 +3429,17 @@ extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int vara
     v.parametersToBuffer(parameters, varargs);
     return buf.extractString();
 }
+
+extern (C++) const(char)* parameterToChars(Parameter parameter, int varargs)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
+
+    parameter.accept(v);
+    if (varargs)
+    {
+        buf.writestring("...");
+    }
+    return buf.extractString();
+}

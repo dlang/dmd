@@ -5890,10 +5890,11 @@ extern (C++) final class TypeFunction : TypeNext
      * Determine match level.
      * Input:
      *      flag    1       performing a partial ordering match
+     *      failedIndex     address to store argument index of first type mismatch
      * Returns:
      *      MATCHxxxx
      */
-    MATCH callMatch(Type tthis, Expressions* args, int flag = 0)
+    MATCH callMatch(Type tthis, Expressions* args, int flag = 0, size_t* failedIndex = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -5928,6 +5929,7 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
+        auto u = size_t.max; // used for failedIndex if no match
         size_t nparams = Parameter.dim(parameters);
         size_t nargs = args ? args.dim : 0;
         if (nparams == nargs)
@@ -5941,7 +5943,7 @@ extern (C++) final class TypeFunction : TypeNext
             match = MATCH.convert; // match ... with a "conversion" match level
         }
 
-        for (size_t u = 0; u < nargs; u++)
+        for (u = 0; u < nargs; u++)
         {
             if (u >= nparams)
                 break;
@@ -5974,7 +5976,7 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        for (size_t u = 0; u < nparams; u++)
+        for (u = 0; u < nparams; u++)
         {
             MATCH m;
 
@@ -6152,6 +6154,8 @@ extern (C++) final class TypeFunction : TypeNext
 
     Nomatch:
         //printf("no match\n");
+        if (failedIndex)
+            *failedIndex = u;
         return MATCH.nomatch;
     }
 
@@ -9237,7 +9241,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
 {
     auto s1 = t1.toChars();
     auto s2 = t2.toChars();
-    if (strcmp(s1, s2) == 0)
+    if (!t1.equals(t2) && strcmp(s1, s2) == 0)
     {
         s1 = t1.toPrettyChars(true);
         s2 = t2.toPrettyChars(true);

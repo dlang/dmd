@@ -2481,7 +2481,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     Match m;
     m.last = MATCH.nomatch;
 
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
+    size_t failIndex;
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &failIndex);
 
     if (m.last > MATCH.nomatch && m.lastf)
     {
@@ -2599,6 +2600,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                         fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
+                    showArgMismatch(loc, fargs, tf, failIndex);
                 }
             }
 
@@ -3630,5 +3632,17 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+void showArgMismatch(Loc loc, Expressions* fargs, TypeFunction tf, size_t failIndex)
+{
+    if (failIndex < fargs.dim && failIndex < tf.parameters.dim)
+    {
+        auto arg = (*fargs)[failIndex];
+        auto par = (*tf.parameters)[failIndex];
+        auto ts = toAutoQualChars(arg.type, par.type);
+        errorSupplemental(loc, "cannot pass argument `%s` of type `%s` to parameter `%s` (of type `%s`)",
+            arg.toChars(), ts[0], parameterToChars(par, tf.varargs), ts[1]);
     }
 }

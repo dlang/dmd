@@ -58,3 +58,53 @@ void test3()
     S[1] sa = cast(S[1])ta;
     auto t2 = cast(tem!().S[])sa;
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/bug9631.d(79): Error: function bug9631.arg.f (int i, S s) is not callable using argument types (int, S)
+fail_compilation/bug9631.d(79):        cannot implicitly convert expression `y` of type `bug9631.tem!().S` to `bug9631.S`
+fail_compilation/bug9631.d(80): Error: function literal __lambda2 (S s) is not callable using argument types (S)
+fail_compilation/bug9631.d(80):        cannot implicitly convert expression `x` of type `bug9631.S` to `bug9631.tem!().S`
+fail_compilation/bug9631.d(86): Error: constructor bug9631.arg.A.this (S _param_0) is not callable using argument types (S)
+fail_compilation/bug9631.d(86):        cannot implicitly convert expression `S(0)` of type `bug9631.tem!().S` to `bug9631.S`
+---
+*/
+void arg()
+{
+    S x;
+    tem!().S y;
+
+    void f(int i, S s){};
+    f(4, y);
+    (tem!().S s){}(x);
+
+    struct A
+    {
+        this(S){}
+    }
+    A(tem!().S());
+}
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/bug9631.d(105): Error: function bug9631.targ.ft!().ft (S _param_0) is not callable using argument types (S)
+fail_compilation/bug9631.d(105):        cannot implicitly convert expression `x` of type `bug9631.S` to `bug9631.tem!().S`
+fail_compilation/bug9631.d(106): Error: template bug9631.targ.ft cannot deduce function from argument types !()(S), candidates are:
+fail_compilation/bug9631.d(104):        bug9631.targ.ft()(tem!().S)
+fail_compilation/bug9631.d(108): Error: template bug9631.targ.ft2 cannot deduce function from argument types !()(S, int), candidates are:
+fail_compilation/bug9631.d(107):        bug9631.targ.ft2(T)(S, T)
+*/
+void targ()
+{
+    S x;
+    tem!().S y;
+
+    void ft()(tem!().S){}
+    ft!()(x);
+    ft(x);
+    void ft2(T)(S, T){}
+    ft2(y, 1);
+}
+
