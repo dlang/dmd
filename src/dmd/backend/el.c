@@ -2375,7 +2375,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
         union eve c;
         memset(&c, 0, sizeof(c));
         elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c));  // __flag = 0
-        er = el_bin(OPinfo, ec ? ec->Ety : TYvoid, ector, el_combine(e_flag_0, ec));
+        er = el_bin(OPinfo, ec ? ec->Ety : static_cast<tym_t>(TYvoid), ector, el_combine(e_flag_0, ec));
 
         /* A destructor always executes code, or we wouldn't need
          * eh for it.

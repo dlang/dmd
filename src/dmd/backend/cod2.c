@@ -4403,7 +4403,7 @@ void cdneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            unsigned reg = (sz == 8) ? AX : findregmsw(retregs);
+            unsigned reg = (sz == 8) ? static_cast<unsigned>(AX) : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,6,reg),0x8000);     // XOR AX,0x8000
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4476,7 +4476,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         }
         else
         {
-            int reg = (sz == 8) ? AX : findregmsw(retregs);
+            int reg = (sz == 8) ? static_cast<int>(AX) : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,4,reg),0x7FFF);     // AND AX,0x7FFF
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4486,7 +4486,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     unsigned byte = sz == 1;
     assert(byte == 0);
     byte = 0;
-    regm_t possregs = (sz <= REGSIZE) ? mAX : allregs;
+    regm_t possregs = (sz <= REGSIZE) ? static_cast<regm_t>(mAX) : allregs;
     if (!I16 && sz == REGSIZE)
         possregs = allregs;
     regm_t retregs = *pretregs & possregs;

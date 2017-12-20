@@ -413,7 +413,7 @@ void symbol_func(symbol *s)
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
     // Note that fregsaved may not be set yet
-    s->Sregsaved = (s->Stype && tybasic(s->Stype->Tty) == TYifunc) ? mBP : fregsaved;
+    s->Sregsaved = (s->Stype && tybasic(s->Stype->Tty) == TYifunc) ? static_cast<int>(mBP) : fregsaved;
     s->Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s->Sfunc)
         s->Sfunc = func_calloc();

@@ -624,7 +624,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
 
         case TYllong:
         case TYullong:
-            return I64 ? mAX : (I32 ? mDX | mAX : DOUBLEREGS);
+            return I64 ? static_cast<regm_t>(mAX) : (I32 ? static_cast<regm_t>(mDX | mAX) : DOUBLEREGS);
 
         case TYldouble:
         case TYildouble:

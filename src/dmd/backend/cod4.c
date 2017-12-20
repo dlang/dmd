@@ -3299,7 +3299,7 @@ void cdport(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         sz = tysize(e->E2->Ety);
         regm_t retregs = mAX;           // byte/word to output is in AL/AX
-        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE);
+        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? static_cast<regm_t>(mDX) : (regm_t) 0),TRUE);
         op |= 0x02;                     // OUT opcode
     }
     else // OPinp

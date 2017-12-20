@@ -727,7 +727,7 @@ void brcombine()
                     {
                         if (EOP(b3->Belem))
                             continue;
-                        tym_t ty = (bc2 == BCretexp) ? b2->Belem->Ety : TYvoid;
+                        tym_t ty = (bc2 == BCretexp) ? b2->Belem->Ety : static_cast<regm_t>(TYvoid);
                         e = el_bin(OPcolon2,ty,b2->Belem,b3->Belem);
                         b->Belem = el_bin(OPcond,ty,b->Belem,e);
                     }

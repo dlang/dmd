@@ -4803,7 +4803,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             loadea(cdb,e,&cs,op,reg,0,0,0);     // MOV regL,data
         }
         else
-        {   nregm = tyuns(tym) ? BYTEREGS : mAX;
+        {   nregm = tyuns(tym) ? BYTEREGS : static_cast<regm_t>(mAX);
             if (*pretregs & nregm)
                 nreg = reg;                             // already allocated
             else
