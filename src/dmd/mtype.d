@@ -7010,7 +7010,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         Type t = exp.type;
         if (!t)
         {
-            error(loc, "expression (%s) has no type", exp.toChars());
+            error(loc, "expression `%s` has no type", exp.toChars());
             goto Lerr;
         }
         if (t.ty == Ttypeof)

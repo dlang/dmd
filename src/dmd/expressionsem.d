@@ -4249,7 +4249,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (p.token.value != TOKeof)
         {
-            exp.error("incomplete mixin expression (%s)", se.toChars());
+            exp.error("incomplete mixin expression `%s`", se.toChars());
             return setError();
         }
 

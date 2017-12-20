@@ -4749,11 +4749,11 @@ extern (C++) class UnaExp : Expression
 
         if (e1.op == TOKtype)
         {
-            error("incompatible type for (%s(%s)): cannot use '%s' with types", Token.toChars(op), e1.toChars(), Token.toChars(op));
+            error("incompatible type for `%s(%s)`: cannot use '%s' with types", Token.toChars(op), e1.toChars(), Token.toChars(op));
         }
         else
         {
-            error("incompatible type for (%s(%s)): '%s'", Token.toChars(op), e1.toChars(), e1.type.toChars());
+            error("incompatible type for `%s(%s)`: '%s'", Token.toChars(op), e1.toChars(), e1.type.toChars());
         }
         return new ErrorExp();
     }
@@ -4827,18 +4827,18 @@ extern (C++) abstract class BinExp : Expression
         TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
         if (e1.op == TOKtype || e2.op == TOKtype)
         {
-            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
+            error("incompatible types for `(%s) %s (%s)`: cannot use '%s' with types",
                 e1.toChars(), Token.toChars(thisOp), e2.toChars(), Token.toChars(op));
         }
         else if (e1.type.equals(e2.type))
         {
-            error("incompatible types for ((%s) %s (%s)): both operands are of type '%s'",
+            error("incompatible types for `(%s) %s (%s)`: both operands are of type '%s'",
                 e1.toChars(), Token.toChars(thisOp), e2.toChars(), e1.type.toChars());
         }
         else
         {
             auto ts = toAutoQualChars(e1.type, e2.type);
-            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+            error("incompatible types for `(%s) %s (%s)`: '%s' and '%s'",
                 e1.toChars(), Token.toChars(thisOp), e2.toChars(), ts[0], ts[1]);
         }
         return new ErrorExp();
