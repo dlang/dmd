@@ -27,47 +27,16 @@
 # ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
 ################################################################################
 
-# get OS and MODEL
-include osmodel.mak
+D_HOME=../../
+# Load common Makefile variables
+include common.mak
 
 ifeq (,$(TARGET_CPU))
     $(info no cpu specified, assuming X86)
     TARGET_CPU=X86
 endif
 
-# Default to a release built, override with BUILD=debug
-ifeq (,$(BUILD))
-BUILD=release
-endif
-
-ifneq ($(BUILD),release)
-    ifneq ($(BUILD),debug)
-        $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
-    endif
-    ENABLE_DEBUG := 1
-endif
-
-# default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
-# Note that shared libraries and C files are always compiled with PIC.
-ifeq ($(PIC),)
-    ifeq ($(MODEL),64) # x86_64
-        PIC:=1
-    else
-        PIC:=0
-    endif
-endif
-ifeq ($(PIC),1)
-    override PIC:=-fPIC
-else
-    override PIC:=
-endif
-
-GIT_HOME=https://github.com/dlang
-TOOLS_DIR=../../tools
-
-INSTALL_DIR=../../install
 SYSCONFDIR=/etc
-TMP?=/tmp
 PGO_DIR=$(abspath pgo)
 
 D = dmd
@@ -77,8 +46,7 @@ TK=$D/tk
 ROOT=$D/root
 EX=examples
 
-GENERATED = ../generated
-G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
+G = $(DMD_BUILD_DIR)
 $(shell mkdir -p $G)
 
 ifeq (osx,$(OS))
@@ -477,7 +445,7 @@ build-examples: $(EXAMPLES)
 ######## Manual cleanup
 
 clean:
-	rm -R $(GENERATED)
+	rm -R $(DMD_GENERATED)
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
