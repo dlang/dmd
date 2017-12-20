@@ -7,6 +7,7 @@ CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=2
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
+BUILD="debug"
 
 case $CIRCLE_NODE_INDEX in
     0) MODEL=64 ;;
@@ -98,7 +99,7 @@ coverage()
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
     # build dmd, druntime, and phobos
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
 
