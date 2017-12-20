@@ -1560,7 +1560,9 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 if (t1b.size(e.loc) == tob.size(e.loc))
                     goto Lok;
-                e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes", e.toChars(), e.type.toChars(), t.toChars());
+                auto ts = toAutoQualChars(e.type, t);
+                e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
+                    e.toChars(), ts[0], ts[1]);
                 result = new ErrorExp();
                 return;
             }
@@ -2469,7 +2471,9 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-            e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), tsa ? tsa.toChars() : e.type.toChars(), t.toChars());
+            auto ts = toAutoQualChars(tsa ? tsa : e.type, t);
+            e.error("cannot cast expression `%s` of type `%s` to `%s`",
+                e.toChars(), ts[0], ts[1]);
             result = new ErrorExp();
         }
     }
