@@ -1,10 +1,6 @@
-# Documentation: https://github.com/codecov/support/wiki/Codecov-Yaml
+# Documentation: https://docs.codecov.io/docs/codecov-yaml
 
 codecov:
-  # CodeCov should only wait for CI's that run coverage tests
-  # DAutoTester and auto-tester are not in the default list
-  ci:
-    - "circleci.com"
   notify:
     after_n_builds: 1  # send notifications after the first upload
   bot: dlang-bot
@@ -12,13 +8,23 @@ codecov:
 coverage:
   precision: 3
   round: down
-  range: 80...100
+  range: "80...100"
 
+  # Learn more at https://docs.codecov.io/docs/commit-status
   status:
-    # Learn more at https://docs.codecov.io/docs/commit-status
-    project: true
-    patch: true
-    changes: false
+    project:
+      default:
+        informational: true
+        # Informational doesn't work with project yet
+        threshold: 0.1
+    patch:
+      default:
+        informational: true
+    changes:
+      default:
+        informational: true
+
+  # https://docs.codecov.io/docs/fixing-paths
   fixes:
     - "test/.*/::src/"
     - "fail_compilation/::src/"
