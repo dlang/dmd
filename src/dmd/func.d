@@ -2918,6 +2918,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
     // backend
     bool deferToObj;
+    const(char)* serialization;
 
     extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {

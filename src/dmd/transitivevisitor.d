@@ -1068,12 +1068,6 @@ package mixin template ParseVisitMethods(AST)
         e.e1.accept(this);
     }
 
-    override void visit(AST.PreExp e)
-    {
-        //printf("Visiting PreExp\n");
-        e.e1.accept(this);
-    }
-
     override void visit(AST.CondExp e)
     {
         //printf("Visiting CondExp\n");
