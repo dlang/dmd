@@ -1,6 +1,7 @@
 module vcg;
 // REQUIRED_ARGS: -vcg-ast -o-
 // PERMUTE_ARGS:
+// POST_SCRIPT: compilable/extra-files/vcg-ast-postscript.sh compilable/vcg-ast.d.cg
 
 template Seq(A...)
 {
