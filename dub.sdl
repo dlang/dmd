@@ -5,7 +5,7 @@ copyright "Copyright © 1999-2017, The D Language Foundation"
 license "BSL-1.0"
 
 targetType "none"
-dependency ":parser" version="*"
+dependency ":frontend" version="*"
 
 subPackage {
   name "root"
@@ -48,4 +48,21 @@ subPackage {
     "src/dmd/strictvisitor.d"
 
   dependency "dmd:lexer" version="*"
+}
+
+subPackage {
+  name "frontend"
+  targetType "library"
+  preGenerateCommands `cd "$${DUB_PACKAGE_DIR}" && ./config.sh generated/dub VERSION /etc`
+  stringImportPaths "generated/dub"
+  stringImportPaths "res"
+  versions "NoBackend"
+  versions "GC"
+  versions "NoMain"
+  sourcePaths "src/dmd"
+  excludedSourceFiles "src/dmd/backend/*"
+  excludedSourceFiles "src/dmd/{e2ir,eh,glue,iasm,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+  excludedSourceFiles "src/dmd/{scan,lib}{mach,mscoff,omf}.d" platform="linux"
+  excludedSourceFiles "src/dmd/{scan,lib}{elf,mscoff,omf}.d" platform="osx"
+  excludedSourceFiles "src/dmd/{scan,lib}{elf,mach,mscoff}.d" platform="windows"
 }

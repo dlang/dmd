@@ -55,6 +55,11 @@ version (GC)
         }
     }
 
+    extern (C) void* allocmemory(size_t m_size) nothrow
+    {
+        return GC.malloc(m_size);
+    }
+
     extern (C++) const __gshared Mem mem;
 }
 else
