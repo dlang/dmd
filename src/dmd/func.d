@@ -614,12 +614,14 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final BaseClass* overrideInterface()
     {
-        ClassDeclaration cd = parent.isClassDeclaration();
-        foreach (b; cd.interfaces)
+        if (ClassDeclaration cd = parent.isClassDeclaration())
         {
-            auto v = findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
-            if (v >= 0)
-                return b;
+            foreach (b; cd.interfaces)
+            {
+                auto v = findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.dim);
+                if (v >= 0)
+                    return b;
+            }
         }
         return null;
     }
