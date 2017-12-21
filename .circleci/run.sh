@@ -124,6 +124,19 @@ coverage()
     make -j1 -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1
 }
 
+# Checks that all files have been committed and no temporary, untracked files exist.
+# See: https://github.com/dlang/dmd/pull/7483
+check_clean_git()
+{
+    # Restore temporarily removed files
+    git checkout test/compilable/issue17167.sh
+    # Remove temporary directory + install script
+    rm -rf _generated
+    rm -f install.sh
+    # Ensure that there are no untracked changes
+    make -f posix.mak check-clean-git
+}
+
 codecov()
 {
     # CodeCov gets confused by lst files which it can't matched
@@ -137,5 +150,6 @@ case $1 in
     install-deps) install_deps ;;
     setup-repos) setup_repos ;;
     coverage) coverage ;;
+    check-clean-git) check_clean_git;;
     codecov) codecov ;;
 esac
