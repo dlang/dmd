@@ -4,7 +4,7 @@ set -uexo pipefail
 
 HOST_DMD_VER=2.072.2 # same as in dmd/src/posix.mak
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
-N=2
+N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-druntime}
 
