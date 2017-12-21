@@ -288,10 +288,17 @@ release:
 $G :
 	if not exist "$G" mkdir $G
 
-debdmd:
+check-host-dc:
+	@cmd /c if "$(HOST_DC)" == "" (echo Error: Environment variable HOST_DC is not set & exit 1)
+
+debdmd: check-host-dc debdmd-make
+
+debdmd-make:
 	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "DDEBUG=-debug -g -unittest" "DOPT=" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
 
-reldmd:
+reldmd: check-host-dc reldmd-make
+
+reldmd-make:
 	$(DMDMAKE) "OPT=-o" "DEBUG=" "DDEBUG=" "DOPT=-O -release -inline" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
 profile:
