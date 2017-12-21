@@ -7,6 +7,7 @@
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmangle.d, _dmangle.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmangle.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmangle.d
+ * References:  https://dlang.org/blog/2017/12/20/ds-newfangled-name-mangling/
  */
 
 module dmd.dmangle;
