@@ -592,6 +592,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
                 return mXMM0;
             if (config.exe & EX_flat)
                 return mST0;
+            /* FALL-THROUGH */
         case TYlong:
         case TYulong:
         case TYdchar:
@@ -624,7 +625,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
 
         case TYllong:
         case TYullong:
-            return I64 ? mAX : (I32 ? mDX | mAX : DOUBLEREGS);
+            return I64 ? static_cast<regm_t>(mAX) : (I32 ? static_cast<regm_t>(mDX | mAX) : DOUBLEREGS);
 
         case TYldouble:
         case TYildouble:
@@ -635,9 +636,11 @@ regm_t regmask(tym_t tym, tym_t tyf)
             if (I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
 #endif
+            /* FALL-THROUGH */
         case TYcdouble:
             if (I64)
                 return mXMM0 | mXMM1;
+            /* FALL-THROUGH */
         case TYcldouble:
             return mST01;
 
@@ -4907,6 +4910,7 @@ void assignaddrc(code *c)
             case FLpseudo:
                 assert(0);
                 /* NOTREACHED */
+                /* FALL-THROUGH */
             case FLfast:
                 c->IEVpointer2 += s->Soffset + Fast.size + BPoff;
                 break;
@@ -5466,6 +5470,7 @@ void pinholeopt(code *c,block *b)
                     }
                     if ((op & ~0x0F) != 0x70)
                         break;
+                    /* FALL-THROUGH */
                 case JMP:
                     switch (c->IFL2)
                     {   case FLcode:
@@ -6297,6 +6302,7 @@ unsigned codout(int seg, code *c)
                         if (!(issib(rm) && (c->Isib & 7) == 5 ||
                               (rm & 7) == 5))
                             break;
+                        /* FALL-THROUGH */
                     case 0x80:
                     {   int flags = CFoff;
                         targ_size_t val = 0;
@@ -6337,6 +6343,7 @@ unsigned codout(int seg, code *c)
                     case 0:
                         if ((rm & 7) != 6)
                             break;
+                        /* FALL-THROUGH */
                     case 0x80:
                         do16bit(&ggen, (enum FL)c->IFL1,&c->IEV1,CFoff);
                         break;
@@ -6369,6 +6376,7 @@ unsigned codout(int seg, code *c)
                                 do64bit(&ggen, (enum FL)c->IFL2,&c->IEV2,flags);
                                 break;
                             }
+                            /* FALL-THROUGH */
                         case 0xA0:              /* MOV AL,byte ptr []   */
                         case 0xA2:
                             if (c->Iflags & CFaddrsize && !I64)
@@ -6461,6 +6469,7 @@ unsigned codout(int seg, code *c)
                         case CALL:
                         case JMP:
                             flags |= CFselfrel;
+                            /* FALL-THROUGH */
                         default:
                         case_default16:
                             if (c->Iflags & CFopsize)

@@ -850,10 +850,12 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
   switch (op)                   // select instruction opcodes
   {     case OPpostinc: op = OPaddass;                  // i++ => +=
+        /* FALL-THROUGH */
         case OPaddass:  op1 = 0x01; op2 = 0x11;
                         cflags = CFpsw;
                         mode = 0; break;                // ADD, ADC
         case OPpostdec: op = OPminass;                  // i-- => -=
+        /* FALL-THROUGH */
         case OPminass:  op1 = 0x29; op2 = 0x19;
                         cflags = CFpsw;
                         mode = 5; break;                // SUB, SBC
@@ -3299,7 +3301,7 @@ void cdport(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         sz = tysize(e->E2->Ety);
         regm_t retregs = mAX;           // byte/word to output is in AL/AX
-        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE);
+        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? static_cast<regm_t>(mDX) : (regm_t) 0),TRUE);
         op |= 0x02;                     // OUT opcode
     }
     else // OPinp

@@ -942,6 +942,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPvecsto:
         case OPcmpxchg:
                         markinvar(n->E2,rd);
+                        /* FALL-THROUGH */
         case OPnegass:
                         n1 = n->E1;
                         if (n1->Eoper == OPind)
@@ -1978,6 +1979,7 @@ STATIC famlist * newfamlist(tym_t ty)
 
             case TYhptr:
                 ty = TYlong;
+                /* FALL-THROUGH */
             case TYlong:
             case TYulong:
             case TYdchar:

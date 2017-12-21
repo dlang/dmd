@@ -197,6 +197,7 @@ L1:
 
             case TYldouble:
                 assert(0);
+                /* FALL-THROUGH */
 
             default:
             err1:                   // let type_size() handle error messages

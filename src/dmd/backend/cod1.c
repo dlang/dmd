@@ -489,6 +489,7 @@ void logexp(CodeBuilder& cdb,elem *e,int jcond,unsigned fltarg,code *targ)
 
             case OPnot:
                 jcond ^= 1;
+                /* FALL-THROUGH */
             case OPbool:
             case OPs8_16:
             case OPu8_16:
@@ -1225,6 +1226,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
         pcs->IEVpointer1 = e->EVpointer;
         break;
 #endif
+        /* FALL-THROUGH */
     case FLfltreg:
         reflocal = TRUE;
         pcs->Irm = modregrm(2,0,BPRM);
@@ -1278,6 +1280,7 @@ void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
         }
         if (s->Sclass == SCshadowreg)
             goto Lpara;
+        /* FALL-THROUGH */
     case FLbprel:
         reflocal = TRUE;
         pcs->Irm = modregrm(2,0,BPRM);
@@ -3672,6 +3675,7 @@ static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned fun
         case OPstrpar:
         case OPnp_fp:
             assert(0);
+            /* FALL-THROUGH */
         case OPrelconst:
         {
             int fl;
@@ -4803,7 +4807,7 @@ void loaddata(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             loadea(cdb,e,&cs,op,reg,0,0,0);     // MOV regL,data
         }
         else
-        {   nregm = tyuns(tym) ? BYTEREGS : mAX;
+        {   nregm = tyuns(tym) ? BYTEREGS : static_cast<regm_t>(mAX);
             if (*pretregs & nregm)
                 nreg = reg;                             // already allocated
             else

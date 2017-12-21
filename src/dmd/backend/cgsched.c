@@ -1244,6 +1244,7 @@ STATIC void getinfo(Cinfo *ci,code *c)
         case 0x56:
         case 0x57:                              // PUSH reg
             ci->flags |= CIFLpush;
+            /* FALL-THROUGH */
         case 0x54:                              // PUSH ESP
         case 0x6A:                              // PUSH imm8
         case 0x68:                              // PUSH imm

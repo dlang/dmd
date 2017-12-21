@@ -298,6 +298,7 @@ Loop:
         case OPcall:
         case OPcallns:
             local_exp(lt,e->E2,1);
+            /* FALL-THROUGH */
         case OPstrctor:
         case OPucall:
         case OPucallns:

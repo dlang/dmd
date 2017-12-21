@@ -212,6 +212,7 @@ STATIC void ecom(elem **pe)
             /* can be done with an INC or DEC instruction.               */
             if (!(OTpost(op) && elemisone(e->E2)))
                 ecom(&e->E2);           /* evaluate 2nd operand first   */
+        /* FALL-THROUGH */
     case OPnegass:
             if (EOP(e->E1))             /* if lvalue is an operator     */
             {
@@ -293,6 +294,7 @@ STATIC void ecom(elem **pe)
     case OPoutp:
 #endif
         ecom(&e->E1);
+        /* FALL-THROUGH */
     case OPinfo:
         ecom(&e->E2);
         return;
@@ -319,6 +321,7 @@ STATIC void ecom(elem **pe)
     case OPmemcpy:
     case OPmemset:
         ecom(&e->E2);
+        /* FALL-THROUGH */
     case OPsetjmp:
         ecom(&e->E1);
         touchfunc(0);
@@ -327,6 +330,7 @@ STATIC void ecom(elem **pe)
         if (!EBIN(e))
            WROP(e->Eoper);
         assert(EBIN(e));
+        /* FALL-THROUGH */
     case OPadd:
     case OPmin:
     case OPmul:
@@ -350,6 +354,7 @@ STATIC void ecom(elem **pe)
         WROP(e->Eoper);
         elem_print(e);
         assert(0);              /* optelem() should have removed these  */
+        /* FALL-THROUGH */
         /* NOTREACHED */
 
     // Explicitly list all the unary ops for speed

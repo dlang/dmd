@@ -240,6 +240,7 @@ int boolres(elem *e)
 #else
                     assert(0);
 #endif
+                    /* FALL-THROUGH */
                 case TYvoid:    /* happens if we get syntax errors or
                                        on RHS of && || expressions */
                     b = 0;
@@ -1768,6 +1769,7 @@ elem * evalu8(elem *e, goal_t goal)
         return e;
     case OPngt:
         i++;
+        /* FALL-THROUGH */
     case OPgt:
         if (!tyfloating(tym))
             goto Lnle;
@@ -1778,6 +1780,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPnle:
     Lnle:
         i++;
+        /* FALL-THROUGH */
     case OPle:
         if (uns)
         {
@@ -1795,6 +1798,7 @@ elem * evalu8(elem *e, goal_t goal)
 
     case OPnge:
         i++;
+        /* FALL-THROUGH */
     case OPge:
         if (!tyfloating(tym))
             goto Lnlt;
@@ -1805,6 +1809,7 @@ elem * evalu8(elem *e, goal_t goal)
     case OPnlt:
     Lnlt:
         i++;
+        /* FALL-THROUGH */
     case OPlt:
         if (uns)
         {
@@ -1822,6 +1827,7 @@ elem * evalu8(elem *e, goal_t goal)
 
     case OPne:
         i++;
+        /* FALL-THROUGH */
     case OPeqeq:
         if (tyfloating(tym))
         {

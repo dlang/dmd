@@ -2258,6 +2258,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
                 len = dlen;
                 break;
             }
+            /* FALL-THROUGH */
         case mTYman_cpp:
         case mTYman_c:
         case mTYman_d:
@@ -3268,6 +3269,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         case SCeinline:
             printf ("Undefined inline value <<fixme>>\n");
             //warerr(WM_undefined_inline,s->Sident);
+            /* FALL-THROUGH */
         case SCinline:
             if (tyfunc(ty))
             {
@@ -3277,6 +3279,7 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             else if (config.flags2 & CFG2comdat)
                 goto case_SCcomdat;     // treat as initialized common block
 
+            /* FALL-THROUGH */
         default:
             //symbol_print(s);
             assert(0);

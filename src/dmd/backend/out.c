@@ -184,6 +184,7 @@ void outdata(symbol *s)
 #endif
                         case mTYthreadData:
                             assert(config.objfmt == OBJ_MACH && I64);
+                            /* FALL-THROUGH */
                         case mTYthread:
                         {   seg_data *pseg = objmod->tlsseg_bss();
                             s->Sseg = pseg->SDseg;
@@ -234,6 +235,7 @@ void outdata(symbol *s)
                     outdata(sb);                // write out data for symbol
 }
             }
+            /* FALL-THROUGH */
             case DT_coff:
                 datasize += size(dt->Dty);
                 break;
