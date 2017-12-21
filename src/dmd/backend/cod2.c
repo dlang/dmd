@@ -4279,6 +4279,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         if (I64 && e->EV.sp.Vsym->ty() & mTYthread)
             goto L5;
 #endif
+    /* FALL-THROUGH */
     case FLdata:
     case FLudata:
     case FLgot:

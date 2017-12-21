@@ -1603,6 +1603,7 @@ void checkSetVex(code *c, tym_t ty)
             case STOSD:
                 if ((c->Irm & 0xC0) == 0xC0)
                     break;
+                /* FALL-THROUGH */
             case LODAPS:
             case LODUPS:
             case LODAPD:

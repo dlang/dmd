@@ -2733,6 +2733,7 @@ STATIC bool optim_loglog(elem **pe)
         {
             case 1:
                 ey = el_una(OPu8_16,TYint,ey);
+                /* FALL-THROUGH */
             case 2:
                 ey = el_una(OPu16_32,TYint,ey);
                 break;
@@ -3079,6 +3080,7 @@ STATIC elem * eladdr(elem *e, goal_t goal)
         break;
     case OPnegass:
         assert(0);
+        /* FALL-THROUGH */
     default:
         if (OTassign(e1->Eoper))
         {
@@ -3273,6 +3275,7 @@ elem * elstruct(elem *e, goal_t goal)
             {   tym = TYldouble;
                 goto L1;
             }
+            /* FALL-THROUGH */
         case 9:
         case 11:
         case 13:
@@ -3606,6 +3609,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
                         es->EV.Vllong = 0x8000000000000000LL;
                         break;
                     }
+                    /* FALL-THROUGH */
                 default:
                     el_free(es);
                     goto L8;

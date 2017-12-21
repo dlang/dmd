@@ -1364,6 +1364,7 @@ void elimass(elem *n)
     {
         case OPvecsto:
             n->E2->Eoper = OPcomma;
+            /* FALL-THROUGH */
         case OPeq:
         case OPstreq:
             /* (V=e) => (random constant,e)     */
@@ -1537,6 +1538,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPstrcpy:
             case OPmemset:
                 accumda(n->E2,DEAD,POSS);
+                /* FALL-THROUGH */
             case OPstrlen:
                 accumda(n->E1,DEAD,POSS);
                 vec_subass(POSS,ambigref);      // remove possibly refed

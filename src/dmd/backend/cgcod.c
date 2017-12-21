@@ -237,6 +237,7 @@ tryagain:
             {   case SCfastpar:
                 case SCshadowreg:
                     regcon.params |= s->Spregm();
+                    /* FALL-THROUGH */
                 case SCparameter:
                     if (s->Sfl == FLreg)
                         noparams |= s->Sregm;
@@ -337,6 +338,7 @@ tryagain:
                     cdb.genlinnum(b->Bsrcpos);
                     b->Bcode = cdb.finish();
                 }
+                /* FALL-THROUGH */
             case BCretexp:
                 epilog(b);
                 break;
@@ -2677,6 +2679,7 @@ void codelem(CodeBuilder& cdb,elem *e,regm_t *pretregs,bool constflag)
             else
                 *pretregs &= mPSW | s->Sregm;
         }
+        /* FALL-THROUGH */
     case OPconst:
         if (*pretregs == 0 && (e->Ecount >= 3 || e->Ety & mTYvolatile))
         {

@@ -886,6 +886,7 @@ void main()
                            )
                             break;
 #endif
+                        /* FALL-THROUGH */
                     case OPstrlen:
                     case OPstrcmp:
                     case OPmemcmp:
@@ -1063,6 +1064,7 @@ STATIC void accumaecpx(elem *n)
         case OPeq:
         case OPstreq:
             accumaecpx(n->E2);
+            /* FALL-THROUGH */
         case OPnegass:
             accumaecpx(n->E1);
             t = Elvalue(n);
@@ -1649,6 +1651,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
             case OPcall:
             case OPcallns:
                 accumvbe(GEN,KILL,n->E2);
+                /* FALL-THROUGH */
             case OPucall:
             case OPucallns:
                 t = n->E1;

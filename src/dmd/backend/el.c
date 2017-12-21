@@ -2240,6 +2240,7 @@ elem *el_convert(elem *e)
                 break;
             }
 #if 1
+            /* FALL-THROUGH */
         case OPdiv:
         case OPadd:
         case OPmin:
@@ -2250,6 +2251,7 @@ elem *el_convert(elem *e)
                 shrinkLongDoubleConstantIfPossible(e->E2);
             // fall through...
 #endif
+            /* FALL-THROUGH */
         default:
             if (OTbinary(op))
             {
@@ -2669,6 +2671,7 @@ L1:
                         {   tym = n1->ET->Tnext->Tty;
                             goto Lagain;
                         }
+                        /* FALL-THROUGH */
                     case TYint:
                     case TYuint:
                         if (intsize == SHORTSIZE)
@@ -2970,6 +2973,7 @@ L1:
             if (NPTRSIZE == LLONGSIZE)
                 goto Ullong;
             assert(0);
+            /* FALL-THROUGH */
 
         case TYuint:
             if (intsize == SHORTSIZE)
@@ -3309,11 +3313,13 @@ case_tym:
             {   tym = e->ET->Tnext->Tty;
                 goto case_tym;
             }
+            /* FALL-THROUGH */
         case TYint:
         case TYuint:
         case TYvoid:        /* in case (void)(1)    */
             if (tysize(TYint) == LONGSIZE)
                 goto L1;
+            /* FALL-THROUGH */
         case TYshort:
         case TYwchar_t:
         case TYushort:

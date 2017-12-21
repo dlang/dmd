@@ -98,10 +98,10 @@ vec_t vec_calloc(size_t numbits)
         v += 2;
         switch (dim)
         {
-            case 5:     v[4] = 0;
-            case 4:     v[3] = 0;
-            case 3:     v[2] = 0;
-            case 2:     v[1] = 0;
+            case 5:     v[4] = 0; /* FALL-THROUGH */
+            case 4:     v[3] = 0; /* FALL-THROUGH */
+            case 3:     v[2] = 0; /* FALL-THROUGH */
+            case 2:     v[1] = 0; /* FALL-THROUGH */
             case 1:     v[0] = 0;
                         break;
             default:    memset(v,0,dim * sizeof(vec_base_t));

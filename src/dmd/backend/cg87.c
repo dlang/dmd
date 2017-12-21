@@ -1652,6 +1652,7 @@ void load87(CodeBuilder& cdb,elem *e,unsigned eoffset,regm_t *pretregs,elem *ele
 
             case OPvar:
                 notreg(e);
+                /* FALL-THROUGH */
             case OPind:
             L2:
                 if (op != -1)
@@ -3131,6 +3132,7 @@ void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             case OPd_u16:
                 szoff = 4;
+                /* FALL-THROUGH */
             case OPd_s32:
                 clib = CLIBdbllng87;
                 mf = ESC(MFlong,1);
@@ -3752,6 +3754,7 @@ __body
     {
         case OPvar:
             notreg(e);                  // never enregister this variable
+            /* FALL-THROUGH */
         case OPind:
             push87(cdb);
             push87(cdb);

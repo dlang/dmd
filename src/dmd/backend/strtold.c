@@ -298,6 +298,7 @@ longdouble strtold_dm(const char *p,char **endp)
                 sexp = 0;
                 switch (*++p)
                 {   case '-':    sexp++;
+                    /* FALL-THROUGH */
                     case '+':    p++;
                 }
                 ndigits = 0;
@@ -429,6 +430,7 @@ longdouble strtold_dm(const char *p,char **endp)
             sexp = 0;
             switch (*++p)
             {   case '-':    sexp++;
+                /* FALL-THROUGH */
                 case '+':    p++;
             }
             ndigits = 0;

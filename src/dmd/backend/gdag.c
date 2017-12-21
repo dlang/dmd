@@ -691,6 +691,7 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
         case OPcolon:
         case OPcolon2:
             assert(0);
+            /* FALL-THROUGH */
 
         case OPandand:
         case OPoror:
@@ -909,6 +910,7 @@ STATIC void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
         switch (e->Eoper)
         {   case OPnot:
                 flag ^= 1;
+                /* FALL-THROUGH */
             case OPbool:
             case OPeq:
                 e = e->E1;
