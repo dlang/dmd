@@ -209,7 +209,9 @@ void cdorth(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         return;
     }
 
-    unsigned op1,op2,mode;
+    unsigned op1 = -1;
+    unsigned op2;
+    unsigned mode;
     static int nest;
 
   tym_t ty2 = tybasic(e2->Ety);
@@ -3193,7 +3195,7 @@ void cdstrlen(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
 void cdstrcmp(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 {
-    char need_DS;
+    char need_DS = -1;
     int segreg;
 
     /*
@@ -3298,7 +3300,7 @@ void cdstrcmp(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
 void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    char need_DS;
+    char need_DS = -1;
     int segreg;
 
     /*
@@ -3407,7 +3409,7 @@ void cdmemcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
 void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    char need_DS;
+    char need_DS = -1;
     int segreg;
 
     /*
@@ -3517,7 +3519,7 @@ void cdstrcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
 void cdmemcpy(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
-    char need_DS;
+    char need_DS = -1;
     int segreg;
 
     /*

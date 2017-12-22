@@ -249,7 +249,7 @@ void REGSAVE::restore(CodeBuilder& cdb, int reg, unsigned idx)
 unsigned char vex_inssize(code *c)
 {
     assert(c->Iflags & CFvex && c->Ivex.pfx == 0xC4);
-    unsigned char ins;
+    unsigned char ins = -1;
     if (c->Iflags & CFvex3)
     {
         switch (c->Ivex.mmmm)
@@ -1904,7 +1904,10 @@ void outswitab(block *b)
 
 int jmpopcode(elem *e)
 { tym_t tym;
-  int zero,i,jp,op;
+  int zero;
+  int i = -1;
+  int jp;
+  int op;
   static const char jops[][2][6] =
     {   /* <=  >   <   >=  ==  !=    <=0 >0  <0  >=0 ==0 !=0    */
        { {JLE,JG ,JL ,JGE,JE ,JNE},{JLE,JG ,JS ,JNS,JE ,JNE} }, /* signed   */
@@ -6800,7 +6803,8 @@ static void do16bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
 }
 
 static void do8bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev)
-{ char c;
+{
+  char c = -1;
   targ_ptrdiff_t delta;
 
   switch (fl)

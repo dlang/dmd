@@ -150,7 +150,8 @@ FM1:    // We don't use fprem1 because for some inexplicable
  */
 
 int boolres(elem *e)
-{   int b;
+{
+    int b = -1;
 
     //printf("boolres()\n");
     //elem_print(e);

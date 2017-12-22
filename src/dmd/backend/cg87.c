@@ -680,7 +680,7 @@ __body
     targ_float f;
     targ_double d;
     targ_ldouble ld;
-    int sz;
+    int sz = -1;
     int zero;
     void *p;
     static char zeros[sizeof(longdouble)];
@@ -1955,7 +1955,7 @@ ret0:   return 0;
 void eq87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
         code cs;
-        unsigned op1;
+        unsigned op1 = -1;
         unsigned op2;
 
         //printf("+eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -2180,8 +2180,8 @@ void complex_eq87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 static void cnvteq87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
         code cs;
-        unsigned op1;
-        unsigned op2;
+        unsigned op1 = -1;
+        unsigned op2 = -1;
 
         assert(e->Eoper == OPeq);
         assert(!*pretregs);
@@ -2232,7 +2232,7 @@ void opass87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         code cs;
         unsigned op;
         unsigned opld;
-        unsigned op1;
+        unsigned op1 = -1;
         unsigned op2;
         tym_t ty1 = tybasic(e->E1->Ety);
 
@@ -2732,8 +2732,9 @@ static void opass_complex87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
  */
 
 void cdnegass87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
-{   regm_t retregs;
-    unsigned op;
+{
+    regm_t retregs;
+    unsigned op = -1;
 
     //printf("cdnegass87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     elem *e1 = e->E1;
@@ -2807,8 +2808,8 @@ void cdnegass87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 void post87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
         unsigned op;
-        unsigned op1;
-        unsigned reg;
+        unsigned op1 = -1;
+        unsigned reg = -1;
 
         //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
         code cs;
@@ -3113,7 +3114,9 @@ void cdd_u32(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 void cnvt87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {
         regm_t retregs;
-        unsigned mf,rf,reg;
+        unsigned mf = -1;
+        unsigned rf = -1;
+        unsigned reg;
         int clib;
 
         //printf("cnvt87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -3269,7 +3272,8 @@ void cdrndtol(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     regm_t retregs = mST0;
     codelem(cdb,e->E1,&retregs,FALSE);
 
-    unsigned char op1,op2;
+    unsigned char op1 = -1;
+    unsigned char op2 = -1;
     tym_t tym = e->Ety;
     unsigned sz = tysize(tym);
     switch (sz)
@@ -3354,7 +3358,7 @@ void neg87(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         //printf("neg87()\n");
 
         assert(*pretregs);
-        int op;
+        int op = -1;
         switch (e->Eoper)
         {   case OPneg:  op = 0xE0;     break;
             case OPabs:  op = 0xE1;     break;
@@ -3733,7 +3737,7 @@ __body
     unsigned mf;
     unsigned sz;
     unsigned char ldop;
-    regm_t retregs;
+    regm_t retregs = -1;
     int i;
 
     //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
