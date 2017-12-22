@@ -131,9 +131,9 @@ Where:
   -deps            print module dependencies (imports/file/version/debug/lib)
   -deps=<filename> write module dependencies to filename (only imports)" ~
   "%s" /* placeholder for fpic */ ~ "
-  -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
-  -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
-  -dip1008         implement DIP1008 (experimental)
+  -dip25           implement http://wiki.dlang.org/DIP25
+  -dip1000         implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1000.md
+  -dip1008         implement https://github.com/dlang/DIPs/blob/master/DIPs/DIP1008.md
   -g               add symbolic debug info
   -gf              emit debug info for all referenced types
   -gs              always emit stack frame
