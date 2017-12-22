@@ -1958,7 +1958,7 @@ elem *el_convfloat(elem *e)
     tym_t ty = e->Ety;
     int sz = tysize(ty);
     assert(sz <= sizeof(buffer));
-    void *p;
+    void *p = NULL;
     switch (tybasic(ty))
     {
         case TYfloat:
@@ -2911,7 +2911,8 @@ targ_llong el_tolongt(elem *e)
  */
 
 targ_llong el_tolong(elem *e)
-{   targ_llong result;
+{
+    targ_llong result = -1;
     tym_t ty;
 
     elem_debug(e);

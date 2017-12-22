@@ -640,7 +640,8 @@ void xmmneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
  */
 
 unsigned xmmload(tym_t tym, bool aligned)
-{   unsigned op;
+{
+    unsigned op = -1;
     if (tysize(tym) == 32)
         aligned = false;
     switch (tybasic(tym))
@@ -691,7 +692,8 @@ unsigned xmmload(tym_t tym, bool aligned)
  */
 
 unsigned xmmstore(tym_t tym, bool aligned)
-{   unsigned op;
+{
+    unsigned op = -1;
     switch (tybasic(tym))
     {
         case TYuint:
@@ -743,7 +745,7 @@ unsigned xmmstore(tym_t tym, bool aligned)
 static unsigned xmmoperator(tym_t tym, unsigned oper)
 {
     tym = tybasic(tym);
-    unsigned op;
+    unsigned op = -1;
     switch (oper)
     {
         case OPadd:
@@ -1049,7 +1051,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     unsigned sz1 = _tysize[ty1];
 //    assert(sz1 == 16);       // float or double
 
-    regm_t retregs;
+    regm_t retregs = -1;
     if (n == 3 && ty2 == TYuchar && op2->Eoper == OPconst)
     {   // Handle: op xmm,imm8
 
@@ -1058,7 +1060,7 @@ void cdvector(CodeBuilder& cdb, elem *e, regm_t *pretregs)
             retregs = XMMREGS;
         codelem(cdb,op1,&retregs,FALSE); // eval left leaf
         unsigned reg = findreg(retregs);
-        int r;
+        int r = -1;
         switch (op)
         {
             case PSLLD:  r = 6; op = 0x660F72;  break;

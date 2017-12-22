@@ -790,10 +790,11 @@ void getlvalue_lsw(code *c)
 void getlvalue(CodeBuilder& cdb,code *pcs,elem *e,regm_t keepmsk)
 { regm_t idxregs;
   unsigned fl,f,opsave;
-  elem *e1;
+  elem *e1 = NULL;
   elem *e11;
   elem *e12;
-  bool e1isadd,e1free;
+  bool e1isadd = false;
+  bool e1free;
   unsigned reg;
   tym_t e1ty;
   symbol *s;
@@ -3237,7 +3238,8 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             int preg = parameters[i].reg;
             regm_t retregs = mask[preg];
             if (retregs & XMMREGS)
-            {   int reg;
+            {
+                int reg = -1;
 
                 switch (preg)
                 {   case XMM0: reg = CX; break;
@@ -3625,7 +3627,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
 targ_size_t paramsize(elem *e)
 {
     assert(e->Eoper != OPparam);
-    targ_size_t szb;
+    targ_size_t szb = -1;
     tym_t tym = tybasic(e->Ety);
     if (tyscalar(tym))
         szb = size(tym);
@@ -3778,8 +3780,8 @@ static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned fun
             retregs = tycomplex(tym) ? mST01 : mST0;
             codelem(cdb,e,&retregs,FALSE);
 
-            unsigned op;
-            unsigned r;
+            unsigned op = -1;
+            unsigned r = -1;
             switch (tym)
             {
                 case TYfloat:
@@ -4372,8 +4374,8 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
             stackpush += sz;
             cdb.genadjesp(sz);
             cod3_stackadj(cdb, sz);
-            unsigned op;
-            unsigned r;
+            unsigned op = -1;
+            unsigned r = -1;
             switch (tym)
             {
                 case TYfloat:

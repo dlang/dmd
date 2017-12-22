@@ -840,7 +840,10 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     // TRUE if we want the result in a register
     unsigned wantres = forregs || (e1->Ecount && EOP(e1));
 
-    unsigned reg,op1,op2,mode;
+    unsigned reg;
+    unsigned op1 = -1;
+    unsigned op2;
+    unsigned mode;
     code cs;
     elem *e2;
     regm_t varregm;
@@ -2841,7 +2844,8 @@ void cdshtlng(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         if (e1comsub)
             getregs(cdb,retregs);
         if (op == OPnp_fp)
-        {   int segreg;
+        {
+            int segreg = -1;
 
             // BUG: what about pointers to functions?
             switch (tym1)
@@ -3932,8 +3936,8 @@ void cdprefetch(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
     assert(*pretregs == 0);
     assert(e->E2->Eoper == OPconst);
-    unsigned op;
-    unsigned reg;
+    unsigned op = -1;
+    unsigned reg = -1;
     switch (e->E2->EV.Vuns)
     {
         case 0: op = PREFETCH; reg = 1; break;  // PREFETCH0

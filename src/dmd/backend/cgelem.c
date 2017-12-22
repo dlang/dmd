@@ -2319,7 +2319,8 @@ STATIC elem * eldiv(elem *e, goal_t goal)
         e2->Ety = touns(e2->Ety);
         i = ispow2(el_tolong(e2));
         if (i != -1)
-        {   int op;
+        {
+            int op = -1;
 
             switch (e->Eoper)
             {   case OPdiv:
