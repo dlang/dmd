@@ -1,17 +1,28 @@
-# https://github.com/codecov/support/blob/master/codecov.yml
+# Documentation: https://docs.codecov.io/docs/codecov-yaml
+
 codecov:
+  notify:
+    after_n_builds: 1  # send notifications after the first upload
   bot: dlang-bot
 
 coverage:
-  precision: 2
+  precision: 3
   round: down
-  range: 70...100
+  range: "70...100"
 
+  # Learn more at https://docs.codecov.io/docs/commit-status
   status:
-    # Learn more at https://codecov.io/docs#yaml_default_commit_status
-    project: false
-    patch: false
-    changes: false
+    project:
+      default:
+        informational: true
+        # Informational doesn't work with project yet
+        threshold: 0.1
+    patch:
+      default:
+        informational: true
+    changes:
+      default:
+        informational: true
 
   notify:
     webhook:
