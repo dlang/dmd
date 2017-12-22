@@ -9,4 +9,4 @@ if [ $? -ne 0 ]; then
     exit 1;
 fi
 
-rm ${RESULTS_DIR}/runnable/test17868.d.out.2
+rm -f ${RESULTS_DIR}/runnable/test17868.d.out.2
