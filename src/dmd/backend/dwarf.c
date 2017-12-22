@@ -463,6 +463,17 @@ struct Section
     IDXSEC secidx;
     Outbuffer *buf;
     const char *name;
+
+    /* Allocate and initialize Section
+     */
+    void initialize()
+    {
+        const segidx_t segi = dwarf_getsegment(name, 0);
+        seg = segi;
+        secidx = SegData[segi]->SDshtidx;
+        buf = SegData[segi]->SDbuf;
+        buf->reserve(1000);
+    }
 };
 
 #if MACHOBJ
@@ -1029,23 +1040,16 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    int seg = dwarf_getsegment(debug_str.name, 0);
-    Outbuffer *debug_str_buf = SegData[seg]->SDbuf;
-    debug_str_buf->reserve(1000);
+    debug_str.initialize();
+    //Outbuffer *debug_str_buf = debug_str.buf;
 
     /* ======================================== */
 
-    debug_ranges.seg = dwarf_getsegment(debug_ranges.name, 0);
-    debug_ranges.secidx = SegData[debug_ranges.seg]->SDshtidx;
-    debug_ranges.buf = SegData[debug_ranges.seg]->SDbuf;
-    debug_ranges.buf->reserve(1000);
+    debug_ranges.initialize();
 
     /* ======================================== */
 
-    debug_loc.seg = dwarf_getsegment(debug_loc.name, 0);
-    debug_loc.secidx = SegData[debug_loc.seg]->SDshtidx;
-    debug_loc.buf = SegData[debug_loc.seg]->SDbuf;
-    debug_loc.buf->reserve(1000);
+    debug_loc.initialize();
 
     /* ======================================== */
 
@@ -1054,8 +1058,7 @@ void dwarf_initfile(const char *filename)
         infoFileName_table = NULL;
     }
 
-    debug_line.seg = dwarf_getsegment(debug_line.name, 0);
-    debug_line.buf = SegData[debug_line.seg]->SDbuf;
+    debug_line.initialize();
 
     debugline = debugline_init;
 
@@ -1080,8 +1083,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    debug_abbrev.seg = dwarf_getsegment(debug_abbrev.name, 0);
-    debug_abbrev.buf = SegData[debug_abbrev.seg]->SDbuf;
+    debug_abbrev.initialize();
     abbrevcode = 1;
 
     // Free only if starting another file. Waste of time otherwise.
@@ -1110,8 +1112,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    debug_info.seg = dwarf_getsegment(debug_info.name, 0);
-    debug_info.buf = SegData[debug_info.seg]->SDbuf;
+    debug_info.initialize();
 
     debuginfo = debuginfo_init;
     if (I64)
@@ -1184,11 +1185,8 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    seg = dwarf_getsegment(debug_pubnames.name, 0);
-    debug_pubnames.seg = seg;
-    debug_pubnames.secidx = SegData[seg]->SDshtidx;
-    debug_pubnames.buf = SegData[seg]->SDbuf;
-    debug_pubnames.buf->reserve(1000);
+    debug_pubnames.initialize();
+    int seg = debug_pubnames.seg;
 
     debug_pubnames.buf->write32(0);             // unit_length
     debug_pubnames.buf->writeWord(2);           // version
@@ -1200,10 +1198,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    debug_aranges.seg = dwarf_getsegment(debug_aranges.name, 0);
-    debug_aranges.secidx = SegData[debug_aranges.seg]->SDshtidx;
-    debug_aranges.buf = SegData[debug_aranges.seg]->SDbuf;
-    debug_aranges.buf->reserve(1000);
+    debug_aranges.initialize();
 
     debug_aranges.buf->write32(0);              // unit_length
     debug_aranges.buf->writeWord(2);            // version
