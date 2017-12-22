@@ -839,20 +839,22 @@ int cgreg_assign(Symbol *retsym)
         {
             #ifdef DEBUG
             if (debugr)
-            if (s->Sfl == FLreg)
             {
-                printf("symbol '%s' is in reg %s\n",s->Sident,regm_str(s->Sregm));
+                if (s->Sfl == FLreg)
+                {
+                    printf("symbol '%s' is in reg %s\n",s->Sident,regm_str(s->Sregm));
+                }
+                else if (s->Sflags & SFLspill)
+                {
+                    printf("symbol '%s' spilled in reg %s\n",s->Sident,regm_str(s->Sregm));
+                }
+                else if (!(s->Sflags & GTregcand))
+                {
+                    printf("symbol '%s' is not a reg candidate\n",s->Sident);
+                }
+                else
+                    printf("symbol '%s' is not a candidate\n",s->Sident);
             }
-            else if (s->Sflags & SFLspill)
-            {
-                printf("symbol '%s' spilled in reg %s\n",s->Sident,regm_str(s->Sregm));
-            }
-            else if (!(s->Sflags & GTregcand))
-            {
-                printf("symbol '%s' is not a reg candidate\n",s->Sident);
-            }
-            else
-                printf("symbol '%s' is not a candidate\n",s->Sident);
             #endif
             continue;
         }
