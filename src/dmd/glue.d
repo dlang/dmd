@@ -55,7 +55,7 @@ import dmd.id;
 import dmd.irstate;
 import dmd.lib;
 import dmd.mtype;
-import dmd.objc;
+import dmd.objc_glue;
 import dmd.s2ir;
 import dmd.statement;
 import dmd.target;
@@ -70,8 +70,6 @@ extern (C++):
 
 alias symbols = Array!(Symbol*);
 alias toSymbol = dmd.tocsym.toSymbol;
-
-void objc_Module_genmoduleinfo_classes();
 
 //extern
 __gshared
@@ -498,7 +496,7 @@ void genObjFile(Module m, bool multiobj)
 
     if (m.doppelganger)
     {
-        objc_Module_genmoduleinfo_classes();
+        objc.generateModuleInfo();
         objmod.termfile();
         return;
     }

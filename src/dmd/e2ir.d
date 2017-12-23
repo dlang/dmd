@@ -45,6 +45,7 @@ import dmd.id;
 import dmd.init;
 import dmd.irstate;
 import dmd.mtype;
+import dmd.objc_glue;
 import dmd.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
@@ -78,10 +79,6 @@ alias Elems = Array!(elem *);
 
 alias toSymbol = dmd.tocsym.toSymbol;
 alias toSymbol = dmd.glue.toSymbol;
-
-void objc_callfunc_setupMethodSelector(Type tret, FuncDeclaration fd, Type t, elem *ehidden, elem **esel);
-void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction tf);
-void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
 
 void* mem_malloc2(uint);
 
@@ -267,8 +264,8 @@ private elem *callfunc(Loc loc,
             free(elems);
     }
 
-    objc_callfunc_setupMethodSelector(tret, fd, t, ehidden, &esel);
-    objc_callfunc_setupEp(esel, &ep, left_to_right);
+    objc.setupMethodSelector(fd, &esel);
+    objc.setupEp(esel, &ep, left_to_right);
 
     const retmethod = retStyle(tf);
     if (retmethod == RETstack)
@@ -340,7 +337,7 @@ private elem *callfunc(Loc loc,
 
         if (esel)
         {
-            objc_callfunc_setupMethodCall(&ec, ehidden, ethis, tf);
+            objc.setupMethodCall(&ec, ehidden, ethis, tf);
         }
         else if (!fd.isVirtual() ||
             directcall ||               // BUG: fix

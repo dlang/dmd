@@ -50,7 +50,10 @@ version (NoBackend)
         RET retStyle(TypeFunction tf)               { return RETregs; }
         void toObjFile(Dsymbol ds, bool multiobj)   {}
 
-        void objc_initSymbols() {}
+        extern(C++) abstract class ObjcGlue
+        {
+            static void initialize() {}
+        }
     }
 }
 else version (MARS)
@@ -77,7 +80,10 @@ else version (MARS)
         RET retStyle(TypeFunction tf);
         void toObjFile(Dsymbol ds, bool multiobj);
 
-        void objc_initSymbols();
+        extern(C++) abstract class ObjcGlue
+        {
+            static void initialize();
+        }
     }
 }
 else version (IN_GCC)
