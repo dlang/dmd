@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -betterC
-// POST_SCRIPT: runnable/extra-files/test17868-postscript.sh
+// POST_SCRIPT: runnable/extra-files/test17868-postscript.sh ${RESULTS_DIR}/runnable/test17868.d.out.2
 import core.stdc.stdio;
 
 extern(C):
