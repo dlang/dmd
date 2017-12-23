@@ -379,8 +379,12 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     static if (TARGET.Windows)
     {
-        if (!global.params.mscrtlib)
-            global.params.mscrtlib = "libcmt";
+        if (global.params.mscoff && !global.params.mscrtlib)
+        {
+            VSOptions vsopt;
+            vsopt.initialize ();
+            global.params.mscrtlib = vsopt.defaultRuntimeLibrary(global.params.is64bit);
+        }
     }
     if (global.params.release)
     {

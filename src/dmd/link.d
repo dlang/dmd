@@ -957,6 +957,26 @@ version (Windows)
         }
 
         /**
+         * retrieve the name of the default C runtime library
+         * Params:
+         *   x64 = target architecture (x86 if false)
+         * Returns:
+         *   name of the default C runtime library
+         */
+        const(char)* defaultRuntimeLibrary(bool x64)
+        {
+            if (VCInstallDir is null)
+            {
+                detectVCInstallDir();
+                detectVCToolsInstallDir();
+            }
+            if (getVCLibDir(x64))
+                return "libcmt";
+            else
+                return "msvcrt100"; // mingw replacement
+        }
+
+        /**
          * retrieve options to be passed to the Microsoft linker
          * Params:
          *   x64 = target architecture (x86 if false)
