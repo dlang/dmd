@@ -984,7 +984,6 @@ version (Windows)
                     }
                 }
             }
-            const(char)* windowssdkdir = getenv("WindowsSdkDir");
             if (auto p = getSDKLibPath(x64))
             {
                 cmdbuf.writestring(" /LIBPATH:\"");
@@ -1346,6 +1345,12 @@ version (Windows)
                 else if (!x64 && FileName.exists(FileName.buildPath(sdk, "kernel32.lib"))) // SDK 7.1 or earlier
                     return sdk;
             }
+
+            // try mingw fallback relative to phobos library folder that's part of LIB
+            Strings* libpaths = FileName.splitPath(getenv("LIB"));
+            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib", false))
+                return FileName.path(p);
+
             return null;
         }
 
