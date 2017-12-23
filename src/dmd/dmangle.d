@@ -335,6 +335,7 @@ public:
     {
         //printf("TypeFunction.toDecoBuffer() t = %p %s\n", t, t.toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
+        assert(!t.isAmbiguous());
         mangleFuncType(t, t, t.mod, t.next);
     }
 

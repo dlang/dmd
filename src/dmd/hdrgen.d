@@ -848,6 +848,7 @@ public:
     override void visit(TypeFunction t)
     {
         //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
+        assert(!t.isAmbiguous());
         visitFuncIdentWithPostfix(t, null);
     }
 
@@ -979,6 +980,7 @@ public:
 
     override void visit(TypeDelegate t)
     {
+        assert(!t.isAmbiguous());
         visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate");
     }
 
@@ -3441,6 +3443,7 @@ extern (C++) const(char)* protectionToChars(Prot.Kind kind)
 extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
+    assert(!tf.isAmbiguous());
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     v.visitFuncIdentWithPrefix(tf, ident, td);
 }

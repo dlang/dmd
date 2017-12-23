@@ -3091,7 +3091,13 @@ else
             {
                 if (!tret)
                 {
-                    tf.next = rs.exp.type;
+                    if (rs.exp.type.isAmbiguous())
+                    {
+                        rs.error("cannot infer return type from ambiguous expression `%s`", rs.exp.toChars());
+                        tf.next = Type.terror;
+                    }
+                    else
+                        tf.next = rs.exp.type;
                 }
                 else if (tret.ty != Terror && !rs.exp.type.equals(tret))
                 {

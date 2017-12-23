@@ -426,6 +426,7 @@ extern (C++) abstract class Type : RootObject
     extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
     extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) static __gshared Type tvalist;     // va_list alias
+    extern (C++) static __gshared Type tambig;      // for ambiguous function overloads
     extern (C++) static __gshared Type terror;      // for error recovery
     extern (C++) static __gshared Type tnull;       // for null type
 
@@ -873,6 +874,8 @@ extern (C++) abstract class Type : RootObject
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
         tvalist = Target.va_listType();
+        tambig = new TypeFunction(null, null, 0, LINK.d);
+        tambig.deco = cast(char*)"@".ptr;
 
         if (global.params.isLP64)
         {
@@ -913,7 +916,8 @@ extern (C++) abstract class Type : RootObject
         Type t = typeSemantic(this, loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
-            t = null;
+            if (!t.isAmbiguous())
+                t = null;
         }
         //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
         return t;
@@ -1040,6 +1044,14 @@ extern (C++) abstract class Type : RootObject
     bool isAssignable()
     {
         return true;
+    }
+
+    /**************************
+     * Returns true if T was resolved ambiguously.
+     */
+    bool isAmbiguous()
+    {
+        return false;
     }
 
     /**************************
@@ -2193,6 +2205,8 @@ extern (C++) abstract class Type : RootObject
         //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
+        if (isAmbiguous())
+            return MATCH.nomatch;
         if (this.equals(to))
             return MATCH.exact;
         return MATCH.nomatch;
@@ -2759,6 +2773,11 @@ extern (C++) abstract class TypeNext : Type
     {
         super(ty);
         this.next = next;
+    }
+
+    override bool isAmbiguous()
+    {
+        return next && next.isAmbiguous();
     }
 
     override final void checkDeprecated(const ref Loc loc, Scope* sc)
@@ -3646,6 +3665,9 @@ extern (C++) final class TypeSArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
+        if (isAmbiguous())
+            return MATCH.nomatch;
+
         if (to.ty == Tarray)
         {
             TypeDArray ta = cast(TypeDArray)to;
@@ -3810,6 +3832,8 @@ extern (C++) final class TypeDArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
+        if (isAmbiguous())
+            return MATCH.nomatch;
         if (equals(to))
             return MATCH.exact;
 
@@ -3910,6 +3934,8 @@ extern (C++) final class TypeAArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
+        if (isAmbiguous())
+            return MATCH.nomatch;
         if (equals(to))
             return MATCH.exact;
 
@@ -3992,6 +4018,8 @@ extern (C++) final class TypePointer : TypeNext
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to.toChars(), toChars());
+        if (isAmbiguous())
+            return MATCH.nomatch;
         if (equals(to))
             return MATCH.exact;
 
@@ -4255,6 +4283,11 @@ extern (C++) final class TypeFunction : TypeNext
         t.trust = trust;
         t.fargs = fargs;
         return t;
+    }
+
+    override bool isAmbiguous()
+    {
+        return this == tambig || TypeNext.isAmbiguous();
     }
 
     /********************************************
@@ -5047,6 +5080,8 @@ extern (C++) final class TypeDelegate : TypeNext
         //printf("TypeDelegate.implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to.toChars());
+        if (isAmbiguous())
+            return MATCH.nomatch;
         if (this == to)
             return MATCH.exact;
 
@@ -5309,6 +5344,14 @@ extern (C++) final class TypeTypeof : TypeQualified
 
     override d_uns64 size(const ref Loc loc)
     {
+        }
+        if (t.isAmbiguous())
+        {
+            //printf("typeof exp = %s -> t = %s\n", exp.toChars(), t.toChars());
+            error(loc, "expression `%s` has ambiguous type", exp.toChars());
+            *pt = Type.tambig;
+            inuse--;
+            return;
         if (exp.type)
             return exp.type.size(loc);
         else
