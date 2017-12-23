@@ -1035,6 +1035,15 @@ version (Windows)
                 return cmdbuf.extractString();
             }
 
+            // try lld-link.exe alongside dmd.exe
+            char[MAX_PATH + 1] dmdpath;
+            if (GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length) <= MAX_PATH)
+            {
+                auto lldpath = FileName.replaceName(dmdpath.ptr, "lld-link.exe");
+                if (FileName.exists(lldpath))
+                    return lldpath;
+            }
+
             // search PATH to avoid createProcess preferring "link.exe" from the dmd folder
             Strings* paths = FileName.splitPath(getenv("PATH"));
             if (auto p = FileName.searchPath(paths, "link.exe", false))
