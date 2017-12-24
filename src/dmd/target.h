@@ -33,6 +33,8 @@ struct Target
     static int realalignsize;        // alignment for reals
     static bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
     static bool cppExceptions;       // set if catching C++ exceptions is supported
+    static char int64Mangle;         // mangling character for C++ int64_t
+    static char uint64Mangle;        // mangling character for C++ uint64_t
     static int c_longsize;           // size of a C 'long' or 'unsigned long' type
     static int c_long_doublesize;    // size of a C 'long double'
     static int classinfosize;        // size of 'ClassInfo'

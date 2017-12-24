@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
+ * Documentation:  https://dlang.org/phobos/ddmd_target.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/target.d
  */
 
 module dmd.target;
@@ -29,16 +31,21 @@ import dmd.root.outbuffer;
  */
 struct Target
 {
-    extern (C++) static __gshared int ptrsize;
-    extern (C++) static __gshared int realsize;             // size a real consumes in memory
-    extern (C++) static __gshared int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
-    extern (C++) static __gshared int realalignsize;        // alignment for reals
-    extern (C++) static __gshared bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
-    extern (C++) static __gshared bool cppExceptions;       // set if catching C++ exceptions is supported
-    extern (C++) static __gshared int c_longsize;           // size of a C 'long' or 'unsigned long' type
-    extern (C++) static __gshared int c_long_doublesize;    // size of a C 'long double'
-    extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
-    extern (C++) static __gshared ulong maxStaticDataSize;  // maximum size of static data
+    extern (C++) __gshared
+    {
+        int ptrsize;
+        int realsize;             /// size a real consumes in memory
+        int realpad;              /// 'padding' added to the CPU real size to bring it up to realsize
+        int realalignsize;        /// alignment for reals
+        bool reverseCppOverloads; /// with dmc and cl, overloaded functions are grouped and in reverse order
+        bool cppExceptions;       /// set if catching C++ exceptions is supported
+        char int64Mangle;         /// mangling character for C++ int64_t
+        char uint64Mangle;        /// mangling character for C++ uint64_t
+        int c_longsize;           /// size of a C 'long' or 'unsigned long' type
+        int c_long_doublesize;    /// size of a C 'long double'
+        int classinfosize;        /// size of 'ClassInfo'
+        ulong maxStaticDataSize;  /// maximum size of static data
+    }
 
     extern (C++) struct FPTypeProperties(T)
     {
@@ -135,6 +142,9 @@ struct Target
 
         cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
             global.params.isOSX;
+
+        int64Mangle  = global.params.isOSX ? 'x' : 'l';
+        uint64Mangle = global.params.isOSX ? 'y' : 'm';
     }
 
     /******************************

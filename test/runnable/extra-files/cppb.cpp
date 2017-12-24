@@ -32,6 +32,7 @@ headers.
 #define _GLIBCXX_USE_CXX11_ABI 0
 
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 #include <exception>
 #include <cstdarg>
@@ -567,20 +568,15 @@ Visitor2* getVisitor2()
 
 /******************************************/
 // issues detected by fuzzer
-#if _LP64
-#define longlong long
-#else
-#define longlong long long
-#endif
 
-void fuzz1_checkValues(longlong arg10, longlong arg11, bool arg12);
-void fuzz1_cppvararg(longlong arg10, longlong arg11, bool arg12)
+void fuzz1_checkValues(int64_t arg10, int64_t arg11, bool arg12);
+void fuzz1_cppvararg(int64_t arg10, int64_t arg11, bool arg12)
 {
     fuzz1_checkValues(arg10, arg11, arg12);
 }
 
-void fuzz2_checkValues(unsigned longlong arg10, unsigned longlong arg11, bool arg12);
-void fuzz2_cppvararg(unsigned longlong arg10, unsigned longlong arg11, bool arg12)
+void fuzz2_checkValues(uint64_t arg10, uint64_t arg11, bool arg12);
+void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
@@ -805,7 +801,7 @@ void test15802b()
 // 16536 - mangling mismatch on OSX
 
 #if defined(__APPLE__)
-__UINTMAX_TYPE__ pass16536(__UINTMAX_TYPE__ a)
+uint64_t pass16536(uint64_t a)
 {
     return a;
 }
