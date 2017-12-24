@@ -14,6 +14,27 @@ extern(C) int printf(const char*, ...);
     return 3;
 }
 
+@nogc void test2()
+{
+    if(__ctfe)
+    {
+        int[] arr;
+        arr ~= 42;
+    }
+}
+
+@nogc void test3()
+{
+    if(!__ctfe)
+    {
+    }
+    else
+    {
+        int[] arr;
+        arr ~= 42;
+    }
+}
+
 /***********************/
 // https://issues.dlang.org/show_bug.cgi?id=3032
 
@@ -71,6 +92,8 @@ void test12936() @nogc
 int main()
 {
     test1();
+    test2();
+    test3();
     test3032();
     test12642();
     test12936();
