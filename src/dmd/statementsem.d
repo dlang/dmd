@@ -2139,6 +2139,14 @@ else
         // This feature allows a limited form of conditional compilation.
         ifs.condition = ifs.condition.optimize(WANTvalue);
 
+        // Recognize if (__ctfe) as a special form condition and allow allocations
+        // in @nogc functions if we're in a __ctfe branch.
+        if (ifs.condition.op == TOKvar)
+        {
+            VarExp ve = cast(VarExp)ifs.condition;
+            if (ve.var && ve.var.ident == Id.ctfe)
+                scd.flags |= SCOPEctfe;
+        }
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         scd.pop();
 
@@ -2147,7 +2155,19 @@ else
         sc.callSuper = cs0;
         sc.fieldinit = fi0;
         if (ifs.elsebody)
-            ifs.elsebody = ifs.elsebody.semanticScope(sc, null, null);
+        {
+            Scope *sce = sc.push();
+            // Recognize if (!__ctfe) as a special form condition and allow allocations
+            // in @nogc functions if we're in a __ctfe branch.
+            if (ifs.condition.op == TOKnot && (cast(UnaExp)ifs.condition).e1.op == TOKvar)
+            {
+                VarExp ve = cast(VarExp)(cast(UnaExp)ifs.condition).e1;
+                if (ve.var && ve.var.ident == Id.ctfe)
+                    sce.flags |= SCOPEctfe;
+            }
+            ifs.elsebody = ifs.elsebody.semanticNoScope(sce);
+            sce.pop();
+        }
         sc.mergeCallSuper(ifs.loc, cs1);
         sc.mergeFieldInit(ifs.loc, fi1);
 
