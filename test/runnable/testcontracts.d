@@ -634,8 +634,6 @@ void test7517()
         static C self;
 
         void setEnable()
-        in {}       // supply in-contract to invoke I.setEnable.in
-        do
         {
             assert(self is this);
             result ~= "C.setEnable/";
@@ -668,7 +666,7 @@ void test7517()
 
     result = null;
     i.setDisable();
-    assert(result == "C.setDisable/I.setDisable.out/C.enabled/");
+    assert(result == "I.setDisable.in/C.enabled/C.setDisable/I.setDisable.out/C.enabled/");
 }
 
 /*******************************************/
