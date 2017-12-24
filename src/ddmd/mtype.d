@@ -58,6 +58,10 @@ import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.visitor;
 
+version(IN_LLVM) {
+    import gen.llvmhelpers;
+}
+
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
@@ -2797,17 +2801,37 @@ extern (C++) abstract class Type : RootObject
 
         // Allocate buffer on stack, fail over to using malloc()
         char[128] namebuf;
+
+        // Hash long symbol names
+        char* name;
+        int length;
+        if (IN_LLVM && global.params.hashThreshold && (slice.length > global.params.hashThreshold))
+        {
+            import std.digest.md;
+            auto md5hash = md5Of(slice);
+            auto hashedname = toHexString(md5hash);
+            static assert(hashedname.length < namebuf.length-30);
+            name = namebuf.ptr;
+            length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
+                cast(ulong)9 + hashedname.length, hashedname.length, hashedname.ptr);
+        }
+        else
+        {
+        // else path is DDMD original:
+
         const namelen = 19 + size_t.sizeof * 3 + slice.length + 1;
-        auto name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
+        name = namelen <= namebuf.length ? namebuf.ptr : cast(char*)malloc(namelen);
         assert(name);
 
-        const length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
+        length = sprintf(name, "_D%lluTypeInfo_%.*s6__initZ",
                 cast(ulong)(9 + slice.length), cast(int)slice.length, slice.ptr);
         //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
         assert(0 < length && length < namelen); // don't overflow the buffer
 
+        }
+
         int off = 0;
-        static if (!IN_GCC)
+        static if (!IN_GCC && !IN_LLVM)
         {
             if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
                 ++off; // C mangling will add '_' back in
@@ -3658,6 +3682,19 @@ extern (C++) final class TypeBasic : Type
         return Target.alignsize(this);
     }
 
+version(IN_LLVM)
+{
+    override structalign_t alignment()
+    {
+        if ( (ty == Tfloat80 || ty == Timaginary80) && (size(Loc()) > 8)
+             && isArchx86_64() )
+        {
+            return 16;
+        }
+        return Type.alignment();
+    }
+}
+
     override Expression getProperty(Loc loc, Identifier ident, int flag)
     {
         Expression e;
@@ -4384,10 +4421,17 @@ extern (C++) final class TypeVector : Type
         }
         if (ident == Id.array)
         {
+version(IN_LLVM)
+{
+            e = e.castTo(sc, basetype);
+}
+else
+{
             //e = e.castTo(sc, basetype);
             // Keep lvalue-ness
             e = e.copy();
             e.type = basetype;
+}
             return e;
         }
         if (ident == Id._init || ident == Id.offsetof || ident == Id.stringof || ident == Id.__xalignof)

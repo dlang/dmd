@@ -65,6 +65,8 @@ import ddmd.utf;
 import ddmd.utils;
 import ddmd.visitor;
 
+version(IN_LLVM) import gen.dpragma;
+
 enum LOGSEMANTIC = false;
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -3718,6 +3720,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             FuncDeclaration f = ve.var.isFuncDeclaration();
             if (f)
             {
+                version(IN_LLVM)
+                {
+                    if (DtoIsIntrinsic(f))
+                    {
+                        exp.error("cannot take the address of intrinsic function %s", exp.e1.toChars());
+                        result = new ErrorExp();
+                        return;
+                    }
+                }
                 /* Because nested functions cannot be overloaded,
                  * mark here that we took its address because castTo()
                  * may not be called with an exact match.

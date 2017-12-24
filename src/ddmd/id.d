@@ -22,7 +22,8 @@ import ddmd.tokens;
  *
  * All static fields in this struct represents a specific predefined symbol.
  */
-struct Id
+// IN_LLVM: added `extern(C++)`
+extern(C++) struct Id
 {
     static __gshared:
 
@@ -402,6 +403,55 @@ immutable Msgtable[] msgtable =
     { "TRUE" },
     { "FALSE" },
     { "unsigned" },
+
+    // IN_LLVM: LDC-specific pragmas.
+    { "LDC_intrinsic" },
+    { "LDC_no_typeinfo" },
+    { "LDC_no_moduleinfo" },
+    { "LDC_alloca" },
+    { "LDC_va_start" },
+    { "LDC_va_copy" },
+    { "LDC_va_end" },
+    { "LDC_va_arg" },
+    { "LDC_verbose" },
+    { "LDC_allow_inline" },
+    { "LDC_never_inline" },
+    { "LDC_inline_asm" },
+    { "LDC_inline_ir" },
+    { "LDC_fence" },
+    { "LDC_atomic_load" },
+    { "LDC_atomic_store" },
+    { "LDC_atomic_cmp_xchg" },
+    { "LDC_atomic_rmw" },
+    { "LDC_global_crt_ctor" },
+    { "LDC_global_crt_dtor" },
+    { "LDC_extern_weak" },
+    { "LDC_profile_instr" },
+
+    // IN_LLVM: LDC-specific traits.
+    { "targetCPU" },
+    { "targetHasFeature" },
+    
+    // IN_LLVM: LDC-specific attributes
+    { "ldc" },
+    { "attributes" },
+    { "udaAllocSize", "allocSize" },
+    // fastmath is an AliasSeq of llvmAttr and llvmFastMathFlag
+    { "udaOptStrategy", "optStrategy" },
+    { "udaLLVMAttr", "llvmAttr" },
+    { "udaLLVMFastMathFlag", "llvmFastMathFlag" },
+    { "udaSection", "section" },
+    { "udaTarget", "target" },
+    { "udaWeak", "_weak" },
+    { "udaCompute", "compute" },
+    { "udaKernel", "_kernel" },
+    { "udaDynamicCompile", "_dynamicCompile" },
+    { "udaDynamicCompileConst", "_dynamicCompileConst" },
+    
+    // IN_LLVM: DCompute specific types and functionss
+    { "dcompute" },
+    { "dcPointer", "Pointer" },
+    { "dcReflect", "__dcompute_reflect" },
 ];
 
 

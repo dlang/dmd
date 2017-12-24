@@ -11,7 +11,8 @@
 #ifndef __LONG_DOUBLE_H__
 #define __LONG_DOUBLE_H__
 
-#if !_MSC_VER // has native 10 byte doubles
+// LDC: Don't provide 'manual' x87 longdouble when compiling with MS compiler.
+#if IN_LLVM || !_MSC_VER // has native 10 byte doubles
 #include <stdio.h>
 typedef long double longdouble;
 typedef volatile long double volatile_longdouble;

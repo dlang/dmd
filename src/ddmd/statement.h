@@ -50,8 +50,21 @@ class DefaultStatement;
 class LabelStatement;
 class StaticForeach;
 
+#if IN_LLVM
+namespace llvm
+{
+    class Value;
+    class BasicBlock;
+    class ConstantInt;
+}
+class DValue;
+typedef DValue elem;
+struct AsmCode;
+typedef AsmCode code;
+#else
 // Back end
 struct code;
+#endif
 
 bool inferAggregate(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
 bool inferApplyArgTypes(ForeachStatement *fes, Scope *sc, Dsymbol *&sapply);
@@ -111,6 +124,11 @@ public:
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
     virtual ForwardingStatement *isForwardingStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
+
+#if IN_LLVM
+    virtual CompoundAsmStatement *isCompoundAsmBlockStatement() { return NULL; }
+    virtual CompoundAsmStatement *endsWithAsm();
+#endif
 };
 
 /** Any Statement that fails semantic() or has a component that is an ErrorExp or
@@ -184,6 +202,10 @@ public:
 
     CompoundStatement *isCompoundStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
+
+#if IN_LLVM
+    virtual CompoundAsmStatement *endsWithAsm();
+#endif
 };
 
 class CompoundDeclarationStatement : public CompoundStatement
@@ -341,9 +363,8 @@ public:
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
-    Loc endloc;                 // location of closing curly bracket
-
     VarDeclaration *match;      // for MatchExpression results
+    Loc endloc;                 // location of closing curly bracket
 
     Statement *syntaxCopy();
     IfStatement *isIfStatement() { return this; }
@@ -412,6 +433,10 @@ public:
     int hasVars;                // !=0 if has variable case values
     VarDeclaration *lastVar;
 
+#if IN_LLVM
+    bool hasGotoDefault;        // true iff there is a `goto default` statement for this switch
+#endif
+
     Statement *syntaxCopy();
     bool hasBreak();
     bool checkLabel();
@@ -427,6 +452,10 @@ public:
 
     int index;          // which case it is (since we sort this)
     VarDeclaration *lastVar;
+
+#if IN_LLVM
+    bool gototarget; // true iff this is the target of a 'goto case'
+#endif
 
     Statement *syntaxCopy();
     int compare(RootObject *obj);
@@ -454,6 +483,10 @@ public:
     Statement *statement;
     VarDeclaration *lastVar;
 
+#if IN_LLVM
+    bool gototarget; // true iff this is the target of a 'goto default'
+#endif
+
     Statement *syntaxCopy();
     DefaultStatement *isDefaultStatement() { return this; }
 
@@ -476,6 +509,10 @@ class GotoCaseStatement : public Statement
 public:
     Expression *exp;            // NULL, or which case to goto
     CaseStatement *cs;          // case statement it resolves to
+
+#if IN_LLVM
+    SwitchStatement *sw;
+#endif
 
     Statement *syntaxCopy();
     GotoCaseStatement *isGotoCaseStatement() { return this; }
@@ -507,6 +544,11 @@ class BreakStatement : public Statement
 public:
     Identifier *ident;
 
+#if IN_LLVM
+    // LDC: only set if ident is set: label statement to jump to
+    LabelStatement *target;
+#endif
+
     Statement *syntaxCopy();
 
     BreakStatement *isBreakStatement() { return this; }
@@ -517,6 +559,11 @@ class ContinueStatement : public Statement
 {
 public:
     Identifier *ident;
+
+#if IN_LLVM
+    // LDC: only set if ident is set: label statement to jump to
+    LabelStatement *target;
+#endif
 
     Statement *syntaxCopy();
 
@@ -687,6 +734,11 @@ public:
     bool refparam;              // true if function parameter is referenced
     bool naked;                 // true if function is to be naked
 
+#if IN_LLVM
+    // non-zero if this is a branch, contains the target label
+    LabelDsymbol* isBranchToLabel;
+#endif
+
     Statement *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -698,10 +750,21 @@ class CompoundAsmStatement : public CompoundStatement
 public:
     StorageClass stc; // postfix attributes like nothrow/pure/@trusted
 
+#if IN_LLVM
+    llvm::Value *abiret;
+#endif
+
     CompoundAsmStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
+
+#if IN_LLVM
+    CompoundStatement *isCompoundStatement() { return NULL; }
+    CompoundAsmStatement *isCompoundAsmBlockStatement() { return this; }
+
+    CompoundAsmStatement* endsWithAsm();
+#endif
 };
 
 class ImportStatement : public Statement

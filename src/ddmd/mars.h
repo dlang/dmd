@@ -63,6 +63,9 @@ the target object file format:
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
+#if IN_LLVM
+#include <stddef.h>
+#endif
 
 #ifdef __DMC__
 #ifdef DEBUG
@@ -95,6 +98,11 @@ void obj_write_deferred(Library *library);
 void readFile(Loc loc, File *f);
 void writeFile(Loc loc, File *f);
 void ensurePathToNameExists(Loc loc, const char *name);
+
+#if IN_LLVM
+int mars_mainBody(Strings &files, Strings &libmodules);
+void printPredefinedVersions();
+#endif
 
 const char *importHint(const char *s);
 /// Little helper function for writing out deps.

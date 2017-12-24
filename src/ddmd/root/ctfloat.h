@@ -13,7 +13,17 @@
 #include "longdouble.h"
 
 // Type used by the front-end for compile-time reals
+#if IN_LLVM && _MSC_VER
+// Make sure LDC built with MSVC uses double-precision compile-time reals,
+// independent of whether it was built with DMD (80-bit reals) or LDC.
+typedef double real_t;
+#else
 typedef longdouble real_t;
+#endif
+
+#if IN_LLVM
+namespace llvm { class APFloat; }
+#endif
 
 // Compile-time floating-point helper
 struct CTFloat
@@ -31,9 +41,35 @@ struct CTFloat
     static real_t fabs(real_t x);
     static real_t ldexp(real_t n, int exp);
 
+#if IN_LLVM
+    static real_t log(real_t x);
+    static real_t log2(real_t x);
+    static real_t log10(real_t x);
+    static real_t fmin(real_t l, real_t r);
+    static real_t fmax(real_t l, real_t r);
+    static real_t floor(real_t x);
+    static real_t ceil(real_t x);
+    static real_t trunc(real_t x);
+    static real_t rint(real_t x);
+    static real_t nearbyint(real_t x);
+    static real_t round(real_t x);
+    static real_t fma(real_t x, real_t y, real_t z);
+    static real_t copysign(real_t to, real_t from);
+
+    // implemented in gen/ctfloat.cpp
+    static void _init();
+    static void toAPFloat(real_t src, llvm::APFloat &dst);
+    static real_t fromAPFloat(const llvm::APFloat &src);
+
+    static bool isFloat32LiteralOutOfRange(const char *literal);
+    static bool isFloat64LiteralOutOfRange(const char *literal);
+#endif
+
     static bool isIdentical(real_t a, real_t b);
     static bool isNaN(real_t r);
+#if !IN_LLVM
     static bool isSNaN(real_t r);
+#endif
     static bool isInfinity(real_t r);
 
     static real_t parse(const char *literal, bool *isOutOfRange = NULL);
@@ -46,6 +82,11 @@ struct CTFloat
     static real_t one;
     static real_t minusone;
     static real_t half;
+#if IN_LLVM
+    static real_t initVal;
+    static real_t nan;
+    static real_t infinity;
+#endif
 };
 
 #endif

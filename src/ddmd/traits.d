@@ -39,6 +39,10 @@ import ddmd.semantic;
 import ddmd.tokens;
 import ddmd.typesem;
 import ddmd.visitor;
+version (IN_LLVM)
+{
+    import ddmd.hooks;
+}
 
 enum LOGSEMANTIC = false;
 
@@ -1454,6 +1458,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+    if (Expression ret = semanticTraitsHook(e, sc))
+    {
+        return ret;
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)

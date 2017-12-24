@@ -70,6 +70,12 @@ import ddmd.templateparamsem;
 import ddmd.typesem;
 import ddmd.visitor;
 
+version(IN_LLVM)
+{
+    import gen.dpragma;
+    import gen.llvmhelpers;
+}
+
 enum LOG = false;
 
 /*************************************
@@ -854,13 +860,42 @@ extern(C++) final class Semantic3Visitor : Visitor
                 if (f.linkage == LINKd || (f.parameters && Parameter.dim(f.parameters)))
                 {
                     // Declare _argptr
-                    Type t = Type.tvalist;
+                    version (IN_LLVM)
+                        Type t = Type.tvalist.typeSemantic(funcdecl.loc, sc);
+                    else
+                        Type t = Type.tvalist;
                     // Init is handled in FuncDeclaration_toObjFile
                     funcdecl.v_argptr = new VarDeclaration(Loc(), t, Id._argptr, new VoidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STCtemp;
                     funcdecl.v_argptr.semantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
                     funcdecl.v_argptr.parent = funcdecl;
+                }
+            }
+
+            version(IN_LLVM)
+            {
+                // Make sure semantic analysis has been run on argument types. This is
+                // e.g. needed for TypeTuple!(int, int) to be picked up as two int
+                // parameters by the Parameter functions.
+                if (f.parameters)
+                {
+                    for (size_t i = 0; i < Parameter.dim(f.parameters); i++)
+                    {
+                        Parameter arg = Parameter.getNth(f.parameters, i);
+                        Type nw = arg.type.typeSemantic(Loc(), sc);
+                        if (arg.type != nw)
+                        {
+                            arg.type = nw;
+                            // Examine this index again.
+                            // This is important if it turned into a tuple.
+                            // In particular, the empty tuple should be handled or the
+                            // next parameter will be skipped.
+                            // LDC_FIXME: Maybe we only need to do this for tuples,
+                            //            and can add tuple.length after decrement?
+                            i--;
+                        }
+                    }
                 }
             }
 
@@ -1396,6 +1431,9 @@ extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
+// we'll handle variadics ourselves
+static if (!IN_LLVM)
+{
                 if (_arguments)
                 {
                     /* Advance to elements[] member of TypeInfo_Tuple with:
@@ -1410,6 +1448,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     auto de = new DeclarationExp(Loc(), _arguments);
                     a.push(new ExpStatement(Loc(), de));
                 }
+}
 
                 // Merge contracts together with body into one compound statement
 
@@ -1439,8 +1478,26 @@ extern(C++) final class Semantic3Visitor : Visitor
 
                     if (f.next.ty != Tvoid && funcdecl.vresult)
                     {
+version(IN_LLVM)
+{
+                        Expression e = null;
+                        if (funcdecl.isCtorDeclaration())
+                        {
+                            ThisExp te = new ThisExp(Loc());
+                            te.type = funcdecl.vthis.type;
+                            te.var = funcdecl.vthis;
+                            e = te;
+                        }
+                        else
+                        {
+                            e = new VarExp(Loc(), funcdecl.vresult);
+                        }
+}
+else
+{
                         // Create: return vresult;
                         Expression e = new VarExp(Loc(), funcdecl.vresult);
+}
                         if (funcdecl.tintro)
                         {
                             e = e.implicitCastTo(sc, funcdecl.tintro.nextOf());
@@ -2859,6 +2916,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         // Should be merged with PragmaStatement
         //printf("\tPragmaDeclaration::semantic '%s'\n",toChars());
+
+        version(IN_LLVM)
+        {
+            LDCPragma llvm_internal = LDCPragma.LLVMnone;
+            const(char)* arg1str = null;
+        }
+
         if (pd.ident == Id.msg)
         {
             if (pd.args)
@@ -3010,6 +3074,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
         }
+        // IN_LLVM
+        else if ((llvm_internal = DtoGetPragma(sc, pd, arg1str)) != LDCPragma.LLVMnone)
+        {
+            // nothing to do anymore
+        }
         else if (global.params.ignoreUnsupportedPragmas)
         {
             if (global.params.verbose)
@@ -3022,6 +3091,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     for (size_t i = 0; i < pd.args.dim; i++)
                     {
                         Expression e = (*pd.args)[i];
+                        version(IN_LLVM)
+                        {
+                            // ignore errors in ignored pragmas.
+                            global.gag++;
+                            uint errors_save = global.errors;
+                        }
                         sc = sc.startCTFE();
                         e = e.expressionSemantic(sc);
                         e = resolveProperties(sc, e);
@@ -3032,13 +3107,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         else
                             fprintf(global.stdmsg, ",");
                         fprintf(global.stdmsg, "%s", e.toChars());
+                        version(IN_LLVM)
+                        {
+                            // restore error state.
+                            global.gag--;
+                            global.errors = errors_save;
+                        }
                     }
                     if (pd.args.dim)
                         fprintf(global.stdmsg, ")");
                 }
                 fprintf(global.stdmsg, "\n");
             }
-            goto Lnodecl;
+            static if (!IN_LLVM)
+                goto Lnodecl;
         }
         else
             pd.error("unrecognized `pragma(%s)`", pd.ident.toChars());
@@ -3062,6 +3144,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
                     }
+                }
+                // IN_LLVM: add else clause
+                else
+                {
+                    DtoCheckPragma(pd, s, llvm_internal, arg1str);
                 }
             }
             if (sc2 != sc)
@@ -3923,7 +4010,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         static __gshared int nest;
         //printf("%d\n", nest);
-        if (++nest > 500)
+        // IN_LLVM replaced: if (++nest > 500)
+        if (++nest > global.params.nestedTmpl) // LDC_FIXME: add testcase for this
         {
             global.gag = 0; // ensure error message gets printed
             tm.error("recursive expansion");
@@ -4104,6 +4192,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl.inlining = sc.inlining;
         funcdecl.protection = sc.protection;
         funcdecl.userAttribDecl = sc.userAttribDecl;
+        version(IN_LLVM)
+        {
+            funcdecl.emitInstrumentation = sc.emitInstrumentation;
+        }
 
         if (!funcdecl.originalType)
             funcdecl.originalType = funcdecl.type.syntaxCopy();
@@ -4747,7 +4839,16 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             funcdecl.initInferAttributes();
 
         Module.dprogress++;
-        funcdecl.semanticRun = PASSsemanticdone;
+        version(IN_LLVM)
+        {
+            // LDC relies on semanticRun variable not being reset here
+            if (funcdecl.semanticRun < PASSsemanticdone)
+                funcdecl.semanticRun = PASSsemanticdone;
+        }
+        else
+        {
+            funcdecl.semanticRun = PASSsemanticdone;
+        }
 
         /* Save scope for possible later use (if we need the
          * function internals)
@@ -6670,6 +6771,16 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
             //printf("tempdecl.ident = %s, s = '%s'\n", tempdecl.ident.toChars(), s.kind(), s.toPrettyChars());
             //printf("setting aliasdecl\n");
             tempinst.aliasdecl = s;
+            version(IN_LLVM)
+            {
+                // LDC propagate internal information
+                if (tempdecl.llvmInternal != 0) {
+                    s.llvmInternal = tempdecl.llvmInternal;
+                    if (FuncDeclaration fd = s.isFuncDeclaration()) {
+                        DtoSetFuncDeclIntrinsicName(tempinst, tempdecl, fd);
+                    }
+                }
+            }
         }
     }
 
@@ -6838,7 +6949,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         while (ti && !ti.deferred && ti.tinst)
         {
             ti = ti.tinst;
-            if (++nest > 500)
+            // IN_LLVM replaced: if (++nest > 500)
+            if (++nest > global.params.nestedTmpl) // LDC_FIXME: add testcase for this
             {
                 global.gag = 0; // ensure error message gets printed
                 tempinst.error("recursive expansion");

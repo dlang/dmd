@@ -26,6 +26,18 @@ struct Escape;
 class VarDeclaration;
 class Library;
 
+#if IN_LLVM
+#include <cstdint>
+class DValue;
+namespace llvm {
+    class LLVMContext;
+    class Module;
+    class GlobalVariable;
+    class StructType;
+}
+#endif
+
+
 enum PKG
 {
     PKGunknown, // not yet determined whether it's a package.d or not
@@ -40,7 +52,7 @@ public:
     unsigned tag;       // auto incremented tag, used to mask package tree in scopes
     Module *mod;        // != NULL if isPkgMod == PKGmodule
 
-    const char *kind();
+    const char *kind() const;
 
     static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
 
@@ -125,7 +137,7 @@ public:
 
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
-    const char *kind();
+    const char *kind() const;
     File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
     void setDocfile();
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
@@ -165,6 +177,21 @@ public:
     Symbol *stest;              // module unit test
 
     Symbol *sfilename;          // symbol for filename
+
+#if IN_LLVM
+    // LDC
+    llvm::Module* genLLVMModule(llvm::LLVMContext& context);
+    void checkAndAddOutputFile(File *file);
+    void makeObjectFilenameUnique();
+
+    bool llvmForceLogging;
+    bool noModuleInfo; /// Do not emit any module metadata.
+
+    // Coverage analysis
+    llvm::GlobalVariable* d_cover_valid;  // private immutable size_t[] _d_cover_valid;
+    llvm::GlobalVariable* d_cover_data;   // private uint[] _d_cover_data;
+    Array<size_t>         d_cover_valid_init; // initializer for _d_cover_valid
+#endif
 
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }

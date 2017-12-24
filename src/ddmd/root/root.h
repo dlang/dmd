@@ -14,6 +14,16 @@
 #pragma once
 #endif
 
+#if IN_LLVM
+#ifndef IS_PRINTF
+# ifdef __GNUC__
+#  define IS_PRINTF(FMTARG) __attribute((__format__(__printf__, (FMTARG), (FMTARG)+1)))
+# else
+#  define IS_PRINTF(FMTARG)
+# endif
+#endif
+#endif
+
 #include "object.h"
 
 #include "filename.h"

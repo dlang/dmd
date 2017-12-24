@@ -52,6 +52,13 @@ import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
+version(IN_LLVM)
+{
+    // Functions to construct/destruct Dsymbol.ir
+    extern (C++) void* newIrDsymbol();
+    extern (C++) void deleteIrDsymbol(void*);
+}
+
 struct Ungag
 {
     uint oldgag;
@@ -213,10 +220,22 @@ extern (C++) class Dsymbol : RootObject
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
 
+    version(IN_LLVM)
+    {
+        // llvm stuff
+        uint llvmInternal;
+
+        void* ir; // IrDsymbol*
+    }
+
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
         this.semanticRun = PASSinit;
+        version(IN_LLVM)
+        {
+            this.ir = newIrDsymbol();
+        }
     }
 
     final extern (D) this(Identifier ident)
@@ -224,6 +243,19 @@ extern (C++) class Dsymbol : RootObject
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.ident = ident;
         this.semanticRun = PASSinit;
+        version(IN_LLVM)
+        {
+            this.ir = newIrDsymbol();
+        }
+    }
+
+    version(IN_LLVM)
+    {
+        extern (D) ~this()
+        {
+            deleteIrDsymbol(this.ir);
+            this.ir = null;
+        }
     }
 
     static Dsymbol create(Identifier ident)

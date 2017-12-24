@@ -23,6 +23,21 @@
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
 
+#if IN_LLVM
+#include "llvm/ADT/Triple.h"
+#include <cstdint>
+
+enum OUTPUTFLAG
+{
+    OUTPUTFLAGno,
+    OUTPUTFLAGdefault, // for the .o default
+    OUTPUTFLAGset      // for -output
+};
+
+using ubyte = uint8_t;
+#endif
+
+
 // The state of array bounds checking
 enum BOUNDSCHECK
 {
@@ -66,10 +81,18 @@ struct Param
     bool vcg_ast;       // write-out codegen-ast
     bool showColumns;   // print character (column) numbers in diagnostics
     bool vtls;          // identify thread local variables
+#if !IN_LLVM
     char vgc;           // identify gc usage
+#else
+    bool vgc;           // identify gc usage
+#endif
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
+#if !IN_LLVM
     char symdebug;      // insert debug symbolic information
+#else
+    ubyte symdebug;     // insert debug symbolic information
+#endif
     bool symdebugref;   // insert debug information for all referenced types, too
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
@@ -87,7 +110,11 @@ struct Param
     // 0: don't allow use of deprecated features
     // 1: silently allow use of deprecated features
     // 2: warn about the use of deprecated features
+#if !IN_LLVM
     char useDeprecated;
+#else
+    ubyte useDeprecated;
+#endif
     bool useAssert;     // generate runtime code for assert()'s
     bool useInvariants; // generate class invariant checks
     bool useIn;         // generate precondition checks
@@ -102,7 +129,11 @@ struct Param
     // 0: disable warnings
     // 1: warnings as errors
     // 2: informational warnings (no errors)
+#if !IN_LLVM
     char warnings;
+#else
+    ubyte warnings;
+#endif
     bool pic;           // generate position-independent-code for shared libs
     bool color;         // use ANSI colors in console output
     bool cov;           // generate code coverage data
@@ -180,6 +211,36 @@ struct Param
     const char *resfile;
     const char *exefile;
     const char *mapfile;
+
+#if IN_LLVM
+    Array<const char *> *bitcodeFiles; // LLVM bitcode files passed on cmdline
+
+    uint32_t nestedTmpl; // maximum nested template instantiations
+
+    // LDC stuff
+    OUTPUTFLAG output_ll;
+    OUTPUTFLAG output_bc;
+    OUTPUTFLAG output_s;
+    OUTPUTFLAG output_o;
+    bool useInlineAsm;
+    bool verbose_cg;
+    bool fullyQualifiedObjectFiles;
+    bool cleanupObjectFiles;
+
+    // Profile-guided optimization:
+    bool genInstrProf;             // Whether to generate PGO instrumented code
+    const char *datafileInstrProf; // Either the input or output file for PGO data
+
+    const llvm::Triple *targetTriple;
+
+    // Codegen cl options
+    bool disableRedZone;
+    uint32_t dwarfVersion;
+
+    uint32_t hashThreshold; // MD5 hash symbols larger than this threshold (0 = no hashing)
+
+    bool outputSourceLocations; // if true, output line tables.
+#endif
 };
 
 struct Compiler
@@ -197,6 +258,15 @@ struct Global
     const char *inifilename;
     const char *mars_ext;
     const char *obj_ext;
+#if IN_LLVM
+    const char *ll_ext;
+    const char *bc_ext;
+    const char *s_ext;
+    const char *ldc_version;
+    const char *llvm_version;
+
+    bool gaggedForInlining; // Set for functionSemantic3 for external inlining candidates
+#endif
     const char *lib_ext;
     const char *dll_ext;
     const char *doc_ext;        // for Ddoc generated files
@@ -294,7 +364,12 @@ struct Loc
         filename = NULL;
     }
 
+#if IN_LLVM
+    Loc(const char *filename, unsigned linnum, unsigned charnum)
+        : filename(filename), linnum(linnum), charnum(charnum) {}
+#else
     Loc(const char *filename, unsigned linnum, unsigned charnum);
+#endif
 
     const char *toChars() const;
     bool equals(const Loc& loc);

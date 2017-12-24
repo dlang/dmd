@@ -266,8 +266,7 @@ class UshrExp;
 class AndExp;
 class OrExp;
 class XorExp;
-class OrOrExp;
-class AndAndExp;
+class LogicalExp;
 class CmpExp;
 class InExp;
 class RemoveExp;
@@ -555,8 +554,7 @@ public:
     virtual void visit(AndExp *e) { visit((BinExp *)e); }
     virtual void visit(OrExp *e) { visit((BinExp *)e); }
     virtual void visit(XorExp *e) { visit((BinExp *)e); }
-    virtual void visit(OrOrExp *e) { visit((BinExp *)e); }
-    virtual void visit(AndAndExp *e) { visit((BinExp *)e); }
+    virtual void visit(LogicalExp *e) { visit((BinExp *)e); }
     virtual void visit(CmpExp *e) { visit((BinExp *)e); }
     virtual void visit(InExp *e) { visit((BinExp *)e); }
     virtual void visit(RemoveExp *e) { visit((BinExp *)e); }

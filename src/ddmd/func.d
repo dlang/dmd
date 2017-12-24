@@ -166,6 +166,27 @@ extern (C++) class FuncDeclaration : Declaration
 
     const(char)* mangleString;          /// mangled symbol created from mangleExact()
 
+    version(IN_LLVM)
+    {
+        // Argument lists for the __require/__ensure calls. NULL if not a virtual
+        // function with contracts.
+        Expressions* fdrequireParams;
+        Expressions* fdensureParams;
+
+        const(char)* intrinsicName;
+        uint priority;
+
+        // true if overridden with the pragma(LDC_allow_inline); statement
+        bool allowInlining = false;
+
+        // true if set with the pragma(LDC_never_inline); statement
+        bool neverInline = false;
+
+        // Whether to emit instrumentation code if -fprofile-instr-generate is specified,
+        // the value is set with pragma(LDC_profile_instr, true|false)
+        bool emitInstrumentation = true;
+    }
+
     Identifier outId;                   /// identifier for out statement
     VarDeclaration vresult;             /// variable corresponding to outId
     LabelDsymbol returnLabel;           /// where the return goes
@@ -278,7 +299,34 @@ extern (C++) class FuncDeclaration : Declaration
         f.fensure = fensure ? fensure.syntaxCopy() : null;
         f.fbody = fbody ? fbody.syntaxCopy() : null;
         assert(!fthrows); // deprecated
+        version(IN_LLVM)
+        {
+            f.intrinsicName = intrinsicName ? strdup(intrinsicName) : null;
+        }
         return f;
+    }
+
+    version(IN_LLVM)
+    {
+        final private Parameters* outToRef(Parameters* params)
+        {
+            auto result = new Parameters();
+
+            int outToRefDg(size_t n, Parameter p)
+            {
+                if (p.storageClass & STCout)
+                {
+                    p = p.syntaxCopy();
+                    p.storageClass &= ~STCout;
+                    p.storageClass |= STCref;
+                }
+                result.push(p);
+                return 0;
+            }
+
+            Parameter._foreach(params, &outToRefDg);
+            return result;
+        }
     }
 
     /****************************************************
@@ -351,8 +399,16 @@ extern (C++) class FuncDeclaration : Declaration
             TemplateInstance spec = isSpeculative();
             uint olderrs = global.errors;
             uint oldgag = global.gag;
+version (IN_LLVM)
+{
+            if (global.gag && !spec && !global.gaggedForInlining)
+                global.gag = 0;
+}
+else
+{
             if (global.gag && !spec)
                 global.gag = 0;
+}
             semantic3(this, _scope);
             global.gag = oldgag;
 
@@ -1919,8 +1975,15 @@ extern (C++) class FuncDeclaration : Declaration
      * Merge into this function the 'in' contracts of all it overrides.
      * 'in's are OR'd together, i.e. only one of them needs to pass.
      */
-    final Statement mergeFrequire(Statement sf)
+    // IN_LLVM replaced: final Statement mergeFrequire(Statement sf)
+    final Statement mergeFrequire(Statement sf, Expressions *params = null)
     {
+        version(IN_LLVM)
+        {
+            if (params is null)
+                params = fdrequireParams;
+        }
+
         /* If a base function and its override both have an IN contract, then
          * only one of them needs to succeed. This is done by generating:
          *
@@ -1937,6 +2000,12 @@ extern (C++) class FuncDeclaration : Declaration
          * If base.in() throws, then derived.in()'s body is executed.
          */
 
+version(IN_LLVM)
+{
+        /* In LDC, we can't rely on these codegen hacks - we explicitly pass
+         * parameters on to the contract functions.
+         */
+} else {
         /* Implementing this is done by having the overriding function call
          * nested functions (the fdrequire functions) nested inside the overridden
          * function. This requires that the stack layout of the calling function's
@@ -1953,6 +2022,7 @@ extern (C++) class FuncDeclaration : Declaration
          *     a stack local, allocate that local immediately following the exception
          *     handler block, so it is always at the same offset from EBP.
          */
+}
         foreach (fdv; foverrides)
         {
             /* The semantic pass on the contracts of the overridden functions must
@@ -1968,6 +2038,9 @@ extern (C++) class FuncDeclaration : Declaration
                 sc.pop();
             }
 
+version(IN_LLVM)
+            sf = fdv.mergeFrequire(sf, params);
+else
             sf = fdv.mergeFrequire(sf);
             if (sf && fdv.fdrequire)
             {
@@ -1976,8 +2049,13 @@ extern (C++) class FuncDeclaration : Declaration
                  *   try { __require(); }
                  *   catch (Throwable) { frequire; }
                  */
+version(IN_LLVM)
+                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
+else
+{
                 Expression eresult = null;
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
+}
                 Statement s2 = new ExpStatement(loc, e);
 
                 auto c = new Catch(loc, getThrowable(), null, sf);
@@ -2026,13 +2104,38 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (frequire)
         {
-            /*   in { ... }
-             * becomes:
-             *   void __require() { ... }
-             *   __require();
-             */
-            Loc loc = frequire.loc;
-            auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
+            version(IN_LLVM)
+            {
+                /* In LDC, we can't rely on the codegen hacks DMD has to be able
+                 * to just magically call the contract function parameterless with
+                 * the parameters being picked up from the outer stack frame.
+                 *
+                 * Thus, we actually pass all the function parameters to the
+                 * __require call, rewriting out parameters to ref ones because
+                 * they have already been zeroed in the outer function.
+                 *
+                 * Also set fdrequireParams here.
+                 */
+                Loc loc = frequire.loc;
+                fdrequireParams = new Expressions();
+                if (parameters)
+                {
+                    foreach (vd; *parameters)
+                        fdrequireParams.push(new VarExp(loc, vd));
+                }
+                auto fparams = outToRef((cast(TypeFunction)type).parameters);
+                auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
+            }
+            else
+            {
+                /*   in { ... }
+                 * becomes:
+                 *   void __require() { ... }
+                 *   __require();
+                 */
+                Loc loc = frequire.loc;
+                auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
+            }
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2040,7 +2143,14 @@ extern (C++) class FuncDeclaration : Declaration
             auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
             fd.fbody = frequire;
             Statement s1 = new ExpStatement(loc, fd);
-            Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+            version(IN_LLVM)
+            {
+                Expression e = new CallExp(loc, new VarExp(loc, fd, false), fdrequireParams);
+            }
+            else
+            {
+                Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
+            }
             Statement s2 = new ExpStatement(loc, e);
             frequire = new CompoundStatement(loc, s1, s2);
             fdrequire = fd;
@@ -2049,20 +2159,47 @@ extern (C++) class FuncDeclaration : Declaration
         if (!outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
             outId = Id.result; // provide a default
 
+        version(IN_LLVM)
+        {
+            /* We need to set fdensureParams here and not in the block below to
+             * have the parameters available when calling a base class ensure(),
+             * even if this function doesn't have an out contract.
+             */
+            fdensureParams = new Expressions();
+            if (outId)
+                fdensureParams.push(new IdentifierExp(loc, outId));
+            if (parameters)
+            {
+                foreach (vd; *parameters)
+                    fdensureParams.push(new VarExp(loc, vd));
+            }
+        }
         if (fensure)
         {
-            /*   out (result) { ... }
-             * becomes:
-             *   void __ensure(ref tret result) { ... }
-             *   __ensure(result);
-             */
-            Loc loc = fensure.loc;
-            auto fparams = new Parameters();
+            version(IN_LLVM)
+            {
+                /* Same as for in contracts, see above. */
+                Loc loc = fensure.loc;
+                auto fparams = outToRef((cast(TypeFunction)type).parameters);
+            }
+            else
+            {
+                /*   out (result) { ... }
+                 * becomes:
+                 *   void __ensure(ref tret result) { ... }
+                 *   __ensure(result);
+                 */
+                Loc loc = fensure.loc;
+                auto fparams = new Parameters();
+            }
             Parameter p = null;
             if (outId)
             {
                 p = new Parameter(STCref | STCconst, f.nextOf(), outId, null);
-                fparams.push(p);
+                version(IN_LLVM)
+                    fparams.insert(0, p);
+                else
+                    fparams.push(p);
             }
             auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
             tf.isnothrow = f.isnothrow;
@@ -2072,10 +2209,17 @@ extern (C++) class FuncDeclaration : Declaration
             auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
-            Expression eresult = null;
-            if (outId)
-                eresult = new IdentifierExp(loc, outId);
-            Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+            version(IN_LLVM)
+            {
+                Expression e = new CallExp(loc, new VarExp(loc, fd, false), fdensureParams);
+            }
+            else
+            {
+                Expression eresult = null;
+                if (outId)
+                    eresult = new IdentifierExp(loc, outId);
+                Expression e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+            }
             Statement s2 = new ExpStatement(loc, e);
             fensure = new CompoundStatement(loc, s1, s2);
             fdensure = fd;
@@ -2086,8 +2230,15 @@ extern (C++) class FuncDeclaration : Declaration
      * Merge into this function the 'out' contracts of all it overrides.
      * 'out's are AND'd together, i.e. all of them need to pass.
      */
-    final Statement mergeFensure(Statement sf, Identifier oid)
+    // IN_LLVM replaced: final Statement mergeFensure(Statement sf, Identifier oid)
+    final Statement mergeFensure(Statement sf, Identifier oid, Expressions *params = null)
     {
+        version(IN_LLVM)
+        {
+            if (params is null)
+                params = fdensureParams;
+        }
+
         /* Same comments as for mergeFrequire(), except that we take care
          * of generating a consistent reference to the 'result' local by
          * explicitly passing 'result' to the nested function as a reference
@@ -2113,6 +2264,9 @@ extern (C++) class FuncDeclaration : Declaration
                 sc.pop();
             }
 
+version(IN_LLVM)
+            sf = fdv.mergeFensure(sf, oid, params);
+else
             sf = fdv.mergeFensure(sf, oid);
             if (fdv.fdensure)
             {
@@ -2121,9 +2275,18 @@ extern (C++) class FuncDeclaration : Declaration
                 Expression eresult = null;
                 if (outId)
                 {
+version(IN_LLVM)
+                    eresult = (*params)[0];
+else
                     eresult = new IdentifierExp(loc, oid);
 
                     Type t1 = fdv.type.nextOf().toBasetype();
+version(IN_LLVM)
+{
+                    // We actually check for matching types in CommaExp::toElem,
+                    // 'testcontract' breaks without this.
+                    t1 = t1.constOf();
+}
                     Type t2 = this.type.nextOf().toBasetype();
                     if (t1.isBaseOf(t2, null))
                     {
@@ -2140,7 +2303,16 @@ extern (C++) class FuncDeclaration : Declaration
                         eresult = new CommaExp(Loc(), de, ve);
                     }
                 }
+version(IN_LLVM)
+{
+                if (eresult !is null)
+                    (*params)[0] = eresult;
+                Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), params);
+}
+else
+{
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), eresult);
+}
                 Statement s2 = new ExpStatement(loc, e);
 
                 if (sf)

@@ -174,6 +174,11 @@ struct Scope
     // user defined attributes
     UserAttributeDeclaration userAttribDecl;
 
+version(IN_LLVM)
+{
+    bool emitInstrumentation = true;   // whether to emit instrumentation with -fprofile-instr-generate
+}
+
     DocComment* lastdc;        /// documentation comment for last symbol at this scope
     uint[void*] anchorCounts;  /// lookup duplicate anchor name count
     Identifier prevAnchor;     /// qualified symbol name of last doc anchor
@@ -399,8 +404,15 @@ struct Scope
         {
             size_t dim = fieldinit_dim;
             fi = cast(uint*)mem.xmalloc(uint.sizeof * dim);
+version(IN_LLVM)
+{           // ASan
+            memcpy(fi, fieldinit, (*fi).sizeof * dim);
+}
+else
+{
             for (size_t i = 0; i < dim; i++)
                 fi[i] = fieldinit[i];
+}
         }
         return fi;
     }

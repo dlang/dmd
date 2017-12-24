@@ -19,7 +19,7 @@
 # define USE_ASAN_NEW_DELETE
 #endif
 
-#if !defined(USE_ASAN_NEW_DELETE)
+#if !defined(USE_ASAN_NEW_DELETE) && !defined(IN_LLVM)
 
 #if 1
 

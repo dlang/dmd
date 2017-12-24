@@ -69,6 +69,13 @@ extern (C++) struct Port
 
     static bool isFloat32LiteralOutOfRange(const(char)* s)
     {
+      version (IN_LLVM)
+      {
+        import ddmd.root.ctfloat;
+        return CTFloat.isFloat32LiteralOutOfRange(s);
+      }
+      else
+      {
         errno = 0;
         version (CRuntime_DigitalMars)
         {
@@ -88,10 +95,18 @@ extern (C++) struct Port
         }
         version (CRuntime_DigitalMars) __locale_decpoint = save;
         return errno == ERANGE;
+      }
     }
 
     static bool isFloat64LiteralOutOfRange(const(char)* s)
     {
+      version (IN_LLVM)
+      {
+        import ddmd.root.ctfloat;
+        return CTFloat.isFloat64LiteralOutOfRange(s);
+      }
+      else
+      {
         errno = 0;
         version (CRuntime_DigitalMars)
         {
@@ -111,6 +126,7 @@ extern (C++) struct Port
         }
         version (CRuntime_DigitalMars) __locale_decpoint = save;
         return errno == ERANGE;
+      }
     }
 
     // Little endian
@@ -159,6 +175,34 @@ extern (C++) struct Port
     {
         auto p = cast(ubyte*)buffer;
         return (p[0] << 8) | p[1];
+    }
+
+    version (IN_LLVM)
+    {
+        // LDC_FIXME: Move this into our C++ code, since only driver/gen is
+        // still using this.
+        static int stricmp(const(char)* s1, const(char)* s2)
+        {
+            int result = 0;
+            for (;;)
+            {
+                char c1 = *s1;
+                char c2 = *s2;
+
+                result = c1 - c2;
+                if (result)
+                {
+                    result = toupper(c1) - toupper(c2);
+                    if (result)
+                        break;
+                }
+                if (!c1)
+                    break;
+                s1++;
+                s2++;
+            }
+            return result;
+        }
     }
 
     static void valcpy(void *dst, ulong val, size_t size)

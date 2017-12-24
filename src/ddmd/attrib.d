@@ -32,6 +32,12 @@ import ddmd.tokens;
 import ddmd.semantic;
 import ddmd.visitor;
 
+version(IN_LLVM)
+{
+    import gen.dpragma;
+}
+
+
 /***********************************************************
  */
 extern (C++) abstract class AttribDeclaration : Dsymbol
@@ -806,6 +812,21 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             }
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
         }
+        else if (IN_LLVM && ident == Id.LDC_profile_instr) {
+            bool emitInstr = true;
+            if (!args || args.dim != 1 || !DtoCheckProfileInstrPragma((*args)[0], emitInstr)) {
+                error("pragma(LDC_profile_instr, true or false) expected");
+                (*args)[0] = new ErrorExp();
+            } else {
+                // Only create a new scope if the emitInstrumentation flag is changed
+                if (sc.emitInstrumentation != emitInstr) {
+                    auto newscope = sc.copy();
+                    newscope.emitInstrumentation = emitInstr;
+                    return newscope;
+                }
+            }
+        }
+
         return sc;
     }
 

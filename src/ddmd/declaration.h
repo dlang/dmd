@@ -32,6 +32,9 @@ class StructDeclaration;
 struct InterState;
 struct CompiledCtfeFunction;
 struct ObjcSelector;
+#if IN_LLVM
+struct Symbol;
+#endif
 
 enum LINK;
 enum TOK;
@@ -130,7 +133,7 @@ public:
     int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...")
 
-    const char *kind();
+    const char *kind() const;
     d_uns64 size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
@@ -179,13 +182,17 @@ public:
     TypeTuple *tupletype;       // !=NULL if this is a type tuple
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *kind();
+    const char *kind() const;
     Type *getType();
     Dsymbol *toAlias2();
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
+
+#if IN_LLVM
+    void semantic3(Scope *sc);
+#endif
 };
 
 /**************************************************************/
@@ -201,7 +208,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void aliasSemantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
-    const char *kind();
+    const char *kind() const;
     Type *getType();
     Dsymbol *toAlias();
     Dsymbol *toAlias2();
@@ -220,7 +227,7 @@ public:
     Dsymbol *aliassym;
     bool hasOverloads;
 
-    const char *kind();
+    const char *kind() const;
     bool equals(RootObject *o);
     bool overloadInsert(Dsymbol *s);
 
@@ -263,7 +270,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    const char *kind();
+    const char *kind() const;
     AggregateDeclaration *isThis();
     bool needThis();
     bool isExport();
@@ -497,6 +504,26 @@ public:
 
     const char *mangleString;           // mangled symbol created from mangleExact()
 
+#if IN_LLVM
+    // Argument lists for the __require/__ensure calls. NULL if not a virtual
+    // function with contracts.
+    Expressions *fdrequireParams;
+    Expressions *fdensureParams;
+
+    const char *intrinsicName;
+    uint32_t priority;
+
+    // true if overridden with the pragma(LDC_allow_inline); statement
+    bool allowInlining;
+
+    // true if set with the pragma(LDC_never_inline); statement
+    bool neverInline;
+
+    // Whether to emit instrumentation code if -fprofile-instr-generate is specified,
+    // the value is set with pragma(LDC_profile_instr, true|false)
+    bool emitInstrumentation;
+#endif
+
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes
@@ -624,15 +651,20 @@ public:
     virtual bool isFinalFunc();
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
-    const char *kind();
+    const char *kind() const;
     FuncDeclaration *isUnique();
     bool checkNestedReference(Scope *sc, Loc loc);
     bool needsClosure();
     bool checkClosure();
     bool hasNestedFrameRefs();
     void buildResultVar(Scope *sc, Type *tret);
+#if IN_LLVM
+    Statement *mergeFrequire(Statement *, Expressions *params = nullptr);
+    Statement *mergeFensure(Statement *, Identifier *oid, Expressions *params = nullptr);
+#else
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
+#endif
     Parameters *getParameters(int *pvarargs);
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
@@ -658,7 +690,7 @@ public:
     bool hasOverloads;
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
-    const char *kind();
+    const char *kind() const;
 
     FuncDeclaration *toAliasFunc();
     void accept(Visitor *v) { v->visit(this); }
@@ -683,7 +715,7 @@ public:
     void modifyReturns(Scope *sc, Type *tret);
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
-    const char *kind();
+    const char *kind() const;
     const char *toPrettyChars(bool QualifyTypes = false);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -692,7 +724,7 @@ class CtorDeclaration : public FuncDeclaration
 {
 public:
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *kind();
+    const char *kind() const;
     const char *toChars();
     bool isVirtual();
     bool addPreInvariant();
@@ -719,7 +751,7 @@ class DtorDeclaration : public FuncDeclaration
 {
 public:
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *kind();
+    const char *kind() const;
     const char *toChars();
     bool isVirtual();
     bool addPreInvariant();
@@ -815,7 +847,7 @@ public:
     int varargs;
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *kind();
+    const char *kind() const;
     bool isVirtual();
     bool addPreInvariant();
     bool addPostInvariant();
@@ -831,7 +863,7 @@ public:
     Parameters *parameters;
 
     Dsymbol *syntaxCopy(Dsymbol *);
-    const char *kind();
+    const char *kind() const;
     bool isDelete();
     bool isVirtual();
     bool addPreInvariant();

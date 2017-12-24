@@ -2387,7 +2387,16 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             if (e2c != e.e2)
             {
-                result = new CommaExp(e.loc, e.e1, e2c);
+                version (IN_LLVM)
+                {
+                    // Cast the CommaExp instead of the inner rhs; this fixes
+                    // https://github.com/ldc-developers/ldc/issues/2415.
+                    result = new CastExp(e.loc, e, e2c.type);
+                }
+                else
+                {
+                    result = new CommaExp(e.loc, e.e1, e2c);
+                }
                 result.type = e2c.type;
             }
             else

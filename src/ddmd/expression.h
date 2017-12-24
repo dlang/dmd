@@ -55,6 +55,19 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
+void initPrecedence();
+
+#if IN_LLVM
+class SymbolDeclaration;
+namespace llvm {
+    class Constant;
+    class Value;
+}
+
+// in expressionsem.d
+Expression *expressionSemantic(Expression *e, Scope *sc);
+#endif
+
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
@@ -360,6 +373,16 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i) const;
     void accept(Visitor *v) { v->visit(this); }
+#if IN_LLVM
+    // The D version returns a slice.
+    const char *toStringz() const
+    {
+        auto nbytes = len * sz;
+        char* s = (char*)mem.xmalloc(nbytes + sz);
+        writeTo(s, true);
+        return s;
+    }
+#endif
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
     char *toPtr();
@@ -437,6 +460,17 @@ public:
     StructDeclaration *sd;      // which aggregate this is for
     Expressions *elements;      // parallels sd->fields[] with NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
+
+#if IN_LLVM
+    // With the introduction of pointers returned from CTFE, struct literals can
+    // now contain pointers to themselves. While in toElem, contains a pointer
+    // to the memory used to build the literal for resolving such references.
+    llvm::Value* inProgressMemory;
+
+    // A global variable for taking the address of this struct literal constant,
+    // if it already exists. Used to resolve self-references.
+    llvm::Constant *globalVar;
+#endif
 
     bool useStaticInit;         // if this is true, use the StructDeclaration's init symbol
     Symbol *sym;                // back end symbol to initialize with literal

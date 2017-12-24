@@ -65,6 +65,8 @@ import ddmd.typesem;
 import ddmd.utf;
 import ddmd.visitor;
 
+version(IN_LLVM) import gen.dpragma;
+
 enum LOGSEMANTIC = false;
 void emplaceExp(T : Expression, Args...)(void* p, Args args)
 {
@@ -133,6 +135,14 @@ L1:
                     {
                         //printf("rewriting e1 to %s's this\n", f.toChars());
                         n++;
+                        version(IN_LLVM)
+                        {
+                            // LDC seems dmd misses it sometimes here :/
+                            if (f.isMember2()) {
+                                f.vthis.nestedrefs.push(sc.parent.isFuncDeclaration());
+                                f.closureVars.push(f.vthis);
+                            }
+                        }
                         e1 = new VarExp(loc, f.vthis);
                     }
                     else
@@ -1955,7 +1965,9 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
         {
             // These will be the trailing ... arguments
             // If not D linkage, do promotions
-            if (tf.linkage != LINKd)
+            // IN_LLVM: don't do promotions on intrinsics
+            // IN_LLVM replaced: if (tf.linkage != LINKd)
+            if (tf.linkage != LINKd && (!fd || !DtoIsIntrinsic(fd)))
             {
                 // Promote bytes, words, etc., to ints
                 arg = integralPromotions(arg, sc);
@@ -2186,7 +2198,7 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
 
     // If D linkage and variadic, add _arguments[] as first argument
-    if (tf.linkage == LINKd && tf.varargs == 1)
+    if (!IN_LLVM && tf.linkage == LINKd && tf.varargs == 1)
     {
         assert(arguments.dim >= nparams);
 
@@ -2701,7 +2713,8 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
 /***********************************************************
  * http://dlang.org/spec/expression.html#expression
  */
-extern (C++) abstract class Expression : RootObject
+// LDC: Instantiated in gen/asm-x86.h (`Handled = createExpression(...)`).
+extern (C++) /* IN_LLVM abstract */ class Expression : RootObject
 {
     Loc loc;        // file location
     Type type;      // !=null means that semantic() has been run
@@ -4877,6 +4890,18 @@ extern (C++) final class StructLiteralExp : Expression
     Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
     Type stype;             /// final type of result (can be different from sd's type)
 
+    version(IN_LLVM)
+    {
+        // With the introduction of pointers returned from CTFE, struct literals can
+        // now contain pointers to themselves. While in toElem, contains a pointer
+        // to the memory used to build the literal for resolving such references.
+        void* inProgressMemory; // llvm::Value*
+
+        // A global variable for taking the address of this struct literal constant,
+        // if it already exists. Used to resolve self-references.
+        void* globalVar; // llvm::Constant*
+    }
+
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     Symbol* sym;            /// back end symbol to initialize with literal
 
@@ -5320,6 +5345,15 @@ extern (C++) final class SymOffExp : SymbolExp
 
     override bool isBool(bool result)
     {
+version(IN_LLVM)
+{
+        // For a weak symbol, we only statically know that it is non-null if the
+        // offset is non-zero.
+        if (var.llvmInternal == LDCPragma.LLVMextern_weak)
+        {
+            return result && offset != 0;
+        }
+}
         return result ? true : false;
     }
 
@@ -5700,6 +5734,8 @@ extern (C++) final class FuncExp : Expression
                 // https://issues.dlang.org/show_bug.cgi?id=12508
                 // Tweak function body for covariant returns.
                 (*presult).fd.modifyReturns(sc, tof.next);
+                version(IN_LLVM)
+                    (*presult).fd.type = tof; // Also, update function return type.
             }
         }
         else if (!flag)

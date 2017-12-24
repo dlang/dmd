@@ -24,6 +24,10 @@
 #include "expression.h"
 #include "visitor.h"
 
+#if IN_LLVM
+#include <cstdlib>
+#endif
+
 struct Scope;
 class Identifier;
 class Expression;
@@ -42,10 +46,14 @@ class Parameter;
 // Back end
 #ifdef IN_GCC
 typedef union tree_node type;
+#elif IN_LLVM
+typedef class IrType type;
 #else
 typedef struct TYPE type;
 #endif
 
+Type *typeSemantic(Type *t, Loc loc, Scope *sc);
+Type *merge(Type *type);
 void semanticTypeInfo(Scope *sc, Type *t);
 MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wm = NULL, size_t inferStart = 0);
 StorageClass ModToStc(unsigned mod);
@@ -246,7 +254,6 @@ public:
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
     Type *trySemantic(Loc loc, Scope *sc);
-    Type *merge();
     Type *merge2();
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
@@ -340,8 +347,9 @@ public:
     virtual bool needsNested();
     void checkComplexTransition(Loc loc);
 
-    static void error(Loc loc, const char *format, ...);
-    static void warning(Loc loc, const char *format, ...);
+    // IN_LLVM: added IS_PRINTF(2);
+    static void error(Loc loc, const char *format, ...) IS_PRINTF(2);
+    static void warning(Loc loc, const char *format, ...) IS_PRINTF(2);
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
@@ -394,6 +402,9 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize();
+#if IN_LLVM
+    structalign_t alignment();
+#endif
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();

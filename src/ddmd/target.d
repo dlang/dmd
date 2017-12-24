@@ -23,6 +23,9 @@ import ddmd.mtype;
 import ddmd.tokens : TOK;
 import ddmd.root.ctfloat;
 import ddmd.root.outbuffer;
+version(IN_LLVM) {
+    import gen.llvmhelpers;
+}
 
 /***********************************************************
  */
@@ -39,6 +42,74 @@ struct Target
     extern (C++) static __gshared int classinfosize;        // size of 'ClassInfo'
     extern (C++) static __gshared ulong maxStaticDataSize;  // maximum size of static data
 
+  version(IN_LLVM)
+  {
+    extern (C++):
+
+    struct FPTypeProperties
+    {
+        real_t max, min_normal, nan, snan, infinity, epsilon;
+        d_int64 dig, mant_dig, max_exp, min_exp, max_10_exp, min_10_exp;
+
+        static FPTypeProperties fromDHostCompiler(T)()
+        {
+            FPTypeProperties p;
+
+            p.max = T.max;
+            p.min_normal = T.min_normal;
+            p.nan = T.nan;
+            p.snan = T.init;
+            p.infinity = T.infinity;
+            p.epsilon = T.epsilon;
+
+            p.dig = T.dig;
+            p.mant_dig = T.mant_dig;
+            p.max_exp = T.max_exp;
+            p.min_exp = T.min_exp;
+            p.max_10_exp = T.max_10_exp;
+            p.min_10_exp = T.min_10_exp;
+
+            return p;
+        }
+    }
+
+    static __gshared FPTypeProperties FloatProperties = FPTypeProperties.fromDHostCompiler!float();
+    static __gshared FPTypeProperties DoubleProperties = FPTypeProperties.fromDHostCompiler!double();
+    static __gshared FPTypeProperties RealProperties = FPTypeProperties.fromDHostCompiler!real_t();
+
+    // implemented in gen/target.cpp:
+    static void _init();
+    // Type sizes and support.
+    static uint alignsize(Type type);
+    static uint fieldalign(Type type);
+    static uint critsecsize();
+    static Type va_listType();  // get type of va_list
+    static int isVectorTypeSupported(int sz, Type type);
+    static bool isVectorOpSupported(Type type, TOK op, Type t2 = null);
+    // CTFE support for cross-compilation.
+    static Expression paintAsType(Expression e, Type type);
+    // ABI and backend.
+    static void loadModule(Module m);
+    static void prefixName(OutBuffer *buf, LINK linkage);
+
+    static const(char)* toCppMangle(Dsymbol s)
+    {
+        if (isTargetWindowsMSVC())
+            return toCppMangleMSVC(s);
+        else
+            return toCppMangleItanium(s);
+    }
+
+    static const(char)* cppTypeInfoMangle(ClassDeclaration cd)
+    {
+        if (isTargetWindowsMSVC())
+            return cppTypeInfoMangleMSVC(cd);
+        else
+            return cppTypeInfoMangleItanium(cd);
+    }
+  }
+  else // !IN_LLVM
+  {
     extern (C++) struct FPTypeProperties(T)
     {
         static __gshared
@@ -453,6 +524,7 @@ struct Target
         else
             static assert(0, "fix this");
     }
+  } // !IN_LLVM
 
     /**
      * For a vendor-specific type, return a string containing the C++ mangling.
@@ -471,6 +543,8 @@ struct Target
         return global.params.isWindows ? LINKwindows : LINKc;
     }
 }
+
+version(IN_LLVM) {} else {
 
 /******************************
  * Private helpers for Target::paintAsType.
@@ -547,3 +621,5 @@ private Expression decodeReal(Loc loc, Type type, ubyte* buffer)
     }
     return new RealExp(loc, value, type);
 }
+
+} // !IN_LLVM

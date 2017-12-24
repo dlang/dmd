@@ -54,7 +54,7 @@ public:
     void setScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Type *getType();
-    const char *kind();
+    const char *kind() const;
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isDeprecated();                // is Dsymbol deprecated?
     Prot prot();
@@ -88,7 +88,7 @@ public:
     EnumDeclaration *ed;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    const char *kind();
+    const char *kind() const;
     Expression *getVarExp(Loc loc, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }

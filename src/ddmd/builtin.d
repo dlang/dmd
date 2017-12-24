@@ -24,6 +24,9 @@ import ddmd.mtype;
 import ddmd.root.ctfloat;
 import ddmd.root.stringtable;
 import ddmd.tokens;
+version(IN_LLVM) {
+    import ddmd.dtemplate;
+}
 
 private:
 
@@ -157,6 +160,306 @@ extern (C++) Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* argum
     return new IntegerExp(loc, k, Type.tint32);
 }
 
+version(IN_LLVM)
+{
+
+private Type getTypeOfOverloadedIntrinsic(FuncDeclaration fd)
+{
+    // Depending on the state of the code generation we have to look at
+    // the template instance or the function declaration.
+    assert(fd.parent && "function declaration requires parent");
+    TemplateInstance tinst = fd.parent.isTemplateInstance();
+    if (tinst)
+    {
+        // See DtoOverloadedIntrinsicName
+        assert(tinst.tdtypes.dim == 1);
+        return cast(Type) tinst.tdtypes.data[0];
+    }
+    else
+    {
+        assert(fd.type.ty == Tfunction);
+        TypeFunction tf = cast(TypeFunction) fd.type;
+        assert(tf.parameters.dim >= 1);
+        return tf.parameters.data[0].type;
+    }
+}
+
+private int getBitsizeOfType(Loc loc, Type type)
+{
+    switch (type.toBasetype().ty)
+    {
+      case Tint64:
+      case Tuns64: return 64;
+      case Tint32:
+      case Tuns32: return 32;
+      case Tint16:
+      case Tuns16: return 16;
+      case Tint128:
+      case Tuns128:
+          error(loc, "cent/ucent not supported");
+          break;
+      default:
+          error(loc, "unsupported type");
+          break;
+    }
+    return 32; // in case of error
+}
+
+extern (C++) Expression eval_llvmsin(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.sin(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmcos(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.cos(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmsqrt(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.sqrt(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmlog(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.log(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmlog2(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.log2(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmlog10(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.log10(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmfabs(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.fabs(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmminnum(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    Expression arg1 = (*arguments)[1];
+    assert(arg1.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.fmin(arg0.toReal(), arg1.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmmaxnum(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    Expression arg1 = (*arguments)[1];
+    assert(arg1.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.fmax(arg0.toReal(), arg1.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmfloor(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.floor(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmceil(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.ceil(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmtrunc(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.trunc(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmrint(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.rint(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmnearbyint(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.nearbyint(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmround(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.round(arg0.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmfma(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    Expression arg1 = (*arguments)[1];
+    assert(arg1.op == TOKfloat64);
+    Expression arg2 = (*arguments)[2];
+    assert(arg2.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.fma(arg0.toReal(), arg1.toReal(), arg2.toReal()), type);
+}
+
+extern (C++) Expression eval_llvmcopysign(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKfloat64);
+    Expression arg1 = (*arguments)[1];
+    assert(arg1.op == TOKfloat64);
+    return new RealExp(loc, CTFloat.copysign(arg0.toReal(), arg1.toReal()), type);
+}
+
+extern (C++) Expression eval_cttz(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKint64);
+    uinteger_t x = arg0.toInteger();
+
+    int n = getBitsizeOfType(loc, type);
+
+    if (x == 0)
+    {
+        if ((*arguments)[1].toInteger())
+            error(loc, "llvm.cttz.i#(0) is undefined");
+    }
+    else
+    {
+        int c = n >> 1;
+        n -= 1;
+        const uinteger_t mask = (uinteger_t(1L) << n) | (uinteger_t(1L) << n)-1;
+        do {
+            uinteger_t y = (x << c) & mask;
+            if (y != 0) { n -= c; x = y; }
+            c = c >> 1;
+        } while (c != 0);
+    }
+
+    return new IntegerExp(loc, n, type);
+}
+
+extern (C++) Expression eval_ctlz(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKint64);
+    uinteger_t x = arg0.toInteger();
+    if (x == 0 && (*arguments)[1].toInteger())
+        error(loc, "llvm.ctlz.i#(0) is undefined");
+
+    int n = getBitsizeOfType(loc, type);
+    int c = n >> 1;
+    do {
+        uinteger_t y = x >> c; if (y != 0) { n -= c; x = y; }
+        c = c >> 1;
+    } while (c != 0);
+
+    return new IntegerExp(loc, n - x, type);
+}
+
+extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKint64);
+    uinteger_t n = arg0.toInteger();
+    enum ulong BYTEMASK = 0x00FF00FF00FF00FF;
+    enum ulong SHORTMASK = 0x0000FFFF0000FFFF;
+    enum ulong INTMASK = 0x00000000FFFFFFFF;
+    switch (type.toBasetype().ty)
+    {
+      case Tint64:
+      case Tuns64:
+          // swap high and low uints
+          n = ((n >> 32) & INTMASK) | ((n & INTMASK) << 32);
+          goto case Tuns32;
+      case Tint32:
+      case Tuns32:
+          // swap adjacent ushorts
+          n = ((n >> 16) & SHORTMASK) | ((n & SHORTMASK) << 16);
+          goto case Tuns16;
+      case Tint16:
+      case Tuns16:
+          // swap adjacent ubytes
+          n = ((n >> 8 ) & BYTEMASK)  | ((n & BYTEMASK) << 8 );
+          break;
+      case Tint128:
+      case Tuns128:
+          error(loc, "cent/ucent not supported");
+          break;
+      default:
+          error(loc, "unsupported type");
+          break;
+    }
+    return new IntegerExp(loc, n, type);
+}
+
+extern (C++) Expression eval_ctpop(Loc loc, FuncDeclaration fd, Expressions *arguments)
+{
+    // FIXME Does not work for cent/ucent
+    Type type = getTypeOfOverloadedIntrinsic(fd);
+
+    Expression arg0 = (*arguments)[0];
+    assert(arg0.op == TOKint64);
+    uinteger_t n = arg0.toInteger();
+    int cnt = 0;
+    while (n)
+    {
+        cnt += (n & 1);
+        n >>= 1;
+    }
+    return new IntegerExp(loc, cnt, type);
+}
+
+}
+else // !IN_LLVM
+{
+
 extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
     Expression arg0 = (*arguments)[0];
@@ -175,6 +478,8 @@ extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arg
         n = ((n >> 32) & INTMASK) | ((n & INTMASK) << 32);
     return new IntegerExp(loc, n, arg0.type);
 }
+
+} // !IN_LLVM
 
 extern (C++) Expression eval_popcnt(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
@@ -218,7 +523,14 @@ extern (C++) Expression eval_yl2xp1(Loc loc, FuncDeclaration fd, Expressions* ar
 
 public extern (C++) void builtin_init()
 {
+version(IN_LLVM)
+{
+    builtins._init(127); // Prime number like default value
+}
+else
+{
     builtins._init(47);
+}
     // @safe @nogc pure nothrow real function(real)
     add_builtin("_D4core4math3sinFNaNbNiNfeZe", &eval_sin);
     add_builtin("_D4core4math3cosFNaNbNiNfeZe", &eval_cos);
@@ -243,6 +555,9 @@ public extern (C++) void builtin_init()
     add_builtin("_D4core4math5atan2FNaNbNiNfeeZe", &eval_unimp);
     if (CTFloat.yl2x_supported)
     {
+        version(IN_LLVM) // @trusted
+            add_builtin("_D4core4math4yl2xFNaNbNiNeeeZe", &eval_yl2x);
+        else
         add_builtin("_D4core4math4yl2xFNaNbNiNfeeZe", &eval_yl2x);
     }
     else
@@ -251,6 +566,9 @@ public extern (C++) void builtin_init()
     }
     if (CTFloat.yl2xp1_supported)
     {
+        version(IN_LLVM) // @trusted
+            add_builtin("_D4core4math6yl2xp1FNaNbNiNeeeZe", &eval_yl2xp1);
+        else
         add_builtin("_D4core4math6yl2xp1FNaNbNiNfeeZe", &eval_yl2xp1);
     }
     else
@@ -316,6 +634,155 @@ public extern (C++) void builtin_init()
     add_builtin("_D3std4math__T8isFiniteTeZQmFNaNbNiNeeZb", &eval_isfinite);
     add_builtin("_D3std4math__T8isFiniteTdZQmFNaNbNiNedZb", &eval_isfinite);
     add_builtin("_D3std4math__T8isFiniteTfZQmFNaNbNiNefZb", &eval_isfinite);
+
+version(IN_LLVM)
+{
+    // intrinsic llvm.sin.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.sin.f32", &eval_llvmsin);
+    add_builtin("llvm.sin.f64", &eval_llvmsin);
+    add_builtin("llvm.sin.f80", &eval_llvmsin);
+    add_builtin("llvm.sin.f128", &eval_llvmsin);
+    add_builtin("llvm.sin.ppcf128", &eval_llvmsin);
+
+    // intrinsic llvm.cos.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.cos.f32", &eval_llvmcos);
+    add_builtin("llvm.cos.f64", &eval_llvmcos);
+    add_builtin("llvm.cos.f80", &eval_llvmcos);
+    add_builtin("llvm.cos.f128", &eval_llvmcos);
+    add_builtin("llvm.cos.ppcf128", &eval_llvmcos);
+
+    // intrinsic llvm.sqrt.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.sqrt.f32", &eval_llvmsqrt);
+    add_builtin("llvm.sqrt.f64", &eval_llvmsqrt);
+    add_builtin("llvm.sqrt.f80", &eval_llvmsqrt);
+    add_builtin("llvm.sqrt.f128", &eval_llvmsqrt);
+    add_builtin("llvm.sqrt.ppcf128", &eval_llvmsqrt);
+
+    // intrinsic llvm.log.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.log.f32", &eval_llvmlog);
+    add_builtin("llvm.log.f64", &eval_llvmlog);
+    add_builtin("llvm.log.f80", &eval_llvmlog);
+    add_builtin("llvm.log.f128", &eval_llvmlog);
+    add_builtin("llvm.log.ppcf128", &eval_llvmlog);
+
+    // intrinsic llvm.log2.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.log2.f32", &eval_llvmlog2);
+    add_builtin("llvm.log2.f64", &eval_llvmlog2);
+    add_builtin("llvm.log2.f80", &eval_llvmlog2);
+    add_builtin("llvm.log2.f128", &eval_llvmlog2);
+    add_builtin("llvm.log2.ppcf128", &eval_llvmlog2);
+
+    // intrinsic llvm.log10.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.log10.f32", &eval_llvmlog10);
+    add_builtin("llvm.log10.f64", &eval_llvmlog10);
+    add_builtin("llvm.log10.f80", &eval_llvmlog10);
+    add_builtin("llvm.log10.f128", &eval_llvmlog10);
+    add_builtin("llvm.log10.ppcf128", &eval_llvmlog10);
+
+    // intrinsic llvm.fabs.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.fabs.f32", &eval_llvmfabs);
+    add_builtin("llvm.fabs.f64", &eval_llvmfabs);
+    add_builtin("llvm.fabs.f80", &eval_llvmfabs);
+    add_builtin("llvm.fabs.f128", &eval_llvmfabs);
+    add_builtin("llvm.fabs.ppcf128", &eval_llvmfabs);
+
+    // intrinsic llvm.minnum.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.minnum.f32", &eval_llvmminnum);
+    add_builtin("llvm.minnum.f64", &eval_llvmminnum);
+    add_builtin("llvm.minnum.f80", &eval_llvmminnum);
+    add_builtin("llvm.minnum.f128", &eval_llvmminnum);
+    add_builtin("llvm.minnum.ppcf128", &eval_llvmminnum);
+
+    // intrinsic llvm.maxnum.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.maxnum.f32", &eval_llvmmaxnum);
+    add_builtin("llvm.maxnum.f64", &eval_llvmmaxnum);
+    add_builtin("llvm.maxnum.f80", &eval_llvmmaxnum);
+    add_builtin("llvm.maxnum.f128", &eval_llvmmaxnum);
+    add_builtin("llvm.maxnum.ppcf128", &eval_llvmmaxnum);
+
+    // intrinsic llvm.floor.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.floor.f32", &eval_llvmfloor);
+    add_builtin("llvm.floor.f64", &eval_llvmfloor);
+    add_builtin("llvm.floor.f80", &eval_llvmfloor);
+    add_builtin("llvm.floor.f128", &eval_llvmfloor);
+    add_builtin("llvm.floor.ppcf128", &eval_llvmfloor);
+
+    // intrinsic llvm.ceil.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.ceil.f32", &eval_llvmceil);
+    add_builtin("llvm.ceil.f64", &eval_llvmceil);
+    add_builtin("llvm.ceil.f80", &eval_llvmceil);
+    add_builtin("llvm.ceil.f128", &eval_llvmceil);
+    add_builtin("llvm.ceil.ppcf128", &eval_llvmceil);
+
+    // intrinsic llvm.trunc.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.trunc.f32", &eval_llvmtrunc);
+    add_builtin("llvm.trunc.f64", &eval_llvmtrunc);
+    add_builtin("llvm.trunc.f80", &eval_llvmtrunc);
+    add_builtin("llvm.trunc.f128", &eval_llvmtrunc);
+    add_builtin("llvm.trunc.ppcf128", &eval_llvmtrunc);
+
+    // intrinsic llvm.rint.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.rint.f32", &eval_llvmrint);
+    add_builtin("llvm.rint.f64", &eval_llvmrint);
+    add_builtin("llvm.rint.f80", &eval_llvmrint);
+    add_builtin("llvm.rint.f128", &eval_llvmrint);
+    add_builtin("llvm.rint.ppcf128", &eval_llvmrint);
+
+    // intrinsic llvm.nearbyint.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.nearbyint.f32", &eval_llvmnearbyint);
+    add_builtin("llvm.nearbyint.f64", &eval_llvmnearbyint);
+    add_builtin("llvm.nearbyint.f80", &eval_llvmnearbyint);
+    add_builtin("llvm.nearbyint.f128", &eval_llvmnearbyint);
+    add_builtin("llvm.nearbyint.ppcf128", &eval_llvmnearbyint);
+
+    // intrinsic llvm.round.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.round.f32", &eval_llvmround);
+    add_builtin("llvm.round.f64", &eval_llvmround);
+    add_builtin("llvm.round.f80", &eval_llvmround);
+    add_builtin("llvm.round.f128", &eval_llvmround);
+    add_builtin("llvm.round.ppcf128", &eval_llvmround);
+
+    // intrinsic llvm.fma.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.fma.f32", &eval_llvmfma);
+    add_builtin("llvm.fma.f64", &eval_llvmfma);
+    add_builtin("llvm.fma.f80", &eval_llvmfma);
+    add_builtin("llvm.fma.f128", &eval_llvmfma);
+    add_builtin("llvm.fma.ppcf128", &eval_llvmfma);
+
+    // intrinsic llvm.copysign.f32/f64/f80/f128/ppcf128
+    add_builtin("llvm.copysign.f32", &eval_llvmcopysign);
+    add_builtin("llvm.copysign.f64", &eval_llvmcopysign);
+    add_builtin("llvm.copysign.f80", &eval_llvmcopysign);
+    add_builtin("llvm.copysign.f128", &eval_llvmcopysign);
+    add_builtin("llvm.copysign.ppcf128", &eval_llvmcopysign);
+
+    // intrinsic llvm.bswap.i16/i32/i64/i128
+    add_builtin("llvm.bswap.i16", &eval_bswap);
+    add_builtin("llvm.bswap.i32", &eval_bswap);
+    add_builtin("llvm.bswap.i64", &eval_bswap);
+    add_builtin("llvm.bswap.i128", &eval_bswap);
+
+    // intrinsic llvm.cttz.i8/i16/i32/i64/i128
+    add_builtin("llvm.cttz.i8", &eval_cttz);
+    add_builtin("llvm.cttz.i16", &eval_cttz);
+    add_builtin("llvm.cttz.i32", &eval_cttz);
+    add_builtin("llvm.cttz.i64", &eval_cttz);
+    add_builtin("llvm.cttz.i128", &eval_cttz);
+
+    // intrinsic llvm.ctlz.i8/i16/i32/i64/i128
+    add_builtin("llvm.ctlz.i8", &eval_ctlz);
+    add_builtin("llvm.ctlz.i16", &eval_ctlz);
+    add_builtin("llvm.ctlz.i32", &eval_ctlz);
+    add_builtin("llvm.ctlz.i64", &eval_ctlz);
+    add_builtin("llvm.ctlz.i128", &eval_ctlz);
+
+    // intrinsic llvm.ctpop.i8/i16/i32/i64/i128
+    add_builtin("llvm.ctpop.i8", &eval_ctpop);
+    add_builtin("llvm.ctpop.i16", &eval_ctpop);
+    add_builtin("llvm.ctpop.i32", &eval_ctpop);
+    add_builtin("llvm.ctpop.i64", &eval_ctpop);
+    add_builtin("llvm.ctpop.i128", &eval_ctpop);
+}
 
     // @safe @nogc pure nothrow int function(uint)
     add_builtin("_D4core5bitop3bsfFNaNbNiNfkZi", &eval_bsf);

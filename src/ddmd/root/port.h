@@ -13,7 +13,11 @@
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
 
+#if IN_LLVM
+#include <cstdlib>
+#else
 #include <stdlib.h> // for alloca
+#endif
 #include <stdint.h>
 
 #if _MSC_VER
@@ -41,6 +45,11 @@ struct Port
     static unsigned readlongBE(void *buffer);
     static unsigned readwordLE(void *buffer);
     static unsigned readwordBE(void *buffer);
+
+#ifdef IN_LLVM
+    static int stricmp(const char *s1, const char *s2);
+#endif
+
     static void valcpy(void *dst, uint64_t val, size_t size);
 };
 

@@ -1371,7 +1371,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
 /************************************
  */
-static Type merge(Type type)
+// LLVM: added `extern(C++)`
+extern(C++) Type merge(Type type)
 {
     if (type.ty == Terror)
         return type;
