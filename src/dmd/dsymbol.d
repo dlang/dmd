@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dsymbol.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dsymbol.d
  */
 
 module dmd.dsymbol;
-
-// Online documentation: https://dlang.org/phobos/dmd_dsymbol.html
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -585,7 +585,7 @@ extern (C++) class Dsymbol : RootObject
         return s;
     }
 
-    const(char)* kind() const
+    const(char)* kind() const pure nothrow @nogc @safe
     {
         return "symbol";
     }
@@ -1098,7 +1098,7 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
-    inout(AggregateDeclaration) isAggregateDeclaration() inout
+    inout(AggregateDeclaration) isAggregateDeclaration() inout pure nothrow @safe @nogc
     {
         return null;
     }

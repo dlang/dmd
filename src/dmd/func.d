@@ -3030,7 +3030,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     override const(char)* kind() const
     {
         // GCC requires the (char*) casts
-        return (tok != TOKfunction) ? cast(char*)"delegate" : cast(char*)"function";
+        return (tok != TOKfunction) ? "delegate" : "function";
     }
 
     override const(char)* toPrettyChars(bool QualifyTypes = false)
