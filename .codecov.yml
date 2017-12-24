@@ -4,6 +4,16 @@ codecov:
   notify:
     after_n_builds: 1  # send notifications after the first upload
   bot: dlang-bot
+  ci:
+    # https://docs.codecov.io/docs/detecting-ci-services
+    # Only CircleCi generates coverages files atm.
+    # Don't wait for the other CIs
+    - ci/circleci
+    - !CyberShadow/DAutoTest
+    - !auto-tester
+    - !continuous-integration/appveyor/pr
+    - !continuous-integration/jenkins/pr-merge
+    - !continuous-integration/travis-ci/pr
 
 coverage:
   precision: 3
