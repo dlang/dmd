@@ -481,7 +481,7 @@ class Base6856
     void foo(int x)
     in
     {
-        printf("[%d] in Base(%x)\n", data, this);
+        printf("[%d] in Base(%p, %d)\n", data, this, x);
         data += 1;
         assert(false);
     }
@@ -496,7 +496,7 @@ class Derived6856 : Base6856
     override void foo(int x)
     in
     {
-        printf("[%d] in Derived(%x)\n", data, this);
+        printf("[%d] in Derived(%p, %d)\n", data, this, x);
         data += 1;
         assert(x > 5);
     }
@@ -516,7 +516,7 @@ class EvenMoreDerived6856a : Derived6856
     override void foo(int x)
     in
     {
-        printf("[%d] in EvenMoreDerived(%x)\n", data, this);
+        printf("[%d] in EvenMoreDerived(%p, %d)\n", data, this, x);
         data += 1;
     }
     do

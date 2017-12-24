@@ -279,9 +279,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
 
         uint oldErrors = global.errors;
-        auto fds = FuncDeclSem3(funcdecl,sc);
-
-        fds.checkInContractOverrides();
 
         // Remember whether we need to generate an 'out' contract.
         immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
@@ -882,6 +879,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
             funcdecl.frequire = funcdecl.mergeFrequire(funcdecl.frequire);
             funcdecl.fensure = funcdecl.mergeFensure(funcdecl.fensure, Id.result);
+
+            auto fds = FuncDeclSem3(funcdecl,sc);
+            fds.checkInContractOverrides();
 
             Statement freq = funcdecl.frequire;
             Statement fens = funcdecl.fensure;
