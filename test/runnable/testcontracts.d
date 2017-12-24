@@ -472,6 +472,103 @@ void test6549()
 }
 
 /*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=6856
+
+class Base6856
+{
+    static int data;
+
+    void foo(int x)
+    in
+    {
+        printf("[%d] in Base(%x)\n", data, this);
+        data += 1;
+        assert(false);
+    }
+    do
+    {
+
+    }
+}
+
+class Derived6856 : Base6856
+{
+    override void foo(int x)
+    in
+    {
+        printf("[%d] in Derived(%x)\n", data, this);
+        data += 1;
+        assert(x > 5);
+    }
+    do
+    {
+
+    }
+}
+
+class EvenMoreDerived6856a : Derived6856
+{
+    this()
+    {
+        data = 0;
+    }
+
+    override void foo(int x)
+    in
+    {
+        printf("[%d] in EvenMoreDerived(%x)\n", data, this);
+        data += 1;
+    }
+    do
+    {
+
+    }
+}
+
+class EvenMoreDerived6856b : Derived6856
+{
+    this()
+    {
+        data = 0;
+    }
+
+    override void foo(int x)
+    {
+    }
+}
+
+void test6856()
+{
+    Derived6856 derived;
+
+    // Derived contract throws as argument is out of bounds.
+    // Base contract always throws.
+    // First even more derived contract never throws -> contract succeeds.
+    derived = new EvenMoreDerived6856a;
+    derived.foo(2);
+    assert(derived.data == 3);
+
+    // Derived contract throws as argument is out of bounds.
+    // Base contract always throws.
+    // Second even more derived contract not defined -> contract fails.
+    derived = new EvenMoreDerived6856b;
+    try
+    {
+        derived.foo(2);
+        throw new Exception("false"); // unreachable.
+    }
+    catch (Error)
+    {
+        assert(derived.data == 2);
+    }
+
+    // Derived contract does not throw as argument is in bounds -> contract succeeds.
+    derived = new EvenMoreDerived6856b;
+    derived.foo(6);
+    assert(derived.data == 1);
+}
+
+/*******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=7218
 
 void test7218()
@@ -1170,6 +1267,7 @@ int main()
     test4785();
     test6417();
     test6549();
+    test6856();
     test7218();
     test7517();
     test8073();

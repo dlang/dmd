@@ -2137,25 +2137,36 @@ extern (C++) class FuncDeclaration : Declaration
             }
 
             sf = fdv.mergeFrequire(sf);
-            if (sf && fdv.fdrequire)
+            if (fdv.fdrequire)
             {
                 //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
-                /* Make the call:
-                 *   try { __require(); }
-                 *   catch (Throwable) { frequire; }
-                 */
+                // Make the call: __require()
                 Expression eresult = null;
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), eresult);
                 Statement s2 = new ExpStatement(loc, e);
 
-                auto c = new Catch(loc, getThrowable(), null, sf);
-                c.internalCatch = true;
-                auto catches = new Catches();
-                catches.push(c);
-                sf = new TryCatchStatement(loc, s2, catches);
+                if (sf)
+                {
+                    /* Make the call:
+                     *   try { __require(); }
+                     *   catch (Throwable) { frequire; }
+                     */
+                    auto c = new Catch(loc, getThrowable(), null, sf);
+                    c.internalCatch = true;
+                    auto catches = new Catches();
+                    catches.push(c);
+                    sf = new TryCatchStatement(loc, s2, catches);
+                }
+                else
+                {
+                    /* No contract was defined in the most derived function, however
+                     * if any base function does specify a contract, then it should
+                     * not be silently ignored.
+                     * https://issues.dlang.org/show_bug.cgi?id=6856
+                     */
+                    sf = s2;
+                }
             }
-            else
-                return null;
         }
         return sf;
     }
