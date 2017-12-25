@@ -655,7 +655,7 @@ void Scope::setNoFree()
 structalign_t Scope::alignment()
 {
     if (aligndecl)
-        return aligndecl->getAlignment();
+        return aligndecl->getAlignment(this);
     else
         return STRUCTALIGN_DEFAULT;
 }

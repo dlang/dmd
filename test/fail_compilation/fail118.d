@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail118.d(26): Error: invalid foreach aggregate Iter, define opApply(), range primitives, or use .tupleof
-fail_compilation/fail118.d(27): Error: invalid foreach aggregate Iter, define opApply(), range primitives, or use .tupleof
+fail_compilation/fail118.d(26): Error: invalid foreach aggregate `Iter`, define opApply(), range primitives, or use .tupleof
+fail_compilation/fail118.d(27): Error: invalid foreach aggregate `Iter`, define opApply(), range primitives, or use .tupleof
 ---
 */
 

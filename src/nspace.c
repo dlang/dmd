@@ -33,11 +33,59 @@ Dsymbol *Nspace::syntaxCopy(Dsymbol *s)
     return ScopeDsymbol::syntaxCopy(ns);
 }
 
+void Nspace::addMember(Scope *sc, ScopeDsymbol *sds)
+{
+    ScopeDsymbol::addMember(sc, sds);
+    if (members)
+    {
+        if (!symtab)
+            symtab = new DsymbolTable();
+        // The namespace becomes 'imported' into the enclosing scope
+        for (Scope *sce = sc; 1; sce = sce->enclosing)
+        {
+            ScopeDsymbol *sds2 = sce->scopesym;
+            if (sds2)
+            {
+                sds2->importScope(this, Prot(PROTpublic));
+                break;
+            }
+        }
+        assert(sc);
+        sc = sc->push(this);
+        sc->linkage = LINKcpp; // namespaces default to C++ linkage
+        sc->parent = this;
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            //printf("add %s to scope %s\n", s->toChars(), toChars());
+            s->addMember(sc, this);
+        }
+        sc->pop();
+    }
+}
+
+void Nspace::setScope(Scope *sc)
+{
+    ScopeDsymbol::setScope(sc);
+    if (members)
+    {
+        assert(sc);
+        sc = sc->push(this);
+        sc->linkage = LINKcpp; // namespaces default to C++ linkage
+        sc->parent = this;
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            s->setScope(sc);
+        }
+        sc->pop();
+    }
+}
+
 void Nspace::semantic(Scope *sc)
 {
-    if (semanticRun >= PASSsemantic)
+    if (semanticRun != PASSinit)
         return;
-    semanticRun = PASSsemantic;
 #if LOG
     printf("+Nspace::semantic('%s')\n", toChars());
 #endif
@@ -46,40 +94,17 @@ void Nspace::semantic(Scope *sc)
         sc = _scope;
         _scope = NULL;
     }
+    if (!sc)
+        return;
+
+    semanticRun = PASSsemantic;
     parent = sc->parent;
     if (members)
     {
-        if (!symtab)
-            symtab = new DsymbolTable();
-
-        // The namespace becomes 'imported' into the enclosing scope
-        for (Scope *sce = sc; 1; sce = sce->enclosing)
-        {
-            ScopeDsymbol *sds = (ScopeDsymbol *)sce->scopesym;
-            if (sds)
-            {
-                sds->importScope(this, Prot(PROTpublic));
-                break;
-            }
-        }
-
         assert(sc);
         sc = sc->push(this);
         sc->linkage = LINKcpp;          // note that namespaces imply C++ linkage
         sc->parent = this;
-
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            //printf("add %s to scope %s\n", s->toChars(), toChars());
-            s->addMember(sc, this);
-        }
-
-        for (size_t i = 0; i < members->dim; i++)
-        {
-            Dsymbol *s = (*members)[i];
-            s->setScope(sc);
-        }
 
         for (size_t i = 0; i < members->dim; i++)
         {
@@ -97,6 +122,7 @@ void Nspace::semantic(Scope *sc)
         }
         sc->pop();
     }
+    semanticRun = PASSsemanticdone;
 #if LOG
     printf("-Nspace::semantic('%s')\n", toChars());
 #endif

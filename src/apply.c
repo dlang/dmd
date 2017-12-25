@@ -14,6 +14,7 @@
 
 #include "mars.h"
 #include "expression.h"
+#include "template.h"
 #include "visitor.h"
 
 
@@ -72,6 +73,11 @@ public:
         //printf("NewAnonClassExp::apply(): %s\n", toChars());
 
         doCond(e->thisexp) || doCond(e->newargs) || doCond(e->arguments) || applyTo(e);
+    }
+
+    void visit(TypeidExp *e)
+    {
+        doCond(isExpression(e->obj)) || applyTo(e);
     }
 
     void visit(UnaExp *e)

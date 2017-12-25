@@ -28,6 +28,39 @@ Expression *semantic(Expression *e, Scope *sc);
 
 bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors)
 {
+    if (e->op == TOKandand)
+    {
+        AndAndExp *aae = (AndAndExp *)e;
+        bool result = evalStaticCondition(sc, exp, aae->e1, errors);
+        if (errors || !result)
+            return false;
+        result = evalStaticCondition(sc, exp, aae->e2, errors);
+        return !errors && result;
+    }
+
+    if (e->op == TOKoror)
+    {
+        OrOrExp *ooe = (OrOrExp *)e;
+        bool result = evalStaticCondition(sc, exp, ooe->e1, errors);
+        if (errors)
+            return false;
+        if (result)
+            return true;
+        result = evalStaticCondition(sc, exp, ooe->e2, errors);
+        return !errors && result;
+    }
+
+    if (e->op == TOKquestion)
+    {
+        CondExp *ce = (CondExp *)e;
+        bool result = evalStaticCondition(sc, exp, ce->econd, errors);
+        if (errors)
+            return false;
+        Expression *leg = result ? ce->e1 : ce->e2;
+        result = evalStaticCondition(sc, exp, leg, errors);
+        return !errors && result;
+    }
+
     unsigned nerrors = global.errors;
 
     sc = sc->startCTFE();

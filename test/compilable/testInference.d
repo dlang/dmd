@@ -375,9 +375,9 @@ void test9148a() pure
         x++;
     }
     foo1();
-    static assert(is(typeof(&foo1) == void delegate() pure));
+    static assert(is(typeof(&foo1) == void delegate() pure nothrow @nogc @safe));
     foo2();
-    static assert(is(typeof(&foo2) == void delegate() pure));
+    static assert(is(typeof(&foo2) == void delegate() pure nothrow @nogc @safe));
 
     void bar1() immutable /+pure+/
     {
@@ -390,9 +390,9 @@ void test9148a() pure
         static assert(!__traits(compiles, x++));
     }
     bar1();
-    static assert(is(typeof(&bar1) == void delegate() pure immutable));
+    static assert(is(typeof(&bar1) == void delegate() pure immutable nothrow @nogc @safe));
     bar2();
-    static assert(is(typeof(&bar2) == void delegate() pure immutable));
+    static assert(is(typeof(&bar2) == void delegate() pure immutable nothrow @nogc @safe));
 
     struct S
     {
@@ -437,7 +437,7 @@ void test9148a() pure
 void test9148b() pure nothrow @nogc @safe
 {
     void nf() {}
-    static assert(is(typeof(&nf) == void delegate() @safe pure));
+    static assert(is(typeof(&nf) == void delegate() pure nothrow @nogc @safe));
 
     struct NS
     {
@@ -445,11 +445,11 @@ void test9148b() pure nothrow @nogc @safe
         static void sf() {}
     }
     NS ns;
-    static assert(is(typeof(&ns.mf) == void delegate() @safe pure));
-    static assert(is(typeof(&NS.sf) == void function() @safe));
+    static assert(is(typeof(&ns.mf) == void delegate() pure nothrow @nogc @safe));
+    static assert(is(typeof(&NS.sf) == void function() pure nothrow @nogc @safe));
 
     static void sf() {}
-    static assert(is(typeof(&sf) == void function() @safe));
+    static assert(is(typeof(&sf) == void function() pure nothrow @nogc @safe));
 
     static struct SS
     {
@@ -457,8 +457,8 @@ void test9148b() pure nothrow @nogc @safe
         static void sf() {}
     }
     SS ss;
-    static assert(is(typeof(&ss.mf) == void delegate() @safe));
-    static assert(is(typeof(&SS.sf) == void function() @safe));
+    static assert(is(typeof(&ss.mf) == void delegate() pure nothrow @nogc @safe));
+    static assert(is(typeof(&SS.sf) == void function() pure nothrow @nogc @safe));
 }
 
 void impureSystem9148b() {}
@@ -597,7 +597,7 @@ void test10148()
     fb10148!int.fc!int;  // [0] instantiate fb
                          // [3] instantiate fc
 
-    // [6] Afer semantic3 done, fc!int is deduced to @system.
+    // [6] After semantic3 done, fc!int is deduced to @system.
     static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
 }
 

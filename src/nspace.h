@@ -26,6 +26,8 @@ class Nspace : public ScopeDsymbol
     Nspace(Loc loc, Identifier *ident, Dsymbols *members);
 
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
+    void setScope(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);

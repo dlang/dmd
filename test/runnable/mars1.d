@@ -1,3 +1,7 @@
+/*
+REQUIRED_ARGS: -mcpu=native
+PERMUTE_ARGS: -O -inline
+*/
 
 import core.stdc.stdio;
 
@@ -20,12 +24,12 @@ int testswitch()
     i = 3;
     switch (i)
     {
-	case 0:
-	case 1:
-	default:
-	    assert(0);
-	case 3:
-	    break;
+        case 0:
+        case 1:
+        default:
+            assert(0);
+        case 3:
+            break;
     }
     return 0;
 }
@@ -36,7 +40,7 @@ void testdo()
 
     do
     {
-	x++;
+        x++;
     } while (x < 10);
     printf("x == %d\n", x);
     assert(x == 10);
@@ -49,11 +53,11 @@ void testbreak()
   Louter:
     for (i = 0; i < 10; i++)
     {
-	for (j = 0; j < 10; j++)
-	{
-	    if (j == 3)
-		break Louter;
-	}
+        for (j = 0; j < 10; j++)
+        {
+            if (j == 3)
+                break Louter;
+        }
     }
 
     printf("i = %d, j = %d\n", i, j);
@@ -70,18 +74,18 @@ int foo(string s)
     i = 0;
     switch (s)
     {
-	case "hello":
-	    i = 1;
-	    break;
-	case "goodbye":
-	    i = 2;
-	    break;
-	case "goodb":
-	    i = 3;
-	    break;
-	default:
-	    i = 10;
-	    break;
+        case "hello":
+            i = 1;
+            break;
+        case "goodbye":
+            i = 2;
+            break;
+        case "goodb":
+            i = 3;
+            break;
+        default:
+            i = 10;
+            break;
     }
     return i;
 }
@@ -207,7 +211,7 @@ void test11565()
 
 ///////////////////////
 
-int array1[3] = [1:1,2,0:3];
+int[3] array1 = [1:1,2,0:3];
 
 void testarrayinit()
 {
@@ -253,35 +257,35 @@ void testulldiv()
 {
     __gshared ulong[4][] vectors =
     [
-	[10,3,3,1],
-	[10,1,10,0],
-	[3,10,0,3],
-	[10,10,1,0],
-	[10_000_000_000L, 11_000_000_000L, 0, 10_000_000_000L],
-	[11_000_000_000L, 10_000_000_000L, 1, 1_000_000_000L],
-	[11_000_000_000L, 11_000_000_000L, 1, 0],
-	[10_000_000_000L, 10, 1_000_000_000L, 0],
-	[0x8000_0000_0000_0000, 0x8000_0000_0000_0000, 1, 0],
-	[0x8000_0000_0000_0001, 0x8000_0000_0000_0001, 1, 0],
-	[0x8000_0001_0000_0000, 0x8000_0001_0000_0000, 1, 0],
-	[0x8000_0001_0000_0000, 0x8000_0000_0000_0000, 1, 0x1_0000_0000],
-	[0x8000_0001_0000_0000, 0x8000_0000_8000_0000, 1, 0x8000_0000],
-	[0x8000_0000_0000_0000, 0x7FFF_FFFF_FFFF_FFFF, 1, 1],
-	[0x8000_0000_0000_0000, 0x8000_0000_0000_0001, 0, 0x8000_0000_0000_0000],
-	[0x8000_0000_0000_0000, 0x8000_0001_0000_0000, 0, 0x8000_0000_0000_0000],
+        [10,3,3,1],
+        [10,1,10,0],
+        [3,10,0,3],
+        [10,10,1,0],
+        [10_000_000_000L, 11_000_000_000L, 0, 10_000_000_000L],
+        [11_000_000_000L, 10_000_000_000L, 1, 1_000_000_000L],
+        [11_000_000_000L, 11_000_000_000L, 1, 0],
+        [10_000_000_000L, 10, 1_000_000_000L, 0],
+        [0x8000_0000_0000_0000, 0x8000_0000_0000_0000, 1, 0],
+        [0x8000_0000_0000_0001, 0x8000_0000_0000_0001, 1, 0],
+        [0x8000_0001_0000_0000, 0x8000_0001_0000_0000, 1, 0],
+        [0x8000_0001_0000_0000, 0x8000_0000_0000_0000, 1, 0x1_0000_0000],
+        [0x8000_0001_0000_0000, 0x8000_0000_8000_0000, 1, 0x8000_0000],
+        [0x8000_0000_0000_0000, 0x7FFF_FFFF_FFFF_FFFF, 1, 1],
+        [0x8000_0000_0000_0000, 0x8000_0000_0000_0001, 0, 0x8000_0000_0000_0000],
+        [0x8000_0000_0000_0000, 0x8000_0001_0000_0000, 0, 0x8000_0000_0000_0000],
     ];
 
     for (size_t i = 0; i < vectors.length; i++)
     {
-	ulong q = vectors[i][0] / vectors[i][1];
-	if (q != vectors[i][2])
-	    printf("[%d] %lld / %lld = %lld, should be %lld\n",
-		vectors[i][0], vectors[i][1], q, vectors[i][2]);
+        ulong q = vectors[i][0] / vectors[i][1];
+        if (q != vectors[i][2])
+            printf("[%d] %lld / %lld = %lld, should be %lld\n",
+                vectors[i][0], vectors[i][1], q, vectors[i][2]);
 
-	ulong r = vectors[i][0] % vectors[i][1];
-	if (r != vectors[i][3])
-	    printf("[%d] %lld %% %lld = %lld, should be %lld\n",
-		i, vectors[i][0], vectors[i][1], r, vectors[i][3]);
+        ulong r = vectors[i][0] % vectors[i][1];
+        if (r != vectors[i][3])
+            printf("[%d] %lld %% %lld = %lld, should be %lld\n",
+                i, vectors[i][0], vectors[i][1], r, vectors[i][3]);
     }
 }
 
@@ -438,20 +442,20 @@ void test12095(int k)
 
 bool test3918a( float t, real u )
 {
-	printf("%f\n", u );
-	return t && u;
+        printf("%f\n", u );
+        return t && u;
 }
 
 bool test3918b( real t, float u )
 {
-	printf("%f\n", t );
-	return t && u;
+        printf("%f\n", t );
+        return t && u;
 }
 
 void test3918()
 {
-	assert(test3918a(float.nan, real.nan));
-	assert(test3918b(real.nan, float.nan));
+        assert(test3918a(float.nan, real.nan));
+        assert(test3918b(real.nan, float.nan));
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -841,17 +845,17 @@ void testnegcom()
 int oror1(char c)
 {
     return ((((((((((cast(int) c <= 32 || cast(int) c == 46) || cast(int) c == 44)
-		 || cast(int) c == 58) || cast(int) c == 59) || cast(int) c == 60)
-	      || cast(int) c == 62) || cast(int) c == 34) || cast(int) c == 92)
-	   || cast(int) c == 39) != 0);
+                 || cast(int) c == 58) || cast(int) c == 59) || cast(int) c == 60)
+              || cast(int) c == 62) || cast(int) c == 34) || cast(int) c == 92)
+           || cast(int) c == 39) != 0);
 }
 
 int oror2(char c)
 {
     return ((((((((((c <= 32 || c == 46) || c == 44)
-		 || c == 58) || c == 59) || c == 60)
-	         || c == 62) || c == 34) || c == 92)
-	         || c == 39) != 0);
+                 || c == 58) || c == 59) || c == 60)
+                 || c == 62) || c == 34) || c == 92)
+                 || c == 39) != 0);
 }
 
 void testoror()
@@ -928,19 +932,19 @@ void test13383()
 int andand1(int c)
 {
     return (c > 32 && c != 46 && c != 44
-		   && c != 58 && c != 59
-		   && c != 60 && c != 62
+                   && c != 58 && c != 59
+                   && c != 60 && c != 62
                    && c != 34 && c != 92
-	           && c != 39) != 0;
+                   && c != 39) != 0;
 }
 
 bool andand2(long c)
 {
     return (c > 32 && c != 46 && c != 44
-		   && c != 58 && c != 59
-		   && c != 60 && c != 62
+                   && c != 58 && c != 59
+                   && c != 60 && c != 62
                    && c != 34 && c != 92
-	           && c != 39) != 0;
+                   && c != 39) != 0;
 }
 
 int foox3() { return 1; }
@@ -948,12 +952,12 @@ int foox3() { return 1; }
 int andand3(uint op)
 {
     if (foox3() &&
-	op != 7 &&
-	op != 3 &&
-	op != 18 &&
-	op != 30 &&
-	foox3())
-	return 3;
+        op != 7 &&
+        op != 3 &&
+        op != 18 &&
+        op != 30 &&
+        foox3())
+        return 3;
     return 4;
 }
 
@@ -1036,9 +1040,9 @@ void testshrshl()
 
 ////////////////////////////////////////////////////////////////////////
 
-struct S1 
-{ 
-    cdouble val; 
+struct S1
+{
+    cdouble val;
 }
 
 void formatTest(S1 s, double re, double im)
@@ -1253,7 +1257,7 @@ void test12057()
 
 
 ////////////////////////////////////////////////////////////////////////
- 
+
 long modulo24 (long ticks)
 {
     ticks %= 864000000000;
@@ -1330,7 +1334,7 @@ int stripLeft(int str, int dc)
 {
     while (true)
     {
-	int a = str;
+        int a = str;
         int s = a;
         str += 1;
         if (dc) return s;
@@ -1340,7 +1344,7 @@ int stripLeft(int str, int dc)
 void test14829()
 {
     if (stripLeft(3, 1) != 3) // fails with -O
-	assert(0);
+        assert(0);
 }
 
 
@@ -1357,7 +1361,307 @@ void test2()
 }
 
 ////////////////////////////////////////////////////////////////////////
- 
+
+void test3()
+{
+    int[6] a;
+    int[] b;
+    b = a;
+    b = (b.ptr + b.length - 5)[0 .. b.ptr + b.length - 1 - a.ptr];
+    assert(b.ptr == a.ptr + 1);
+    assert(b.length == 5);
+}
+
+////////////////////////////////////////////////////////////////////////
+// 14782
+
+
+void test14782()
+{
+    static struct Foo
+    {
+        long a = 8;
+        int b = 7;
+    }
+
+    static Foo[1] fun() { Foo[1] a; return a; }
+
+    auto result = fun();
+    assert(result[0].a == 8);
+    assert(result[0].b == 7);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void test14987()
+{
+    static struct Foo
+    {
+        int b = 7;
+    }
+    static assert((Foo[4]).sizeof == 16);
+
+    static Foo[4] fun() { Foo[4] a; return a; }
+
+    auto result = fun();
+    assert(result[0].b == 7);
+    assert(result[1].b == 7);
+    assert(result[2].b == 7);
+    assert(result[3].b == 7);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void[] calloc15272(size_t bc) nothrow pure
+{
+    assert(bc == 1);
+    return new void[1];
+}
+
+void test15272()
+{
+    void[] scache = cast(void[])"abc";
+    size_t count = 1;
+    void[]* buckets = &scache;
+    *buckets = calloc15272(count)[0 .. count];
+}
+
+/*****************************************
+ * https://issues.dlang.org/show_bug.cgi?id=15861
+ */
+
+void test15861()
+{
+    double val = 4286853117.;
+
+    (){
+        assert(val == 4286853117.);
+    }();
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=15629 comment 3
+// -O
+
+void test15629()
+{
+    int[] a = [3];
+    int value = a[0] >= 0 ? a[0] : -a[0];
+    assert(a[0] == 3);
+    writeln(value, a);
+}
+
+void writeln(int v, int[] a)
+{
+}
+
+////////////////////////////////////////////////////////////////////////
+
+real binPosPow2() { return 1.0L; }
+
+real binPow2()
+{
+    return 1.0L/binPosPow2();
+}
+
+void test4()
+{
+    assert(binPow2() == 1.0L);
+}
+
+////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=13474
+
+
+double sumKBN(double s = 0.0)
+{
+    import std.math : fabs;
+    double c = 0.0;
+        foreach(double x; [1, 1e100, 1, -1e100])
+        {
+            x = multiply(x);
+            double t = s + x;
+            if(s.fabs >= x.fabs)
+            {
+                double y = s-t;
+                c += y+x;
+            }
+            else
+            {
+                double y = x-t;
+                c += y+s;
+            }
+            s = t;
+        }
+    return s + c;
+}
+
+double multiply(double a) { return a * 10000; }
+
+void test13474()
+{
+    double r = 20000;
+    assert(r == sumKBN());
+}
+
+////////////////////////////////////////////////////////////////////////
+// https://issues.dlang.org/show_bug.cgi?id=16699
+
+ulong[1] parseDateRange()
+{
+    try
+    {
+        ulong[1] result;
+        result[0] = 6;
+        return result;
+    }
+    finally
+    {
+    }
+}
+
+void test16699()
+{
+    ulong[1] range = parseDateRange();
+    assert(range[0] == 6);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+// https://issues.dlang.org/show_bug.cgi?id=16102
+
+struct S16102 { ~this() { } }
+
+long[1] f16102()
+{
+    S16102 a;
+    return [1];
+}
+
+void test16102()
+{
+    assert( f16102() == [1] );
+}
+
+////////////////////////////////////////////////////////////////////////
+
+
+/* Test the pattern:
+ *   replace ((i / C1) / C2) with (i / (C1 * C2))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+void divdiv(T, T C1, T C2)(T i)
+{
+    auto a = (i / C1) / C2;
+    auto b = i / (C1 * C2);
+    if (a != b) assert(0);
+}
+
+void testdivdiv()
+{
+    divdiv!(int,10,20)(30);
+    divdiv!(uint,10,20)(30);
+    divdiv!(long,10,20)(30);
+    divdiv!(ulong,10,20)(30);
+
+    divdiv!(int,-10,20)(30);
+    divdiv!(long,-10,20)(30);
+
+    divdiv!(int,-10,-20)(-30);
+    divdiv!(long,-10,-20)(-30);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+void test5a(ulong x, ulong y)
+{
+    int a;
+    if (x >> 32)
+        a = 1;
+    else
+        a = 2;
+    assert(a == 1);
+
+    if (y >> 32)
+        a = 1;
+    else
+        a = 2;
+    assert(a == 2);
+}
+
+void test5()
+{
+    test5a(uint.max + 1L, uint.max);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+/* Test the pattern:
+ *   replace (e ? i1 : i2) with (i1 + e * (i2 - i1))
+ * when e1 is 0 or 1 and (i2-i1) is a power of 2.
+ */
+
+int foo61(int i)
+{
+    return (i % 2 != 0) ? 4 : 2;
+}
+
+int foo62(int i)
+{
+    return (i % 2 != 0) ? 2 : 4;
+}
+
+bool bar6(bool b) { return b; }
+
+int foo63(bool b)
+{
+    return bar6(b) ? 16 : 8;
+}
+
+int foo64(bool b)
+{
+    return bar6(b) ? 8 : 16;
+}
+
+void test6()
+{
+    if (foo61(0) != 2) assert(0);
+    if (foo61(1) != 4) assert(0);
+    if (foo62(0) != 4) assert(0);
+    if (foo62(1) != 2) assert(0);
+    if (foo63(0) != 8) assert(0);
+    if (foo63(1) != 16) assert(0);
+    if (foo64(0) != 16) assert(0);
+    if (foo64(1) != 8) assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+int dataflow(int b) {
+  int ret;
+
+  if (b==4)
+    ret = 3;
+  else
+    ret = 5;
+
+  if (ret == 4)
+    return 0;
+  else
+    return 1;
+}
+
+void testeqeqranges()
+{
+    int i = dataflow(4);
+    if (i != 1)
+        assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1402,6 +1706,20 @@ int main()
     test14220();
     test14829();
     test2();
+    test3();
+    test14782();
+    test14987();
+    test15272();
+    test15861();
+    test15629();
+    test4();
+    test13474();
+    test16699();
+    test16102();
+    testdivdiv();
+    test5();
+    test6();
+    testeqeqranges();
     printf("Success\n");
     return 0;
 }

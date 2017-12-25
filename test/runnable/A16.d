@@ -7,6 +7,6 @@ class AA16
   protected:
     this()
     {
-	printf("class AA16\n");
+        printf("class AA16\n");
     }
 }

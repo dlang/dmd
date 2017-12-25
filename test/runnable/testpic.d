@@ -21,9 +21,33 @@ void test11310()
 
 /***************************************************/
 
+
+struct S17034
+{
+@nogc pure nothrow:
+    private long v;
+    void foo()
+    {
+        v >>>= 1;
+        if (!v)
+            return;
+        v >>>= 1;
+    }
+}
+
+void test17034()
+{
+    auto s = S17034(1L);
+    s.foo();
+    assert(s.v == 0);
+}
+
+/***************************************************/
+
 int main()
 {
     test11310();
+    test17034();
 
     printf("Success\n");
     return 0;

@@ -803,12 +803,15 @@ Lancestorsdone:
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        FuncDeclaration *fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, NULL, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, type, NULL, 1);
+        if (!fd) // try shared base ctor instead
+            fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, type->sharedOf(), NULL, 1);
         if (fd && !fd->errors)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
             TypeFunction *btf = (TypeFunction *)fd->type;
             TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
+            tf->mod = btf->mod;
             tf->purity = btf->purity;
             tf->isnothrow = btf->isnothrow;
             tf->isnogc = btf->isnogc;
@@ -1256,7 +1259,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
                 continue;
 
             Lfd:
-                fdmatch = fd, fdambig = NULL;
+                fdmatch = fd;
+                fdambig = NULL;
                 //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch->toChars(), fdmatch->type->toChars(), fdmatch->loc.toChars());
                 continue;
 

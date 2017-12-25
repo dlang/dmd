@@ -316,7 +316,7 @@ bool Module::read(Loc loc)
         {
             // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
             bool isPackageMod = (strcmp(toChars(), "package") != 0) &&
-                                (strcmp(srcfile->name->name(), "package.d") == 0);
+                                (strcmp(srcfile->name->name(), "package.d") == 0 || (strcmp(srcfile->name->name(), "package.di") == 0));
 
             if (isPackageMod)
                 ::error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'",
@@ -353,7 +353,8 @@ Module *Module::parse()
     const char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
-    isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0);
+    isPackageFile = (strcmp(srcfile->name->name(), "package.d") == 0 ||
+                     strcmp(srcfile->name->name(), "package.di") == 0);
 
     utf8_t *buf = (utf8_t *)srcfile->buffer;
     size_t buflen = srcfile->len;
@@ -561,7 +562,8 @@ Module *Module::parse()
         assert(dst);
 
         Module *m = ppack ? ppack->isModule() : NULL;
-        if (m && strcmp(m->srcfile->name->name(), "package.d") != 0)
+        if (m && (strcmp(m->srcfile->name->name(), "package.d") != 0 &&
+                  strcmp(m->srcfile->name->name(), "package.di") != 0))
         {
             ::error(md->loc, "package name '%s' conflicts with usage as a module name in file %s",
                 ppack->toPrettyChars(), m->srcfile->toChars());
@@ -1260,6 +1262,12 @@ bool Package::isAncestorPackageOf(const Package * const pkg) const
     return isAncestorPackageOf(pkg->parent->isPackage());
 }
 
+void Package::semantic(Scope *sc)
+{
+    if (semanticRun < PASSsemanticdone)
+        semanticRun = PASSsemanticdone;
+}
+
 /****************************************************
  * Input:
  *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod
@@ -1376,6 +1384,10 @@ const char *lookForSourceFile(const char **path, const char *filename)
          * Therefore, the result should be: filename/package.d
          * iff filename/package.d is a file
          */
+        const char *ni = FileName::combine(filename, "package.di");
+        if (FileName::exists(ni) == 1)
+            return ni;
+        FileName::free(ni);
         const char *n = FileName::combine(filename, "package.d");
         if (FileName::exists(n) == 1)
             return n;
@@ -1413,6 +1425,10 @@ const char *lookForSourceFile(const char **path, const char *filename)
         FileName::free(b);
         if (FileName::exists(n) == 2)
         {
+            const char *n2i = FileName::combine(n, "package.di");
+            if (FileName::exists(n2i) == 1)
+                return n2i;
+            FileName::free(n2i);
             const char *n2 = FileName::combine(n, "package.d");
             if (FileName::exists(n2) == 1)
             {

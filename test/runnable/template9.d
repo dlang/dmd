@@ -772,7 +772,7 @@ int getRefNonref(T)(    T s){ return 2; }
 
 int getAutoRef(T)(auto ref T s){ return __traits(isRef, s) ? 1 : 2; }
 
-void getOut(T)(out T s){ ; }
+void getOut(T)(out T s){ {} }
 
 void getLazy1(T=int)(lazy void s){ s(), s(); }
 void getLazy2(T)(lazy T s){  s(), s(); }
@@ -1161,7 +1161,7 @@ static assert(pow10_2550!(0) == 1);
 void foo10a(T   )(T)            { static assert(is(T    == const(int)[])); }
 void foo10b(T...)(T)            { static assert(is(T[0] == const(int)[])); }
 
-// ref paramter doesn't remove top const
+// ref parameter doesn't remove top const
 void boo10a(T   )(ref T)        { static assert(is(T    == const(int[]))); }
 void boo10b(T...)(ref T)        { static assert(is(T[0] == const(int[]))); }
 
@@ -1507,7 +1507,7 @@ void test7684()
 
 void match7694(alias m)()
 {
-    m.foo();    //removing this line supresses ice in both cases
+    m.foo();    //removing this line suppresses ice in both cases
 }
 
 struct T7694
@@ -1545,7 +1545,7 @@ struct Bar7755
 {
     void qux()
     {
-        if (is(typeof(to7755!string(Foo7755!int)))){};
+        if (is(typeof(to7755!string(Foo7755!int)))){}
     }
 }
 
@@ -2599,8 +2599,8 @@ void test9885()
     }
     W!(int,int[]).woo(1,2,3);
     W!(int,int[2]).woo(1,2,3);
-    static assert(!__traits(compiles, W!(int,int,int).woo(1,2,3)));	// int... <- 2
-    static assert(!__traits(compiles, W!(int,int).woo(1,2)));		// int... <- 2
+    static assert(!__traits(compiles, W!(int,int,int).woo(1,2,3)));     // int... <- 2
+    static assert(!__traits(compiles, W!(int,int).woo(1,2)));           // int... <- 2
     static assert(!__traits(compiles, W!(int,int[2]).woo(1,2)));    // int[2]... <- 2
 
     R!().roo(1, "", []);
@@ -3571,6 +3571,18 @@ void test12746()
 }
 
 /******************************************/
+// 12748
+
+void foo12748(S, C : typeof(S.init[0]))(S s, C c)
+{
+}
+
+void test12748()
+{
+    foo12748("abc", 'd');
+}
+
+/******************************************/
 // 9708
 
 struct S9708
@@ -3657,7 +3669,7 @@ template component13087(alias vec, char c)
     static assert(is(typeof(f_m( sca1))  == shared(      const int)[]));
     static assert(is(typeof(f_m( sca2))  == shared(      const int)[]));  // <- shared(const(int)[])
     static assert(is(typeof(f_m(swma1))  == shared(inout       int)[]));
-    static assert(is(typeof(f_m(swma2))  == shared(inout       int)[]));  // <- shared(inout(int[])
+    static assert(is(typeof(f_m(swma2))  == shared(inout       int)[]));  // <- shared(inout(int[]))
     static assert(is(typeof(f_m(swca1))  == shared(inout const int)[]));
     static assert(is(typeof(f_m(swca2))  == shared(inout const int)[]));  // <- shared(inout(const(int))[])
     // 9 * 2 - 1
@@ -4597,6 +4609,30 @@ template SubOps14568(Args...)
 struct Nat14568 { mixin SubOps14568!(null); }
 
 /******************************************/
+// 14603, 14604
+
+struct S14603
+{
+    template opDispatch(string name)
+    {
+        void opDispatch()() {}
+    }
+}
+alias a14603 = S14603.opDispatch!"go";  // OK
+alias b14603 = S14603.go;               // OK <- NG
+
+struct S14604
+{
+    template opDispatch(string name)
+    {
+        void opDispatch()() {}
+    }
+}
+alias Id14604(alias thing) = thing;
+alias c14604 = Id14604!(S14604.opDispatch!"go");     // ok
+alias d14604 = Id14604!(S14604.go);                  // issue 14604, 'Error: template instance opDispatch!"go" cannot resolve forward reference'
+
+/******************************************/
 // 14735
 
 enum CS14735 { yes, no }
@@ -4618,6 +4654,197 @@ void test14735()
     // Have to work as same as above.
     assert(indexOf14735a(buf[], '\0') == 2);
     assert(indexOf14735b(buf[], '\0') == 2);
+}
+
+/******************************************/
+// 14743
+
+class A14743
+{
+    auto func1 = (A14743 a) { a.func2!int(); };
+    auto func2(T)() {}
+}
+
+/******************************************/
+// 14802
+
+void test14802()
+{
+    auto func(T)(T x, T y) { return x; }
+
+    struct S1 { double x; alias x this; }
+    struct S2 { double x; alias x this; }
+    S1 s1;
+    S2 s2;
+
+    enum E1 : double { a = 1.0 }
+    enum E2 : double { a = 1.0 }
+
+    static assert(is(typeof( func(1 , 1 ) ) == int));
+    static assert(is(typeof( func(1u, 1u) ) == uint));
+    static assert(is(typeof( func(1u, 1 ) ) == uint));
+    static assert(is(typeof( func(1 , 1u) ) == uint));
+
+    static assert(is(typeof( func(1.0f, 1.0f) ) == float));
+    static assert(is(typeof( func(1.0 , 1.0 ) ) == double));
+    static assert(is(typeof( func(1.0 , 1.0f) ) == double));
+    static assert(is(typeof( func(1.0f, 1.0 ) ) == double));
+
+    static assert(is(typeof( func(s1, s1) ) == S1));
+    static assert(is(typeof( func(s2, s2) ) == S2));
+    static assert(is(typeof( func(s1, s2) ) == double));
+    static assert(is(typeof( func(s2, s1) ) == double));
+
+    static assert(is(typeof( func(E1.a, E1.a) ) == E1));
+    static assert(is(typeof( func(E2.a, E2.a) ) == E2));
+    static assert(is(typeof( func(E1.a, 1.0)  ) == double));
+    static assert(is(typeof( func(E2.a, 1.0)  ) == double));
+    static assert(is(typeof( func(1.0,  E1.a) ) == double));
+    static assert(is(typeof( func(1.0,  E2.a) ) == double));
+    static assert(is(typeof( func(E1.a, E2.a) ) == double));
+    static assert(is(typeof( func(E2.a, E1.a) ) == double));
+}
+
+/******************************************/
+// 14886
+
+void test14886()
+{
+    alias R = int[100_000];
+
+    auto front(T)(T[] a) {}
+    front(R.init);
+
+    auto bar1(T)(T, T[] a) { return T.init; }
+    auto bar2(T)(T[] a, T) { return T.init; }
+
+    static assert(is(typeof(bar1(1L, R.init)) == long));
+    static assert(is(typeof(bar2(R.init, 1L)) == long));
+    // <-- T should be deduced to int because R.init is rvalue...?
+
+    ubyte x;
+    static assert(is(typeof(bar1(x, R.init)) == int));
+    static assert(is(typeof(bar2(R.init, x)) == int));
+}
+
+/******************************************/
+// 15156
+
+// 15156
+auto f15116a(T)(string s, string arg2) { return 1; }
+auto f15116b(T)(int    i, string arg2) { return 2; }
+
+template bish15116(T)
+{
+    alias bish15116 = f15116a!T;
+    alias bish15116 = f15116b!T;
+}
+
+void test15116()
+{
+    alias func = bish15116!string;
+    assert(func("", "") == 1);
+    assert(func(12, "") == 2);
+}
+
+/******************************************/
+// 15152
+
+void test15152()
+{
+    void func(string M)() { }
+
+    struct S
+    {
+        enum name = "a";
+    }
+
+    enum s = S.init;
+    func!(s.name);
+}
+
+/******************************************/
+// 15352
+
+struct S15352(T, T delegate(uint idx) supplier)
+{
+}
+
+auto make15352a(T, T delegate(uint idx) supplier)()
+{
+    enum local = supplier;      // OK
+    S15352!(T, local) ret;
+    return ret;
+}
+
+auto make15352b(T, T delegate(uint idx) supplier)()
+{
+    S15352!(T, supplier) ret;   // OK <- Error
+    return ret;
+}
+
+void test15352()
+{
+    enum dg = delegate(uint idx) => idx;
+    auto s1 = S15352!(uint, dg)();
+    auto s2 = make15352a!(uint, dg)();
+    auto s3 = make15352b!(uint, dg)();
+    assert(is(typeof(s1) == typeof(s2)));
+    assert(is(typeof(s1) == typeof(s3)));
+}
+
+/******************************************/
+// 15623
+
+struct WithFoo15623a { void foo() {} }
+struct WithFoo15623b { void foo() {} }
+struct WithFoo15623c { void foo() {} }
+struct WithFoo15623d { void foo() {} }
+
+struct WithoutFoo15623a {}
+struct WithoutFoo15623b {}
+struct WithoutFoo15623c {}
+struct WithoutFoo15623d {}
+
+struct CallsFoo15623(T)
+{
+    T t;
+    void bar() { t.foo(); }     // error occurs during TemplateInstance.semantic3
+}
+
+// Instantiations outside of function bodies
+static assert( is(CallsFoo15623!WithFoo15623a));
+static assert(!is(CallsFoo15623!WithoutFoo15623a));                     // OK <- NG
+static assert( __traits(compiles, CallsFoo15623!WithFoo15623b));
+static assert(!__traits(compiles, CallsFoo15623!WithoutFoo15623b));     // OK <- NG
+
+// Instantiations inside function bodies (OK)
+static assert( is(typeof({ alias Baz = CallsFoo15623!WithFoo15623c; return Baz.init; }())));
+static assert(!is(typeof({ alias Baz = CallsFoo15623!WithoutFoo15623c; return Baz.init; }())));
+static assert( __traits(compiles, { alias Baz = CallsFoo15623!WithFoo15623d; return Baz.init; }()));
+static assert(!__traits(compiles, { alias Baz = CallsFoo15623!WithoutFoo15623d; return Baz.init; }()));
+
+/******************************************/
+// 15781
+
+void test15781()
+{
+    static struct S
+    {
+        int value;
+    }
+
+    T foo(T)(T a, T b)
+    {
+        return T();
+    }
+
+    const S cs;
+          S ms;
+    static assert(is(typeof(foo(ms, ms)) ==       S));
+    static assert(is(typeof(foo(ms, cs)) == const S));
+    static assert(is(typeof(foo(cs, ms)) == const S));
+    static assert(is(typeof(foo(cs, cs)) == const S));
 }
 
 /******************************************/
@@ -4732,6 +4959,8 @@ int main()
     test13694();
     test14836();
     test14735();
+    test14802();
+    test15116();
 
     printf("Success\n");
     return 0;

@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/lexer5.d(8): Error: number '1e-100f' is not representable
+fail_compilation/lexer5.d(8): Error: number `1e-100f` is not representable
 ---
 */
 

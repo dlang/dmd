@@ -148,7 +148,7 @@ struct S9332
 {
     this(S9332)
     {
-//	while (1) { }
+//      while (1) { }
         assert(0, "unreachable?");
     }
 }

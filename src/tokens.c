@@ -314,7 +314,6 @@ static Keyword keywords[] =
     {   "public",       TOKpublic       },
     {   "export",       TOKexport       },
 
-    {   "body",         TOKbody         },
     {   "invariant",    TOKinvariant    },
     {   "unittest",     TOKunittest     },
     {   "version",      TOKversion      },

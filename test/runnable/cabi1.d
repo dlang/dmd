@@ -20,6 +20,12 @@ extern (C) Foo5 ctest5();
 extern (C) Foo6 ctest6();
 extern (C) S7 ctest10();
 
+version(Windows)
+    version = Windows_or_32bit;
+else version(X86)
+    version = Windows_or_32bit;
+
+
 void test1()
 {
     Foo1 f1 = ctest1();
@@ -34,17 +40,11 @@ void test1()
     Foo4 f4 = ctest4();
     assert(f4.i == 0x12345678);
 
-version (Win64)
-{
-}
-else
-{
     Foo5 f5 = ctest5();
     assert(f5.i == 0x12345678);
     assert(f5.j == 0x21436587);
-}
 
-version (X86)
+version(Windows_or_32bit)
 {
     Foo6 f6 = ctest6();
     assert(f6.i == 0x12345678);
@@ -52,15 +52,9 @@ version (X86)
     assert(f6.k == 0x24163857);
 }
 
-version (Win64)
-{
-}
-else
-{
     S7 s7 = ctest10();
     assert(s7.a == 2.5);
     assert(s7.b == 1.5);
-}
 }
 
 /*******************************************/
@@ -215,6 +209,36 @@ void test15()
 
 /******************************************/
 
+// see https://issues.dlang.org/show_bug.cgi?id=17277
+struct S16 {
+  char[5] a;
+  struct {
+    char b;
+    align(1) int c;
+  }
+}
+
+extern (C) S16 ctest16(ubyte x, S16, ubyte y);
+
+void test16()
+{
+  version (X86) // misaligned field
+  {
+  S16 t;
+  assert(S16.sizeof == 10);
+  assert(S16.alignof == 1);
+  t.a = "hello";
+  t.b = 3;
+  t.c = 0x11223344;
+  auto s = ctest16(1, t, 5);
+  assert(s.a == "hello");
+  assert(s.b == 3);
+  assert(s.c == 0x11223344);
+  }
+}
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -232,6 +256,7 @@ else
     test13();
     test14();
     test15();
+    test16();
 
     return 0;
 }

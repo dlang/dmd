@@ -2210,7 +2210,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         e = getProperty(e->loc, ident, flag & 1);
 
 Lreturn:
-    if (!(flag & 1) || e)
+    if (e)
         e = ::semantic(e, sc);
     return e;
 }
@@ -2232,6 +2232,17 @@ structalign_t Type::alignment()
  */
 Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
+    //printf("Type::noMember(e: %s ident: %s flag: %d)\n", e->toChars(), ident->toChars(), flag);
+
+    static int nest;      // https://issues.dlang.org/show_bug.cgi?id=17380
+
+    if (++nest > 500)
+    {
+      ::error(e->loc, "cannot resolve identifier `%s`", ident->toChars());
+      --nest;
+      return (flag & 1) ? NULL : new ErrorExp();
+    }
+
     assert(ty == Tstruct || ty == Tclass);
     AggregateDeclaration *sym = toDsymbol(sc)->isAggregateDeclaration();
     assert(sym);
@@ -2259,7 +2270,9 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              */
             e = build_overload(e->loc, sc, e, NULL, fd);
             e = new DotIdExp(e->loc, e, ident);
-            return ::semantic(e, sc);
+            e = ::semantic(e, sc);
+            --nest;
+            return e;
         }
 
         /* Look for overloaded opDispatch to see if we should forward request
@@ -2274,6 +2287,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             if (!td)
             {
                 fd->error("must be a template opDispatch(string s), not a %s", fd->kind());
+                --nest;
                 return new ErrorExp();
             }
             StringExp *se = new StringExp(e->loc, (char *)ident->toChars());
@@ -2291,6 +2305,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             e = semanticY(dti, sc, 0);
             if (flag & 1 && global.endGagging(errors))
                 e = NULL;
+            --nest;
             return e;
         }
 
@@ -2302,11 +2317,15 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              */
             e = resolveAliasThis(sc, e);
             DotIdExp *die = new DotIdExp(e->loc, e, ident);
-            return semanticY(die, sc, flag & 1);
+            e = semanticY(die, sc, flag & 1);
+            --nest;
+            return e;
         }
     }
 
-    return Type::dotExp(sc, e, ident, flag);
+    e = Type::dotExp(sc, e, ident, flag);
+    --nest;
+    return e;
 }
 
 void Type::error(Loc loc, const char *format, ...)
@@ -4213,6 +4232,11 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
             e->error("%s is not an expression", e->toChars());
             return new ErrorExp();
         }
+        else if (!(flag & 2) && sc->func && !sc->intypeof && sc->func->setUnsafe())
+        {
+            e->deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e->toChars(), e->toChars());
+            // return new ErrorExp();
+        }
         e = e->castTo(sc, e->type->nextOf()->pointerTo());
     }
     else
@@ -4486,6 +4510,11 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     }
     else if (ident == Id::ptr)
     {
+        if (!(flag & 2) && sc->func && !sc->intypeof && sc->func->setUnsafe())
+        {
+            e->deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e->toChars(), e->toChars());
+            // return new ErrorExp();
+        }
         e = e->castTo(sc, next->pointerTo());
         return e;
     }
@@ -5751,8 +5780,25 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     for (size_t j = 0; j < tdim; j++)
                     {
                         Parameter *narg = (*tt->arguments)[j];
-                        (*newparams)[j] = new Parameter(narg->storageClass | fparam->storageClass,
-                                narg->type, narg->ident, narg->defaultArg);
+
+                        // Bugzilla 12744: If the storage classes of narg
+                        // conflict with the ones in fparam, it's ignored.
+                        StorageClass stc  = fparam->storageClass | narg->storageClass;
+                        StorageClass stc1 = fparam->storageClass & (STCref | STCout | STClazy);
+                        StorageClass stc2 =   narg->storageClass & (STCref | STCout | STClazy);
+                        if (stc1 && stc2 && stc1 != stc2)
+                        {
+                            OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam->storageClass & STCauto) : 0));
+                            OutBuffer buf2;  stcToBuffer(&buf2, stc2);
+
+                            error(loc, "incompatible parameter storage classes '%s' and '%s'",
+                                      buf1.peekString(), buf2.peekString());
+                            errors = true;
+                            stc = stc1 | (stc & ~(STCref | STCout | STClazy));
+                        }
+
+                        (*newparams)[j] = new Parameter(
+                                stc, narg->type, narg->ident, narg->defaultArg);
                     }
                     fparam->type = new TypeTuple(newparams);
                 }
@@ -5778,7 +5824,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                         ;                               // ref parameter
                     else
                         fparam->storageClass &= ~STCref;        // value parameter
-                    fparam->storageClass &= ~STCauto;    // issue 14656
+                    fparam->storageClass &= ~STCauto;    // Bugzilla 14656
                     fparam->storageClass |= STCautoref;
                 }
                 else
@@ -5863,7 +5909,51 @@ bool TypeFunction::checkRetType(Loc loc)
     return false;
 }
 
+/* Determine purity level based on mutability of t
+ * and whether it is a 'ref' type or not.
+ */
+static PURE purityOfType(bool isref, Type *t)
+{
+    if (isref)
+    {
+        if (t->mod & MODimmutable)
+            return PUREstrong;
+        if (t->mod & (MODconst | MODwild))
+            return PUREconst;
+        return PUREweak;
+    }
+
+    t = t->baseElemOf();
+
+    if (!t->hasPointers() || t->mod & MODimmutable)
+        return PUREstrong;
+
+    /* Accept immutable(T)[] and immutable(T)* as being strongly pure
+     */
+    if (t->ty == Tarray || t->ty == Tpointer)
+    {
+        Type *tn = t->nextOf()->toBasetype();
+        if (tn->mod & MODimmutable)
+            return PUREstrong;
+        if (tn->mod & (MODconst | MODwild))
+            return PUREconst;
+    }
+
+    /* The rest of this is too strict; fix later.
+     * For example, the only pointer members of a struct may be immutable,
+     * which would maintain strong purity.
+     * (Just like for dynamic arrays and pointers above.)
+     */
+    if (t->mod & (MODconst | MODwild))
+        return PUREconst;
+
+    /* Should catch delegates and function pointers, and fold in their purity
+     */
+    return PUREweak;
+}
+
 /********************************************
+ * Set 'purity' field of 'this'.
  * Do this lazily, as the parameter types might be forward referenced.
  */
 void TypeFunction::purityLevel()
@@ -5872,13 +5962,11 @@ void TypeFunction::purityLevel()
     if (tf->purity != PUREfwdref)
         return;
 
+    purity = PUREstrong; // assume strong until something weakens it
+
     /* Evaluate what kind of purity based on the modifiers for the parameters
      */
-    tf->purity = PUREstrong;        // assume strong until something weakens it
-
-    size_t dim = Parameter::dim(tf->parameters);
-    if (!dim)
-        return;
+    const size_t dim = Parameter::dim(tf->parameters);
     for (size_t i = 0; i < dim; i++)
     {
         Parameter *fparam = Parameter::getNth(tf->parameters, i);
@@ -5888,57 +5976,38 @@ void TypeFunction::purityLevel()
 
         if (fparam->storageClass & (STClazy | STCout))
         {
-            tf->purity = PUREweak;
+            purity = PUREweak;
             break;
         }
-        if (fparam->storageClass & STCref)
+        switch (purityOfType((fparam->storageClass & STCref) != 0, t))
         {
-            if (t->mod & MODimmutable)
+            case PUREweak:
+                purity = PUREweak;
+                break;
+
+            case PUREconst:
+                purity = PUREconst;
                 continue;
-            if (t->mod & (MODconst | MODwild))
-            {
-                tf->purity = PUREconst;
+
+            case PUREstrong:
                 continue;
-            }
-            tf->purity = PUREweak;
-            break;
+
+            default:
+                assert(0);
         }
-
-        t = t->baseElemOf();
-        if (!t->hasPointers())
-            continue;
-        if (t->mod & MODimmutable)
-            continue;
-
-        /* Accept immutable(T)[] and immutable(T)* as being strongly pure
-         */
-        if (t->ty == Tarray || t->ty == Tpointer)
-        {
-            Type *tn = t->nextOf()->toBasetype();
-            if (tn->mod & MODimmutable)
-                continue;
-            if (tn->mod & (MODconst | MODwild))
-            {
-                tf->purity = PUREconst;
-                continue;
-            }
-        }
-
-        /* The rest of this is too strict; fix later.
-         * For example, the only pointer members of a struct may be immutable,
-         * which would maintain strong purity.
-         */
-        if (t->mod & (MODconst | MODwild))
-        {
-            tf->purity = PUREconst;
-            continue;
-        }
-
-        /* Should catch delegates and function pointers, and fold in their purity
-         */
-        tf->purity = PUREweak;          // err on the side of too strict
-        break;
+        break;              // since PUREweak, no need to check further
     }
+
+    if (purity > PUREweak && tf->nextOf())
+    {
+        /* Adjust purity based on mutability of return type.
+         * https://issues.dlang.org/show_bug.cgi?id=15862
+         */
+        const PURE purity2 = purityOfType(tf->isref, tf->nextOf());
+        if (purity2 < purity)
+            purity = purity2;
+    }
+    tf->purity = purity;
 }
 
 /********************************
@@ -6297,6 +6366,12 @@ StorageClass TypeFunction::parameterStorageClass(Parameter *p)
 
     stc |= STCscope;
 
+    /* Inferring STCreturn here has false positives
+     * for pure functions, producing spurious error messages
+     * about escaping references.
+     * Give up on it for now.
+     */
+#if 0
     Type *tret = nextOf()->toBasetype();
     if (isref || tret->hasPointers())
     {
@@ -6305,6 +6380,7 @@ StorageClass TypeFunction::parameterStorageClass(Parameter *p)
          */
         stc |= STCreturn;
     }
+#endif
 
     return stc;
 }
@@ -7856,9 +7932,9 @@ L1:
         }
     }
 
-    if (s->getType())
+    if (Type *t = s->getType())
     {
-        return new TypeExp(e->loc, s->getType());
+        return ::semantic(new TypeExp(e->loc, t), sc);
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
@@ -7873,7 +7949,7 @@ L1:
     if (td)
     {
         if (e->op == TOKtype)
-            e = new ScopeExp(e->loc, td);
+            e = new TemplateExp(e->loc, td);
         else
             e = new DotTemplateExp(e->loc, e, td);
         e = ::semantic(e, sc);
@@ -8389,7 +8465,9 @@ L1:
         {
             if (e->op == TOKtype)
                 return Type::getProperty(e->loc, ident, 0);
-            return new DotTypeExp(e->loc, e, sym);
+            e = new DotTypeExp(e->loc, e, sym);
+            e = ::semantic(e, sc);
+            return e;
         }
         if (ClassDeclaration *cbase = sym->searchBase(ident))
         {
@@ -8399,6 +8477,7 @@ L1:
                 e = new CastExp(e->loc, e, ifbase->type);
             else
                 e = new DotTypeExp(e->loc, e, cbase);
+            e = ::semantic(e, sc);
             return e;
         }
 
@@ -8561,9 +8640,9 @@ L1:
         }
     }
 
-    if (s->getType())
+    if (Type *t = s->getType())
     {
-        return new TypeExp(e->loc, s->getType());
+        return ::semantic(new TypeExp(e->loc, t), sc);
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
@@ -8578,7 +8657,7 @@ L1:
     if (td)
     {
         if (e->op == TOKtype)
-            e = new ScopeExp(e->loc, td);
+            e = new TemplateExp(e->loc, td);
         else
             e = new DotTemplateExp(e->loc, e, td);
         e = ::semantic(e, sc);
@@ -9134,7 +9213,9 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             if (!(i1 <= i2 && i2 <= td->objects->dim))
             {
                 error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td->objects->dim);
-                goto Ldefault;
+                *ps = NULL;
+                *pt = Type::terror;
+                return;
             }
 
             if (i1 == 0 && i2 == td->objects->dim)

@@ -13,7 +13,7 @@ void foo2(const C2 c);
 struct Foo3
 {
 	int k;
-	~this()
+	@trusted @nogc @disable ~this()
 	{
 		k = 1;
 	}
@@ -35,6 +35,9 @@ T foo3(T)()
 struct S4A(T)
 {
 	T x;
+	@safe ~this()
+	{
+	}
 }
 struct S4B(T) if (1)
 {
@@ -197,5 +200,13 @@ void test13275()
 	}
 	foreach (shared const(int) e; [1, 2])
 	{
+	}
+}
+align (1) struct S9766
+{
+	align (true ? 2 : 3) 
+	{
+		int var1;
+		align int var2;
 	}
 }

@@ -96,30 +96,19 @@ Lexer::Lexer(const char *filename,
     {
         p += 2;
         while (1)
-        {   utf8_t c = *p;
+        {
+            utf8_t c = *p++;
             switch (c)
             {
-                case '\n':
-                    p++;
-                    break;
-
-                case '\r':
-                    p++;
-                    if (*p == '\n')
-                        p++;
-                    break;
-
                 case 0:
                 case 0x1A:
+                    p--;
+                    /* fall through */
+
+                case '\n':
                     break;
 
                 default:
-                    if (c & 0x80)
-                    {   unsigned u = decodeUTF();
-                        if (u == PS || u == LS)
-                            break;
-                    }
-                    p++;
                     continue;
             }
             break;

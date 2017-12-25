@@ -88,14 +88,25 @@ AliasThis::AliasThis(Loc loc, Identifier *ident)
 Dsymbol *AliasThis::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    /* Since there is no semantic information stored here,
-     * we don't need to copy it.
-     */
-    return this;
+    return new AliasThis(loc, ident);
 }
 
 void AliasThis::semantic(Scope *sc)
 {
+    if (semanticRun != PASSinit)
+        return;
+
+    if (_scope)
+    {
+        sc = _scope;
+        _scope = NULL;
+    }
+
+    if (!sc)
+        return;
+
+    semanticRun = PASSsemantic;
+
     Dsymbol *p = sc->parent->pastMixin();
     AggregateDeclaration *ad = p->isAggregateDeclaration();
     if (!ad)
@@ -150,6 +161,7 @@ void AliasThis::semantic(Scope *sc)
     }
 
     ad->aliasthis = s;
+    semanticRun = PASSsemanticdone;
 }
 
 const char *AliasThis::kind()

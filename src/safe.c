@@ -14,6 +14,8 @@
 #include "aggregate.h"
 #include "target.h"
 
+bool MODimplicitConv(MOD modfrom, MOD modto);
+
 /*************************************************************
  * Check for unsafe access in @safe code:
  * 1. read overlapped pointers
@@ -72,6 +74,93 @@ bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg)
             if (printmsg)
                 e->error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
                     ad->toChars(), v->toChars());
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/**********************************************
+ * Determine if it is @safe to cast e from tfrom to tto.
+ * Params:
+ *      e = expression to be cast
+ *      tfrom = type of e
+ *      tto = type to cast e to
+ * Returns:
+ *      true if @safe
+ */
+bool isSafeCast(Expression *e, Type *tfrom, Type *tto)
+{
+    // Implicit conversions are always safe
+    if (tfrom->implicitConvTo(tto))
+        return true;
+
+    if (!tto->hasPointers())
+        return true;
+
+    Type *tfromb = tfrom->toBasetype();
+    Type *ttob = tto->toBasetype();
+
+    if (ttob->ty == Tclass && tfrom->ty == Tclass)
+    {
+        ClassDeclaration *cdfrom = tfrom->isClassHandle();
+        ClassDeclaration *cdto = ttob->isClassHandle();
+
+        int offset;
+        if (!cdfrom->isBaseOf(cdto, &offset))
+            return false;
+
+        if (cdfrom->isCPPinterface() || cdto->isCPPinterface())
+            return false;
+
+        if (!MODimplicitConv(tfrom->mod, ttob->mod))
+            return false;
+        return true;
+    }
+
+    if (ttob->ty == Tarray && tfrom->ty == Tsarray) // Bugzilla 12502
+        tfrom = tfrom->nextOf()->arrayOf();
+
+    if (ttob->ty == Tarray   && tfrom->ty == Tarray ||
+        ttob->ty == Tpointer && tfrom->ty == Tpointer)
+    {
+        Type *ttobn = ttob->nextOf()->toBasetype();
+        Type *tfromn = tfrom->nextOf()->toBasetype();
+
+        /* From void[] to anything mutable is unsafe because:
+         *  int*[] api;
+         *  void[] av = api;
+         *  int[] ai = cast(int[]) av;
+         *  ai[0] = 7;
+         *  *api[0] crash!
+         */
+        if (tfromn->ty == Tvoid && ttobn->isMutable())
+        {
+            if (ttob->ty == Tarray && e->op == TOKarrayliteral)
+                return true;
+            return false;
+        }
+
+        // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
+        if (ttobn->ty == Tstruct && !((TypeStruct *)ttobn)->sym->members ||
+            tfromn->ty == Tstruct && !((TypeStruct *)tfromn)->sym->members)
+            return false;
+
+        const bool frompointers = tfromn->hasPointers();
+        const bool topointers = ttobn->hasPointers();
+
+        if (frompointers && !topointers && ttobn->isMutable())
+            return false;
+
+        if (!frompointers && topointers)
+            return false;
+
+        if (!topointers &&
+            ttobn->ty != Tfunction && tfromn->ty != Tfunction &&
+            (ttob->ty == Tarray || ttobn->size() <= tfromn->size()) &&
+            MODimplicitConv(tfromn->mod, ttobn->mod))
+        {
             return true;
         }
     }

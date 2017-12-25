@@ -97,7 +97,7 @@ void test2442()
     immutable S3 ms3;
     static assert(!__traits(compiles, { foreach (int x; ms3) {} }));    // ambiguous
 
-    // from https://github.com/D-Programming-Language/dmd/pull/120
+    // from https://github.com/dlang/dmd/pull/120
     static class C
     {
         int opApply(int delegate(ref              int v) dg)              { return 0; }
@@ -967,6 +967,7 @@ void test12932() @nogc
 
 void test13756()
 {
+    printf("test13756()\n");
     int[int] org = [1:2], aa;
 
     aa = org.dup;
@@ -1067,7 +1068,7 @@ auto scoped14653(T, A...)(A args)
     Scoped!T result = void;
 
     //emplace!T(result.store[], args);
-    result.store[] = typeid(T).init[];
+    result.store[] = typeid(T).initializer[];
     result.payload.__ctor(args);
 
     return result;
@@ -1075,6 +1076,7 @@ auto scoped14653(T, A...)(A args)
 
 void test14653()
 {
+    printf("test14653()\n");
     foreach (e; scoped14653!RangeClass14653(1))
     {
         result14653 ~= "b";
@@ -1110,6 +1112,7 @@ int main()
     test11291();
     test12103();
     test12739();
+    printf("test12932()\n");
     test12932();
     test13756();
     test14653();

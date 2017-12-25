@@ -1084,6 +1084,19 @@ public:
         return false;
     }
 
+    static Expressions *copyArrayOnWrite(Expressions *exps, Expressions *original)
+    {
+        if (exps == original)
+        {
+            if (!original)
+                exps = new Expressions();
+            else
+                exps = original->copy();
+            ++CtfeStatus::numArrayAllocs;
+        }
+        return exps;
+    }
+
     /******************************** Statement ***************************/
 
     void visit(Statement *s)
@@ -1995,7 +2008,8 @@ public:
     #endif
         if (goal == ctfeNeedLvalue)
         {
-            if (istate->fd->vthis)
+            // We might end up here with istate being zero (see bugzilla 16382)
+            if (istate && istate->fd->vthis)
             {
                 result = new VarExp(e->loc, istate->fd->vthis);
                 result->type = e->type;
@@ -2615,10 +2629,10 @@ public:
         if (exceptionOrCant(interpret(e->e0, istate, ctfeNeedNothing)))
             return;
 
-        Expressions *expsx = NULL;
-        for (size_t i = 0; i < e->exps->dim; i++)
+        Expressions *expsx = e->exps;
+        for (size_t i = 0; i < expsx->dim; i++)
         {
-            Expression *exp = (*e->exps)[i];
+            Expression *exp = (*expsx)[i];
             Expression *ex = interpret(exp, istate);
             if (exceptionOrCant(ex))
                 return;
@@ -2636,29 +2650,19 @@ public:
              */
             if (ex != exp)
             {
-                if (!expsx)
-                {
-                    expsx = new Expressions();
-                    ++CtfeStatus::numArrayAllocs;
-                    expsx->setDim(e->exps->dim);
-                    for (size_t j = 0; j < i; j++)
-                    {
-                        (*expsx)[j] = (*e->exps)[j];
-                    }
-                }
+                expsx = copyArrayOnWrite(expsx, e->exps);
                 (*expsx)[i] = ex;
             }
         }
-        if (expsx)
+        if (expsx != e->exps)
         {
+            expandTuples(expsx);
             TupleExp *te = new TupleExp(e->loc, expsx);
-            expandTuples(te->exps);
             te->type = new TypeTuple(te->exps);
             result = te;
-            return;
         }
-        result = e;
-        return;
+        else
+            result = e;
     }
 
     void visit(ArrayLiteralExp *e)
@@ -2679,54 +2683,43 @@ public:
         if (exceptionOrCant(basis))
             return;
 
-        Expressions *expsx = NULL;
-        size_t dim = e->elements ? e->elements->dim : 0;
+        Expressions *expsx = e->elements;
+        size_t dim = expsx ? expsx->dim : 0;
         for (size_t i = 0; i < dim; i++)
         {
-            Expression *exp = (*e->elements)[i];
+            Expression *exp = (*expsx)[i];
             Expression *ex;
             if (!exp)
             {
                 ex = copyLiteral(basis).copy();
-                goto Lcow;
             }
+            else
+            {
+                // segfault bug 6250
+                assert(exp->op != TOKindex || ((IndexExp *)exp)->e1 != e);
 
-            // segfault bug 6250
-            assert(exp->op != TOKindex || ((IndexExp *)exp)->e1 != e);
+                ex = interpret(exp, istate);
+                if (exceptionOrCant(ex))
+                    return;
 
-            ex = interpret(exp, istate);
-            if (exceptionOrCant(ex))
-                return;
-
-            /* Each elements should have distinct CFE memory.
-             *  int[1] z = 7;
-             *  int[1][] pieces = [z,z];    // here
-             */
-            if (wantCopy || ex == exp && expsx)
-                ex = copyLiteral(ex).copy();
-
-            if (ex == exp && !expsx)
-                continue;
+                /* Each elements should have distinct CFE memory.
+                 *  int[1] z = 7;
+                 *  int[1][] pieces = [z,z];    // here
+                 */
+                if (wantCopy)
+                    ex = copyLiteral(ex).copy();
+            }
 
             /* If any changes, do Copy On Write
              */
-        Lcow:
-            if (!expsx)
+            if (ex != exp)
             {
-                expsx = new Expressions();
-                ++CtfeStatus::numArrayAllocs;
-                expsx->setDim(dim);
-                for (size_t j = 0; j < i; j++)
-                {
-                    Expression *el = (*e->elements)[j];
-                    if (!el)
-                        el = e->basis;
-                    (*expsx)[j] = copyLiteral(el).copy();
-                }
+                expsx = copyArrayOnWrite(expsx, e->elements);
+                (*expsx)[i] = ex;
             }
-            (*expsx)[i] = ex;
         }
-        if (expsx)
+
+        if (expsx != e->elements)
         {
             // todo: all tuple expansions should go in semantic phase.
             expandTuples(expsx);
@@ -2736,26 +2729,22 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, basis, expsx);
-            ae->type = e->type;
-            ae->ownedByCtfe = OWNEDctfe;
-            result = ae;
-            return;
+            ArrayLiteralExp *ale = new ArrayLiteralExp(e->loc, basis, expsx);
+            ale->type = e->type;
+            ale->ownedByCtfe = OWNEDctfe;
+            result = ale;
         }
-        if (((TypeNext *)e->type)->next->mod & (MODconst | MODimmutable))
+        else if (((TypeNext *)e->type)->next->mod & (MODconst | MODimmutable))
         {
             // If it's immutable, we don't need to dup it
             result = e;
-            return;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     void visit(AssocArrayLiteralExp *e)
     {
-        Expressions *keysx = e->keys;
-        Expressions *valuesx = e->values;
-
     #if LOG
         printf("%s AssocArrayLiteralExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
@@ -2764,35 +2753,30 @@ public:
             result = e;
             return;
         }
-        for (size_t i = 0; i < e->keys->dim; i++)
+
+        Expressions *keysx = e->keys;
+        Expressions *valuesx = e->values;
+        for (size_t i = 0; i < keysx->dim; i++)
         {
-            Expression *ekey = (*e->keys)[i];
-            Expression *evalue = (*e->values)[i];
+            Expression *ekey = (*keysx)[i];
+            Expression *evalue = (*valuesx)[i];
 
-            Expression *ex = interpret(ekey, istate);
-            if (exceptionOrCant(ex))
+            Expression *ek = interpret(ekey, istate);
+            if (exceptionOrCant(ek))
+                return;
+            Expression *ev = interpret(evalue, istate);
+            if (exceptionOrCant(ev))
                 return;
 
             /* If any changes, do Copy On Write
              */
-            if (ex != ekey)
+            if (ek != ekey ||
+                ev != evalue)
             {
-                if (keysx == e->keys)
-                    keysx = (Expressions *)e->keys->copy();
-                (*keysx)[i] = ex;
-            }
-
-            ex = interpret(evalue, istate);
-            if (exceptionOrCant(ex))
-                return;
-
-            /* If any changes, do Copy On Write
-             */
-            if (ex != evalue)
-            {
-                if (valuesx == e->values)
-                    valuesx = (Expressions *)e->values->copy();
-                (*valuesx)[i] = ex;
+                keysx = copyArrayOnWrite(keysx, e->keys);
+                valuesx = copyArrayOnWrite(valuesx, e->values);
+                (*keysx)[i] = ek;
+                (*valuesx)[i] = ev;
             }
         }
         if (keysx != e->keys)
@@ -2814,32 +2798,32 @@ public:
             for (size_t j = i; j < keysx->dim; j++)
             {
                 Expression *ekey2 = (*keysx)[j];
-                int eq = ctfeEqual(e->loc, TOKequal, ekey, ekey2);
-                if (eq)       // if a match
-                {
-                    // Remove ekey
-                    if (keysx == e->keys)
-                        keysx = (Expressions *)e->keys->copy();
-                    if (valuesx == e->values)
-                        valuesx = (Expressions *)e->values->copy();
-                    keysx->remove(i - 1);
-                    valuesx->remove(i - 1);
-                    i -= 1;         // redo the i'th iteration
-                    break;
-                }
+                if (!ctfeEqual(e->loc, TOKequal, ekey, ekey2))
+                    continue;
+
+                // Remove ekey
+                keysx = copyArrayOnWrite(keysx, e->keys);
+                valuesx = copyArrayOnWrite(valuesx, e->values);
+                keysx->remove(i - 1);
+                valuesx->remove(i - 1);
+
+                i -= 1;         // redo the i'th iteration
+                break;
             }
         }
 
-        if (keysx != e->keys || valuesx != e->values)
+        if (keysx != e->keys ||
+            valuesx != e->values)
         {
-            AssocArrayLiteralExp *ae;
-            ae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
+            assert(keysx != e->keys &&
+                   valuesx != e->values);
+            AssocArrayLiteralExp *ae = new AssocArrayLiteralExp(e->loc, keysx, valuesx);
             ae->type = e->type;
             ae->ownedByCtfe = OWNEDctfe;
             result = ae;
-            return;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     void visit(StructLiteralExp *e)
@@ -2853,44 +2837,46 @@ public:
             return;
         }
 
-        size_t elemdim = e->elements ? e->elements->dim : 0;
-        Expressions *expsx = NULL;
-        for (size_t i = 0; i < e->sd->fields.dim; i++)
+        size_t dim = e->elements ? e->elements->dim : 0;
+        Expressions *expsx = e->elements;
+
+        if (dim != e->sd->fields.dim)
+        {
+            // guaranteed by AggregateDeclaration.fill and TypeStruct.defaultInitLiteral
+            assert(e->sd->isNested() && dim == e->sd->fields.dim - 1);
+
+            /* If a nested struct has no initialized hidden pointer,
+                * set it to null to match the runtime behaviour.
+                 */
+            NullExp *ne = new NullExp(e->loc);
+            ne->type = e->sd->vthis->type;
+
+            expsx = copyArrayOnWrite(expsx, e->elements);
+            expsx->push(ne);
+            ++dim;
+        }
+        assert(dim == e->sd->fields.dim);
+
+        for (size_t i = 0; i < dim; i++)
         {
             VarDeclaration *v = e->sd->fields[i];
+            Expression *exp = (*expsx)[i];
             Expression *ex = NULL;
-            Expression *exp = NULL;
-            if (i >= elemdim)
+            if (!exp)
             {
-                /* If a nested struct has no initialized hidden pointer,
-                 * set it to null to match the runtime behaviour.
-                 */
-                if (i == e->sd->fields.dim - 1 && e->sd->isNested())
-                {
-                    // Context field has not been filled
-                    ex = new NullExp(e->loc);
-                    ex->type = v->type;
-                }
+                ex = voidInitLiteral(v->type, v).copy();
             }
             else
             {
-                exp = (*e->elements)[i];
-                if (!exp)
+                ex = interpret(exp, istate);
+                if (exceptionOrCant(ex))
+                    return;
+                if ((v->type->ty != ex->type->ty) && v->type->ty == Tsarray)
                 {
-                    ex = voidInitLiteral(v->type, v).copy();
-                }
-                else
-                {
-                    ex = interpret(exp, istate);
-                    if (exceptionOrCant(ex))
-                        return;
-                    if ((v->type->ty != ex->type->ty) && v->type->ty == Tsarray)
-                    {
-                        // Block assignment from inside struct literals
-                        TypeSArray *tsa = (TypeSArray *)v->type;
-                        size_t len = (size_t)tsa->dim->toInteger();
-                        ex = createBlockDuplicatedArrayLiteral(ex->loc, v->type, ex, len);
-                    }
+                    // Block assignment from inside struct literals
+                    TypeSArray *tsa = (TypeSArray *)v->type;
+                    size_t len = (size_t)tsa->dim->toInteger();
+                    ex = createBlockDuplicatedArrayLiteral(ex->loc, v->type, ex, len);
                 }
             }
 
@@ -2898,21 +2884,12 @@ public:
              */
             if (ex != exp)
             {
-                if (!expsx)
-                {
-                    expsx = new Expressions();
-                    ++CtfeStatus::numArrayAllocs;
-                    expsx->setDim(e->sd->fields.dim);
-                    for (size_t j = 0; j < e->elements->dim; j++)
-                    {
-                        (*expsx)[j] = (*e->elements)[j];
-                    }
-                }
+                expsx = copyArrayOnWrite(expsx, e->elements);
                 (*expsx)[i] = ex;
             }
         }
 
-        if (e->elements && expsx)
+        if (expsx != e->elements)
         {
             expandTuples(expsx);
             if (expsx->dim != e->sd->fields.dim)
@@ -2921,13 +2898,13 @@ public:
                 result = CTFEExp::cantexp;
                 return;
             }
-            StructLiteralExp *se = new StructLiteralExp(e->loc, e->sd, expsx);
-            se->type = e->type;
-            se->ownedByCtfe = OWNEDctfe;
-            result = se;
-            return;
+            StructLiteralExp *sle = new StructLiteralExp(e->loc, e->sd, expsx);
+            sle->type = e->type;
+            sle->ownedByCtfe = OWNEDctfe;
+            result = sle;
         }
-        result = copyLiteral(e).copy();
+        else
+            result = copyLiteral(e).copy();
     }
 
     // Create an array literal of type 'newtype' with dimensions given by
@@ -3254,7 +3231,7 @@ public:
                 return;
             }
         }
-        result = (*fp)(e->type, e1, e2).copy();
+        result = (*fp)(e->loc, e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
             e->error("%s cannot be interpreted at compile time", e->toChars());
     }
@@ -3625,14 +3602,6 @@ public:
             }
         }
 
-        // If it isn't a simple assignment, we need the existing value
-        if (fp && !oldval)
-        {
-            oldval = interpret(e1, istate);
-            if (exceptionOrCant(oldval))
-                return;
-        }
-
         // ---------------------------------------
         //      Interpret right hand side
         // ---------------------------------------
@@ -3666,7 +3635,14 @@ public:
         // ----------------------------------------------------
         if (fp)
         {
-            assert(oldval);
+            if (!oldval)
+            {
+                // Load the left hand side after interpreting the right hand side.
+                oldval = interpret(e1, istate);
+                if (exceptionOrCant(oldval))
+                    return;
+            }
+
             if (e->e1->type->ty != Tpointer)
             {
                 // ~= can create new values (see bug 6052)
@@ -3687,7 +3663,7 @@ public:
                 }
                 oldval = resolveSlice(oldval);
 
-                newval = (*fp)(e->type, oldval, newval).copy();
+                newval = (*fp)(e->loc, e->type, oldval, newval).copy();
             }
             else if (e->e2->type->isintegral() &&
                 (e->op == TOKaddass ||
@@ -5615,7 +5591,7 @@ public:
             return;
         e1 = resolveSlice(e1);
         e2 = resolveSlice(e2);
-        result = ctfeCat(e->type, e1, e2).copy();
+        result = ctfeCat(e->loc, e->type, e1, e2).copy();
         if (CTFEExp::isCantExp(result))
         {
             e->error("%s cannot be interpreted at compile time", e->toChars());
@@ -5623,11 +5599,139 @@ public:
         }
         // We know we still own it, because we interpreted both e1 and e2
         if (result->op == TOKarrayliteral)
-            ((ArrayLiteralExp *)result)->ownedByCtfe = OWNEDctfe;
+        {
+            ArrayLiteralExp *ale = (ArrayLiteralExp *)result;
+            ale->ownedByCtfe = OWNEDctfe;
+
+            // Bugzilla 14686
+            for (size_t i = 0; i < ale->elements->dim; i++)
+            {
+                Expression *ex = evaluatePostblit(istate, (*ale->elements)[i]);
+                if (exceptionOrCant(ex))
+                    return;
+            }
+        }
         if (result->op == TOKstring)
             ((StringExp *)result)->ownedByCtfe = OWNEDctfe;
     }
 
+    void visit(DeleteExp *e)
+    {
+    #if LOG
+        printf("%s DeleteExp::interpret() %s\n", e->loc->toChars(), e->toChars());
+    #endif
+        result = interpret(e->e1, istate);
+        if (exceptionOrCant(result))
+            return;
+
+        if (result->op == TOKnull)
+        {
+            result = CTFEExp::voidexp;
+            return;
+        }
+
+        Type *tb = e->e1->type->toBasetype();
+        switch (tb->ty)
+        {
+        case Tclass:
+        {
+            if (result->op != TOKclassreference)
+            {
+                e->error("delete on invalid class reference '%s'", result->toChars());
+                result = CTFEExp::cantexp;
+                return;
+            }
+
+            ClassReferenceExp *cre = (ClassReferenceExp *)result;
+            ClassDeclaration *cd = cre->originalClass();
+            if (cd->aggDelete)
+            {
+                e->error("member deallocators not supported by CTFE");
+                result = CTFEExp::cantexp;
+                return;
+            }
+
+            if (cd->dtor)
+            {
+                result = interpret(cd->dtor, istate, NULL, cre);
+                if (exceptionOrCant(result))
+                    return;
+            }
+            break;
+        }
+
+        case Tpointer:
+        {
+            tb = ((TypePointer *)tb)->next->toBasetype();
+            if (tb->ty == Tstruct)
+            {
+                if (result->op != TOKaddress ||
+                    ((AddrExp *)result)->e1->op != TOKstructliteral)
+                {
+                    e->error("delete on invalid struct pointer '%s'", result->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+
+                StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+                StructLiteralExp *sle = (StructLiteralExp *)((AddrExp *)result)->e1;
+                if (sd->aggDelete)
+                {
+                    e->error("member deallocators not supported by CTFE");
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+
+                if (sd->dtor)
+                {
+                    result = interpret(sd->dtor, istate, NULL, sle);
+                    if (exceptionOrCant(result))
+                        return;
+                }
+            }
+            break;
+        }
+
+        case Tarray:
+        {
+            Type *tv = tb->nextOf()->baseElemOf();
+            if (tv->ty == Tstruct)
+            {
+                if (result->op != TOKarrayliteral)
+                {
+                    e->error("delete on invalid struct array '%s'", result->toChars());
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+
+                StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+                if (sd->aggDelete)
+                {
+                    e->error("member deallocators not supported by CTFE");
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+
+                if (sd->dtor)
+                {
+                    ArrayLiteralExp *ale = (ArrayLiteralExp *)result;
+                    for (size_t i = 0; i < ale->elements->dim; i++)
+                    {
+                        Expression *el = (*ale->elements)[i];
+                        result = interpret(sd->dtor, istate, NULL, el);
+                        if (exceptionOrCant(result))
+                            return;
+                    }
+                }
+            }
+            break;
+        }
+
+        default:
+            assert(0);
+        }
+        result = CTFEExp::voidexp;
+    }
 
     void visit(CastExp *e)
     {

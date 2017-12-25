@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail298.d(12): Error: cannot implicitly convert expression (num1 / cast(ulong)num2) of type ulong to int
+fail_compilation/fail298.d(12): Error: cannot implicitly convert expression `num1 / cast(ulong)num2` of type `ulong` to `int`
 ---
 */
 

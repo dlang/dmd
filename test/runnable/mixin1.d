@@ -1386,8 +1386,8 @@ int test14243()
     {
         int var = 1;
         mixin Mix14243e!12;
-        static assert(is(typeof(&foo) == int delegate() @safe nothrow));
-        static assert(is(typeof(&bar) == int function() @safe nothrow));
+        static assert(is(typeof(&foo) == int delegate() @safe nothrow pure @nogc));
+        static assert(is(typeof(&bar) == int function() @safe nothrow pure @nogc));
         static assert(S.sizeof == int.sizeof);  // s is static struct
         assert(foo() == 1);
         assert(bar() == 12);

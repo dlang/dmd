@@ -2309,7 +2309,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             int offset;
                             if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
                                 e->error("%s", msg);
-                            f->tookAddressOf++;
+                            if (f != e->func)    // if address not already marked as taken
+                                f->tookAddressOf++;
                             result = new DelegateExp(e->loc, e->e1, f, false);
                             result->type = t;
                             return;
@@ -3042,8 +3043,8 @@ Lcc:
 
                 if (cd1 && cd2)
                 {
-                    t1 = cd1->type;
-                    t2 = cd2->type;
+                    t1 = cd1->type->castMod(t1->mod);
+                    t2 = cd2->type->castMod(t2->mod);
                 }
                 else if (cd1)
                     t1 = cd1->type;

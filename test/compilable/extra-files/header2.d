@@ -18,7 +18,7 @@ void foo2(const C2 c);
 struct Foo3
 {
    int k;
-   ~this() { k = 1; }
+   ~this() @trusted @disable @nogc { k = 1; }
    this(this) { k = 2; }
 }
 
@@ -30,6 +30,7 @@ T foo3(T)() {}
 struct S4A(T)
 {
    T x;
+   ~this() @safe {}
 }
 
 struct S4B(T) if (1)
@@ -138,4 +139,14 @@ void test13275()
     foreach (   immutable(int) e; [1,2]) {}
     foreach (shared      (int) e; [1,2]) {}
     foreach (shared const(int) e; [1,2]) {}
+}
+
+// 9766
+align (1) struct S9766
+{
+align (true ? 2 : 3):
+    int var1;
+
+align:
+    int var2;
 }

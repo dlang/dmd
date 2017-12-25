@@ -1349,7 +1349,9 @@ void DocComment::parseSections(const utf8_t *comment)
                 const utf8_t *q = p + utfStride(p);
                 while (isIdTail(q))
                     q += utfStride(q);
-                if (*q == ':')  // identifier: ends it
+                // Detected tag ends it
+                if (*q == ':' && isupper(*p)
+                        && (isspace(q[1]) || q[1] == 0))
                 {
                     idlen = q - p;
                     idstart = p;

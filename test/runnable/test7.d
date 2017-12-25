@@ -29,31 +29,31 @@ void test1()
     char[2] a2;
     a2[] = 'x';
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == 'x');
+        assert(a2[i] == 'x');
 
     char[3] a3;
     a3[] = 'x';
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == 'x');
+        assert(a3[i] == 'x');
 
     char[4] a4;
     a4[] = 'x';
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == 'x');
+        assert(a4[i] == 'x');
 
     char[8] a8;
     a8[] = 'x';
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == 'x');
+        assert(a8[i] == 'x');
 
     char[27] a27;
     a27[] = 'x';
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == 'x');
+        assert(a27[i] == 'x');
 
     func1(33)[] = 'y';
     for (i = 0; i < b1.length; i++)
-	assert(b1[i] == 'y');
+        assert(b1[i] == 'y');
 
 
     char[23] a23 = 'x';
@@ -96,31 +96,31 @@ void test2()
     short[2] a2;
     a2[] = 0x1234;
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == 0x1234);
+        assert(a2[i] == 0x1234);
 
     short[3] a3;
     a3[] = 0x1234;
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == 0x1234);
+        assert(a3[i] == 0x1234);
 
     short[4] a4;
     a4[] = 0x1234;
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == 0x1234);
+        assert(a4[i] == 0x1234);
 
     short[8] a8;
     a8[] = 0x1234;
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == 0x1234);
+        assert(a8[i] == 0x1234);
 
     short[27] a27;
     a27[] = 0x1234;
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == 0x1234);
+        assert(a27[i] == 0x1234);
 
     func2(33)[] = 0x5678;
     for (i = 0; i < b2.length; i++)
-	assert(b2[i] == 0x5678);
+        assert(b2[i] == 0x5678);
 
 
     short[23] a23 = 0x1234;
@@ -163,31 +163,31 @@ void test3()
     int[2] a2;
     a2[] = 0x12345678;
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == 0x12345678);
+        assert(a2[i] == 0x12345678);
 
     int[3] a3;
     a3[] = 0x12345678;
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == 0x12345678);
+        assert(a3[i] == 0x12345678);
 
     int[4] a4;
     a4[] = 0x12345678;
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == 0x12345678);
+        assert(a4[i] == 0x12345678);
 
     int[8] a8;
     a8[] = 0x12345678;
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == 0x12345678);
+        assert(a8[i] == 0x12345678);
 
     int[27] a27;
     a27[] = 0x12345678;
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == 0x12345678);
+        assert(a27[i] == 0x12345678);
 
     func3(33)[] = 0x56781234;
     for (i = 0; i < b3.length; i++)
-	assert(b3[i] == 0x56781234);
+        assert(b3[i] == 0x56781234);
 
 
     int[23] a23 = 0x12345678;
@@ -230,31 +230,31 @@ void test4()
     long[2] a2;
     a2[] = 0x123456789ABCDEF0;
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == 0x123456789ABCDEF0);
+        assert(a2[i] == 0x123456789ABCDEF0);
 
     long[3] a3;
     a3[] = 0x123456789ABCDEF0;
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == 0x123456789ABCDEF0);
+        assert(a3[i] == 0x123456789ABCDEF0);
 
     long[4] a4;
     a4[] = 0x123456789ABCDEF0;
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == 0x123456789ABCDEF0);
+        assert(a4[i] == 0x123456789ABCDEF0);
 
     long[8] a8;
     a8[] = 0x123456789ABCDEF0;
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == 0x123456789ABCDEF0);
+        assert(a8[i] == 0x123456789ABCDEF0);
 
     long[27] a27;
     a27[] = 0x123456789ABCDEF0;
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == 0x123456789ABCDEF0);
+        assert(a27[i] == 0x123456789ABCDEF0);
 
     func4(33)[] = 0x5678889911223344;
     for (i = 0; i < b4.length; i++)
-	assert(b4[i] == 0x5678889911223344);
+        assert(b4[i] == 0x5678889911223344);
 
 
     long[23] a23 = 0x123456789ABCDEF0;
@@ -297,31 +297,31 @@ void test5()
     real[2] a2;
     a2[] = 31234;
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == 31234);
+        assert(a2[i] == 31234);
 
     real[3] a3;
     a3[] = 31234;
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == 31234);
+        assert(a3[i] == 31234);
 
     real[4] a4;
     a4[] = 31234;
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == 31234);
+        assert(a4[i] == 31234);
 
     real[8] a8;
     a8[] = 31234;
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == 31234);
+        assert(a8[i] == 31234);
 
     real[27] a27;
     a27[] = 31234;
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == 31234);
+        assert(a27[i] == 31234);
 
     func5(33)[] = 35678;
     for (i = 0; i < b5.length; i++)
-	assert(b5[i] == 35678);
+        assert(b5[i] == 35678);
 
 
     real[23] a23 = 31234;
@@ -373,31 +373,31 @@ void test6()
     ABC[2] a2;
     a2[] = abc1;
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == abc1);
+        assert(a2[i] == abc1);
 
     ABC[3] a3;
     a3[] = abc1;
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == abc1);
+        assert(a3[i] == abc1);
 
     ABC[4] a4;
     a4[] = abc1;
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == abc1);
+        assert(a4[i] == abc1);
 
     ABC[8] a8;
     a8[] = abc1;
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == abc1);
+        assert(a8[i] == abc1);
 
     ABC[27] a27;
     a27[] = abc1;
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == abc1);
+        assert(a27[i] == abc1);
 
     func6(33)[] = abc2;
     for (i = 0; i < b6.length; i++)
-	assert(b6[i] == abc2);
+        assert(b6[i] == abc2);
 
 
     ABC[23] a23 = abc1;
@@ -440,43 +440,43 @@ void test7()
     bool[2] a2;
     a2[] = 1;
     for (i = 0; i < a2.length; i++)
-	assert(a2[i] == 1);
+        assert(a2[i] == 1);
 
     bool[3] a3;
     a3[] = 1;
     for (i = 0; i < a3.length; i++)
-	assert(a3[i] == 1);
+        assert(a3[i] == 1);
 
     bool[4] a4;
     a4[] = 1;
     for (i = 0; i < a4.length; i++)
-	assert(a4[i] == 1);
+        assert(a4[i] == 1);
 
     bool[8] a8;
     a8[] = 1;
     for (i = 0; i < a8.length; i++)
-	assert(a8[i] == 1);
+        assert(a8[i] == 1);
 
     bool[27] a27;
     a27[] = 1;
     for (i = 0; i < a27.length; i++)
-	assert(a27[i] == 1);
+        assert(a27[i] == 1);
 
     func7(33)[] = 1;
     assert(b7.length == 33);
     for (i = 0; i < b7.length; i++)
-	assert(b7[i] == 1);
+        assert(b7[i] == 1);
 
     func7(33)[3..6] = 1;
     //printf("b7.ptr = %p, b7.length = %d\n", b7.ptr, b7.length);
     assert(b7.length == 33);
     for (i = 0; i < b7.length; i++)
     {
-	//printf("b7[%d] = %d\n", i, b7[i]);
-	if (i >= 3 && i < 6)
-	    assert(b7[i] == 1);
-	else
-	    assert(b7[i] == 0);
+        //printf("b7[%d] = %d\n", i, b7[i]);
+        if (i >= 3 && i < 6)
+            assert(b7[i] == 1);
+        else
+            assert(b7[i] == 0);
     }
 
     bool[23] a23 = 1;
@@ -693,16 +693,16 @@ void test18()
 
 void test19()
 {
-	int i;
-	for (i = 0; i < 10; i++){
-		version(dummy) i=22;
-	}
-	assert(i==10);
+        int i;
+        for (i = 0; i < 10; i++){
+                version(dummy) i=22;
+        }
+        assert(i==10);
 
-	char[][] args;
-	foreach(char[] p; args){
-		version(dummy) int i;
-	}
+        char[][] args;
+        foreach(char[] p; args){
+                version(dummy) int i;
+        }
 }
 
 /**************************************/

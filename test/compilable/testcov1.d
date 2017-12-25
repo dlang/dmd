@@ -5,3 +5,11 @@
 import core.stdc.string;
 import testcov1a;
 
+version(D_Coverage)
+{
+    // Good
+}
+else
+{
+    static assert(0, "Missing 'D_Coverage' version identifier");
+}

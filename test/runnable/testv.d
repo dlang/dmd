@@ -8,7 +8,7 @@ int sum(int[] xx ...)
     int s;
 
     foreach (int x; xx)
-	s += x;
+        s += x;
     return s;
 }
 
@@ -40,7 +40,7 @@ int sum2(int[3] xx ...)
     int s;
 
     foreach (int x; xx)
-	s += x;
+        s += x;
     return s;
 }
 
@@ -65,7 +65,7 @@ int sum3(int[] xx = bb3 ...)
     int s;
 
     foreach (int x; xx)
-	s += x;
+        s += x;
     return s;
 }
 
@@ -93,9 +93,9 @@ class Foo4
 
     this(int a, float f, double d)
     {
-	this.a = a;
-	this.f = f;
-	this.d = d;
+        this.a = a;
+        this.f = f;
+        this.d = d;
     }
 }
 

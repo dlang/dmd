@@ -13,7 +13,7 @@ alias fl F;
 struct fl
 {
     double a;
-  
+
     static fl opCall() { fl f; f.a = 0; return f; }
     static fl opCall(fl v) { fl f; f.a = v.a; return f; }
     void set(double x)

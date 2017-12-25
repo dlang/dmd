@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail183.d(10): Error: redundant attribute 'const'
-fail_compilation/fail183.d(10): Error: redundant attribute 'scope'
-fail_compilation/fail183.d(11): Error: redundant attribute 'in'
+fail_compilation/fail183.d(10): Error: redundant attribute `const`
+fail_compilation/fail183.d(10): Error: redundant attribute `scope`
+fail_compilation/fail183.d(11): Error: redundant attribute `in`
 ---
 */
 

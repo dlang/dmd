@@ -6,11 +6,11 @@ import imports.a18a;
 
 extern(C) int printf(const char*, ...);
 
-alias	IContainer!(int) icontainer_t;
+alias   IContainer!(int) icontainer_t;
 
 int main()
 {
-	printf("Test enumerator\n");
+        printf("Test enumerator\n");
 
-	return 0;
+        return 0;
 }

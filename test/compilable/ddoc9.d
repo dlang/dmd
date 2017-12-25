@@ -19,3 +19,8 @@ struct Struct(T) { }
 /// Union Documentation
 union Union(T) { }
 
+/// Template documentation with anonymous enum
+template TemplateWithAnonEnum(T)
+{
+    enum { TemplateWithAnonEnum = 1 }
+}

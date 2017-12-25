@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12397.d(12): Error: undefined identifier 'tokenLookup'
+fail_compilation/ice12397.d(12): Error: undefined identifier `tokenLookup`
 ---
 */
 

@@ -136,7 +136,7 @@ public:
     void checkParens(TOK value, Expression *e);
     bool isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
     bool isBasicType(Token **pt);
-    bool isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
+    bool isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok, bool allowAltSyntax = true);
     bool isParameters(Token **pt);
     bool isExpression(Token **pt);
     bool skipParens(Token *t, Token **pt);

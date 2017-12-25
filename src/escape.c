@@ -139,8 +139,7 @@ bool checkParamArgumentEscape(Scope *sc, FuncDeclaration *fdc, Identifier *par, 
         {
             VarDeclaration *v = vars[j];
             //printf("v = %s\n", v->toChars());
-            if (v->isDataseg())
-                continue;
+            assert(!v->isDataseg());     // these are not put in the closureVars[]
 
             Dsymbol *p = v->toParent2();
 
@@ -337,8 +336,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         {
             if (va && !va->isDataseg() && !va->doNotInferScope)
             {
-                if (!va->isScope() && inferScope &&
-                    va->type->toBasetype()->ty != Tclass)  // scope classes are special
+                if (!va->isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va->toChars());
                     va->storage_class |= STCscope | STCscopeinferred;
                 }
@@ -365,8 +363,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         {
             VarDeclaration *v = vars[j];
             //printf("v = %s\n", v->toChars());
-            if (v->isDataseg())
-                continue;
+            assert(!v->isDataseg());     // these are not put in the closureVars[]
 
             Dsymbol *p = v->toParent2();
 
@@ -798,6 +795,11 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
 
         void visit(DelegateExp *e)
         {
+            Type *t = e->e1->type->toBasetype();
+            if (t->ty == Tclass || t->ty == Tpointer)
+                escapeByValue(e->e1, er);
+            else
+                escapeByRef(e->e1, er);
             er->byfunc.push(e->func);
         }
 
@@ -809,10 +811,7 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
 
         void visit(TupleExp *e)
         {
-            if (e->exps->dim)
-            {
-                (*e->exps)[e->exps->dim - 1]->accept(this); // last one only
-            }
+            assert(0); // should have been lowered by now
         }
 
         void visit(ArrayLiteralExp *e)
@@ -1213,6 +1212,7 @@ static void escapeByRef(Expression *e, EscapeByResults *er)
  */
 void findAllOuterAccessedVariables(FuncDeclaration *fd, VarDeclarations *vars)
 {
+    //printf("findAllOuterAccessedVariables(fd: %s)\n", fd.toChars());
     for (Dsymbol *p = fd->parent; p; p = p->parent)
     {
         FuncDeclaration *fdp = p->isFuncDeclaration();

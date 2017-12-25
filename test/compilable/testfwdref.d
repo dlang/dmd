@@ -491,3 +491,226 @@ class Frop14609 : Foo14609!int
 {
     public int bar() { return 0; }
 }
+
+/***************************************************/
+// test case 1, comes from Phobos
+/*
+TEST_OUTPUT:
+---
++alias Alias12540
++anySatisfy, T.length == 1
++isStaticArray
++T.stringof in StaticArrayTypeOf
+-T.stringof in StaticArrayTypeOf
+-isStaticArray
++hasElaborateCpCtor S == struct or else
+-hasElaborateCpCtor S == struct or else
+-anySatisfy, T.length == 1
+-alias Alias12540
+---
+*/
+
+template anySatisfy15726x(alias F, T...)
+{
+    //static if (T.length == 1)
+    //{
+        pragma(msg, "+anySatisfy, T.length == 1");
+        enum anySatisfy15726x = F!(T[0]);
+        pragma(msg, "-anySatisfy, T.length == 1");
+    //}
+}
+
+template StaticArrayTypeOf15726x(T)
+{
+    alias X = T;
+
+    static if (is(X : E[n], E, size_t n))
+    {
+        //alias StaticArrayTypeOf15726x = X;
+    }
+    else
+    {
+        pragma(msg, "+T.stringof in StaticArrayTypeOf");
+        // Fixed: T.stringof (T == Class12540) should not invoke
+        //        T.size() in ClassDeclaration.search().
+        static assert(0, T.stringof~" is not a static array type");
+        pragma(msg, "-T.stringof in StaticArrayTypeOf");
+    }
+}
+
+//enum bool isStaticArray(T) = is(StaticArrayTypeOf15726x!T);
+template isStaticArray15726x(T)
+{
+    pragma(msg, "+isStaticArray");
+    enum bool isStaticArray15726x = is(StaticArrayTypeOf15726x!T);
+    pragma(msg, "-isStaticArray");
+}
+
+template hasElaborateCpCtor15726x(S)
+{
+    static if (isStaticArray15726x!S && S.length)
+    {
+        //pragma(msg, "X+");
+        enum bool hasElaborateCpCtor15726x =
+            hasElaborateCpCtor15726x!(typeof(S.init[0]));
+        //pragma(msg, "X-");
+    }
+    else
+    {
+        pragma(msg, "+hasElaborateCpCtor S == struct or else");
+        static if (is(S == struct))
+        {
+            enum bool hasElaborateCpCtor15726x = true;
+            //enum hasElaborateCpCtor15726x = hasMember!(S, "__postblit")
+            //    || anySatisfy15726x!(.hasElaborateCpCtor15726x, FieldTypeTuple!S);
+        }
+        else
+        {
+            enum bool hasElaborateCpCtor15726x = false;
+        }
+        pragma(msg, "-hasElaborateCpCtor S == struct or else");
+    }
+}
+
+struct VariantN15726x(AllowedTypesParam...)
+{
+    alias AllowedTypes = AllowedTypesParam;
+
+    static if (!AllowedTypes.length ||
+               anySatisfy15726x!(hasElaborateCpCtor15726x, AllowedTypes))
+    {
+    }
+}
+
+template Algebraic15726x(T)
+{
+    alias Algebraic15726x = VariantN15726x!(T);
+}
+
+void test15726x()
+{
+    static struct DummyScope
+    {
+        pragma(msg, "+alias Alias12540");
+        alias Alias12540 = Algebraic15726x!Class12540;
+        pragma(msg, "-alias Alias12540");
+        static class Class12540
+        {
+            Alias12540 entity;
+        }
+    }
+}
+
+/***************************************************/
+// test case 2, comes from Phobos
+
+struct RefCounted15726y(T)
+{
+    struct RefCountedStore
+    {
+        struct Impl
+        {
+            T _payload;
+        }
+        Impl* _store;
+    }
+    RefCountedStore _refCounted;
+
+    this(this) {}
+
+    ~this()
+    {
+        _refCounted._store._payload.__xdtor();
+    }
+}
+
+struct RangeT15726y(A)
+{
+    A[1] _outer_;
+    alias RC = RangeT15726y!(const(A));
+}
+
+struct Array15726y(T)
+{
+    struct Payload
+    {
+        ~this();
+    }
+
+    alias Data = RefCounted15726y!(Payload);
+    Data _data;
+
+    alias Range = RangeT15726y!Array15726y;
+}
+
+void test15726y()
+{
+    alias Range = RangeT15726y!(Array15726y!int);
+    Range r;
+    r = r;  // opAssign
+}
+
+/***************************************************/
+// 15726
+
+struct RC15726(T)
+{
+    struct Impl
+    {
+        T _payload;
+    }
+
+    Impl* _store;
+
+    ~this()
+    {
+        destroy15726a(_store._payload);
+    }
+}
+
+// ----
+
+struct Con15726a(T)
+{
+    alias Stmt15726a = .Stmt15726a!T;
+}
+
+struct Stmt15726a(T)
+{
+    alias Con15726a = .Con15726a!T;
+
+    RC15726!Payload data;
+
+    struct Payload
+    {
+        Con15726a con;
+    }
+}
+
+Con15726a!int x15726a;
+
+void destroy15726a(T)(ref T obj) @trusted
+{
+    auto buf = (cast(ubyte*)&obj)[0 .. T.sizeof];
+}
+
+// ----
+
+struct Util15726b(C, S) {}
+
+struct Con15726b(T)
+{
+    alias Util15726b = .Util15726b!(Con15726b!T, Stmt15726b!T);
+}
+
+struct Stmt15726b(T)
+{
+    struct Payload
+    {
+        Con15726b!T con;
+    }
+
+    RC15726!Payload data;
+}
+
+Con15726b!int x15726b;

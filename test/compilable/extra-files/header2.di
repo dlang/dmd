@@ -9,7 +9,7 @@ void foo2(const C2 c);
 struct Foo3
 {
 	int k;
-	~this();
+	@trusted @nogc @disable ~this();
 	this(this);
 }
 class C3
@@ -22,6 +22,9 @@ T foo3(T)()
 struct S4A(T)
 {
 	T x;
+	@safe ~this()
+	{
+	}
 }
 struct S4B(T) if (1)
 {
@@ -97,3 +100,11 @@ void foo11217()(inout int[] arr)
 {
 }
 void test13275();
+align (1) struct S9766
+{
+	align (true ? 2 : 3) 
+	{
+		int var1;
+		align int var2;
+	}
+}

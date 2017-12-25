@@ -159,7 +159,7 @@ public:
                     continue;
                 }
                 i->value[j] = iz;
-                (*elements)[fieldi] = ex;
+                (*elements)[fieldi] = doCopyOrMove(sc, ex);
                 ++fieldi;
             }
             if (errors)
@@ -825,7 +825,7 @@ public:
         }
 
         /* Fill in any missing elements with the default initializer
-        */
+         */
         {
             Expression *_init = NULL;
             for (size_t i = 0; i < edim; i++)
@@ -868,7 +868,7 @@ public:
             }
 
             /* If any elements are errors, then the whole thing is an error
-            */
+             */
             for (size_t i = 0; i < edim; i++)
             {
                 Expression *e = (*elements)[i];

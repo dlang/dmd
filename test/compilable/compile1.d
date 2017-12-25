@@ -790,11 +790,6 @@ mixin template Mix13481(void function() callback)
     }
 }
 
-void sort13481() { int[] arr; arr.sort; }
-mixin Mix13481!(&sort13481);
-
-mixin Mix13481!({ int[] arr; arr.sort; });
-
 /***************************************************/
 // 13564
 
@@ -914,4 +909,56 @@ void test14388()
      * Then, the arguments of two Data template instances at [A] and [B] had become unmatch,
      * and the second instantiation had created the AST duplication.
      */
+}
+
+/***************************************************/
+// 15163
+
+void function() func15164(int[] arr)
+{
+    return () { };
+}
+
+void test15163()
+{
+    auto arr = [[0]];
+    func15164(arr[0])();
+}
+
+/**************************************************
+    3438
+**************************************************/
+import core.vararg;
+struct S3438_1 { this(int x, int y = 1) { } }
+struct S3438_2 { this(int x, ...) { } }
+struct S3438_3 { this(int x, int[] arr...) { } }
+struct S3438_4 { this(...) { } }
+struct S3438_5 { this(int[] arr...) { } }
+
+/***************************************************/
+// 15362
+
+void func15362()
+{
+    assert(true);
+    assert(true,);
+    assert(true, "So true");
+    assert(true, "Very, very true",);
+    static assert(true);
+    static assert(true,);
+    static assert(true, "So true");
+    static assert(true, "Very, very true",);
+}
+
+/***************************************************/
+// 15799
+
+interface I15799
+{
+    void funA();
+
+    void funB(int n)
+    in {
+        assert(n);
+    }; // Semicolon is not a part of function declaration. It's an empty declaration.
 }

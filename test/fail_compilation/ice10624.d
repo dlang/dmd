@@ -36,8 +36,8 @@ struct Variant
         A* rhsPA;
         {
             return *zis < *rhsPA ? -1 : 1;
-            // Tupple!(Msg) < Tupple!(Msg)
-            // Tupple!(Msg).expand < Tupple!(Msg).expand
+            // Tuple!(Msg) < Tuple!(Msg)
+            // Tuple!(Msg).expand < Tuple!(Msg).expand
             // -> should be error
         }
         return 0;

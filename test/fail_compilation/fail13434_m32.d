@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13434_m32.d(13): Error: cannot implicitly convert expression (()) of type () to uint
+fail_compilation/fail13434_m32.d(13): Error: cannot implicitly convert expression `()` of type `()` to `uint`
 ---
 */
 

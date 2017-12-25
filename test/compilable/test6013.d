@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -de
 import imports.test6013;
 
 static assert(__traits(compiles, public_alias_value));

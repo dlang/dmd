@@ -49,6 +49,7 @@ Expression *extractSideEffect(Scope *sc, const char *name, Expression **e0, Expr
 char *MODtoChars(MOD mod);
 bool MODimplicitConv(MOD modfrom, MOD modto);
 MOD MODmerge(MOD mod1, MOD mod2);
+void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod);
 Expression *trySemantic(Expression *e, Scope *sc);
 Expression *semantic(Expression *e, Scope *sc);
 Expression *semanticX(DotIdExp *exp, Scope *sc);
@@ -352,12 +353,6 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
     else if (e1->op == TOKscope)
     {
         s = ((ScopeExp *)e1)->sds;
-        if (s->isTemplateDeclaration())
-        {
-            tiargs = NULL;
-            tthis  = NULL;
-            goto Lfd;
-        }
         TemplateInstance *ti = s->isTemplateInstance();
         if (ti && !ti->semanticRun && ti->tempdecl)
         {
@@ -610,9 +605,6 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
     else if (e1->op == TOKscope)
     {
         Dsymbol *s = ((ScopeExp *)e1)->sds;
-        td = s->isTemplateDeclaration();
-        if (td)
-            goto Ltd;
         TemplateInstance *ti = s->isTemplateInstance();
         if (ti && !ti->semanticRun && ti->tempdecl)
         {
@@ -920,6 +912,9 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         e = searchUFCS(sc, dti, dti->ti->name);
     }
     else
+        return NULL;
+
+    if (e == NULL)
         return NULL;
 
     // Rewrite
@@ -1641,21 +1636,26 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
              *   S().bar() = 1;      // bad!
              * }
              */
-            FuncDeclaration *f;
-            if (AggregateDeclaration *ad = fd->isThis())
+            Dsymbol *s = NULL;
+            if (fd->isThis() || fd->isNested())
+                s = fd->toParent2();
+            for (; s; s = s->toParent2())
             {
-                f = ad->toParent2()->isFuncDeclaration();
-                goto Linoutnest;
-            }
-            else if (fd->isNested())
-            {
-                f = fd->toParent2()->isFuncDeclaration();
-            Linoutnest:
-                for (; f; f = f->toParent2()->isFuncDeclaration())
+                if (AggregateDeclaration *ad = s->isAggregateDeclaration())
                 {
-                    if (((TypeFunction *)f->type)->iswild)
-                        goto Linouterr;
+                    if (ad->isNested())
+                        continue;
+                    break;
                 }
+                if (FuncDeclaration *ff = s->isFuncDeclaration())
+                {
+                    if (((TypeFunction *)ff->type)->iswild)
+                        goto Linouterr;
+
+                    if (ff->isNested() || ff->isThis())
+                        continue;
+                }
+                break;
             }
         }
         else if (tf->isWild())
@@ -2044,7 +2044,7 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         }
         tret = tthis;
     }
-    else if (wildmatch)
+    else if (wildmatch && tret)
     {
         /* Adjust function return type based on wildmatch
          */
@@ -2600,23 +2600,17 @@ bool Expression::checkPurity(Scope *sc, VarDeclaration *v)
             FuncDeclaration *ff = s->isFuncDeclaration();
             if (!ff)
                 break;
-            if (ff->isNested())
+            if (ff->isNested() || ff->isThis())
             {
-                if (ff->type->isImmutable())
+                if (ff->type->isImmutable() ||
+                    ff->type->isShared() && !MODimplicitConv(ff->type->mod, v->type->mod))
                 {
-                    error("pure immutable %s '%s' cannot access mutable data '%s'",
-                        ff->kind(), ff->toPrettyChars(), v->toChars());
-                    err = true;
-                    break;
-                }
-                continue;
-            }
-            if (ff->isThis())
-            {
-                if (ff->type->isImmutable())
-                {
-                    error("pure immutable %s '%s' cannot access mutable data '%s'",
-                        ff->kind(), ff->toPrettyChars(), v->toChars());
+                    OutBuffer ffbuf;
+                    OutBuffer vbuf;
+                    MODMatchToBuffer(&ffbuf, ff->type->mod, v->type->mod);
+                    MODMatchToBuffer(&vbuf, v->type->mod, ff->type->mod);
+                    error("%s%s '%s' cannot access %sdata '%s'",
+                        ffbuf.peekString(), ff->kind(), ff->toPrettyChars(), vbuf.peekString(), v->toChars());
                     err = true;
                     break;
                 }
@@ -3383,8 +3377,7 @@ Lagain:
 
     if (Type *t = s->getType())
     {
-        TypeExp *te = new TypeExp(loc, t);
-        return semantic(te, sc);
+        return semantic(new TypeExp(loc, t), sc);
     }
 
     if (TupleDeclaration *tup = s->isTupleDeclaration())
@@ -4258,14 +4251,21 @@ bool TypeExp::checkValue()
 
 /************************************************************/
 
-// Mainly just a placeholder
-
+/***********************************************************
+ * Mainly just a placeholder of
+ *  Package, Module, Nspace, and TemplateInstance (including TemplateMixin)
+ *
+ * A template instance that requires IFTI:
+ *      foo!tiargs(fargs)       // foo!tiargs
+ * is left until CallExp::semantic() or resolveProperties()
+ */
 ScopeExp::ScopeExp(Loc loc, ScopeDsymbol *sds)
     : Expression(loc, TOKscope, sizeof(ScopeExp))
 {
     //printf("ScopeExp::ScopeExp(sds = '%s')\n", sds->toChars());
     //static int count; if (++count == 38) *(char*)0=0;
     this->sds = sds;
+    assert(!sds->isTemplateDeclaration());   // instead, you should use TemplateExp
 }
 
 Expression *ScopeExp::syntaxCopy()
@@ -4563,7 +4563,8 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         }
         else if (o->dyncast() == DYNCAST_EXPRESSION)
         {
-            Expression *e = (Expression *)o;
+            Expression *e = ((Expression *)o)->copy();
+            e->loc = loc;    // Bugzilla 15669
             this->exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_TYPE)
@@ -5527,7 +5528,7 @@ DotTypeExp::DotTypeExp(Loc loc, Expression *e, Dsymbol *s)
         : UnaExp(loc, TOKdottype, sizeof(DotTypeExp), e)
 {
     this->sym = s;
-    this->type = s->getType();
+    this->type = NULL;
 }
 
 /************************************************************/
@@ -6708,6 +6709,8 @@ Expression *FileInitExp::resolveLoc(Loc loc, Scope *sc)
 {
     //printf("FileInitExp::resolve() %s\n", toChars());
     const char *s = loc.filename ? loc.filename : sc->_module->ident->toChars();
+    if (subop == TOKfilefullpath)
+        s = FileName::combine(sc->_module->srcfilePath, s);
     Expression *e = new StringExp(loc, (char *)s);
     e = semantic(e, sc);
     e = e->castTo(sc, type);

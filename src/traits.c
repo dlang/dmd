@@ -432,7 +432,7 @@ Expression *pointerBitmap(TraitsExp *e)
         virtual void visit(TypeEnum *t) { visit((Type *)t); }
         virtual void visit(TypeTuple *t) { visit((Type *)t); }
         virtual void visit(TypeSlice *t) { assert(0); }
-        virtual void visit(TypeNull *t) { assert(0); }
+        virtual void visit(TypeNull *t) { } // always a null pointer
 
         virtual void visit(TypeStruct *t)
         {
@@ -1194,6 +1194,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         // use a struct as local function
         struct PushIdentsDg
         {
+            ScopeDsymbol *sds;
+            Identifiers *idents;
+
             static int dg(void *ctx, size_t n, Dsymbol *sm)
             {
                 if (!sm)
@@ -1218,9 +1221,12 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     }
                     if (sm->isTypeInfoDeclaration()) // Bugzilla 15177
                         return 0;
+                    PushIdentsDg *pid = (PushIdentsDg *)ctx;
+                    if (!pid->sds->isModule() && sm->isImport()) // Bugzilla 17057
+                        return 0;
 
                     //printf("\t%s\n", sm->ident->toChars());
-                    Identifiers *idents = (Identifiers *)ctx;
+                    Identifiers *idents = pid->idents;
 
                     /* Skip if already present in idents[]
                      */
@@ -1242,7 +1248,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
                     EnumDeclaration *ed = sm->isEnumDeclaration();
                     if (ed)
                     {
-                        ScopeDsymbol_foreach(NULL, ed->members, &PushIdentsDg::dg, (Identifiers *)ctx);
+                        ScopeDsymbol_foreach(NULL, ed->members, &PushIdentsDg::dg, ctx);
                     }
                 }
                 return 0;
@@ -1250,7 +1256,10 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         };
 
         Identifiers *idents = new Identifiers;
-        ScopeDsymbol_foreach(sc, sds->members, &PushIdentsDg::dg, idents);
+        PushIdentsDg ctx;
+        ctx.sds = sds;
+        ctx.idents = idents;
+        ScopeDsymbol_foreach(sc, sds->members, &PushIdentsDg::dg, &ctx);
         ClassDeclaration *cd = sds->isClassDeclaration();
         if (cd && e->ident == Id::allMembers)
         {
@@ -1259,19 +1268,19 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
             struct PushBaseMembers
             {
-                static void dg(ClassDeclaration *cd, Identifiers *idents)
+                static void dg(ClassDeclaration *cd, PushIdentsDg *ctx)
                 {
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {
                         ClassDeclaration *cb = (*cd->baseclasses)[i]->sym;
                         assert(cb);
-                        ScopeDsymbol_foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
+                        ScopeDsymbol_foreach(NULL, cb->members, &PushIdentsDg::dg, ctx);
                         if (cb->baseclasses->dim)
-                            dg(cb, idents);
+                            dg(cb, ctx);
                     }
                 }
             };
-            PushBaseMembers::dg(cd, idents);
+            PushBaseMembers::dg(cd, &ctx);
         }
 
         // Turn Identifiers into StringExps reusing the allocated array

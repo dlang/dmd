@@ -140,9 +140,8 @@ public:
     AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void setScope(Scope *sc);
     void semantic2(Scope *sc);
-    structalign_t getAlignment();
+    structalign_t getAlignment(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
 

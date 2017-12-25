@@ -151,7 +151,7 @@ enum TOK
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
         // Contracts
-        TOKbody, TOKinvariant,
+        TOKinvariant,
 
         // Testing
         TOKunittest,

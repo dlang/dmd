@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/gag4269e.d(10): Error: undefined identifier 'Y8', did you mean class 'X8'?
+fail_compilation/gag4269e.d(10): Error: undefined identifier `Y8`, did you mean class `X8`?
 ---
 */
 

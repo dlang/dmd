@@ -347,24 +347,6 @@ UnionExp copyLiteral(Expression *e)
         r->type = e->type;
         return ue;
     }
-    if (isPointer(e->type))
-    {
-        // For pointers, we only do a shallow copy.
-        if (e->op == TOKaddress)
-            new(&ue) AddrExp(e->loc, ((AddrExp *)e)->e1);
-        else if (e->op == TOKindex)
-            new(&ue) IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
-        else if (e->op == TOKdotvar)
-        {
-            new(&ue) DotVarExp(e->loc, ((DotVarExp *)e)->e1,
-                ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
-        }
-        else
-            assert(0);
-        Expression *r = ue.exp();
-        r->type = e->type;
-        return ue;
-    }
     if (e->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)e;
@@ -391,6 +373,24 @@ UnionExp copyLiteral(Expression *e)
             r->type = e->type;
             return ue;
         }
+    }
+    if (isPointer(e->type))
+    {
+        // For pointers, we only do a shallow copy.
+        if (e->op == TOKaddress)
+            new(&ue) AddrExp(e->loc, ((AddrExp *)e)->e1);
+        else if (e->op == TOKindex)
+            new(&ue) IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
+        else if (e->op == TOKdotvar)
+        {
+            new(&ue) DotVarExp(e->loc, ((DotVarExp *)e)->e1,
+                ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
+        }
+        else
+            assert(0);
+        Expression *r = ue.exp();
+        r->type = e->type;
+        return ue;
     }
     if (e->op == TOKclassreference)
     {
@@ -1426,9 +1426,8 @@ int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
         return intSignedCmp(op, e1->toInteger(), e2->toInteger());
 }
 
-UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
+UnionExp ctfeCat(Loc loc, Type *type, Expression *e1, Expression *e2)
 {
-    Loc loc = e1->loc;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     UnionExp ue;
@@ -1619,7 +1618,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     }
     else
     {
-        r = Cast(type, to, e).copy();
+        r = Cast(loc, type, to, e).copy();
     }
     if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());

@@ -1,10 +1,8 @@
 // REQUIRED_ARGS: -dw
-
+// PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-compilable/deprecate14283.d(17): Deprecation: this is not an lvalue
-compilable/deprecate14283.d(18): Deprecation: super is not an lvalue
 ---
 */
 
@@ -12,12 +10,9 @@ class C
 {
     void bug()
     {
-        autoref(this); // suppress warning for auto ref
-        autoref(super); // suppress warning for auto ref
-        ref_(this); // still warns
-        ref_(super); // still warns
+        autoref(this);  // 'auto ref' becomes non-ref parameter
+        autoref(super); // 'auto ref' becomes non-ref parameter
     }
 }
 
-void autoref(T)(auto ref T t) {}
-void ref_(T)(ref T) {}
+void autoref(T)(auto ref T t) { static assert(__traits(isRef, t) == false); }

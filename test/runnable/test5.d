@@ -16,25 +16,25 @@ class bar : foo
   extern (C)
     int testc(int i)
     {
-	printf("foo.testc(%p)\n", this);
-	assert(x == 47);
-	return i + x;
+        printf("foo.testc(%p)\n", this);
+        assert(x == 47);
+        return i + x;
     }
 
   extern (Windows)
     int testw(int i)
     {
-	printf("foo.testw(%p)\n", this);
-	assert(x == 47);
-	return i + x;
+        printf("foo.testw(%p)\n", this);
+        assert(x == 47);
+        return i + x;
     }
 
   extern (D)
     int testd(int i)
     {
-	printf("foo.testd(%p)\n", this);
-	assert(x == 47);
-	return i + x;
+        printf("foo.testd(%p)\n", this);
+        assert(x == 47);
+        return i + x;
     }
 }
 
@@ -57,9 +57,9 @@ int main()
 {
     bar b = new bar();
 
-    printf("b.size = x%x\n", b.classinfo.init.length);
-    printf("bar.size = x%x\n", bar.classinfo.init.length);
-    assert(b.classinfo.init.length == bar.classinfo.init.length);
+    printf("b.size = x%x\n", b.classinfo.initializer.length);
+    printf("bar.size = x%x\n", bar.classinfo.initializer.length);
+    assert(b.classinfo.initializer.length == bar.classinfo.initializer.length);
     abc(b);
     return 0;
 }

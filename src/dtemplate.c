@@ -51,7 +51,7 @@ static size_t templateParameterLookup(Type *tparam, TemplateParameters *paramete
 static int arrayObjectMatch(Objects *oa1, Objects *oa2);
 static unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 static MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
-static Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
+static bool reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 Expression *semantic(Expression *e, Scope *sc);
 Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
@@ -171,6 +171,8 @@ Dsymbol *getDsymbol(RootObject *oarg)
             else
                 sa = ((FuncExp *)ea)->fd;
         }
+        else if (ea->op == TOKtemplate)
+            sa = ((TemplateExp *)ea)->td;
         else
             sa = NULL;
     }
@@ -319,7 +321,12 @@ static bool match(RootObject *o1, RootObject *o2)
 
         //printf("\te1 = %s %s %s\n", e1->type->toChars(), Token::toChars(e1->op), e1->toChars());
         //printf("\te2 = %s %s %s\n", e2->type->toChars(), Token::toChars(e2->op), e2->toChars());
-        if (!e1->equals(e2))
+
+        // two expressions can be equal although they do not have the same
+        // type; that happens when they have the same value. So check type
+        // as well as expression equality to ensure templates are properly
+        // matched.
+        if (!e1->type->equals(e2->type) || !e1->equals(e2))
             goto Lnomatch;
 
         goto Lmatch;
@@ -592,7 +599,6 @@ void TemplateDeclaration::semantic(Scope *sc)
 #endif
     if (semanticRun != PASSinit)
         return;         // semantic() already run
-    semanticRun = PASSsemantic;
 
     // Remember templates defined in module object that we need to know about
     if (sc->_module && sc->_module->ident == Id::object)
@@ -610,18 +616,23 @@ void TemplateDeclaration::semantic(Scope *sc)
         this->_scope->setNoFree();
     }
 
-    // Set up scope for parameters
-    ScopeDsymbol *paramsym = new ScopeDsymbol();
-    paramsym->parent = sc->parent;
-    Scope *paramscope = sc->push(paramsym);
-    paramscope->stc = 0;
+    semanticRun = PASSsemantic;
 
-    if (!parent)
-        parent = sc->parent;
-
+    parent = sc->parent;
+    protection = sc->protection;
     isstatic = toParent()->isModule() || (_scope->stc & STCstatic);
 
-    protection = sc->protection;
+    if (!isstatic)
+    {
+        if (AggregateDeclaration *ad = parent->pastMixin()->isAggregateDeclaration())
+            ad->makeNested();
+    }
+
+    // Set up scope for parameters
+    ScopeDsymbol *paramsym = new ScopeDsymbol();
+    paramsym->parent = parent;
+    Scope *paramscope = sc->push(paramsym);
+    paramscope->stc = 0;
 
     if (global.params.doDocComments)
     {
@@ -1622,7 +1633,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                                  * the oded == oarg
                                  */
                                 (*dedargs)[i] = oded;
-                                MATCH m2 = tparam->matchArg(loc, paramscope, dedargs, i, parameters, dedtypes, NULL);
+                                MATCH m2 = tparam->matchArg(instLoc, paramscope, dedargs, i, parameters, dedtypes, NULL);
                                 //printf("m2 = %d\n", m2);
                                 if (m2 <= MATCHnomatch)
                                     goto Lnomatch;
@@ -1640,7 +1651,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
                         }
                         else
                         {
-                            oded = tparam->defaultArg(loc, paramscope);
+                            oded = tparam->defaultArg(instLoc, paramscope);
                             if (oded)
                                 (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                         }
@@ -1684,7 +1695,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
             if (farg->op == TOKerror || farg->type->ty == Terror)
                 goto Lnomatch;
 
-Lretry:
+            Type *att = NULL;
+        Lretry:
 #if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
             printf("\tfparam->type = %s\n", prmtype->toChars());
@@ -1771,14 +1783,15 @@ Lretry:
             if (m == MATCHnomatch)
             {
                 AggregateDeclaration *ad = isAggregate(farg->type);
-                if (ad && ad->aliasthis)
+                if (ad && ad->aliasthis && argtype != att)
                 {
+                    if (!att && argtype->checkAliasThisRec())   // Bugzilla 12537
+                        att = argtype;
+
                     /* If a semantic error occurs while doing alias this,
                      * eg purity(bug 7295), just regard it as not a match.
                      */
-                    unsigned olderrors = global.startGagging();
-                    Expression *e = resolveAliasThis(sc, farg);
-                    if (!global.endGagging(olderrors))
+                    if (Expression *e = resolveAliasThis(sc, farg, true))
                     {
                         farg = e;
                         goto Lretry;
@@ -1854,11 +1867,30 @@ Lretry:
                         Expression *e;
                         Type *t;
                         Dsymbol *s;
-                        taa->index->resolve(instLoc, sc, &e, &t, &s);
+                        Scope *sco;
+
+                        unsigned errors = global.startGagging();
+                        /* ref: https://issues.dlang.org/show_bug.cgi?id=11118
+                         * The parameter isn't part of the template
+                         * ones, let's try to find it in the
+                         * instantiation scope 'sc' and the one
+                         * belonging to the template itself. */
+                        sco = sc;
+                        taa->index->resolve(instLoc, sco, &e, &t, &s);
                         if (!e)
+                        {
+                            sco = paramscope;
+                            taa->index->resolve(instLoc, sco, &e, &t, &s);
+                        }
+                        global.endGagging(errors);
+
+                        if (!e)
+                        {
                             goto Lnomatch;
+                        }
+
                         e = e->ctfeInterpret();
-                        e = e->implicitCastTo(sc, Type::tsize_t);
+                        e = e->implicitCastTo(sco, Type::tsize_t);
                         e = e->optimize(WANTvalue);
                         if (!dim->equals(e))
                             goto Lnomatch;
@@ -2336,7 +2368,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
              * that it is implicitly convertible to tthis.
              */
             Type *tthis_fd = fd->needThis() ? tthis : NULL;
-            if (tthis_fd && fd->isCtorDeclaration())
+            bool isCtorCall = tthis_fd && fd->isCtorDeclaration();
+            if (isCtorCall)
             {
                 //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
                 //        tf->mod, tthis_fd->mod, fd->isolateReturn());
@@ -2406,6 +2439,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 {
                     if ( fd->fbody && !m->lastf->fbody) goto LfIsBetter;
                     if (!fd->fbody &&  m->lastf->fbody) goto LlastIsBetter;
+                }
+
+                // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+                if (isCtorCall && tf->mod != m->lastf->type->mod)
+                {
+                    if (tthis->mod == tf->mod) goto LfIsBetter;
+                    if (tthis->mod == m->lastf->type->mod) goto LlastIsBetter;
                 }
 
                 m->nextf = fd;
@@ -2590,23 +2630,21 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
                 Type *tthis_fd = fd->needThis() ? tthis : NULL;
 
-                if (fd->isCtorDeclaration())
+                bool isCtorCall = tthis_fd && fd->isCtorDeclaration();
+                if (isCtorCall)
                 {
                     // Constructor call requires additional check.
 
                     TypeFunction *tf = (TypeFunction *)fd->type;
-                    if (tthis_fd)
+                    assert(tf->next);
+                    if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
+                        tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
+                        fd->isolateReturn())
                     {
-                        assert(tf->next);
-                        if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                            tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                            fd->isolateReturn())
-                        {
-                            tthis_fd = NULL;
-                        }
-                        else
-                            continue;   // MATCHnomatch
+                        tthis_fd = NULL;
                     }
+                    else
+                        continue;   // MATCHnomatch
                 }
 
                 if (mta < ta_last) goto Ltd_best;
@@ -2644,6 +2682,13 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                     //printf("3: c1 = %d, c2 = %d\n", c1, c2);
                     if (c1 > c2) goto Ltd;
                     if (c1 < c2) goto Ltd_best;
+                }
+
+                // Bugzilla 14450: Prefer exact qualified constructor for the creating object type
+                if (isCtorCall && fd->type->mod != m->lastf->type->mod)
+                {
+                    if (tthis->mod == fd->type->mod) goto Ltd;
+                    if (tthis->mod == m->lastf->type->mod) goto Ltd_best;
                 }
 
                 m->nextf = fd;
@@ -3935,12 +3980,9 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     RootObject *o2 = (*tp->tempinst->tiargs)[i];
                     Type *t2 = isType(o2);
 
-                    size_t j;
-                    if (t2 &&
-                        t2->ty == Tident &&
-                        i == tp->tempinst->tiargs->dim - 1 &&
-                        (j = templateParameterLookup(t2, parameters), j != IDX_NOTFOUND) &&
-                        j == parameters->dim - 1 &&
+                    size_t j = (t2 && t2->ty == Tident && i == tp->tempinst->tiargs->dim - 1)
+                        ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
+                    if (j != IDX_NOTFOUND && j == parameters->dim - 1 &&
                         (*parameters)[j]->isTemplateTupleParameter())
                     {
                         /* Given:
@@ -4721,19 +4763,19 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
  *                      return that type.
  */
 
-Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
+bool reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
 {
     class ReliesOnTident : public Visitor
     {
     public:
         TemplateParameters *tparams;
         size_t iStart;
-        Type *result;
+        bool result;
 
         ReliesOnTident(TemplateParameters *tparams, size_t iStart)
             : tparams(tparams), iStart(iStart)
         {
-            result = NULL;
+            result = false;
         }
 
         void visit(Type *t)
@@ -4775,7 +4817,7 @@ Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
         {
             if (!tparams)
             {
-                result = t;
+                result = true;
                 return;
             }
 
@@ -4784,7 +4826,7 @@ Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
                 TemplateParameter *tp = (*tparams)[i];
                 if (tp->ident->equals(t->ident))
                 {
-                    result = t;
+                    result = true;
                     return;
                 }
             }
@@ -4800,7 +4842,7 @@ Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
                 TemplateParameter *tp = (*tparams)[i];
                 if (t->tempinst->name == tp->ident)
                 {
-                    result = t;
+                    result = true;
                     return;
                 }
             }
@@ -4818,6 +4860,12 @@ Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
             }
         }
 
+        void visit(TypeTypeof *t)
+        {
+            //printf("TypeTypeof::reliesOnTident('%s')\n", t->toChars());
+            t->exp->accept(this);
+        }
+
         void visit(TypeTuple *t)
         {
             if (t->arguments)
@@ -4831,10 +4879,270 @@ Type *reliesOnTident(Type *t, TemplateParameters *tparams, size_t iStart)
                 }
             }
         }
+
+        void visit(Expression *e)
+        {
+            //printf("Expression::reliesOnTident('%s')\n", e->toChars());
+        }
+
+        void visit(IdentifierExp *e)
+        {
+            //printf("IdentifierExp::reliesOnTident('%s')\n", e->toChars());
+            for (size_t i = iStart; i < tparams->dim; i++)
+            {
+                TemplateParameter *tp = (*tparams)[i];
+                if (e->ident == tp->ident)
+                {
+                    result = true;
+                    return;
+                }
+            }
+        }
+
+        void visit(TupleExp *e)
+        {
+            //printf("TupleExp::reliesOnTident('%s')\n", e->toChars());
+            if (e->exps)
+            {
+                for (size_t i = 0; i < e->exps->dim; i++)
+                {
+                    Expression *ea = (*e->exps)[i];
+                    ea->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(ArrayLiteralExp *e)
+        {
+            //printf("ArrayLiteralExp::reliesOnTident('%s')\n", e->toChars());
+            if (e->elements)
+            {
+                for (size_t i = 0; i < e->elements->dim; i++)
+                {
+                    Expression *el = (*e->elements)[i];
+                    el->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(AssocArrayLiteralExp *e)
+        {
+            //printf("AssocArrayLiteralExp::reliesOnTident('%s')\n", e->toChars());
+            for (size_t i = 0; i < e->keys->dim; i++)
+            {
+                Expression *ek = (*e->keys)[i];
+                ek->accept(this);
+                if (result)
+                    return;
+            }
+            for (size_t i = 0; i < e->values->dim; i++)
+            {
+                Expression *ev = (*e->values)[i];
+                ev->accept(this);
+                if (result)
+                    return;
+            }
+        }
+
+        void visit(StructLiteralExp *e)
+        {
+            //printf("StructLiteralExp::reliesOnTident('%s')\n", e->toChars());
+            if (e->elements)
+            {
+                for (size_t i = 0; i < e->elements->dim; i++)
+                {
+                    Expression *ea = (*e->elements)[i];
+                    ea->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(TypeExp *e)
+        {
+            //printf("TypeExp::reliesOnTident('%s')\n", e->toChars());
+            e->type->accept(this);
+        }
+
+        void visit(NewExp *e)
+        {
+            //printf("NewExp::reliesOnTident('%s')\n", e->toChars());
+            if (e->thisexp)
+                e->thisexp->accept(this);
+            if (!result && e->newargs)
+            {
+                for (size_t i = 0; i < e->newargs->dim; i++)
+                {
+                    Expression *ea = (*e->newargs)[i];
+                    ea->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+            e->newtype->accept(this);
+            if (!result && e->arguments)
+            {
+                for (size_t i = 0; i < e->arguments->dim; i++)
+                {
+                    Expression *ea = (*e->arguments)[i];
+                    ea->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(NewAnonClassExp *e)
+        {
+            //printf("NewAnonClassExp::reliesOnTident('%s')\n", e->toChars());
+            result = true;
+        }
+
+        void visit(FuncExp *e)
+        {
+            //printf("FuncExp::reliesOnTident('%s')\n", e->toChars());
+            result = true;
+        }
+
+        void visit(TypeidExp *e)
+        {
+            //printf("TypeidExp::reliesOnTident('%s')\n", e->toChars());
+            if (Expression *ea = isExpression(e->obj))
+                ea->accept(this);
+            else if (Type *ta = isType(e->obj))
+                ta->accept(this);
+        }
+
+        void visit(TraitsExp *e)
+        {
+            //printf("TraitsExp::reliesOnTident('%s')\n", e->toChars());
+            if (e->args)
+            {
+                for (size_t i = 0; i < e->args->dim; i++)
+                {
+                    RootObject *oa = (*e->args)[i];
+                    if (Expression *ea = isExpression(oa))
+                        ea->accept(this);
+                    else if (Type *ta = isType(oa))
+                        ta->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(IsExp *e)
+        {
+            //printf("IsExp::reliesOnTident('%s')\n", e->toChars());
+            e->targ->accept(this);
+        }
+
+        void visit(UnaExp *e)
+        {
+            //printf("UnaExp::reliesOnTident('%s')\n", e->toChars());
+            e->e1->accept(this);
+        }
+
+        void visit(DotTemplateInstanceExp *e)
+        {
+            //printf("DotTemplateInstanceExp::reliesOnTident('%s')\n", e->toChars());
+            visit((UnaExp *)e);
+            if (!result && e->ti->tiargs)
+            {
+                for (size_t i = 0; i < e->ti->tiargs->dim; i++)
+                {
+                    RootObject *oa = (*e->ti->tiargs)[i];
+                    if (Expression *ea = isExpression(oa))
+                        ea->accept(this);
+                    else if (Type *ta = isType(oa))
+                        ta->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(CallExp *e)
+        {
+            //printf("CallExp::reliesOnTident('%s')\n", e->toChars());
+            visit((UnaExp *)e);
+            if (!result && e->arguments)
+            {
+                for (size_t i = 0; i < e->arguments->dim; i++)
+                {
+                    Expression *ea = (*e->arguments)[i];
+                    ea->accept(this);
+                    if (result)
+                        return;
+                }
+            }
+        }
+
+        void visit(CastExp *e)
+        {
+            //printf("CastExp::reliesOnTident('%s')\n", e->toChars());
+            visit((UnaExp *)e);
+            // e.to can be null for cast() with no type
+            if (!result && e->to)
+                e->to->accept(this);
+        }
+
+        void visit(SliceExp *e)
+        {
+            //printf("SliceExp::reliesOnTident('%s')\n", e->toChars());
+            visit((UnaExp *)e);
+            if (!result && e->lwr)
+                e->lwr->accept(this);
+            if (!result && e->upr)
+                e->upr->accept(this);
+        }
+
+        void visit(IntervalExp *e)
+        {
+            //printf("IntervalExp::reliesOnTident('%s')\n", e->toChars());
+            e->lwr->accept(this);
+            if (!result)
+                e->upr->accept(this);
+        }
+
+        void visit(ArrayExp *e)
+        {
+            //printf("ArrayExp::reliesOnTident('%s')\n", e->toChars());
+            visit((UnaExp *)e);
+            if (!result && e->arguments)
+            {
+                for (size_t i = 0; i < e->arguments->dim; i++)
+                {
+                    Expression *ea = (*e->arguments)[i];
+                    ea->accept(this);
+                }
+            }
+        }
+
+        void visit(BinExp *e)
+        {
+            //printf("BinExp::reliesOnTident('%s')\n", e->toChars());
+            e->e1->accept(this);
+            if (!result)
+                e->e2->accept(this);
+        }
+
+        void visit(CondExp *e)
+        {
+            //printf("BinExp::reliesOnTident('%s')\n", e->toChars());
+            e->econd->accept(this);
+            if (!result)
+                visit((BinExp *)e);
+        }
     };
 
     if (!t)
-        return NULL;
+        return false;
 
     ReliesOnTident v(tparams, iStart);
     t->accept(&v);
@@ -5605,8 +5913,10 @@ RootObject *TemplateValueParameter::defaultArg(Loc instLoc, Scope *sc)
     if (e)
     {
         e = e->syntaxCopy();
-        e = ::semantic(e, sc);
-        e = resolveProperties(sc, e);
+        if ((e = ::semantic(e, sc)) == NULL)
+            return NULL;
+        if ((e = resolveProperties(sc, e)) == NULL)
+            return NULL;
         e = e->resolveLoc(instLoc, sc);     // use the instantiated loc
         e = e->optimize(WANTvalue);
     }
@@ -7193,7 +7503,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
         {
             if (!td2->onemember || !td2->onemember->isFuncDeclaration())
                 return 0;
-            if (ti->tiargs->dim > td->parameters->dim && !td->isVariadic())
+            if (ti->tiargs->dim >= td->parameters->dim - (td->isVariadic() ? 1 : 0))
                 return 0;
             return 1;
         }

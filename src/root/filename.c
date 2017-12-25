@@ -468,7 +468,7 @@ const char *FileName::searchPath(Strings *path, const char *name, bool cwd)
  * ('Path Traversal') attacks.
  *      http://cwe.mitre.org/data/definitions/22.html
  * More info:
- *      https://www.securecoding.cert.org/confluence/display/seccode/FIO02-C.+Canonicalize+path+names+originating+from+untrusted+sources
+ *      https://www.securecoding.cert.org/confluence/display/c/FIO02-C.+Canonicalize+path+names+originating+from+tainted+sources
  * Returns:
  *      NULL    file not found
  *      !=NULL  mem.xmalloc'd file name
@@ -477,13 +477,21 @@ const char *FileName::searchPath(Strings *path, const char *name, bool cwd)
 const char *FileName::safeSearchPath(Strings *path, const char *name)
 {
 #if _WIN32
-    /* Disallow % / \ : and .. in name characters
+    // don't allow leading / because it might be an absolute
+    // path or UNC path or something we'd prefer to just not deal with
+    if (*name == '/')
+    {
+        return NULL;
+    }
+    /* Disallow % \ : and .. in name characters
+     * We allow / for compatibility with subdirectories which is allowed
+     * on dmd/posix. With the leading / blocked above and the rest of these
+     * conservative restrictions, we should be OK.
      */
     for (const char *p = name; *p; p++)
     {
         char c = *p;
-        if (c == '\\' || c == '/' || c == ':' || c == '%' ||
-            (c == '.' && p[1] == '.'))
+        if (c == '\\' || c == ':' || c == '%' || (c == '.' && p[1] == '.'))
         {
             return NULL;
         }

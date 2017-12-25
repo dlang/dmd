@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10922.d(9): Error: delegate ice10922.__lambda4 (const(uint) n) is not callable using argument types ()
+fail_compilation/ice10922.d(9): Error: function ice10922.__lambda4 (const(uint) n) is not callable using argument types ()
 ---
 */
 

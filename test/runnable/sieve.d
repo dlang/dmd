@@ -6,9 +6,9 @@
 /* Eratosthenes Sieve prime number calculation. */
 
 import std.stdio;
- 
-bool flags[8191];
- 
+
+bool[8191] flags;
+
 int sieve()
 {
     int count;

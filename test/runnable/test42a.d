@@ -15,8 +15,8 @@ void test1()
     3,3,3,
     ];
     foreach (i; data2)
-    {	//printf("i = %d\n", i);
-	assert(i == 3);
+    {   //printf("i = %d\n", i);
+        assert(i == 3);
     }
 
 ubyte[] data = [
@@ -298,8 +298,8 @@ ubyte[] data = [
 7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
 7,7,7,7,7,7,7,7,7,7,7,7];
     foreach (i; data)
-    {	//printf("i = %d\n", i);
-	assert(i == 7);
+    {   //printf("i = %d\n", i);
+        assert(i == 7);
     }
 }
 

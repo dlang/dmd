@@ -9,8 +9,8 @@ scope class Foo
 
     ~this()
     {
-	printf("Foo.~this()\n");
-	x++;
+        printf("Foo.~this()\n");
+        x++;
     }
 }
 
@@ -24,7 +24,7 @@ int test1x()
 void test1()
 {
     {
-	scope Foo f = new Foo();
+        scope Foo f = new Foo();
     }
     int c;
 
@@ -34,16 +34,16 @@ void test1()
     assert(Foo.x == 2);
 
     if (c != 6)
-	scope Foo h = new Foo();
+        scope Foo h = new Foo();
     assert(Foo.x == 2);
 
     if (c == 6)
-	scope Foo j = new Foo();
+        scope Foo j = new Foo();
     assert(Foo.x == 3);
 
     {
-	scope Foo g = null, k = new Foo();
-	assert(Foo.x == 3);
+        scope Foo g = null, k = new Foo();
+        assert(Foo.x == 3);
     }
     assert(Foo.x == 4);
 }
@@ -89,27 +89,27 @@ scope class Parent3
 
 scope class Child3 : Parent3
 {
-	this(){
-		assert(status3==0);
-		status3=1;
-	}    
+        this(){
+                assert(status3==0);
+                status3=1;
+        }
 
-	~this(){
-		assert(status3==1);
-		status3=2;
-	}
+        ~this(){
+                assert(status3==1);
+                status3=2;
+        }
 }
 
 void foo3()
 {
-	scope Parent3 o = new Child3();
-	assert(status3==1);
+        scope Parent3 o = new Child3();
+        assert(status3==1);
 }
 
 void test3()
 {
-	foo3();
-	assert(status3==2);
+        foo3();
+        assert(status3==2);
 }
 
 /******************************************/

@@ -1,3 +1,5 @@
+// PERMUTE_ARGS: -unittest -O -release -inline -fPIC -g
+
 import std.stdio;
 import core.stdc.stdio;
 
@@ -708,7 +710,7 @@ void test36()
 
 void test6685()
 {
-    struct S { int x; };
+    struct S { int x; }
     with({ return S(); }())
     {
         x++;
@@ -2734,7 +2736,7 @@ void test129()
 /***************************************************/
 // 6169
 
-auto ctfefunc6169() { return ";"; }
+auto ctfefunc6169() { return "{}"; }
 enum ctfefptr6169 = &ctfefunc6169;
 int ctfefunc6169a() { return 1; }
 template x6169(string c) { alias int x6169; }
@@ -3530,6 +3532,74 @@ void test2356()
 }
 
 /***************************************************/
+// 13652
+
+void test13652()
+{
+    // reduced case
+    uint[9][5] arr =
+        [[0, 0, 0,  0, 1, 5,  8, 0, 7],
+         [0, 3, 8,  0, 2, 0,  0, 6, 0],
+         [0, 0, 7,  0, 6, 8,  9, 4, 0],
+         [0, 0, 0,  0, 0, 1,  2, 9, 0],
+         [9, 7, 0,  0, 0, 0,  0, 8, 3]];
+    assert(arr[0][0] == 0 && arr[0][1] == 0 && arr[0][2] == 0 &&
+           arr[0][3] == 0 && arr[0][4] == 1 && arr[0][5] == 5 &&
+           arr[0][6] == 8 && arr[0][7] == 0 && arr[0][8] == 7);
+    assert(arr[1][0] == 0 && arr[1][1] == 3 && arr[1][2] == 8 &&
+           arr[1][3] == 0 && arr[1][4] == 2 && arr[1][5] == 0 &&
+           arr[1][6] == 0 && arr[1][7] == 6 && arr[1][8] == 0);
+    assert(arr[2][0] == 0 && arr[2][1] == 0 && arr[2][2] == 7 &&
+           arr[2][3] == 0 && arr[2][4] == 6 && arr[2][5] == 8 &&
+           arr[2][6] == 9 && arr[2][7] == 4 && arr[2][8] == 0);
+    assert(arr[3][0] == 0 && arr[3][1] == 0 && arr[3][2] == 0 &&
+           arr[3][3] == 0 && arr[3][4] == 0 && arr[3][5] == 1 &&
+           arr[3][6] == 2 && arr[3][7] == 9 && arr[3][8] == 0);
+    assert(arr[4][0] == 9 && arr[4][1] == 7 && arr[4][2] == 0 &&
+           arr[4][3] == 0 && arr[4][4] == 0 && arr[4][5] == 0 &&
+           arr[4][6] == 0 && arr[4][7] == 8 && arr[4][8] == 3);
+
+    // original case
+    uint[9][9] tbl =
+        [[0, 0, 0,  0, 1, 5,  8, 0, 7],
+         [0, 3, 8,  0, 2, 0,  0, 6, 0],
+         [0, 0, 7,  0, 6, 8,  9, 4, 0],
+         [0, 0, 0,  0, 0, 1,  2, 9, 0],
+         [9, 7, 0,  0, 0, 0,  0, 8, 3],
+         [0, 2, 1,  6, 0, 0,  0, 0, 0],
+         [0, 6, 9,  5, 4, 0,  3, 0, 0],
+         [0, 4, 0,  0, 8, 0,  6, 5, 0],
+         [2, 0, 5,  9, 3, 0,  0, 0, 0]];
+    assert(tbl[0][0] == 0 && tbl[0][1] == 0 && tbl[0][2] == 0 &&
+           tbl[0][3] == 0 && tbl[0][4] == 1 && tbl[0][5] == 5 &&
+           tbl[0][6] == 8 && tbl[0][7] == 0 && tbl[0][8] == 7);
+    assert(tbl[1][0] == 0 && tbl[1][1] == 3 && tbl[1][2] == 8 &&
+           tbl[1][3] == 0 && tbl[1][4] == 2 && tbl[1][5] == 0 &&
+           tbl[1][6] == 0 && tbl[1][7] == 6 && tbl[1][8] == 0);
+    assert(tbl[2][0] == 0 && tbl[2][1] == 0 && tbl[2][2] == 7 &&
+           tbl[2][3] == 0 && tbl[2][4] == 6 && tbl[2][5] == 8 &&
+           tbl[2][6] == 9 && tbl[2][7] == 4 && tbl[2][8] == 0);
+    assert(tbl[3][0] == 0 && tbl[3][1] == 0 && tbl[3][2] == 0 &&
+           tbl[3][3] == 0 && tbl[3][4] == 0 && tbl[3][5] == 1 &&
+           tbl[3][6] == 2 && tbl[3][7] == 9 && tbl[3][8] == 0);
+    assert(tbl[4][0] == 9 && tbl[4][1] == 7 && tbl[4][2] == 0 &&
+           tbl[4][3] == 0 && tbl[4][4] == 0 && tbl[4][5] == 0 &&
+           tbl[4][6] == 0 && tbl[4][7] == 8 && tbl[4][8] == 3);
+    assert(tbl[5][0] == 0 && tbl[5][1] == 2 && tbl[5][2] == 1 &&
+           tbl[5][3] == 6 && tbl[5][4] == 0 && tbl[5][5] == 0 &&
+           tbl[5][6] == 0 && tbl[5][7] == 0 && tbl[5][8] == 0);
+    assert(tbl[6][0] == 0 && tbl[6][1] == 6 && tbl[6][2] == 9 &&
+           tbl[6][3] == 5 && tbl[6][4] == 4 && tbl[6][5] == 0 &&
+           tbl[6][6] == 3 && tbl[6][7] == 0 && tbl[6][8] == 0);
+    assert(tbl[7][0] == 0 && tbl[7][1] == 4 && tbl[7][2] == 0 &&
+           tbl[7][3] == 0 && tbl[7][4] == 8 && tbl[7][5] == 0 &&
+           tbl[7][6] == 6 && tbl[7][7] == 5 && tbl[7][8] == 0);
+    assert(tbl[8][0] == 2 && tbl[8][1] == 0 && tbl[8][2] == 5 &&
+           tbl[8][3] == 9 && tbl[8][4] == 3 && tbl[8][5] == 0 &&
+           tbl[8][6] == 0 && tbl[8][6] == 0 && tbl[8][8] == 0);
+}
+
+/***************************************************/
 // 11238
 
 void test11238()
@@ -3844,6 +3914,22 @@ void test2486()
 }
 
 /***************************************************/
+
+extern(C++) class C15080
+{
+    uint x = 1;
+    uint y = 2;
+}
+
+__gshared c15080 = new C15080();
+
+void test15080()
+{
+    assert(c15080.x == 1);
+    assert(c15080.y == 2);
+}
+
+/***************************************************/
 // 2521
 
 immutable int val = 23;
@@ -4040,7 +4126,7 @@ void test4963()
 {
     struct Value {
         byte a;
-    };
+    }
     Value single()
     {
         return Value();
@@ -4344,7 +4430,7 @@ void test4392()
 // 6220
 
 void test6220() {
-    struct Foobar { real x; real y; real z;};
+    struct Foobar { real x; real y; real z;}
     switch("x") {
         foreach(i,member; __traits(allMembers, Foobar)) {
             case member : break;
@@ -4831,7 +4917,7 @@ static assert(is(typeof(S5933d.x) == FuncType5933));
 
 
 class C5933a { auto x() { return 0; } }
-static assert(is(typeof(&(new C5933b()).x) == int delegate() pure nothrow @nogc @safe));
+static assert(is(typeof(&(new C5933b()).x) == int delegate()));
 
 class C5933b { auto x() { return 0; } }
 //static assert(is(typeof((new C5933b()).x) == FuncType5933));
@@ -4968,8 +5054,11 @@ version(none)
     ucent issue785;
 }
 
-static assert(!is(cent) && !is(ucent));
-static assert(!__traits(compiles, { cent x; }));
+static assert(is(cent) && is(ucent) || !is(cent) && !is(ucent));
+static if (is(cent))
+  static assert(__traits(compiles, { cent x; }));
+else
+  static assert(!__traits(compiles, { cent x; }));
 
 /***************************************************/
 // 6847
@@ -5274,7 +5363,7 @@ void test6902()
     })));
 
     int f() pure nothrow { assert(0); }
-    alias int T() pure nothrow;
+    alias int T() pure nothrow @safe @nogc;
     static if(is(typeof(&f) DT == delegate))
     {
         static assert(is(DT* == T*));  // ok
@@ -6715,7 +6804,9 @@ void test9477()
             assert(order == 2);
         }
 
-    ubyte[64] a1, a2;
+    // need largest natural alignment to avoid unaligned access on
+    // some architectures, double in this case.
+    align(8) ubyte[64] a1, a2;
     foreach (T; Tuple9477!(void, ubyte, ushort, uint, ulong, char, wchar, dchar, float, double))
     {
         auto s1 = cast(T[])(a1[]);
@@ -7516,6 +7607,341 @@ void test14853()
     auto b1 = new Queue14853!uint;
 }
 
+/********************************************************/
+// 15045
+
+void test15045()
+{
+    void testName(T, bool r, string name)()
+    {
+        T t;
+
+        static assert(r ==          is(typeof(mixin("T."~name))));
+        static assert(r ==          is(typeof(mixin("t."~name))));
+        static assert(r == __traits(compiles, mixin("T."~name)));
+        static assert(r == __traits(compiles, mixin("t."~name)));
+        static assert(r == mixin("__traits(compiles, T."~name~")"));
+        static assert(r == mixin("__traits(compiles, t."~name~")"));
+
+        static assert(r ==                       __traits(hasMember, T, name) );
+        static assert(r ==                       __traits(hasMember, t, name) );
+        static assert(r == __traits(compiles,    __traits(getMember, T, name) ));
+        static assert(r == __traits(compiles,    __traits(getMember, t, name) ));
+        static assert(r == __traits(compiles, __traits(getOverloads, T, name) ));
+        static assert(r == __traits(compiles, __traits(getOverloads, t, name) ));
+    }
+    void test(T, bool r)()
+    {
+        testName!(T, r, "__ctor")();
+        testName!(T, r, "__dtor")();
+        testName!(T, r, "__xdtor")();
+        testName!(T, r, "__postblit")();
+        testName!(T, r, "__xpostblit")();
+    }
+
+    static struct X
+    {
+        this(int) {}
+        this(this) {}
+        ~this() {}
+    }
+
+    static struct S1
+    {
+        auto opDispatch(string name, A...)(A args) { }
+    }
+    static struct S2
+    {
+        X get() { return X(); };
+        alias get this;
+    }
+    static struct S3
+    {
+        X opDot() { return X(); };
+    }
+
+    test!(X, true)();
+    test!(S1, false)();
+    test!(S2, false)();
+    test!(S3, false)();
+}
+
+/***************************************************/
+// 15116
+
+alias TypeTuple15116(T...) = T;
+
+template Mix15116()
+{
+    TypeTuple15116!(int, int) tup;
+}
+
+struct S15116
+{
+    mixin Mix15116 mix;
+}
+
+void test15116()
+{
+    S15116 s;
+    auto x1 = s.tup;        // OK
+    auto x2 = s.mix.tup;    // OK <- NG
+}
+
+/***************************************************/
+// 15117
+
+template Mix15117()
+{
+    int y = { typeof(this)* s; return s ? s.mix.y : 0; }();
+}
+
+struct S15117
+{
+    int x = { typeof(this)* s; return s ? s.x : 0; }(); // OK
+
+    mixin Mix15117 mix;     // OK <- NG
+}
+
+/***************************************************/
+// 15126
+
+struct Json15126
+{
+    ubyte[16] m_data;
+    int opDispatch(string prop)() const { return 0; }
+    int opDispatch(string prop)() { return 0; }
+}
+
+template isCustomSerializable15126(T)
+{
+    enum isCustomSerializable15126 = T.init.toRepresentation();
+}
+
+alias bug15126 = isCustomSerializable15126!Json15126;
+
+/***************************************************/
+// 15141
+
+class A15141
+{
+    abstract void method();
+}
+
+class B15141 : A15141 { }
+
+void test15141()
+{
+    auto a = Object.factory(__MODULE__ ~ ".A15141");
+    assert(a is null);
+    auto b = Object.factory(__MODULE__ ~ ".B15141");
+    assert(b is null); // OK <- oops
+}
+
+/***************************************************/
+// 15366
+
+enum E15366 : bool { A, B };
+
+struct S15366
+{
+    void func1(E15366 e) {}
+
+    void func2(E15366 a, E15366 b)
+    {
+        func1(cast(E15366)(a && b));
+        func1(cast(E15366)(a || b));
+
+        auto x1 = cast(E15366)(a && b);
+        auto x2 = cast(E15366)(a || b);
+    }
+}
+
+/***************************************************/
+// 15369
+
+struct MsgTable15369
+{
+    const(char)[] ident;
+    const(char)* name;
+};
+
+MsgTable15369[] msgTable15369 =
+[
+    { "empty", "" },
+];
+
+void test15369()
+{
+    auto id = msgTable15369[0].ident;
+    auto p = msgTable15369[0].name;
+
+    // a string literal "" should be zero-terminated
+    assert(*p == '\0');
+}
+
+void test15638()
+{
+    class A {}
+    class B : A {}
+    class C : A {}
+
+    B b;
+    C c;
+    const(B) cb;
+    const(C) cc;
+    immutable(B) ib;
+    immutable(C) ic;
+
+    // Common type for const derived classes
+    auto constCommon = true ? cb : cc;
+    static assert(is(typeof(constCommon) == const(A)));
+
+    // Common type for immutable derived classes
+    auto immutableCommon = true ? ib : ic;
+    static assert(is(typeof(immutableCommon) == immutable(A)));
+
+    // Common type for mixed const/immutable derived classes
+    auto mixed1 = true ? cb : ic;
+    static assert(is(typeof(mixed1) == const(A)));
+    auto mixed2 = true ? ib : cc;
+    static assert(is(typeof(mixed2) == const(A)));
+
+    // Common type for mixed mutable/immutable derived classes
+    auto mixed3 = true ? b : ic;
+    static assert(is(typeof(mixed3) == const(A)));
+    auto mixed4 = true ? ib : c;
+    static assert(is(typeof(mixed4) == const(A)));
+
+    // Array literal type deduction
+    auto arr1 = [ new immutable(B), new C ];
+    auto arr2 = [ new B,            new const(C) ];
+    auto arr3 = [ new immutable(B), new immutable(C) ];
+    static assert(is(typeof(arr1) == const(A)[]));
+    static assert(is(typeof(arr2) == const(A)[]));
+    static assert(is(typeof(arr3) == immutable(A)[]));
+}
+
+/***************************************************/
+// 15961
+
+struct SliceOverIndexed15961(T)
+{
+    enum assignableIndex = T.init;
+}
+
+struct Grapheme15961
+{
+    SliceOverIndexed15961!Grapheme15961 opSlice()
+    {
+        assert(0);
+    }
+
+    struct
+    {
+        ubyte* ptr_;
+    }
+}
+
+/***************************************************/
+// 16022
+
+bool test16022()
+{
+    enum Type { Colon, Comma }
+    Type type;
+    return type == Type.Colon, type == Type.Comma;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16233
+
+enum valueConvertible(T1, T2) = blah;
+
+struct Checked(T, Hook)
+{
+    bool opEquals(U)(Checked!(U, Hook) rhs)
+    {
+        alias R = typeof(payload + rhs.payload);
+        static if (valueConvertible!(T, R))
+        {
+        }
+        return false;
+    }
+}
+
+void test16233()
+{
+    Checked!(Checked!(int, void), void) x1;
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16466
+
+void test16466()
+{
+    static struct S
+    {
+        real r;
+    }
+    real r;
+    printf("S.alignof: %x, r.alignof: %x\n", S.alignof, r.alignof);
+    assert(S.alignof == r.alignof);
+}
+
+/***************************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=16408
+
+char[1] SDL_GetKeyName_buffer;
+
+const(char)[] SDL_GetKeyName(char k)
+{
+    pragma(inline, false);
+    SDL_GetKeyName_buffer[0] = k;
+    return SDL_GetKeyName_buffer[];
+}
+
+void formattedWrite(const(char)[] strW, const(char)[] strA, const(char)[] strC)
+{
+    pragma(inline, false);
+
+    assert(strW == "W");
+    assert(strA == "A");
+    assert(strC == "C");
+}
+
+void test16408()
+{
+    pragma(inline, false);
+    formattedWrite(
+        SDL_GetKeyName('W').idup,
+        SDL_GetKeyName('A').idup,
+        SDL_GetKeyName('C').idup
+    );
+}
+
+/***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17349
+
+void test17349()
+{
+    static struct S
+    {
+        int bar(void delegate(ref int*)) { return 1; }
+        int bar(void delegate(ref const int*)) const { return 2; }
+    }
+
+    void dg1(ref int*) { }
+    void dg2(ref const int*) { }
+    S s;
+    int i;
+    i = s.bar(&dg1);
+    assert(i == 1);
+    i = s.bar(&dg2);
+    assert(i == 2);
+}
+
 /***************************************************/
 
 int main()
@@ -7689,6 +8115,7 @@ int main()
     test148();
     test149();
     test2356();
+    test13652();
     test11238();
     test2540();
     test14348();
@@ -7810,6 +8237,7 @@ int main()
     test10542();
     test10539();
     test10634();
+    test15080();
     test7254();
     test13468();
     test11075();
@@ -7827,6 +8255,13 @@ int main()
     test13952();
     test13985();
     test14211();
+    test15141();
+    test15369();
+    test15638();
+    test16233();
+    test16466();
+    test16408();
+    test17349();
 
     printf("Success\n");
     return 0;

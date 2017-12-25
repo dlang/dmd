@@ -44,12 +44,30 @@ void test12642() @nogc
 }
 
 /***********************/
+// 12936
+
+void test12936() @nogc
+{
+    foreach (int[1] a; [[1]])
+    {
+        assert(a == [1]);
+    }
+    foreach (i, int[1] a; [[1], [2]])
+    {
+             if (i == 0) assert(a == [1]);
+        else if (i == 1) assert(a == [2]);
+        else             assert(0);
+    }
+}
+
+/***********************/
 
 int main()
 {
     test1();
     test3032();
     test12642();
+    test12936();
 
     printf("Success\n");
     return 0;

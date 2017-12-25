@@ -2149,6 +2149,11 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
              */
             e->type = e->type->mutableOf();
 
+            // Enable calling destructors on shared objects.
+            // The destructor is always a single, non-overloaded function,
+            // and must serve both shared and non-shared objects.
+            e->type = e->type->unSharedOf();
+
             e = new DotVarExp(loc, e, sd->dtor, false);
             e = new CallExp(loc, e);
         }
@@ -2188,12 +2193,13 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             //if (cd->isInterfaceDeclaration())
                 //error("interface %s cannot be scope", cd->toChars());
 
+            // Destroying C++ scope classes crashes currently. Since C++ class dtors are not currently supported, simply do not run dtors for them.
+            // See https://issues.dlang.org/show_bug.cgi?id=13182
             if (cd->cpp)
             {
-                // Destructors are not supported on extern(C++) classes
                 break;
             }
-            if (mynew || onstack || cd->dtors.dim) // if any destructors
+            if (mynew || onstack) // if any destructors
             {
                 // delete this;
                 Expression *ec;

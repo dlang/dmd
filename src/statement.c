@@ -85,6 +85,15 @@ Expression *checkAssignmentAsCondition(Expression *e)
     return e;
 }
 
+/// Return a type identifier reference to 'object.Throwable'
+TypeIdentifier *getThrowable()
+{
+    TypeIdentifier *tid = new TypeIdentifier(Loc(), Id::empty);
+    tid->addIdent(Id::object);
+    tid->addIdent(Id::Throwable);
+    return tid;
+}
+
 /******************************** Statement ***************************/
 
 Statement::Statement(Loc loc)
@@ -500,6 +509,8 @@ Statements *CompileStatement::flatten(Scope *sc)
     if (exp->op != TOKerror)
     {
         Expression *e = exp->ctfeInterpret();
+        if (e->op == TOKerror) // Bugzilla 15974
+            goto Lerror;
         StringExp *se = e->toStringExp();
         if (!se)
            error("argument to mixin must be a string, not (%s) of type %s", exp->toChars(), exp->type->toChars());
@@ -1268,7 +1279,7 @@ Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
 Catch *Catch::syntaxCopy()
 {
     Catch *c = new Catch(loc,
-        type ? type->syntaxCopy() : NULL,
+        type ? type->syntaxCopy() : getThrowable(),
         ident,
         (handler ? handler->syntaxCopy() : NULL));
     c->internalCatch = internalCatch;

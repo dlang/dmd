@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4082.d(14): Error: 'fail4082.Foo.~this' is not nothrow
-fail_compilation/fail4082.d(12): Error: function 'fail4082.test1' is nothrow yet may throw
+fail_compilation/fail4082.d(14): Error: destructor `fail4082.Foo.~this` is not nothrow
+fail_compilation/fail4082.d(12): Error: nothrow function `fail4082.test1` may throw
 ---
 */
 struct Foo
@@ -21,8 +21,8 @@ NEXT:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4082.d(32): Error: 'fail4082.Bar.~this' is not nothrow
-fail_compilation/fail4082.d(32): Error: function 'fail4082.test2' is nothrow yet may throw
+fail_compilation/fail4082.d(32): Error: destructor `fail4082.Bar.~this` is not nothrow
+fail_compilation/fail4082.d(32): Error: nothrow function `fail4082.test2` may throw
 ---
 */
 struct Bar

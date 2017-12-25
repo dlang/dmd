@@ -41,6 +41,7 @@ void semantic(Catch *c, Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *semantic(Expression *e, Scope *sc);
 int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
+TypeIdentifier *getThrowable();
 
 void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
@@ -256,7 +257,7 @@ public:
              *      // equivalent with:
              *      //    s->body; scope(exit) nrvo_var->edtor;
              * as:
-             *      try { s->body; } catch(__o) { nrvo_var->edtor; throw __o; }
+             *      try { s->body; } catch(Throwable __o) { nrvo_var->edtor; throw __o; }
              *      // equivalent with:
              *      //    s->body; scope(failure) nrvo_var->edtor;
              */
@@ -272,7 +273,7 @@ public:
             }
 
             Catches *catches = new Catches();
-            Catch *ctch = new Catch(Loc(), NULL, id, handler);
+            Catch *ctch = new Catch(Loc(), getThrowable(), id, handler);
             ctch->internalCatch = true;
             ::semantic(ctch, sc);     // Run semantic to resolve identifier '__o'
             catches->push(ctch);
@@ -475,12 +476,12 @@ void FuncDeclaration::semantic(Scope *sc)
 
     storage_class |= sc->stc & ~STCref;
     ad = isThis();
-    if (ad)
+    // Don't nest structs b/c of generated methods which should not access the outer scopes.
+    // https://issues.dlang.org/show_bug.cgi?id=16627
+    if (ad && !generated)
     {
         storage_class |= ad->storage_class & (STC_TYPECTOR | STCsynchronized);
-
-        if (StructDeclaration *sd = ad->isStructDeclaration())
-            sd->makeNested();
+        ad->makeNested();
     }
     if (sc->func)
         storage_class |= sc->func->storage_class & STCdisable;
@@ -967,14 +968,24 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 if (!isOverride())
                 {
-                    int vi2 = findVtblIndex(&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim, false);
-                    if (vi2 < 0)
-                        // https://issues.dlang.org/show_bug.cgi?id=17349
-                        ::deprecation(loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute",
+                    if (fdv->isFuture())
+                    {
+                        ::deprecation(loc, "@future base class method %s is being overridden by %s; rename the latter",
                             fdv->toPrettyChars(), toPrettyChars());
+                        // Treat 'this' as an introducing function, giving it a separate hierarchy in the vtbl[]
+                        goto Lintro;
+                    }
                     else
-                        ::error(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
-                            fdv->toPrettyChars(), toPrettyChars());
+                    {
+                        int vi2 = findVtblIndex(&cd->baseClass->vtbl, (int)cd->baseClass->vtbl.dim, false);
+                        if (vi2 < 0)
+                            // https://issues.dlang.org/show_bug.cgi?id=17349
+                            ::deprecation(loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute",
+                                fdv->toPrettyChars(), toPrettyChars());
+                        else
+                            ::error(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
+                                fdv->toPrettyChars(), toPrettyChars());
+                    }
                 }
 
                 doesoverride = true;
@@ -1130,6 +1141,14 @@ void FuncDeclaration::semantic(Scope *sc)
                     }
                 }
             }
+        }
+
+        if (isOverride())
+        {
+            if (storage_class & STCdisable)
+                deprecation("overridden functions cannot be annotated @disable");
+            if (isDeprecated())
+                deprecation("deprecated functions cannot be annotated @disable");
         }
     }
     else if (isOverride() && !parent->isTemplateInstance())
@@ -1334,8 +1353,11 @@ void FuncDeclaration::semantic3(Scope *sc)
         //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
         assert(0);
     }
-    if (isError(parent))
+    if (errors || isError(parent))
+    {
+        errors = true;
         return;
+    }
     //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent->toChars(), toChars(), this, sc, loc.toChars());
     //fflush(stdout);
     //printf("storage class = x%x %x\n", sc->stc, storage_class);
@@ -1780,7 +1802,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     sc2->callSuper = 0;
 
                     // Insert implicit super() at start of fbody
-                    FuncDeclaration *fd = resolveFuncCall(Loc(), sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1);
+                    FuncDeclaration *fd = resolveFuncCall(Loc(), sc2, cd->baseClass->ctor, NULL, vthis->type, NULL, 1);
                     if (!fd)
                     {
                         error("no match for implicit super() call in constructor");
@@ -1892,7 +1914,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
 
-            if (returns && !fbody->isErrorStatement())
+            if (returns)
             {
                 bool implicit0 = (f->next->ty == Tvoid && isMain());
                 Type *tret = implicit0 ? Type::tint32 : f->next;
@@ -1907,6 +1929,14 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     ReturnStatement *rs = (*returns)[i];
                     Expression *exp = rs->exp;
+                    if (exp->op == TOKerror)
+                        continue;
+                    if (tret->ty == Terror)
+                    {
+                        // Bugzilla 13702
+                        exp = checkGC(sc2, exp);
+                        continue;
+                    }
 
                     if (!exp->implicitConvTo(tret) &&
                         parametersIntersect(exp->type))
@@ -2348,7 +2378,7 @@ bool FuncDeclaration::functionSemantic()
 
     TemplateInstance *ti;
     if (isInstantiated() && !isVirtualMethod() &&
-        !(ti = parent->isTemplateInstance(), ti && !ti->isTemplateMixin() && ti->tempdecl->ident != ident))
+        ((ti = parent->isTemplateInstance()) == NULL || ti->isTemplateMixin() || ti->tempdecl->ident == ident))
     {
         AggregateDeclaration *ad = isMember2();
         if (ad && ad->sizeok != SIZEOKdone)
@@ -2630,13 +2660,13 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             //printf("fdv->frequire: %s\n", fdv->frequire->toChars());
             /* Make the call:
              *   try { __require(); }
-             *   catch { frequire; }
+             *   catch (Throwable) { frequire; }
              */
             Expression *eresult = NULL;
             Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire, false), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
-            Catch *c = new Catch(loc, NULL, NULL, sf);
+            Catch *c = new Catch(loc, getThrowable(), NULL, sf);
             c->internalCatch = true;
             Catches *catches = new Catches();
             catches->push(c);
@@ -2771,7 +2801,14 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim, bool fix17349)
             if (type->equals(fdv->type))        // if exact match
             {
                 if (fdv->parent->isClassDeclaration())
+                {
+                    if (fdv->isFuture())
+                    {
+                        bestvi = vi;
+                        continue;           // keep looking
+                    }
                     return vi;                  // no need to look further
+                }
 
                 if (exactvi >= 0)
                 {
@@ -3078,7 +3115,7 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
     return p.f;
 }
 
-static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
+void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
 {
     bool bothMutable = ((lhsMod & rhsMod) == 0);
     bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared) != 0;
@@ -3406,39 +3443,43 @@ struct FuncCandidateWalker
         static int fp(void *param, Dsymbol *s)
         {
             CountWalker *p = (CountWalker *)param;
-
-            if (s->isFuncDeclaration())
-                ++(p->numOverloads);
-
+            ++(p->numOverloads);
             return 0;
         }
     };
 
     static int fp(void *param, Dsymbol *s)
     {
-        FuncDeclaration *f = s->isFuncDeclaration();
-        if (!f || f->errors || f->type->ty == Terror)
-            return 0;
-
-        FuncCandidateWalker *p = (FuncCandidateWalker *)param;
-        TypeFunction *tf = (TypeFunction *)f->type;
-
-        ::errorSupplemental(f->loc, "%s%s", f->toPrettyChars(),
-            parametersTypeToChars(tf->parameters, tf->varargs));
-
-        if (!global.params.verbose && --(p->numToDisplay) == 0 && f->overnext)
+        FuncDeclaration *fd = s->isFuncDeclaration();
+        TemplateDeclaration *td = s->isTemplateDeclaration();
+        if (fd)
         {
-            CountWalker cw;
-            cw.numOverloads = 0;
-            overloadApply(f->overnext, &cw, &CountWalker::fp);
+            if (fd->errors || fd->type->ty == Terror)
+                return 0;
 
-            if (cw.numOverloads > 0)
-                ::errorSupplemental(p->loc, "... (%d more, -v to show) ...", cw.numOverloads);
+            TypeFunction *tf = (TypeFunction *)fd->type;
 
-            return 1;  // stop iterating
+            ::errorSupplemental(fd->loc, "%s%s", fd->toPrettyChars(),
+                parametersTypeToChars(tf->parameters, tf->varargs));
+        }
+        else
+        {
+            ::errorSupplemental(td->loc, "%s", td->toPrettyChars());
         }
 
-        return 0;
+        FuncCandidateWalker *p = (FuncCandidateWalker *)param;
+        if (global.params.verbose || --(p->numToDisplay) != 0 || !fd)
+            return 0;
+
+        // Too many overloads to sensibly display.
+        CountWalker cw;
+        cw.numOverloads = 0;
+        overloadApply(fd->overnext, &cw, &CountWalker::fp);
+
+        if (cw.numOverloads > 0)
+            ::errorSupplemental(p->loc, "... (%d more, -v to show) ...", cw.numOverloads);
+
+        return 1;  // stop iterating
     }
 };
 

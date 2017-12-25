@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail39.d(11): Error: function fail39.main.foo is a nested function and cannot be accessed from fail39.main.__funcliteral2
+fail_compilation/fail39.d(11): Error: function fail39.main.__funcliteral2 cannot access frame of function D main
 ---
 */
 

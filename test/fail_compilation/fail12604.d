@@ -5,8 +5,8 @@ fail_compilation/fail12604.d(14): Error: mismatched array lengths, 1 and 3
 fail_compilation/fail12604.d(15): Error: mismatched array lengths, 1 and 3
 fail_compilation/fail12604.d(17): Error: mismatched array lengths, 1 and 3
 fail_compilation/fail12604.d(18): Error: mismatched array lengths, 1 and 3
-fail_compilation/fail12604.d(20): Error: cannot implicitly convert expression ([65536]) of type int[] to short[]
-fail_compilation/fail12604.d(21): Error: cannot implicitly convert expression ([65536, 2, 3]) of type int[] to short[]
+fail_compilation/fail12604.d(20): Error: cannot implicitly convert expression `[65536]` of type `int[]` to `short[]`
+fail_compilation/fail12604.d(21): Error: cannot implicitly convert expression `[65536, 2, 3]` of type `int[]` to `short[]`
 ---
 */
 void main()

@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12838.d(27): Error: cannot implicitly convert expression (1) of type int to string
+fail_compilation/ice12838.d(27): Error: cannot implicitly convert expression `1` of type `int` to `string`
 ---
 */
 

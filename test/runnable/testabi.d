@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -release -gc
+// PERMUTE_ARGS: -release -g
 
 version(Windows) {}
 else version(X86_64)
@@ -924,4 +924,3 @@ string d_generate_functions( )
 //pragma( msg, d_generate_functions() );
 mixin( d_generate_functions() );
 // +/
-

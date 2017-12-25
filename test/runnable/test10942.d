@@ -19,7 +19,7 @@ string getEnum(size_t count)
 // Linker warning: Warning 161: Unknown CV version, ignored
 // mixin(getEnum(1024));
 
-// ICE  
+// ICE
 mixin(getEnum(1087));
 
 void main() { }

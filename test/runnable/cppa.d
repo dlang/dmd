@@ -229,13 +229,7 @@ void test11802()
     auto x = new D11802();
     x.x = 0;
     test11802x(x);
-    version(Win64)
-    {
-    }
-    else
-    {
-        assert(x.x == 9);
-    }
+    assert(x.x == 9);
 }
 
 
@@ -255,7 +249,14 @@ extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4,
     assert(arg3 == 3);
     assert(arg4 == 4);
     assert(arg5 == 5);
-    assert(arg6 == 6);
+    version (OSX)
+    {
+        version (D_LP64)
+            assert(arg6 == 6);
+        // fails on OSX 32-bit
+    }
+    else
+        assert(arg6 == 6);
 }
 
 void test13956()
@@ -402,7 +403,7 @@ void test13955()
 
 extern(C++) class C13161
 {
-    void dummyfunc() {}
+    void dummyfunc();
     long val_5;
     uint val_9;
 }
@@ -417,7 +418,7 @@ extern(C++) size_t getoffset13161();
 
 extern(C++) class C13161a
 {
-    void dummyfunc() {}
+    void dummyfunc();
     c_long_double val_5;
     uint val_9;
 }
@@ -441,14 +442,14 @@ version (linux)
 {
     extern(C++, __gnu_cxx)
     {
-	struct new_allocator(T)
-	{
-	    alias size_type = size_t;
-	    static if (is(T : char))
-		void deallocate(T*, size_type) { }
-	    else
-		void deallocate(T*, size_type);
-	}
+        struct new_allocator(T)
+        {
+            alias size_type = size_t;
+            static if (is(T : char))
+                void deallocate(T*, size_type) { }
+            else
+                void deallocate(T*, size_type);
+        }
     }
 }
 
@@ -456,40 +457,61 @@ extern (C++, std)
 {
     struct allocator(T)
     {
-	version (linux)
-	{
-	    alias size_type = size_t;
-	    void deallocate(T* p, size_type sz)
-	    {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
-	}
+        version (linux)
+        {
+            alias size_type = size_t;
+            void deallocate(T* p, size_type sz)
+            {   (cast(__gnu_cxx.new_allocator!T*)&this).deallocate(p, sz); }
+        }
     }
 
     version (linux)
     {
-	class vector(T, A = allocator!T)
-	{
-	    final void push_back(ref const T);
-	}
+        class vector(T, A = allocator!T)
+        {
+            final void push_back(ref const T);
+        }
 
-	struct char_traits(T)
-	{
-	}
+        struct char_traits(T)
+        {
+        }
 
-	struct basic_string(T, C = char_traits!T, A = allocator!T)
-	{
-	}
+        // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
+        version (none)
+        {
+            extern (C++, __cxx11)
+            {
+                struct basic_string(T, C = char_traits!T, A = allocator!T)
+                {
+                }
+            }
+        }
+        else
+        {
+            struct basic_string(T, C = char_traits!T, A = allocator!T)
+            {
+            }
+        }
 
-	struct basic_istream(T, C = char_traits!T)
-	{
-	}
+        struct basic_istream(T, C = char_traits!T)
+        {
+        }
 
-	struct basic_ostream(T, C = char_traits!T)
-	{
-	}
+        struct basic_ostream(T, C = char_traits!T)
+        {
+        }
 
-	struct basic_iostream(T, C = char_traits!T)
-	{
-	}
+        struct basic_iostream(T, C = char_traits!T)
+        {
+        }
+    }
+
+    class exception { }
+
+    // 14956
+    extern(C++, N14956)
+    {
+        struct S14956 { }
     }
 }
 
@@ -504,7 +526,7 @@ extern (C++)
         void foo14d(std.basic_ostream!(char) *p);
         void foo14e(std.basic_iostream!(char) *p);
 
-	void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
+        void foo14f(std.char_traits!char* x, std.basic_string!char* p, std.basic_string!char* q);
     }
 }
 
@@ -515,12 +537,12 @@ void test14()
         std.vector!int p;
         foo14(p);
 
-	foo14a(null);
-	foo14b(null);
-	foo14c(null);
-	foo14d(null);
-	foo14e(null);
-	foo14f(null, null, null);
+        foo14a(null);
+        foo14b(null);
+        foo14c(null);
+        foo14d(null);
+        foo14e(null);
+        foo14f(null, null, null);
     }
 }
 
@@ -592,9 +614,9 @@ version (CRuntime_Microsoft)
 {
     struct __c_long_double
     {
-	this(double d) { ld = d; }
-	double ld;
-	alias ld this;
+        this(double d) { ld = d; }
+        double ld;
+        alias ld this;
     }
 
     alias __c_long_double myld;
@@ -751,6 +773,443 @@ void test14200()
 }
 
 /****************************************/
+// 14956
+
+extern(C++) void test14956(S14956 s);
+
+/****************************************/
+// check order of overloads in vtable
+
+extern (C++) class Statement {}
+extern (C++) class ErrorStatement {}
+extern (C++) class PeelStatement {}
+extern (C++) class ExpStatement {}
+extern (C++) class DtorExpStatement {}
+
+extern (C++) class Visitor
+{
+public:
+    int visit(Statement) { return 1; }
+    int visit(ErrorStatement) { return 2; }
+    int visit(PeelStatement) { return 3; }
+}
+
+extern (C++) class Visitor2 : Visitor
+{
+    int visit2(ExpStatement) { return 4; }
+    int visit2(DtorExpStatement) { return 5; }
+}
+
+extern(C++) bool testVtableCpp(Visitor2 sv);
+extern(C++) Visitor2 getVisitor2();
+
+bool testVtableD(Visitor2 sv)
+{
+    Statement s1;
+    ErrorStatement s2;
+    PeelStatement s3;
+    ExpStatement s4;
+    DtorExpStatement s5;
+
+    if (sv.visit(s1) != 1) return false;
+    if (sv.visit(s2) != 2) return false;
+    if (sv.visit(s3) != 3) return false;
+    if (sv.visit2(s4) != 4) return false;
+    if (sv.visit2(s5) != 5) return false;
+    return true;
+}
+
+void testVtable()
+{
+    Visitor2 dinst = new Visitor2;
+    if (!testVtableCpp(dinst))
+        assert(0);
+
+    Visitor2 cppinst = getVisitor2();
+    if (!testVtableD(cppinst))
+        assert(0);
+}
+
+/****************************************/
+/* problems detected by fuzzer */
+extern(C++) void fuzz1_cppvararg(long arg10, long arg11, bool arg12);
+extern(C++) void fuzz1_dvararg(long arg10, long arg11, bool arg12)
+{
+    fuzz1_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz1_checkValues(long arg10, long arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz1()
+{
+    long arg10 = 103;
+    long arg11 = 104;
+    bool arg12 = false;
+    fuzz1_dvararg(arg10, arg11, arg12);
+    fuzz1_cppvararg(arg10, arg11, arg12);
+}
+
+////////
+extern(C++) void fuzz2_cppvararg(ulong arg10, ulong arg11, bool arg12);
+extern(C++) void fuzz2_dvararg(ulong arg10, ulong arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz2_checkValues(ulong arg10, ulong arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz2()
+{
+    ulong arg10 = 103;
+    ulong arg11 = 104;
+    bool arg12 = false;
+    fuzz2_dvararg(arg10, arg11, arg12);
+    fuzz2_cppvararg(arg10, arg11, arg12);
+}
+
+////////
+extern(C++) void fuzz3_cppvararg(wchar arg10, wchar arg11, bool arg12);
+extern(C++) void fuzz3_dvararg(wchar arg10, wchar arg11, bool arg12)
+{
+    fuzz2_checkValues(arg10, arg11, arg12);
+}
+
+extern(C++) void fuzz3_checkValues(wchar arg10, wchar arg11, bool arg12)
+{
+    assert(arg10 == 103);
+    assert(arg11 == 104);
+    assert(arg12 == false);
+}
+
+void fuzz3()
+{
+    wchar arg10 = 103;
+    wchar arg11 = 104;
+    bool arg12 = false;
+    fuzz3_dvararg(arg10, arg11, arg12);
+    fuzz3_cppvararg(arg10, arg11, arg12);
+}
+
+void fuzz()
+{
+    fuzz1();
+    fuzz2();
+    fuzz3();
+}
+
+/****************************************/
+
+extern (C++)
+{
+    void throwit();
+}
+
+void testeh()
+{
+    printf("testeh()\n");
+    version (linux)
+    {
+        version (X86_64)
+        {
+            bool caught;
+            try
+            {
+                throwit();
+            }
+            catch (std.exception e)
+            {
+                caught = true;
+            }
+            assert(caught);
+        }
+    }
+}
+
+/****************************************/
+
+version (linux)
+{
+    version (X86_64)
+    {
+        bool raii_works = false;
+        struct RAIITest
+        {
+           ~this()
+           {
+               raii_works = true;
+           }
+        }
+
+        void dFunction()
+        {
+            RAIITest rt;
+            throwit();
+        }
+
+        void testeh2()
+        {
+            printf("testeh2()\n");
+            try
+            {
+                dFunction();
+            }
+            catch(std.exception e)
+            {
+                assert(raii_works);
+            }
+        }
+    }
+    else
+        void testeh2() { }
+}
+else
+    void testeh2() { }
+
+/****************************************/
+
+extern (C++) { void throwle(); void throwpe(); }
+
+void testeh3()
+{
+    printf("testeh3()\n");
+    version (linux)
+    {
+        version (X86_64)
+        {
+            bool caught = false;
+            try
+            {
+               throwle();
+            }
+            catch (std.exception e)  //polymorphism test.
+            {
+                caught = true;
+            }
+            assert(caught);
+        }
+    }
+}
+
+/****************************************/
+// 15576
+
+extern (C++, ns15576)
+{
+    extern __gshared int global15576;
+
+    extern (C++, ns)
+    {
+        extern __gshared int n_global15576;
+    }
+}
+
+void test15576()
+{
+    global15576 = n_global15576 = 123;
+}
+
+/****************************************/
+// 15579
+
+extern (C++)
+{
+    class Base
+    {
+        //~this() {}
+        void based() { }
+        ubyte x = 4;
+    }
+
+    interface Interface
+    {
+        int MethodCPP();
+        int MethodD();
+    }
+
+    class Derived : Base, Interface
+    {
+        short y = 5;
+        int MethodCPP();
+        int MethodD() {
+            printf("Derived.MethodD(): this = %p, x = %d, y = %d\n", this, x, y);
+            Derived p = this;
+            //p = cast(Derived)(cast(void*)p - 16);
+            assert(p.x == 4 || p.x == 7);
+            assert(p.y == 5 || p.y == 8);
+            return 3;
+        }
+        int Method() { return 6; }
+    }
+
+    Derived cppfoo(Derived);
+    Interface cppfooi(Interface);
+}
+
+void test15579()
+{
+    Derived d = new Derived();
+    printf("d = %p\n", d);
+    assert(d.x == 4);
+    assert(d.y == 5);
+    assert((cast(Interface)d).MethodCPP() == 30);
+    assert((cast(Interface)d).MethodD() == 3);
+    assert(d.MethodCPP() == 30);
+    assert(d.MethodD() == 3);
+    assert(d.Method() == 6);
+
+    d = cppfoo(d);
+    assert(d.x == 7);
+    assert(d.y == 8);
+
+    printf("d2 = %p\n", d);
+
+    /* Casting to an interface involves thunks in the vtbl[].
+     * g++ puts the thunks for MethodD in the same COMDAT as MethodD.
+     * But D doesn't, so when the linker "picks one" of the D generated MethodD
+     * or the g++ generated MethodD, it may wind up with a messed up thunk,
+     * resulting in a seg fault. The solution is to not expect objects of the same
+     * type to be constructed on both sides of the D/C++ divide if the same member
+     * function (in this case, MethodD) is also defined on both sides.
+     */
+    version (Windows)
+    {
+        assert((cast(Interface)d).MethodD() == 3);
+    }
+    assert((cast(Interface)d).MethodCPP() == 30);
+
+    assert(d.Method() == 6);
+
+    printf("d = %p, i = %p\n", d, cast(Interface)d);
+    version (Windows)
+    {
+        Interface i = cppfooi(d);
+        printf("i2: %p\n", i);
+        assert(i.MethodD() == 3);
+        assert(i.MethodCPP() == 30);
+    }
+    printf("test15579() done\n");
+}
+
+/****************************************/
+// 15610
+
+extern(C++) class Base2
+{
+    int i;
+    void baser() { }
+}
+
+extern(C++) interface Interface2 { abstract void f(); }
+
+extern(C++) class Derived2 : Base2, Interface2
+{
+    final
+        override void f();
+}
+
+
+void test15610()
+{
+    auto c = new Derived2();
+    printf("test15610(): c = %p\n", c);
+    c.i = 3;
+    c.f();
+}
+
+/******************************************/
+// 15455
+
+struct X6
+{
+    ushort a;
+    ushort b;
+    ubyte c;
+    ubyte d;
+}
+
+static assert(X6.sizeof == 6);
+
+struct X8
+{
+    ushort a;
+    X6 b;
+}
+
+static assert(X8.sizeof == 8);
+
+void test15455a(X8 s)
+{
+    assert(s.a == 1);
+    assert(s.b.a == 2);
+    assert(s.b.b == 3);
+    assert(s.b.c == 4);
+    assert(s.b.d == 5);
+}
+
+extern (C++) void test15455b(X8 s);
+
+void test15455()
+{
+    X8 s;
+
+    s.a = 1;
+    s.b.a = 2;
+    s.b.b = 3;
+    s.b.c = 4;
+    s.b.d = 5;
+    test15455a(s);
+    test15455b(s);
+}
+
+/****************************************/
+// 15372
+
+extern(C++) int foo15372(T)(T v);
+
+void test15372()
+{
+    version(Windows){}
+    else
+        assert(foo15372!int(1) == 1);
+}
+
+/****************************************/
+// 15802
+
+extern(C++) {
+    template Foo15802(T) {
+        static int boo(T v);
+    }
+}
+
+void test15802()
+{
+    version(Windows){}
+    else
+        assert(Foo15802!(int).boo(1) == 1);
+}
+
+/****************************************/
+// 16536 - mangling mismatch on OSX
+
+version(OSX) extern(C++) ulong pass16536(ulong);
+
+void test16536()
+{
+    version(OSX) assert(pass16536(123) == 123);
+}
+
+/****************************************/
 
 void main()
 {
@@ -781,6 +1240,19 @@ void main()
     foo13337(S13337());
     test14195();
     test14200();
+    test14956(S14956());
+    testVtable();
+    fuzz();
+    testeh();
+    testeh2();
+    testeh3();
+    test15576();
+    test15579();
+    test15610();
+    test15455();
+    test15372();
+    test15802();
+    test16536();
 
     printf("Success\n");
 }

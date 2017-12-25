@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail223.d(14): Error: cannot modify const expression this.x
+fail_compilation/fail223.d(14): Error: cannot modify this.x in const function
 ---
 */
 
