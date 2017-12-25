@@ -1655,37 +1655,48 @@ void VarDeclaration::semantic2(Scope *sc)
         _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
     }
-    if (storage_class & STCmanifest)
+    if (_init && storage_class & STCmanifest)
     {
-    #if 0
-        if ((type->ty == Tclass)&&type->isMutable())
+        /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
+         * Scan initializer looking for them. Issue error if found.
+         */
+        if (ExpInitializer *ei = _init->isExpInitializer())
         {
-            error("is mutable. Only const and immutable class enum are allowed, not %s", type->toChars());
-        }
-        else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct && type->nextOf()->isMutable())
-        {
-            ExpInitializer *ei = _init->isExpInitializer();
-            if (ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
+            struct EnumInitializer
             {
-                error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type->toChars());
-            }
-        }
-    #else
-        if (type->ty == Tclass && _init)
-        {
-            ExpInitializer *ei = _init->isExpInitializer();
-            if (ei->exp->op == TOKclassreference)
+                static bool arrayHasInvalidEnumInitializer(Expressions *elems)
+                {
+                    for (size_t i = 0; i < elems->dim; i++)
+                    {
+                        Expression *e = (*elems)[i];
+                        if (e && hasInvalidEnumInitializer(e))
+                            return true;
+                    }
+                    return false;
+                }
+
+                static bool hasInvalidEnumInitializer(Expression *e)
+                {
+                    if (e->op == TOKclassreference)
+                        return true;
+                    if (e->op == TOKaddress && ((AddrExp *)e)->e1->op == TOKstructliteral)
+                        return true;
+                    if (e->op == TOKarrayliteral)
+                        return arrayHasInvalidEnumInitializer(((ArrayLiteralExp *)e)->elements);
+                    if (e->op == TOKstructliteral)
+                        return arrayHasInvalidEnumInitializer(((StructLiteralExp *)e)->elements);
+                    if (e->op == TOKassocarrayliteral)
+                    {
+                        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e;
+                        return arrayHasInvalidEnumInitializer(ae->values) ||
+                            arrayHasInvalidEnumInitializer(ae->keys);
+                    }
+                    return false;
+                }
+            };
+            if (EnumInitializer::hasInvalidEnumInitializer(ei->exp))
                 error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
         }
-        else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct)
-        {
-            ExpInitializer *ei = _init->isExpInitializer();
-            if (ei && ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
-            {
-                error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
-            }
-        }
-    #endif
     }
     else if (_init && isThreadlocal())
     {
