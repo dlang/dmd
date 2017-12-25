@@ -191,9 +191,7 @@ WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
+    -Wno-logical-op-parentheses
 endif
 endif
 
