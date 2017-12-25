@@ -523,8 +523,8 @@ void vec_copy(vec_t to,vec_t from)
     {
 #ifdef DEBUG
         if (!(to && from && vec_numbits(to) == vec_numbits(from)))
-            printf("to = x%lx, from = x%lx, numbits(to) = %d, numbits(from) = %d\n",
-                (long)to,(long)from,to ? (int)vec_numbits(to) : 0, from ? (int)vec_numbits(from): 0);
+            printf("to = x%p, from = x%p, numbits(to) = %d, numbits(from) = %d\n",
+                to,from,to ? (int)vec_numbits(to) : 0, from ? (int)vec_numbits(from): 0);
 #endif
         assert(to && from && vec_numbits(to) == vec_numbits(from));
         memcpy(to,from,sizeof(to[0]) * vec_dim(to));
