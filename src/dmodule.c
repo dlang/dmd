@@ -73,9 +73,6 @@ Module::Module(const char *filename, Identifier *ident, int doDocComment, int do
     searchCacheSymbol = NULL;
     searchCacheFlags = 0;
     decldefs = NULL;
-    massert = NULL;
-    munittest = NULL;
-    marray = NULL;
     sictor = NULL;
     sctor = NULL;
     sdtor = NULL;

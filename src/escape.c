@@ -79,6 +79,7 @@ bool checkParamArgumentEscape(Scope *sc, FuncDeclaration *fdc, Identifier *par, 
 
     for (size_t i = 0; i < er.byvalue.dim; i++)
     {
+        //printf("byvalue %s\n", v->toChars());
         VarDeclaration *v = er.byvalue[i];
         if (v->isDataseg())
             continue;
@@ -250,7 +251,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
             {
                 if (!va->isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va->toChars());
-                    va->storage_class |= STCscope;
+                    va->storage_class |= STCscope | STCscopeinferred;
                 }
                 continue;
             }
@@ -270,7 +271,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
                 {
                     if (!va->isScope() && inferScope)
                     {   //printf("inferring scope for %s\n", va->toChars());
-                        va->storage_class |= STCscope;
+                        va->storage_class |= STCscope | STCscopeinferred;
                     }
                     continue;
                 }
@@ -319,7 +320,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
                 if (!va->isScope() && inferScope &&
                     va->type->toBasetype()->ty != Tclass)  // scope classes are special
                 {   //printf("inferring scope for %s\n", va->toChars());
-                    va->storage_class |= STCscope;
+                    va->storage_class |= STCscope | STCscopeinferred;
                 }
                 continue;
             }
@@ -360,7 +361,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
                      * won't be generated for sc->func.
                      */
                     //if (!va->isScope() && inferScope)
-                        //va->storage_class |= STCscope;
+                        //va->storage_class |= STCscope | STCscopeinferred;
                     continue;
                 }
                 if (sc->func->setUnsafe())
@@ -381,7 +382,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         {
             if (!va->isScope() && inferScope)
             {   //printf("inferring scope for %s\n", va->toChars());
-                va->storage_class |= STCscope;
+                va->storage_class |= STCscope | STCscopeinferred;
             }
             continue;
         }
@@ -609,7 +610,7 @@ static void inferReturn(FuncDeclaration *fd, VarDeclaration *v)
 {
     // v is a local in the current function
 
-    //printf("inferring 'return' for variable '%s'\n", v->toChars());
+    //printf("for function '%s' inferring 'return' for variable '%s'\n", fd->toChars(), v->toChars());
     v->storage_class |= STCreturn;
 
     TypeFunction *tf = (TypeFunction *)fd->type;

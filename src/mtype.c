@@ -2045,6 +2045,7 @@ Type *TypeFunction::substWildTo(unsigned)
     t->isref = isref;
     t->isreturn = isreturn;
     t->isscope = isscope;
+    t->isscopeinferred = isscopeinferred;
     t->iswild = 0;
     t->trust = trust;
     t->fargs = fargs;
@@ -2064,7 +2065,7 @@ Type *Type::toHeadMutable()
 /***************************************
  * Calculate built-in properties which just the type is necessary.
  *
- * If flag == 1, don't report "not a property" error and just return NULL.
+ * If flag & 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
 {
@@ -2141,7 +2142,7 @@ Expression *Type::getProperty(Loc loc, Identifier *ident, int flag)
 /***************************************
  * Access the members of the object e. This type is same as e->type.
  *
- * If flag == 1, don't report "not a property" error and just return NULL.
+ * If flag & 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
@@ -2198,10 +2199,10 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         e = new StringExp(e->loc, (char *)s, strlen(s));
     }
     else
-        e = getProperty(e->loc, ident, flag);
+        e = getProperty(e->loc, ident, flag & 1);
 
 Lreturn:
-    if (!flag || e)
+    if (!(flag & 1) || e)
         e = e->semantic(sc);
     return e;
 }
@@ -2219,7 +2220,7 @@ structalign_t Type::alignment()
  * Figures out what to do with an undefined member reference
  * for classes and structs.
  *
- * If flag == 1, don't report "not a property" error and just return NULL.
+ * If flag & 1, don't report "not a property" error and just return NULL.
  */
 Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag)
 {
@@ -2274,13 +2275,13 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             dti->ti->tempdecl = td;
 
             /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
-             * It should be gagged if flag != 0.
+             * It should be gagged if flag & 1.
              * e.g.
-             *  tempalte opDispatch(name) if (isValid!name) { ... }
+             *  template opDispatch(name) if (isValid!name) { ... }
              */
-            unsigned errors = flag ? global.startGagging() : 0;
+            unsigned errors = flag & 1 ? global.startGagging() : 0;
             e = dti->semanticY(sc, 0);
-            if (flag && global.endGagging(errors))
+            if (flag & 1 && global.endGagging(errors))
                 e = NULL;
             return e;
         }
@@ -2293,7 +2294,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              */
             e = resolveAliasThis(sc, e);
             DotIdExp *die = new DotIdExp(e->loc, e, ident);
-            return die->semanticY(sc, flag);
+            return die->semanticY(sc, flag & 1);
         }
     }
 
@@ -3483,7 +3484,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     {
         return Type::dotExp(sc, e, ident, flag);
     }
-    if (!flag || e)
+    if (!(flag & 1) || e)
         e = e->semantic(sc);
     return e;
 }
@@ -3975,7 +3976,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     {
         e = Type::dotExp(sc, e, ident, flag);
     }
-    if (!flag || e)
+    if (!(flag & 1) || e)
         e = e->semantic(sc);
     return e;
 
@@ -4325,7 +4326,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     {
         e = TypeArray::dotExp(sc, e, ident, flag);
     }
-    if (!flag || e)
+    if (!(flag & 1) || e)
         e = e->semantic(sc);
     return e;
 }
@@ -5289,6 +5290,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
     this->isref = false;
     this->isreturn = false;
     this->isscope = false;
+    this->isscopeinferred = false;
     this->iswild = 0;
     this->fargs = NULL;
 
@@ -5307,6 +5309,8 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
         this->isreturn = true;
     if (stc & STCscope)
         this->isscope = true;
+    if (stc & STCscopeinferred)
+        this->isscopeinferred = true;
 
     this->trust = TRUSTdefault;
     if (stc & STCsafe)
@@ -5340,6 +5344,7 @@ Type *TypeFunction::syntaxCopy()
     t->isref = isref;
     t->isreturn = isreturn;
     t->isscope = isscope;
+    t->isscopeinferred = isscopeinferred;
     t->iswild = iswild;
     t->trust = trust;
     t->fargs = fargs;
@@ -5349,6 +5354,10 @@ Type *TypeFunction::syntaxCopy()
 /*******************************
  * Covariant means that 'this' can substitute for 't',
  * i.e. a pure function is a match for an impure type.
+ * Params:
+ *      t = type 'this' is covariant with
+ *      pstc = if not null, store STCxxxx which would make it covariant
+ *      fix17349 = enable fix https://issues.dlang.org/show_bug.cgi?id=17349
  * Returns:
  *      0       types are distinct
  *      1       this is covariant with t
@@ -5358,7 +5367,7 @@ Type *TypeFunction::syntaxCopy()
  *      *pstc   STCxxxx which would make it covariant
  */
 
-int Type::covariant(Type *t, StorageClass *pstc)
+int Type::covariant(Type *t, StorageClass *pstc, bool fix17349)
 {
 #if 0
     printf("Type::covariant(t = %s) %s\n", t->toChars(), toChars());
@@ -5371,7 +5380,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
         *pstc = 0;
     StorageClass stc = 0;
 
-    int inoutmismatch = 0;
+    bool notcovariant = false;
 
     TypeFunction *t1;
     TypeFunction *t2;
@@ -5401,9 +5410,42 @@ int Type::covariant(Type *t, StorageClass *pstc)
 
             if (!fparam1->type->equals(fparam2->type))
             {
+                if (!fix17349)
+                    goto Ldistinct;
+                Type *tp1 = fparam1->type;
+                Type *tp2 = fparam2->type;
+                if (tp1->ty == tp2->ty)
+                {
+                    if (tp1->ty == Tclass)
+                    {
+                        if (((TypeClass *)tp1)->sym == ((TypeClass *)tp2)->sym && MODimplicitConv(tp2->mod, tp1->mod))
+                            goto Lcov;
+                    }
+                    else if (tp1->ty == Tstruct)
+                    {
+                        if (((TypeStruct *)tp1)->sym == ((TypeStruct *)tp2)->sym && MODimplicitConv(tp2->mod, tp1->mod))
+                            goto Lcov;
+                    }
+                    else if (tp1->ty == Tpointer)
+                    {
+                        if (tp2->implicitConvTo(tp1))
+                            goto Lcov;
+                    }
+                    else if (tp1->ty == Tarray)
+                    {
+                        if (tp2->implicitConvTo(tp1))
+                            goto Lcov;
+                    }
+                    else if (tp1->ty == Tdelegate)
+                    {
+                        if (tp1->implicitConvTo(tp2))
+                            goto Lcov;
+                    }
+                }
                 goto Ldistinct;
             }
-            inoutmismatch = !fparam1->isCovariant(fparam2);
+        Lcov:
+            notcovariant |= !fparam1->isCovariant(t1->isref, fparam2);
         }
     }
     else if (t1->parameters != t2->parameters)
@@ -5415,7 +5457,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
     }
 
     // The argument lists match
-    if (inoutmismatch)
+    if (notcovariant)
         goto Lnotcovariant;
     if (t1->linkage != t2->linkage)
         goto Lnotcovariant;
@@ -5467,8 +5509,28 @@ Lcovariant:
     if (t1->isref != t2->isref)
         goto Lnotcovariant;
 
+    if (!t1->isref && (t1->isscope || t2->isscope))
+    {
+        StorageClass stc1 = t1->isscope ? STCscope : 0;
+        StorageClass stc2 = t2->isscope ? STCscope : 0;
+        if (t1->isreturn)
+        {
+            stc1 |= STCreturn;
+            if (!t1->isscope)
+                stc1 |= STCref;
+        }
+        if (t2->isreturn)
+        {
+            stc2 |= STCreturn;
+            if (!t2->isscope)
+                stc2 |= STCref;
+        }
+        if (!Parameter::isCovariantScope(t1->isref, stc1, stc2))
+            goto Lnotcovariant;
+    }
+
     // We can subtract 'return' from 'this', but cannot add it
-    if (t1->isreturn && !t2->isreturn)
+    else if (t1->isreturn && !t2->isreturn)
         goto Lnotcovariant;
 
     /* Can convert mutable to const
@@ -5563,9 +5625,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->isreturn = true;
     if (sc->stc & STCscope)
         tf->isscope = true;
+    if (sc->stc & STCscopeinferred)
+        tf->isscopeinferred = true;
 
-    if ((sc->stc & (STCreturn | STCref)) == STCreturn)
-        tf->isscope = true;                                 // return by itself means 'return scope'
+//    if ((sc->stc & (STCreturn | STCref)) == STCreturn)
+//        tf->isscope = true;                                 // return by itself means 'return scope'
 
     if (tf->trust == TRUSTdefault)
     {
@@ -5616,7 +5680,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
         if (tf->isreturn && !tf->isref && !tf->next->hasPointers())
         {
-            error(loc, "function has 'return' but does not return any indirections");
+            error(loc, "function type '%s' has 'return' but does not return any indirections", tf->toChars());
         }
     }
 
@@ -6375,10 +6439,12 @@ Expression *TypeFunction::defaultInit(Loc loc)
 
 Type *TypeFunction::addStorageClass(StorageClass stc)
 {
+    //printf("addStorageClass(%llx) %d\n", stc, (stc & STCscope) != 0);
     TypeFunction *t = (TypeFunction *)Type::addStorageClass(stc);
     if ((stc & STCpure && !t->purity) ||
         (stc & STCnothrow && !t->isnothrow) ||
         (stc & STCnogc && !t->isnogc) ||
+        (stc & STCscope && !t->isscope) ||
         (stc & STCsafe && t->trust < TRUSTtrusted))
     {
         // Klunky to change these
@@ -6392,6 +6458,7 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         tf->isref = t->isref;
         tf->isreturn = t->isreturn;
         tf->isscope = t->isscope;
+        tf->isscopeinferred = t->isscopeinferred;
         tf->trust = t->trust;
         tf->iswild = t->iswild;
 
@@ -6403,6 +6470,12 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
             tf->isnogc = true;
         if (stc & STCsafe)
             tf->trust = TRUSTsafe;
+        if (stc & STCscope)
+        {
+            tf->isscope = true;
+            if (stc & STCscopeinferred)
+                tf->isscopeinferred = true;
+        }
 
         tf->deco = tf->merge()->deco;
         t = tf;
@@ -6434,7 +6507,7 @@ int TypeFunction::attributesApply(void *param, int (*fp)(void *, const char *), 
     if (isreturn) res = fp(param, "return");
     if (res) return res;
 
-    if (isscope) res = fp(param, "scope");
+    if (isscope && !isscopeinferred) res = fp(param, "scope");
     if (res) return res;
 
     TRUST trustAttrib = trust;
@@ -6503,6 +6576,28 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
     deco = merge()->deco;
     return this;
 #endif
+}
+
+Type *TypeDelegate::addStorageClass(StorageClass stc)
+{
+    TypeDelegate *t = (TypeDelegate*)Type::addStorageClass(stc);
+    if (!global.params.vsafe)
+        return t;
+
+    /* The rest is meant to add 'scope' to a delegate declaration if it is of the form:
+     *  alias dg_t = void* delegate();
+     *  scope dg_t dg = ...;
+     */
+    if(stc & STCscope)
+    {
+        Type *n = t->next->addStorageClass(STCscope | STCscopeinferred);
+        if (n != t->next)
+        {
+            t->next = n;
+            t->deco = t->merge()->deco; // mangling supposed to not be changed due to STCscopeinferrred
+        }
+    }
+    return t;
 }
 
 d_uns64 TypeDelegate::size(Loc loc)
@@ -6574,6 +6669,11 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
     }
     else if (ident == Id::funcptr)
     {
+        if (!(flag & 2) && sc->func && !sc->intypeof && sc->func->setUnsafe())
+        {
+            e->error("%s.funcptr cannot be used in @safe code", e->toChars());
+            return new ErrorExp();
+        }
         e = new DelegateFuncptrExp(e->loc, e);
         e = e->semantic(sc);
     }
@@ -7542,13 +7642,13 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
 #endif
     // Bugzilla 14010
     if (ident == Id::_mangleof)
-        return getProperty(e->loc, ident, flag);
+        return getProperty(e->loc, ident, flag & 1);
 
     if (sym->_scope)
         sym->semantic(sym->_scope);
     if (!sym->members)
     {
-        if (!flag)
+        if (!(flag & 1))
         {
             sym->error("is forward referenced when looking for '%s'", ident->toChars());
             e = new ErrorExp();
@@ -7565,9 +7665,21 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
             ident == Id::min ||
             ident == Id::_init)
         {
-            return getProperty(e->loc, ident, flag);
+            return getProperty(e->loc, ident, flag & 1);
         }
-        return sym->getMemtype(Loc())->dotExp(sc, e, ident, flag);
+        Expression *res = sym->getMemtype(Loc())->dotExp(sc, e, ident, 1);
+        if (!(flag & 1) && !res)
+        {
+            if (Dsymbol *ns = sym->search_correct(ident))
+                e->error("no property '%s' for type '%s'. Did you mean '%s.%s' ?",
+                    ident->toChars(), toChars(), toChars(), ns->toChars());
+            else
+                e->error("no property '%s' for type '%s'",
+                    ident->toChars(), toChars());
+
+            return new ErrorExp();
+        }
+        return res;
     }
     EnumMember *m = s->isEnumMember();
     return m->getVarExp(e->loc, sc);
@@ -7818,7 +7930,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 
     // Bugzilla 14010
     if (ident == Id::_mangleof)
-        return getProperty(e->loc, ident, flag);
+        return getProperty(e->loc, ident, flag & 1);
 
     /* If e.tupleof
      */
@@ -8569,7 +8681,7 @@ L1:
             return dve;
         }
 
-        return noMember(sc, e, ident, flag);
+        return noMember(sc, e, ident, flag & 1);
     }
     if (!(sc->flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
     {
@@ -9450,14 +9562,107 @@ const char *Parameter::toChars()
  *  true = `this` can be used in place of `p`
  *  false = nope
  */
-bool Parameter::isCovariant(const Parameter *p) const
+bool Parameter::isCovariant(bool returnByRef, const Parameter *p) const
 {
     const StorageClass stc = STCref | STCin | STCout | STClazy;
-    return !((this->storageClass & stc) != (p->storageClass & stc) ||
+    if ((this->storageClass & stc) != (p->storageClass & stc))
+        return false;
 
-            // We can add scope, but not subtract it
-            (!(this->storageClass & STCscope) && (p->storageClass & STCscope)) ||
+    return isCovariantScope(returnByRef, this->storageClass, p->storageClass);
+}
 
-            // We can subtract return, but not add it
-            ((this->storageClass & STCreturn) && !(p->storageClass & STCreturn)));
+bool Parameter::isCovariantScope(bool returnByRef, StorageClass from, StorageClass to)
+{
+    if (from == to)
+        return true;
+
+    struct SR
+    {
+        /* Classification of 'scope-return-ref' possibilities
+        */
+        enum
+        {
+            SRNone,
+            SRScope,
+            SRReturnScope,
+            SRRef,
+            SRReturnRef,
+            SRRefScope,
+            SRReturnRef_Scope,
+            SRRef_ReturnScope,
+            SRMAX,
+        };
+
+        /* Shrinking the representation is necessary because StorageClass is so wide
+         * Params:
+         *   returnByRef = true if the function returns by ref
+         *   stc = storage class of parameter
+         */
+        static unsigned buildSR(bool returnByRef, StorageClass stc)
+        {
+            unsigned result;
+            switch (stc & (STCref | STCscope | STCreturn))
+            {
+                case 0:                    result = SRNone;        break;
+                case STCref:               result = SRRef;         break;
+                case STCscope:             result = SRScope;       break;
+                case STCreturn | STCref:   result = SRReturnRef;   break;
+                case STCreturn | STCscope: result = SRReturnScope; break;
+                case STCref    | STCscope: result = SRRefScope;    break;
+                case STCreturn | STCref | STCscope:
+                    result = returnByRef ? SRReturnRef_Scope : SRRef_ReturnScope;
+                    break;
+                default:
+                    assert(0);
+            }
+            return result;
+        }
+
+        static void covariantInit(bool covariant[SRMAX][SRMAX])
+        {
+            /* Initialize covariant[][] with this:
+
+                 From\To           n   rs  s
+                 None              X
+                 ReturnScope       X   X
+                 Scope             X   X   X
+
+                 From\To           r   rr  rs  rr-s r-rs
+                 Ref               X   X
+                 ReturnRef             X
+                 RefScope          X   X   X   X    X
+                 ReturnRef-Scope       X       X
+                 Ref-ReturnScope   X   X            X
+            */
+            for (int i = 0; i < SRMAX; i++)
+            {
+                covariant[i][i] = true;
+                covariant[SRRefScope][i] = true;
+            }
+            covariant[SRReturnScope][SRNone]        = true;
+            covariant[SRScope      ][SRNone]        = true;
+            covariant[SRScope      ][SRReturnScope] = true;
+
+            covariant[SRRef            ][SRReturnRef] = true;
+            covariant[SRReturnRef_Scope][SRReturnRef] = true;
+            covariant[SRRef_ReturnScope][SRRef      ] = true;
+            covariant[SRRef_ReturnScope][SRReturnRef] = true;
+        }
+    };
+
+    /* result is true if the 'from' can be used as a 'to'
+     */
+
+    if ((from ^ to) & STCref)               // differing in 'ref' means no covariance
+        return false;
+
+    static bool covariant[SR::SRMAX][SR::SRMAX];
+    static bool init = false;
+    if (!init)
+    {
+        SR::covariantInit(covariant);
+        init = true;
+    }
+
+    return covariant[SR::buildSR(returnByRef, from)][SR::buildSR(returnByRef, to)];
 }

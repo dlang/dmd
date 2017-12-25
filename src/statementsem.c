@@ -369,6 +369,10 @@ public:
         if (ds->_body)
             ds->_body = semanticScope(ds->_body, sc, ds, ds);
         sc->noctor--;
+
+        if (ds->condition->op == TOKdotid)
+            ((DotIdExp *)ds->condition)->noderef = true;
+
         ds->condition = ds->condition->semantic(sc);
         ds->condition = resolveProperties(sc, ds->condition);
         ds->condition = ds->condition->optimize(WANTvalue);
@@ -433,6 +437,9 @@ public:
         sc->noctor++;
         if (fs->condition)
         {
+            if (fs->condition->op == TOKdotid)
+                ((DotIdExp *)fs->condition)->noderef = true;
+
             fs->condition = fs->condition->semantic(sc);
             fs->condition = resolveProperties(sc, fs->condition);
             fs->condition = fs->condition->optimize(WANTvalue);
@@ -1693,6 +1700,9 @@ public:
         }
         else
         {
+            if (ifs->condition->op == TOKdotid)
+                ((DotIdExp *)ifs->condition)->noderef = true;
+
             ifs->condition = ifs->condition->semantic(sc);
             ifs->condition = resolveProperties(sc, ifs->condition);
             ifs->condition = ifs->condition->addDtorHook(sc);
@@ -2419,7 +2429,7 @@ public:
         }
         else if (rs->exp)
         {
-            fd->hasReturnExp |= 1;
+            fd->hasReturnExp |= (fd->hasReturnExp & 1 ? 16 : 1);
 
             FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration();
             if (tret)

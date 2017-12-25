@@ -145,7 +145,6 @@ public:
 
     void print();
     const char *toChars();
-    virtual void printAST(int ident = 0);
     void error(const char *format, ...) const;
     void warning(const char *format, ...) const;
     void deprecation(const char *format, ...) const;
@@ -749,7 +748,6 @@ public:
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
-    void printAST(int ident);
 };
 
 typedef UnionExp (*fp_t)(Type *, Expression *, Expression *);
@@ -777,16 +775,12 @@ public:
     Expression *reorderSettingAAElem(Scope *sc);
 
     void accept(Visitor *v) { v->visit(this); }
-    void printAST(int ident);
 };
 
 class BinAssignExp : public BinExp
 {
 public:
-    BinAssignExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2)
-        : BinExp(loc, op, size, e1, e2)
-    {
-    }
+    BinAssignExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2);
 
     Expression *semantic(Scope *sc);
 
@@ -830,6 +824,7 @@ class DotIdExp : public UnaExp
 {
 public:
     Identifier *ident;
+    bool noderef;       // true if the result of the expression will never be dereferenced
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
 
     DotIdExp(Loc loc, Expression *e, Identifier *ident);

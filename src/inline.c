@@ -1814,7 +1814,7 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, bool statementsToo
             goto Lno;
 
         /* Don't inline a function that returns non-void, but has
-         * no return expression.
+         * no or multiple return expression.
          * No statement inlining for non-voids.
          */
         if (tf->next && tf->next->ty != Tvoid &&
@@ -1849,6 +1849,16 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, bool statementsToo
         (fd->isVirtual() && !fd->isFinalFunc())
        ))
     {
+        goto Lno;
+    }
+
+    // cannot inline functions as statement if they have multiple
+    //  return statements
+    if ((fd->hasReturnExp & 16) && statementsToo)
+    {
+#if CANINLINE_LOG
+        printf("\t5: no %s\n", fd->toChars());
+#endif
         goto Lno;
     }
 

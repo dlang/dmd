@@ -2149,6 +2149,30 @@ bool functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     return (err || olderrors != global.errors);
 }
 
+/*********************
+ * Mark the operand as will never be dereferenced,
+ * which is useful info for @safe checks.
+ * Do before semantic() on operands rewrites them.
+ */
+static void setNoderefOperand(UnaExp *e)
+{
+    if (e->e1->op == TOKdotid)
+        ((DotIdExp *)e->e1)->noderef = true;
+}
+
+/*********************
+ * Mark the operands as will never be dereferenced,
+ * which is useful info for @safe checks.
+ * Do before semantic() on operands rewrites them.
+ */
+static void setNoderefOperands(BinExp *e)
+{
+    if (e->e1->op == TOKdotid)
+        ((DotIdExp *)e->e1)->noderef = true;
+    if (e->e2->op == TOKdotid)
+        ((DotIdExp *)e->e2)->noderef = true;
+}
+
 /******************************** Expression **************************/
 
 Expression::Expression(Loc loc, TOK op, int size)
@@ -2245,18 +2269,6 @@ const char *Expression::toChars()
     HdrGenState hgs;
     toCBuffer(this, &buf, &hgs);
     return buf.extractString();
-}
-
-/********************
- * Print AST data structure in a nice format.
- * Params:
- *  indent = indentation level
- */
-void Expression::printAST(int indent)
-{
-    for (int i = 0; i < indent; i++)
-        printf(" ");
-    printf("%s %s\n", Token::toChars(op), type ? type->toChars() : "");
 }
 
 void Expression::error(const char *format, ...) const
@@ -4431,7 +4443,7 @@ static void appendArrayLiteral(Expressions *elems, ArrayLiteralExp *ale)
  *      e2  = If it's not `null`, it will be pushed/appended to the new
  *            `Expressions` by the same way with `e1`.
  * Returns:
- *      Newly allocated `Expresions. Note that it points the original
+ *      Newly allocated `Expressions`. Note that it points to the original
  *      `Expression` values in e1 and e2.
  */
 Expressions* ArrayLiteralExp::copyElements(Expression *e1, Expression *e2)
@@ -6976,12 +6988,6 @@ Expression *UnaExp::resolveLoc(Loc loc, Scope *sc)
     return this;
 }
 
-void UnaExp::printAST(int indent)
-{
-    Expression::printAST(indent);
-    e1->printAST(indent + 2);
-}
-
 /************************************************************/
 
 BinExp::BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2)
@@ -7214,14 +7220,12 @@ bool BinExp::checkArithmeticBin()
     return (r1 || r2);
 }
 
-void BinExp::printAST(int indent)
-{
-    Expression::printAST(indent);
-    e1->printAST(indent + 2);
-    e2->printAST(indent + 2);
-}
-
 /********************** BinAssignExp **************************************/
+
+BinAssignExp::BinAssignExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2)
+        : BinExp(loc, op, size, e1, e2)
+{
+}
 
 Expression *BinAssignExp::semantic(Scope *sc)
 {
@@ -7618,7 +7622,7 @@ Expression *DotIdExp::semanticX(Scope *sc)
     if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tsarray && ident == Id::length)
     {
         // bypass checkPurity
-        return e1->type->dotExp(sc, e1, ident, 0);
+        return e1->type->dotExp(sc, e1, ident, noderef ? 2 : 0);
     }
 
     if (e1->op == TOKdot)
@@ -7943,13 +7947,13 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             return NULL;
         e = new PtrExp(loc, e1);
         e = e->semantic(sc);
-        return e->type->dotExp(sc, e, ident, flag);
+        return e->type->dotExp(sc, e, ident, flag | (noderef ? 2 : 0));
     }
     else
     {
         if (e1->op == TOKtype || e1->op == TOKtemplate)
             flag = 0;
-        e = e1->type->dotExp(sc, e1, ident, flag);
+        e = e1->type->dotExp(sc, e1, ident, flag | (noderef ? 2 : 0));
         if (!flag || e)
             e = e->semantic(sc);
         return e;
@@ -9113,7 +9117,7 @@ Lagain:
                 return ue->e1;
             ethis = ue->e1;
             tthis = ue->e1->type;
-            if (!f->type->isscope())
+            if (!(f->type->ty == Tfunction && ((TypeFunction *)f->type)->isscope))
             {
                 if (global.params.vsafe && checkParamArgumentEscape(sc, f, Id::This, ethis, false))
                     return new ErrorExp();
@@ -9859,15 +9863,26 @@ Expression *AddrExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-            if (f->needThis() && hasThis(sc))
+            if (f->needThis())
             {
-                /* Should probably supply 'this' after overload resolution,
-                 * not before.
-                 */
-                Expression *ethis = new ThisExp(loc);
-                Expression *e = new DelegateExp(loc, ethis, f, ve->hasOverloads);
-                e = e->semantic(sc);
-                return e;
+                if (hasThis(sc))
+                {
+                    /* Should probably supply 'this' after overload resolution,
+                     * not before.
+                     */
+                    Expression *ethis = new ThisExp(loc);
+                    Expression *e = new DelegateExp(loc, ethis, f, ve->hasOverloads);
+                    e = e->semantic(sc);
+                    return e;
+                }
+                if (sc->func && !sc->intypeof)
+                {
+                    if (sc->func->setUnsafe())
+                    {
+                        error("'this' reference necessary to take address of member %s in @safe function %s",
+                            f->toChars(), sc->func->toChars());
+                    }
+                }
             }
         }
     }
@@ -10133,6 +10148,8 @@ Expression *NotExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    setNoderefOperand(this);
+
     // Note there is no operator overload
     if (Expression *ex = unaSemantic(sc))
         return ex;
@@ -10332,6 +10349,9 @@ Expression *CastExp::semantic(Scope *sc)
         if (to == Type::terror)
             return new ErrorExp();
 
+        if (!to->hasPointers())
+            setNoderefOperand(this);
+
         // When e1 is a template lambda, this cast may instantiate it with
         // the type 'to'.
         e1 = inferType(e1, to);
@@ -10454,23 +10474,44 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (tob->ty == Tarray && t1b->ty == Tsarray)    // Bugzilla 12502
             t1b = t1b->nextOf()->arrayOf();
-        if (tob->ty == Tarray && t1b->ty == Tarray)
+
+        if (tob->ty == Tarray   && t1b->ty == Tarray ||
+            tob->ty == Tpointer && t1b->ty == Tpointer)
         {
             Type* tobn = tob->nextOf()->toBasetype();
             Type* t1bn = t1b->nextOf()->toBasetype();
-            if (!tobn->hasPointers() && MODimplicitConv(t1bn->mod, tobn->mod))
-                goto Lsafe;
-        }
-        if (tob->ty == Tpointer && t1b->ty == Tpointer)
-        {
-            Type* tobn = tob->nextOf()->toBasetype();
-            Type* t1bn = t1b->nextOf()->toBasetype();
+
+            /* From void[] to anything mutable is unsafe because:
+             *  int*[] api;
+             *  void[] av = api;
+             *  int[] ai = cast(int[]) av;
+             *  ai[0] = 7;
+             *  *api[0] crash!
+             */
+            if (t1bn->ty == Tvoid && tobn->isMutable())
+            {
+                if (tob->ty == Tarray && ex->op == TOKarrayliteral)
+                    goto Lsafe;
+                goto Lunsafe;
+            }
+
             // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
-            bool sfwrd = tobn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)tobn)->sym)->members ||
-                    t1bn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)t1bn)->sym)->members;
-            if (!sfwrd && !tobn->hasPointers() &&
+            if (tobn->ty == Tstruct && !((TypeStruct *)tobn)->sym->members ||
+                t1bn->ty == Tstruct && !((TypeStruct *)t1bn)->sym->members)
+                goto Lunsafe;
+
+            bool t1pointers = t1bn->hasPointers();
+            bool topointers = tobn->hasPointers();
+
+            if (t1pointers && !topointers && tobn->isMutable())
+                goto Lunsafe;
+
+            if (!t1pointers && topointers)
+                goto Lunsafe;
+
+            if (!topointers &&
                 tobn->ty != Tfunction && t1bn->ty != Tfunction &&
-                tobn->size() <= t1bn->size() &&
+                (tob->ty == Tarray || tobn->size() <= t1bn->size()) &&
                 MODimplicitConv(t1bn->mod, tobn->mod))
             {
                 goto Lsafe;
@@ -11836,6 +11877,8 @@ Expression *AssignExp::semantic(Scope *sc)
         e2x = e2x->semantic(sc);
         e2x = resolveProperties(sc, e2x);
 
+        if (e2x->op == TOKtype)
+            e2x = resolveAliasThis(sc, e2x); //https://issues.dlang.org/show_bug.cgi?id=17684
         if (e2x->op == TOKerror)
             return e2x;
         if (e2x->checkValue())
@@ -13865,6 +13908,11 @@ OrOrExp::OrOrExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *OrOrExp::semantic(Scope *sc)
 {
+    if (type)
+        return this;
+
+    setNoderefOperands(this);
+
     // same as for AndAnd
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
@@ -13921,6 +13969,11 @@ AndAndExp::AndAndExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *AndAndExp::semantic(Scope *sc)
 {
+    if (type)
+        return this;
+
+    setNoderefOperands(this);
+
     // same as for OrOr
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
@@ -14047,6 +14100,8 @@ Expression *CmpExp::semantic(Scope *sc)
 #endif
     if (type)
         return this;
+
+    setNoderefOperands(this);
 
     if (Expression *ex = binSemanticProp(sc))
         return ex;
@@ -14194,6 +14249,8 @@ Expression *EqualExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    setNoderefOperands(this);
+
     if (Expression *e = binSemanticProp(sc))
         return e;
     if (e1->op == TOKtype || e2->op == TOKtype)
@@ -14259,6 +14316,8 @@ Expression *IdentityExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    setNoderefOperands(this);
+
     if (Expression *ex = binSemanticProp(sc))
         return ex;
     type = Type::tbool;
@@ -14299,6 +14358,9 @@ Expression *CondExp::semantic(Scope *sc)
 #endif
     if (type)
         return this;
+
+    if (econd->op == TOKdotid)
+        ((DotIdExp *)econd)->noderef = true;
 
     Expression *ec = econd->semantic(sc);
     ec = resolveProperties(sc, ec);
