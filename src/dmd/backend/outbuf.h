@@ -15,15 +15,6 @@
 
 #include <stddef.h>     // for size_t
 
-#if __APPLE__ && __i386__
-    /* size_t is 'unsigned long', which makes it mangle differently
-     * than D's 'uint'
-     */
-    typedef unsigned d_size_t;
-#else
-    typedef size_t d_size_t;
-#endif
-
 // Output buffer
 
 // (This used to be called OutBuffer, we renamed it to avoid name conflicts with Mars.)
@@ -47,14 +38,14 @@ struct Outbuffer
     void reset();
 
     // Reserve nbytes in buffer
-    void reserve(d_size_t nbytes)
+    void reserve(size_t nbytes)
     {
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
 
     // Reserve nbytes in buffer
-    void enlarge(d_size_t nbytes);
+    void enlarge(size_t nbytes);
 
     // Write n zeros; return pointer to start of zeros
     void *writezeros(d_size_t n);

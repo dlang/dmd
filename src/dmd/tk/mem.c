@@ -614,7 +614,7 @@ L1:
 
 /***************************/
 
-void *mem_malloc(d_size_t numbytes)
+void *mem_malloc(size_t numbytes)
 {       void *p;
 
         if (numbytes == 0)
