@@ -188,13 +188,6 @@ endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
-# Clang Specific
-ifeq ($(CXX_KIND), clang++)
-WARNINGS += \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
-endif
 endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
@@ -210,6 +203,11 @@ CXXFLAGS := $(WARNINGS) \
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
     -std=gnu++98
+endif
+# Clang Specific
+ifeq ($(CXX_KIND), clang++)
+CXXFLAGS += \
+    -xc++
 endif
 DFLAGS := -version=MARS $(PIC)
 # Enable D warnings
