@@ -37,6 +37,7 @@ LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement);
 Identifier *fixupLabelName(Scope *sc, Identifier *ident);
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
+Expression *checkAssignmentAsCondition(Expression *e);
 
 Expression *semantic(Expression *e, Scope *sc);
 Statement *semantic(Statement *s, Scope *sc);
@@ -375,6 +376,9 @@ public:
         if (ds->condition->op == TOKdotid)
             ((DotIdExp *)ds->condition)->noderef = true;
 
+        // check in syntax level
+        ds->condition = checkAssignmentAsCondition(ds->condition);
+
         ds->condition = semantic(ds->condition, sc);
         ds->condition = resolveProperties(sc, ds->condition);
         ds->condition = ds->condition->optimize(WANTvalue);
@@ -441,6 +445,9 @@ public:
         {
             if (fs->condition->op == TOKdotid)
                 ((DotIdExp *)fs->condition)->noderef = true;
+
+            // check in syntax level
+            fs->condition = checkAssignmentAsCondition(fs->condition);
 
             fs->condition = semantic(fs->condition, sc);
             fs->condition = resolveProperties(sc, fs->condition);
@@ -1673,6 +1680,9 @@ public:
         unsigned *fi0 = sc->saveFieldInit();
         unsigned *fi1 = NULL;
 
+        // check in syntax level
+        ifs->condition = checkAssignmentAsCondition(ifs->condition);
+
         ScopeDsymbol *sym = new ScopeDsymbol();
         sym->parent = sc->scopesym;
         sym->endlinnum = ifs->endloc.linnum;
@@ -1682,8 +1692,8 @@ public:
             /* Declare prm, which we will set to be the
              * result of condition.
              */
-
-            ifs->match = new VarDeclaration(ifs->loc, ifs->prm->type, ifs->prm->ident, new ExpInitializer(ifs->loc, ifs->condition));
+            ExpInitializer *ei = new ExpInitializer(ifs->loc, ifs->condition);
+            ifs->match = new VarDeclaration(ifs->loc, ifs->prm->type, ifs->prm->ident, ei);
             ifs->match->parent = sc->func;
             ifs->match->storage_class |= ifs->prm->storageClass;
 

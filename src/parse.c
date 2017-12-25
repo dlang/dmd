@@ -5262,8 +5262,6 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
             }
 
             condition = parseExpression();
-            if (condition->op == TOKassign)
-                error("assignment cannot be used as a condition, perhaps == was meant?");
             check(TOKrparen);
             {
                 Loc lookingForElseSave = lookingForElse;

@@ -64,6 +64,27 @@ LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement)
     return NULL;
 }
 
+/***********************************************************
+ * Check an assignment is used as a condition.
+ * Intended to be use before the `semantic` call on `e`.
+ * Params:
+ *  e = condition expression which is not yet run semantic analysis.
+ * Returns:
+ *  `e` or ErrorExp.
+ */
+Expression *checkAssignmentAsCondition(Expression *e)
+{
+    Expression *ec = e;
+    while (ec->op == TOKcomma)
+        ec = ((CommaExp *)ec)->e2;
+    if (ec->op == TOKassign)
+    {
+        ec->error("assignment cannot be used as a condition, perhaps == was meant?");
+        return new ErrorExp();
+    }
+    return e;
+}
+
 /******************************** Statement ***************************/
 
 Statement::Statement(Loc loc)
