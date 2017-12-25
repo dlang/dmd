@@ -19,7 +19,6 @@
 #include "rmem.h"
 #include "root.h"
 #include "port.h"
-#include "target.h"
 
 #include "mtype.h"
 #include "expression.h"
@@ -27,6 +26,7 @@
 #include "declaration.h"
 #include "utf.h"
 #include "ctfe.h"
+#include "target.h"
 
 #define LOG 0
 

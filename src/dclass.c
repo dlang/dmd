@@ -16,7 +16,6 @@
 
 #include "root.h"
 #include "rmem.h"
-#include "target.h"
 
 #include "enum.h"
 #include "init.h"
@@ -31,6 +30,7 @@
 #include "statement.h"
 #include "template.h"
 #include "objc.h"
+#include "target.h"
 
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
 

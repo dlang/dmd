@@ -415,37 +415,115 @@ Expression *Target::paintAsType(Expression *e, Type *type)
     return NULL;    // avoid warning
 }
 
-/*
- * Return true if the given type is supported for this target
+/**
+ * Checks whether the target supports a vector type with total size `sz`
+ * (in bytes) and element type `type`.
+ *
+ * Returns: 0 if the type is supported, or else: 1 if vector types are not
+ *     supported on the target at all, 2 if the element type isn't, or 3 if
+ *     the given size isn't.
  */
 
-int Target::checkVectorType(int sz, Type *type)
+int Target::isVectorTypeSupported(int sz, Type *type)
 {
     if (!global.params.is64bit && !global.params.isOSX)
         return 1; // not supported
 
-    if (sz != 16 && sz != 32)
-        return 2; // wrong size
-
     switch (type->ty)
     {
-    case Tvoid:
-    case Tint8:
-    case Tuns8:
-    case Tint16:
-    case Tuns16:
-    case Tint32:
-    case Tuns32:
-    case Tfloat32:
-    case Tint64:
-    case Tuns64:
-    case Tfloat64:
-        break;
-    default:
-        return 3; // wrong base type
+        case Tvoid:
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:
+        case Tint32:
+        case Tuns32:
+        case Tfloat32:
+        case Tint64:
+        case Tuns64:
+        case Tfloat64:
+            break;
+        default:
+            return 2; // wrong base type
     }
 
+    if (sz != 16 && sz != 32)
+        return 3; // wrong size
+
     return 0;
+}
+
+/**
+ * Checks whether the target supports operation `op` for vectors of type `type`.
+ * For binary ops `t2` is the type of the 2nd operand.
+ *
+ * Returns:
+ *      true if the operation is supported or type is not a vector
+ */
+bool Target::isVectorOpSupported(Type *type, TOK op, Type *t2)
+{
+    if (type->ty != Tvector)
+        return true; // not a vector op
+    TypeVector *tvec = (TypeVector*)type;
+
+    bool supported;
+    switch (op)
+    {
+        case TOKneg: case TOKuadd:
+            supported = tvec->isscalar();
+            break;
+
+        case TOKlt: case TOKgt: case TOKle: case TOKge: case TOKequal: case TOKnotequal: case TOKidentity: case TOKnotidentity:
+            supported = false;
+            break;
+
+        case TOKunord: case TOKlg: case TOKleg: case TOKule: case TOKul: case TOKuge: case TOKug: case TOKue:
+            supported = false;
+            break;
+
+        case TOKshl: case TOKshlass: case TOKshr: case TOKshrass: case TOKushr: case TOKushrass:
+            supported = false;
+            break;
+
+        case TOKadd: case TOKaddass: case TOKmin: case TOKminass:
+            supported = tvec->isscalar();
+            break;
+
+        case TOKmul: case TOKmulass:
+            // only floats and short[8]/ushort[8] (PMULLW)
+            if (tvec->isfloating() || tvec->elementType()->size(Loc()) == 2)
+                supported = true;
+            else
+                supported = false;
+            break;
+
+        case TOKdiv: case TOKdivass:
+            supported = tvec->isfloating();
+            break;
+
+        case TOKmod: case TOKmodass:
+            supported = false;
+            break;
+
+        case TOKand: case TOKandass: case TOKor: case TOKorass: case TOKxor: case TOKxorass:
+            supported = tvec->isintegral();
+            break;
+
+        case TOKnot:
+            supported = false;
+
+        case TOKtilde:
+            supported = tvec->isintegral();
+            break;
+
+	case TOKpow: case TOKpowass:
+            supported = false;
+            break;
+
+        default:
+            assert(0);
+    }
+    return supported;
 }
 
 /******************************

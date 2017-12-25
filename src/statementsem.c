@@ -14,7 +14,6 @@
 
 #include "rmem.h"
 #include "checkedint.h"
-#include "target.h"
 
 #include "statement.h"
 #include "expression.h"
@@ -29,6 +28,7 @@
 #include "enum.h"
 #include "template.h"
 #include "import.h"
+#include "target.h"
 #include "visitor.h"
 
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
