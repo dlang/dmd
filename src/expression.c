@@ -1253,6 +1253,12 @@ bool arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
             t0 = Type::terror;
             continue;
         }
+        if (e->type->ty == Tvoid)
+        {
+            // void expressions do not concur to the determination of the common
+            // type.
+            continue;
+        }
         if (checkNonAssignmentArrayOp(e))
         {
             t0 = Type::terror;
@@ -7993,7 +7999,7 @@ Expression *DotVarExp::semantic(Scope *sc)
          *  tuple(e1.a, e1.b, e1.c)
          */
         Expression *e0 = NULL;
-        Expression *ev = extractSideEffect(sc, "__tup", &e0, e1);
+        Expression *ev = sc->func ? extractSideEffect(sc, "__tup", &e0, e1) : e1;
 
         Expressions *exps = new Expressions;
         exps->reserve(tup->objects->dim);
@@ -14320,11 +14326,17 @@ Expression *CondExp::semantic(Scope *sc)
     if (e2x->type == Type::terror) return new ErrorExp();
     e2 = e2x;
 
-    // If either operand is void, the result is void
     Type *t1 = e1->type;
     Type *t2 = e2->type;
+    // If either operand is void the result is void, we have to cast both
+    // the expression to void so that we explicitly discard the expression
+    // value if any (bugzilla 16598)
     if (t1->ty == Tvoid || t2->ty == Tvoid)
+    {
         type = Type::tvoid;
+        e1 = e1->castTo(sc, type);
+        e2 = e2->castTo(sc, type);
+    }
     else if (t1 == t2)
         type = t1;
     else
