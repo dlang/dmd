@@ -86,7 +86,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
                 {
                     //printf("result = x%x\n", result);
                     //printf("s: %s\n", s->toChars());
-                    if (global.params.warnings && result & BEfallthru && slast)
+                    if (result & BEfallthru && slast)
                     {
                         slast = slast->last();
                         if (slast && (slast->isCaseStatement() || slast->isDefaultStatement()) &&
@@ -102,7 +102,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
                             else
                             {
                                 const char *gototype = s->isCaseStatement() ? "case" : "default";
-                                s->warning("switch case fallthrough - use 'goto %s;' if intended", gototype);
+                                s->deprecation("switch case fallthrough - use 'goto %s;' if intended", gototype);
                             }
                         }
                     }
