@@ -6,8 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
- * Documentation:  https://dlang.org/phobos/ddmd_target.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/ddmd/target.d
+ * Documentation:  https://dlang.org/phobos/dmd_target.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/target.d
  */
 
 module dmd.target;
