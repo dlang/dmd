@@ -114,7 +114,7 @@ public:
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
 
-    virtual ExpInitializer *isExpInitializer() { return this; }
+    ExpInitializer *isExpInitializer() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

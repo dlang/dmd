@@ -151,7 +151,16 @@ private:
         return f;
     }
 
-    static bool checkAddressVar(Scope *sc, AddrExp *e, VarDeclaration *v)
+    /****************************************************
+     * Determine if `exp`, which takes the address of `v`, can do so safely.
+     * Params:
+     *      sc = context
+     *      exp = expression that takes the address of `v`
+     *      v = the variable getting its address taken
+     * Returns:
+     *      `true` if ok, `false` for error
+     */
+    static bool checkAddressVar(Scope *sc, UnaExp *e, VarDeclaration *v)
     {
         if (v)
         {
@@ -366,17 +375,16 @@ public:
             return;
         }
 
-        const char *n = importHint(exp->ident->toChars());
-        if (n)
-            exp->error("'%s' is not defined, perhaps you need to import %s; ?", exp->ident->toChars(), n);
+        /* Look for what user might have meant
+         */
+        if (const char *n = importHint(exp->ident->toChars()))
+            exp->error("`%s` is not defined, perhaps `import %s;` is needed?", exp->ident->toChars(), n);
+        else if (Dsymbol *s2 = sc->search_correct(exp->ident))
+            exp->error("undefined identifier `%s`, did you mean %s `%s`?", exp->ident->toChars(), s2->kind(), s2->toChars());
+        else if (const char *p = Scope::search_correct_C(exp->ident))
+            exp->error("undefined identifier `%s`, did you mean `%s`?", exp->ident->toChars(), p);
         else
-        {
-            s = sc->search_correct(exp->ident);
-            if (s)
-                exp->error("undefined identifier '%s', did you mean %s '%s'?", exp->ident->toChars(), s->kind(), s->toChars());
-            else
-                exp->error("undefined identifier '%s'", exp->ident->toChars());
-        }
+            exp->error("undefined identifier `%s`", exp->ident->toChars());
         return setError();
     }
 
@@ -2154,6 +2162,9 @@ public:
         }
         if (exp->e1->op == TOKslice || exp->e1->type->ty == Tarray || exp->e1->type->ty == Tsarray)
         {
+            if (exp->e1->op == TOKslice)
+                ((SliceExp *)exp->e1)->arrayop = true;
+
             // T[] op= ...
             if (exp->e2->implicitConvTo(exp->e1->type->nextOf()))
             {
@@ -4503,6 +4514,45 @@ public:
         }
         else if (t1b->ty == Tsarray)
         {
+            if (!exp->arrayop && global.params.vsafe)
+            {
+                /* Slicing a static array is like taking the address of it.
+                 * Perform checks as if e[] was &e
+                 */
+                VarDeclaration *v = NULL;
+                if (exp->e1->op == TOKdotvar)
+                {
+                    DotVarExp *dve = (DotVarExp *)exp->e1;
+                    if (dve->e1->op == TOKvar)
+                    {
+                        VarExp *ve = (VarExp *)dve->e1;
+                        v = ve->var->isVarDeclaration();
+                    }
+                    else if (dve->e1->op == TOKthis || dve->e1->op == TOKsuper)
+                    {
+                        ThisExp *ve = (ThisExp *)dve->e1;
+                        v = ve->var->isVarDeclaration();
+                        if (v && !(v->storage_class & STCref))
+                            v = NULL;
+                    }
+                }
+                else if (exp->e1->op == TOKvar)
+                {
+                    VarExp *ve = (VarExp *)exp->e1;
+                    v = ve->var->isVarDeclaration();
+                }
+                else if (exp->e1->op == TOKthis || exp->e1->op == TOKsuper)
+                {
+                    ThisExp *ve = (ThisExp *)exp->e1;
+                    v = ve->var->isVarDeclaration();
+                }
+
+                if (v)
+                {
+                    if (!checkAddressVar(sc, exp, v))
+                        return setError();
+                }
+            }
         }
         else if (t1b->ty == Ttuple)
         {
@@ -5381,7 +5431,12 @@ public:
                 e1x = e;
             }
             else
+            {
+                if (e1x->op == TOKslice)
+                    ((SliceExp *)e1x)->arrayop = true;
+
                 e1x = semantic(e1x, sc);
+            }
 
             /* We have f = value.
              * Could mean:
@@ -5859,8 +5914,9 @@ public:
                 {
                     // convert e1 to e1[]
                     // e.g. e1[] = a[] + b[];
-                    e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-                    e1x = semantic(e1x, sc);
+                    SliceExp *sle = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                    sle->arrayop = true;
+                    e1x = semantic(sle, sc);
                 }
                 else
                 {
@@ -5908,8 +5964,9 @@ public:
                         e1x->type = t->nextOf()->sarrayOf(dim);
                     }
                 }
-                e1x = new SliceExp(e1x->loc, e1x, NULL, NULL);
-                e1x = semantic(e1x, sc);
+                SliceExp *sle = new SliceExp(e1x->loc, e1x, NULL, NULL);
+                sle->arrayop = true;
+                e1x = semantic(sle, sc);
             }
             if (e1x->op == TOKerror)
             {
@@ -7838,8 +7895,7 @@ public:
                 exp->error("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
                     Token::toChars(exp->op));
             }
-            result = new ErrorExp();
-            return;
+            return setError();
         }
 
         //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());

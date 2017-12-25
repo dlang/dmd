@@ -985,6 +985,7 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFi
     cases = NULL;
     hasNoDefault = 0;
     hasVars = 0;
+    lastVar = NULL;
 }
 
 Statement *SwitchStatement::syntaxCopy()
@@ -1054,6 +1055,7 @@ CaseStatement::CaseStatement(Loc loc, Expression *exp, Statement *s)
     this->exp = exp;
     this->statement = s;
     index = 0;
+    lastVar = NULL;
 }
 
 Statement *CaseStatement::syntaxCopy()
@@ -1097,6 +1099,7 @@ DefaultStatement::DefaultStatement(Loc loc, Statement *s)
     : Statement(loc)
 {
     this->statement = s;
+    this->lastVar = NULL;
 }
 
 Statement *DefaultStatement::syntaxCopy()

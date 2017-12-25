@@ -5407,7 +5407,7 @@ Lcovariant:
             goto Lnotcovariant;
     }
 
-    // We can subtract 'return' from 'this', but cannot add it
+    // We can subtract 'return ref' from 'this', but cannot add it
     else if (t1->isreturn && !t2->isreturn)
         goto Lnotcovariant;
 
@@ -5678,7 +5678,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 }
             }
 
-            if (fparam->storageClass & STCscope && !fparam->type->hasPointers())
+            if (fparam->storageClass & STCscope && !fparam->type->hasPointers() && fparam->type->ty != Ttuple)
             {
                 fparam->storageClass &= ~STCscope;
                 if (!(fparam->storageClass & STCref))
@@ -6928,19 +6928,19 @@ L1:
     }
     if (!s)
     {
+        /* Look for what user might have intended
+         */
         const char *p = mutableOf()->unSharedOf()->toChars();
-        const char *n = importHint(p);
-        if (n)
-            error(loc, "'%s' is not defined, perhaps you need to import %s; ?", p, n);
+        Identifier *id = Identifier::idPool(p, strlen(p));
+        if (const char *n = importHint(p))
+            error(loc, "`%s` is not defined, perhaps `import %s;` ?", p, n);
+        else if (Dsymbol *s2 = sc->search_correct(id))
+            error(loc, "undefined identifier `%s`, did you mean %s `%s`?", p, s2->kind(), s2->toChars());
+        else if (const char *q = Scope::search_correct_C(id))
+            error(loc, "undefined identifier `%s`, did you mean `%s`?", p, q);
         else
-        {
-            Identifier *id = new Identifier(p);
-            s = sc->search_correct(id);
-            if (s)
-                error(loc, "undefined identifier '%s', did you mean %s '%s'?", p, s->kind(), s->toChars());
-            else
-                error(loc, "undefined identifier '%s'", p);
-        }
+            error(loc, "undefined identifier `%s`", p);
+
         *pt = Type::terror;
     }
 }

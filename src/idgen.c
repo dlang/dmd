@@ -369,6 +369,12 @@ Msgtable msgtable[] =
 
     // Compiler recognized UDA's
     { "udaSelector", "selector" },
+
+    // C names, for undefined identifier error messages
+    { "_NULL", "NULL" },
+    { "_TRUE", "TRUE" },
+    { "_FALSE", "FALSE" },
+    { "_unsigned", "unsigned" },
 };
 
 

@@ -32,7 +32,8 @@
 #include "visitor.h"
 
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
-bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
+bool checkReturnEscapeRef(Scope *sc, Expression *e, bool gag);
+bool checkThrowEscape(Scope *sc, Expression *e, bool gag);
 LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement);
 Identifier *fixupLabelName(Scope *sc, Identifier *ident);
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
@@ -2568,7 +2569,7 @@ public:
                 {
                     /* May return by ref
                     */
-                    if (checkEscapeRef(sc, rs->exp, true))
+                    if (checkReturnEscapeRef(sc, rs->exp, true))
                         tf->isref = false;  // return by value
                 }
                 else
@@ -3290,6 +3291,8 @@ public:
         ts->exp = checkGC(sc, ts->exp);
         if (ts->exp->op == TOKerror)
             return setError();
+
+        checkThrowEscape(sc, ts->exp, false);
 
         ClassDeclaration *cd = ts->exp->type->toBasetype()->isClassHandle();
         if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))

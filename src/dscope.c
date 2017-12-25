@@ -739,3 +739,27 @@ Dsymbol *Scope::search_correct(Identifier *ident)
 
     return (Dsymbol *)speller(ident->toChars(), &scope_search_fp, this, idchars);
 }
+
+/************************************
+ * Maybe `ident` was a C or C++ name. Check for that,
+ * and suggest the D equivalent.
+ * Params:
+ *  ident = unknown identifier
+ * Returns:
+ *  D identifier string if found, null if not
+ */
+const char *Scope::search_correct_C(Identifier *ident)
+{
+    TOK tok;
+    if (ident == Id::_NULL)
+        tok = TOKnull;
+    else if (ident == Id::_TRUE)
+        tok = TOKtrue;
+    else if (ident == Id::_FALSE)
+        tok = TOKfalse;
+    else if (ident == Id::_unsigned)
+        tok = TOKuns32;
+    else
+        return NULL;
+    return Token::toChars(tok);
+}

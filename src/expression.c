@@ -5286,6 +5286,7 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 {
     this->ident = ident;
     this->wantsym = false;
+    this->noderef = false;
 }
 
 DotIdExp *DotIdExp::create(Loc loc, Expression *e, Identifier *ident)
@@ -5838,6 +5839,7 @@ SliceExp::SliceExp(Loc loc, Expression *e1, IntervalExp *ie)
     lengthVar = NULL;
     upperIsInBounds = false;
     lowerIsLessThanUpper = false;
+    arrayop = false;
 }
 
 SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
@@ -5848,6 +5850,7 @@ SliceExp::SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr)
     lengthVar = NULL;
     upperIsInBounds = false;
     lowerIsLessThanUpper = false;
+    arrayop = false;
 }
 
 Expression *SliceExp::syntaxCopy()

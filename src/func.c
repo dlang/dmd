@@ -33,8 +33,8 @@
 #include "objc.h"
 
 Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclaration *vthis, bool direct);
-bool checkEscape(Scope *sc, Expression *e, bool gag);
-bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
+bool checkReturnEscape(Scope *sc, Expression *e, bool gag);
+bool checkReturnEscapeRef(Scope *sc, Expression *e, bool gag);
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 Statement *semantic(Statement *s, Scope *sc);
 void semantic(Catch *c, Scope *sc);
@@ -588,6 +588,13 @@ void FuncDeclaration::semantic(Scope *sc)
         // 'return' on a non-static class member function implies 'scope' as well
         if (ad && ad->isClassDeclaration() && (tf->isreturn || sc->stc & STCreturn) && !(sc->stc & STCstatic))
             sc->stc |= STCscope;
+
+        // If 'this' has no pointers, remove 'scope' as it has no meaning
+        if (sc->stc & STCscope && ad && ad->isStructDeclaration() && !ad->type->hasPointers())
+        {
+            sc->stc &= ~STCscope;
+            tf->isscope = false;
+        }
 
         sc->linkage = linkage;
 
@@ -1822,7 +1829,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         // Function returns a reference
                         exp = exp->toLvalue(sc2, exp);
-                        checkEscapeRef(sc2, exp, false);
+                        checkReturnEscapeRef(sc2, exp, false);
                     }
                     else
                     {
@@ -1835,7 +1842,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                             exp = doCopyOrMove(sc2, exp);
 
                         if (tret->hasPointers())
-                            checkEscape(sc2, exp, false);
+                            checkReturnEscape(sc2, exp, false);
                     }
 
                     exp = checkGC(sc2, exp);
@@ -2446,10 +2453,21 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
          */
         VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
         v->storage_class |= STCparameter;
-        v->semantic(sc);
-        if (!sc->insert(v))
-            assert(0);
-        v->parent = this;
+	if (type->ty == Tfunction)
+	{
+	    TypeFunction *tf = (TypeFunction *)type;
+	    if (tf->isreturn)
+		v->storage_class |= STCreturn;
+	    if (tf->isscope)
+		v->storage_class |= STCscope;
+	}
+	if (flags & FUNCFLAGinferScope)
+	    v->storage_class |= STCmaybescope;
+
+	v->semantic(sc);
+	if (!sc->insert(v))
+	    assert(0);
+	v->parent = this;
         return v;
     }
 

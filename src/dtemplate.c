@@ -3426,8 +3426,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             (*dedtypes)[i] = tt;
                             if (result > MATCHconst)
                                 result = MATCHconst;    // limit level for inout matches
+                            delete xt;
                         }
-                        delete xt;
                         return;
                     }
 
@@ -3469,8 +3469,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                         if (result > MATCHnomatch)
                         {
                             (*dedtypes)[i] = tt;
+                            delete xt;
                         }
-                        delete xt;
                         return;
                     }
 

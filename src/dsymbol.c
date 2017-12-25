@@ -684,7 +684,7 @@ void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
     {
         if (!sds->symtabInsert(this))    // if name is already defined
         {
-            Dsymbol *s2 = sds->symtab->lookup(ident);
+            Dsymbol *s2 = sds->symtabLookup(this, ident);
             if (!s2->overloadInsert(this))
             {
                 sds->multiplyDefined(Loc(), this, s2);
@@ -957,6 +957,10 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     sds->members = arraySyntaxCopy(members);
     sds->endlinnum = endlinnum;
     return sds;
+}
+
+void ScopeDsymbol::semantic(Scope *)
+{
 }
 
 /*****************************************
@@ -1285,9 +1289,13 @@ Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
     return symtab->insert(s);
 }
 
+/****************************************
+ * Look up identifier in symbol table.
+ */
+
 Dsymbol *ScopeDsymbol::symtabLookup(Dsymbol *s, Identifier *id)
 {
-    assert(0);
+    return symtab->lookup(id);
 }
 
 /****************************************

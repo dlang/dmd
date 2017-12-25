@@ -376,6 +376,32 @@ bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
     return t;
 }
 
+void StorageClassDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
+{
+    Dsymbols *d = include(sc, sds);
+    if (d)
+    {
+        Scope *sc2 = newScope(sc);
+        for (size_t i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (*d)[i];
+            //printf("\taddMember %s to %s\n", s->toChars(), sds->toChars());
+            // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+            if (Declaration *decl = s->isDeclaration())
+            {
+                decl->storage_class |= stc & STClocal;
+                if (StorageClassDeclaration *sdecl = s->isStorageClassDeclaration())
+                {
+                    sdecl->stc |= stc & STClocal;
+                }
+            }
+            s->addMember(sc2, sds);
+        }
+        if (sc2 != sc)
+            sc2->pop();
+    }
+}
+
 Scope *StorageClassDeclaration::newScope(Scope *sc)
 {
     StorageClass scstc = sc->stc;

@@ -607,7 +607,8 @@ void ClassDeclaration::semantic(Scope *sc)
                 com = true;
             if (cpp && !b->sym->isCPPinterface())
             {
-                ::error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b->sym->toPrettyChars());
+                ::error(loc, "C++ class '%s' cannot implement D interface '%s'",
+                    toPrettyChars(), b->sym->toPrettyChars());
             }
         }
 
@@ -825,7 +826,8 @@ Lancestorsdone:
         }
         else
         {
-            error("cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
+            error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                baseClass->toPrettyChars());
         }
     }
 
@@ -846,7 +848,7 @@ Lancestorsdone:
 
     sc2->pop();
 
-    if (type->ty != Tclass || ((TypeClass *)type)->sym != this)
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
         // https://issues.dlang.org/show_bug.cgi?id=17492
         ClassDeclaration *cd = ((TypeClass *)type)->sym;
