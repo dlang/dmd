@@ -176,15 +176,6 @@ WARNINGS += \
 	-Wno-unused-but-set-variable \
 	-Wno-uninitialized
 endif
-# Clang Specific
-ifeq ($(HOST_CXX_KIND), clang++)
-WARNINGS += \
-	-Wno-tautological-constant-out-of-range-compare \
-	-Wno-tautological-compare \
-	-Wno-constant-logical-operand \
-	-Wno-self-assign -Wno-self-assign
-# -Wno-sometimes-uninitialized
-endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
