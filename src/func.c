@@ -1247,6 +1247,79 @@ static bool needsFensure(FuncDeclaration *fd)
     return false;
 }
 
+/****************************************************
+ * Rewrite contracts as nested functions, then call them. Doing it as nested
+ * functions means that overriding functions can call them.
+ * Params:
+ *      fd = the function to rewrite contracts for
+ */
+static void buildEnsureRequire(FuncDeclaration *fdx)
+{
+    if (!fdx->isVirtual())
+        return;
+
+    TypeFunction *f = (TypeFunction *)fdx->type;
+
+    if (fdx->frequire)
+    {
+        /*   in { ... }
+         * becomes:
+         *   void __require() { ... }
+         *   __require();
+         */
+        Loc loc = fdx->frequire->loc;
+        TypeFunction *tf = new TypeFunction(NULL, Type::tvoid, 0, LINKd);
+        tf->isnothrow = f->isnothrow;
+        tf->isnogc = f->isnogc;
+        tf->purity = f->purity;
+        tf->trust = f->trust;
+        FuncDeclaration *fd = new FuncDeclaration(loc, loc,
+                                                  Id::require, STCundefined, tf);
+        fd->fbody = fdx->frequire;
+        Statement *s1 = new ExpStatement(loc, fd);
+        Expression *e = new CallExp(loc, new VarExp(loc, fd, false), (Expressions *)NULL);
+        Statement *s2 = new ExpStatement(loc, e);
+        fdx->frequire = new CompoundStatement(loc, s1, s2);
+        fdx->fdrequire = fd;
+    }
+
+    if (!fdx->outId && f->nextOf() && f->nextOf()->toBasetype()->ty != Tvoid)
+        fdx->outId = Id::result; // provide a default
+
+    if (fdx->fensure)
+    {
+        /*   out (result) { ... }
+         * becomes:
+         *   void __ensure(ref tret result) { ... }
+         *   __ensure(result);
+         */
+        Loc loc = fdx->fensure->loc;
+        Parameters *fparams = new Parameters();
+        Parameter *p = NULL;
+        if (fdx->outId)
+        {
+            p = new Parameter(STCref | STCconst, f->nextOf(), fdx->outId, NULL);
+            fparams->push(p);
+        }
+        TypeFunction *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd);
+        tf->isnothrow = f->isnothrow;
+        tf->isnogc = f->isnogc;
+        tf->purity = f->purity;
+        tf->trust = f->trust;
+        FuncDeclaration *fd = new FuncDeclaration(loc, loc,
+                                                  Id::ensure, STCundefined, tf);
+        fd->fbody = fdx->fensure;
+        Statement *s1 = new ExpStatement(loc, fd);
+        Expression *eresult = NULL;
+        if (fdx->outId)
+            eresult = new IdentifierExp(loc, fdx->outId);
+        Expression *e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+        Statement *s2 = new ExpStatement(loc, e);
+        fdx->fensure = new CompoundStatement(loc, s1, s2);
+        fdx->fdensure = fd;
+    }
+}
+
 // Do the semantic analysis on the internals of the function.
 
 void FuncDeclaration::semantic3(Scope *sc)
@@ -1547,6 +1620,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                 fpostinv = new ExpStatement(Loc(), e);
         }
 
+        // Pre/Postcondition contract
+        if (!fbody)
+            buildEnsureRequire(this);
+
         Scope *scout = NULL;
         if (needEnsure || addPostInvariant())
         {
@@ -1725,6 +1802,22 @@ void FuncDeclaration::semantic3(Scope *sc)
                 //printf("callSuper = x%x\n", sc2->callSuper);
             }
 
+            /* https://issues.dlang.org/show_bug.cgi?id=17502
+             * Wait until after the return type has been inferred before
+             * generating the contracts for this function, and merging contracts
+             * from overrides.
+             *
+             * https://issues.dlang.org/show_bug.cgi?id=17893
+             * However should take care to generate this before inferered
+             * function attributes are applied, such as 'nothrow'.
+             *
+             * This was originally at the end of the first semantic pass, but
+             * required a fix-up to be done here for the '__result' variable
+             * type of __ensure() inside auto functions, but this didn't work
+             * if the out parameter was implicit.
+             */
+            buildEnsureRequire(this);
+
             int blockexit = BEnone;
             if (!fbody->isErrorStatement())
             {
@@ -1872,82 +1965,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 
             sc2 = sc2->pop();
-        }
-
-        /* https://issues.dlang.org/show_bug.cgi?id=17502
-         * Wait until after the return type has been inferred before
-         * generating the contracts for this function, and merging contracts
-         * from overrides.
-         *
-         * This was originally at the end of the first semantic pass, but
-         * required a fix-up to be done here for the '__result' variable
-         * type of __ensure() inside auto functions, but this didn't work
-         * if the out parameter was implicit.
-         */
-        if (isVirtual())
-        {
-            /* Rewrite contracts as nested functions, then call them.
-             * Doing it as nested functions means that overriding functions
-             * can call them.
-             */
-            if (frequire)
-            {
-                /*   in { ... }
-                 * becomes:
-                 *   void __require() { ... }
-                 *   __require();
-                 */
-                Loc loc = frequire->loc;
-                TypeFunction *tf = new TypeFunction(NULL, Type::tvoid, 0, LINKd);
-                tf->isnothrow = f->isnothrow;
-                tf->isnogc = f->isnogc;
-                tf->purity = f->purity;
-                tf->trust = f->trust;
-                FuncDeclaration *fd = new FuncDeclaration(loc, loc,
-                                                          Id::require, STCundefined, tf);
-                fd->fbody = frequire;
-                Statement *s1 = new ExpStatement(loc, fd);
-                Expression *e = new CallExp(loc, new VarExp(loc, fd, false), (Expressions *)NULL);
-                Statement *s2 = new ExpStatement(loc, e);
-                frequire = new CompoundStatement(loc, s1, s2);
-                fdrequire = fd;
-            }
-
-            if (!outId && f->nextOf() && f->nextOf()->toBasetype()->ty != Tvoid)
-                outId = Id::result; // provide a default
-
-            if (fensure)
-            {
-                /*   out (result) { ... }
-                 * becomes:
-                 *   void __ensure(ref tret result) { ... }
-                 *   __ensure(result);
-                 */
-                Loc loc = fensure->loc;
-                Parameters *fparams = new Parameters();
-                Parameter *p = NULL;
-                if (outId)
-                {
-                    p = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
-                    fparams->push(p);
-                }
-                TypeFunction *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd);
-                tf->isnothrow = f->isnothrow;
-                tf->isnogc = f->isnogc;
-                tf->purity = f->purity;
-                tf->trust = f->trust;
-                FuncDeclaration *fd = new FuncDeclaration(loc, loc,
-                                                          Id::ensure, STCundefined, tf);
-                fd->fbody = fensure;
-                Statement *s1 = new ExpStatement(loc, fd);
-                Expression *eresult = NULL;
-                if (outId)
-                    eresult = new IdentifierExp(loc, outId);
-                Expression *e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
-                Statement *s2 = new ExpStatement(loc, e);
-                fensure = new CompoundStatement(loc, s1, s2);
-                fdensure = fd;
-            }
         }
 
         frequire = mergeFrequire(frequire);
@@ -2453,21 +2470,21 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
          */
         VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
         v->storage_class |= STCparameter;
-	if (type->ty == Tfunction)
-	{
-	    TypeFunction *tf = (TypeFunction *)type;
-	    if (tf->isreturn)
-		v->storage_class |= STCreturn;
-	    if (tf->isscope)
-		v->storage_class |= STCscope;
-	}
-	if (flags & FUNCFLAGinferScope)
-	    v->storage_class |= STCmaybescope;
+        if (type->ty == Tfunction)
+        {
+            TypeFunction *tf = (TypeFunction *)type;
+            if (tf->isreturn)
+                v->storage_class |= STCreturn;
+            if (tf->isscope)
+                v->storage_class |= STCscope;
+        }
+        if (flags & FUNCFLAGinferScope)
+            v->storage_class |= STCmaybescope;
 
-	v->semantic(sc);
-	if (!sc->insert(v))
-	    assert(0);
-	v->parent = this;
+        v->semantic(sc);
+        if (!sc->insert(v))
+            assert(0);
+        v->parent = this;
         return v;
     }
 
