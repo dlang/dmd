@@ -830,6 +830,7 @@ class DotIdExp : public UnaExp
 {
 public:
     Identifier *ident;
+    bool wantsym;       // do not replace Symbol with its initializer during semantic()
 
     DotIdExp(Loc loc, Expression *e, Identifier *ident);
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);

@@ -796,6 +796,9 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
         }
         else if (e->ident == Id::getMember)
         {
+            if (ex->op == TOKdotid)
+                // Prevent semantic() from replacing Symbol with its initializer
+                ((DotIdExp *)ex)->wantsym = true;
             Scope *scx = sc->push();
             scx->flags |= SCOPEignoresymbolvisibility;
             ex = ex->semantic(scx);

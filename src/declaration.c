@@ -2113,7 +2113,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-        if (!sd->dtor)
+        if (!sd->dtor || sd->errors)
            return NULL;
 
         const d_uns64 sz = type->size();

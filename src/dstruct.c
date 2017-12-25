@@ -1060,7 +1060,6 @@ void StructDeclaration::semantic(Scope *sc)
     }
     else if (symtab && !scx)
     {
-        semanticRun = PASSsemanticdone;
         return;
     }
     semanticRun = PASSsemantic;
@@ -1110,6 +1109,7 @@ void StructDeclaration::semantic(Scope *sc)
     {
         assert(type->ty == Terror);
         sc2->pop();
+        semanticRun = PASSsemanticdone;
         return;
     }
 

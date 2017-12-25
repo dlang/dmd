@@ -1905,6 +1905,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             // BUG: need to disallow returns and throws
             // BUG: verify that all in and ref parameters are read
             freq = ::semantic(freq, sc2);
+            freq->blockExit(this, false);
 
             sc2 = sc2->pop();
 
@@ -1919,9 +1920,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (f->next->ty == Tvoid && outId)
                 error("void functions have no result");
 
-            if (fensure && f->next->ty != Tvoid)
-                buildResultVar(scout, f->next);
-
             sc2 = scout;    //push
             sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPEensure;
 
@@ -1930,10 +1928,19 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (inferRetType && fdensure && ((TypeFunction *)fdensure->type)->parameters)
             {
                 // Return type was unknown in the first semantic pass
-                Parameter *p = (*((TypeFunction *)fdensure->type)->parameters)[0];
-                p->type = f->next;
+                Parameters *out_params = ((TypeFunction *)fdensure->type)->parameters;
+                if (out_params->dim > 0)
+                {
+                    Parameter *p = (*out_params)[0];
+                    p->type = f->next;
+                }
             }
+
+            if (fensure && f->next->ty != Tvoid)
+                buildResultVar(scout, f->next);
+
             fens = ::semantic(fens, sc2);
+            fens->blockExit(this, false);
 
             sc2 = sc2->pop();
 

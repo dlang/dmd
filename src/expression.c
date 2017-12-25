@@ -7529,6 +7529,7 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
         : UnaExp(loc, TOKdotid, sizeof(DotIdExp), e)
 {
     this->ident = ident;
+    this->wantsym = false;
 }
 
 DotIdExp *DotIdExp::create(Loc loc, Expression *e, Identifier *ident)
@@ -7776,8 +7777,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
                 if (v->type->ty == Terror)
                     return new ErrorExp();
 
-                if ((v->storage_class & STCmanifest) && v->_init)
+                if ((v->storage_class & STCmanifest) && v->_init && !wantsym)
                 {
+                    /* Normally, the replacement of a symbol with its initializer is supposed to be in semantic2().
+                     * Introduced by https://github.com/dlang/dmd/pull/5588 which should probably
+                     * be reverted. `wantsym` is the hack to work around the problem.
+                     */
                     if (v->inuse)
                     {
                         ::error(loc, "circular initialization of %s '%s'", v->kind(), v->toPrettyChars());

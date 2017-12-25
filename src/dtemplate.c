@@ -7567,8 +7567,10 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         }
         else if (ea)
         {
-            // Don't interpret it yet, it might actually be an alias
-            ea = ea->optimize(WANTvalue);
+            // Don't interpret it yet, it might actually be an alias template parameter.
+            // Only constfold manifest constants, not const/immutable lvalues, see https://issues.dlang.org/show_bug.cgi?id=17339.
+            const bool keepLvalue = true;
+            ea = ea->optimize(WANTvalue, keepLvalue);
             if (ea->op == TOKvar)
             {
                 sa = ((VarExp *)ea)->var;
