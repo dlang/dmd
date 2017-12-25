@@ -7466,10 +7466,13 @@ Dsymbols *TemplateInstance::appendToModuleMember()
         {
             static Dsymbol *getStrictEnclosing(TemplateInstance *ti)
             {
-                if (ti->enclosing)
-                    return ti->enclosing;
-                if (TemplateInstance *tix = ti->tempdecl->isInstantiated())
-                    return getStrictEnclosing(tix);
+                do
+                {
+                    if (ti->enclosing)
+                        return ti->enclosing;
+                    ti = ti->tempdecl->isInstantiated();
+                }
+                while (ti);
                 return NULL;
             }
         };

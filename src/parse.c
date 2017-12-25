@@ -6265,6 +6265,7 @@ bool Parser::isParameters(Token **pt)
             case TOKscope:
             case TOKfinal:
             case TOKauto:
+            case TOKreturn:
                 continue;
 
             case TOKconst:

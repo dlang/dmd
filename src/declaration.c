@@ -2232,6 +2232,7 @@ TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo)
     storage_class = STCstatic | STCgshared;
     protection = Prot(PROTpublic);
     linkage = LINKc;
+    alignment = Target::ptrsize;
 }
 
 TypeInfoDeclaration *TypeInfoDeclaration::create(Type *tinfo)

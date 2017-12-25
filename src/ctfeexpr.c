@@ -1382,7 +1382,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         mem.xfree(used);
         return 0;
     }
-    error(loc, "CTFE internal error: bad compare");
+    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1->toChars(), e2->toChars());
     assert(0);
     return 0;
 }
@@ -1879,7 +1879,8 @@ bool isCtfeValueValid(Expression *newval)
                tb->ty == Tpointer ||
                tb->ty == Tarray ||
                tb->ty == Taarray ||
-               tb->ty == Tclass;
+               tb->ty == Tclass ||
+               tb->ty == Tdelegate;
     }
 
     if (newval->op == TOKstring)
