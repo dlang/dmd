@@ -320,6 +320,12 @@ static void resolveBase(ClassDeclaration *cd, Scope *sc, Scope *&scx, ClassDecla
     cd->_scope = NULL;
 }
 
+static void badObjectDotD(ClassDeclaration *cd)
+{
+    cd->error("missing or corrupt object.d");
+    fatal();
+}
+
 void ClassDeclaration::semantic(Scope *sc)
 {
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -548,14 +554,13 @@ void ClassDeclaration::semantic(Scope *sc)
         // If no base class, and this is not an Object, use Object as base class
         if (!baseClass && ident != Id::Object && !cpp)
         {
-            if (!object)
-            {
-                error("missing or corrupt object.d");
-                fatal();
-            }
+            if (!object || object->errors)
+                badObjectDotD(this);
 
             Type *t = object->type;
             t = t->semantic(loc, sc)->toBasetype();
+            if (t->ty == Terror)
+                badObjectDotD(this);
             assert(t->ty == Tclass);
             TypeClass *tc = (TypeClass *)t;
 

@@ -1033,6 +1033,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (this->errors)
         type = Type::terror;
+    if (semanticRun == PASSinit)
+        type = type->addSTC(sc->stc | storage_class);
     type = type->semantic(loc, sc);
 
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)

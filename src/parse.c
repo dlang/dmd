@@ -5307,7 +5307,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                     error("valid scope identifiers are exit, failure, or success, not %s", id->toChars());
                 nextToken();
                 check(TOKrparen);
-                Statement *st = parseStatement(PScurlyscope);
+                Statement *st = parseStatement(PSscope);
                 s = new OnScopeStatement(loc, t, st);
                 break;
             }

@@ -4179,10 +4179,14 @@ public:
             {
                 SliceExp *se = (SliceExp *)newval;
                 Expression *aggr2 = se->e1;
-                if (aggregate == aggr2)
+                const dinteger_t srclower = se->lwr->toInteger();
+                const dinteger_t srcupper = se->upr->toInteger();
+
+                if (aggregate == aggr2 &&
+                    lowerbound < srcupper && srclower < upperbound)
                 {
                     e->error("overlapping slice assignment [%d..%d] = [%llu..%llu]",
-                        lowerbound, upperbound, se->lwr->toInteger(), se->upr->toInteger());
+                        lowerbound, upperbound, srclower, srcupper);
                     return CTFEExp::cantexp;
                 }
             #if 1   // todo: instead we can directly access to each elements of the slice
@@ -4244,9 +4248,9 @@ public:
             {
                 SliceExp *se = (SliceExp *)newval;
                 Expression *aggr2 = se->e1;
-                dinteger_t srclower = se->lwr->toInteger();
-                dinteger_t srcupper = se->upr->toInteger();
-                bool wantCopy = (newval->type->toBasetype()->nextOf()->baseElemOf()->ty == Tstruct);
+                const dinteger_t srclower = se->lwr->toInteger();
+                const dinteger_t srcupper = se->upr->toInteger();
+                const bool wantCopy = (newval->type->toBasetype()->nextOf()->baseElemOf()->ty == Tstruct);
 
                 //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu] wantCopy = %d\n",
                 //    aggregate, aggregate->toChars(), lowerbound, upperbound,
@@ -4306,10 +4310,11 @@ public:
                     //assert(0);
                     return newval;  // oldval?
                 }
-                if (aggregate == aggr2)
+                if (aggregate == aggr2 &&
+                    lowerbound < srcupper && srclower < upperbound)
                 {
                     e->error("overlapping slice assignment [%d..%d] = [%llu..%llu]",
-                        lowerbound, upperbound, se->lwr->toInteger(), se->upr->toInteger());
+                        lowerbound, upperbound, srclower, srcupper);
                     return CTFEExp::cantexp;
                 }
             #if 1   // todo: instead we can directly access to each elements of the slice
