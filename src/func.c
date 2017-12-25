@@ -966,7 +966,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         ::deprecation(loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute",
                             fdv->toPrettyChars(), toPrettyChars());
                     else
-                        ::deprecation(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
+                        ::error(loc, "implicitly overriding base class method %s with %s deprecated; add 'override' attribute",
                             fdv->toPrettyChars(), toPrettyChars());
                 }
 
