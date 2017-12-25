@@ -39,6 +39,7 @@
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
 typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
 int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
+Expression *semantic(Expression *e, Scope *sc);
 
 
 /****************************** Dsymbol ******************************/
@@ -1632,7 +1633,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
                     Objects *tiargs = new Objects();
                     Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
-                    edim = edim->semantic(sc);
+                    edim = ::semantic(edim, sc);
                     tiargs->push(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td->ident, tiargs);
                 }
@@ -1652,7 +1653,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     assert(d);
                     e = new DotVarExp(loc, ce, d);
                 }
-                e = e->semantic(sc);
+                e = ::semantic(e, sc);
                 if (!e->type)
                     exp->error("%s has no value", e->toChars());
                 t = e->type->toBasetype();

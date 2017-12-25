@@ -29,6 +29,7 @@
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 bool isCommutative(TOK op);
 MOD MODmerge(MOD mod1, MOD mod2);
+Expression *semantic(Expression *e, Scope *sc);
 
 /* ==================== implicitCast ====================== */
 
@@ -1502,7 +1503,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 TypeVector *tv = (TypeVector *)tob;
                 result = new CastExp(e->loc, e, tv->elementType());
                 result = new VectorExp(e->loc, result, tob);
-                result = result->semantic(sc);
+                result = ::semantic(result, sc);
                 return;
             }
             else if (tob->ty != Tvector && t1b->ty == Tvector)
@@ -2001,7 +2002,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     {
                         f->tookAddressOf++;
                         SymOffExp *se = new SymOffExp(e->loc, f, 0, false);
-                        se->semantic(sc);
+                        ::semantic(se, sc);
                         // Let SymOffExp::castTo() do the heavy lifting
                         visit(se);
                         return;
@@ -2165,7 +2166,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     (*ae->elements)[i] = ex;
                 }
                 Expression *ev = new VectorExp(e->loc, ae, tb);
-                ev = ev->semantic(sc);
+                ev = ::semantic(ev, sc);
                 result = ev;
                 return;
             }
@@ -2242,12 +2243,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         if (f->needThis() && hasThis(sc))
                         {
                             result = new DelegateExp(e->loc, new ThisExp(e->loc), f, false);
-                            result = result->semantic(sc);
+                            result = ::semantic(result, sc);
                         }
                         else if (f->isNested())
                         {
                             result = new DelegateExp(e->loc, new IntegerExp(0), f, false);
-                            result = result->semantic(sc);
+                            result = ::semantic(result, sc);
                         }
                         else if (f->needThis())
                         {

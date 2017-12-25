@@ -29,6 +29,7 @@
 
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 Expression *buildArrayLoop(Expression *e, Parameters *fparams);
+Expression *semantic(Expression *e, Scope *sc);
 
 /**************************************
  * Hash table of array op functions already generated or known about.
@@ -234,7 +235,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     Expression *ev = new VarExp(e->loc, fd);
     Expression *ec = new CallExp(e->loc, ev, arguments);
 
-    return ec->semantic(sc);
+    return semantic(ec, sc);
 }
 
 Expression *arrayOp(BinAssignExp *e, Scope *sc)

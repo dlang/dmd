@@ -32,6 +32,7 @@ bool walkPostorder(Statement *s, StoppableVisitor *v);
 StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration *f);
 bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
+Expression *semantic(Expression *e, Scope *sc);
 
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
@@ -894,7 +895,7 @@ Statements *ExpStatement::flatten(Scope *sc)
         Dsymbol *d = ((DeclarationExp *)exp)->declaration;
         if (TemplateMixin *tm = d->isTemplateMixin())
         {
-            Expression *e = exp->semantic(sc);
+            Expression *e = semantic(exp, sc);
             if (e->op == TOKerror || tm->errors)
             {
                 Statements *a = new Statements();
@@ -950,7 +951,7 @@ Statements *CompileStatement::flatten(Scope *sc)
 {
     //printf("CompileStatement::flatten() %s\n", exp->toChars());
     sc = sc->startCTFE();
-    exp = exp->semantic(sc);
+    exp = semantic(exp, sc);
     exp = resolveProperties(sc, exp);
     sc = sc->endCTFE();
 

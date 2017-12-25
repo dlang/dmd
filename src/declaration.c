@@ -32,6 +32,7 @@
 
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
+Expression *semantic(Expression *e, Scope *sc);
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -352,7 +353,7 @@ void AliasDeclaration::aliasSemantic(Scope *sc)
                 return;
 
             Expression *e = new FuncExp(loc, aliassym);
-            e = e->semantic(sc);
+            e = ::semantic(e, sc);
             if (e->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)e;
@@ -1009,7 +1010,8 @@ void VarDeclaration::semantic(Scope *sc)
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
         Expression *ie = (_init && !_init->isVoidInitializer()) ? _init->toExpression() : NULL;
-        if (ie) ie = ie->semantic(sc);
+        if (ie)
+            ie = ::semantic(ie, sc);
 
         if (nelems > 0 && ie)
         {
@@ -1389,7 +1391,7 @@ Lnomatch:
 
             Expression *e = tv->defaultInitLiteral(loc);
             e = new BlitExp(loc, new VarExp(loc, this), e);
-            e = e->semantic(sc);
+            e = ::semantic(e, sc);
             _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
@@ -1469,7 +1471,7 @@ Lnomatch:
                 else
                     exp = new ConstructExp(loc, e1, exp);
                 canassign++;
-                exp = exp->semantic(sc);
+                exp = ::semantic(exp, sc);
                 canassign--;
                 exp = exp->optimize(WANTvalue);
 
@@ -1543,7 +1545,7 @@ Lnomatch:
 
                     bool needctfe = isDataseg() || (storage_class & STCmanifest);
                     if (needctfe) sc = sc->startCTFE();
-                    exp = exp->semantic(sc);
+                    exp = ::semantic(exp, sc);
                     exp = resolveProperties(sc, exp);
                     if (needctfe) sc = sc->endCTFE();
 
@@ -1603,9 +1605,9 @@ Ldtor:
     if (edtor)
     {
         if (sc->func && storage_class & (STCstatic | STCgshared))
-            edtor = edtor->semantic(sc->_module->_scope);
+            edtor = ::semantic(edtor, sc->_module->_scope);
         else
-            edtor = edtor->semantic(sc);
+            edtor = ::semantic(edtor, sc);
 
 #if 0 // currently disabled because of std.stdio.stdin, stdout and stderr
         if (isDataseg() && !(storage_class & STCextern))

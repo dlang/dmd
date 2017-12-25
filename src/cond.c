@@ -26,6 +26,8 @@
 #include "arraytypes.h"
 #include "tokens.h"
 
+Expression *semantic(Expression *e, Scope *sc);
+
 int findCondition(Strings *ids, Identifier *ident)
 {
     if (ids)
@@ -351,7 +353,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         sc->flags |= SCOPEcondition;
 
         sc = sc->startCTFE();
-        Expression *e = exp->semantic(sc);
+        Expression *e = semantic(exp, sc);
         e = resolveProperties(sc, e);
         sc = sc->endCTFE();
 

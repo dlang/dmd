@@ -22,6 +22,8 @@
 #include "declaration.h"
 #include "tokens.h"
 
+Expression *semantic(Expression *e, Scope *sc);
+
 Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 {
     AggregateDeclaration *ad = isAggregate(e->type);
@@ -33,7 +35,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
         Loc loc = e->loc;
         Type *tthis = (e->op == TOKtype ? e->type : NULL);
         e = new DotIdExp(loc, e, ad->aliasthis->ident);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
         if (tthis && ad->aliasthis->needThis())
         {
             if (e->op == TOKvar)
@@ -65,7 +67,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 
         L1:
             e = new TypeExp(loc, new TypeTypeof(loc, e));
-            e = e->semantic(sc);
+            e = semantic(e, sc);
         }
         e = resolveProperties(sc, e);
 

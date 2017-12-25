@@ -26,6 +26,8 @@
 #include "template.h"
 #include "tokens.h"
 
+Expression *semantic(Expression *e, Scope *sc);
+
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
  */
@@ -523,7 +525,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         Expression *e = new IdentifierExp(sd->loc, Id::empty);
         e = new DotIdExp(sd->loc, e, Id::object);
         e = new DotIdExp(sd->loc, e, id);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
         Dsymbol *s = getDsymbol(e);
         assert(s);
         sd->xerreq = s->isFuncDeclaration();
@@ -643,7 +645,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
         Expression *e = new IdentifierExp(sd->loc, Id::empty);
         e = new DotIdExp(sd->loc, e, Id::object);
         e = new DotIdExp(sd->loc, e, id);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
         Dsymbol *s = getDsymbol(e);
         assert(s);
         sd->xerrcmp = s->isFuncDeclaration();

@@ -38,6 +38,7 @@ Identifier *fixupLabelName(Scope *sc, Identifier *ident);
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 
+Expression *semantic(Expression *e, Scope *sc);
 Statement *semantic(Statement *s, Scope *sc);
 void semantic(Catch *c, Scope *sc);
 Statement *semanticNoScope(Statement *s, Scope *sc);
@@ -90,7 +91,7 @@ public:
             if (s->exp->op == TOKcomma)
                 ((CommaExp *)s->exp)->allowCommaExp = true;
 
-            s->exp = s->exp->semantic(sc);
+            s->exp = semantic(s->exp, sc);
             s->exp = resolveProperties(sc, s->exp);
             s->exp = s->exp->addDtorHook(sc);
             if (FuncDeclaration *f = isFuncAddress(s->exp))
@@ -373,7 +374,7 @@ public:
         if (ds->condition->op == TOKdotid)
             ((DotIdExp *)ds->condition)->noderef = true;
 
-        ds->condition = ds->condition->semantic(sc);
+        ds->condition = semantic(ds->condition, sc);
         ds->condition = resolveProperties(sc, ds->condition);
         ds->condition = ds->condition->optimize(WANTvalue);
         ds->condition = checkGC(sc, ds->condition);
@@ -440,7 +441,7 @@ public:
             if (fs->condition->op == TOKdotid)
                 ((DotIdExp *)fs->condition)->noderef = true;
 
-            fs->condition = fs->condition->semantic(sc);
+            fs->condition = semantic(fs->condition, sc);
             fs->condition = resolveProperties(sc, fs->condition);
             fs->condition = fs->condition->optimize(WANTvalue);
             fs->condition = checkGC(sc, fs->condition);
@@ -450,7 +451,7 @@ public:
         {
             if (fs->increment->op == TOKcomma)
                 ((CommaExp *)fs->increment)->allowCommaExp = true;
-            fs->increment = fs->increment->semantic(sc);
+            fs->increment = semantic(fs->increment, sc);
             fs->increment = resolveProperties(sc, fs->increment);
             fs->increment = fs->increment->optimize(WANTvalue);
             fs->increment = checkGC(sc, fs->increment);
@@ -490,7 +491,7 @@ public:
             fs->func = fs->func->fes->func;
 
         VarDeclaration *vinit = NULL;
-        fs->aggr = fs->aggr->semantic(sc);
+        fs->aggr = semantic(fs->aggr, sc);
         fs->aggr = resolveProperties(sc, fs->aggr);
         fs->aggr = fs->aggr->optimize(WANTvalue);
         if (fs->aggr->op == TOKerror)
@@ -1232,7 +1233,7 @@ public:
                     FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, fs);
                     fld->fbody = fs->_body;
                     Expression *flde = new FuncExp(loc, fld);
-                    flde = flde->semantic(sc);
+                    flde = semantic(flde, sc);
                     fld->tookAddressOf = 0;
 
                     // Resolve any forward referenced goto's
@@ -1253,7 +1254,7 @@ public:
                     if (vinit)
                     {
                         e = new DeclarationExp(loc, vinit);
-                        e = e->semantic(sc);
+                        e = semantic(e, sc);
                         if (e->op == TOKerror)
                             goto Lerror2;
                     }
@@ -1398,7 +1399,7 @@ public:
                             fs->aggr = ((DelegateExp *)fs->aggr)->e1;
                         }
                         ec = new CallExp(loc, fs->aggr, flde);
-                        ec = ec->semantic(sc);
+                        ec = semantic(ec, sc);
                         if (ec->op == TOKerror)
                             goto Lerror2;
                         if (ec->type != Type::tint32)
@@ -1419,7 +1420,7 @@ public:
                          */
                         ec = new DotIdExp(loc, fs->aggr, sapply->ident);
                         ec = new CallExp(loc, ec, flde);
-                        ec = ec->semantic(sc);
+                        ec = semantic(ec, sc);
                         if (ec->op == TOKerror)
                             goto Lerror2;
                         if (ec->type != Type::tint32)
@@ -1479,7 +1480,7 @@ public:
     {
         //printf("ForeachRangeStatement::semantic() %p\n", fs);
         Loc loc = fs->loc;
-        fs->lwr = fs->lwr->semantic(sc);
+        fs->lwr = semantic(fs->lwr, sc);
         fs->lwr = resolveProperties(sc, fs->lwr);
         fs->lwr = fs->lwr->optimize(WANTvalue);
         if (!fs->lwr->type)
@@ -1489,7 +1490,7 @@ public:
             return setError();
         }
 
-        fs->upr = fs->upr->semantic(sc);
+        fs->upr = semantic(fs->upr, sc);
         fs->upr = resolveProperties(sc, fs->upr);
         fs->upr = fs->upr->optimize(WANTvalue);
         if (!fs->upr->type)
@@ -1512,7 +1513,7 @@ public:
             {
                 // See if upr-1 fits in prm->type
                 Expression *limit = new MinExp(loc, fs->upr, new IntegerExp(1));
-                limit = limit->semantic(sc);
+                limit = semantic(limit, sc);
                 limit = limit->optimize(WANTvalue);
                 if (!limit->implicitConvTo(fs->prm->type))
                 {
@@ -1688,7 +1689,7 @@ public:
             DeclarationExp *de = new DeclarationExp(ifs->loc, ifs->match);
             VarExp *ve = new VarExp(Loc(), ifs->match);
             ifs->condition = new CommaExp(ifs->loc, de, ve);
-            ifs->condition = ifs->condition->semantic(scd);
+            ifs->condition = semantic(ifs->condition, scd);
 
             if (ifs->match->edtor)
             {
@@ -1703,7 +1704,7 @@ public:
             if (ifs->condition->op == TOKdotid)
                 ((DotIdExp *)ifs->condition)->noderef = true;
 
-            ifs->condition = ifs->condition->semantic(sc);
+            ifs->condition = semantic(ifs->condition, sc);
             ifs->condition = resolveProperties(sc, ifs->condition);
             ifs->condition = ifs->condition->addDtorHook(sc);
         }
@@ -1782,7 +1783,7 @@ public:
                     Expression *e = (*ps->args)[i];
 
                     sc = sc->startCTFE();
-                    e = e->semantic(sc);
+                    e = semantic(e, sc);
                     e = resolveProperties(sc, e);
                     sc = sc->endCTFE();
                     // pragma(msg) is allowed to contain types as well as expressions
@@ -1822,7 +1823,7 @@ public:
                 Expression *e = (*ps->args)[0];
 
                 sc = sc->startCTFE();
-                e = e->semantic(sc);
+                e = semantic(e, sc);
                 e = resolveProperties(sc, e);
                 sc = sc->endCTFE();
 
@@ -1854,7 +1855,7 @@ public:
                 Expression *e = (*ps->args)[0];
 
                 sc = sc->startCTFE();
-                e = e->semantic(sc);
+                e = semantic(e, sc);
                 e = resolveProperties(sc, e);
                 sc = sc->endCTFE();
 
@@ -1945,7 +1946,7 @@ public:
             return;
         }
         bool conditionError = false;
-        ss->condition = ss->condition->semantic(sc);
+        ss->condition = semantic(ss->condition, sc);
         ss->condition = resolveProperties(sc, ss->condition);
         TypeEnum *te = NULL;
         // preserve enum type for final switches
@@ -2105,7 +2106,7 @@ public:
 
         //printf("CaseStatement::semantic() %s\n", cs->toChars());
         sc = sc->startCTFE();
-        cs->exp = cs->exp->semantic(sc);
+        cs->exp = semantic(cs->exp, sc);
         cs->exp = resolveProperties(sc, cs->exp);
         sc = sc->endCTFE();
         if (sw)
@@ -2217,14 +2218,14 @@ public:
         }
 
         sc = sc->startCTFE();
-        crs->first = crs->first->semantic(sc);
+        crs->first = semantic(crs->first, sc);
         crs->first = resolveProperties(sc, crs->first);
         sc = sc->endCTFE();
         crs->first = crs->first->implicitCastTo(sc, sw->condition->type);
         crs->first = crs->first->ctfeInterpret();
 
         sc = sc->startCTFE();
-        crs->last = crs->last->semantic(sc);
+        crs->last = semantic(crs->last, sc);
         crs->last = resolveProperties(sc, crs->last);
         sc = sc->endCTFE();
         crs->last = crs->last->implicitCastTo(sc, sw->condition->type);
@@ -2343,7 +2344,7 @@ public:
 
         if (gcs->exp)
         {
-            gcs->exp = gcs->exp->semantic(sc);
+            gcs->exp = semantic(gcs->exp, sc);
             gcs->exp = gcs->exp->implicitCastTo(sc, sc->sw->condition->type);
             gcs->exp = gcs->exp->optimize(WANTvalue);
             if (gcs->exp->op == TOKerror)
@@ -2436,7 +2437,7 @@ public:
                 rs->exp = inferType(rs->exp, tret);
             else if (fld && fld->treq)
                 rs->exp = inferType(rs->exp, fld->treq->nextOf()->nextOf());
-            rs->exp = rs->exp->semantic(sc);
+            rs->exp = semantic(rs->exp, sc);
             rs->exp = resolveProperties(sc, rs->exp);
             if (rs->exp->checkType())
                 rs->exp = new ErrorExp();
@@ -2467,7 +2468,7 @@ public:
                     errors = true;
 
                     rs->exp = new CastExp(rs->loc, rs->exp, Type::tvoid);
-                    rs->exp = rs->exp->semantic(sc);
+                    rs->exp = semantic(rs->exp, sc);
                 }
 
                 /* Replace:
@@ -2848,7 +2849,7 @@ public:
     {
         if (ss->exp)
         {
-            ss->exp = ss->exp->semantic(sc);
+            ss->exp = semantic(ss->exp, sc);
             ss->exp = resolveProperties(sc, ss->exp);
             ss->exp = ss->exp->optimize(WANTvalue);
             ss->exp = checkGC(sc, ss->exp);
@@ -2876,7 +2877,7 @@ public:
                 assert(t->ty == Tclass);
 
                 ss->exp = new CastExp(ss->loc, ss->exp, t);
-                ss->exp = ss->exp->semantic(sc);
+                ss->exp = semantic(ss->exp, sc);
             }
 
 #if 1
@@ -2937,14 +2938,14 @@ public:
 
             FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalenter, STCnothrow);
             Expression *e = new DotIdExp(ss->loc, new VarExp(ss->loc, tmp), Id::ptr);
-            e = e->semantic(sc);
+            e = semantic(e, sc);
             e = new CallExp(ss->loc, new VarExp(ss->loc, fdenter, false), e);
             e->type = Type::tvoid;                  // do not run semantic on e
             cs->push(new ExpStatement(ss->loc, e));
 
             FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalexit, STCnothrow);
             e = new DotIdExp(ss->loc, new VarExp(ss->loc, tmp), Id::ptr);
-            e = e->semantic(sc);
+            e = semantic(e, sc);
             e = new CallExp(ss->loc, new VarExp(ss->loc, fdexit, false), e);
             e->type = Type::tvoid;                  // do not run semantic on e
             Statement *s = new ExpStatement(ss->loc, e);
@@ -2972,7 +2973,7 @@ public:
         Initializer *init;
 
         //printf("WithStatement::semantic()\n");
-        ws->exp = ws->exp->semantic(sc);
+        ws->exp = semantic(ws->exp, sc);
         ws->exp = resolveProperties(sc, ws->exp);
         ws->exp = ws->exp->optimize(WANTvalue);
         ws->exp = checkGC(sc, ws->exp);
@@ -3004,7 +3005,7 @@ public:
             if (t->ty == Tpointer)
             {
                 ws->exp = new PtrExp(ws->loc, ws->exp);
-                ws->exp = ws->exp->semantic(sc);
+                ws->exp = semantic(ws->exp, sc);
                 t = ws->exp->type->toBasetype();
             }
 
@@ -3242,7 +3243,7 @@ public:
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         fd->hasReturnExp |= 2;
 
-        ts->exp = ts->exp->semantic(sc);
+        ts->exp = semantic(ts->exp, sc);
         ts->exp = resolveProperties(sc, ts->exp);
         ts->exp = checkGC(sc, ts->exp);
         if (ts->exp->op == TOKerror)

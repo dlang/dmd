@@ -148,7 +148,7 @@ FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
 	errors.obj escape.obj tokens.obj globals.obj \
-	utils.obj statementsem.obj
+	utils.obj expressionsem.obj statementsem.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -195,7 +195,7 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
 	tokens.h tokens.c globals.h globals.c objc.h objc.c \
-	utils.c statementsem.c
+	utils.c expressionsem.c statementsem.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -758,4 +758,5 @@ utf.obj : utf.h utf.c
 dtemplate.obj : $(TOTALH) template.h dtemplate.c
 dversion.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h dversion.c
 utils.obj : $(TOTALH) utils.c
+expressionsem.obj : $(TOTALH) expressionsem.c
 statementsem.obj : $(TOTALH) statementsem.c

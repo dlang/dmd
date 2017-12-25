@@ -28,6 +28,7 @@
 #include "tokens.h"
 
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
+Expression *semantic(Expression *e, Scope *sc);
 
 /********************************** Initializer *******************************/
 
@@ -463,7 +464,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         if (idx)
         {
             sc = sc->startCTFE();
-            idx = idx->semantic(sc);
+            idx = ::semantic(idx, sc);
             sc = sc->endCTFE();
             idx = idx->ctfeInterpret();
             index[i] = idx;
@@ -826,7 +827,7 @@ bool arrayHasNonConstPointers(Expressions *elems)
 Initializer *ExpInitializer::inferType(Scope *sc)
 {
     //printf("ExpInitializer::inferType() %s\n", toChars());
-    exp = exp->semantic(sc);
+    exp = ::semantic(exp, sc);
     exp = resolveProperties(sc, exp);
 
     if (exp->op == TOKscope)
@@ -874,7 +875,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     if (needInterpret) sc = sc->startCTFE();
-    exp = exp->semantic(sc);
+    exp = ::semantic(exp, sc);
     exp = resolveProperties(sc, exp);
     if (needInterpret) sc = sc->endCTFE();
     if (exp->op == TOKerror)
@@ -960,7 +961,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
             e = new StructLiteralExp(loc, sd, NULL);
             e = new DotIdExp(loc, e, Id::ctor);
             e = new CallExp(loc, e, exp);
-            e = e->semantic(sc);
+            e = ::semantic(e, sc);
             if (needInterpret)
                 exp = e->ctfeInterpret();
             else

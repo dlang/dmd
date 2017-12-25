@@ -27,6 +27,7 @@
 
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool lambdaHasSideEffect(Expression *e);
+Expression *semantic(Expression *e, Scope *sc);
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for
@@ -431,8 +432,8 @@ Expression *extractSideEffect(Scope *sc, const char *name,
 
     Expression *de = new DeclarationExp(vd->loc, vd);
     Expression *ve = new VarExp(vd->loc, vd);
-    de = de->semantic(sc);
-    ve = ve->semantic(sc);
+    de = semantic(de, sc);
+    ve = semantic(ve, sc);
 
     *e0 = Expression::combine(*e0, de);
     return ve;

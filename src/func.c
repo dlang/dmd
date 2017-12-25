@@ -38,6 +38,8 @@ bool checkEscapeRef(Scope *sc, Expression *e, bool gag);
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 Statement *semantic(Statement *s, Scope *sc);
 void semantic(Catch *c, Scope *sc);
+Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
+Expression *semantic(Expression *e, Scope *sc);
 
 void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
@@ -1740,7 +1742,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     {
                         Expression *e1 = new SuperExp(Loc());
                         Expression *e = new CallExp(Loc(), e1);
-                        e = e->semantic(sc2);
+                        e = ::semantic(e, sc2);
 
                         Statement *s = new ExpStatement(Loc(), e);
                         fbody = new CompoundStatement(Loc(), s, fbody);
@@ -1817,7 +1819,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     else
                         e = new HaltExp(endloc);
                     e = new CommaExp(Loc(), e, f->next->defaultInit());
-                    e = e->semantic(sc2);
+                    e = ::semantic(e, sc2);
                     Statement *s = new ExpStatement(Loc(), e);
                     fbody = new CompoundStatement(Loc(), fbody, s);
                 }
@@ -2001,7 +2003,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Expression *e = new VarExp(Loc(), v_arguments);
                 e = new DotIdExp(Loc(), e, Id::elements);
                 e = new ConstructExp(Loc(), _arguments, e);
-                e = e->semantic(sc2);
+                e = ::semantic(e, sc2);
 
                 _arguments->_init = new ExpInitializer(Loc(), e);
                 DeclarationExp *de = new DeclarationExp(Loc(), _arguments);
@@ -2041,7 +2043,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (tintro)
                     {
                         e = e->implicitCastTo(sc, tintro->nextOf());
-                        e = e->semantic(sc);
+                        e = ::semantic(e, sc);
                     }
                     ReturnStatement *s = new ReturnStatement(Loc(), e);
                     a->push(s);
@@ -2112,7 +2114,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         if (isStatic())
                         {
                             // The monitor is in the ClassInfo
-                            vsync = new DotIdExp(loc, DsymbolExp::resolve(loc, sc2, cd, false), Id::classinfo);
+                            vsync = new DotIdExp(loc, resolve(loc, sc2, cd, false), Id::classinfo);
                         }
                         else
                         {
@@ -4159,7 +4161,7 @@ Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclar
             v = v->addressOf();
         e = new StringExp(Loc(), (char *)"null this");
         e = new AssertExp(loc, v, e);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
     }
     return e;
 }

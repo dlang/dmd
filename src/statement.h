@@ -48,6 +48,7 @@ class TryFinallyStatement;
 class CaseStatement;
 class DefaultStatement;
 class LabelStatement;
+class StaticForeach;
 
 // Back end
 struct code;
@@ -110,6 +111,7 @@ public:
     virtual GotoCaseStatement *isGotoCaseStatement() { return NULL; }
     virtual BreakStatement *isBreakStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
+    virtual ForwardingStatement *isForwardingStatement() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -232,6 +234,15 @@ public:
     bool hasBreak();
     bool hasContinue();
 
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class ForwardingStatement : public Statement
+{
+    Statement *statement;
+    ForwardingScopeDsymbol *sym;
+
+    ForwardingStatement *isForwardingStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -362,6 +373,17 @@ public:
     Statement *elsebody;
 
     ConditionalStatement(Loc loc, Condition *condition, Statement *ifbody, Statement *elsebody);
+    Statement *syntaxCopy();
+    Statements *flatten(Scope *sc);
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+class StaticForeachStatement : public Statement
+{
+public:
+    StaticForeach *sfe;
+
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
 

@@ -158,9 +158,6 @@ Msgtable msgtable[] =
     { "values" },
     { "rehash" },
 
-    { "sort" },
-    { "reverse" },
-
     { "property" },
     { "nogc" },
     { "safe" },
@@ -257,8 +254,6 @@ Msgtable msgtable[] =
     { "Fback", "back" },
     { "FpopFront", "popFront" },
     { "FpopBack", "popBack" },
-
-    { "adReverse", "_adReverse" },
 
     // For internal functions
     { "aaLen", "_aaLen" },

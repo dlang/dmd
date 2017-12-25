@@ -21,6 +21,7 @@
 #include "template.h"
 #include "declaration.h"
 
+Expression *semantic(Expression *e, Scope *sc);
 
 /********************************* AttribDeclaration ****************************/
 
@@ -57,7 +58,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc->flags |= SCOPEcondition;
 
     sc = sc->startCTFE();
-    Expression *e = exp->semantic(sc);
+    Expression *e = ::semantic(exp, sc);
     e = resolveProperties(sc, e);
     sc = sc->endCTFE();
     sc = sc->pop();
@@ -82,7 +83,7 @@ void StaticAssert::semantic2(Scope *sc)
         if (msg)
         {
             sc = sc->startCTFE();
-            msg = msg->semantic(sc);
+            msg = ::semantic(msg, sc);
             msg = resolveProperties(sc, msg);
             sc = sc->endCTFE();
             msg = msg->ctfeInterpret();

@@ -14,6 +14,8 @@
 #pragma once
 #endif /* __DMC__ */
 
+#include "dsymbol.h"
+
 /* A namespace corresponding to a C++ namespace.
  * Implies extern(C++).
  */

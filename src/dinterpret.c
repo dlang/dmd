@@ -44,6 +44,7 @@ enum CtfeGoal
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 Expression *interpret(Statement *s, InterState *istate);
 Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+Expression *semantic(Expression *e, Scope *sc);
 
 #define LOG     0
 #define LOGASSIGN 0
@@ -2370,7 +2371,7 @@ public:
             e = s->dsym->type->defaultInitLiteral(loc);
             if (e->op == TOKerror)
                 error(loc, "CTFE failed because of previous errors in %s.init", s->toChars());
-            e = e->semantic(NULL);
+            e = ::semantic(e, NULL);
             if (e->op == TOKerror)
                 e = CTFEExp::cantexp;
             else // Convert NULL to CTFEExp

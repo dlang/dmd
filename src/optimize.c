@@ -23,6 +23,8 @@
 #include "enum.h"
 #include "ctfe.h"
 
+Expression *semantic(Expression *e, Scope *sc);
+
 /*************************************
  * If variable has a const initializer,
  * return that initializer.
@@ -97,7 +99,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                     {
                         // const var initialized with non-const expression
                         ei = ei->implicitCastTo(NULL, v->type);
-                        ei = ei->semantic(NULL);
+                        ei = semantic(ei, NULL);
                     }
                     else
                         goto L1;

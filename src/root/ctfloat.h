@@ -29,6 +29,7 @@ struct CTFloat
     static real_t tan(real_t x);
     static real_t sqrt(real_t x);
     static real_t fabs(real_t x);
+    static real_t ldexp(real_t n, int exp);
 
     static bool isIdentical(real_t a, real_t b);
     static bool isNaN(real_t r);

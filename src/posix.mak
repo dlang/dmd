@@ -156,7 +156,7 @@ DMD_OBJS = \
 	dclass.o \
 	constfold.o cond.o \
 	declaration.o dsymbol.o \
-	denum.o expression.o func.o nogc.o \
+	denum.o expression.o expressionsem.o func.o nogc.o \
 	id.o \
 	identifier.o impcnvtab.o dimport.o inifile.o init.o inline.o \
 	lexer.o link.o dmangle.o mars.o dmodule.o mtype.o \
@@ -219,7 +219,7 @@ endif
 
 SRC = win32.mak posix.mak osmodel.mak \
 	mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c \
-	identifier.c mtype.c expression.c optimize.c template.h \
+	identifier.c mtype.c expression.c expressionsem.c optimize.c template.h \
 	dtemplate.c lexer.c declaration.c dcast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h dversion.c \
 	inifile.c dmodule.c dscope.c init.h init.c attrib.h \
@@ -474,6 +474,7 @@ gcov:
 	gcov entity.c
 	gcov denum.c
 	gcov expression.c
+	gcov expressionsem.c
 	gcov func.c
 	gcov nogc.c
 	gcov glue.c

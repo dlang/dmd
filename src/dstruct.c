@@ -28,6 +28,7 @@ Type *getTypeInfoType(Type *t, Scope *sc);
 TypeTuple *toArgTypes(Type *t);
 void unSpeculative(Scope *sc, RootObject *o);
 bool MODimplicitConv(MOD modfrom, MOD modto);
+Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
@@ -313,7 +314,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         ti->semantic(sc3);
         ti->semantic2(sc3);
         ti->semantic3(sc3);
-        Expression *e = DsymbolExp::resolve(Loc(), sc3, ti->toAlias(), false);
+        Expression *e = resolve(Loc(), sc3, ti->toAlias(), false);
 
         sc3->endCTFE();
 

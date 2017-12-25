@@ -52,6 +52,7 @@ static int arrayObjectMatch(Objects *oa1, Objects *oa2);
 static unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 static MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 static Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
+Expression *semantic(Expression *e, Scope *sc);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -848,7 +849,7 @@ bool TemplateDeclaration::evaluateConstraint(
     ti->inst = ti;  // temporary instantiation to enable genIdent()
 
     //printf("\tscx->parent = %s %s\n", scx->parent->kind(), scx->parent->toPrettyChars());
-    e = e->semantic(scx);
+    e = ::semantic(e, scx);
     e = resolveProperties(scx, e);
 
     ti->inst = NULL;
@@ -1687,7 +1688,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(
 
             // Deduce prmtype from the defaultArg.
             farg = fparam->defaultArg->syntaxCopy();
-            farg = farg->semantic(paramscope);
+            farg = ::semantic(farg, paramscope);
             farg = resolveProperties(paramscope, farg);
         }
         else
@@ -4038,7 +4039,7 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                             // (it may be from a parent template, for example)
                         }
 
-                        e2 = e2->semantic(sc);      // Bugzilla 13417
+                        e2 = ::semantic(e2, sc);      // Bugzilla 13417
                         e2 = e2->ctfeInterpret();
 
                         //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
@@ -4659,7 +4660,8 @@ MATCH deduceType(RootObject *o, Scope *sc, Type *tparam, TemplateParameters *par
                     e->fd->treq = tparam;
 
                 TemplateInstance *ti = new TemplateInstance(e->loc, e->td, tiargs);
-                Expression *ex = (new ScopeExp(e->loc, ti))->semantic(e->td->_scope);
+                Expression *ex = new ScopeExp(e->loc, ti);
+                ex = ::semantic(ex, e->td->_scope);
 
                 // Reset inference target for the later re-semantic
                 e->fd->treq = NULL;
@@ -5185,7 +5187,7 @@ static RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, Tem
         else if (ea)
         {
             sc = sc->startCTFE();
-            ea = ea->semantic(sc);
+            ea = ::semantic(ea, sc);
             sc = sc->endCTFE();
             o = ea->ctfeInterpret();
         }
@@ -5475,7 +5477,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
             goto Lnomatch;
 
         ei = new VarExp(loc, f);
-        ei = ei->semantic(sc);
+        ei = ::semantic(ei, sc);
 
         /* If a function is really property-like, and then
          * it's CTFEable, ei will be a literal expression.
@@ -5535,7 +5537,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         Expression *e = specValue;
 
         sc = sc->startCTFE();
-        e = e->semantic(sc);
+        e = ::semantic(e, sc);
         e = resolveProperties(sc, e);
         sc = sc->endCTFE();
         e = e->implicitCastTo(sc, vt);
@@ -5543,7 +5545,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
         ei = ei->syntaxCopy();
         sc = sc->startCTFE();
-        ei = ei->semantic(sc);
+        ei = ::semantic(ei, sc);
         sc = sc->endCTFE();
         ei = ei->implicitCastTo(sc, vt);
         ei = ei->ctfeInterpret();
@@ -5619,7 +5621,7 @@ RootObject *TemplateValueParameter::defaultArg(Loc instLoc, Scope *sc)
     if (e)
     {
         e = e->syntaxCopy();
-        e = e->semantic(sc);
+        e = ::semantic(e, sc);
         e = resolveProperties(sc, e);
         e = e->resolveLoc(instLoc, sc);     // use the instantiated loc
         e = e->optimize(WANTvalue);
@@ -6787,7 +6789,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             if (flags & 1) // only used by __traits
             {
-                ea = ea->semantic(sc);
+                ea = ::semantic(ea, sc);
 
                 // must not interpret the args, excepting template parameters
                 if (ea->op != TOKvar ||
@@ -6799,7 +6801,7 @@ bool TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             else
             {
                 sc = sc->startCTFE();
-                ea = ea->semantic(sc);
+                ea = ::semantic(ea, sc);
                 sc = sc->endCTFE();
 
                 if (ea->op == TOKvar)
