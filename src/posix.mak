@@ -266,8 +266,8 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
+DMD_FLAGS  := -I$(D) -I$(ROOT) -Wuninitialized
+GLUE_FLAGS := -I$(D) -I$(ROOT) -I$(TK) -I$(C)
 BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
@@ -396,7 +396,7 @@ TK_SRC = \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c
 
-######## CXX header files (only needed for checkcxxheaders)
+######## CXX header files (only needed for cxx-unittest)
 
 SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
@@ -423,7 +423,7 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
 
 all: $G/dmd
 
-auto-tester-build: $G/dmd checkwhitespace checkcxxheaders $G/dmd_frontend
+auto-tester-build: $G/dmd checkwhitespace cxx-unittest $G/dmd_frontend
 .PHONY: auto-tester-build
 
 toolchain-info:
@@ -569,11 +569,14 @@ $(TOOLS_DIR)/checkwhitespace.d:
 
 ######################################################
 
-# See https://github.com/dlang/dmd/pull/7358 for why -xc++ is used here
-# -O is needed for FreeBSD's compiler to silence "-Wuninitialized is not supported without -O"
-checkcxxheaders: $(ROOT_SRC) $(SRC)
-	$(HOST_CXX) -xc++ -O -fsyntax-only $(ROOT_FLAGS) $(filter %.h,$(ROOT_SRC))
-	$(HOST_CXX) -xc++ -O -fsyntax-only $(DMD_FLAGS) $(filter %.h,$(SRC))
+$G/cxxfrontend.o: $G/%.o: tests/%.c $(SRC) $(ROOT_SRC)
+	$(CXX) -c -o$@ $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
+
+$G/cxx-unittest: $G/cxxfrontend.o $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
+
+cxx-unittest: $G/cxx-unittest
+	$<
 
 ######################################################
 
