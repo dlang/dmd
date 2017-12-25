@@ -7824,20 +7824,22 @@ public:
                 if (altop == TOKerror)
                 {
                     const char *s = exp->op == TOKunord ? "false" : "true";
-                    exp->deprecation("floating point operator '%s' always returns %s for non-floating comparisons",
+                    exp->error("floating point operator '%s' always returns %s for non-floating comparisons",
                         Token::toChars(exp->op), s);
                 }
                 else
                 {
-                    exp->deprecation("use '%s' for non-floating comparisons rather than floating point operator '%s'",
+                    exp->error("use '%s' for non-floating comparisons rather than floating point operator '%s'",
                         Token::toChars(altop), Token::toChars(exp->op));
                 }
             }
             else
             {
-                exp->deprecation("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
+                exp->error("use std.math.isNaN to deal with NaN operands rather than floating point operator '%s'",
                     Token::toChars(exp->op));
             }
+            result = new ErrorExp();
+            return;
         }
 
         //printf("CmpExp: %s, type = %s\n", e->toChars(), e->type->toChars());

@@ -63,14 +63,6 @@ bool isCommutative(TOK op)
         case TOKle:
         case TOKgt:
         case TOKge:
-        case TOKunord:
-        case TOKlg:
-        case TOKleg:
-        case TOKule:
-        case TOKul:
-        case TOKuge:
-        case TOKug:
-        case TOKue:
             return true;
 
         default:
@@ -842,19 +834,6 @@ Expression *op_overload(Expression *e, Scope *sc)
                         case TOKgt:     e->op = TOKlt;     break;
                         case TOKle:     e->op = TOKge;     break;
                         case TOKge:     e->op = TOKle;     break;
-
-                        // Floating point compares
-                        case TOKule:    e->op = TOKuge;     break;
-                        case TOKul:     e->op = TOKug;      break;
-                        case TOKuge:    e->op = TOKule;     break;
-                        case TOKug:     e->op = TOKul;      break;
-
-                        // These are symmetric
-                        case TOKunord:
-                        case TOKlg:
-                        case TOKleg:
-                        case TOKue:
-                            break;
                     }
 
                     return;
@@ -1525,12 +1504,6 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
                 case TOKgt:     e->op = TOKlt;     break;
                 case TOKle:     e->op = TOKge;     break;
                 case TOKge:     e->op = TOKle;     break;
-
-                // Floating point compares
-                case TOKule:    e->op = TOKuge;     break;
-                case TOKul:     e->op = TOKug;      break;
-                case TOKuge:    e->op = TOKule;     break;
-                case TOKug:     e->op = TOKul;      break;
 
                 // The rest are symmetric
                 default:

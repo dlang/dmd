@@ -1032,23 +1032,6 @@ static bool numCmp(TOK op, N n1, N n2)
         case TOKge:
             return n1 >= n2;
 
-        case TOKleg:
-            return true;
-        case TOKlg:
-            return n1 != n2;
-        case TOKunord:
-            return false;
-        case TOKue:
-            return n1 == n2;
-        case TOKug:
-            return n1 >  n2;
-        case TOKuge:
-            return n1 >= n2;
-        case TOKul:
-            return n1 <  n2;
-        case TOKule:
-            return n1 <= n2;
-
         default:
             assert(0);
     }
@@ -1084,17 +1067,7 @@ int realCmp(TOK op, real_t r1, real_t r2)
             case TOKle:
             case TOKgt:
             case TOKge:
-            case TOKleg:
-            case TOKlg:
                 return 0;
-
-            case TOKunord:
-            case TOKue:
-            case TOKug:
-            case TOKuge:
-            case TOKul:
-            case TOKule:
-                return 1;
 
             default:
                 assert(0);
