@@ -93,6 +93,7 @@ public:
     LINK linkage;
 
     LinkDeclaration(LINK p, Dsymbols *decl);
+    static LinkDeclaration *create(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     const char *toChars();

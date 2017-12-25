@@ -136,19 +136,19 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 # D front end
 # mars.obj
 FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
-	staticassert.obj identifier.obj mtype.obj expression.obj \
+	staticassert.obj staticcond.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj dtemplate.obj lexer.obj declaration.obj dcast.obj \
-	init.obj func.obj nogc.obj utf.obj parse.obj statement.obj \
+	init.obj initsem.obj func.obj nogc.obj utf.obj parse.obj statement.obj \
 	constfold.obj dversion.obj inifile.obj cppmangle.obj \
-	dmodule.obj dscope.obj cond.obj inline.obj opover.obj \
+	dmodule.obj dscope.obj cond.obj inline.obj inlinecost.obj opover.obj \
 	entity.obj dclass.obj dmangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj dmacro.obj hdrgen.obj delegatize.obj \
 	dinterpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
-	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
+	safe.obj sideeffect.obj intrange.obj blockexit.obj canthrow.obj target.obj nspace.obj \
 	errors.obj escape.obj tokens.obj globals.obj \
-	utils.obj expressionsem.obj statementsem.obj
+	utils.obj expressionsem.obj statementsem.obj typesem.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -182,9 +182,9 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
 	template.h dtemplate.c lexer.c declaration.c dcast.c \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
-	constfold.c version.h dversion.c inifile.c staticassert.c \
-	dmodule.c dscope.c init.h init.c attrib.h attrib.c opover.c \
-	dclass.c dmangle.c func.c nogc.c inline.c access.c complex_t.h cppmangle.c \
+	constfold.c version.h dversion.c inifile.c staticassert.c staticcond.c \
+	dmodule.c dscope.c init.h init.c initsem.c attrib.h attrib.c opover.c \
+	dclass.c dmangle.c func.c nogc.c inline.c inlinecost.c access.c complex_t.h cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
@@ -192,10 +192,10 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	delegatize.c dinterpret.c ctfeexpr.c traits.c builtin.c \
 	clone.c lib.h arrayop.c nspace.h nspace.c errors.h errors.c escape.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
-	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
+	apply.c sapply.c safe.c sideeffect.c ctfe.h \
+	intrange.h intrange.c blockexit.c canthrow.c target.c target.h visitor.h \
 	tokens.h tokens.c globals.h globals.c objc.h objc.c \
-	utils.c expressionsem.c statementsem.c
+	utils.c expressionsem.c statementsem.c typesem.obj
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -704,6 +704,7 @@ argtypes.obj : $(TOTALH) mtype.h argtypes.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
 attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c
+blockexit.obj : $(TOTALH) blockexit.c
 canthrow.obj : $(TOTALH) canthrow.c
 dcast.obj : $(TOTALH) expression.h mtype.h dcast.c
 dclass.obj : $(TOTALH) enum.h dclass.c
@@ -726,7 +727,9 @@ identifier.obj : $(TOTALH) identifier.h identifier.c
 dimport.obj : $(TOTALH) dsymbol.h import.h dimport.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
+init.obj : $(TOTALH) init.h initsem.c
 inline.obj : $(TOTALH) inline.c
+inlinecost.obj : $(TOTALH) inlinecost.c
 dinterpret.obj : $(TOTALH) dinterpret.c declaration.h expression.h ctfe.h
 ctfexpr.obj : $(TOTALH) ctfeexpr.c ctfe.h
 intrange.obj : $(TOTALH) intrange.h intrange.c
@@ -745,9 +748,11 @@ parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c
 sapply.obj : $(TOTALH) sapply.c
 scanomf.obj : $(TOTALH) lib.h scanomf.c
 dscope.obj : $(TOTALH) scope.h dscope.c
+safe.obj : $(TOTALH) safe.c
 sideeffect.obj : $(TOTALH) sideeffect.c
 statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
+staticcond.obj : $(TOTALH) staticassert.h staticcond.c
 dstruct.obj : $(TOTALH) identifier.h enum.h dstruct.c
 target.obj : $(TOTALH) target.c target.h
 tokens.obj : $(TOTALH) tokens.h tokens.c
@@ -760,3 +765,4 @@ dversion.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h dversion.c
 utils.obj : $(TOTALH) utils.c
 expressionsem.obj : $(TOTALH) expressionsem.c
 statementsem.obj : $(TOTALH) statementsem.c
+typesem.obj : $(TOTALH) typesem.c

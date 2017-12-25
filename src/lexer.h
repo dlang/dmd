@@ -35,16 +35,14 @@ public:
     const utf8_t *p;           // current character
     const utf8_t *line;        // start of current line
     Token token;
-    int doDocComment;           // collect doc comment information
-    int anyToken;               // !=0 means seen at least one token
-    int commentToken;           // !=0 means comments are TOKcomment's
+    bool doDocComment;          // collect doc comment information
+    bool anyToken;              // !=0 means seen at least one token
+    bool commentToken;          // !=0 means comments are TOKcomment's
     bool errors;                // errors occurred during lexing or parsing
 
     Lexer(const char *filename,
         const utf8_t *base, size_t begoffset, size_t endoffset,
-        int doDocComment, int commentToken);
-
-    static void initLexer();
+        bool doDocComment, bool commentToken);
 
     TOK nextToken();
     TOK peekNext();

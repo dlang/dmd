@@ -33,6 +33,9 @@
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
 Expression *semantic(Expression *e, Scope *sc);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+Initializer *inferType(Initializer *init, Scope *sc);
+Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -311,6 +314,11 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->_import = NULL;
     this->overnext = NULL;
     assert(s);
+}
+
+AliasDeclaration *AliasDeclaration::create(Loc loc, Identifier *id, Type *type)
+{
+    return new AliasDeclaration(loc, id, type);
 }
 
 Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
@@ -905,8 +913,8 @@ void VarDeclaration::semantic(Scope *sc)
         if (needctfe) sc = sc->startCTFE();
 
         //printf("inferring type for %s with init %s\n", toChars(), _init->toChars());
-        _init = _init->inferType(sc);
-        type = _init->toExpression()->type;
+        _init = inferType(_init, sc);
+        type = initializerToExpression(_init)->type;
 
         if (needctfe) sc = sc->endCTFE();
 
@@ -1009,7 +1017,7 @@ void VarDeclaration::semantic(Scope *sc)
          */
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
-        Expression *ie = (_init && !_init->isVoidInitializer()) ? _init->toExpression() : NULL;
+        Expression *ie = (_init && !_init->isVoidInitializer()) ? initializerToExpression(_init) : NULL;
         if (ie)
             ie = ::semantic(ie, sc);
 
@@ -1376,18 +1384,16 @@ Lnomatch:
         if (sz == SIZE_INVALID && type->ty != Terror)
             error("size of type %s is invalid", type->toChars());
 
-        if (type->needsNested())
+        Type *tv = type;
+        while (tv->ty == Tsarray)    // Don't skip Tenum
+            tv = tv->nextOf();
+        if (tv->needsNested())
         {
-            Type *tv = type;
-            while (tv->toBasetype()->ty == Tsarray)
-                tv = tv->toBasetype()->nextOf();
-            assert(tv->toBasetype()->ty == Tstruct);
-
             /* Nested struct requires valid enclosing frame pointer.
              * In StructLiteralExp::toElem(), it's calculated.
              */
-
-            checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
+            assert(tv->toBasetype()->ty == Tstruct);
+            checkFrameAccess(loc, sc, ((TypeStruct *)tbn)->sym);
 
             Expression *e = tv->defaultInitLiteral(loc);
             e = new BlitExp(loc, new VarExp(loc, this), e);
@@ -1395,8 +1401,7 @@ Lnomatch:
             _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        if (type->ty == Tstruct &&
-            ((TypeStruct *)type)->sym->zeroInit == 1)
+        if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->zeroInit == 1)
         {
             /* If a struct is all zeros, as a special case
              * set it's initializer to the integer 0.
@@ -1448,12 +1453,12 @@ Lnomatch:
                     if (ai && tb->ty == Taarray)
                         e = ai->toAssocArrayLiteral();
                     else
-                        e = _init->toExpression();
+                        e = initializerToExpression(_init);
                     if (!e)
                     {
                         // Run semantic, but don't need to interpret
-                        _init = _init->semantic(sc, type, INITnointerpret);
-                        e = _init->toExpression();
+                        _init = ::semantic(_init, sc, type, INITnointerpret);
+                        e = initializerToExpression(_init);
                         if (!e)
                         {
                             error("is not a static and cannot have static initializer");
@@ -1518,7 +1523,7 @@ Lnomatch:
             else
             {
                 // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                _init = _init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+                _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
             }
         }
         else if (parent->isAggregateDeclaration())
@@ -1581,7 +1586,7 @@ Lnomatch:
                     }
                     ei->exp = exp;
                 }
-                _init = _init->semantic(sc, type, INITinterpret);
+                _init = ::semantic(_init, sc, type, INITinterpret);
                 inuse--;
                 if (global.errors > errors)
                 {
@@ -1647,7 +1652,7 @@ void VarDeclaration::semantic2(Scope *sc)
         }
 #endif
         // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-        _init = _init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+        _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
     }
     if (storage_class & STCmanifest)
@@ -1915,7 +1920,7 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     /* __require and __ensure will always get called directly,
      * so they never make outer functions closure.
      */
-    if (fdthis->ident == Id::require && fdthis->ident == Id::ensure)
+    if (fdthis->ident == Id::require || fdthis->ident == Id::ensure)
         return false;
 
     //printf("\tfdv = %s\n", fdv->toChars());
@@ -1983,11 +1988,11 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     if (_scope)
     {
         inuse++;
-        _init = _init->semantic(_scope, type, INITinterpret);
+        _init = ::semantic(_init, _scope, type, INITinterpret);
         _scope = NULL;
         inuse--;
     }
-    Expression *e = _init->toExpression(needFullType ? type : NULL);
+    Expression *e = initializerToExpression(_init, needFullType ? type : NULL);
 
     global.gag = oldgag;
     return e;

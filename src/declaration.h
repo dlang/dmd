@@ -198,6 +198,7 @@ public:
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
+    static AliasDeclaration *create(Loc loc, Identifier *id, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void aliasSemantic(Scope *sc);
@@ -598,6 +599,7 @@ public:
     unsigned flags;                     // FUNCFLAGxxxxx
 
     FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
+    static FuncDeclaration *create(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

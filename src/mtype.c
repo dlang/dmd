@@ -56,6 +56,10 @@ Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *semantic(Expression *e, Scope *sc);
 Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
 Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
+Expression *typeToExpression(Type *t);
+Expression *typeToExpressionHelper(TypeQualified *t, Expression *e, size_t i = 0);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
@@ -2255,7 +2259,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
              */
             e = build_overload(e->loc, sc, e, NULL, fd);
             e = new DotIdExp(e->loc, e, ident);
-	    return ::semantic(e, sc);
+            return ::semantic(e, sc);
         }
 
         /* Look for overloaded opDispatch to see if we should forward request
@@ -2443,17 +2447,6 @@ void Type::resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps)
 int Type::hasWild() const
 {
     return mod & MODwild;
-}
-
-/********************************
- * We've mistakenly parsed this as a type.
- * Redo it as an Expression.
- * NULL if cannot.
- */
-
-Expression *Type::toExpression()
-{
-    return NULL;
 }
 
 /***************************************
@@ -3691,6 +3684,11 @@ TypeVector::TypeVector(Loc loc, Type *basetype)
     this->basetype = basetype;
 }
 
+TypeVector *TypeVector::create(Loc loc, Type *basetype)
+{
+    return new TypeVector(loc, basetype);
+}
+
 const char *TypeVector::kind()
 {
     return "vector";
@@ -4350,14 +4348,6 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
     return ae;
 }
 
-Expression *TypeSArray::toExpression()
-{
-    Expression *e = next->toExpression();
-    if (e)
-        e = new ArrayExp(dim->loc, e, dim);
-    return e;
-}
-
 bool TypeSArray::hasPointers()
 {
     /* Don't want to do this, because:
@@ -4873,18 +4863,6 @@ bool TypeAArray::isBoolean()
     return true;
 }
 
-Expression *TypeAArray::toExpression()
-{
-    Expression *e = next->toExpression();
-    if (e)
-    {
-        Expression *ei = index->toExpression();
-        if (ei)
-            return new ArrayExp(loc, e, ei);
-    }
-    return NULL;
-}
-
 bool TypeAArray::hasPointers()
 {
     return true;
@@ -4933,6 +4911,11 @@ MATCH TypeAArray::constConv(Type *to)
 TypePointer::TypePointer(Type *t)
     : TypeNext(Tpointer, t)
 {
+}
+
+TypePointer *TypePointer::create(Type *t)
+{
+    return new TypePointer(t);
 }
 
 const char *TypePointer::kind()
@@ -5721,8 +5704,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 {
                     e = inferType(e, fparam->type);
                     Initializer *iz = new ExpInitializer(e->loc, e);
-                    iz = iz->semantic(argsc, fparam->type, INITnointerpret);
-                    e = iz->toExpression();
+                    iz = ::semantic(iz, argsc, fparam->type, INITnointerpret);
+                    e = initializerToExpression(iz);
                 }
                 if (e->op == TOKfunction)               // see Bugzilla 4820
                 {
@@ -6427,6 +6410,11 @@ TypeDelegate::TypeDelegate(Type *t)
     ty = Tdelegate;
 }
 
+TypeDelegate *TypeDelegate::create(Type *t)
+{
+    return new TypeDelegate(t);
+}
+
 const char *TypeDelegate::kind()
 {
     return "delegate";
@@ -6715,49 +6703,6 @@ void TypeQualified::resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
         resolveExp(*pe, pt, pe, ps);
 }
 
-Expression *TypeQualified::toExpressionHelper(Expression *e, size_t i)
-{
-    //printf("toExpressionHelper(e = %s %s)\n", Token::toChars(e->op), e->toChars());
-    for (; i < idents.dim; i++)
-    {
-        RootObject *id = idents[i];
-        //printf("\t[%d] e: '%s', id: '%s'\n", i, e->toChars(), id->toChars());
-
-        switch (id->dyncast())
-        {
-            case DYNCAST_IDENTIFIER:
-            {
-                // ... '. ident'
-                e = new DotIdExp(e->loc, e, (Identifier *)id);
-                break;
-            }
-            case DYNCAST_DSYMBOL:
-            {
-                // ... '. name!(tiargs)'
-                TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
-                assert(ti);
-                e = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
-                break;
-            }
-            case DYNCAST_TYPE:          // Bugzilla 1215
-            {
-                // ... '[type]'
-                e = new ArrayExp(loc, e, new TypeExp(loc, (Type *)id));
-                break;
-            }
-            case DYNCAST_EXPRESSION:    // Bugzilla 1215
-            {
-                // ... '[expr]'
-                e = new ArrayExp(loc, e, (Expression *)id);
-                break;
-            }
-            default:
-                assert(0);
-        }
-    }
-    return e;
-}
-
 /*************************************
  * Takes an array of Identifiers and figures out if
  * it represents a Type or an Expression.
@@ -6808,7 +6753,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     ex = new TypeExp(loc, tx);
                 assert(ex);
 
-                ex = toExpressionHelper(ex, i + 1);
+                ex = typeToExpressionHelper(this, ex, i + 1);
                 ex = ::semantic(ex, sc);
                 resolveExp(ex, pt, pe, ps);
                 return;
@@ -6874,7 +6819,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     else
                         e = new VarExp(loc, s->isDeclaration(), true);
 
-                    e = toExpressionHelper(e, i);
+                    e = typeToExpressionHelper(this, e, i);
                     e = ::semantic(e, sc);
                     resolveExp(e, pt, pe, ps);
                     return;
@@ -7122,11 +7067,6 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     return t;
 }
 
-Expression *TypeIdentifier::toExpression()
-{
-    return toExpressionHelper(new IdentifierExp(loc, ident));
-}
-
 /***************************** TypeInstance *****************************/
 
 TypeInstance::TypeInstance(Loc loc, TemplateInstance *tempinst)
@@ -7211,11 +7151,6 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
         s = t->toDsymbol(sc);
 
     return s;
-}
-
-Expression *TypeInstance::toExpression()
-{
-    return toExpressionHelper(new ScopeExp(loc, tempinst));
 }
 
 
@@ -7344,7 +7279,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
         else
         {
-            Expression *e = toExpressionHelper(new TypeExp(loc, t));
+            Expression *e = typeToExpressionHelper(this, new TypeExp(loc, t));
             e = ::semantic(e, sc);
             resolveExp(e, pt, pe, ps);
         }
@@ -7446,7 +7381,7 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             resolveHelper(loc, sc, s, NULL, pe, pt, ps, intypeid);
         else
         {
-            Expression *e = toExpressionHelper(new TypeExp(loc, t));
+            Expression *e = typeToExpressionHelper(this, new TypeExp(loc, t));
             e = ::semantic(e, sc);
             resolveExp(e, pt, pe, ps);
         }
@@ -7737,6 +7672,11 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
     this->cppmangle = CPPMANGLEdefault;
 }
 
+TypeStruct *TypeStruct::create(StructDeclaration *sym)
+{
+    return new TypeStruct(sym);
+}
+
 const char *TypeStruct::kind()
 {
     return "struct";
@@ -7956,7 +7896,7 @@ L1:
             e = new ScopeExp(e->loc, ti);
         else
             e = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
-	return ::semantic(e, sc);
+        return ::semantic(e, sc);
     }
 
     if (s->isImport() || s->isModule() || s->isPackage())
@@ -8661,7 +8601,7 @@ L1:
             e = new ScopeExp(e->loc, ti);
         else
             e = new DotExp(e->loc, e, new ScopeExp(e->loc, ti));
-	return ::semantic(e, sc);
+        return ::semantic(e, sc);
     }
 
     if (s->isImport() || s->isModule() || s->isPackage())

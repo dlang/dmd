@@ -998,11 +998,16 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id, bool inObject)
     }
 }
 
+StructDeclaration *StructDeclaration::create(Loc loc, Identifier *id, bool inObject)
+{
+    return new StructDeclaration(loc, id, inObject);
+}
+
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
 {
     StructDeclaration *sd =
         s ? (StructDeclaration *)s
-          : new StructDeclaration(loc, ident);
+          : new StructDeclaration(loc, ident, false);
     return ScopeDsymbol::syntaxCopy(sd);
 }
 
@@ -1450,7 +1455,7 @@ const char *StructDeclaration::kind()
 /********************************* UnionDeclaration ****************************/
 
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
-    : StructDeclaration(loc, id)
+    : StructDeclaration(loc, id, false)
 {
 }
 

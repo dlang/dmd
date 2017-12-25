@@ -1151,16 +1151,13 @@ Language changes listed by -transition=id:\n\
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
 
     // Initialization
-    Lexer::initLexer();
     Type::_init();
     Id::initialize();
     Module::_init();
     Target::_init();
     Expression::_init();
     Objc::_init();
-    initPrecedence();
     builtin_init();
-    initTraitsStringTable();
 
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);

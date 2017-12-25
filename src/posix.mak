@@ -158,20 +158,20 @@ DMD_OBJS = \
 	declaration.o dsymbol.o \
 	denum.o expression.o expressionsem.o func.o nogc.o \
 	id.o \
-	identifier.o impcnvtab.o dimport.o inifile.o init.o inline.o \
+	identifier.o impcnvtab.o dimport.o inifile.o init.o initsem.o inline.o inlinecost.o \
 	lexer.o link.o dmangle.o mars.o dmodule.o mtype.o \
 	cppmangle.o opover.o optimize.o \
 	parse.o dscope.o statement.o \
 	dstruct.o dtemplate.o \
-	dversion.o utf.o staticassert.o \
+	dversion.o utf.o staticassert.o staticcond.o \
 	entity.o doc.o dmacro.o \
 	hdrgen.o delegatize.o dinterpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
-	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o nspace.o objc.o errors.o \
+	imphint.o argtypes.o apply.o sapply.o safe.o sideeffect.o \
+	intrange.o blockexit.o canthrow.o target.o nspace.o objc.o errors.o \
 	escape.o tokens.o globals.o \
-	utils.o statementsem.o
+	utils.o statementsem.o typesem.o
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
@@ -222,24 +222,24 @@ SRC = win32.mak posix.mak osmodel.mak \
 	identifier.c mtype.c expression.c expressionsem.c optimize.c template.h \
 	dtemplate.c lexer.c declaration.c dcast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h dversion.c \
-	inifile.c dmodule.c dscope.c init.h init.c attrib.h \
-	attrib.c opover.c dclass.c dmangle.c func.c nogc.c inline.c \
+	inifile.c dmodule.c dscope.c init.h init.c initsem.c attrib.h \
+	attrib.c opover.c dclass.c dmangle.c func.c nogc.c inline.c inlinecost.c \
 	access.c complex_t.h \
 	identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h \
-	utf.h utf.c staticassert.h staticassert.c \
+	utf.h utf.c staticassert.h staticassert.c staticcond.c \
 	entity.c \
 	doc.h doc.c macro.h dmacro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c dinterpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c apply.c sapply.c sideeffect.c \
-	intrange.h intrange.c canthrow.c target.c target.h \
+	argtypes.c apply.c sapply.c safe.c sideeffect.c \
+	intrange.h intrange.c blockexit.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
 	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c \
-	utils.c statementsem.c
+	utils.c statementsem.c typesem.c
 
 ROOT_SRC = $(ROOT)/root.h \
 	$(ROOT)/array.h \
@@ -459,6 +459,7 @@ gcov:
 	gcov arrayop.c
 	gcov attrib.c
 	gcov builtin.c
+	gcov blockexit.c
 	gcov canthrow.c
 	gcov dcast.c
 	gcov dclass.c
@@ -484,7 +485,9 @@ gcov:
 	gcov dimport.c
 	gcov inifile.c
 	gcov init.c
+	gcov initsem.c
 	gcov inline.c
+	gcov inlinecost.c
 	gcov dinterpret.c
 	gcov ctfeexpr.c
 	gcov irstate.c
@@ -514,9 +517,11 @@ endif
 	gcov optimize.c
 	gcov parse.c
 	gcov dscope.c
+	gcov safe.c
 	gcov sideeffect.c
 	gcov statement.c
 	gcov staticassert.c
+	gcov staticcond.c
 	gcov s2ir.c
 	gcov dstruct.c
 	gcov dtemplate.c

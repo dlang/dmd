@@ -55,8 +55,6 @@ typedef union tree_node Symbol;
 struct Symbol;          // back end symbol
 #endif
 
-void initPrecedence();
-
 Expression *resolveProperties(Scope *sc, Expression *e);
 Expression *resolvePropertiesOnly(Scope *sc, Expression *e1);
 bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d);
@@ -215,6 +213,11 @@ public:
         return ::op_overload(this, sc);
     }
 
+    virtual bool hasCode()
+    {
+        return true;
+    }
+
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -225,6 +228,7 @@ public:
 
     IntegerExp(Loc loc, dinteger_t value, Type *type);
     IntegerExp(dinteger_t value);
+    static IntegerExp *create(Loc loc, dinteger_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     real_t toReal();
@@ -254,6 +258,7 @@ public:
     real_t value;
 
     RealExp(Loc loc, real_t value, Type *type);
+    static RealExp *create(Loc loc, real_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -270,6 +275,7 @@ public:
     complex_t value;
 
     ComplexExp(Loc loc, complex_t value, Type *type);
+    static ComplexExp *create(Loc loc, complex_t value, Type *type);
     bool equals(RootObject *o);
     dinteger_t toInteger();
     uinteger_t toUInteger();
@@ -358,6 +364,7 @@ public:
     StringExp(Loc loc, void *s, size_t len);
     StringExp(Loc loc, void *s, size_t len, utf8_t postfix);
     static StringExp *create(Loc loc, char *s);
+    static StringExp *create(Loc loc, void *s, size_t len);
     bool equals(RootObject *o);
     StringExp *toStringExp();
     StringExp *toUTF8(Scope *sc);
@@ -407,6 +414,7 @@ public:
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
     ArrayLiteralExp(Loc loc, Expression *basis, Expressions *elements);
+    static ArrayLiteralExp *create(Loc loc, Expressions *elements);
     Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *getElement(d_size_t i);
@@ -540,6 +548,7 @@ public:
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
         Type *newtype, Expressions *arguments);
+    static NewExp *create(Loc loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
 
     void accept(Visitor *v) { v->visit(this); }
@@ -647,6 +656,8 @@ public:
 
     DeclarationExp(Loc loc, Dsymbol *declaration);
     Expression *syntaxCopy();
+
+    bool hasCode();
 
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -950,6 +961,7 @@ public:
     unsigned dim;               // number of elements in the vector
 
     VectorExp(Loc loc, Expression *e, Type *t);
+    static VectorExp *create(Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
     void accept(Visitor *v) { v->visit(this); }
 };

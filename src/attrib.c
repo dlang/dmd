@@ -488,6 +488,11 @@ LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
     linkage = (p == LINKsystem) ? Target::systemLinkage() : p;
 }
 
+LinkDeclaration *LinkDeclaration::create(LINK p, Dsymbols *decl)
+{
+    return new LinkDeclaration(p, decl);
+}
+
 Dsymbol *LinkDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);

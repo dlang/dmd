@@ -45,6 +45,8 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 Expression *interpret(Statement *s, InterState *istate);
 Expression *interpret(Expression *e, InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 Expression *semantic(Expression *e, Scope *sc);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 #define LOG     0
 #define LOGASSIGN 0
@@ -2277,10 +2279,10 @@ public:
                 if (v->_scope)
                 {
                     v->inuse++;
-                    v->_init = v->_init->semantic(v->_scope, v->type, INITinterpret); // might not be run on aggregate members
+                    v->_init = ::semantic(v->_init, v->_scope, v->type, INITinterpret); // might not be run on aggregate members
                     v->inuse--;
                 }
-                e = v->_init->toExpression(v->type);
+                e = initializerToExpression(v->_init, v->type);
                 if (!e)
                     return CTFEExp::cantexp;
                 assert(e->type);
@@ -2325,7 +2327,7 @@ public:
                         assert(0);
                         return CTFEExp::cantexp;
                     }
-                    e = v->_init->toExpression();
+                    e = initializerToExpression(v->_init);
                 }
                 else
                     e = v->type->defaultInitLiteral(e->loc);
@@ -3645,21 +3647,23 @@ public:
         Expression *newval = interpret(e->e2, istate);
         if (exceptionOrCant(newval))
             return;
-        if (e->type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
+        if (e->op == TOKblit && newval->op == TOKint64)
         {
-            /* Look for special case of struct being initialized with 0.
-             */
-            assert(e->op == TOKconstruct || e->op == TOKblit);
-            newval = e->type->defaultInitLiteral(e->loc);
-            if (newval->op != TOKstructliteral)
+            Type *tbn = e->type->baseElemOf();
+            if (tbn->ty == Tstruct)
             {
-                e->error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
-                result = CTFEExp::cantexp;
-                return;
+                /* Look for special case of struct being initialized with 0.
+                 */
+                newval = e->type->defaultInitLiteral(e->loc);
+                if (newval->op == TOKerror)
+                {
+                    result = CTFEExp::cantexp;
+                    return;
+                }
+                newval = interpret(newval, istate); // copy and set ownedByCtfe flag
+                if (exceptionOrCant(newval))
+                    return;
             }
-            newval = interpret(newval, istate); // copy and set ownedByCtfe flag
-            if (exceptionOrCant(newval))
-                return;
         }
 
         // ----------------------------------------------------
@@ -5043,7 +5047,7 @@ public:
             }
             if (!getValue(v))
             {
-                Expression *newval = v->_init->toExpression();
+                Expression *newval = initializerToExpression(v->_init);
                 // Bug 4027. Copy constructors are a weird case where the
                 // initializer is a void function (the variable is modified
                 // through a reference parameter instead).

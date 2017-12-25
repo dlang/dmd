@@ -38,6 +38,9 @@
 #include "nspace.h"
 #include "hdrgen.h"
 
+Expression *typeToExpression(Type *t);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+
 // How multiple declarations are parsed.
 // If 1, treat as C.
 // If 0, treat:
@@ -55,8 +58,8 @@
 //      int a[3][4];
 #define CARRAYDECL      1
 
-Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComment)
-    : Lexer(module ? module->srcfile->toChars() : NULL, base, 0, length, doDocComment, 0)
+Parser::Parser(Module *module, const utf8_t *base, size_t length, bool doDocComment)
+    : Lexer(module ? module->srcfile->toChars() : NULL, base, 0, length, doDocComment, false)
 {
     //printf("Parser::Parser()\n");
     mod = module;
@@ -73,8 +76,8 @@ Parser::Parser(Module *module, const utf8_t *base, size_t length, int doDocComme
  * Input:
  *      loc     location in source file of mixin
  */
-Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, int doDocComment)
-    : Lexer(module ? module->srcfile->toChars() : NULL, base, 0, length, doDocComment, 0)
+Parser::Parser(Loc loc, Module *module, const utf8_t *base, size_t length, bool doDocComment)
+    : Lexer(module ? module->srcfile->toChars() : NULL, base, 0, length, doDocComment, false)
 {
     //printf("Parser::Parser()\n");
     scanloc = loc;
@@ -2264,7 +2267,7 @@ Dsymbol *Parser::parseAggregate()
             if (tok == TOKclass)
             {
                 bool inObject = md && !md->packages && md->id == Id::object;
-                a = new ClassDeclaration(loc, id, baseclasses, inObject);
+                a = new ClassDeclaration(loc, id, baseclasses, NULL, inObject);
             }
             else
                 a = new InterfaceDeclaration(loc, id, baseclasses);
@@ -2317,7 +2320,7 @@ Dsymbol *Parser::parseAggregate()
     else
     {
         error("{ } expected following %s declaration", Token::toChars(tok));
-        a = new StructDeclaration(loc, NULL);
+        a = new StructDeclaration(loc, NULL, false);
     }
 
     if (tpl)
@@ -4595,7 +4598,7 @@ Initializer *Parser::parseInitializer()
                         if (token.value == TOKcolon)
                         {
                             nextToken();
-                            e = value->toExpression();
+                            e = initializerToExpression(value);
                             value = parseInitializer();
                         }
                         else
@@ -7805,22 +7808,22 @@ Expression *Parser::parseNewExp(Expression *thisexp)
             baseclasses = parseBaseClasses();
 
         Identifier *id = NULL;
-        ClassDeclaration *cd = new ClassDeclaration(loc, id, baseclasses);
+        Dsymbols *members = NULL;
 
         if (token.value != TOKlcurly)
-        {   error("{ members } expected for anonymous class");
-            cd->members = NULL;
+        {
+            error("{ members } expected for anonymous class");
         }
         else
         {
             nextToken();
-            Dsymbols *decl = parseDeclDefs(0);
+            members = parseDeclDefs(0);
             if (token.value != TOKrcurly)
                 error("class member expected");
             nextToken();
-            cd->members = decl;
         }
 
+        ClassDeclaration *cd = new ClassDeclaration(loc, id, baseclasses, members, false);
         Expression *e = new NewAnonClassExp(loc, thisexp, newargs, cd, arguments);
 
         return e;
@@ -7834,7 +7837,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
     {   TypeAArray *taa = (TypeAArray *)t;
         Type *index = taa->index;
 
-        Expression *e = index->toExpression();
+        Expression *e = typeToExpression(index);
         if (e)
         {   arguments = new Expressions();
             arguments->push(e);
@@ -7879,7 +7882,14 @@ void Parser::addComment(Dsymbol *s, const utf8_t *blockComment)
 
 PREC precedence[TOKMAX];
 
-void initPrecedence()
+struct PrecedenceInitializer
+{
+    PrecedenceInitializer();
+};
+
+static PrecedenceInitializer precedenceinitializer;
+
+PrecedenceInitializer::PrecedenceInitializer()
 {
     for (size_t i = 0; i < TOKMAX; i++)
         precedence[i] = PREC_zero;

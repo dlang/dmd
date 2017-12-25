@@ -28,6 +28,7 @@ bool walkPostorder(Expression *e, StoppableVisitor *v);
 void lambdaSetParent(Expression *e, Scope *sc);
 bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
 Expression *semantic(Expression *e, Scope *sc);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
 
 /********************************************
  * Convert from expression to delegate that returns the expression,
@@ -172,7 +173,7 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
                  */
                 if (v->_init && v->_init->isExpInitializer())
                 {
-                    Expression *ie = v->_init->toExpression();
+                    Expression *ie = initializerToExpression(v->_init);
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

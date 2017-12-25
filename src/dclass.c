@@ -44,7 +44,7 @@ ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 ClassDeclaration *ClassDeclaration::cpp_type_info_ptr;   // Object.__cpp_type_info_ptr
 
-ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject)
     : AggregateDeclaration(loc, id ? id : Identifier::generateId("__anonclass"))
 {
     static const char msg[] = "only object.d can define this reserved class name";
@@ -56,6 +56,9 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     }
     else
         this->baseclasses = new BaseClasses();
+
+    this->members = members;
+
     baseClass = NULL;
 
     interfaces.length = 0;
@@ -250,12 +253,17 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     cpp_type_info_ptr_sym = NULL;
 }
 
+ClassDeclaration *ClassDeclaration::create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject)
+{
+    return new ClassDeclaration(loc, id, baseclasses, members, inObject);
+}
+
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
     ClassDeclaration *cd =
         s ? (ClassDeclaration *)s
-          : new ClassDeclaration(loc, ident, NULL);
+          : new ClassDeclaration(loc, ident, NULL, NULL, false);
 
     cd->storage_class |= storage_class;
 
@@ -1395,7 +1403,7 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 /********************************* InterfaceDeclaration ****************************/
 
 InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
-    : ClassDeclaration(loc, id, baseclasses)
+    : ClassDeclaration(loc, id, baseclasses, NULL, false)
 {
     if (id == Id::IUnknown)     // IUnknown is the root of all COM interfaces
     {

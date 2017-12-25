@@ -33,8 +33,6 @@ extern int HtmlNamedEntity(const utf8_t *p, size_t length);
 #define LS 0x2028       // UTF line separator
 #define PS 0x2029       // UTF paragraph separator
 
-void unittest_lexer();
-
 /********************************************
  * Do our own char maps
  */
@@ -49,7 +47,14 @@ inline bool isoctal (utf8_t c) { return (cmtable[c] & CMoctal) != 0; }
 inline bool ishex   (utf8_t c) { return (cmtable[c] & CMhex) != 0; }
 inline bool isidchar(utf8_t c) { return (cmtable[c] & CMidchar) != 0; }
 
-static void cmtable_init()
+struct CMTableInitializer
+{
+    CMTableInitializer();
+};
+
+static CMTableInitializer cmtableinitializer;
+
+CMTableInitializer::CMTableInitializer()
 {
     for (unsigned c = 0; c < 256; c++)
     {
@@ -68,7 +73,7 @@ OutBuffer Lexer::stringbuffer;
 
 Lexer::Lexer(const char *filename,
         const utf8_t *base, size_t begoffset, size_t endoffset,
-        int doDocComment, int commentToken)
+        bool doDocComment, bool commentToken)
 {
     scanloc = Loc(filename, 1, 1);
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -2417,37 +2422,3 @@ const utf8_t *Lexer::combineComments(const utf8_t *c1, const utf8_t *c2)
     }
     return c;
 }
-
-void Lexer::initLexer()
-{
-    cmtable_init();
-
-    Identifier::initTable();
-    Token::initTokens();
-
-#if UNITTEST
-    unittest_lexer();
-#endif
-}
-
-#if UNITTEST
-
-void unittest_lexer()
-{
-    //printf("unittest_lexer()\n");
-
-    /* Not much here, just trying things out.
-     */
-    const utf8_t text[] = "int";
-    Lexer lex1(NULL, (utf8_t *)text, 0, sizeof(text), 0, 0);
-    TOK tok;
-    tok = lex1.nextToken();
-    //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);
-    assert(tok == TOKint32);
-    tok = lex1.nextToken();
-    assert(tok == TOKeof);
-    tok = lex1.nextToken();
-    assert(tok == TOKeof);
-}
-
-#endif

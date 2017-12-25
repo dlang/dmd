@@ -46,6 +46,7 @@ void freeFieldinit(Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *trySemantic(Expression *e, Scope *sc);
 Expression *semantic(Expression *e, Scope *sc);
+Expression *typeToExpression(Type *t);
 
 
 /************************************************
@@ -216,57 +217,64 @@ struct PushAttributes
     }
 };
 
-const char* traits[] = {
-    "isAbstractClass",
-    "isArithmetic",
-    "isAssociativeArray",
-    "isFinalClass",
-    "isPOD",
-    "isNested",
-    "isFloating",
-    "isIntegral",
-    "isScalar",
-    "isStaticArray",
-    "isUnsigned",
-    "isVirtualFunction",
-    "isVirtualMethod",
-    "isAbstractFunction",
-    "isFinalFunction",
-    "isOverrideFunction",
-    "isStaticFunction",
-    "isRef",
-    "isOut",
-    "isLazy",
-    "hasMember",
-    "identifier",
-    "getProtection",
-    "parent",
-    "getLinkage",
-    "getMember",
-    "getOverloads",
-    "getVirtualFunctions",
-    "getVirtualMethods",
-    "classInstanceSize",
-    "allMembers",
-    "derivedMembers",
-    "isSame",
-    "compiles",
-    "parameters",
-    "getAliasThis",
-    "getAttributes",
-    "getFunctionAttributes",
-    "getFunctionVariadicStyle",
-    "getParameterStorageClasses",
-    "getUnitTests",
-    "getVirtualIndex",
-    "getPointerBitmap",
-    NULL
-};
-
 StringTable traitsStringTable;
 
-void initTraitsStringTable()
+struct TraitsInitializer
 {
+    TraitsInitializer();
+};
+
+static TraitsInitializer traitsinitializer;
+
+TraitsInitializer::TraitsInitializer()
+{
+    const char* traits[] = {
+        "isAbstractClass",
+        "isArithmetic",
+        "isAssociativeArray",
+        "isFinalClass",
+        "isPOD",
+        "isNested",
+        "isFloating",
+        "isIntegral",
+        "isScalar",
+        "isStaticArray",
+        "isUnsigned",
+        "isVirtualFunction",
+        "isVirtualMethod",
+        "isAbstractFunction",
+        "isFinalFunction",
+        "isOverrideFunction",
+        "isStaticFunction",
+        "isRef",
+        "isOut",
+        "isLazy",
+        "hasMember",
+        "identifier",
+        "getProtection",
+        "parent",
+        "getLinkage",
+        "getMember",
+        "getOverloads",
+        "getVirtualFunctions",
+        "getVirtualMethods",
+        "classInstanceSize",
+        "allMembers",
+        "derivedMembers",
+        "isSame",
+        "compiles",
+        "parameters",
+        "getAliasThis",
+        "getAttributes",
+        "getFunctionAttributes",
+        "getFunctionVariadicStyle",
+        "getParameterStorageClasses",
+        "getUnitTests",
+        "getVirtualIndex",
+        "getPointerBitmap",
+        NULL
+    };
+
     traitsStringTable._init(40);
 
     for (size_t idx = 0;; idx++)
@@ -1303,7 +1311,7 @@ Expression *semanticTraits(TraitsExp *e, Scope *sc)
 
             RootObject *o = (*e->args)[i];
             Type *t = isType(o);
-            Expression *ex = t ? t->toExpression() : isExpression(o);
+            Expression *ex = t ? typeToExpression(t) : isExpression(o);
             if (!ex && t)
             {
                 Dsymbol *s;

@@ -55,72 +55,9 @@ Expression *semanticX(DotIdExp *exp, Scope *sc);
 Expression *semanticY(DotIdExp *exp, Scope *sc, int flag);
 Expression *semanticY(DotTemplateInstanceExp *exp, Scope *sc, int flag);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
+bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg);
 
 #define LOGSEMANTIC     0
-
-/*************************************************************
- * Check for unsafe access in @safe code:
- * 1. read overlapped pointers
- * 2. write misaligned pointers
- * 3. write overlapped storage classes
- * Print error if unsafe.
- * Params:
- *      sc = scope
- *      e = expression to check
- *      readonly = if access is read-only
- *      printmsg = print error message if true
- * Returns:
- *      true if error
- */
-
-bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg)
-{
-    if (e->op != TOKdotvar)
-        return false;
-    DotVarExp *dve = (DotVarExp *)e;
-    if (VarDeclaration *v = dve->var->isVarDeclaration())
-    {
-        if (sc->intypeof || !sc->func || !sc->func->isSafeBypassingInference())
-            return false;
-
-        AggregateDeclaration *ad = v->toParent2()->isAggregateDeclaration();
-        if (!ad)
-            return false;
-
-        if (v->overlapped && v->type->hasPointers() && sc->func->setUnsafe())
-        {
-            if (printmsg)
-                e->error("field %s.%s cannot access pointers in @safe code that overlap other fields",
-                    ad->toChars(), v->toChars());
-            return true;
-        }
-
-        if (readonly || !e->type->isMutable())
-            return false;
-
-        if (v->type->hasPointers() && v->type->toBasetype()->ty != Tstruct)
-        {
-            if ((ad->type->alignment() < Target::ptrsize ||
-                 (v->offset & (Target::ptrsize - 1))) &&
-                sc->func->setUnsafe())
-            {
-                if (printmsg)
-                    e->error("field %s.%s cannot modify misaligned pointers in @safe code",
-                        ad->toChars(), v->toChars());
-                return true;
-            }
-        }
-
-        if (v->overlapUnsafe && sc->func->setUnsafe())
-        {
-            if (printmsg)
-                e->error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
-                    ad->toChars(), v->toChars());
-            return true;
-        }
-    }
-    return false;
-}
 
 /*************************************************************
  * Given var, we need to get the
@@ -3037,6 +2974,11 @@ IntegerExp::IntegerExp(dinteger_t value)
     this->value = (d_int32) value;
 }
 
+IntegerExp *IntegerExp::create(Loc loc, dinteger_t value, Type *type)
+{
+    return new IntegerExp(loc, value, type);
+}
+
 bool IntegerExp::equals(RootObject *o)
 {
     if (this == o)
@@ -3159,6 +3101,11 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
     this->type = type;
 }
 
+RealExp *RealExp::create(Loc loc, real_t value, Type *type)
+{
+    return new RealExp(loc, value,type);
+}
+
 dinteger_t RealExp::toInteger()
 {
     return (sinteger_t) toReal();
@@ -3224,6 +3171,11 @@ ComplexExp::ComplexExp(Loc loc, complex_t value, Type *type)
 {
     this->type = type;
     //printf("ComplexExp::ComplexExp(%s)\n", toChars());
+}
+
+ComplexExp *ComplexExp::create(Loc loc, complex_t value, Type *type)
+{
+    return new ComplexExp(loc, value, type);
 }
 
 dinteger_t ComplexExp::toInteger()
@@ -3635,6 +3587,11 @@ StringExp *StringExp::create(Loc loc, char *s)
     return new StringExp(loc, s);
 }
 
+StringExp *StringExp::create(Loc loc, void *string, size_t len)
+{
+    return new StringExp(loc, string, len);
+}
+
 bool StringExp::equals(RootObject *o)
 {
     //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
@@ -3917,6 +3874,11 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *basis, Expressions *elemen
     this->basis = basis;
     this->elements = elements;
     this->ownedByCtfe = OWNEDcode;
+}
+
+ArrayLiteralExp *ArrayLiteralExp::create(Loc loc, Expressions *elements)
+{
+    return new ArrayLiteralExp(loc, elements);
 }
 
 bool ArrayLiteralExp::equals(RootObject *o)
@@ -4423,6 +4385,12 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     member = NULL;
     allocator = NULL;
     onstack = 0;
+}
+
+NewExp *NewExp::create(Loc loc, Expression *thisexp, Expressions *newargs,
+        Type *newtype, Expressions *arguments)
+{
+    return new NewExp(loc, thisexp, newargs, newtype, arguments);
 }
 
 Expression *NewExp::syntaxCopy()
@@ -4954,6 +4922,15 @@ DeclarationExp::DeclarationExp(Loc loc, Dsymbol *declaration)
 Expression *DeclarationExp::syntaxCopy()
 {
     return new DeclarationExp(loc, declaration->syntaxCopy(NULL));
+}
+
+bool DeclarationExp::hasCode()
+{
+    if (VarDeclaration *vd = declaration->isVarDeclaration())
+    {
+        return !(vd->storage_class & (STCmanifest | STCstatic));
+    }
+    return false;
 }
 
 /************************ TypeidExp ************************************/
@@ -5870,6 +5847,11 @@ VectorExp::VectorExp(Loc loc, Expression *e, Type *t)
     assert(t->ty == Tvector);
     to = (TypeVector *)t;
     dim = ~0;
+}
+
+VectorExp *VectorExp::create(Loc loc, Expression *e, Type *t)
+{
+    return new VectorExp(loc, e, t);
 }
 
 Expression *VectorExp::syntaxCopy()

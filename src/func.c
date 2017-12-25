@@ -40,6 +40,7 @@ Statement *semantic(Statement *s, Scope *sc);
 void semantic(Catch *c, Scope *sc);
 Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 Expression *semantic(Expression *e, Scope *sc);
+int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
 
 void genCmain(Scope *sc);
 RET retStyle(TypeFunction *tf);
@@ -263,7 +264,7 @@ public:
             Identifier *id = Identifier::generateId("__o");
 
             Statement *handler = new PeelStatement(sexception);
-            if (sexception->blockExit(fd, false) & BEfallthru)
+            if (blockExit(sexception, fd, false) & BEfallthru)
             {
                 ThrowStatement *ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
                 ts->internalThrow = true;
@@ -352,6 +353,11 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     returns = NULL;
     gotos = NULL;
     selector = NULL;
+}
+
+FuncDeclaration *FuncDeclaration::create(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
+{
+    return new FuncDeclaration(loc, endloc, id, storage_class, type);
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -1155,72 +1161,6 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isMain())
         checkDmain();       // Check main() parameters and return type
 
-    if (isVirtual() && semanticRun != PASSsemanticdone)
-    {
-        /* Rewrite contracts as nested functions, then call them.
-         * Doing it as nested functions means that overriding functions
-         * can call them.
-         */
-        if (frequire)
-        {
-            /*   in { ... }
-             * becomes:
-             *   void __require() { ... }
-             *   __require();
-             */
-            Loc loc = frequire->loc;
-            TypeFunction *tf = new TypeFunction(NULL, Type::tvoid, 0, LINKd);
-            tf->isnothrow = f->isnothrow;
-            tf->isnogc = f->isnogc;
-            tf->purity = f->purity;
-            tf->trust = f->trust;
-            FuncDeclaration *fd = new FuncDeclaration(loc, loc,
-                Id::require, STCundefined, tf);
-            fd->fbody = frequire;
-            Statement *s1 = new ExpStatement(loc, fd);
-            Expression *e = new CallExp(loc, new VarExp(loc, fd, false), (Expressions *)NULL);
-            Statement *s2 = new ExpStatement(loc, e);
-            frequire = new CompoundStatement(loc, s1, s2);
-            fdrequire = fd;
-        }
-
-        if (!outId && f->nextOf() && f->nextOf()->toBasetype()->ty != Tvoid)
-            outId = Id::result; // provide a default
-
-        if (fensure)
-        {
-            /*   out (result) { ... }
-             * becomes:
-             *   void __ensure(ref tret result) { ... }
-             *   __ensure(result);
-             */
-            Loc loc = fensure->loc;
-            Parameters *fparams = new Parameters();
-            Parameter *p = NULL;
-            if (outId)
-            {
-                p = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
-                fparams->push(p);
-            }
-            TypeFunction *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd);
-            tf->isnothrow = f->isnothrow;
-            tf->isnogc = f->isnogc;
-            tf->purity = f->purity;
-            tf->trust = f->trust;
-            FuncDeclaration *fd = new FuncDeclaration(loc, loc,
-                Id::ensure, STCundefined, tf);
-            fd->fbody = fensure;
-            Statement *s1 = new ExpStatement(loc, fd);
-            Expression *eresult = NULL;
-            if (outId)
-                eresult = new IdentifierExp(loc, outId);
-            Expression *e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
-            Statement *s2 = new ExpStatement(loc, e);
-            fensure = new CompoundStatement(loc, s1, s2);
-            fdensure = fd;
-        }
-    }
-
 Ldone:
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
@@ -1271,6 +1211,33 @@ void FuncDeclaration::semantic2(Scope *sc)
     {
         objc()->checkLinkage(this);
     }
+}
+
+/****************************************************
+ * Determine whether an 'out' contract is declared inside
+ * the given function or any of its overrides.
+ * Params:
+ *      fd = the function to search
+ * Returns:
+ *      true    found an 'out' contract
+ *      false   didn't find one
+ */
+static bool needsFensure(FuncDeclaration *fd)
+{
+    if (fd->fensure)
+        return true;
+
+    for (size_t i = 0; i < fd->foverrides.dim; i++)
+    {
+        FuncDeclaration *fdv = fd->foverrides[i];
+
+        if (fdv->fensure)
+            return true;
+
+        if (needsFensure(fdv))
+            return true;
+    }
+    return false;
 }
 
 // Do the semantic analysis on the internals of the function.
@@ -1351,10 +1318,10 @@ void FuncDeclaration::semantic3(Scope *sc)
         }
     }
 
-    frequire = mergeFrequire(frequire);
-    fensure = mergeFensure(fensure, outId);
+    // Remember whether we need to generate an 'out' contract.
+    bool needEnsure = needsFensure(this);
 
-    if (fbody || frequire || fensure)
+    if (fbody || frequire || needEnsure)
     {
         /* Symbol table into which we place parameters and nested functions,
          * solely to diagnose name collisions.
@@ -1574,9 +1541,9 @@ void FuncDeclaration::semantic3(Scope *sc)
         }
 
         Scope *scout = NULL;
-        if (fensure || addPostInvariant())
+        if (needEnsure || addPostInvariant())
         {
-            if ((fensure && global.params.useOut) || fpostinv)
+            if ((needEnsure && global.params.useOut) || fpostinv)
             {
                 returnLabel = new LabelDsymbol(Id::returnLabel);
             }
@@ -1756,7 +1723,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 // Check for errors related to 'nothrow'.
                 unsigned int nothrowErrors = global.errors;
-                blockexit = fbody->blockExit(this, f->isnothrow);
+                blockexit = blockExit(fbody, this, f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors))
                     ::error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
@@ -1900,6 +1867,85 @@ void FuncDeclaration::semantic3(Scope *sc)
             sc2 = sc2->pop();
         }
 
+        /* https://issues.dlang.org/show_bug.cgi?id=17502
+         * Wait until after the return type has been inferred before
+         * generating the contracts for this function, and merging contracts
+         * from overrides.
+         *
+         * This was originally at the end of the first semantic pass, but
+         * required a fix-up to be done here for the '__result' variable
+         * type of __ensure() inside auto functions, but this didn't work
+         * if the out parameter was implicit.
+         */
+        if (isVirtual())
+        {
+            /* Rewrite contracts as nested functions, then call them.
+             * Doing it as nested functions means that overriding functions
+             * can call them.
+             */
+            if (frequire)
+            {
+                /*   in { ... }
+                 * becomes:
+                 *   void __require() { ... }
+                 *   __require();
+                 */
+                Loc loc = frequire->loc;
+                TypeFunction *tf = new TypeFunction(NULL, Type::tvoid, 0, LINKd);
+                tf->isnothrow = f->isnothrow;
+                tf->isnogc = f->isnogc;
+                tf->purity = f->purity;
+                tf->trust = f->trust;
+                FuncDeclaration *fd = new FuncDeclaration(loc, loc,
+                                                          Id::require, STCundefined, tf);
+                fd->fbody = frequire;
+                Statement *s1 = new ExpStatement(loc, fd);
+                Expression *e = new CallExp(loc, new VarExp(loc, fd, false), (Expressions *)NULL);
+                Statement *s2 = new ExpStatement(loc, e);
+                frequire = new CompoundStatement(loc, s1, s2);
+                fdrequire = fd;
+            }
+
+            if (!outId && f->nextOf() && f->nextOf()->toBasetype()->ty != Tvoid)
+                outId = Id::result; // provide a default
+
+            if (fensure)
+            {
+                /*   out (result) { ... }
+                 * becomes:
+                 *   void __ensure(ref tret result) { ... }
+                 *   __ensure(result);
+                 */
+                Loc loc = fensure->loc;
+                Parameters *fparams = new Parameters();
+                Parameter *p = NULL;
+                if (outId)
+                {
+                    p = new Parameter(STCref | STCconst, f->nextOf(), outId, NULL);
+                    fparams->push(p);
+                }
+                TypeFunction *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd);
+                tf->isnothrow = f->isnothrow;
+                tf->isnogc = f->isnogc;
+                tf->purity = f->purity;
+                tf->trust = f->trust;
+                FuncDeclaration *fd = new FuncDeclaration(loc, loc,
+                                                          Id::ensure, STCundefined, tf);
+                fd->fbody = fensure;
+                Statement *s1 = new ExpStatement(loc, fd);
+                Expression *eresult = NULL;
+                if (outId)
+                    eresult = new IdentifierExp(loc, outId);
+                Expression *e = new CallExp(loc, new VarExp(loc, fd, false), eresult);
+                Statement *s2 = new ExpStatement(loc, e);
+                fensure = new CompoundStatement(loc, s1, s2);
+                fdensure = fd;
+            }
+        }
+
+        frequire = mergeFrequire(frequire);
+        fensure = mergeFensure(fensure, outId);
+
         Statement *freq = frequire;
         Statement *fens = fensure;
 
@@ -1922,7 +1968,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             // BUG: need to disallow returns and throws
             // BUG: verify that all in and ref parameters are read
             freq = ::semantic(freq, sc2);
-            freq->blockExit(this, false);
+            blockExit(freq, this, false);
 
             sc2 = sc2->pop();
 
@@ -1942,22 +1988,11 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
-            if (inferRetType && fdensure && ((TypeFunction *)fdensure->type)->parameters)
-            {
-                // Return type was unknown in the first semantic pass
-                Parameters *out_params = ((TypeFunction *)fdensure->type)->parameters;
-                if (out_params->dim > 0)
-                {
-                    Parameter *p = (*out_params)[0];
-                    p->type = f->next;
-                }
-            }
-
             if (fensure && f->next->ty != Tvoid)
                 buildResultVar(scout, f->next);
 
             fens = ::semantic(fens, sc2);
-            fens->blockExit(this, false);
+            blockExit(fens, this, false);
 
             sc2 = sc2->pop();
 
@@ -2077,12 +2112,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                         s = ::semantic(s, sc2);
 
                         bool isnothrow = f->isnothrow & !(flags & FUNCFLAGnothrowInprocess);
-                        int blockexit = s->blockExit(this, isnothrow);
+                        int blockexit = blockExit(s, this, isnothrow);
                         if (f->isnothrow && isnothrow && blockexit & BEthrow)
                             ::error(loc, "nothrow %s '%s' may throw", kind(), toPrettyChars());
                         if (flags & FUNCFLAGnothrowInprocess && blockexit & BEthrow)
                             f->isnothrow = false;
-                        if (sbody->blockExit(this, f->isnothrow) == BEfallthru)
+                        if (blockExit(sbody, this, f->isnothrow) == BEfallthru)
                             sbody = new CompoundStatement(Loc(), sbody, s);
                         else
                             sbody = new TryFinallyStatement(Loc(), sbody, s);
@@ -2156,6 +2191,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (checkClosure())
     {
+        // We should be setting errors here instead of relying on the global error count.
         //errors = true;
     }
 
@@ -2541,9 +2577,10 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
         FuncDeclaration *fdv = foverrides[i];
 
         /* The semantic pass on the contracts of the overridden functions must
-         * be completed before code generation occurs (bug 3602).
+         * be completed before code generation occurs.
+         * https://issues.dlang.org/show_bug.cgi?id=3602
          */
-        if (fdv->fdrequire && fdv->fdrequire->semanticRun != PASSsemantic3done)
+        if (fdv->frequire && fdv->semanticRun != PASSsemantic3done)
         {
             assert(fdv->_scope);
             Scope *sc = fdv->_scope->push();
@@ -2597,9 +2634,11 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf, Identifier *oid)
         FuncDeclaration *fdv = foverrides[i];
 
         /* The semantic pass on the contracts of the overridden functions must
-         * be completed before code generation occurs (bug 3602 and 5230).
+         * be completed before code generation occurs.
+         * https://issues.dlang.org/show_bug.cgi?id=3602 and
+         * https://issues.dlang.org/show_bug.cgi?id=5230
          */
-        if (fdv->fdensure && fdv->fdensure->semanticRun != PASSsemantic3done)
+        if (needsFensure(fdv) && fdv->semanticRun != PASSsemantic3done)
         {
             assert(fdv->_scope);
             Scope *sc = fdv->_scope->push();
@@ -4408,13 +4447,15 @@ bool FuncDeclaration::needsClosure()
      * 2) has its address taken
      * 3) has a parent that escapes
      * 4) calls another nested function that needs a closure
-     * -or-
-     * 5) this function returns a local struct/class
      *
      * Note that since a non-virtual function can be called by
      * a virtual one, if that non-virtual function accesses a closure
      * var, the closure still has to be taken. Hence, we check for isThis()
      * instead of isVirtual(). (thanks to David Friedman)
+     *
+     * When the function returns a local struct or class, `requiresClosure`
+     * is already set to `true` upon entering this function when the
+     * struct/class refers to a local variable and a closure is needed.
      */
 
     //printf("FuncDeclaration::needsClosure() %s\n", toChars());
@@ -4471,31 +4512,6 @@ bool FuncDeclaration::needsClosure()
     if (requiresClosure)
         goto Lyes;
 
-    /* Look for case (5)
-     */
-    if (closureVars.dim)
-    {
-        assert(type->ty == Tfunction);
-        Type *tret = ((TypeFunction *)type)->next;
-        assert(tret);
-        tret = tret->toBasetype();
-        //printf("\t\treturning %s\n", tret->toChars());
-        if (tret->ty == Tclass || tret->ty == Tstruct)
-        {
-            Dsymbol *st = tret->toDsymbol(NULL);
-            //printf("\t\treturning class/struct %s\n", tret->toChars());
-            for (Dsymbol *s = st->parent; s; s = s->parent)
-            {
-                //printf("\t\t\tparent = %s %s\n", s->kind(), s->toChars());
-                if (s == this)
-                {
-                    //printf("\t\treturning local %s\n", st->toChars());
-                    goto Lyes;
-                }
-            }
-        }
-    }
-
     return false;
 
 Lyes:
@@ -4513,62 +4529,61 @@ Lyes:
  */
 bool FuncDeclaration::checkClosure()
 {
-    if (needsClosure())
+    if (!needsClosure())
+        return false;
+
+    if (setGC())
     {
-        if (setGC())
-        {
-            error("is @nogc yet allocates closures with the GC");
-            if (global.gag)     // need not report supplemental errors
-                return true;
-        }
-        else
-        {
-            printGCUsage(loc, "using closure causes GC allocation");
-            return false;
-        }
-
-        FuncDeclarations a;
-        for (size_t i = 0; i < closureVars.dim; i++)
-        {
-            VarDeclaration *v = closureVars[i];
-
-            for (size_t j = 0; j < v->nestedrefs.dim; j++)
-            {
-                FuncDeclaration *f = v->nestedrefs[j];
-                assert(f != this);
-
-                for (Dsymbol *s = f; s && s != this; s = s->parent)
-                {
-                    FuncDeclaration *fx = s->isFuncDeclaration();
-                    if (!fx)
-                        continue;
-                    if (fx->isThis() || fx->tookAddressOf)
-                        goto Lfound;
-                    if (checkEscapingSiblings(fx, this))
-                        goto Lfound;
-                }
-                continue;
-
-            Lfound:
-                for (size_t k = 0; ; k++)
-                {
-                    if (k == a.dim)
-                    {
-                        a.push(f);
-                        ::errorSupplemental(f->loc, "%s closes over variable %s at %s",
-                            f->toPrettyChars(), v->toChars(), v->loc.toChars());
-                        break;
-                    }
-                    if (a[k] == f)
-                        break;
-                }
-                continue;
-            }
-        }
-
-        return true;
+        error("is @nogc yet allocates closures with the GC");
+        if (global.gag)     // need not report supplemental errors
+            return true;
     }
-    return false;
+    else
+    {
+        printGCUsage(loc, "using closure causes GC allocation");
+        return false;
+    }
+
+    FuncDeclarations a;
+    for (size_t i = 0; i < closureVars.dim; i++)
+    {
+        VarDeclaration *v = closureVars[i];
+
+        for (size_t j = 0; j < v->nestedrefs.dim; j++)
+        {
+            FuncDeclaration *f = v->nestedrefs[j];
+            assert(f != this);
+
+            for (Dsymbol *s = f; s && s != this; s = s->parent)
+            {
+                FuncDeclaration *fx = s->isFuncDeclaration();
+                if (!fx)
+                    continue;
+                if (fx->isThis() || fx->tookAddressOf)
+                    goto Lfound;
+                if (checkEscapingSiblings(fx, this))
+                    goto Lfound;
+            }
+            continue;
+
+        Lfound:
+            for (size_t k = 0; ; k++)
+            {
+                if (k == a.dim)
+                {
+                    a.push(f);
+                    ::errorSupplemental(f->loc, "%s closes over variable %s at %s",
+                        f->toPrettyChars(), v->toChars(), v->loc.toChars());
+                    break;
+                }
+                if (a[k] == f)
+                    break;
+            }
+            continue;
+        }
+    }
+
+    return true;
 }
 
 /***********************************************

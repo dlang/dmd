@@ -321,6 +321,7 @@ public:
     const char *kind();
     FuncDeclaration *findGetMembers();
     virtual Dsymbol *symtabInsert(Dsymbol *s);
+    virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
     bool hasStaticCtorOrDtor();
 
     static size_t dim(Dsymbols *members);

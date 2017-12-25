@@ -121,11 +121,6 @@ Identifier *Identifier::generateId(const char *prefix, size_t i)
  * Create an identifier in the string table.
  */
 
-Identifier *Identifier::idPool(const char *s)
-{
-    return idPool(s, strlen(s));
-}
-
 Identifier *Identifier::idPool(const char *s, size_t len)
 {
     StringValue *sv = stringtable.update(s, len);

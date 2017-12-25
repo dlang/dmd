@@ -53,6 +53,8 @@ static unsigned char deduceWildHelper(Type *t, Type **at, Type *tparam);
 static MATCH deduceTypeHelper(Type *t, Type **at, Type *tparam);
 static Type *reliesOnTident(Type *t, TemplateParameters *tparams = NULL, size_t iStart = 0);
 Expression *semantic(Expression *e, Scope *sc);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -843,37 +845,19 @@ bool TemplateDeclaration::evaluateConstraint(
 
     Expression *e = constraint->syntaxCopy();
 
-    scx = scx->startCTFE();
-    scx->flags |= SCOPEcondition | SCOPEconstraint;
     assert(ti->inst == NULL);
     ti->inst = ti;  // temporary instantiation to enable genIdent()
 
-    //printf("\tscx->parent = %s %s\n", scx->parent->kind(), scx->parent->toPrettyChars());
-    e = ::semantic(e, scx);
-    e = resolveProperties(scx, e);
-
+    scx->flags |= SCOPEconstraint;
+    bool errors = false;
+    bool result = evalStaticCondition(scx, constraint, e, errors);
     ti->inst = NULL;
     ti->symtab = NULL;
-    scx = scx->endCTFE();
-
     scx = scx->pop();
     previous = pr.prev;             // unlink from threaded list
-
-    if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+    if (errors)
         return false;
-    if (e->op == TOKerror)
-        return false;
-
-    e = e->ctfeInterpret();
-    if (e->isBool(true))
-        ;
-    else if (e->isBool(false))
-        return false;
-    else
-    {
-        e->error("constraint %s is not constant or does not evaluate to a bool", e->toChars());
-    }
-    return true;
+    return result;
 }
 
 /***************************************
@@ -2217,7 +2201,7 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
     /* So the caller's o gets updated with the result of semantic() being run on o
      */
     if (v)
-        o = v->_init->toExpression();
+        o = initializerToExpression(v->_init);
     return o;
 }
 

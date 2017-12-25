@@ -27,6 +27,7 @@
 #include "tokens.h"
 
 Expression *semantic(Expression *e, Scope *sc);
+bool evalStaticCondition(Scope *sc, Expression *exp, Expression *e, bool &errors);
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -349,14 +350,9 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         ++nest;
         sc = sc->push(sc->scopesym);
         sc->sds = sds;                  // sds gets any addMember()
-        //sc->speculative = true;       // TODO: static if (is(T U)) { /* U is available */ }
-        sc->flags |= SCOPEcondition;
 
-        sc = sc->startCTFE();
-        Expression *e = semantic(exp, sc);
-        e = resolveProperties(sc, e);
-        sc = sc->endCTFE();
-
+        bool errors = false;
+        bool result = evalStaticCondition(sc, exp, exp, errors);
         sc->pop();
         --nest;
 
@@ -364,27 +360,12 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *sds)
         // See: fail_compilation/fail7815.d
         if (inc != 0)
             return (inc == 1);
-
-        if (!e->type->isBoolean())
-        {
-            if (e->type->toBasetype() != Type::terror)
-                exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
+        if (errors)
             goto Lerror;
-        }
-        e = e->ctfeInterpret();
-        if (e->op == TOKerror)
-        {
-            goto Lerror;
-        }
-        else if (e->isBool(true))
+        if (result)
             inc = 1;
-        else if (e->isBool(false))
-            inc = 2;
         else
-        {
-            e->error("expression %s is not constant or does not evaluate to a bool", e->toChars());
-            goto Lerror;
-        }
+            inc = 2;
     }
     return (inc == 1);
 

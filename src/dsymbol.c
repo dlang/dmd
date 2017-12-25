@@ -1285,6 +1285,11 @@ Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
     return symtab->insert(s);
 }
 
+Dsymbol *ScopeDsymbol::symtabLookup(Dsymbol *s, Identifier *id)
+{
+    assert(0);
+}
+
 /****************************************
  * Return true if any of the members are static ctors or static dtors, or if
  * any members have members that are.
