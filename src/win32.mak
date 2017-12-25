@@ -147,7 +147,7 @@ FRONTOBJ= denum.obj dstruct.obj dsymbol.obj dimport.obj id.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
 	sideeffect.obj intrange.obj canthrow.obj target.obj nspace.obj \
-	errors.obj escape.obj tokens.obj globals.obj objc_stubs.obj \
+	errors.obj escape.obj tokens.obj globals.obj \
 	utils.obj statementsem.obj
 
 # Glue layer
@@ -194,7 +194,7 @@ SRCS= mars.c denum.c dstruct.c dsymbol.c dimport.c idgen.c impcnvgen.c utf.h \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h visitor.h \
-	tokens.h tokens.c globals.h globals.c objc.h objc_stubs.c objc.c \
+	tokens.h tokens.c globals.h globals.c objc.h objc.c \
 	utils.c statementsem.c
 
 # Glue layer
@@ -738,7 +738,6 @@ link.obj : $(TOTALH) link.c
 dmacro.obj : $(TOTALH) macro.h dmacro.c
 dmangle.obj : $(TOTALH) dsymbol.h declaration.h dmangle.c
 nspace.obj : $(TOTALH) nspace.c
-objc_stubs.obj : $(TOTALH) objc.h objc_stubs.c
 objc_glue_stubs.obj : $(TOTALH) objc.h objc_glue_stubs.c
 opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c

@@ -29,10 +29,11 @@
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
-#include "objc.h"
 #include "target.h"
+#include "objc.h"
 
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
+Objc *objc();
 
 
 /********************************* ClassDeclaration ****************************/
@@ -245,7 +246,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isabstract = ABSfwdref;
     inuse = 0;
     baseok = BASEOKnone;
-    objc.objc = false;
+    isobjc = false;
     cpp_type_info_ptr_sym = NULL;
 }
 
@@ -380,7 +381,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKcpp)
             cpp = true;
         if (sc->linkage == LINKobjc)
-            objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
+            objc()->setObjc(this);
     }
     else if (symtab && !scx)
     {
@@ -1413,7 +1414,7 @@ Scope *InterfaceDeclaration::newScope(Scope *sc)
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-    else if (objc.isInterface())
+    else if (isobjc)
         sc2->linkage = LINKobjc;
     return sc2;
 }
@@ -1513,7 +1514,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         if (!baseclasses->dim && sc->linkage == LINKcpp)
             cpp = true;
-        objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
+        if (sc->linkage == LINKobjc)
+            objc()->setObjc(this);
 
         // Check for errors, handle forward references
         for (size_t i = 0; i < baseclasses->dim; )

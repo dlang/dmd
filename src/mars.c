@@ -1149,7 +1149,6 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
-    objc_tryMain_dObjc();
 
     // Initialization
     Lexer::initLexer();
@@ -1158,7 +1157,7 @@ Language changes listed by -transition=id:\n\
     Module::_init();
     Target::_init();
     Expression::_init();
-    objc_tryMain_init();
+    Objc::_init();
     initPrecedence();
     builtin_init();
     initTraitsStringTable();

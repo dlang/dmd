@@ -169,15 +169,9 @@ DMD_OBJS = \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	arrayop.o json.o unittests.o \
 	imphint.o argtypes.o apply.o sapply.o sideeffect.o \
-	intrange.o canthrow.o target.o nspace.o errors.o \
+	intrange.o canthrow.o target.o nspace.o objc.o errors.o \
 	escape.o tokens.o globals.o \
 	utils.o statementsem.o
-
-ifeq ($(D_OBJC),1)
-	DMD_OBJS += objc.o
-else
-	DMD_OBJS += objc_stubs.o
-endif
 
 ROOT_OBJS = \
 	rmem.o port.o man.o stringtable.o response.o \
