@@ -174,7 +174,9 @@ WARNINGS += \
 	-Wno-logical-op \
 	-Wno-narrowing \
 	-Wno-unused-but-set-variable \
-	-Wno-uninitialized
+	-Wno-uninitialized \
+	-Wno-class-memaccess \
+	-Wno-implicit-fallthrough
 endif
 # Clang Specific
 ifeq ($(HOST_CXX_KIND), clang++)
