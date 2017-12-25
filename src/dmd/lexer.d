@@ -194,6 +194,44 @@ unittest
     }
 }
 
+long parseVersionXX(const(char)* _version)
+{
+    struct Version
+    {
+        uint major;
+        uint minor;
+        bool point;
+    }
+    Version rVersion;
+
+    with(rVersion)
+    for (const(char)* p = _version + 1; 1; p++)
+    {
+        const c = *p;
+        if (isdigit(cast(char)c))
+            minor = minor * 10 + c - '0';
+        else if (c == '.')
+        {
+            if (point)
+                break; // ignore everything after second '.'
+            point = true;
+            major = minor;
+            minor = 0;
+        }
+        else
+            break;
+    }
+    return rVersion.major * 1000 + rVersion.minor;
+}
+
+unittest
+{
+    assert(parseVersionXX("v2.078.0-265-g4a9eac019-dirty") == 2078);
+    assert(parseVersionXX("v2.078.0") == 2078);
+    assert(parseVersionXX("v2.078.1") == 2078);
+    assert(parseVersionXX("v2.070.2-rc.2") == 2070);
+}
+
 /***********************************************************
  */
 class Lexer
@@ -516,27 +554,8 @@ class Lexer
                         }
                         else if (id == Id.VERSIONX)
                         {
-                            uint major = 0;
-                            uint minor = 0;
-                            bool point = false;
-                            for (const(char)* p = global._version + 1; 1; p++)
-                            {
-                                const c = *p;
-                                if (isdigit(cast(char)c))
-                                    minor = minor * 10 + c - '0';
-                                else if (c == '.')
-                                {
-                                    if (point)
-                                        break; // ignore everything after second '.'
-                                    point = true;
-                                    major = minor;
-                                    minor = 0;
-                                }
-                                else
-                                    break;
-                            }
                             t.value = TOKint64v;
-                            t.unsvalue = major * 1000 + minor;
+                            t.unsvalue = parseVersionXX(global._version);
                         }
                         else if (id == Id.EOFX)
                         {
