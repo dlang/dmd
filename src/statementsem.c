@@ -2438,6 +2438,11 @@ public:
             else if (fld && fld->treq)
                 rs->exp = inferType(rs->exp, fld->treq->nextOf()->nextOf());
             rs->exp = semantic(rs->exp, sc);
+
+            // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+            if (rs->exp->op == TOKtype)
+                rs->exp = resolveAliasThis(sc, rs->exp);
+
             rs->exp = resolveProperties(sc, rs->exp);
             if (rs->exp->checkType())
                 rs->exp = new ErrorExp();

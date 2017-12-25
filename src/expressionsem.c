@@ -3987,6 +3987,11 @@ public:
             result = ex;
             return;
         }
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e->e1->op == TOKtype)
+            e->e1 = resolveAliasThis(sc, e->e1);
+
         e->e1 = resolveProperties(sc, e->e1);
         e->e1 = e->e1->toBoolean(sc);
         if (e->e1->type == Type::terror)
@@ -7478,6 +7483,11 @@ public:
 
         // same as for AndAnd
         Expression *e1x = semantic(exp->e1, sc);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e1x->op == TOKtype)
+            e1x = resolveAliasThis(sc, e1x);
+
         e1x = resolveProperties(sc, e1x);
         e1x = e1x->toBoolean(sc);
         unsigned cs1 = sc->callSuper;
@@ -7496,6 +7506,11 @@ public:
 
         Expression *e2x = semantic(exp->e2, sc);
         sc->mergeCallSuper(exp->loc, cs1);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e2x->op == TOKtype)
+            e2x = resolveAliasThis(sc, e2x);
+
         e2x = resolveProperties(sc, e2x);
 
         bool f1 = checkNonAssignmentArrayOp(e1x);
@@ -7546,6 +7561,11 @@ public:
 
         // same as for OrOr
         Expression *e1x = semantic(exp->e1, sc);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e1x->op == TOKtype)
+            e1x = resolveAliasThis(sc, e1x);
+
         e1x = resolveProperties(sc, e1x);
         e1x = e1x->toBoolean(sc);
         unsigned cs1 = sc->callSuper;
@@ -7564,6 +7584,11 @@ public:
 
         Expression *e2x = semantic(exp->e2, sc);
         sc->mergeCallSuper(exp->loc, cs1);
+
+        // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+        if (e2x->op == TOKtype)
+            e2x = resolveAliasThis(sc, e2x);
+
         e2x = resolveProperties(sc, e2x);
 
         bool f1 = checkNonAssignmentArrayOp(e1x);
@@ -8173,6 +8198,13 @@ Expression *binSemantic(BinExp *e, Scope *sc)
 #endif
     Expression *e1x = semantic(e->e1, sc);
     Expression *e2x = semantic(e->e2, sc);
+
+    // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+    if (e1x->op == TOKtype)
+        e1x = resolveAliasThis(sc, e1x);
+    if (e2x->op == TOKtype)
+        e2x = resolveAliasThis(sc, e2x);
+
     if (e1x->op == TOKerror)
         return e1x;
     if (e2x->op == TOKerror)
