@@ -229,11 +229,6 @@ class ForwardingStatement : public Statement
     Statement *statement;
 
     Statement *syntaxCopy();
-    Statement *getRelatedLabeled();
-    bool hasBreak();
-    bool hasContinue();
-    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally);
-    Statement *last();
     Statements *flatten(Scope *sc);
     ForwardingStatement *isForwardingStatement() { return this; }
     void accept(Visitor *v) { v->visit(this); }
