@@ -54,6 +54,16 @@ version( CRuntime_Glibc )
 
     int utime(in char*, in utimbuf*);
 }
+else version( CRuntime_Musl )
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(in char*, in utimbuf*);
+}
 else version( Darwin )
 {
     struct utimbuf
