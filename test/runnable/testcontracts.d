@@ -422,6 +422,56 @@ void test6417()
 }
 
 /*******************************************/
+// 6549
+
+class C6549
+{
+    static int ocount = 0;
+    static int icount = 0;
+
+    abstract int foo(int)
+    in { ++icount; }
+    out { ++ocount; }
+}
+
+class CD6549 : C6549
+{
+    override int foo(int)
+    in { assert(false); }
+    do { return 10; }
+}
+
+abstract class D6549
+{
+    static int icount = 0;
+    static int ocount = 0;
+
+    int foo(int)
+    in { ++icount; }
+    out { ++ocount; }
+}
+
+class DD6549 : D6549
+{
+    override int foo(int)
+    in { assert(false); }
+    do { return 10; }
+}
+
+void test6549()
+{
+    auto c = new CD6549;
+    c.foo(10);
+    assert(C6549.icount == 1);
+    assert(C6549.ocount == 1);
+
+    auto d = new DD6549;
+    d.foo(10);
+    assert(D6549.icount == 1);
+    assert(D6549.ocount == 1);
+}
+
+/*******************************************/
 // 7218
 
 void test7218()
@@ -1043,6 +1093,7 @@ int main()
     test9();
     test4785();
     test6417();
+    test6549();
     test7218();
     test7517();
     test8073();

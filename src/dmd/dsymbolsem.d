@@ -1570,8 +1570,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 // If declaration has no body, don't set sbody to prevent incorrect codegen.
-                InterfaceDeclaration id = funcdecl.parent.isInterfaceDeclaration();
-                if (funcdecl.fbody || id && (funcdecl.fdensure || funcdecl.fdrequire) && funcdecl.isVirtual())
+                if (funcdecl.fbody || funcdecl.fdensure || funcdecl.fdrequire)
                     funcdecl.fbody = sbody;
             }
 
@@ -4409,11 +4408,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 funcdecl.error("destructors, postblits and invariants are not allowed in union %s", ud.toChars());
         }
 
-        /* Contracts can only appear without a body when they are virtual interface functions
-         */
-        if (!funcdecl.fbody && (funcdecl.fensure || funcdecl.frequire) && !(id && funcdecl.isVirtual()))
-            funcdecl.error("in and out contracts require function body");
-
         if (StructDeclaration sd = parent.isStructDeclaration())
         {
             if (funcdecl.isCtorDeclaration())
@@ -4785,6 +4779,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         // Reflect this.type to f because it could be changed by findVtblIndex
         f = funcdecl.type.toTypeFunction();
+
+        /* Contracts can only appear without a body when they are virtual interface functions or abstract
+         */
+        if (!funcdecl.fbody && !funcdecl.isAbstract() &&
+            (funcdecl.fensure || funcdecl.frequire) &&
+            !(id && funcdecl.isVirtual()))
+        {
+            auto cd = parent.isClassDeclaration();
+            if (!(cd && cd.isAbstract()))
+                funcdecl.error("in and out contracts on non-virtual/non-abstract functions require function body");
+        }
 
         /* Do not allow template instances to add virtual functions
          * to a class.
