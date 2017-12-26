@@ -2,7 +2,7 @@
 # Important variables:
 # --------------------
 #
-# HOST_CSS:				Host C++ compiler to use (g++,clang++)
+# HOST_CXX:				Host C++ compiler to use (g++,clang++)
 # HOST_DMD: 			Host D compiler to use for bootstrapping
 # AUTO_BOOTSTRAP:		Enable auto-boostrapping by download a stable DMD binary
 # INSTALL_DIR:			Installation folder to use
