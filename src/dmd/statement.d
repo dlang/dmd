@@ -1052,54 +1052,6 @@ extern (C++) final class ForwardingStatement : Statement
         return new ForwardingStatement(loc, statement.syntaxCopy());
     }
 
-    override Statement getRelatedLabeled()
-    {
-        if (!statement)
-        {
-            return null;
-        }
-        return statement.getRelatedLabeled();
-    }
-
-    override bool hasBreak()
-    {
-        if (!statement)
-        {
-            return false;
-        }
-        return statement.hasBreak();
-    }
-
-    override bool hasContinue()
-    {
-        if (!statement)
-        {
-            return false;
-        }
-        return statement.hasContinue();
-    }
-
-    override Statement scopeCode(Scope* sc, Statement* sentry, Statement* sexception, Statement* sfinally)
-    {
-        if (!statement)
-        {
-            return this;
-        }
-        sc = sc.push(sym);
-        statement = statement.scopeCode(sc, sentry, sexception, sfinally);
-        sc = sc.pop();
-        return statement ? this : null;
-    }
-
-    override inout(Statement) last() inout nothrow pure
-    {
-        if (!statement)
-        {
-            return null;
-        }
-        return statement.last();
-    }
-
     /***********************
      * ForwardingStatements are distributed over the flattened
      * sequence of statements. This prevents flattening to be
