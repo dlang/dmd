@@ -405,6 +405,24 @@ else version (CRuntime_Bionic)
         RLIMIT_AS     = 9,
     }
 }
+else version (CRuntime_Musl)
+{
+    alias ulong rlim_t;
+    enum
+    {
+        RLIMIT_CPU    = 0,
+        RLIMIT_FSIZE  = 1,
+        RLIMIT_DATA   = 2,
+        RLIMIT_STACK  = 3,
+        RLIMIT_CORE   = 4,
+        RLIMIT_NOFILE = 7,
+        RLIMIT_AS     = 9,
+    }
+    int getrlimit(int, rlimit*);
+    int setrlimit(int, in rlimit*);
+    alias getrlimit getrlimit64;
+    alias setrlimit setrlimit64;
+}
 else static assert (false, "Unsupported platform");
 
 struct rlimit
