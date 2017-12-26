@@ -115,8 +115,8 @@ coverage()
     else
         make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 PIC="$PIC" all
     fi
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC"
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC"
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC" BUILD=$BUILD
 
     # FIXME
     # Building d_do_test currently uses the host library for linking
@@ -133,19 +133,19 @@ coverage()
 
     # rebuild dmd with coverage enabled
     # use the just build dmd as host compiler this time
-    local build_path=generated/linux/release/$MODEL
+    local build_path=generated/linux/$BUILD/$MODEL
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
     # the generate dmd.conf
     mkdir -p _${build_path}
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd PIC="$PIC" clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1 ENABLE_WARNINGS=1 PIC="$PIC"
+    make -j$N -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd PIC="$PIC" clean
+    make -j$N -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1 ENABLE_WARNINGS=1 PIC="$PIC"
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
-    make -j1 -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
-    make -j1 -C test start_all_tests MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC" N=3
+    make -j1 -C src -f posix.mak MODEL=$MODEL BUILD=$BUILD HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
+    make -j1 -C test start_all_tests MODEL=$MODEL BUILD=$BUILD ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC" N=3
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -166,7 +166,7 @@ check_clean_git()
 # sanitycheck for the run_individual_tests script
 check_run_individual()
 {
-    local build_path=generated/linux/release/$MODEL
+    local build_path=generated/linux/$BUILD/$MODEL
     "${build_path}/dmd" -I./test -i -run ./test/run.d test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
