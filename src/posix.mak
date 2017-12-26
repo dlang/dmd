@@ -444,7 +444,7 @@ $G/backend.a: $(G_OBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_OBJS)
 
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -J../res -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
 
 $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
@@ -466,13 +466,13 @@ unittest: $G/dmd-unittest
 ######## DMD as a library examples
 
 EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor))
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase compiler parsetimevisitor transitivevisitor permissivevisitor strictvisitor))
 
 $G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
-	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
+	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G -J../res $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
 
 $G/examples/%: $(EX)/%.d $G/parser.a $G/dmd
-	CC="$(HOST_CXX)" $G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
+	CC="$(HOST_CXX)" $G/dmd -of$@ $(MODEL_FLAG) -J../res $(DFLAGS) $G/parser.a $<
 
 build-examples: $(EXAMPLES)
 
