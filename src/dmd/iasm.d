@@ -8,14 +8,14 @@
  * Authors:     Mike Cote, John Micco and $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasm.d, _iasm.d)
+ * Documentation:  https://dlang.org/phobos/dmd_iasm.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/iasm.d
  */
 
 /* Inline assembler for the D programming language compiler
  */
 
 module dmd.iasm;
-
-// Online documentation: https://dlang.org/phobos/dmd_iasm.html
 
 import core.stdc.stdio;
 import core.stdc.stdarg;
@@ -4558,3 +4558,20 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return s;
 }
+
+/**********************
+ * If c is a power of 2, return that power else -1.
+ */
+
+private int ispow2(uint c)
+{
+    int i;
+
+    if (c == 0 || (c & (c - 1)))
+        i = -1;
+    else
+        for (i = 0; c >>= 1; ++i)
+        { }
+    return i;
+}
+

@@ -14,6 +14,7 @@
 #include        <stdio.h>
 #include        <ctype.h>
 #include        <string.h>
+#include        <stdint.h>
 #include        <stdlib.h>
 #include        <time.h>
 
@@ -26,7 +27,6 @@
 #endif
 
 #if _WIN32 && __DMC__
-//#include      "scdll.h"
 #include        <controlc.h>
 #endif
 
@@ -279,7 +279,7 @@ int binary(const char *p, size_t len, const char ** table, int high)
  * If c is a power of 2, return that power else -1.
  */
 
-int ispow2(targ_ullong c)
+int ispow2(uint64_t c)
 {       int i;
 
         if (c == 0 || (c & (c - 1)))
