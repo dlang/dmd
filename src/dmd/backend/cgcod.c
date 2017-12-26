@@ -595,7 +595,7 @@ tryagain:
 
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
-    sfunc->Sregsaved = (functy == TYifunc) ? mBP : (mfuncreg | fregsaved);
+    sfunc->Sregsaved = (functy == TYifunc) ? (regm_t) mBP : (mfuncreg | fregsaved);
 
     util_free(csextab);
     csextab = NULL;
@@ -2365,10 +2365,11 @@ static void comsub(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   /* create mask of what's in csextab[] */
   csemask = 0;
   for (size_t i = 0; i < cstop; i++)
-  {     if (csextab[i].e)
-            elem_debug(csextab[i].e);
-        if (csextab[i].e == e)
-                csemask |= csextab[i].regm;
+  {
+      if (csextab[i].e)
+          elem_debug(csextab[i].e);
+      if (csextab[i].e == e)
+          csemask |= csextab[i].regm;
   }
   csemask &= ~emask;            /* stuff already in registers   */
 
