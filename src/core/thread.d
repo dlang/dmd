@@ -3199,6 +3199,7 @@ extern (C) @nogc nothrow
     version (NetBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);
     version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
+    version (CRuntime_Musl) int pthread_getattr_np(pthread_t, pthread_attr_t*);
 }
 
 
@@ -3276,6 +3277,16 @@ private void* getStackBottom() nothrow @nogc
         return stk.ss_sp;
     }
     else version (CRuntime_Bionic)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_getattr_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else version (CRuntime_Musl)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
