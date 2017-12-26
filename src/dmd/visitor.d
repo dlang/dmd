@@ -35,11 +35,7 @@ public:
     void visit(ASTCodegen.SwitchErrorStatement s) { visit(cast(ASTCodegen.Statement)s); }
     void visit(ASTCodegen.DebugStatement s) { visit(cast(ASTCodegen.Statement)s); }
     void visit(ASTCodegen.DtorExpStatement s) { visit(cast(ASTCodegen.ExpStatement)s); }
-    void visit(ASTCodegen.ForwardingStatement s)
-    {
-        if(s.statement)
-            s.statement.accept(this);
-    }
+    void visit(ASTCodegen.ForwardingStatement s) { visit(cast(ASTCodegen.Statement)s); }
     void visit(ASTCodegen.OverloadSet s) { visit(cast(ASTCodegen.Dsymbol)s); }
     void visit(ASTCodegen.LabelDsymbol s) { visit(cast(ASTCodegen.Dsymbol)s); }
     void visit(ASTCodegen.WithScopeSymbol s) { visit(cast(ASTCodegen.ScopeDsymbol)s); }
