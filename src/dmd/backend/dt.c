@@ -476,7 +476,7 @@ void DtBuilder::cat(DtBuilder *dtb)
 /**************************************
  * Repeat a list of dt_t's count times.
  */
-void DtBuilder::repeat(dt_t *dt, d_size_t count)
+void DtBuilder::repeat(dt_t *dt, unsigned count)
 {
     if (!count)
         return;

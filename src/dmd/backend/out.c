@@ -66,6 +66,7 @@ void outcsegname(char *csegname)
 /***********************************
  * Output function thunk.
  */
+extern "C" {
 void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
@@ -74,7 +75,7 @@ void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     sthunk->Sfunc->Fflags &= ~Fpending;
     sthunk->Sfunc->Fflags |= Foutput;   /* mark it as having been output */
 }
-
+}
 
 /***************************
  * Write out statically allocated data.

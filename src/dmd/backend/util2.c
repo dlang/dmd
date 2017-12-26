@@ -377,3 +377,10 @@ void *util_realloc(void *oldp,unsigned n,unsigned size)
 #endif
 }
 #endif
+
+/*****************************
+ */
+void *mem_malloc2(unsigned size)
+{
+    return mem_malloc(size);
+}

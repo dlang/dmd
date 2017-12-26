@@ -83,7 +83,7 @@ void objc_callfunc_setupMethodSelector(Type tret, FuncDeclaration fd, Type t, el
 void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction tf);
 void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse);
 
-void* mem_malloc(size_t);
+void* mem_malloc2(uint);
 
 
 @property int REGSIZE() { return _tysize[TYnptr]; }
@@ -734,7 +734,7 @@ elem *array_toDarray(Type t, elem *e)
                     es.Eoper = OPstring;
 
                     // freed in el_free
-                    es.EV.Vstring = cast(char*)mem_malloc(len);
+                    es.EV.Vstring = cast(char*)mem_malloc2(cast(uint)len);
                     memcpy(es.EV.Vstring, &e.EV, len);
 
                     es.EV.Vstrlen = len;
@@ -1539,7 +1539,7 @@ elem *toElem(Expression e, IRState *irs)
                 e.Eoper = OPstring;
                 // freed in el_free
                 uint len = cast(uint)((se.numberOfCodeUnits() + 1) * se.sz);
-                e.EV.Vstring = cast(char *)mem_malloc(len);
+                e.EV.Vstring = cast(char *)mem_malloc2(cast(uint)len);
                 se.writeTo(e.EV.Vstring, true);
                 e.EV.Vstrlen = len;
                 e.Ety = TYnptr;

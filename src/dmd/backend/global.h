@@ -259,7 +259,7 @@ void chkunass(elem *);
 void chknoabstract(type *);
 targ_llong msc_getnum();
 targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-targ_size_t _align(targ_size_t,targ_size_t);
+extern "C" { targ_size_t _align(targ_size_t,targ_size_t); }
 
 /* nteh.c */
 unsigned char *nteh_context_string();
@@ -371,7 +371,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
 /* out.c */
 void outfilename(char *name,int linnum);
 void outcsegname(char *csegname);
-void outthunk(Symbol *sthunk, Symbol *sfunc, unsigned p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
+extern "C" { void outthunk(Symbol *sthunk, Symbol *sfunc, unsigned p, tym_t thisty, targ_size_t d, int i, targ_size_t d2); }
 void outdata(Symbol *s);
 void outcommon(Symbol *s, targ_size_t n);
 void out_readonly(Symbol *s);
@@ -439,7 +439,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-Symbol *symboldata(targ_size_t offset,tym_t ty);
+extern "C" { Symbol *symboldata(targ_size_t offset,tym_t ty); }
 bool dom(block *A , block *B);
 unsigned revop(unsigned op);
 unsigned invrel(unsigned op);

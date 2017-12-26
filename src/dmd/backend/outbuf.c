@@ -65,7 +65,7 @@ void Outbuffer::reset()
 }
 
 // Enlarge buffer size so there's at least nbytes available
-void Outbuffer::enlarge(d_size_t nbytes)
+void Outbuffer::enlarge(unsigned nbytes)
 {
     const d_size_t oldlen = pend - buf;
     const d_size_t used = p - buf;
@@ -129,7 +129,7 @@ void Outbuffer::position(d_size_t offset, d_size_t nbytes)
 }
 
 // Write an array to the buffer.
-void Outbuffer::write(const void *b, d_size_t len)
+void Outbuffer::write(const void *b, unsigned len)
 {
     if (pend - p < len)
         reserve(len);

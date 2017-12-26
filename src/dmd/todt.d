@@ -150,7 +150,8 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                         Expression_toDt(edefault, dtb);
                         dtdefault = dtb.finish();
                     }
-                    dtbarray.repeat(dtdefault, n);
+                    assert(n <= uint.max);
+                    dtbarray.repeat(dtdefault, cast(uint)n);
                 }
             }
             switch (tb.ty)
@@ -175,7 +176,9 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                                 dtdefault = dtb.finish();
                             }
 
-                            dtbarray.repeat(dtdefault, n * (tadim - ai.dim));
+                            const m = n * (tadim - ai.dim);
+                            assert(m <= uint.max);
+                            dtbarray.repeat(dtdefault, cast(uint)m);
                         }
                     }
                     else if (ai.dim > tadim)
@@ -920,7 +923,8 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
         scope dtb2 = new DtBuilder();
         Expression_toDt(e, dtb2);
         dt_t* dt2 = dtb2.finish();
-        dtb.repeat(dt2, len);
+        assert(len <= uint.max);
+        dtb.repeat(dt2, cast(uint)len);
     }
 }
 
