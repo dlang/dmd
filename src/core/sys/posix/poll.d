@@ -271,3 +271,30 @@ else version( CRuntime_Bionic )
 
     int poll(pollfd*, nfds_t, c_long);
 }
+else version( CRuntime_Musl )
+{
+    struct pollfd
+    {
+        int     fd;
+        short   events;
+        short   revents;
+    }
+
+    alias uint nfds_t;
+
+    enum
+    {
+        POLLIN      = 0x001,
+        POLLPRI     = 0x002,
+        POLLOUT     = 0x004,
+        POLLERR     = 0x008,
+        POLLHUP     = 0x010,
+        POLLNVAL    = 0x020,
+        POLLRDNORM  = 0x040,
+        POLLRDBAND  = 0x080,
+        POLLWRNORM  = 0x100,
+        POLLWRBAND  = 0x200,
+    }
+
+    int poll(pollfd*, nfds_t, c_long);
+}
