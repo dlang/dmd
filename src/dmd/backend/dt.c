@@ -325,7 +325,7 @@ void DtBuilder::dword(int value)
 /***********************
  * Write a size_t value.
  */
-void DtBuilder::size(d_ulong value)
+void DtBuilder::size(unsigned long value)
 {
     if (value == 0)
     {
