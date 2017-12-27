@@ -1469,7 +1469,7 @@ version (Windows)
                 if (!pIsWow64Process)
                 {
                     //IsWow64Process is not available on all supported versions of Windows.
-                    pIsWow64Process = cast(fnIsWow64Process) GetProcAddress(GetModuleHandle("kernel32"), "IsWow64Process");
+                    pIsWow64Process = cast(fnIsWow64Process) GetProcAddress(GetModuleHandleA("kernel32"), "IsWow64Process");
                     if (!pIsWow64Process)
                         return false;
                 }
