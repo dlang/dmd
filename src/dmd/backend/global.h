@@ -15,6 +15,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H        1
 
+#include        <stdint.h>
+
 #ifndef EL_H
 #include        "el.h"
 #endif
@@ -126,7 +128,7 @@ void util_progress();
 void util_set16();
 void util_set32();
 void util_set64();
-int ispow2(targ_ullong);
+int ispow2(uint64_t);
 
 #if __GNUC__
 #define util_malloc(n,size) mem_malloc((n)*(size))

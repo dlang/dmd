@@ -17,6 +17,7 @@ extern (C++):
 nothrow:
 
 import core.stdc.stdio;
+import core.stdc.stdint;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
@@ -135,7 +136,7 @@ void util_progress();
 void util_set16();
 void util_set32();
 void util_set64();
-int ispow2(targ_ullong);
+int ispow2(uint64_t);
 
 //#if __GNUC__
 //#define util_malloc(n,size) mem_malloc((n)*(size))
@@ -238,15 +239,9 @@ char *file_getsource(const(char)* iname);
 int file_isdir(const(char)* fname);
 void file_progress();
 void file_remove(char *fname);
-//int file_stat(const(char)* fname,stat *pbuf);
 int file_exists(const(char)* fname);
 int file_size(const(char)* fname);
 void file_term();
-//#if __NT__ && _WINDLL
-//char *file_nettranslate(const(char)* filename,const(char)* mode);
-//#else
-//#define file_nettranslate(f,m)  ((char*)(f))
-//#endif
 char *file_unique();
 
 /* from msc.c */
