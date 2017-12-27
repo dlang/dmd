@@ -533,6 +533,8 @@
    <File path="..\dmd\optimize.d" />
    <File path="..\dmd\osmodel.mak" />
    <File path="..\dmd\parse.d" />
+   <File path="..\dmd\parsetimevisitor.d" />
+   <File path="..\dmd\permissivevisitor.d" />
    <File path="..\dmd\posix.mak" />
    <File path="..\dmd\printast.d" />
    <File path="..\dmd\s2ir.d" />
@@ -557,8 +559,9 @@
    <File path="..\dmd\tokens.d" />
    <File path="..\dmd\toobj.d" />
    <File path="..\dmd\traits.d" />
-   <File path="..\dmd\typinf.d" />
+   <File path="..\dmd\transitivevisitor.d" />
    <File path="..\dmd\typesem.d" />
+   <File path="..\dmd\typinf.d" />
    <File path="..\dmd\utf.d" />
    <File path="..\dmd\utils.d" />
    <File path="..\dmd\visitor.d" />
