@@ -277,7 +277,7 @@ endif
 ######## DMD frontend source files
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
+	arraytypes astcodegen attrib builtin canthrow clone compiler complex cond constfold	\
 	cppmangle cppmanglewin ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
@@ -395,7 +395,7 @@ TK_SRC = \
 ######## CXX header files (only needed for checkcxxheaders)
 
 SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
+	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	import.h init.h intrange.h json.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \

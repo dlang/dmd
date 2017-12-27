@@ -150,7 +150,7 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 
 # D front end
 FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
-	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/complex.d		\
+	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/clone.d $D/compiler.d $D/complex.d	\
 	$D/cond.d $D/constfold.d $D/cppmangle.d $D/cppmanglewin.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d $D/dsymbolsem.d		\
@@ -208,7 +208,7 @@ ROOT_SRCS=$(ROOT)/aav.d $(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d \
 
 # D front end
 SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
-	$D/attrib.h $D/complex_t.h $D/cond.h $D/ctfe.h $D/ctfe.h $D/declaration.h $D/dsymbol.h	\
+	$D/attrib.h $D/compiler.h $D/complex_t.h $D/cond.h $D/ctfe.h $D/ctfe.h $D/declaration.h $D/dsymbol.h	\
 	$D/enum.h $D/errors.h $D/expression.h $D/globals.h $D/hdrgen.h $D/identifier.h	\
 	$D/import.h $D/init.h $D/intrange.h $D/json.h	\
 	$D/mars.h $D/module.h $D/mtype.h $D/nspace.h $D/objc.h                         \
