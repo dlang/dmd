@@ -178,24 +178,13 @@ WARNINGS += \
 	-Wno-class-memaccess \
 	-Wno-implicit-fallthrough
 endif
-# Clang Specific
-ifeq ($(HOST_CXX_KIND), clang++)
-WARNINGS += \
-	-Wno-tautological-constant-out-of-range-compare \
-	-Wno-tautological-compare \
-	-Wno-constant-logical-operand \
-	-Wno-self-assign -Wno-self-assign
-# -Wno-sometimes-uninitialized
-endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
+    -Wno-logical-op-parentheses
 endif
 endif
 
@@ -212,6 +201,11 @@ CXXFLAGS := $(WARNINGS) \
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
     -std=gnu++98
+endif
+# Clang Specific
+ifeq ($(CXX_KIND), clang++)
+CXXFLAGS += \
+    -xc++
 endif
 DFLAGS := -version=MARS $(PIC)
 # Enable D warnings
