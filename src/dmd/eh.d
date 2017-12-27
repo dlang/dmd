@@ -64,7 +64,7 @@ Symbol *except_gentables()
 
         outdata(s);                 // output the scope table
 
-        objmod.ehtables(funcsym_p,funcsym_p.Ssize,s);
+        objmod.ehtables(funcsym_p,cast(uint)funcsym_p.Ssize,s);
     }
     return null;
 }

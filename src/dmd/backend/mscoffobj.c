@@ -1166,7 +1166,7 @@ void MsCoffObj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      length of function
  */
 
-void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void MsCoffObj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
 {
     //printf("MsCoffObj::ehtables(func = %s, handler table = %s) \n",sfunc->Sident, ehsym->Sident);
 

@@ -61,7 +61,7 @@ struct seg_data;
         static void staticctor(Symbol *s,int dtor,int seg);
         static void staticdtor(Symbol *s);
         static void setModuleCtorDtor(Symbol *s, bool isCtor);
-        static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+        static void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
         static void ehsections();
         static void moduleinfo(Symbol *scc);
         int  comdat(Symbol *);
@@ -147,7 +147,7 @@ class Obj
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
     VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
-    VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);
@@ -258,7 +258,7 @@ class MsCoffObj : public Obj
     VIRTUAL void staticctor(Symbol *s,int dtor,int seg);
     VIRTUAL void staticdtor(Symbol *s);
     VIRTUAL void setModuleCtorDtor(Symbol *s, bool isCtor);
-    VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+    VIRTUAL void ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
     virtual int  comdat(Symbol *);

@@ -52,7 +52,17 @@ final:
     void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros);
     void abytes(uint offset, uint size, const(char)* ptr, uint nzeros);
     void dword(int value);
+version (OSX)
+{
+    void size(ulong value, int dummy = 0)
+    {
+        nbytes(_tysize[TYnptr], cast(char*)&value);
+    }
+}
+else
+{
     void size(ulong value);
+}
     void nzeros(uint size);
     void xoff(Symbol* s, uint offset, tym_t ty);
     dt_t* xoffpatch(Symbol* s, uint offset, tym_t ty);
@@ -61,7 +71,7 @@ final:
     void coff(uint offset);
     void cat(dt_t* dt);
     void cat(DtBuilder dtb);
-    void repeat(dt_t* dt, size_t count);
+    void repeat(dt_t* dt, uint count);
     uint length();
     bool isZeroLength();
 };

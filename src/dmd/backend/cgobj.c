@@ -1802,7 +1802,7 @@ void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
 {
     // We need to always put out the segments in triples, so that the
     // linker will put them in the correct order.
