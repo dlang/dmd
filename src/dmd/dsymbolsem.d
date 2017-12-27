@@ -321,19 +321,19 @@ extern(C++) final class Semantic2Visitor : Visitor
         }
         else if (vd._init && vd.isThreadlocal())
         {
+            // Cannot initialize a thread-local class or pointer to struct variable with a literal
+            // that itself is a thread-local reference and would need dynamic initialization also.
             if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == TOKclassreference)
-                    vd.error("is mutable. Only const or immutable class thread local variable are allowed, not %s", vd.type.toChars());
+                    vd.error("is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
             else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
-                {
-                    vd.error("is a pointer to mutable struct. Only pointers to const, immutable or shared struct thread local variable are allowed, not %s", vd.type.toChars());
-                }
+                    vd.error("is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
         }
         vd.semanticRun = PASSsemantic2done;
