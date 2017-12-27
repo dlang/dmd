@@ -3878,6 +3878,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         sd.aggNew = cast(NewDeclaration)sd.search(Loc(), Id.classNew);
         sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc(), Id.classDelete);
+        sd.inv = buildInv(sd, sc2);
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();
@@ -3894,8 +3895,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.xcmp = buildXopCmp(sd, sc2);
             sd.xhash = buildXtoHash(sd, sc2);
         }
-
-        sd.inv = buildInv(sd, sc2);
 
         Module.dprogress++;
         sd.semanticRun = PASS.semanticdone;
@@ -4435,6 +4434,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Can be in base class
         cldec.aggNew = cast(NewDeclaration)cldec.search(Loc(), Id.classNew);
         cldec.aggDelete = cast(DeleteDeclaration)cldec.search(Loc(), Id.classDelete);
+        cldec.inv = buildInv(cldec, sc2);
 
         // Look for the constructor
         cldec.ctor = cldec.searchCtor();
@@ -4485,6 +4485,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
+        version (none) // Controversial - see Bugzilla 519
+        {
+            /* If class has no constructor, but does have an invariant, create a default constructor merely
+             * as a place where the invariant call will be added.
+             */
+            if (!ctor && global.params.useInvariants && inv && !isCPPclass())
+            {
+                auto tf = new TypeFunction(null, null, 0, LINKd, inv.storage_class);
+                auto btf = cast(TypeFunction)inv.type;
+                tf.purity = btf.purity;
+                tf.isnothrow = btf.isnothrow;
+                tf.isnogc = btf.isnogc;
+                tf.trust = btf.trust;
+                auto ctor = new CtorDeclaration(loc, Loc(), 0, tf);
+                ctor.fbody = new CompoundStatement(Loc(), new Statements());
+                members.push(ctor);
+                ctor.addMember(sc, this, 1);
+                ctor.semantic(sc2);
+                this.ctor = ctor;
+                defaultCtor = ctor;
+            }
+        }
+
         cldec.dtor = buildDtor(cldec, sc2);
 
         if (auto f = hasIdentityOpAssign(cldec, sc2))
@@ -4492,8 +4515,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!(f.storage_class & STC.disable))
                 cldec.error(f.loc, "identity assignment operator overload is illegal");
         }
-
-        cldec.inv = buildInv(cldec, sc2);
 
         Module.dprogress++;
         cldec.semanticRun = PASS.semanticdone;

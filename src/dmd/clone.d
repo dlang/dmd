@@ -773,6 +773,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
  * all the members.
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
+ * buildInv() should be run first.
  */
 extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
@@ -1099,6 +1100,12 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     switch (ad.dtors.dim)
     {
     case 0:
+        /* If running invariant, need a destructor to hang it on,
+         * but only do for root modules, as ones in the library may not
+         * have been compiled with useInvariants
+         */
+        if (global.params.useInvariants && ad.inv && sc._module.isRoot())
+            goto default;
         break;
 
     case 1:
