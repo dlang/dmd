@@ -2759,25 +2759,25 @@ final class Parser(AST) : Lexer
 
                 case TOKconst:
                     if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
+                        goto default;
                     stc = AST.STCconst;
                     goto L2;
 
                 case TOKimmutable:
                     if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
+                        goto default;
                     stc = AST.STCimmutable;
                     goto L2;
 
                 case TOKshared:
                     if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
+                        goto default;
                     stc = AST.STCshared;
                     goto L2;
 
                 case TOKwild:
                     if (peek(&token).value == TOKlparen)
-                        goto Ldefault;
+                        goto default;
                     stc = AST.STCwild;
                     goto L2;
 
@@ -2854,7 +2854,6 @@ final class Parser(AST) : Lexer
                         goto L3;
                     }
                 default:
-                Ldefault:
                     {
                         stc = storageClass & (AST.STCin | AST.STCout | AST.STCref | AST.STClazy);
                         // if stc is not a power of 2
@@ -5946,17 +5945,17 @@ final class Parser(AST) : Lexer
                                 continue;
                             }
                         }
-                        goto Ldefault;
+                        goto default;
 
                     case TOKlcurly:
                         ++nestlevel;
-                        goto Ldefault;
+                        goto default;
 
                     case TOKrcurly:
                         if (nestlevel > 0)
                         {
                             --nestlevel;
-                            goto Ldefault;
+                            goto default;
                         }
                         if (toklist || label)
                         {
@@ -5991,7 +5990,6 @@ final class Parser(AST) : Lexer
                         goto Lerror;
 
                     default:
-                    Ldefault:
                         *ptoklist = Token.alloc();
                         memcpy(*ptoklist, &token, Token.sizeof);
                         ptoklist = &(*ptoklist).next;
