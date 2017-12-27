@@ -2,10 +2,10 @@
 # Important variables:
 # --------------------
 #
-# HOST_CXX:				Host C++ compiler to use (g++,clang++)
-# HOST_DMD: 			Host D compiler to use for bootstrapping
-# AUTO_BOOTSTRAP:		Enable auto-boostrapping by download a stable DMD binary
-# INSTALL_DIR:			Installation folder to use
+# HOST_CXX:             Host C++ compiler to use (g++,clang++)
+# HOST_DMD:             Host D compiler to use for bootstrapping
+# AUTO_BOOTSTRAP:       Enable auto-boostrapping by download a stable DMD binary
+# INSTALL_DIR:          Installation folder to use
 #
 ################################################################################
 # Build modes:
@@ -14,17 +14,17 @@
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:		Optimized release built (set by BUILD=release)
-# ENABLE_DEBUG:			Add debug instructions and symbols (set by BUILD=debug)
-# ENABLE_WARNINGS: 		Enable C++ build warnings
-# ENABLE_PROFILING:		Build dmd with a profiling recorder (C++)
-# ENABLE_PGO_USE:		Build dmd with existing profiling information (C++)
-# 	PGO_DIR:			Directory for profile-guided optimization (PGO) logs
-# ENABLE_LTO:			Enable link-time optimizations
-# ENABLE_UNITTEST:		Build dmd with unittests (sets ENABLE_COVERAGE=1)
-# ENABLE_PROFILE:		Build dmd with a profiling recorder (D)
-# ENABLE_COVERAGE		Build dmd with coverage counting
-# ENABLE_SANITIZERS		Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
+# ENABLE_RELEASE:       Optimized release built (set by BUILD=release)
+# ENABLE_DEBUG:         Add debug instructions and symbols (set by BUILD=debug)
+# ENABLE_WARNINGS:      Enable C++ build warnings
+# ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
+# ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
+#   PGO_DIR:            Directory for profile-guided optimization (PGO) logs
+# ENABLE_LTO:           Enable link-time optimizations
+# ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
+# ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
+# ENABLE_COVERAGE       Build dmd with coverage counting
+# ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
 ################################################################################
 
 # get OS and MODEL
