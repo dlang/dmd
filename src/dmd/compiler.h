@@ -13,6 +13,9 @@
 // This file contains a data structure that describes a back-end compiler
 // and implements compiler-specific actions.
 
+struct Scope;
+
 struct Compiler
 {
+    static void genCmain(Scope *);
 };
