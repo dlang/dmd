@@ -6283,7 +6283,8 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.c8, BCTypeEnum.c16, BC
         }
         else if (ce.e1.type.ty == Tdelegate)
         {
-            tf = cast (TypeFunction) ((cast(TypeDelegate) ce.e1.type).nextOf);
+            assert((cast(TypeDelegate) ce.e1.type).nextOf.ty == Tfunction);
+            tf = cast(TypeFunction) ((cast(TypeDelegate) ce.e1.type).nextOf);
         }
         else
         {
