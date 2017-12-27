@@ -80,7 +80,7 @@ void os_error(int line)
 #pragma noreturn(os_error)
 #endif
 
-#if _WIN32
+#if _WIN32 && !_WIN64
 /*********************************
  * Allocate a chunk of memory from the operating system.
  * Bypass malloc and friends.
