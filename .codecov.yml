@@ -39,4 +39,11 @@ coverage:
     - "test/.*/::src/"
     - "fail_compilation/::src/"
 
+  # At CircleCi, the PR is merged into `master` before the testsuite is run.
+  # This allows CodeCov to adjust the resulting coverage diff, s.t. it matches
+  # with the GitHub diff.
+  # https://github.com/codecov/support/issues/363
+  # https://docs.codecov.io/v4.3.6/docs/comparing-commits
+  allow_coverage_offsets: true
+
 comment: false
