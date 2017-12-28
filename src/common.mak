@@ -7,13 +7,13 @@
 # Common directories
 ################################################################################
 
-DMD_DIR = $(D_HOME)/dmd
-DRUNTIME_DIR = $(D_HOME)/druntime
-PHOBOS_DIR = $(D_HOME)/phobos
-DLANG_ORG_DIR = $(D_HOME)/dlang.org
-TOOLS_DIR = $(D_HOME)/tools
-INSTALL_DIR = $(D_HOME)/install
-INSTALLER_DIR = $(D_HOME)/installer
+DMD_DIR=$(D_HOME)/dmd
+DRUNTIME_DIR=$(D_HOME)/druntime
+PHOBOS_DIR=$(D_HOME)/phobos
+DLANG_ORG_DIR=$(D_HOME)/dlang.org
+TOOLS_DIR=$(D_HOME)/tools
+INSTALL_DIR=$(D_HOME)/install
+INSTALLER_DIR=$(D_HOME)/installer
 TMP?=/tmp
 GIT_HOME=https://github.com/dlang
 
@@ -55,7 +55,7 @@ ifneq ($(BUILD),release)
     ifneq ($(BUILD),debug)
         $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
     endif
-    ENABLE_DEBUG := 1
+    ENABLE_DEBUG:=1
 endif
 
 ################################################################################
@@ -94,16 +94,16 @@ ifneq (,$(DRUNTIME))
 endif
 
 ifeq (,$(findstring win,$(OS)))
-   LIB_DRUNTIME = $(DRUNTIME_BUILD_DIR)/libdruntime.a
-   LIB_DRUNTIMESO = $(basename $(LIB_DRUNTIME)).so.a
+   LIB_DRUNTIME=$(DRUNTIME_BUILD_DIR)/libdruntime.a
+   LIB_DRUNTIMESO=$(basename $(LIB_DRUNTIME)).so.a
 else
-   LIB_DRUNTIME = $(DRUNTIME_PATH)/lib/druntime.lib
+   LIB_DRUNTIME=$(DRUNTIME_PATH)/lib/druntime.lib
 endif
 
 # Set PHOBOS name and full path
 ifeq (,$(findstring win,$(OS)))
-	LIB_PHOBOS = $(PHOBOS_BUILD_DIR)/libphobos2.a
-	LIB_PHOBOSSO = $(PHOBOS_BUILD_DIR)/libphobos2.so
+	LIB_PHOBOS=$(PHOBOS_BUILD_DIR)/libphobos2.a
+	LIB_PHOBOSSO=$(PHOBOS_BUILD_DIR)/libphobos2.so
 endif
 
 # build with shared library support
@@ -116,15 +116,15 @@ LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 ################################################################################
 
 ifeq ($(OS),win32wine)
-	CC = wine dmc.exe
-	DMD = wine dmd.exe
-	RUN = wine
+	CC=wine dmc.exe
+	DMD=wine dmd.exe
+	RUN=wine
 else
 	DMD = $(DMD_BUILD_DIR)/dmd
 	ifeq ($(OS),win32)
-		CC = dmc
+		CC=dmc
 	else
-		CC = cc
+		CC=cc
 	endif
 	RUN =
 endif
@@ -171,19 +171,16 @@ endif
 # Default DUB FLAGS
 ################################################################################
 
-DUBFLAGS = --arch=$(subst 32,x86,$(subst 64,x86_64,$(MODEL)))
+DUBFLAGS=--arch=$(subst 32,x86,$(subst 64,x86_64,$(MODEL)))
 
 ################################################################################
 # Automatically create dlang/tools repository if non-existent
 ################################################################################
 
-_all: all
-
 $(TOOLS_DIR):
 	git clone --depth=1 ${GIT_HOME}/$(@F) $@
 
 $(TOOLS_DIR)/checkwhitespace.d: | $(TOOLS_DIR)
-
 
 ################################################################################
 # Common build rules
