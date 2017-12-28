@@ -1,4 +1,5 @@
 # Documentation: https://docs.codecov.io/docs/codecov-yaml
+# Validate with: `curl --data-binary @.codecov.yml https://codecov.io/validate`
 
 codecov:
   notify:
@@ -8,12 +9,19 @@ codecov:
     # https://docs.codecov.io/docs/detecting-ci-services
     # Only CircleCi generates coverages files atm.
     # Don't wait for the other CIs
-    - ci/circleci
-    - !CyberShadow/DAutoTest
-    - !auto-tester
-    - !continuous-integration/appveyor/pr
-    - !continuous-integration/jenkins/pr-merge
-    - !continuous-integration/travis-ci/pr
+    - circleci.com
+    - !dtest.dlang.io
+    - !auto-tester.puremagic.com
+    - !appveyor.com
+    - !ci.dlang.io
+    - !travis-ci.org
+
+  # At CircleCi, the PR is merged into `master` before the testsuite is run.
+  # This allows CodeCov to adjust the resulting coverage diff, s.t. it matches
+  # with the GitHub diff.
+  # https://github.com/codecov/support/issues/363
+  # https://docs.codecov.io/v4.3.6/docs/comparing-commits
+  allow_coverage_offsets: true
 
 coverage:
   precision: 3
@@ -38,12 +46,5 @@ coverage:
   fixes:
     - "test/.*/::src/"
     - "fail_compilation/::src/"
-
-  # At CircleCi, the PR is merged into `master` before the testsuite is run.
-  # This allows CodeCov to adjust the resulting coverage diff, s.t. it matches
-  # with the GitHub diff.
-  # https://github.com/codecov/support/issues/363
-  # https://docs.codecov.io/v4.3.6/docs/comparing-commits
-  allow_coverage_offsets: true
 
 comment: false
