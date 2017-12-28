@@ -2478,7 +2478,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     if (c != c0)
                         goto Lcont;
                 }
-                if (i - istart < 3 || (inCode && inCode != c))
+                if (i - istart < 3 || (inCode && inCode != c0))
                     goto Lcont;
                 // We have the start/end of a code section
                 // Remove the entire --- line, including blanks and \n
@@ -2534,7 +2534,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 else
                 {
                     static __gshared const(char)* d_code = "$(D_CODE ";
-                    inCode = c;
+                    inCode = c0;
                     codeIndent = istart - iLineStart; // save indent count
                     i = buf.insert(i, d_code, strlen(d_code));
                     iCodeStart = i;
