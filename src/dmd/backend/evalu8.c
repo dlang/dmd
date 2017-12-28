@@ -39,7 +39,7 @@
 #include        <fp.h>
 #endif
 
-#if __FreeBSD__ || __OpenBSD__
+#if __FreeBSD__ || __OpenBSD__ || __DragonFly__
 #define fmodl fmod
 #endif
 

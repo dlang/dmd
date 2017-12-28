@@ -19,7 +19,7 @@
 #include        <fenv.h>
 #include        <fltpnt.h>
 #endif
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 #include        <errno.h>
 #endif
 
@@ -31,7 +31,7 @@ extern char * __cdecl __locale_decpoint;
 void __pascal __set_errno (int an_errno);
 #endif
 
-#if _WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if _WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 
 #if 0
 /* This is for compilers that don't support hex float literals,
@@ -46,7 +46,7 @@ static longdouble postab[] =
         {1e+4096L,1e+2048L,1e+1024L,1e+512L,
          1e+256L,1e+128L,1e+64L,1e+32L,1e+16L,1e+8L,1e+4L,1e+2L,1e+1L};
 
-#elif (defined(__GNUC__) && __FreeBSD__ && __i386__) || _MSC_VER
+#elif (defined(__GNUC__) && (__FreeBSD__ || __DragonFly__) && __i386__) || _MSC_VER
 
 // GCC on FreeBSD/i386 incorrectly rounds long double constants to double precision.  Workaround:
 

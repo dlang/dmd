@@ -24,7 +24,7 @@
 #include        <malloc.h>
 #endif
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #include        <errno.h>
@@ -95,7 +95,7 @@ bool doUnwindEhFrame()
 {
     if (funcsym_p->Sfunc->Fflags3 & Feh_none)
     {
-        return (config.exe & (EX_FREEBSD | EX_FREEBSD64)) != 0;
+        return (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) != 0;
     }
 
     /* FreeBSD fails when having some frames as having unwinding info and some not.
@@ -104,7 +104,7 @@ bool doUnwindEhFrame()
      */
     assert(!(usednteh & ~(EHtry | EHcleanup)));
     return (usednteh & (EHtry | EHcleanup)) ||
-           (config.exe & (EX_FREEBSD | EX_FREEBSD64)) && !config.betterC;
+           (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) && !config.betterC;
 }
 
 #if ELFOBJ

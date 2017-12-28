@@ -58,7 +58,7 @@ enum WM
     WM_ccast        = 25,
     WM_obsolete     = 26,
 
-    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    // if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     WM_skip_attribute   = 27, // skip GNUC attribute specification
     WM_warning_message  = 28, // preprocessor warning message
     WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -84,7 +84,7 @@ enum LANG
 //#include        "msgs2.h"
 //#endif
 //#include        "ty.h"
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 //#include        "../tk/mem.h"
 //#else
 //#include        "mem.h"

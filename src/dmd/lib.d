@@ -28,7 +28,7 @@ static if (TARGET.Windows)
     import dmd.libomf;
     import dmd.libmscoff;
 }
-else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
 {
     import dmd.libelf;
 }
@@ -51,7 +51,7 @@ class Library
         {
             return (global.params.mscoff || global.params.is64bit) ? LibMSCoff_factory() : LibOMF_factory();
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             return LibElf_factory();
         }

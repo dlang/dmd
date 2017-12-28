@@ -315,10 +315,17 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             browse("http://dlang.org/dmd-freebsd.html");
         }
+        /*NOTE: No regular builds for openbsd/dragonflybsd (yet) */
+        /*
         version (OpenBSD)
         {
             browse("http://dlang.org/dmd-openbsd.html");
         }
+        version (DragonFlyBSD)
+        {
+            browse("http://dlang.org/dmd-dragonflybsd.html");
+        }
+        */
         return EXIT_SUCCESS;
     }
 
@@ -360,7 +367,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         global.params.pic = 1;
     }
-    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
     {
         if (global.params.lib && global.params.dll)
             error(Loc(), "cannot mix -lib and -shared");
@@ -539,7 +546,7 @@ private int tryMain(size_t argc, const(char)** argv)
                 libmodules.push(files[i]);
                 continue;
             }
-            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
             {
                 if (FileName.equals(ext, global.dll_ext))
                 {
@@ -1194,7 +1201,7 @@ private void setDefaultLibrary()
             else
                 global.params.defaultlibname = "phobos";
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             global.params.defaultlibname = "libphobos2.a";
         }
@@ -1257,6 +1264,13 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isOpenBSD = true;
+    }
+    else static if (TARGET.DragonFlyBSD)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isDragonFlyBSD = true;
     }
     else static if (TARGET.Solaris)
     {
@@ -1541,7 +1555,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-fPIC")
             {
-                static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+                static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
                 {
                     params.pic = 1;
                 }
@@ -1579,8 +1593,12 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
             {
-                params.is64bit = false;
-                params.mscoff = false;
+                static if (TARGET.DragonFlyBSD) {
+                    error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
+                } else {
+                    params.is64bit = false;
+                    params.mscoff = false;
+                }
             }
             else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
             {

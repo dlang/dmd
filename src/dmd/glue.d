@@ -891,7 +891,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         if (fd.isMain() && onlyOneMain(fd.loc))
         {
             if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-                global.params.isOpenBSD || global.params.isSolaris)
+                global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
             {
                 objmod.external_def("_main");
             }
@@ -910,7 +910,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         else if (fd.isRtInit())
         {
             if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-                global.params.isOpenBSD || global.params.isSolaris ||
+                global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
                 global.params.mscoff)
             {
                 objmod.ehsections();   // initialize exception handling sections
@@ -1095,7 +1095,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         pi++;
     }
 
-    if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
+    if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
          fd.linkage != LINK.d && shidden && sthis)
     {
         /* swap shidden and sthis
@@ -1330,7 +1330,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
-    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris)
+    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
     {
         // A hack to get a pointer to this function put in the .dtors segment
         if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)

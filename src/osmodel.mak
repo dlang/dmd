@@ -28,6 +28,9 @@ ifeq (,$(OS))
   ifeq (NetBSD,$(uname_S))
     OS:=netbsd
   endif
+  ifeq (DragonFly,$(uname_S))
+    OS:=dragonflybsd
+  endif
   ifeq (Solaris,$(uname_S))
     OS:=solaris
   endif

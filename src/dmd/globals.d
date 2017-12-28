@@ -25,16 +25,17 @@ template xversion(string s)
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
-enum IN_GCC     = xversion!`IN_GCC`;
+enum IN_GCC      = xversion!`IN_GCC`;
 
 enum TARGET : bool
 {
-    Linux   = xversion!`linux`,
-    OSX     = xversion!`OSX`,
-    FreeBSD = xversion!`FreeBSD`,
-    OpenBSD = xversion!`OpenBSD`,
-    Solaris = xversion!`Solaris`,
-    Windows = xversion!`Windows`,
+    Linux        = xversion!`linux`,
+    OSX          = xversion!`OSX`,
+    FreeBSD      = xversion!`FreeBSD`,
+    OpenBSD      = xversion!`OpenBSD`,
+    Solaris      = xversion!`Solaris`,
+    Windows      = xversion!`Windows`,
+    DragonFlyBSD = xversion!`DragonFlyBSD`,
 }
 
 enum CHECKENABLE : ubyte
@@ -100,6 +101,7 @@ struct Param
     bool isWindows;         // generate code for Windows
     bool isFreeBSD;         // generate code for FreeBSD
     bool isOpenBSD;         // generate code for OpenBSD
+    bool isDragonFlyBSD;    // generate code for DragonFlyBSD
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
@@ -297,7 +299,7 @@ struct Global
         {
             obj_ext = "obj";
         }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             obj_ext = "o";
         }
@@ -309,7 +311,7 @@ struct Global
         {
             lib_ext = "lib";
         }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             lib_ext = "a";
         }
@@ -321,7 +323,7 @@ struct Global
         {
             dll_ext = "dll";
         }
-        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             dll_ext = "so";
         }
@@ -337,7 +339,7 @@ struct Global
         {
             run_noext = false;
         }
-        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             // Allow 'script' D source files to have no extension.
             run_noext = true;

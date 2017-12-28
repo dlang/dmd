@@ -631,7 +631,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
             if (I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
 #endif
@@ -1446,7 +1446,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
 #endif
@@ -1645,7 +1645,7 @@ void doswitch(CodeBuilder& cdb, block *b)
             genjmp(cdb,JNE,FLblock,b->nthSucc(0)); // JNE default
         }
         getregs(cdb,mCX|mDI);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic)
         {   // Add in GOT
             getregs(cdb,mDX);
@@ -1720,7 +1720,7 @@ void doswitch(CodeBuilder& cdb, block *b)
         const int mod = (disp > 127) ? 2 : 1;     // 1 or 2 byte displacement
         if (csseg)
             cdb.gen1(SEGCS);            // table is in code segment
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic)
         {                               // ADD EDX,(ncases-1)*2[EDI]
             cdb.genc1(0x03,modregrm(mod,DX,7),FLconst,disp);
@@ -1790,7 +1790,7 @@ void outjmptab(block *b)
                         break;
                 }
         }
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (I64)
         {
             if (config.flags3 & CFG3pic)
@@ -2346,7 +2346,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
     cdb.gen1(0x58 + reg);             // L1: POP reg
 
     fixresult(cdb,e,retregs,pretregs);
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
@@ -2381,7 +2381,7 @@ void cdgot(CodeBuilder& cdb, elem *e, regm_t *pretregs)
 
 void load_localgot(CodeBuilder& cdb)
 {
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && I32)
     {
         if (localgot && !(localgot->Sflags & SFLdead))
@@ -2404,7 +2404,7 @@ void load_localgot(CodeBuilder& cdb)
 #endif
 }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 /*****************************
  * Returns:
  *      # of bytes stored
@@ -3010,7 +3010,7 @@ void prolog_frame(CodeBuilder& cdb, unsigned farfunc, unsigned* xlocalsize, bool
     if (config.wflags & WFincbp && farfunc)
         cdb.gen1(0x40 + BP);      // INC  BP
     if (config.target_cpu < TARGET_80286 ||
-        config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_WIN64) ||
+        config.exe & (EX_LINUX | EX_LINUX64 | EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64 | EX_SOLARIS | EX_SOLARIS64 | EX_WIN64) ||
         !localsize ||
         config.flags & CFGstack ||
         (*xlocalsize >= 0x1000 && config.exe & EX_flat) ||
@@ -4297,7 +4297,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
     sthunk->Soffset = thunkoffset;
     sthunk->Ssize = Offset(seg) - thunkoffset; // size of thunk
     sthunk->Sseg = seg;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     objmod->pubdef(seg,sthunk,sthunk->Soffset);
 #endif
 #if TARGET_WINDOS
@@ -6538,7 +6538,7 @@ static void do64bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         case FLgot:
         case FLgotoff:
 #endif
@@ -6648,7 +6648,7 @@ static void do32bit(MiniCodeBuf *pbuf, enum FL fl,union evc *uev,int flags, int 
         // un-named external with is the start of .rodata or .data
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
 #endif

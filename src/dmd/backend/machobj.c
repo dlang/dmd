@@ -22,7 +22,7 @@
 #include        <malloc.h>
 #endif
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun
 #include        <signal.h>
 #include        <unistd.h>
 #endif
@@ -2092,7 +2092,7 @@ char *obj_mangle2(Symbol *s,char *dest)
                 *p = toupper(*p);
             break;
         case mTYman_std:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&

@@ -1087,7 +1087,7 @@ L2:
         //printf("  3 RET.stack\n");
         return RET.stack;
     }
-    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
+    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
              tf.linkage == LINK.c &&
              tns.iscomplex())
     {

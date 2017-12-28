@@ -32,7 +32,7 @@ void usage()
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
+          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
           ~ "   windows vs non-windows portability env vars:\n"
@@ -581,6 +581,16 @@ int tryMain(string[] args)
             testArgs.requiredArgs,
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
+
+    version (DragonFlyBSD)
+    {
+        // DragonFlyBSD is x86_64 only, instead of adding DISABLED to a lot of tests, just exclude them from running
+        if (testArgs.requiredArgs.canFind("-m32"))
+        {
+            testArgs.disabled = true;
+            writefln("!!! [Skipping -m32 on %s]", envData.os);
+        }
+    }
 
     if (testArgs.disabledPlatforms.canFind(envData.os, envData.os ~ envData.model))
     {
