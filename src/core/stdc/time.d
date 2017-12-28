@@ -107,6 +107,10 @@ else version (CRuntime_Glibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
 }
+else version (CRuntime_Musl)
+{
+    enum clock_t CLOCKS_PER_SEC = 1_000_000;
+}
 else version (CRuntime_Bionic)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
@@ -193,6 +197,13 @@ else version( CRuntime_Bionic )
     void tzset();
     ///
     extern __gshared const(char)*[2] tzname;
+}
+else version( CRuntime_Musl )
+{
+    ///
+    void tzset();                            // non-standard
+    ///
+    extern __gshared const(char)*[2] tzname; // non-standard
 }
 else
 {
