@@ -341,7 +341,7 @@ druntime.zip: $(MANIFEST)
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
-	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
+	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOCDIR) druntime.zip

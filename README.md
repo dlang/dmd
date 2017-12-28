@@ -56,7 +56,7 @@ the [bug tracker](http://issues.dlang.org/).
 Licensing
 ---------
 
-See the LICENSE file for licensing information.
+See the LICENSE.txt file for licensing information.
 
 Building
 --------
