@@ -3504,11 +3504,10 @@ code *asm_db_parse(OP *pop)
                     }
                     goto L3;
                 }
-                goto Ldefault;
+                goto default;
             }
 
             default:
-            Ldefault:
                 asmerr("constant initializer expected");          // constant initializer
                 break;
         }

@@ -899,20 +899,20 @@ Lagain:
         case Tfloat32:
         case Timaginary32:
             if (!global.params.is64bit)
-                goto Ldefault;          // legacy binary compatibility
+                goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
             if (!global.params.is64bit)
-                goto Ldefault;          // legacy binary compatibility
+                goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
             if (!global.params.is64bit)
-                goto Ldefault;
+                goto default;
 
             TypeStruct tc = cast(TypeStruct)tb;
             StructDeclaration sd = tc.sym;
@@ -921,7 +921,7 @@ Lagain:
                 tb = sd.arg1type;
                 goto Lagain;
             }
-            goto Ldefault;
+            goto default;
         }
 
         case Tvector:
@@ -929,7 +929,6 @@ Lagain:
             break;
 
         default:
-        Ldefault:
             switch (sz)
             {
                 case 1:      r = RTLSYM_MEMSET8;    break;
