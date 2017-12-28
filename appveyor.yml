@@ -1,0 +1,29 @@
+
+os: Visual Studio 2015
+
+environment:
+  matrix:
+    - ARCH:                x64
+      D_COMPILER:          dmd
+      D_VERSION:           2.077.1
+      C_COMPILER:          MSVC
+
+cache:
+  - gnumake/make.exe
+
+artifacts:
+  - path: src/dmd.exe
+    name: dmd
+  - path: phobos64.lib
+    name: phobos
+
+init:
+  - git config --global core.autocrlf input
+
+build_script:
+  - cd c:/projects/
+  - call "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+  - bash --version
+  - sh --login /c/projects/dmd/appveyor.sh
+
+test_script: true
