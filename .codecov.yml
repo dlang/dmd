@@ -1,4 +1,5 @@
 # Documentation: https://docs.codecov.io/docs/codecov-yaml
+# Validate with: `curl --data-binary @.codecov.yml https://codecov.io/validate`
 
 codecov:
   notify:
