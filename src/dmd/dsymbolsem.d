@@ -151,6 +151,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
     return dd.msgstr;
 }
 
+
 // Returns true if a contract can appear without a function body.
 package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
 {
@@ -2073,6 +2074,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         if (tempdecl.semanticRun != PASSinit)
             return; // semantic() already run
+
+        if (tempdecl._scope)
+        {
+            sc = tempdecl._scope;
+            tempdecl._scope = null;
+        }
+        if (!sc)
+            return;
 
         // Remember templates defined in module object that we need to know about
         if (sc._module && sc._module.ident == Id.object)
