@@ -37,6 +37,9 @@ SMALL = <small>$0</small>
 BR = <br>
 LINK = <a href="$0">$0</a>
 LINK2 = <a href="$1">$+</a>
+LINK_TITLE = <a href="$1" title="$2">$+</a>
+IMAGE = <img src="$1" alt="$2">$+</img>
+IMAGE_TITLE = <img src="$1" alt="$2" title="$3">$+</img>
 QUOTE = <blockquote>$0</blockquote>
 DEPRECATED = $0
 

@@ -2180,9 +2180,10 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
     return false;
 }
 
-struct MarkdownEmphasis
+struct MarkdownDelimiter
 {
     size_t iStart;
+    char type;
     int count;
     bool leftFlanking;
     bool rightFlanking;
@@ -2200,7 +2201,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iHeadingStart = 0;
     int quoteLevel = 0;
     int previousQuoteLevel = 0;
-    MarkdownEmphasis[] emphases;
+    MarkdownDelimiter[] inlineDelimiters;
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
@@ -2243,8 +2244,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                if (emphases.length)
-                    emphases.length = 0;
+                if (inlineDelimiters.length)
+                    inlineDelimiters.length = 0;
 
                 for (; previousQuoteLevel > 0; --previousQuoteLevel)
                     i = buf.insert(i, ")");
@@ -2644,11 +2645,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 char leftC = i > 0 ? buf.data[i-1] : '\0';
                 size_t iAfterEmphasis = skipchars(buf, i+1, "*");
-                char rightC = iAfterEmphasis < offset ? buf.data[iAfterEmphasis] : '\0';
+                char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
                 int count = cast(int) (iAfterEmphasis - i);
                 bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
                 bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
-                auto emphasis = MarkdownEmphasis(i, count, leftFlanking, rightFlanking);
+                auto emphasis = MarkdownDelimiter(i, c, count, leftFlanking, rightFlanking);
 
                 if (!emphasis.leftFlanking && !emphasis.rightFlanking)
                 {
@@ -2656,10 +2657,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 }
 
-                if (emphasis.rightFlanking && emphases.length)
+                if (emphasis.rightFlanking && inlineDelimiters.length)
                 {
-                    auto start = emphases[$-1];
-                    if ((emphasis.count + start.count) % 3 != 0)
+                    auto start = inlineDelimiters[$-1];
+                    if (emphasis.type == start.type && (emphasis.count + start.count) % 3 != 0)
                     {
                         size_t iStart = start.iStart;
                         if (start.count <= emphasis.count)
@@ -2668,7 +2669,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             emphasis.count -= start.count;
                             emphasis.iStart += start.count;
 
-                            --emphases.length;
+                            --inlineDelimiters.length;
                         }
                         else
                         {
@@ -2691,7 +2692,187 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 if (emphasis.count && emphasis.leftFlanking)
                 {
-                    emphases ~= emphasis;
+                    inlineDelimiters ~= emphasis;
+                }
+            }
+            break;
+        }
+
+        case '!':
+        {
+            if (i < buf.offset-1 && buf.data[i+1] == '[')
+            {
+                auto imageStart = MarkdownDelimiter(i, c, 2, false, false);
+                inlineDelimiters ~= imageStart;
+                ++i;
+            }
+            break;
+        }
+        case '[':
+        {
+            if (inCode)
+                break;
+
+            auto linkStart = MarkdownDelimiter(i, c, 1, false, false);
+            inlineDelimiters ~= linkStart;
+            break;
+        }
+        case ']':
+        {
+            if (inCode || i >= buf.offset - 2)
+                break;
+
+            for (int d = cast(int) inlineDelimiters.length - 1; d >= 0; --d)
+            {
+                auto delimiter = inlineDelimiters[d];
+                if (delimiter.type == '[' || delimiter.type == '!')
+                {
+                    if (buf.data[i+1] == '(')
+                    {
+                        size_t j = skipchars(buf, i + 2, " \t");
+
+                        // look ahead for the close of a link
+                        const (char)[] href, title;
+                        size_t iHrefStart = j;
+                        size_t iTitleStart = 0;
+                        size_t parenDepth = 0;
+                        size_t iLinkNewline = 0;
+                        bool inPointy = false;
+                        const slice = buf.peekSlice();
+                        for (; j < slice.length; j++)
+                        {
+                            switch (slice[j])
+                            {
+                            case '<':
+                                if (!inPointy && j == iHrefStart)
+                                {
+                                    inPointy = true;
+                                    ++iHrefStart;
+                                }
+                                break;
+                            case '>':
+                                if (inPointy && slice[j-1] != '\\')
+                                {
+                                    inPointy = false;
+                                    href = (cast(const char*) buf.data)[iHrefStart .. j];
+                                }
+                                break;
+                            case '(':
+                                if (!inPointy && slice[j-1] != '\\')
+                                {
+                                    ++parenDepth;
+                                    if (href.length)
+                                        iTitleStart = j + 1;
+                                }
+                                break;
+                            case ')':
+                                if (slice[j-1] != '\\')
+                                {
+                                    if (parenDepth)
+                                        --parenDepth;
+                                    if (!parenDepth)
+                                    {
+                                        if (href.length)
+                                            goto case '"';
+                                        else
+                                        {
+                                            href = (cast(const char*) buf.data)[iHrefStart .. j];
+                                        }
+                                        goto LEndInlineLink;
+                                    }
+                                }
+                                break;
+                            case '"':
+                            case '\'':
+                                if (href.length && slice[j-1] != '\\')
+                                {
+                                    if (iTitleStart)
+                                    {
+                                        if (title.length)
+                                        {
+                                            // missplaced quote
+                                            href.length = 0;
+                                            goto LEndInlineLink;
+                                        }
+
+                                        char titleQuote = slice[iTitleStart - 1];
+                                        if (slice[j] == titleQuote)
+                                            title = (cast(const char*) buf.data)[iTitleStart .. j];
+                                    }
+                                    else
+                                        iTitleStart = j + 1;
+                                }
+                                break;
+                            case ' ':
+                            case '\t':
+                                if (inPointy)
+                                {
+                                    // invalid link
+                                    href.length = 0;
+                                    goto LEndInlineLink;
+                                }
+                                if (!href.length)
+                                    href = (cast(const char*) buf.data)[iHrefStart .. j];
+                                break;
+                            case '\r':
+                            case '\n':
+                                if (iLinkNewline == j || !href.length)
+                                {
+                                    // no blank lines or newlines in hrefs
+                                    href.length = 0;
+                                    goto LEndInlineLink;
+                                }
+                                iLinkNewline = j + 1;
+                                break;
+                            default:
+                                break;
+                            }
+                        }
+                    LEndInlineLink:
+                        if (href.length)
+                        {
+                            size_t iAfterLink = i - delimiter.count;
+                            string macroName;
+                            href = href.dup;
+                            if (title.length)
+                            {
+                                title = title.dup;
+                                if (delimiter.type == '[')
+                                    macroName = "$(LINK_TITLE ";
+                                else
+                                    macroName = "$(IMAGE_TITLE ";
+                            }
+                            else
+                            {
+                                if (delimiter.type == '[')
+                                    macroName = "$(LINK2 ";
+                                else
+                                    macroName = "$(IMAGE ";
+                            }
+                            buf.remove(delimiter.iStart, delimiter.count);
+                            buf.remove(i - 1, j - i + 1);
+                            j = buf.insert(delimiter.iStart, macroName);
+                            j = buf.insert(j, href);
+                            j = buf.insert(j, ", ");
+                            iAfterLink += macroName.length + href.length + 2;
+                            if (title.length)
+                            {
+                                j = buf.insert(j, title);
+                                j = buf.insert(j, ", ");
+                                iAfterLink += title.length + 2;
+                            }
+                            buf.insert(iAfterLink, ")");
+                            i = iAfterLink;
+                        }
+                    }
+                    else
+                    {
+                        // TODO: reference links/images
+
+                        // nothing found, so kill the delimiter
+        // TODO: instead of this, only kill delimiters after we successfully link
+                        inlineDelimiters = inlineDelimiters[0..d] ~ inlineDelimiters[d+1..$];
+                    }
                 }
             }
             break;
@@ -2808,7 +2989,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             break;
         }
     }
-    // TODO: remove the restriction that code blocks must be closed?
+// TODO: remove the restriction that code blocks must be closed?
     if (inCode)
         error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
 }
