@@ -147,7 +147,7 @@ ifeq (,$(findstring win,$(OS)))
 else
 	DOTOBJ:=.obj
 	DOTEXE:=.exe
-	PATHSEP:=$(shell echo "\\")
+	PATHSEP:=$(subst /,/,\)
 endif
 
 ifeq (osx,$(OS))
