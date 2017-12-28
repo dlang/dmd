@@ -2902,6 +2902,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 buf.remove(i, 1);
             }
+            leadingBlank = 0;
             break;
         }
 
