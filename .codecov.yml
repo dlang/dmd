@@ -8,12 +8,12 @@ codecov:
     # https://docs.codecov.io/docs/detecting-ci-services
     # Only CircleCi generates coverages files atm.
     # Don't wait for the other CIs
-    - ci/circleci
-    - !CyberShadow/DAutoTest
-    - !auto-tester
-    - !continuous-integration/appveyor/pr
-    - !continuous-integration/jenkins/pr-merge
-    - !continuous-integration/travis-ci/pr
+    - circleci.com
+    - !dtest.dlang.io
+    - !auto-tester.puremagic.com
+    - !appveyor.com
+    - !ci.dlang.io
+    - !travis-ci.org
 
   # At CircleCi, the PR is merged into `master` before the testsuite is run.
   # This allows CodeCov to adjust the resulting coverage diff, s.t. it matches
