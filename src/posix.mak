@@ -528,9 +528,6 @@ install: all
 checkwhitespace: $(HOST_DMD_PATH) $(TOOLS_DIR)/checkwhitespace.d
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -run $(TOOLS_DIR)/checkwhitespace.d $(SRC) $(GLUE_SRC) $(ROOT_SRCS)
 
-$(TOOLS_DIR)/checkwhitespace.d:
-	git clone --depth=1 ${GIT_HOME}/tools $(TOOLS_DIR)
-
 ######################################################
 
 # See https://github.com/dlang/dmd/pull/7358 for why -xc++ is used here
