@@ -543,6 +543,8 @@
    <File path="..\dmd\scanmscoff.d" />
    <File path="..\dmd\scanomf.d" />
    <File path="..\dmd\semantic.d" />
+   <File path="..\dmd\semantic2.d" />
+   <File path="..\dmd\semantic3.d" />
    <File path="..\dmd\sideeffect.d" />
    <File path="..\dmd\statement.d" />
    <File path="..\dmd\statementsem.d" />
