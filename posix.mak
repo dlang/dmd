@@ -170,8 +170,6 @@ import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d $(DMD)
 	@mkdir -p $(dir $@)
-	echo $(BUILD)
-	echo $(DMD)
 	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
