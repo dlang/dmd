@@ -3457,7 +3457,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tthis.modToBuffer(&buf);
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                .error(exp.loc, "%s %s %s is not callable using argument types %s", p, exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`", p, exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -3525,7 +3525,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     buf.writeByte(')');
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                    .error(exp.loc, "%s %s is not callable using argument types %s", exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                    .error(exp.loc, "`%s%s` is not callable using argument types `%s`", exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
 
                     exp.f = null;
                 }
@@ -4619,7 +4619,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, e.e1.type.mod, tf.mod);
                 MODMatchToBuffer(&funcBuf, tf.mod, e.e1.type.mod);
-                e.error("%smethod %s is not callable using a %s%s",
+                e.error("%smethod `%s` is not callable using a %s`%s`",
                     funcBuf.peekString(), f.toPrettyChars(), thisBuf.peekString(), e.e1.toChars());
                 return setError();
             }

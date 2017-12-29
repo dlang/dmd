@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice14923.d(21): Error: function ice14923.parse (C a) is not callable using argument types (A)
+fail_compilation/ice14923.d(21): Error: function ice14923.parse `(C a)` is not callable using argument types `(A)`
 fail_compilation/ice14923.d(21):        instantiated from here: bar!((b) => parse(b))
 ---
 */

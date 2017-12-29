@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail95.d(19): Error: template fail95.A cannot deduce function from argument types !()(int), candidates are:
-fail_compilation/fail95.d(11):        fail95.A(alias T)(T)
+fail_compilation/fail95.d(19): Error: template `fail95.A` cannot deduce function from argument types `!()(int)`, candidates are:
+fail_compilation/fail95.d(11):        `fail95.A(alias T)(T)`
 ---
 */
 
