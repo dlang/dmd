@@ -1425,11 +1425,12 @@ private void addDefaultVersionIdentifiers()
 
 private void printPredefinedVersions()
 {
-    if (global.params.verbose && global.params.versionids)
+    if (global.params.verbose && global.versionids)
     {
         fprintf(global.stdmsg, "predefs  ");
-        foreach (const s; *global.params.versionids)
-            fprintf(global.stdmsg, " %s", s);
+        foreach (const str; *global.versionids)
+            fprintf(global.stdmsg, " %s", str.toChars);
+
         fprintf(global.stdmsg, "\n");
     }
 }
