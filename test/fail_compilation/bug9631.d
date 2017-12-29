@@ -62,12 +62,12 @@ void test3()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/bug9631.d(79): Error: function bug9631.arg.f (int i, S s) is not callable using argument types (int, S)
-fail_compilation/bug9631.d(79):        cannot implicitly convert expression `y` of type `bug9631.tem!().S` to `bug9631.S`
-fail_compilation/bug9631.d(80): Error: function literal __lambda2 (S s) is not callable using argument types (S)
-fail_compilation/bug9631.d(80):        cannot implicitly convert expression `x` of type `bug9631.S` to `bug9631.tem!().S`
-fail_compilation/bug9631.d(86): Error: constructor bug9631.arg.A.this (S _param_0) is not callable using argument types (S)
-fail_compilation/bug9631.d(86):        cannot implicitly convert expression `S(0)` of type `bug9631.tem!().S` to `bug9631.S`
+fail_compilation/bug9631.d(79): Error: function bug9631.arg.f `(int i, S s)` is not callable using argument types `(int, S)`
+fail_compilation/bug9631.d(79):        cannot pass argument `y` of type `bug9631.tem!().S` to parameter `S s` of type `bug9631.S`
+fail_compilation/bug9631.d(80): Error: function literal `__lambda2(S s)` is not callable using argument types `(S)`
+fail_compilation/bug9631.d(80):        cannot pass argument `x` of type `bug9631.S` to parameter `S s` of type `bug9631.tem!().S`
+fail_compilation/bug9631.d(86): Error: constructor bug9631.arg.A.this `(S _param_0)` is not callable using argument types `(S)`
+fail_compilation/bug9631.d(86):        cannot pass argument `S(0)` of type `bug9631.tem!().S` to parameter `S _param_0` of type `bug9631.S`
 ---
 */
 void arg()
@@ -75,7 +75,7 @@ void arg()
     S x;
     tem!().S y;
 
-    void f(int i, S s){};
+    void f(int i, S s);
     f(4, y);
     (tem!().S s){}(x);
 
@@ -89,12 +89,13 @@ void arg()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/bug9631.d(105): Error: function bug9631.targ.ft!().ft (S _param_0) is not callable using argument types (S)
-fail_compilation/bug9631.d(105):        cannot implicitly convert expression `x` of type `bug9631.S` to `bug9631.tem!().S`
-fail_compilation/bug9631.d(106): Error: template bug9631.targ.ft cannot deduce function from argument types !()(S), candidates are:
-fail_compilation/bug9631.d(104):        bug9631.targ.ft()(tem!().S)
-fail_compilation/bug9631.d(108): Error: template bug9631.targ.ft2 cannot deduce function from argument types !()(S, int), candidates are:
-fail_compilation/bug9631.d(107):        bug9631.targ.ft2(T)(S, T)
+fail_compilation/bug9631.d(106): Error: function bug9631.targ.ft!().ft `(S _param_0)` is not callable using argument types `(S)`
+fail_compilation/bug9631.d(106):        cannot pass argument `x` of type `bug9631.S` to parameter `S _param_0` of type `bug9631.tem!().S`
+fail_compilation/bug9631.d(107): Error: template `bug9631.targ.ft` cannot deduce function from argument types `!()(S)`, candidates are:
+fail_compilation/bug9631.d(105):        `bug9631.targ.ft()(tem!().S)`
+fail_compilation/bug9631.d(109): Error: template `bug9631.targ.ft2` cannot deduce function from argument types `!()(S, int)`, candidates are:
+fail_compilation/bug9631.d(108):        `bug9631.targ.ft2(T)(S, T)`
+---
 */
 void targ()
 {

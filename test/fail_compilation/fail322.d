@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail322.d(10): Error: function `fail322.digestToString2(ref char[16] digest)` is not callable using argument types `(string)`
+fail_compilation/fail322.d(11): Error: function `fail322.digestToString2(ref char[16] digest)` is not callable using argument types `(string)`
+fail_compilation/fail322.d(11):        cannot pass rvalue argument `"1234567890123456"` of type `string` to parameter `ref char[16] digest`
 ---
 */
 
