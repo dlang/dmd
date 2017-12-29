@@ -1074,7 +1074,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 // If declaration has no body, don't set sbody to prevent incorrect codegen.
-                if (funcdecl.fbody || funcdecl.fdensure || funcdecl.fdrequire)
+                if (funcdecl.fbody || funcdecl.allowsContractWithoutBody())
                     funcdecl.fbody = sbody;
             }
 
