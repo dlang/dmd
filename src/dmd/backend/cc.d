@@ -1572,6 +1572,7 @@ enum
     GOALagain       = 4,
     GOALstruct      = 8,
     GOALhandle      = 0x10,    // don't replace handle'd objects
+    GOALignore_exceptions = 0x20, // ignore floating point exceptions
 }
 
 /* Globals returned by declar() */
