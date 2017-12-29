@@ -109,12 +109,6 @@ extern void error(const char *filename, unsigned linnum, unsigned charnum, const
 
 elem * evalu8(elem *, goal_t);
 
-/* When this !=0, we do constant folding on floating point constants
- * even if they raise overflow, underflow, invalid, etc. exceptions.
- */
-
-int ignore_exceptions;
-
 /************************************
  * Helper to do % for long doubles.
  */
@@ -1962,7 +1956,7 @@ elem * evalu8(elem *e, goal_t goal)
 #if TX86
     int flags;
 
-    if (!ignore_exceptions &&
+    if (!(goal & GOALignore_exceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
         (HAVE_FLOAT_EXCEPT || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
        )
