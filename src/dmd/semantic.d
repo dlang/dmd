@@ -19,6 +19,7 @@ import dmd.dtemplate;
 import dmd.expression;
 import dmd.globals;
 import dmd.dsymbolsem;
+import dmd.semantic3;
 
 /*************************************
  * Does semantic analysis on initializers and members of aggregates.
