@@ -6802,6 +6802,25 @@ extern (C++) final class TypeIdentifier : TypeQualified
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(loc, ident, &scopesym);
+
+        if (s)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=16042
+            // If `f` is really a function template, then replace `f`
+            // with the function template declaration.
+            if (auto f = s.isFuncDeclaration())
+            {
+                if (auto td = getFuncTemplateDecl(f))
+                {
+                    // If not at the beginning of the overloaded list of
+                    // `TemplateDeclaration`s, then get the beginning
+                    if (td.overroot)
+                        td = td.overroot;
+                    s = td;
+                }
+            }
+        }
+
         resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
         if (*pt)
             (*pt) = (*pt).addMod(mod);

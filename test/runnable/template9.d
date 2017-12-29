@@ -4849,6 +4849,56 @@ void test15781()
 }
 
 /******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16042
+
+struct Foo16042 {}
+
+auto map16042(alias func, T)(T t)
+{
+    return func(t);
+}
+
+auto toChars16042(R)(R r) if (is(R == int[]))
+{
+    Foo16042 f;
+    assert(toChars16042(f) == 1);               // OK
+    assert(map16042!(toChars16042)(f) == 1);    // OK <- NG
+    assert(map16042!((toChars16042))(f) == 1);  // OK
+}
+
+auto toChars16042(Foo16042 f)
+{
+    return 1;
+}
+
+void test16042()
+{
+    [1].toChars16042();
+}
+
+// ---
+
+auto fn16042(R)(R r) if (is(R == int[])) {}
+auto fn16042(Foo16042 f) { return 1; }
+
+struct Namespace16042
+{
+    alias fn = fn16042!(int[]);
+}
+
+void test16042b()
+{
+    Foo16042 f;
+
+    with (Namespace16042)
+    {
+        static assert(!__traits(compiles, fn(f)));              // NG
+        static assert(!__traits(compiles, map16042!(fn)(f)));   // should be NG -> actually NG
+        static assert(!__traits(compiles, map16042!((fn))(f))); // NG
+    }
+}
+
+/******************************************/
 // https://issues.dlang.org/show_bug.cgi?id=15243
 
 struct S15243(Types...)
@@ -4991,6 +5041,8 @@ int main()
     test14735();
     test14802();
     test15116();
+    test16042();
+    test16042b();
     test15243();
 
     printf("Success\n");
