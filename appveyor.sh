@@ -62,6 +62,7 @@ for proj in druntime phobos; do
     fi
 done
 
+# build via makefile
 cd /c/projects/dmd/src
 make -f win64.mak reldmd DMD=../src/dmd
 
