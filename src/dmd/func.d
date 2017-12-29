@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/func.d, _func.d)
+ * Documentation:  https://dlang.org/phobos/dmd_func.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/func.d
  */
 
 module dmd.func;
-
-// Online documentation: https://dlang.org/phobos/dmd_func.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -104,7 +104,8 @@ public:
     override void visit(TryFinallyStatement s)
     {
         DtorExpStatement des;
-        if (fd.nrvo_can && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null && fd.nrvo_var == des.var)
+        if (fd.nrvo_can && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
+            fd.nrvo_var == des.var && global.params.useExceptions)
         {
             /* Normally local variable dtors are called regardless exceptions.
              * But for nrvo_var, its dtor should be called only when exception is thrown.
