@@ -19,6 +19,7 @@ import dmd.dtemplate;
 import dmd.expression;
 import dmd.globals;
 import dmd.dsymbolsem;
+import dmd.semantic2;
 import dmd.semantic3;
 
 /*************************************
