@@ -242,7 +242,7 @@ $(P
 Named sections follow the $(I Summary) and $(I Description) unnamed sections.
 )
 
-$(H3 $(LNAME2 standard_srction, Standard Sections))
+$(H3 $(LNAME2 standard_sections, Standard Sections))
 
 $(P
 For consistency and predictability, there are several standard sections.
