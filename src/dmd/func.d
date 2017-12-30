@@ -1180,7 +1180,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final void initInferAttributes()
     {
-        //printf("initInferAttributes() for %s\n", toPrettyChars());
+        //printf("initInferAttributes() for %s (%s)\n", toPrettyChars(), ident.toChars());
         TypeFunction tf = type.toTypeFunction();
         if (tf.purity == PUREimpure) // purity not specified
             flags |= FUNCFLAG.purityInprocess;
@@ -2541,7 +2541,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     {
         if (td && !fd) // all of overloads are templates
         {
-            .error(loc, "%s %s.%s cannot deduce function from argument types !(%s)%s, candidates are:",
+            .error(loc, "%s `%s.%s` cannot deduce function from argument types `!(%s)%s`, candidates are:",
                 td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                 tiargsBuf.peekString(), fargsBuf.peekString());
 
@@ -2552,7 +2552,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
-                .errorSupplemental(td.loc, "%s", td.toPrettyChars());
+                .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
                 if (global.params.verbose || --numToDisplay != 0 || !td.overnext)
                     return 0;
 
@@ -2567,7 +2567,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         }
         else if (od)
         {
-            .error(loc, "none of the overloads of '%s' are callable using argument types !(%s)%s",
+            .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
                 od.ident.toChars(), tiargsBuf.peekString(), fargsBuf.peekString());
         }
         else
@@ -2583,12 +2583,12 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
                 if (hasOverloads)
                 {
-                    .error(loc, "none of the overloads of '%s' are callable using a %sobject, candidates are:",
+                    .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
                         fd.ident.toChars(), thisBuf.peekString());
                 }
                 else
                 {
-                    .error(loc, "%smethod %s is not callable using a %sobject",
+                    .error(loc, "%smethod `%s` is not callable using a %sobject",
                         funcBuf.peekString(), fd.toPrettyChars(),
                         thisBuf.peekString());
                 }
@@ -2598,12 +2598,12 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 //printf("tf = %s, args = %s\n", tf.deco, (*fargs)[0].type.deco);
                 if (hasOverloads)
                 {
-                    .error(loc, "none of the overloads of '%s' are callable using argument types %s, candidates are:",
+                    .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
                         fd.ident.toChars(), fargsBuf.peekString());
                 }
                 else
                 {
-                    fd.error(loc, "%s%s is not callable using argument types %s",
+                    fd.error(loc, "`%s%s` is not callable using argument types `%s`",
                         parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
                 }
@@ -2621,12 +2621,12 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                         return 0;
 
                     auto tf = cast(TypeFunction)fd.type;
-                    .errorSupplemental(fd.loc, "%s%s", fd.toPrettyChars(),
+                    .errorSupplemental(fd.loc, "`%s%s`", fd.toPrettyChars(),
                         parametersTypeToChars(tf.parameters, tf.varargs));
                 }
                 else
                 {
-                    .errorSupplemental(td.loc, "%s", td.toPrettyChars());
+                    .errorSupplemental(td.loc, "`%s`", td.toPrettyChars());
                 }
 
                 if (global.params.verbose || --numToDisplay != 0 || !fd)
@@ -2651,7 +2651,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
         const(char)* mod1 = prependSpace(MODtoChars(tf1.mod));
         const(char)* mod2 = prependSpace(MODtoChars(tf2.mod));
 
-        .error(loc, "%s.%s called with argument types %s matches both:\n%s:     %s%s%s\nand:\n%s:     %s%s%s",
+        .error(loc, "`%s.%s` called with argument types `%s` matches both:\n%s:     `%s%s%s`\nand:\n%s:     `%s%s%s`",
             s.parent.toPrettyChars(), s.ident.toChars(),
             fargsBuf.peekString(),
             m.lastf.loc.toChars(), m.lastf.toPrettyChars(), lastprms, mod1,
@@ -2721,6 +2721,7 @@ private bool traverseIndirections(Type ta, Type tb)
 
     static bool traverse(Type ta, Type tb, Ctxt* ctxt, bool reversePass)
     {
+        //printf("traverse(%s, %s)\n", ta.toChars(), tb.toChars());
         ta = ta.baseElemOf();
         tb = tb.baseElemOf();
 
