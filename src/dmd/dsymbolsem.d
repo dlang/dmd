@@ -151,6 +151,28 @@ const(char)* getMessage(DeprecatedDeclaration dd)
     return dd.msgstr;
 }
 
+// Returns true if a contract can appear without a function body.
+package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
+{
+    assert(!funcdecl.fbody);
+
+    /* Contracts can only appear without a body when they are virtual
+     * interface functions or abstract.
+     */
+    Dsymbol parent = funcdecl.toParent();
+    InterfaceDeclaration id = parent.isInterfaceDeclaration();
+
+    if (!funcdecl.isAbstract() &&
+        (funcdecl.fensure || funcdecl.frequire) &&
+        !(id && funcdecl.isVirtual()))
+    {
+        auto cd = parent.isClassDeclaration();
+        if (!(cd && cd.isAbstract()))
+            return false;
+    }
+    return true;
+}
+
 private extern(C++) final class DsymbolSemanticVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -3149,16 +3171,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Reflect this.type to f because it could be changed by findVtblIndex
         f = funcdecl.type.toTypeFunction();
 
-        /* Contracts can only appear without a body when they are virtual interface functions or abstract
-         */
-        if (!funcdecl.fbody && !funcdecl.isAbstract() &&
-            (funcdecl.fensure || funcdecl.frequire) &&
-            !(id && funcdecl.isVirtual()))
-        {
-            auto cd = parent.isClassDeclaration();
-            if (!(cd && cd.isAbstract()))
-                funcdecl.error("in and out contracts on non-virtual/non-abstract functions require function body");
-        }
+    Ldone:
+        if (!funcdecl.fbody && !funcdecl.allowsContractWithoutBody())
+            funcdecl.error("in and out contracts can only appear without a body when they are virtual interface functions or abstract");
 
         /* Do not allow template instances to add virtual functions
          * to a class.
@@ -3189,7 +3204,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (funcdecl.isMain())
             funcdecl.checkDmain();       // Check main() parameters and return type
 
-    Ldone:
         /* Purity and safety can be inferred for some functions by examining
          * the function body.
          */
