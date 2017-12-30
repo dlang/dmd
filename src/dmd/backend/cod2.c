@@ -1799,7 +1799,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e->E1,&retregs,FALSE);
         reg = findreg(retregs);
         getregs(cdb,retregs);
-        cdb.gen2(0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
+        cdb.gen2(sz == 1 ? 0xF6 : 0xF7,grex | modregrmx(3,3,reg));   // NEG reg
         code_orflag(cdb.last(),CFpsw);
         if (!I16 && sz == SHORTSIZE)
             code_orflag(cdb.last(),CFopsize);

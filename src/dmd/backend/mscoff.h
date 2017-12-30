@@ -225,7 +225,6 @@ struct lineno
 #pragma pack(1)
 union auxent
 {
-#pragma pack(1)
     // Function definitions
     struct
     {   unsigned TagIndex;
@@ -238,13 +237,11 @@ union auxent
     // .bf symbols
     struct
     {
-#pragma pack(1)
         unsigned Unused;
         unsigned short Linenumber;
         char filler[6];
         unsigned PointerToNextFunction;
         unsigned short Zeros;
-#pragma pack()
     } x_bf;
 
     // .ef symbols
@@ -279,7 +276,6 @@ union auxent
     } x_section;
 
     char filler[18];
-#pragma pack()
 };
 #pragma pack()
 
