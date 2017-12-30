@@ -143,7 +143,7 @@ extern (C++) int callSideEffectLevel(Type t)
     return 0;
 }
 
-extern (C++) bool lambdaHasSideEffect(Expression e)
+private bool lambdaHasSideEffect(Expression e)
 {
     switch (e.op)
     {

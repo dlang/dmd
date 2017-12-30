@@ -767,7 +767,7 @@ private void expandTemplateMixinComments(TemplateMixin tm, OutBuffer* buf, Scope
     }
 }
 
-extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
+private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
 {
     if (!sds.members)
         return;
@@ -817,7 +817,7 @@ extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
     }
 }
 
-extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
+private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class EmitComment : Visitor
     {
@@ -1093,7 +1093,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         s.accept(v);
 }
 
-extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
+private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class ToDocBuffer : Visitor
     {

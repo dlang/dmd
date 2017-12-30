@@ -236,7 +236,7 @@ private bool hasPackageAccess(Scope* sc, Dsymbol s)
     return hasPackageAccess(sc._module, s);
 }
 
-extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
+private bool hasPackageAccess(Module mod, Dsymbol s)
 {
     static if (LOG)
     {

@@ -3294,7 +3294,7 @@ extern (C++) const(char)* trustToChars(TRUST trust)
     }
 }
 
-extern (C++) void linkageToBuffer(OutBuffer* buf, LINK linkage)
+private void linkageToBuffer(OutBuffer* buf, LINK linkage)
 {
     const(char)* p = linkageToChars(linkage);
     if (p)
