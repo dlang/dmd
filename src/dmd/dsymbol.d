@@ -305,7 +305,7 @@ extern (C++) class Dsymbol : RootObject
         va_end(ap);
     }
 
-    final void checkDeprecated(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+    final void checkDeprecated(Loc loc, Scope* sc)
     {
         if (global.params.useDeprecated != 1 && isDeprecated())
         {
@@ -313,15 +313,16 @@ extern (C++) class Dsymbol : RootObject
             for (Dsymbol sp = sc.parent; sp; sp = sp.parent)
             {
                 if (sp.isDeprecated())
-                    goto L1;
+                    return;
             }
             for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
             {
                 if (sc2.scopesym && sc2.scopesym.isDeprecated())
-                    goto L1;
+                    return;
+
                 // If inside a StorageClassDeclaration that is deprecated
                 if (sc2.stc & STCdeprecated)
-                    goto L1;
+                    return;
             }
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
@@ -334,32 +335,6 @@ extern (C++) class Dsymbol : RootObject
                 deprecation(loc, "is deprecated - %s", message);
             else
                 deprecation(loc, "is deprecated");
-        }
-    L1:
-        Declaration d = isDeclaration();
-        if (d && d.storage_class & STCdisable)
-        {
-            if (!(sc.func && sc.func.storage_class & STCdisable))
-            {
-                if (d.toParent() && d.isPostBlitDeclaration())
-                    d.toParent().error(loc, "is not copyable because it is annotated with @disable");
-                else
-                {
-                    // if the function is @disabled, maybe there
-                    // is an overload in the overload set that isn't
-                    if (isAliasedDeclaration)
-                    {
-                        FuncDeclaration fd = d.isFuncDeclaration;
-                        if (fd)
-                        {
-                            for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
-                                if (!(ovl.storage_class & STCdisable))
-                                    return;
-                        }
-                    }
-                    error(loc, "is not callable because it is annotated with @disable");
-                }
-            }
         }
     }
 

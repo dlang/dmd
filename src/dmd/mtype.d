@@ -1175,7 +1175,9 @@ extern (C++) abstract class Type : RootObject
     {
         Dsymbol s = toDsymbol(sc);
         if (s)
+        {
             s.checkDeprecated(loc, sc);
+        }
     }
 
     final bool isConst() const nothrow pure @nogc @safe
@@ -6513,7 +6515,12 @@ extern (C++) abstract class TypeQualified : Type
             if (d && (d.storage_class & STCtemplateparameter))
                 s = s.toAlias();
             else
-                s.checkDeprecated(loc, sc, true); // check for deprecated or disabled aliases
+            {
+                // check for deprecated or disabled aliases
+                s.checkDeprecated(loc, sc);
+                if (d)
+                    d.checkDisabled(loc, sc, true);
+            }
             s = s.toAlias();
             //printf("\t2: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             for (size_t i = 0; i < idents.dim; i++)
@@ -7306,7 +7313,11 @@ extern (C++) final class TypeStruct : Type
             // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
+        {
             s.checkDeprecated(e.loc, sc);
+            if (auto d = s.isDeclaration())
+                d.checkDisabled(e.loc, sc);
+        }
         s = s.toAlias();
 
         if (auto em = s.isEnumMember())
@@ -8254,7 +8265,11 @@ extern (C++) final class TypeClass : Type
             // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
+        {
             s.checkDeprecated(e.loc, sc);
+            if (auto d = s.isDeclaration())
+                d.checkDisabled(e.loc, sc);
+        }
         s = s.toAlias();
 
         if (auto em = s.isEnumMember())
