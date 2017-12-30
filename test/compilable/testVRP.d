@@ -134,6 +134,12 @@ void modulus4()
     static assert(!__traits(compiles, t = i % s));
 }
 
+void modulus5()
+{
+    short a;
+    byte foo = (a - short.max - 1) % 127;
+}
+
 void modulusFail()
 {
     int i;
@@ -163,6 +169,12 @@ void bitAnd()
     // the result of the above is always 0 :).
 }
 
+void bitAndTest()
+{
+    ushort a, b;
+    byte res = ((a % 7) - 6) & ((b % 7) - 6);
+}
+
 void bitOrFail()
 {
     ubyte c;
@@ -174,6 +186,14 @@ void bitAndOr()
 {
     ubyte c;
     c = (c | 0x1000) & ~0x1000;
+}
+
+void bitOrTest()
+{
+    // Tests condition for different signs between min & max
+    // ((imin.negative ^ imax.negative) == 1 && (rhs.imin.negative ^ rhs.imax.negative) == 1
+    ushort a, b;
+    byte res = ((a % 127) - 126) | ((b % 6) - 5);
 }
 
 void bitAndFail()
@@ -190,7 +210,7 @@ void bitXor()
 {
     ushort s;
     ubyte c;
-    c = (0xffff << (s&0)) ^ 0xff00;
+    c = (0xffff << (s & 0)) ^ 0xff00;
 }
 
 void bitComplement()
