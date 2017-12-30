@@ -99,7 +99,7 @@ coverage()
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
     # build dmd, druntime, and phobos
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
 
@@ -117,7 +117,7 @@ coverage()
     cp $build_path/dmd _${build_path}/host_dmd
     cp $build_path/dmd.conf _${build_path}
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_COVERAGE=1 ENABLE_WARNINGS=1
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
     make -j1 -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 unittest
