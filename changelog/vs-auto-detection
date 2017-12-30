@@ -1,0 +1,10 @@
+Windows: dmd can now detect Visual Studio installation paths
+
+dmd now determines the environment variables that are usually set if the "Command Line prompt for Visual Studio" link is used to open a console window (or vcvarsall.bat is executed). This includes Windows SDK directories and Visual C library directories. When compiling with -m64 or -m32mscoff this allows dmd to invoke the linker without having a Visual Studio version preselected by the installer.
+
+In particular, the variables WindowsSdkDir, WindowsSdkVersion, UniversalCRTSdkDir,
+UCRTVersion, VSINSTALLDIR, VisualStudioVersion, VCINSTALLDIR and VCTOOLSINSTALLDIR are
+determined from the registry if they are not set in the environment or sc.ini.
+
+Supported Windows SDK range from 7.0A to 10.x, supported Visual Studio Versions are
+VS 2008 to VS 2017. If multiple versions are installed, highest versions are preferred.
