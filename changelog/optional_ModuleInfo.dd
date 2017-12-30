@@ -6,6 +6,6 @@ Prior to this release, the compiler would emit an error if `ModuleInfo` was not 
 
 Platform support is provided by the D runtime. `ModuleInfo` is declared in object.d. Therefore, the compiler can see, at compile-time, whether or not the platform has provided support for `ModuleInfo` and generate object code accordingly.
 
-Starting with this release, if `ModuleInfo` is not delared in the D runtime, the compiler will simply not generate `ModuleInfo` instances.
+Starting with this release, if `ModuleInfo` is not declared in the D runtime, the compiler will simply not generate `ModuleInfo` instances.
 
 This should reduce friction for those wishing to incrementally port D to new platforms and use D in a more pay-as-you-go fashion.

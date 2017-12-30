@@ -34,7 +34,7 @@ struct Id
      * An identifier that corresponds to each static field in this struct will
      * be placed in the identifier pool.
      */
-    void initialize()
+    extern(C++) void initialize()
     {
         mixin(msgtable.generate(&initializer));
     }
