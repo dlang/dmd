@@ -628,6 +628,7 @@ extern (C++) void StructDeclaration_toDt(StructDeclaration sd, DtBuilder dtb)
  * to the C++ RTTI symbol for cd.
  * Params:
  *      cd = C++ class
+ *      dtb = data table builder
  */
 extern (C++) void cpp_type_info_ptr_toDt(ClassDeclaration cd, DtBuilder dtb)
 {

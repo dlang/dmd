@@ -34,7 +34,10 @@ import dmd.utils;
  * level are not semantically analyzed if the result of the expression is not
  * necessary.
  * Params:
+ *      sc  = instantiating scope
  *      exp = original expression, for error messages
+ *      e =  resulting expression
+ *      errors = set to `true` if errors occurred
  * Returns:
  *      true if evaluates to true
  */

@@ -609,8 +609,8 @@ HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
 # For each module, define a rule e.g.:
 # ../web/phobos/dmd_mars.html : dmd/mars.d $(STDDOC) ; ...
 $(foreach p,$(SRC_DOCUMENTABLES),$(eval \
-$(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(HOST_DMD_PATH) ;\
-  $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Idmd\
+$(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(DMD) ;\
+  $(DMD) -o- $(MODEL_FLAG) -J$G -J../res -c -w -Dd$(DOCSRC) -Idmd\
   $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
 
 $(DOC_OUTPUT_DIR) :

@@ -5784,7 +5784,7 @@ private elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
  * temporaries created in elem.
  * Params:
  *      e = Expression to convert
- *      irstate = context
+ *      irs = context
  * Returns:
  *      generated elem tree
  */
@@ -5825,8 +5825,6 @@ elem *toElemDtor(Expression e, IRState *irs)
  *      str = string
  *      len = number of code units in string
  *      sz = number of bytes per code unit
- *      comdat = emit string in its own comdat (default is read-only segment).
- *          Comdats are useful when linker does not coalesce redundant strings.
  * Returns:
  *      Symbol
  */

@@ -76,6 +76,8 @@ int inlineCostExpression(Expression e)
  * Determine cost of inlining function
  * Params:
  *      fd = function to determine cost of
+ *      hasthis = if the function call has explicit 'this' expression
+ *      hdrscan = if generating a header file
  * Returns:
  *      cost of inlining fd
  */

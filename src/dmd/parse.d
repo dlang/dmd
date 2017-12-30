@@ -6318,6 +6318,7 @@ final class Parser(AST) : Lexer
             error(e.loc, "`%s` must be parenthesized when next to operator `%s`", e.toChars(), Token.toChars(value));
     }
 
+    ///
     enum NeedDeclaratorId
     {
         no,             // Declarator part must have no identifier
@@ -6329,9 +6330,12 @@ final class Parser(AST) : Lexer
     /************************************
      * Determine if the scanner is sitting on the start of a declaration.
      * Params:
-     *      needId
+     *      t       = current token of the scanner
+     *      needId  = flag with additional requirements for a declaration
+     *      endtok  = ending token
+     *      pt      = will be set ending token (if not null)
      * Output:
-     *      if *pt is not NULL, it is set to the ending token, which would be endtok
+     *      true if the token `t` is a declaration, false otherwise
      */
     bool isDeclaration(Token* t, NeedDeclaratorId needId, TOK endtok, Token** pt)
     {

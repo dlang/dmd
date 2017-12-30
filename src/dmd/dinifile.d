@@ -169,8 +169,9 @@ void updateRealEnvironment(StringTable* environment)
  *      environment = our own cache of the program environment
  *      filename = name of the file being parsed
  *      path = what @P will expand to
- *      buffer[len] = contents of configuration file
- *      sections[] = section names
+ *      length = length of the configuration file buffer
+ *      buffer = contents of configuration file
+ *      sections = section names
  */
 void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
 {

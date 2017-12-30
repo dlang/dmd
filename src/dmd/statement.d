@@ -828,7 +828,7 @@ extern (C++) class CompoundStatement : Statement
      *
      * Params:
      *   loc = Instantiation information
-     *   s   = A variadic array of `Statement`s, that will copied in this class
+     *   sts   = A variadic array of `Statement`s, that will copied in this class
      *         The entries themselves will not be copied.
      */
     final extern (D) this(Loc loc, Statement[] sts...)
