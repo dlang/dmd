@@ -58,7 +58,7 @@ version(Windows) {
  * Returns:
  *      NULL if it's not different from filename.
  */
-extern (C++) const(char)* lookForSourceFile(const(char)** path, const(char)* filename)
+private const(char)* lookForSourceFile(const(char)** path, const(char)* filename)
 {
     *path = null;
     /* Search along global.path for .di file, then .d file.

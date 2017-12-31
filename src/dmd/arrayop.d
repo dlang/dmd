@@ -174,7 +174,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
  * using reverse polish notation (RPN) to encode order of operations.
  * Encode operations as string arguments, using a "u" prefix for unary operations.
  */
-extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
+private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
 {
     extern (C++) final class BuildArrayOpVisitor : Visitor
     {

@@ -1541,7 +1541,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
-extern (C++) Expression compare_overload(BinExp e, Scope* sc, Identifier id)
+private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
