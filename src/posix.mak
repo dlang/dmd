@@ -262,9 +262,9 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$(D) -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -I$(D) -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1
+DMD_FLAGS  := -I$D -I$(ROOT) -Wuninitialized
+GLUE_FLAGS := -I$D -I$(ROOT) -I$(TK) -I$C
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
 ifeq ($(OS), osx)
@@ -529,9 +529,9 @@ $(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 
 # Generic rules for all source files
 ########################################################################
-# Search the directory $(C) for .c-files when using implicit pattern
+# Search the directory $C for .c-files when using implicit pattern
 # matching below.
-#vpath %.c $(C)
+#vpath %.c $C
 
 -include $(DEPS)
 
