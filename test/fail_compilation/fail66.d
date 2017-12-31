@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(11): Error: constructor fail66.C1.this missing initializer for const field y
+fail_compilation/fail66.d(11): Error: constructor fail66.C1.this missing initializer for const field `y`
 ---
 */
 
