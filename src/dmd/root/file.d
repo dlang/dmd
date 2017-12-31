@@ -144,7 +144,10 @@ nothrow:
                 goto err1;
             }
             if (!_ref)
+            {
                 .free(buffer);
+                buffer = null;
+            }
             _ref = 0; // we own the buffer now
             //printf("\tfile opened\n");
             if (fstat(fd, &buf))

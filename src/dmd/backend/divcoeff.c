@@ -291,7 +291,7 @@ void test_udiv_coefficients()
 
         //printf("[%d] %d %d %llx %d\n", i, shpre, mhighbit, m, shpost);
         assert(shpre == ps->shpre);
-        assert(mhighbit == ps->highbit);
+        assert(mhighbit == (bool)ps->highbit);
         assert(m == ps->m);
         assert(shpost == ps->shpost);
     }

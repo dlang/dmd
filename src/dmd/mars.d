@@ -1161,7 +1161,6 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
             p = env;
             slash = 0;
             instring = 0;
-            c = 0;
             while (1)
             {
                 c = *env++;

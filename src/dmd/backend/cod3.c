@@ -2286,8 +2286,7 @@ bool cse_simple(code *c, elem *e)
 
 void gen_testcse(CodeBuilder& cdb, unsigned sz, targ_uns i)
 {
-    bool byte = sz == 1;
-    cdb.genc(0x81 ^ byte,modregrm(2,7,BPRM),
+    cdb.genc(sz == 1 ? 0x80 : 0x81,modregrm(2,7,BPRM),
                 FLcs,i, FLconst,(targ_uns) 0);
     if ((I64 || I32) && sz == 2)
         cdb.last()->Iflags |= CFopsize;
@@ -3761,7 +3760,7 @@ void prolog_loadparams(CodeBuilder& cdb, tym_t tyf, bool pushalloc, regm_t* name
             }
             else
             {
-                cdb.genc1(0x8B ^ (sz == 1),
+                cdb.genc1(sz == 1 ? 0x8A : 0x8B,
                     modregxrm(2,s->Sreglsw,BPRM),FLconst,Para.size + s->Soffset);
                 code *c = cdb.last();
                 if (!I16 && sz == SHORTSIZE)
