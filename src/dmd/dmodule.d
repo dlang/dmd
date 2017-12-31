@@ -18,6 +18,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astcodegen;
+import dmd.compiler;
 import dmd.gluelayer;
 import dmd.dimport;
 import dmd.dmacro;
@@ -37,7 +38,6 @@ import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.semantic2;
 import dmd.semantic3;
-import dmd.target;
 import dmd.utils;
 import dmd.visitor;
 
@@ -527,7 +527,7 @@ extern (C++) final class Module : Package
             assert(m.isRoot());
         }
 
-        Target.loadModule(m);
+        Compiler.loadModule(m);
         return m;
     }
 
