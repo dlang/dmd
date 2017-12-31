@@ -688,6 +688,29 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+#ifdef IN_GCC
+
+// Assembler instructions with D expression operands
+class ExtAsmStatement : public Statement
+{
+public:
+    StorageClass stc;
+    Expression *insn;
+    Expressions *args;
+    Identifiers *names;
+    Expressions *constraints;   // Array of StringExp's
+    unsigned outputargs;
+    Expressions *clobbers;      // Array of StringExp's
+    Identifiers *labels;
+    GotoStatements *gotos;
+
+    Statement *syntaxCopy();
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
+#endif
+
 // a complete asm {} block
 class CompoundAsmStatement : public CompoundStatement
 {

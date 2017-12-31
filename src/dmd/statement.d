@@ -240,6 +240,14 @@ extern (C++) abstract class Statement : RootObject
             {
                 stop = true;
             }
+
+            version (IN_GCC)
+            {
+                override void visit(ExtAsmStatement s)
+                {
+                    stop = true;
+                }
+            }
         }
 
         scope ComeFrom cf = new ComeFrom();
@@ -2402,6 +2410,52 @@ extern (C++) final class AsmStatement : Statement
     override void accept(Visitor v)
     {
         v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+version (IN_GCC)
+{
+    extern (C++) final class ExtAsmStatement : Statement
+    {
+        StorageClass stc;
+        Expression insn;
+        Expressions *args;
+        Identifiers *names;
+        Expressions *constraints;   // Array of StringExp's
+        uint outputargs;
+        Expressions *clobbers;      // Array of StringExp's
+        Identifiers *labels;
+        GotoStatements *gotos;
+
+        extern (D) this(Loc loc, StorageClass stc, Expression insn,
+                        Expressions *args, Identifiers *names,
+                        Expressions *constraints, int outputargs,
+                        Expressions *clobbers, Identifiers *labels)
+        {
+            super(loc);
+            this.insn = insn;
+            this.args = args;
+            this.names = names;
+            this.constraints = constraints;
+            this.outputargs = outputargs;
+            this.clobbers = clobbers;
+            this.labels = labels;
+            this.gotos = null;
+        }
+
+        override Statement syntaxCopy()
+        {
+            return new ExtAsmStatement(loc, stc, insn.syntaxCopy(), Expression.arraySyntaxCopy(args), names,
+                                       Expression.arraySyntaxCopy(constraints), outputargs,
+                                       Expression.arraySyntaxCopy(clobbers), labels);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
     }
 }
 

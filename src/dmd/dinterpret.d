@@ -701,6 +701,18 @@ public:
         // we can't compile asm statements
     }
 
+    version (IN_GCC)
+    {
+        override void visit(ExtAsmStatement s)
+        {
+            debug (LOGCOMPILE)
+            {
+                printf("%s ExtAsmStatement::ctfeCompile\n", s.loc.toChars());
+            }
+            // we can't compile extended asm statements
+        }
+    }
+
     void ctfeCompile(Statement s)
     {
         s.accept(this);
@@ -1955,6 +1967,25 @@ public:
         }
         s.error("`asm` statements cannot be interpreted at compile time");
         result = CTFEExp.cantexp;
+    }
+
+    version (IN_GCC)
+    {
+        override void visit(ExtAsmStatement s)
+        {
+            debug (LOG)
+            {
+                printf("%s ExtAsmStatement::interpret()\n", s.loc.toChars());
+            }
+            if (istate.start)
+            {
+                if (istate.start != s)
+                    return;
+                istate.start = null;
+            }
+            s.error("extended asm statements cannot be interpreted at compile time");
+            result = CTFEExp.cantexp;
+        }
     }
 
     override void visit(ImportStatement s)
