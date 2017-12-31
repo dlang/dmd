@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dimport.d, _dimport.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dimport.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dimport.d
  */
 
 module dmd.dimport;
-
-// Online documentation: https://dlang.org/phobos/dmd_dimport.html
 
 import dmd.arraytypes;
 import dmd.declaration;
@@ -101,7 +101,7 @@ extern (C++) final class Import : Dsymbol
 
     override const(char)* kind() const
     {
-        return isstatic ? cast(char*)"static import" : cast(char*)"import";
+        return isstatic ? "static import" : "import";
     }
 
     override Prot prot()
