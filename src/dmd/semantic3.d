@@ -268,7 +268,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                 FuncDeclaration fdv = funcdecl.foverrides[i];
                 if (fdv.fbody && !fdv.frequire)
                 {
-                    funcdecl.error("cannot have an in contract when overridden function %s does not have an in contract", fdv.toPrettyChars());
+                    funcdecl.error("cannot have an in contract when overridden function `%s` does not have an in contract", fdv.toPrettyChars());
                     break;
                 }
             }
@@ -431,7 +431,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
                     {
-                        funcdecl.error("parameter %s.%s is already defined", funcdecl.toChars(), v.toChars());
+                        funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
                         funcdecl.errors = true;
                     }
                     else
@@ -470,7 +470,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                         //printf("declaring tuple %s\n", v.toChars());
                         v.isexp = true;
                         if (!sc2.insert(v))
-                            funcdecl.error("parameter %s.%s is already defined", funcdecl.toChars(), v.toChars());
+                            funcdecl.error("parameter `%s.%s` is already defined", funcdecl.toChars(), v.toChars());
                         funcdecl.localsymtab.insert(v);
                         v.parent = funcdecl;
                     }
@@ -636,18 +636,18 @@ extern(C++) final class Semantic3Visitor : Visitor
                                  *    as delegating calls to other constructors
                                  */
                                 if (v.isCtorinit() && !v.type.isMutable() && cd)
-                                    funcdecl.error("missing initializer for %s field %s", MODtoChars(v.type.mod), v.toChars());
+                                    funcdecl.error("missing initializer for %s field `%s`", MODtoChars(v.type.mod), v.toChars());
                                 else if (v.storage_class & STCnodefaultctor)
-                                    error(funcdecl.loc, "field %s must be initialized in constructor", v.toChars());
+                                    error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toChars());
                                 else if (v.type.needsNested())
-                                    error(funcdecl.loc, "field %s must be initialized in constructor, because it is nested struct", v.toChars());
+                                    error(funcdecl.loc, "field `%s` must be initialized in constructor, because it is nested struct", v.toChars());
                             }
                             else
                             {
                                 bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
                                 if (mustInit && !(sc2.fieldinit[i] & CSXthis_ctor))
                                 {
-                                    funcdecl.error("field %s must be initialized but skipped", v.toChars());
+                                    funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
                                 }
                             }
                         }
@@ -662,11 +662,11 @@ extern(C++) final class Semantic3Visitor : Visitor
                         FuncDeclaration fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
                         if (!fd)
                         {
-                            funcdecl.error("no match for implicit super() call in constructor");
+                            funcdecl.error("no match for implicit `super()` call in constructor");
                         }
                         else if (fd.storage_class & STCdisable)
                         {
-                            funcdecl.error("cannot call super() implicitly because it is annotated with @disable");
+                            funcdecl.error("cannot call `super()` implicitly because it is annotated with `@disable`");
                         }
                         else
                         {
@@ -753,9 +753,9 @@ extern(C++) final class Semantic3Visitor : Visitor
                     {
                         Expression e;
                         if (!funcdecl.hasReturnExp)
-                            funcdecl.error("has no return statement, but is expected to return a value of type %s", f.next.toChars());
+                            funcdecl.error("has no return statement, but is expected to return a value of type `%s`", f.next.toChars());
                         else
-                            funcdecl.error("no return exp; or assert(0); at end of function");
+                            funcdecl.error("no `return exp;` or `assert(0);` at end of function");
                         if (global.params.useAssert == CHECKENABLE.on && !global.params.useInline)
                         {
                             /* Add an assert(0, msg); where the missing return
@@ -1069,7 +1069,7 @@ extern(C++) final class Semantic3Visitor : Visitor
                     }
                     else
                     {
-                        funcdecl.error("synchronized function %s must be a member of a class", funcdecl.toChars());
+                        funcdecl.error("synchronized function `%s` must be a member of a class", funcdecl.toChars());
                     }
                 }
 
