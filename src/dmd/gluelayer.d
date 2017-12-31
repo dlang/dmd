@@ -53,7 +53,7 @@ version (NoBackend)
         void objc_initSymbols() {}
     }
 }
-else
+else version (MARS)
 {
     import dmd.lib : Library;
 
@@ -80,3 +80,22 @@ else
         void objc_initSymbols();
     }
 }
+else version (IN_GCC)
+{
+    union tree_node;
+
+    alias Symbol = tree_node;
+    alias code = tree_node;
+    alias type = tree_node;
+
+    extern (C++)
+    {
+        RET retStyle(TypeFunction tf);
+        Statement asmSemantic(AsmStatement s, Scope* sc);
+    }
+
+    // stubs
+    void objc_initSymbols() { }
+}
+else
+    static assert(false, "Unsupported compiler backend");
