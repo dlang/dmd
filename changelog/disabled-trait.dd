@@ -1,0 +1,43 @@
+A compiler trait used to detect if a function is marked with `@disable` has been added.
+
+Prior to this release is was impossible to filter out `@disable` functions without
+using `__trait(compiles)`, which was less than ideal since `false` could be
+returned for other reasons.
+
+Now, in metaprogramming code, `@disable` functions can be detected accurately,
+using `__traits(isDisabled)` and even in overload sets:
+
+---
+module runnable;
+
+struct Foo
+{
+    import std.stdio;
+    @disable static void foo() {__PRETTY_FUNCTION__.writeln;}
+    static void foo(int v) {__PRETTY_FUNCTION__.writeln;}
+    static void bar() {__PRETTY_FUNCTION__.writeln;}
+    @disable static void bar(int v) {__PRETTY_FUNCTION__.writeln;}
+}
+
+void test(T)()
+{
+    foreach (member; __traits(allMembers, T))
+        foreach (overload; __traits(getOverloads, T, member))
+            static if (!__traits(isDisabled, overload))
+    {
+        static if (is(typeof(&overload) == void function()))
+            overload();
+        else static if (is(typeof(&overload) == void function(int)))
+            overload(42);
+    }
+}
+
+void main(){test!Foo;}
+---
+
+prints:
+
+$(CONSOLE
+void runnable.Foo.foo(int v)
+void runnable.Foo.bar()
+)
