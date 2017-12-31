@@ -27,7 +27,6 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.statement;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 /**********************************************

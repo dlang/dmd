@@ -40,7 +40,7 @@ import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.root.stringtable;
-import dmd.semantic;
+import dmd.semantic3;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;

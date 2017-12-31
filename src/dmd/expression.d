@@ -58,7 +58,6 @@ import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.safe;
-import dmd.semantic;
 import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;

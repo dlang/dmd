@@ -36,7 +36,6 @@ import dmd.nogc;
 import dmd.root.array;
 import dmd.root.speller;
 import dmd.root.stringtable;
-import dmd.semantic;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;

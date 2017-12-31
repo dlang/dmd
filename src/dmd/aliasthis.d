@@ -23,7 +23,6 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 /***********************************************************

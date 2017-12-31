@@ -35,7 +35,8 @@ import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
-import dmd.semantic;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.target;
 import dmd.visitor;
 

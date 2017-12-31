@@ -30,8 +30,9 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 enum Sizeok : int

@@ -31,7 +31,6 @@ import dmd.tokens;
 import dmd.utils;
 import dmd.visitor;
 import dmd.id;
-import dmd.semantic;
 import dmd.statement;
 import dmd.declaration;
 import dmd.dstruct;
