@@ -3410,7 +3410,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, dd.storage_class);
 
         sc = sc.push();
-        sc.stc &= ~STC.static_; // not a static destructor
+        sc.stc &= ~(STC.static_|STC.shared_); // not a static destructor
         if (sc.linkage != LINK.cpp)
             sc.linkage = LINK.d;
 
