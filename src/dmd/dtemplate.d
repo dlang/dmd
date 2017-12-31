@@ -755,7 +755,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (!ti.symtab)
                     ti.symtab = new DsymbolTable();
                 if (!scx.insert(v))
-                    error("parameter %s.%s is already defined", toChars(), v.toChars());
+                    error("parameter `%s.%s` is already defined", toChars(), v.toChars());
                 else
                     v.parent = fd;
             }
@@ -1505,7 +1505,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                         if (m2 < matchTiargs)
                                             matchTiargs = m2; // pick worst match
                                         if (!(*dedtypes)[i].equals(oded))
-                                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                                     }
                                     else
                                     {
@@ -1876,7 +1876,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
                         if (!(*dedtypes)[i].equals(oded))
-                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                     }
                     else
                     {
@@ -1923,7 +1923,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
                         if (!(*dedtypes)[i].equals(oded))
-                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                     }
                 }
                 oded = declareParameter(paramscope, tparam, oded);
@@ -2081,7 +2081,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
 
         if (!sc.insert(d))
-            error("declaration %s is already defined", tp.ident.toChars());
+            error("declaration `%s` is already defined", tp.ident.toChars());
         d.dsymbolSemantic(sc);
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
@@ -2377,7 +2377,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         }
         if (fd.semanticRun == PASSinit)
         {
-            .error(loc, "forward reference to template %s", fd.toChars());
+            .error(loc, "forward reference to template `%s`", fd.toChars());
             return 1;
         }
         //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
@@ -2515,7 +2515,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         }
         if (td.semanticRun == PASSinit)
         {
-            .error(loc, "forward reference to template %s", td.toChars());
+            .error(loc, "forward reference to template `%s`", td.toChars());
         Lerror:
             m.lastf = null;
             m.count = 0;
@@ -2562,7 +2562,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                         {
                             if (scx == p.sc)
                             {
-                                error(loc, "recursive template expansion while looking for %s.%s", ti.toChars(), tdx.toChars());
+                                error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
                                 goto Lerror;
                             }
                         }
@@ -6394,9 +6394,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 s = sc.search_correct(id);
                 if (s)
-                    error("template '%s' is not defined, did you mean %s?", id.toChars(), s.toChars());
+                    error("template `%s` is not defined, did you mean %s?", id.toChars(), s.toChars());
                 else
-                    error("template '%s' is not defined", id.toChars());
+                    error("template `%s` is not defined", id.toChars());
                 return false;
             }
             static if (LOG)
@@ -6456,7 +6456,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     }
                     if (td.semanticRun == PASSinit)
                     {
-                        error("%s forward references template declaration %s",
+                        error("`%s` forward references template declaration `%s`",
                             toChars(), td.toChars());
                         return 1;
                     }
@@ -6512,7 +6512,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 if (!s)
                 {
-                    error("template '%s' is not defined", id.toChars());
+                    error("template `%s` is not defined", id.toChars());
                     return false;
                 }
             }
@@ -6539,7 +6539,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     Dsymbol s2 = s.getType().toDsymbol(sc);
                     if (!s2)
                     {
-                        error("%s is not a template declaration, it is a %s", id.toChars(), s.kind());
+                        error("`%s` is not a template declaration, it is a %s", id.toChars(), s.kind());
                         return false;
                     }
                     s = s2;
@@ -6564,7 +6564,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 else
                 {
-                    error("%s is not a template declaration, it is a %s", id.toChars(), s.kind());
+                    error("`%s` is not a template declaration, it is a %s", id.toChars(), s.kind());
                     return false;
                 }
             }
@@ -6934,7 +6934,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             if (td_ambig)
             {
-                .error(loc, "%s %s.%s matches more than one template declaration:\n%s:     %s\nand\n%s:     %s",
+                .error(loc, "%s `%s.%s` matches more than one template declaration:\n%s:     `%s`\nand\n%s:     `%s`",
                     td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars(),
                     td_best.loc.toChars(), td_best.toChars(),
                     td_ambig.loc.toChars(), td_ambig.toChars());
@@ -7005,10 +7005,10 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             else if (tdecl && !tdecl.overnext)
             {
                 // Only one template, so we can give better error message
-                error("does not match template declaration %s", tdecl.toChars());
+                error("does not match template declaration `%s`", tdecl.toChars());
             }
             else
-                .error(loc, "%s %s.%s does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
+                .error(loc, "%s `%s.%s` does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
             return false;
         }
 
@@ -7120,7 +7120,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         }
                         if (td.semanticRun == PASSinit)
                         {
-                            error("%s forward references template declaration %s", toChars(), td.toChars());
+                            error("`%s` forward references template declaration `%s`", toChars(), td.toChars());
                             return 1;
                         }
                     }
@@ -7203,7 +7203,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
                 if (ea.op != TOKint64 && ea.op != TOKfloat64 && ea.op != TOKcomplex80 && ea.op != TOKnull && ea.op != TOKstring && ea.op != TOKarrayliteral && ea.op != TOKassocarrayliteral && ea.op != TOKstructliteral)
                 {
-                    ea.error("expression %s is not a valid template value argument", ea.toChars());
+                    ea.error("expression `%s` is not a valid template value argument", ea.toChars());
                     errors = true;
                 }
             }
@@ -7246,7 +7246,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                                     goto L1; // dparent is most nested
                                 }
                             }
-                            error("%s is nested in both %s and %s", toChars(), enclosing.toChars(), dparent.toChars());
+                            error("`%s` is nested in both `%s` and `%s`", toChars(), enclosing.toChars(), dparent.toChars());
                             errors = true;
                         }
                     L1:
@@ -7255,7 +7255,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     }
                     else
                     {
-                        error("cannot use local '%s' as parameter to non-global template %s", sa.toChars(), tempdecl.toChars());
+                        error("cannot use local `%s` as parameter to non-global template `%s`", sa.toChars(), tempdecl.toChars());
                         errors = true;
                     }
                 }
@@ -7709,7 +7709,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
             }
             if (!tempdecl)
             {
-                error("%s isn't a template", s.toChars());
+                error("`%s` isn't a template", s.toChars());
                 return false;
             }
         }

@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11125.d(20): Error: template instance fail11125.filter!(function (int a) => a + 1) does not match template declaration filter(alias predfun) if (is(ReturnType!predfun == bool))
-fail_compilation/fail11125.d(21): Error: template instance fail11125.filter!(function (int a) => a + 1) does not match template declaration filter(alias predfun) if (is(ReturnType!predfun == bool))
+fail_compilation/fail11125.d(20): Error: template instance fail11125.filter!(function (int a) => a + 1) does not match template declaration `filter(alias predfun) if (is(ReturnType!predfun == bool))`
+fail_compilation/fail11125.d(21): Error: template instance fail11125.filter!(function (int a) => a + 1) does not match template declaration `filter(alias predfun) if (is(ReturnType!predfun == bool))`
 ---
 */
 
