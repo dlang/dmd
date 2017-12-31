@@ -555,7 +555,7 @@ private:
  */
 int RealEquals(real_t x1, real_t x2)
 {
-    return (CTFloat.isNaN(x1) && CTFloat.isNaN(x2)) || CTFloat.isIdentical(x1, x2);
+    return CTFloat.isIdentical(x1, x2);
 }
 
 /************************ TypeDotIdExp ************************************/

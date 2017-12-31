@@ -1409,6 +1409,43 @@ int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
         complex_t v2 = e2.toComplex();
         cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
     }
+    else if (e1.op == TOKstructliteral)
+    {
+        StructLiteralExp es1 = cast(StructLiteralExp)e1;
+        StructLiteralExp es2 = cast(StructLiteralExp)e2;
+
+        if (es1.sd != es2.sd)
+            cmp = 0;
+        else if ((!es1.elements || !es1.elements.dim) &&
+            (!es2.elements || !es2.elements.dim))
+            cmp = 1;            // both arrays are empty
+        else if (!es1.elements || !es2.elements)
+            cmp = 0;
+        else if (es1.elements.dim != es2.elements.dim)
+            cmp = 0;
+        else
+        {
+            cmp = 1;
+            for (size_t i = 0; i < es1.elements.dim; i++)
+            {
+                Expression ee1 = (*es1.elements)[i];
+                Expression ee2 = (*es2.elements)[i];
+
+                if (ee1 == ee2)
+                    continue;
+                if (!ee1 || !ee2)
+                {
+                    cmp = 0;
+                    break;
+                }
+                if (!ctfeIdentity(loc, TOKidentity, ee1, ee2))
+                {
+                    cmp = 0;
+                    break;
+                }
+            }
+        }
+    }
     else
     {
         cmp = !ctfeRawCmp(loc, e1, e2, true);

@@ -938,29 +938,56 @@ UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expressio
         SymOffExp es2 = cast(SymOffExp)e2;
         cmp = (es1.var == es2.var && es1.offset == es2.offset);
     }
-    else
+    else if (e1.op == TOKstructliteral && e2.op == TOKstructliteral)
     {
-        if (e1.type.isreal())
-        {
-            cmp = RealEquals(e1.toReal(), e2.toReal());
-        }
-        else if (e1.type.isimaginary())
-        {
-            cmp = RealEquals(e1.toImaginary(), e2.toImaginary());
-        }
-        else if (e1.type.iscomplex())
-        {
-            complex_t v1 = e1.toComplex();
-            complex_t v2 = e2.toComplex();
-            cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v1));
-        }
+        StructLiteralExp es1 = cast(StructLiteralExp)e1;
+        StructLiteralExp es2 = cast(StructLiteralExp)e2;
+
+        if (es1.sd != es2.sd)
+            cmp = 0;
+        else if ((!es1.elements || !es1.elements.dim) &&
+            (!es2.elements || !es2.elements.dim))
+            cmp = 1;            // both arrays are empty
+        else if (!es1.elements || !es2.elements)
+            cmp = 0;
+        else if (es1.elements.dim != es2.elements.dim)
+            cmp = 0;
         else
         {
-            ue = Equal((op == TOK.identity) ? TOK.equal : TOK.notEqual, loc, type, e1, e2);
-            return ue;
+            cmp = 1;
+            for (size_t i = 0; i < es1.elements.dim; i++)
+            {
+                Expression ee1 = (*es1.elements)[i];
+                Expression ee2 = (*es2.elements)[i];
+
+                if (ee1 == ee2)
+                    continue;
+                if (!ee1 || !ee2)
+                {
+                    cmp = 0;
+                    break;
+                }
+                ue = Identity(TOKequal, loc, Type.tint32, ee1, ee2);
+                if (ue.exp().op == TOKcantexp)
+                    return ue;
+                cmp = cast(int)ue.exp().toInteger();
+                if (cmp == 0)
+                    break;
+            }
         }
     }
-    if (op == TOK.notIdentity)
+    else if (e1.type.isfloating() && e2.type.isfloating())
+    {
+        complex_t v1 = e1.toComplex();
+        complex_t v2 = e2.toComplex();
+        cmp = RealEquals(creall(v1), creall(v2)) && RealEquals(cimagl(v1), cimagl(v2));
+    }
+    else
+    {
+        ue = Equal((op == TOKidentity) ? TOKequal : TOKnotequal, loc, type, e1, e2);
+        return ue;
+    }
+    if (op == TOKnotidentity)
         cmp ^= 1;
     emplaceExp!(IntegerExp)(&ue, loc, cmp, type);
     return ue;
