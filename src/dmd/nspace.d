@@ -19,7 +19,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.globals;
 import dmd.identifier;
-import dmd.semantic;
 import dmd.visitor;
 import core.stdc.stdio;
 

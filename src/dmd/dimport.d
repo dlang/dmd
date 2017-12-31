@@ -23,7 +23,6 @@ import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.semantic;
 import dmd.visitor;
 
 /***********************************************************

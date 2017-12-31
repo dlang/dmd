@@ -30,7 +30,6 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.target;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 /***********************************************************

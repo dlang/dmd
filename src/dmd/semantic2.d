@@ -64,7 +64,6 @@ import dmd.staticassert;
 import dmd.tokens;
 import dmd.utf;
 import dmd.utils;
-import dmd.semantic;
 import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
@@ -73,7 +72,17 @@ import dmd.visitor;
 
 enum LOG = false;
 
-extern(C++) final class Semantic2Visitor : Visitor
+
+/*************************************
+ * Does semantic analysis on initializers and members of aggregates.
+ */
+extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
+{
+    scope v = new Semantic2Visitor(sc);
+    dsym.accept(v);
+}
+
+private extern(C++) final class Semantic2Visitor : Visitor
 {
     alias visit = Visitor.visit;
     Scope* sc;

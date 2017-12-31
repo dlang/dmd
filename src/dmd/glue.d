@@ -57,7 +57,6 @@ import dmd.lib;
 import dmd.mtype;
 import dmd.objc;
 import dmd.s2ir;
-import dmd.semantic;
 import dmd.statement;
 import dmd.target;
 import dmd.tocsym;

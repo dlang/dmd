@@ -43,7 +43,6 @@ import dmd.parse;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.sapply;
-import dmd.semantic;
 import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;

@@ -35,7 +35,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
-import dmd.semantic;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;

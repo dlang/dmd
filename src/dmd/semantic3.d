@@ -64,7 +64,7 @@ import dmd.staticassert;
 import dmd.tokens;
 import dmd.utf;
 import dmd.utils;
-import dmd.semantic;
+import dmd.semantic2;
 import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
@@ -73,7 +73,17 @@ import dmd.visitor;
 
 enum LOG = false;
 
-extern(C++) final class Semantic3Visitor : Visitor
+
+/*************************************
+ * Does semantic analysis on function bodies.
+ */
+extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
+{
+    scope v = new Semantic3Visitor(sc);
+    dsym.accept(v);
+}
+
+private extern(C++) final class Semantic3Visitor : Visitor
 {
     alias visit = Visitor.visit;
 

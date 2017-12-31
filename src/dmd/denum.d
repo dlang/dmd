@@ -24,7 +24,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
-import dmd.semantic;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;

@@ -28,7 +28,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.rmem;
-import dmd.semantic;
 import dmd.target;
 import dmd.visitor;
 

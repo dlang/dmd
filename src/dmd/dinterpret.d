@@ -38,7 +38,6 @@ import dmd.initsem;
 import dmd.mtype;
 import dmd.root.array;
 import dmd.root.rootobject;
-import dmd.semantic;
 import dmd.statement;
 import dmd.tokens;
 import dmd.utf;

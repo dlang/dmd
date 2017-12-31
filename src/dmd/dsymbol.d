@@ -47,7 +47,6 @@ import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.speller;
-import dmd.semantic;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;

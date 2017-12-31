@@ -120,7 +120,8 @@ void main()
     void semantic()
     {
         import dmd.dsymbolsem : dsymbolSemantic;
-        import dmd.semantic : semantic2, semantic3;
+        import dmd.semantic2;
+        import dmd.semantic3;
 
         m.importedFrom = m;
         m.importAll(null);

@@ -22,7 +22,6 @@ import dmd.globals;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.root.rootobject;
-import dmd.semantic;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.visitor;
