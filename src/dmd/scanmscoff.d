@@ -11,6 +11,7 @@
 module dmd.scanmscoff;
 
 // Online documentation: https://dlang.org/phobos/dmd_scanmscoff.html
+version(Windows):
 
 import core.stdc.string, core.stdc.stdlib, core.sys.windows.windows;
 import dmd.globals, dmd.errors;

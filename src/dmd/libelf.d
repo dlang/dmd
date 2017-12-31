@@ -11,6 +11,9 @@
 module dmd.libelf;
 
 // Online documentation: https://dlang.org/phobos/dmd_libelf.html
+version(Windows) {}
+else version(OSX) {}
+else:
 
 import core.stdc.time;
 import core.stdc.string;

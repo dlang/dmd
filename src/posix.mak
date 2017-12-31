@@ -282,9 +282,9 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
-	json lib link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
+	json lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
 	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
-	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit printast \
+	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
 	semantic2 semantic3))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
@@ -297,13 +297,6 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	stringtable hash))
 
 GLUE_OBJS =
-
-ifeq (osx,$(OS))
-    FRONT_SRCS += $D/libmach.d $D/scanmach.d
-else
-    FRONT_SRCS += $D/libelf.d $D/scanelf.d
-endif
-
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
