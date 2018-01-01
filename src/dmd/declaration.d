@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/declaration.d, _declaration.d)
+ * Documentation:  https://dlang.org/phobos/dmd_declaration.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/declaration.d
  */
 
 module dmd.declaration;
-
-// Online documentation: https://dlang.org/phobos/dmd_declaration.html
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -53,7 +53,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
         //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
         if (!ensureStaticLinkTo(s, sparent))
         {
-            error(loc, "cannot access frame pointer of %s", ad.toPrettyChars());
+            error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
             return true;
         }
     }
@@ -120,7 +120,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field '%s' initialized multiple times", modStr, var.toChars());
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
                     }
                 }
                 else if (sc.noctor || (fi & CSXlabel))
@@ -130,7 +130,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var.toChars());
+                        .error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var.toChars());
                     }
                 }
 
@@ -153,13 +153,13 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                 else if (sc.func.fes)
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
+                    .error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
                         MODtoChars(var.type.mod), p, var.toChars());
                 }
                 else
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
+                    .error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
                         MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
                 }
             }
@@ -182,7 +182,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
  */
 extern (C++) void ObjectNotFound(Identifier id)
 {
-    Type.error(Loc(), "%s not found. object.d may be incorrectly installed or corrupt.", id.toChars());
+    Type.error(Loc(), "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
 
@@ -309,7 +309,7 @@ extern (C++) abstract class Declaration : Dsymbol
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
                     if (!flag)
-                        error(loc, "cannot modify %s '%s' in contract", s, toChars());
+                        error(loc, "cannot modify %s `%s` in contract", s, toChars());
                     return 2; // do not report type related errors
                 }
             }
@@ -1342,7 +1342,7 @@ extern (C++) class VarDeclaration : Declaration
                  * could be set.
                  */
                 //if (cd.isInterfaceDeclaration())
-                //    error("interface %s cannot be scope", cd.toChars());
+                //    error("interface `%s` cannot be scope", cd.toChars());
 
                 // Destroying C++ scope classes crashes currently. Since C++ class dtors are not currently supported, simply do not run dtors for them.
                 // See https://issues.dlang.org/show_bug.cgi?id=13182
@@ -1404,7 +1404,7 @@ extern (C++) class VarDeclaration : Declaration
         auto e = getConstInitializer();
         if (!e)
         {
-            .error(loc, "cannot make expression out of initializer for %s", toChars());
+            .error(loc, "cannot make expression out of initializer for `%s`", toChars());
             return new ErrorExp();
         }
 
@@ -1499,7 +1499,7 @@ extern (C++) class VarDeclaration : Declaration
         // https://issues.dlang.org/show_bug.cgi?id=3326
         if (ident == Id.dollar)
         {
-            .error(loc, "cannnot use $ inside a function literal");
+            .error(loc, "cannnot use `$` inside a function literal");
             return true;
         }
         if (ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
