@@ -1,4 +1,4 @@
-/* Copyright (C) 1986-2012 by The D Language Foundation     */
+/* Copyright (C) 1986-2012 by The D Language Foundation, All Rights Reserved     */
 /* Written by Walter Bright                             */
 /* Bit vector package                                   */
 
