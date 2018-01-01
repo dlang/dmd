@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail1900.d(26): Error: template fail1900.Mix1a!().Foo matches more than one template declaration:
-fail_compilation/fail1900.d(13):     Foo(ubyte x)
+fail_compilation/fail1900.d(26): Error: template `fail1900.Mix1a!().Foo` matches more than one template declaration:
+fail_compilation/fail1900.d(13):     `Foo(ubyte x)`
 and
-fail_compilation/fail1900.d(14):     Foo(byte x)
+fail_compilation/fail1900.d(14):     `Foo(byte x)`
 ---
 */
 

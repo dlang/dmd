@@ -3,7 +3,7 @@ TEST_OUTPUT:
 ---
 A: false
 A: false
-fail_compilation/fail7862.d(26): Error: template instance nonExistent!() template 'nonExistent' is not defined
+fail_compilation/fail7862.d(26): Error: template instance nonExistent!() template `nonExistent` is not defined
 fail_compilation/fail7862.d(25): Error: template instance fail7862.B!(A) error instantiating
 ---
 */
