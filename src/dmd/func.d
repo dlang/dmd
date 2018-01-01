@@ -3635,6 +3635,12 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
     }
 }
 
+/** Show supplemental error message for a function call with mismatched arguments.
+ * Params:
+ *  loc = line information for error message
+ *  fargs = arguments to function
+ *  tf = function called
+ *  failIndex = index of first argument mismatch */
 void showArgMismatch(Loc loc, Expressions* fargs, TypeFunction tf, size_t failIndex)
 {
     if (failIndex < fargs.dim && failIndex < tf.parameters.dim)
@@ -3647,7 +3653,7 @@ void showArgMismatch(Loc loc, Expressions* fargs, TypeFunction tf, size_t failIn
         auto msg = "cannot pass %sargument `%s` of type `%s` to parameter `%s`";
         // don't print parameter type if it's already in the parameter string
         if (strcmp(par.type.toChars(), ts[1]) != 0)
-            msg ~= " of type `%s`";
+            msg ~= " of type `%s`\0";
         errorSupplemental(loc, msg.ptr,
             rv.ptr, arg.toChars(), ts[0], pc, ts[1]);
     }
