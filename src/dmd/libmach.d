@@ -11,6 +11,7 @@
 module dmd.libmach;
 
 // Online documentation: https://dlang.org/phobos/dmd_libmach.html
+version(OSX):
 
 import core.stdc.time;
 import core.stdc.string;

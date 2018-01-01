@@ -11,6 +11,9 @@
 module dmd.scanelf;
 
 // Online documentation: https://dlang.org/phobos/dmd_scanelf.html
+version(Windows) {}
+else version(OSX) {}
+else:
 
 version (linux)
     import core.sys.linux.elf;

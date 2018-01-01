@@ -11,6 +11,7 @@
 module dmd.scanomf;
 
 // Online documentation: https://dlang.org/phobos/dmd_scanomf.html
+version(Windows):
 
 import core.stdc.string;
 import core.stdc.stdlib;

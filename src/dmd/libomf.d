@@ -11,6 +11,7 @@
 module dmd.libomf;
 
 // Online documentation: https://dlang.org/phobos/dmd_libomf.html
+version(Windows):
 
 import core.stdc.stdio;
 import core.stdc.string;

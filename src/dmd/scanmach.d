@@ -11,6 +11,7 @@
 module dmd.scanmach;
 
 // Online documentation: https://dlang.org/phobos/dmd_scanmach.html
+version(OSX):
 
 import core.stdc.string;
 import core.stdc.stdint;

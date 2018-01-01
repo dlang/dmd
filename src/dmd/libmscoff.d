@@ -11,6 +11,7 @@
 module dmd.libmscoff;
 
 // Online documentation: https://dlang.org/phobos/dmd_libmscoff.html
+version(Windows):
 
 import core.stdc.stdlib;
 import core.stdc.string;
