@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2015-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     Rainer Schuetze
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/varstats.h, backend/varstats.h)
