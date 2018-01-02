@@ -252,7 +252,7 @@ pure int foo(int i,
     references of the result may be assumed to not refer to any object that
     existed before the function call. For example:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct List { int payload; List* next; }
 pure List* make(int a, int b)
@@ -322,7 +322,7 @@ $(H2 $(LNAME2 auto-functions, Auto Functions))
         If there are no $(I ReturnStatement)s, the return type is inferred
         to be $(D_KEYWORD void).)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto foo(int x) { return x + 3; }          // inferred to be int
         auto bar(int x) { return x; return 2.5; }  // inferred to be double
@@ -337,7 +337,7 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         if all return expressions are lvalues,
         and it would not be a reference to a local or a parameter.)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto ref f1(int x)     { return x; }  // value return
         auto ref f2()          { return 3; }  // value return
@@ -350,7 +350,7 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
     $(P The ref-ness of a function is determined from all
         $(GLINK2 statement, ReturnStatement)s in the function body:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto ref f1(ref int x) { return 3; return x; }  // ok, value return
         auto ref f2(ref int x) { return x; return 3; }  // ok, value return
@@ -375,7 +375,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
     $(P Functions that deal with mutable, const, or immutable types with
         equanimity often need to transmit their type to the return value:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         int[] f1(int[] a, int x, int y) { return a[x .. y]; }
 
@@ -389,7 +389,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         To indicate that these can be one function, the $(D_KEYWORD inout)
         type constructor is employed:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         inout(int)[] foo(inout(int)[] a, int x, int y) { return a[x .. y]; }
         ---
@@ -433,7 +433,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
     $(P The inout in the return type is then rewritten to be the inout matched
         qualifiers:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         int[] ma;
         const(int)[] ca;
@@ -485,7 +485,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
         $(RELATIVE_LINK2 property-functions, property function).
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         void foo() {}   // no arguments
     void fun(int x = 10) { }
@@ -523,7 +523,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     returned value is to be called.
     )
 
-    $(SPEC_RUNNABLE_EXAMPLE
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct S {
         int function() callfp() { return &numfp; }
@@ -592,7 +592,7 @@ $(H2 $(LNAME2 property-functions, Property Functions))
     $(P A simple property would be:)
 
 
-    $(SPEC_RUNNABLE_EXAMPLE
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Foo
     {
@@ -704,7 +704,7 @@ void func()
         that is derived from the type returned by the overridden function:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class A { }
 class B : A { }
@@ -731,7 +731,7 @@ class Bar : Foo
         base class name before the member function name. For example:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class B
 {
@@ -924,7 +924,7 @@ void test()
         $(GLINK FunctionAttributes), the missing attributes will be
         automatically compensated by the compiler.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class B
 {
@@ -951,7 +951,7 @@ void main()
     when it is virtual.
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class B
 {
@@ -1055,7 +1055,7 @@ $(H3 $(LNAME2 overload-sets, Overload Sets))
         at module level:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 module A;
 void foo() { }
@@ -1067,7 +1067,7 @@ void foo(long i) { }
         A different module can also define functions with the same name:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 module B;
 class C { }
@@ -1166,7 +1166,7 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D inout), argument is implicitly converted to an inout type)
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 void foo(out int x)
 {
@@ -1208,7 +1208,7 @@ def(z);
         a $(D lazy) argument can be executed 0 or more times. A $(D lazy) parameter
         cannot be an lvalue.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void dotimes(int n, lazy void exp)
 {
@@ -1374,7 +1374,7 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         It has D linkage, and need not have any non-variadic parameters
         declared:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int abc(char c, ...);   // one required parameter: c
 int def(...);           // ok
@@ -1416,7 +1416,7 @@ void foo(int x, int y, ...)
         $(D _arguments) gives the number of arguments and the type
         of each, enabling type safety to be checked at run time.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import std.stdio;
 import core.vararg;
@@ -1500,7 +1500,7 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         $(P For arrays:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int main()
 {
@@ -1681,7 +1681,7 @@ $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Stati
     As such, their value persists beyond the exit of the function.
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void foo()
 {
@@ -1717,7 +1717,7 @@ $(H2 $(LNAME2 nested, Nested Functions))
 
         $(P Functions may be nested within other functions:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int bar(int a)
 {
@@ -1789,7 +1789,7 @@ void test()
         This access includes both the ability to read and write them.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int bar(int a)
 {
@@ -1815,7 +1815,7 @@ void test()
 
         $(P This access can span multiple nesting levels:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int bar(int a)
 {
@@ -1857,7 +1857,7 @@ int bar(int a)
 
         $(P Functions can be nested within member functions:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 struct Foo
 {
@@ -1915,7 +1915,7 @@ void test()
         $(LI Declare one or more of the functions to be function templates
         even if they take no specific template arguments:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 void test()
 {
@@ -1927,7 +1927,7 @@ void test()
 
         $(LI Declare the functions inside of a mixin template:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 mixin template T()
 {
@@ -1944,7 +1944,7 @@ void main()
 
         $(LI Use a delegate:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 void test()
 {
@@ -1964,7 +1964,7 @@ $(H2 $(LNAME2 closures, Delegates, Function Pointers, and  Closures))
 
         $(P A function pointer can point to a static nested function:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int function() fp;
 
@@ -1989,7 +1989,7 @@ void bar()
         distinct function pointer values. The compiler is free to merge
         functions bodies into one if they compile to identical code.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int abc(int x) { return x + 1; }
 int def(int y) { return y + 1; }
@@ -2003,7 +2003,7 @@ int delegate(int) fp2 = &def;
 
         $(P A delegate can be set to a non-static nested function:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int delegate() dg;
 
@@ -2047,7 +2047,7 @@ int* bar()
         the same type:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 struct Foo
 {
@@ -2118,7 +2118,7 @@ $(H2 $(LNAME2 function-templates, Function Templates))
     For example:
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 // Only one copy of func needs to be written
 void func(T)(T x)
@@ -2260,7 +2260,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
     $(LI argument for a template value parameter)
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 template eval( A... )
 {
