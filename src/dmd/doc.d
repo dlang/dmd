@@ -2128,6 +2128,32 @@ size_t replaceMarkdownInlineLink(OutBuffer* buf, size_t i, MarkdownDelimiter del
     return i;
 }
 
+bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStart)
+{
+    const slice = buf.peekSlice();
+    char c = buf.data[i];
+    size_t j = i + 1;
+    int repeat = 1;
+    for (; j < slice.length; j++)
+    {
+        if (buf.data[j] == c)
+            ++repeat;
+        else if (buf.data[j] != ' ' && buf.data[j] != '\t')
+            break;
+    }
+    if (repeat >= 3)
+    {
+        size_t iAfterNewline = skipchars(buf, j, "\r\n");
+        if (iAfterNewline > j || iAfterNewline >= buf.offset)
+        {
+            buf.remove(iLineStart, iAfterNewline - iLineStart);
+            i = buf.insert(iLineStart, "$(HR)");
+            return true;
+        }
+    }
+    return false;
+}
+
 /****************************************************
  */
 extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
@@ -2621,7 +2647,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                     // BUG: handle UTF PS and LS too
                     if (c != c0)
-                        goto Lcont;
+                    {
+                        if (replaceMarkdownThematicBreak(buf, istart, iLineStart))
+                        {
+                            i = istart;
+                            break;
+                        }
+                        else
+                            goto Lcont;
+                    }
                 }
                 if (i - istart < 3 || (inCode && inCode != c0))
                     goto Lcont;
@@ -2704,47 +2738,62 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 }
                 i = skipchars(buf, iSkipped, " \t");
+                bool emptyHeading = buf.data[i] == '\r' || buf.data[i] == '\n';
+
                 // require whitespace
-                if (i == iSkipped)
+                if (!emptyHeading && i == iSkipped)
                 {
                     i = iHeadingStart;
                     headingLevel = 0;
                     break;
                 }
+
                 // remove the ### prefix
                 buf.remove(iLineStart, i - iLineStart);
                 i = iHeadingStart = iLineStart;
 
+                if (emptyHeading)
+                {
+                    --i;
+                    break;
+                }
+
                 // remove any ### suffix
                 size_t j = i;
                 size_t iSuffixStart = 0;
-                bool inWhitespace = false;
+                size_t iWhitespaceStart = j;
                 const slice = buf.peekSlice();
                 for (; j < slice.length; j++)
                 {
                     switch (slice[j])
                     {
                     case '#':
-                        if (inWhitespace)
+                        if (iWhitespaceStart && !iSuffixStart)
                             iSuffixStart = j;
-                        inWhitespace = false;
                         break;
                     case ' ':
                     case '\t':
-                        inWhitespace = true;
+                        if (!iWhitespaceStart)
+                            iWhitespaceStart = j;
                         break;
                     case '\r':
                     case '\n':
                         goto LendHeadingSuffix;
                     default:
                         iSuffixStart = 0;
-                        inWhitespace = false;
+                        iWhitespaceStart = 0;
                     }
                 }
             LendHeadingSuffix:
                 if (iSuffixStart)
-                    buf.remove(iSuffixStart, j - iSuffixStart);
+                    buf.remove(iWhitespaceStart, j - iWhitespaceStart);
             }
+            break;
+        }
+
+        case '_':
+        {
+            replaceMarkdownThematicBreak(buf, i, iLineStart);
             break;
         }
 
@@ -2772,14 +2821,24 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
             if (leadingBlank)
             {
-                /* A line consisting solely of ** indicates a Markdown heading on the previous line. */
-                // TODO: what about a HR?
+                /* A line consisting solely of ** indicates a Markdown heading on the previous line, or a thematic break after an empty line. */
                 leadingBlank = 0;
                 size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
                 {
-                    buf.remove(i, iAfterUnderline - i);
-                    headingLevel = 2;
+                    if (iLineStart == 0
+                        || (iLineStart > 1 && buf.data[iLineStart - 2] == '\n')
+                        || (iLineStart > 2 && buf.data[iLineStart - 2] == '\r' && buf.data[iLineStart - 3] == '\n'))
+                    {
+                        // if after an empty line then treat it as a thematic break
+                        replaceMarkdownThematicBreak(buf, i, iLineStart);
+                    }
+                    else
+                    {
+                        // otherwise treat it as a 2nd-level heading
+                        buf.remove(i, iAfterUnderline - i);
+                        headingLevel = 2;
+                    }
                 }
                 else
                 {
@@ -2788,6 +2847,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             else
             {
+                // Markdown emphasis
                 char leftC = i > 0 ? buf.data[i-1] : '\0';
                 size_t iAfterEmphasis = skipchars(buf, i+1, "*");
                 char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
