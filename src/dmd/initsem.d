@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/initsem.d, _initsem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_initsem.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/initsem.d
  */
 
 module dmd.initsem;
-
-// Online documentation: https://dlang.org/phobos/dmd_initsem.html
 
 import core.checkedint;
 
@@ -126,7 +126,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.ctor)
             {
-                error(i.loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead", sd.kind(), sd.toChars(), sd.toChars());
+                error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
                 result = new ErrorInitializer();
                 return;
             }
@@ -154,9 +154,9 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     {
                         s = sd.search_correct(id);
                         if (s)
-                            error(i.loc, "'%s' is not a member of '%s', did you mean %s '%s'?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(i.loc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
-                            error(i.loc, "'%s' is not a member of '%s'", id.toChars(), sd.toChars());
+                            error(i.loc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         result = new ErrorInitializer();
                         return;
                     }
@@ -166,7 +166,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     {
                         if (fieldi >= nfields)
                         {
-                            error(i.loc, "%s.%s is not a per-instance initializable field", sd.toChars(), s.toChars());
+                            error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
                             result = new ErrorInitializer();
                             return;
                         }
@@ -176,14 +176,14 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 }
                 else if (fieldi >= nfields)
                 {
-                    error(i.loc, "too many initializers for %s", sd.toChars());
+                    error(i.loc, "too many initializers for `%s`", sd.toChars());
                     result = new ErrorInitializer();
                     return;
                 }
                 VarDeclaration vd = sd.fields[fieldi];
                 if ((*elements)[fieldi])
                 {
-                    error(i.loc, "duplicate initializer for field '%s'", vd.toChars());
+                    error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
                     continue;
                 }
@@ -192,7 +192,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     VarDeclaration v2 = sd.fields[k];
                     if (vd.isOverlappedWith(v2) && (*elements)[k])
                     {
-                        error(i.loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
+                        error(i.loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                         errors = true;
                         continue;
                     }
@@ -241,7 +241,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             result = ie.initializerSemantic(sc, t, needInterpret);
             return;
         }
-        error(i.loc, "a struct is not a valid initializer for a %s", t.toChars());
+        error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
         result = new ErrorInitializer();
         return;
     }
@@ -279,7 +279,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 // Bugzilla 13987
                 if (!e)
                 {
-                    error(i.loc, "cannot use array to initialize %s", t.toChars());
+                    error(i.loc, "cannot use array to initialize `%s`", t.toChars());
                     goto Lerr;
                 }
                 auto ei = new ExpInitializer(e.loc, e);
@@ -291,7 +291,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 break;
             goto default;
         default:
-            error(i.loc, "cannot use array to initialize %s", t.toChars());
+            error(i.loc, "cannot use array to initialize `%s`", t.toChars());
             goto Lerr;
         }
         i.type = t;
@@ -427,14 +427,14 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         }
         if (i.exp.op == TOKtype)
         {
-            i.exp.error("initializer must be an expression, not '%s'", i.exp.toChars());
+            i.exp.error("initializer must be an expression, not `%s`", i.exp.toChars());
             result = new ErrorInitializer();
             return;
         }
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
-            i.exp.error("cannot use non-constant CTFE pointer in an initializer '%s'", i.exp.toChars());
+            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", i.exp.toChars());
             result = new ErrorInitializer();
             return;
         }
@@ -655,9 +655,9 @@ private extern(C++) final class InferTypeVisitor : Visitor
             ScopeExp se = cast(ScopeExp)init.exp;
             TemplateInstance ti = se.sds.isTemplateInstance();
             if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
-                se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
+                se.error("cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toChars());
             else
-                se.error("cannot infer type from %s %s", se.sds.kind(), se.toChars());
+                se.error("cannot infer type from %s `%s`", se.sds.kind(), se.toChars());
             result = new ErrorInitializer();
             return;
         }
@@ -673,7 +673,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
             }
             if (hasOverloads && !f.isUnique())
             {
-                init.exp.error("cannot infer type from overloaded function symbol %s", init.exp.toChars());
+                init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
                 result = new ErrorInitializer();
                 return;
             }
@@ -683,7 +683,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
             AddrExp ae = cast(AddrExp)init.exp;
             if (ae.e1.op == TOKoverloadset)
             {
-                init.exp.error("cannot infer type from overloaded function symbol %s", init.exp.toChars());
+                init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
                 result = new ErrorInitializer();
                 return;
             }
