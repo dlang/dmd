@@ -1823,7 +1823,6 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     BOOL GetDiskFreeSpaceExW(LPCWSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
     UINT GetDriveTypeA(LPCSTR);
     UINT GetDriveTypeW(LPCWSTR);
-    LPSTR GetEnvironmentStrings(); // ???
     LPSTR GetEnvironmentStringsA();
     LPWSTR GetEnvironmentStringsW();
     DWORD GetEnvironmentVariableA(LPCSTR, LPSTR, DWORD);
@@ -2702,6 +2701,7 @@ version (Unicode) {
     alias GetDiskFreeSpaceA GetDiskFreeSpace;
     alias GetDiskFreeSpaceExA GetDiskFreeSpaceEx;
     alias GetDriveTypeA GetDriveType;
+    alias GetEnvironmentStringsA GetEnvironmentStrings;
     alias GetEnvironmentVariableA GetEnvironmentVariable;
     alias GetFileAttributesA GetFileAttributes;
     alias GetFullPathNameA GetFullPathName;
