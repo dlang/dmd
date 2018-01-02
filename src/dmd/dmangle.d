@@ -1164,4 +1164,3 @@ void mangleToFuncSignature(OutBuffer* buf, FuncDeclaration fd)
     v.paramsToDecoBuffer(tf.parameters);
     buf.writeByte('Z' - tf.varargs);
 }
-
