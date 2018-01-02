@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/safe.d, _safe.d)
+ * Documentation:  https://dlang.org/phobos/dmd_safe.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/safe.d
  */
 
 module dmd.safe;
-
-// Online documentation: https://dlang.org/phobos/dmd_safe.html
 
 import core.stdc.stdio;
 
@@ -56,7 +56,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (v.overlapped && v.type.hasPointers() && sc.func.setUnsafe())
         {
             if (printmsg)
-                e.error("field %s.%s cannot access pointers in @safe code that overlap other fields",
+                e.error("field `%s.%s` cannot access pointers in `@safe` code that overlap other fields",
                     ad.toChars(), v.toChars());
             return true;
         }
@@ -71,7 +71,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
                 sc.func.setUnsafe())
             {
                 if (printmsg)
-                    e.error("field %s.%s cannot modify misaligned pointers in @safe code",
+                    e.error("field `%s.%s` cannot modify misaligned pointers in `@safe` code",
                         ad.toChars(), v.toChars());
                 return true;
             }
@@ -80,7 +80,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (v.overlapUnsafe && sc.func.setUnsafe())
         {
              if (printmsg)
-                 e.error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
+                 e.error("field `%s.%s` cannot modify fields in `@safe` code that overlap fields with other storage classes",
                     ad.toChars(), v.toChars());
              return true;
         }
