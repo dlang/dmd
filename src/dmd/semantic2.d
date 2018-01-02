@@ -28,7 +28,6 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -344,13 +343,15 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(FuncDeclaration fd)
     {
+        import dmd.dmangle : mangleToFuncSignature;
+
         if (fd.semanticRun >= PASS.semantic2done)
             return;
         assert(fd.semanticRun <= PASS.semantic2);
 
         fd.semanticRun = PASS.semantic2;
 
-        //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", this.loc.toChars(), this.toChars(), this.type.toChars());
+        //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
         if (fd.overnext && !fd.errors)
         {
             OutBuffer buf1;
@@ -359,7 +360,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // Always starts the lookup from 'this', because the conflicts with
             // previous overloads are already reported.
             auto f1 = fd;
-            mangleToFuncSignature(&buf1, f1);
+            mangleToFuncSignature(buf1, f1);
 
             overloadApply(f1, (Dsymbol s)
             {
@@ -385,12 +386,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 // extern (C) functions always conflict each other.
                 if (f1.ident == f2.ident &&
                     f1.toParent2() == f2.toParent2() &&
-                    (f1.linkage != LINKd && f1.linkage != LINKcpp) &&
-                    (f2.linkage != LINKd && f2.linkage != LINKcpp))
+                    (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
+                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp))
                 {
                     /* Allow the hack that is actually used in druntime,
                      * to ignore function attributes for extern (C) functions.
                      * TODO: Must be reconsidered in the future.
+                     *  BUG: https://issues.dlang.org/show_bug.cgi?id=18206
                      *
                      *  extern(C):
                      *  alias sigfn_t  = void function(int);
@@ -413,7 +415,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 }
 
                 buf2.reset();
-                mangleToFuncSignature(&buf2, f2);
+                mangleToFuncSignature(buf2, f2);
 
                 auto s1 = buf1.peekString();
                 auto s2 = buf2.peekString();

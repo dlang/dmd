@@ -582,10 +582,10 @@ public:
             assert(slice.length);
             foreach (const char c; slice)
             {
-                assert(buf.data[i] == '_' ||
-                       buf.data[i] == '@' ||
-                       buf.data[i] == '?' ||
-                       buf.data[i] == '$' ||
+                assert(c == '_' ||
+                       c == '@' ||
+                       c == '?' ||
+                       c == '$' ||
                        isalnum(c) ||
                        c & 0x80);
             }
@@ -1141,26 +1141,19 @@ extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
  * to check conflicts in function overloads.
  * It's different from fd.type.deco. For example, fd.type.deco would be null
  * if fd is an auto function.
+ *
+ * Params:
+ *    buf = `OutBuffer` to write the mangled function signature to
+*     fd  = `FuncDeclaration` to mangle
  */
-void mangleToFuncSignature(OutBuffer* buf, FuncDeclaration fd)
+void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
 {
     assert(fd.type.ty == Tfunction);
     auto tf = cast(TypeFunction)fd.type;
 
-    scope Mangler v = new Mangler(buf);
+    scope Mangler v = new Mangler(&buf);
 
-    //if (fd.needThis() || fd.isNested())
-    //    buf.writeByte(Type.needThisPrefix());
-    MODtoDecoBuffer(buf, tf.mod);
-    //switch (tf.linkage)
-    //{
-    //    case LINKd:         buf.writeByte('F');     break;
-    //    case LINKc:         buf.writeByte('U');     break;
-    //    case LINKwindows:   buf.writeByte('W');     break;
-    //    case LINKpascal:    buf.writeByte('V');     break;
-    //    case LINKcpp:       buf.writeByte('R');     break;
-    //    default:            assert(0);
-    //}
+    MODtoDecoBuffer(&buf, tf.mod);
     v.paramsToDecoBuffer(tf.parameters);
     buf.writeByte('Z' - tf.varargs);
 }
