@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dclass.d, _dclass.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dclass.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dclass.d
  */
 
 module dmd.dclass;
-
-// Online documentation: https://dlang.org/phobos/dmd_dclass.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -106,7 +106,7 @@ struct BaseClass
                 //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                     //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
                 if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
-                    cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
+                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
 
                 if (fd.toParent() == cd)
                     result = true;
@@ -116,7 +116,7 @@ struct BaseClass
                 //printf("            not found %p\n", fd);
                 // BUG: should mark this class as abstract?
                 if (!cd.isAbstract())
-                    cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
+                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
 
                 fd = null;
             }
@@ -501,7 +501,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             {
                 cd.dsymbolSemantic(null);
                 if (!cd.baseClass && cd.semanticRun < PASSsemanticdone)
-                    cd.error("base class is forward referenced by %s", toChars());
+                    cd.error("base class is forward referenced by `%s`", toChars());
             }
 
             if (this == cd.baseClass)
@@ -538,7 +538,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or addMember is not yet done
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
         }
@@ -558,7 +558,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 if (b.sym)
                 {
                     if (!b.sym.symtab)
-                        error("base %s is forward referenced", b.sym.ident.toChars());
+                        error("base `%s` is forward referenced", b.sym.ident.toChars());
                     else
                     {
                         import dmd.access : symbolIsVisible;
@@ -834,7 +834,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         }
 
         if (fdambig)
-            error("ambiguous virtual function %s", fdambig.toChars());
+            error("ambiguous virtual function `%s`", fdambig.toChars());
 
         return fdmatch;
     }
