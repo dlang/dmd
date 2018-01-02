@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Declarations,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME Declaration):
     $(GLINK2 function, FuncDeclaration)

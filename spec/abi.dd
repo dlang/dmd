@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Application Binary Interface,
 
+$(SPEC_HEADERNAV_TOC)
+
 	$(P A D implementation that conforms to the D ABI (Application Binary
 	Interface)
 	will be able to generate libraries, DLL's, etc., that can interoperate

@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Floating Point,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(H2 $(LNAME2 fp_intermediate_values, Floating Point Intermediate Values))
 
 	$(P On many computers, greater

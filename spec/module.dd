@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Modules,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME Module):
     $(GLINK ModuleDeclaration) $(GLINK DeclDefs)

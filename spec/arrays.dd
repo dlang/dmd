@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Arrays,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(H2 $(LNAME2 array-kinds, Kinds))
 
     $(P There are four kinds of arrays:)

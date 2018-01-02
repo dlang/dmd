@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Unit Tests,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME UnitTest):
     $(D unittest) $(GLINK2 statement, BlockStatement)

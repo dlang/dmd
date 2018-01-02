@@ -2,6 +2,8 @@ Ddoc
 
 $(D_S Type Qualifiers,
 
+$(SPEC_HEADERNAV_TOC)
+
 	$(P Type qualifiers modify a type by applying a $(GLINK2 declaration, TypeCtor).
 	$(I TypeCtor)s are: $(D const), $(D immutable),	$(D shared), and $(D inout).
 	Each applies transitively to all subtypes.

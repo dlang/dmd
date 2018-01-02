@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Vector Extensions,
 
+$(SPEC_HEADERNAV_TOC)
+
 	$(P Modern CPUs often support specialized vector types and vector
 	operations, sometimes called "media instructions".
 	Vector types are a fixed array of floating or integer types, and

@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Pragmas,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME Pragma):
     $(D pragma) $(D $(LPAREN)) $(I Identifier) $(D $(RPAREN))

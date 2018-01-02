@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Grammar,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(H2 Lexical Syntax)
 
     $(P Refer to the page for $(LINK2 lex.html, lexical syntax).)

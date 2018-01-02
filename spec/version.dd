@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Conditional Compilation,
 
+$(SPEC_HEADERNAV_TOC)
+
 	$(P $(I Conditional compilation) is the process of selecting which
 	code to compile and which code to not compile.
 	(In C and C++, conditional compilation is done with the preprocessor

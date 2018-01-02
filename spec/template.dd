@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Templates,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(BLOCKQUOTE_BY Richard Deyman,
 I think that I can safely say that nobody understands C++ template mechanics.)
 

@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Better C,
 
+$(SPEC_HEADERNAV_TOC)
+
 `-betterC` is a command-line flag for `dmd`,
 which restricts the compiler's support of certain runtime features.
 Notably, D programs or libraries compiled with `betterC` aren't linked with Druntime.

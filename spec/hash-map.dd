@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Associative Arrays,
 
+$(SPEC_HEADERNAV_TOC)
+
         $(P Associative arrays have an index that is not necessarily an integer,
         and can be sparsely populated. The index for an associative array
         is called the $(I key), and its type is called the $(I KeyType).)

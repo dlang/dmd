@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Enums,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME EnumDeclaration):
     $(D enum) $(I Identifier) $(GLINK EnumBody)

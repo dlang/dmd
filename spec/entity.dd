@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Named Character Entities,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME NamedCharacterEntity):
     $(CODE_AMP) $(GLINK2 lex, Identifier) $(D ;)

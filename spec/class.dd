@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Classes,
 
+$(SPEC_HEADERNAV_TOC)
+
         $(P The object-oriented features of D all come from classes. The class
         hierarchy
         has as its root the class Object. Object defines a minimum level of functionality

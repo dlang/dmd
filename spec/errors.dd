@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Error Handling,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(BLOCKQUOTE_BY Julius C'ster,
 I came, I coded, I crashed.
 )

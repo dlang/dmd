@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Interfaces,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME InterfaceDeclaration):
     $(D interface) $(I Identifier) $(D ;)

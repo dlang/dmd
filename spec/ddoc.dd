@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Embedded Documentation,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(P
 The D programming language enables embedding both contracts and test
 code along side the actual code, which helps to keep them all

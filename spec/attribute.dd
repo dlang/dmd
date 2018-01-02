@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Attributes,
 
+$(SPEC_HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME AttributeSpecifier):
     $(GLINK Attribute) $(D :)

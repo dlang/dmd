@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Expressions,
 
+$(SPEC_HEADERNAV_TOC)
+
     $(P C and C++ programmers will find the D expressions very familiar,
         with a few interesting additions.
     )

@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Interfacing to C++,
 
+$(SPEC_HEADERNAV_TOC)
+
     $(P This document specifies how to interface with C++ directly.)
 
     $(P It is also possible to indirectly interface with C++ code, either
