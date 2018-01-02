@@ -1317,7 +1317,7 @@ $(D new) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN)) $(I Identifier) $(D $(LPA
 
 where $(I Identifier) is the name generated for the anonymous nested class.
 
-$(SECTION3 $(LEGACY_LNAME2 ConstClass, const-class, Const, Immutable and Shared Classes),
+$(SECTION2 $(LEGACY_LNAME2 ConstClass, const-class, $(ARGS Const, Immutable and Shared Classes)),
 
     $(P If a $(I ClassDeclaration) has a $(D const), $(D immutable)
         or $(D shared) storage class, then it is as if each member of the class
