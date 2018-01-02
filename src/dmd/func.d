@@ -3648,13 +3648,14 @@ void showArgMismatch(Loc loc, Expressions* fargs, TypeFunction tf, size_t failIn
         auto arg = (*fargs)[failIndex];
         auto par = (*tf.parameters)[failIndex];
         const rv = (!arg.isLvalue() && par.storageClass & (STCref | STCout)) ? "rvalue " : "";
-        const pc = parameterToChars(par, tf.varargs);
-        const ts = toAutoQualChars(arg.type, par.type);
-        auto msg = "cannot pass %sargument `%s` of type `%s` to parameter `%s`";
-        // don't print parameter type if it's already in the parameter string
-        if (strcmp(par.type.toChars(), ts[1]) != 0)
-            msg ~= " of type `%s`\0";
-        errorSupplemental(loc, msg.ptr,
-            rv.ptr, arg.toChars(), ts[0], pc, ts[1]);
+
+        // disambiguate when toChars() is the same
+        auto at = arg.type.toChars();
+        bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
+        if (qual)
+            at = arg.type.toPrettyChars(true);
+
+        errorSupplemental(loc, "cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv.ptr, arg.toChars(), at, parameterToChars(par, tf.varargs, qual));
     }
 }
