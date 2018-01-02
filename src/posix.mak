@@ -82,7 +82,7 @@ G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
 ifeq (osx,$(OS))
-    export MACOSX_DEPLOYMENT_TARGET=10.7
+    export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
 
 HOST_CXX=c++
