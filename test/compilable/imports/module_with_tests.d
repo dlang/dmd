@@ -1,1 +1,5 @@
-unittest {} unittest {}
+unittest {}
+unittest
+{
+    assert(1);
+}
