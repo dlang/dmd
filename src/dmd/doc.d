@@ -2712,8 +2712,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     break;
                 }
                 // remove the ### prefix
-                buf.remove(iHeadingStart, i - iHeadingStart);
-                i = iHeadingStart;
+                buf.remove(iLineStart, i - iLineStart);
+                i = iHeadingStart = iLineStart;
 
                 // remove any ### suffix
                 size_t j = i;
