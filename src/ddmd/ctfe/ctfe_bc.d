@@ -2010,16 +2010,16 @@ extern (C++) final class BCV(BCGenT) : Visitor
         import ddmd.lexer : Loc;
 
         void Load32(BCValue _to, BCValue from, size_t line = __LINE__)
-        {
+        {   
             Assert(from.i32, addError(Loc.init,
-                    "Load Source may not be null - target: " ~ to!string(_to.stackAddr) ~ " inLine: " ~ to!string(line)));
+                    "Load Source may not be null - ip: " ~ to!string(ip) ~ " inLine: " ~ to!string(line)));
             gen.Load32(_to, from);
         }
 
         void Store32(BCValue _to, BCValue value, size_t line = __LINE__)
         {
             Assert(_to.i32, addError(Loc.init,
-                    "Store Destination may not be null - from: " ~ to!string(value.stackAddr) ~ " inLine: " ~ to!string(line)));
+                    "Store Destination may not be null - ip: " ~ to!string(ip) ~ " inLine: " ~ to!string(line)));
             gen.Store32(_to, value);
         }
 
@@ -3856,6 +3856,8 @@ static if (is(BCGen))
 
                 if (ptr.type.type.anyOf([BCTypeEnum.Array, BCTypeEnum.Ptr, BCTypeEnum.Slice, BCTypeEnum.Struct, BCTypeEnum.String]))
                     Set(retval.i32, ptr);
+                else if (_sharedCtfeState.size(ptr.type) == 8)
+                    Load64(retval.i32, ptr);
                 else
                     Load32(retval.i32, ptr);
                 if (!ptr)
@@ -4093,7 +4095,7 @@ static if (is(BCGen))
 
             auto ty = _struct.memberTypes[i];
             if (!ty.type.anyOf([BCTypeEnum.Struct, BCTypeEnum.String, BCTypeEnum.Slice, BCTypeEnum.Array, 
-BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.c8, BCTypeEnum.c16, BCTypeEnum.c32]))
+BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, BCTypeEnum.c8, BCTypeEnum.c16, BCTypeEnum.c32]))
             {
                 bailout( "can only deal with ints and uints atm. not: (" ~ to!string(ty.type) ~ ", " ~ to!string(
                         ty.typeIndex) ~ ")");
