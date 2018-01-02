@@ -2793,7 +2793,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
         case '_':
         {
-            replaceMarkdownThematicBreak(buf, i, iLineStart);
+            if (leadingBlank && !inCode)
+                replaceMarkdownThematicBreak(buf, i, iLineStart);
             break;
         }
 
