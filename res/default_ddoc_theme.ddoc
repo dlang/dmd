@@ -30,6 +30,7 @@ TR = <tr>$0</tr>
 TH = <th>$0</th>
 TD = <td>$0</td>
 OL = <ol>$0</ol>
+OL_START = <ol start="$1">$2</ol>
 UL = <ul>$0</ul>
 LI = <li>$0</li>
 BIG = <span class="font_big">$0</span>

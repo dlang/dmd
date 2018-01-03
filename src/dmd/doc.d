@@ -1880,6 +1880,30 @@ size_t skipchars(OutBuffer* buf, size_t i, string chars)
 }
 
 /************************************************
+ * Scan past tabs and spaces, counting a tab as four spaces.
+ */
+size_t countSpaces(OutBuffer* buf, size_t i)
+{
+    const slice = buf.peekSlice();
+    size_t count = 0;
+    for (; i < slice.length; i++)
+    {
+        switch (slice[i])
+        {
+        case ' ':
+            ++count;
+            break;
+        case '\t':
+            count += 4;
+            break;
+        default:
+            return count;
+        }
+    }
+    return 0;
+}
+
+/************************************************
  * Scan forward to one of:
  *      start of identifier
  *      beginning of next line
@@ -1984,6 +2008,7 @@ Lno:
 }
 
 /****************************************************
+ * Replace the inline link portion (the part in parentheses) of a Markdown link.
  */
 size_t replaceMarkdownInlineLink(OutBuffer* buf, size_t i, MarkdownDelimiter delimiter)
 {
@@ -2128,6 +2153,9 @@ size_t replaceMarkdownInlineLink(OutBuffer* buf, size_t i, MarkdownDelimiter del
     return i;
 }
 
+/****************************************************
+ * Replace a Markdown thematic break (HR).
+ */
 bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStart)
 {
     const slice = buf.peekSlice();
@@ -2152,6 +2180,51 @@ bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStar
         }
     }
     return false;
+}
+
+/****************************************************
+ * Handle a Markdown list item by creating/deleting lists and starting the item.
+ */
+size_t handleMarkdownListItem(OutBuffer *buf, MarkdownList list, ref MarkdownList[] lists)
+{
+    buf.remove(list.iStart, list.contentIndent);
+
+    // end any nested lists
+    while (lists.length && (lists[$-1].itemIndent > list.contentIndent || lists[$-1].type != list.type))
+    {
+        list.iStart = buf.insert(list.iStart, "))\n");
+        --lists.length;
+    }
+
+    if (!lists.length || list.itemIndent >= lists[$-1].contentIndent)
+    {
+        // start a list
+        lists ~= list;
+        if (list.type == '.' || list.type == ')')
+        {
+            if (list.orderedStart.length && list.orderedStart == "1")
+            {
+                list.iStart = buf.insert(list.iStart, "$(OL_START ");
+                list.iStart = buf.insert(list.iStart, list.orderedStart);
+                list.iStart = buf.insert(list.iStart, ",\n");
+            }
+            else
+                list.iStart = buf.insert(list.iStart, "$(OL\n");
+        }
+        else
+            list.iStart = buf.insert(list.iStart, "$(UL\n");
+    }
+    else if (lists.length)
+    {
+        // end the previous list item
+        list.iStart = buf.insert(list.iStart, ")\n");
+
+        lists[$-1].itemIndent = list.itemIndent;
+        lists[$-1].contentIndent = list.contentIndent;
+    }
+
+    list.iStart = buf.insert(list.iStart, "$(LI\n");
+    return list.iStart;
 }
 
 /****************************************************
@@ -2360,6 +2433,15 @@ struct MarkdownDelimiter
     bool rightFlanking;
 }
 
+struct MarkdownList
+{
+    size_t iStart;
+    size_t itemIndent;
+    size_t contentIndent;
+    char type;
+    string orderedStart;
+}
+
 /**************************************************
  * Highlight text section.
  */
@@ -2372,6 +2454,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iHeadingStart = 0;
     int quoteLevel = 0;
     int previousQuoteLevel = 0;
+    MarkdownList[] lists;
     MarkdownDelimiter[] inlineDelimiters;
     int inCode = 0;
     int inBacktick = 0;
@@ -2412,6 +2495,20 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 i = buf.insert(i, ")");
                 iHeadingStart = 0;
                 headingLevel = 0;
+            }
+            if (lists.length)
+            {
+                size_t contentIndent = countSpaces(buf, i + 1);
+                size_t iAfterSpaces = contentIndent ? skipchars(buf, i + 1, " \t") : i + 1;
+                if (iAfterSpaces >= buf.offset || (buf.data[iAfterSpaces] != '\r' && buf.data[iAfterSpaces] != '\n'))
+                {
+                    while (lists.length && lists[$-1].contentIndent > contentIndent)
+                    {
+printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, contentIndent);
+                        i = buf.insert(i, "))\n");
+                        --lists.length;
+                    }
+                }
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
@@ -2619,6 +2716,16 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
              */
             if (leadingBlank)
             {
+                if (!inCode && i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
+                {
+                    // handle a list item
+                    size_t contentIndent = countSpaces(buf, i + 1) + (i - iLineStart) + 1;
+                    MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, c);
+                    i = iLineStart = handleMarkdownListItem(buf, list, lists);
+                    leadingBlank = 1;
+                    break;
+                }
+
                 size_t istart = i;
                 size_t eollen = 0;
                 leadingBlank = 0;
@@ -2793,8 +2900,38 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
         case '_':
         {
+            if (leadingBlank && !inCode && replaceMarkdownThematicBreak(buf, i, iLineStart))
+                break;
+            goto default;
+        }
+
+        case '+':
+        {
+            if (leadingBlank && !inCode && i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
+            {
+                size_t contentIndent = countSpaces(buf, i + 1) + (i - iLineStart) + 1;
+                MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, c);
+                i = iLineStart = handleMarkdownListItem(buf, list, lists);
+                leadingBlank = 1;
+            }
+            break;
+        }
+
+        case '0':
+        ..
+        case '9':
+        {
             if (leadingBlank && !inCode)
-                replaceMarkdownThematicBreak(buf, i, iLineStart);
+            {
+                size_t iAfterNumbers = skipchars(buf, i, "0123456789");
+                if (iAfterNumbers - i <= 10 && iAfterNumbers < buf.offset && (buf.data[iAfterNumbers] == '.' || buf.data[iAfterNumbers] == ')'))
+                {
+                    size_t contentIndent = countSpaces(buf, iAfterNumbers + 1) + (iAfterNumbers - iLineStart) + 1;
+                    MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, buf.data[iAfterNumbers], cast(string) buf.data[i..iAfterNumbers].idup);
+                    i = iLineStart = handleMarkdownListItem(buf, list, lists);
+                    leadingBlank = 1;
+                }
+            }
             break;
         }
 
@@ -2822,12 +2959,20 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
             if (leadingBlank)
             {
+                if (i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
+                {
+                    size_t contentIndent = countSpaces(buf, i + 1) + (i - iLineStart) + 1;
+                    MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, c);
+                    i = iLineStart = handleMarkdownListItem(buf, list, lists);
+                    break;
+                }
+
                 /* A line consisting solely of ** indicates a Markdown heading on the previous line, or a thematic break after an empty line. */
                 leadingBlank = 0;
                 size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
                 {
-                    if (iLineStart == 0
+                    if (iLineStart == offset
                         || (iLineStart > 1 && buf.data[iLineStart - 2] == '\n')
                         || (iLineStart > 2 && buf.data[iLineStart - 2] == '\r' && buf.data[iLineStart - 3] == '\n'))
                     {
@@ -2849,7 +2994,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             else
             {
                 // Markdown emphasis
-                char leftC = i > 0 ? buf.data[i-1] : '\0';
+                char leftC = i > offset ? buf.data[i-1] : '\0';
                 size_t iAfterEmphasis = skipchars(buf, i+1, "*");
                 char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
                 int count = cast(int) (iAfterEmphasis - i);
@@ -3065,7 +3210,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     }
 // TODO: remove the restriction that code blocks must be closed?
     if (inCode)
-        error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
+        error(s ? s.loc : Loc.initial, "unmatched --- in DDoc comment");
+
+    while (lists.length)
+    {
+printf("End-ending list item\n");
+        buf.insert(buf.offset, "))\n");
+        --lists.length;
+    }
+// TODO: end quote section?
 }
 
 /**************************************************
