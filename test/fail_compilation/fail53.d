@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail53.d(25): Error: function object.Object.opEquals `(Object o)` is not callable using argument types `(int)`
+fail_compilation/fail53.d(25): Error: function `object.Object.opEquals(Object o)` is not callable using argument types `(int)`
 ---
 */
 

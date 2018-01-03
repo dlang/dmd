@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8101.d(56): Error: function diag8101.f_0 `(int)` is not callable using argument types `()`
+fail_compilation/diag8101.d(56): Error: function `diag8101.f_0(int)` is not callable using argument types `()`
 fail_compilation/diag8101.d(57): Error: none of the overloads of `f_1` are callable using argument types `()`, candidates are:
 fail_compilation/diag8101.d(32):        `diag8101.f_1(int)`
 fail_compilation/diag8101.d(33):        `diag8101.f_1(int, int)`

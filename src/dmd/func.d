@@ -2604,8 +2604,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 }
                 else
                 {
-                    fd.error(loc, "`%s%s` is not callable using argument types `%s`",
-                        parametersTypeToChars(tf.parameters, tf.varargs),
+                    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
+                        fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
                 }
             }
