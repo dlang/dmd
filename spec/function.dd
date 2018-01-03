@@ -2348,7 +2348,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(UL
         $(LI No casting from a pointer type to any type other than $(CODE void*).)
         $(LI No casting from any non-pointer type to a pointer type.)
-        $(LI No modification of pointer values.)
+        $(LI No modification of pointer values other than assignment from a
+        pointer of the same type.)
         $(LI Cannot access unions that have pointers or references overlapping
         with other types.)
         $(LI Calling any system functions.)
