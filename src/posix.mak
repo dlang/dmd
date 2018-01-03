@@ -134,14 +134,14 @@ else
 endif
 
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
+ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=dmd
+endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
 endif
 ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=ldc
-endif
-ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
-	HOST_DMD_KIND=dmd
 endif
 
 # Compiler Warnings
