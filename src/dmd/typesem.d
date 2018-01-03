@@ -5,7 +5,9 @@
  * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(DMDSRC _mtype.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
+ * Documentation:  https://dlang.org/phobos/dmd_mars.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mars.d
  */
 
 module dmd.typesem;
@@ -185,7 +187,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
     {
         if (t.ty == Tint128 || t.ty == Tuns128)
         {
-            t.error(loc, "cent and ucent types not implemented");
+            t.error(loc, "`cent` and `ucent` types not implemented");
             result = Type.terror;
             return;
         }
@@ -205,7 +207,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         mtype.basetype = mtype.basetype.toBasetype().mutableOf();
         if (mtype.basetype.ty != Tsarray)
         {
-            mtype.error(loc, "T in __vector(T) must be a static array, not %s", mtype.basetype.toChars());
+            mtype.error(loc, "T in __vector(T) must be a static array, not `%s`", mtype.basetype.toChars());
             result = Type.terror;
             return;
         }
@@ -223,7 +225,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             return;
         case 2:
             // invalid base type
-            mtype.error(loc, "vector type %s is not supported on this platform", mtype.toChars());
+            mtype.error(loc, "vector type `%s` is not supported on this platform", mtype.toChars());
             result = Type.terror;
             return;
         case 3:
@@ -235,7 +237,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 return;
             }
             else
-                mtype.error(loc, "%d byte vector type %s is not supported on this platform", sz, mtype.toChars());
+                mtype.error(loc, "%d byte vector type `%s` is not supported on this platform", sz, mtype.toChars());
             result = Type.terror;
             return;
         default:
@@ -270,7 +272,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             uinteger_t d = mtype.dim.toUInteger();
             if (d >= tup.objects.dim)
             {
-                mtype.error(loc, "tuple index %llu exceeds %u", d, tup.objects.dim);
+                mtype.error(loc, "tuple index %llu exceeds %llu", cast(ulong)d, cast(ulong)tup.objects.dim);
                 result = errorReturn();
                 return;
             }
@@ -278,7 +280,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             RootObject o = (*tup.objects)[cast(size_t)d];
             if (o.dyncast() != DYNCAST.type)
             {
-                mtype.error(loc, "%s is not a type", mtype.toChars());
+                mtype.error(loc, "`%s` is not a type", mtype.toChars());
                 result = errorReturn();
                 return;
             }
@@ -344,7 +346,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             if (d1 != d2)
             {
             Loverflow:
-                mtype.error(loc, "%s size %llu * %llu exceeds 0x%llx size limit for static array",
+                mtype.error(loc, "`%s` size %llu * %llu exceeds 0x%llx size limit for static array",
                         mtype.toChars(), cast(ulong)tbn.size(loc), cast(ulong)d1, Target.maxStaticDataSize);
                 result = errorReturn();
                 return;
@@ -376,7 +378,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 uinteger_t d = mtype.dim.toUInteger();
                 if (d >= tt.arguments.dim)
                 {
-                    mtype.error(loc, "tuple index %llu exceeds %u", d, tt.arguments.dim);
+                    mtype.error(loc, "tuple index %llu exceeds %llu", cast(ulong)d, cast(ulong)tt.arguments.dim);
                     result = errorReturn();
                     return;
                 }
@@ -386,7 +388,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             }
         case Tfunction:
         case Tnone:
-            mtype.error(loc, "can't have array of %s", tbn.toChars());
+            mtype.error(loc, "cannot have array of `%s`", tbn.toChars());
             result = errorReturn();
             return;
         default:
@@ -394,7 +396,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
         if (tbn.isscope())
         {
-            mtype.error(loc, "cannot have array of scope %s", tbn.toChars());
+            mtype.error(loc, "cannot have array of scope `%s`", tbn.toChars());
             result = errorReturn();
             return;
         }
@@ -420,7 +422,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             return;
         case Tfunction:
         case Tnone:
-            mtype.error(loc, "can't have array of %s", tbn.toChars());
+            mtype.error(loc, "cannot have array of `%s`", tbn.toChars());
             result = Type.terror;
             return;
         case Terror:
@@ -431,7 +433,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
         if (tn.isscope())
         {
-            mtype.error(loc, "cannot have array of scope %s", tn.toChars());
+            mtype.error(loc, "cannot have array of scope `%s`", tn.toChars());
             result = Type.terror;
             return;
         }
@@ -506,7 +508,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         case Tvoid:
         case Tnone:
         case Ttuple:
-            mtype.error(loc, "can't have associative array key of %s", mtype.index.toBasetype().toChars());
+            mtype.error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toChars());
             goto case Terror;
         case Terror:
             result = Type.terror;
@@ -549,11 +551,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             {
                 if (search_function(sd, Id.eq))
                 {
-                    mtype.error(loc, "%sAA key type %s does not have 'bool opEquals(ref const %s) const'", s, sd.toChars(), sd.toChars());
+                    mtype.error(loc, "%sAA key type `%s` does not have `bool opEquals(ref const %s) const`", s, sd.toChars(), sd.toChars());
                 }
                 else
                 {
-                    mtype.error(loc, "%sAA key type %s does not support const equality", s, sd.toChars());
+                    mtype.error(loc, "%sAA key type `%s` does not support const equality", s, sd.toChars());
                 }
                 result = Type.terror;
                 return;
@@ -562,11 +564,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             {
                 if (search_function(sd, Id.eq))
                 {
-                    mtype.error(loc, "%sAA key type %s should have 'size_t toHash() const nothrow @safe' if opEquals defined", s, sd.toChars());
+                    mtype.error(loc, "%sAA key type `%s` should have `size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
                 }
                 else
                 {
-                    mtype.error(loc, "%sAA key type %s supports const equality but doesn't support const hashing", s, sd.toChars());
+                    mtype.error(loc, "%sAA key type `%s` supports const equality but doesn't support const hashing", s, sd.toChars());
                 }
                 result = Type.terror;
                 return;
@@ -613,8 +615,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     if (fcmp.vtblIndex < cd.vtbl.dim && cd.vtbl[fcmp.vtblIndex] != fcmp)
                     {
                         const(char)* s = (mtype.index.toBasetype().ty != Tclass) ? "bottom of " : "";
-                        mtype.error(loc, "%sAA key type %s now requires equality rather than comparison", s, cd.toChars());
-                        errorSupplemental(loc, "Please override Object.opEquals and toHash.");
+                        mtype.error(loc, "%sAA key type `%s` now requires equality rather than comparison", s, cd.toChars());
+                        errorSupplemental(loc, "Please override `Object.opEquals` and `Object.toHash`.");
                     }
                 }
             }
@@ -628,7 +630,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         case Tvoid:
         case Tnone:
         case Ttuple:
-            mtype.error(loc, "can't have associative array of %s", mtype.next.toChars());
+            mtype.error(loc, "cannot have associative array of `%s`", mtype.next.toChars());
             goto case Terror;
         case Terror:
             result = Type.terror;
@@ -638,7 +640,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
         if (mtype.next.isscope())
         {
-            mtype.error(loc, "cannot have array of scope %s", mtype.next.toChars());
+            mtype.error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
             result = Type.terror;
             return;
         }
@@ -657,7 +659,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         switch (n.toBasetype().ty)
         {
         case Ttuple:
-            mtype.error(loc, "can't have pointer to %s", n.toChars());
+            mtype.error(loc, "cannot have pointer to `%s`", n.toChars());
             goto case Terror;
         case Terror:
             result = Type.terror;
@@ -795,7 +797,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             errors |= tf.checkRetType(loc);
             if (tf.next.isscope() && !(sc.flags & SCOPEctor))
             {
-                mtype.error(loc, "functions cannot return scope %s", tf.next.toChars());
+                mtype.error(loc, "functions cannot return scope `%s`", tf.next.toChars());
                 errors = true;
             }
             if (tf.next.hasWild())
@@ -803,7 +805,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
             if (tf.isreturn && !tf.isref && !tf.next.hasPointers())
             {
-                mtype.error(loc, "function type '%s' has 'return' but does not return any indirections", tf.toChars());
+                mtype.error(loc, "function type `%s` has `return` but does not return any indirections", tf.toChars());
             }
         }
 
@@ -843,7 +845,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
                 if (t.ty == Tfunction)
                 {
-                    mtype.error(loc, "cannot have parameter of function type %s", fparam.type.toChars());
+                    mtype.error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
                     errors = true;
                 }
                 else if (!(fparam.storageClass & (STCref | STCout)) &&
@@ -853,13 +855,13 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members ||
                         tb2.ty == Tenum && !(cast(TypeEnum)tb2).sym.memtype)
                     {
-                        mtype.error(loc, "cannot have parameter of opaque type %s by value", fparam.type.toChars());
+                        mtype.error(loc, "cannot have parameter of opaque type `%s` by value", fparam.type.toChars());
                         errors = true;
                     }
                 }
                 else if (!(fparam.storageClass & STClazy) && t.ty == Tvoid)
                 {
-                    mtype.error(loc, "cannot have parameter of type %s", fparam.type.toChars());
+                    mtype.error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
                     errors = true;
                 }
 
@@ -878,7 +880,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         if (0 && !tf.isref)
                         {
                             auto stc = fparam.storageClass & (STCref | STCout);
-                            mtype.error(loc, "parameter %s is 'return %s' but function does not return by ref",
+                            mtype.error(loc, "parameter `%s` is `return %s` but function does not return by `ref`",
                                 fparam.ident ? fparam.ident.toChars() : "",
                                 stcToChars(stc));
                             errors = true;
@@ -892,7 +894,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         }
                         else if (tf.next && !tf.next.hasPointers())
                         {
-                            mtype.error(loc, "parameter %s is 'return' but function does not return any indirections",
+                            mtype.error(loc, "parameter `%s` is `return` but function does not return any indirections",
                                 fparam.ident ? fparam.ident.toChars() : "");
                             errors = true;
                         }
@@ -906,7 +908,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 {
                     if (ubyte m = fparam.type.mod & (MODimmutable | MODconst | MODwild))
                     {
-                        mtype.error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t.toChars());
+                        mtype.error(loc, "cannot have %s out parameter of type `%s`", MODtoChars(m), t.toChars());
                         errors = true;
                     }
                     else
@@ -916,7 +918,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                             tv = tv.nextOf().toBasetype();
                         if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.noDefaultCtor)
                         {
-                            mtype.error(loc, "cannot have out parameter of type %s because the default construction is disabled", fparam.type.toChars());
+                            mtype.error(loc, "cannot have out parameter of type `%s` because the default construction is disabled", fparam.type.toChars());
                             errors = true;
                         }
                     }
@@ -933,7 +935,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 {
                     wildparams |= 1;
                     //if (tf.next && !wildreturn)
-                    //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
+                    //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with `ref`)");
                 }
 
                 if (fparam.defaultArg)
@@ -1007,7 +1009,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                                 OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam.storageClass & STCauto) : 0));
                                 OutBuffer buf2;  stcToBuffer(&buf2, stc2);
 
-                                mtype.error(loc, "incompatible parameter storage classes '%s' and '%s'",
+                                mtype.error(loc, "incompatible parameter storage classes `%s` and `%s`",
                                     buf1.peekString(), buf2.peekString());
                                 errors = true;
                                 stc = stc1 | (stc & ~(STCref | STCout | STClazy));
@@ -1047,7 +1049,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     }
                     else
                     {
-                        mtype.error(loc, "'auto' can only be used as part of 'auto ref' for template function parameters");
+                        mtype.error(loc, "`auto` can only be used as part of `auto ref` for template function parameters");
                         errors = true;
                     }
                 }
@@ -1062,7 +1064,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         if (wildreturn && !wildparams)
         {
-            mtype.error(loc, "inout on return means inout must be on a parameter as well for %s", mtype.toChars());
+            mtype.error(loc, "inout on return means inout must be on a parameter as well for `%s`", mtype.toChars());
             errors = true;
         }
         tf.iswild = wildparams;
@@ -1158,7 +1160,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 //assert(0);
             }
             else
-                mtype.error(loc, "%s is used as a type", mtype.toChars());
+                mtype.error(loc, "`%s` is used as a type", mtype.toChars());
             t = Type.terror;
         }
         //t.print();
@@ -1189,10 +1191,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             {
                 // if there was an error evaluating the symbol, it might actually
                 // be a type. Avoid misleading error messages.
-               mtype.error(loc, "%s had previous errors", mtype.toChars());
+               mtype.error(loc, "`%s` had previous errors", mtype.toChars());
             }
             else
-               mtype.error(loc, "%s is used as a type", mtype.toChars());
+               mtype.error(loc, "`%s` is used as a type", mtype.toChars());
             t = Type.terror;
         }
         result = t;
@@ -1209,7 +1211,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             t = t.addMod(mtype.mod);
         if (!t)
         {
-            mtype.error(loc, "%s is used as a type", mtype.toChars());
+            mtype.error(loc, "`%s` is used as a type", mtype.toChars());
             t = Type.terror;
         }
         result = t;
@@ -1226,7 +1228,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             t = t.addMod(mtype.mod);
         if (!t)
         {
-            mtype.error(loc, "%s is used as a type", mtype.toChars());
+            mtype.error(loc, "`%s` is used as a type", mtype.toChars());
             t = Type.terror;
         }
         result = t;
@@ -1329,7 +1331,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         Type tbn = tn.toBasetype();
         if (tbn.ty != Ttuple)
         {
-            mtype.error(loc, "can only slice tuple types, not %s", tbn.toChars());
+            mtype.error(loc, "can only slice tuple types, not `%s`", tbn.toChars());
             result = Type.terror;
             return;
         }
@@ -1349,7 +1351,8 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         uinteger_t i2 = mtype.upr.toUInteger();
         if (!(i1 <= i2 && i2 <= tt.arguments.dim))
         {
-            mtype.error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt.arguments.dim);
+            mtype.error(loc, "slice `[%llu..%llu]` is out of range of `[0..%llu]`",
+                cast(ulong)i1, cast(ulong)i2, cast(ulong)tt.arguments.dim);
             result = Type.terror;
             return;
         }
