@@ -2,10 +2,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13775.d(17): Error: cannot cast expression ubytes[0..2] of type ubyte[2] to ubyte[1]
-fail_compilation/fail13775.d(18): Error: cannot cast expression ubytes[0..2] of type ubyte[2] to ubyte[3]
-fail_compilation/fail13775.d(19): Error: cannot cast expression ubytes[0..2] of type ubyte[2] to byte[1]
-fail_compilation/fail13775.d(20): Error: cannot cast expression ubytes[0..2] of type ubyte[2] to byte[3]
+fail_compilation/fail13775.d(17): Error: cannot cast expression `ubytes[0..2]` of type `ubyte[2]` to `ubyte[1]`
+fail_compilation/fail13775.d(18): Error: cannot cast expression `ubytes[0..2]` of type `ubyte[2]` to `ubyte[3]`
+fail_compilation/fail13775.d(19): Error: cannot cast expression `ubytes[0..2]` of type `ubyte[2]` to `byte[1]`
+fail_compilation/fail13775.d(20): Error: cannot cast expression `ubytes[0..2]` of type `ubyte[2]` to `byte[3]`
 ---
 */
 

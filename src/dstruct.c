@@ -28,6 +28,7 @@ Type *getTypeInfoType(Type *t, Scope *sc);
 TypeTuple *toArgTypes(Type *t);
 void unSpeculative(Scope *sc, RootObject *o);
 bool MODimplicitConv(MOD modfrom, MOD modto);
+Expression *resolve(Loc loc, Scope *sc, Dsymbol *s, bool hasOverloads);
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
@@ -313,7 +314,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         ti->semantic(sc3);
         ti->semantic2(sc3);
         ti->semantic3(sc3);
-        Expression *e = DsymbolExp::resolve(Loc(), sc3, ti->toAlias(), false);
+        Expression *e = resolve(Loc(), sc3, ti->toAlias(), false);
 
         sc3->endCTFE();
 
@@ -810,10 +811,10 @@ void AggregateDeclaration::alignmember(
  *
  * nextoffset:    next location in aggregate
  * memsize:       size of member
- * memalignsize:  size of member for alignment purposes
+ * memalignsize:  natural alignment of member
  * alignment:     alignment in effect for this member
  * paggsize:      size of aggregate (updated)
- * paggalignsize: size of aggregate for alignment purposes (updated)
+ * paggalignsize: alignment of aggregate (updated)
  * isunion:       the aggregate is a union
  */
 unsigned AggregateDeclaration::placeField(
@@ -827,6 +828,10 @@ unsigned AggregateDeclaration::placeField(
         )
 {
     unsigned ofs = *nextoffset;
+
+    const unsigned actualAlignment =
+        alignment == STRUCTALIGN_DEFAULT ? memalignsize : alignment;
+
     alignmember(alignment, memalignsize, &ofs);
     unsigned memoffset = ofs;
     ofs += memsize;
@@ -835,14 +840,8 @@ unsigned AggregateDeclaration::placeField(
     if (!isunion)
         *nextoffset = ofs;
 
-    if (alignment != STRUCTALIGN_DEFAULT)
-    {
-        if (memalignsize < alignment)
-            memalignsize = alignment;
-    }
-
-    if (*paggalignsize < memalignsize)
-        *paggalignsize = memalignsize;
+    if (*paggalignsize < actualAlignment)
+        *paggalignsize = actualAlignment;
 
     return memoffset;
 }
@@ -997,11 +996,16 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id, bool inObject)
     }
 }
 
+StructDeclaration *StructDeclaration::create(Loc loc, Identifier *id, bool inObject)
+{
+    return new StructDeclaration(loc, id, inObject);
+}
+
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)
 {
     StructDeclaration *sd =
         s ? (StructDeclaration *)s
-          : new StructDeclaration(loc, ident);
+          : new StructDeclaration(loc, ident, false);
     return ScopeDsymbol::syntaxCopy(sd);
 }
 
@@ -1033,6 +1037,8 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (this->errors)
         type = Type::terror;
+    if (semanticRun == PASSinit)
+        type = type->addSTC(sc->stc | storage_class);
     type = type->semantic(loc, sc);
 
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
@@ -1060,7 +1066,6 @@ void StructDeclaration::semantic(Scope *sc)
     }
     else if (symtab && !scx)
     {
-        semanticRun = PASSsemanticdone;
         return;
     }
     semanticRun = PASSsemantic;
@@ -1110,6 +1115,7 @@ void StructDeclaration::semantic(Scope *sc)
     {
         assert(type->ty == Terror);
         sc2->pop();
+        semanticRun = PASSsemanticdone;
         return;
     }
 
@@ -1447,7 +1453,7 @@ const char *StructDeclaration::kind()
 /********************************* UnionDeclaration ****************************/
 
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
-    : StructDeclaration(loc, id)
+    : StructDeclaration(loc, id, false)
 {
 }
 

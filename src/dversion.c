@@ -103,6 +103,8 @@ void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
 void DebugSymbol::semantic(Scope *sc)
 {
     //printf("DebugSymbol::semantic() %s\n", toChars());
+    if (semanticRun < PASSsemanticdone)
+        semanticRun = PASSsemanticdone;
 }
 
 const char *DebugSymbol::kind()
@@ -145,8 +147,8 @@ const char *VersionSymbol::toChars()
 Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    VersionSymbol *ds = new VersionSymbol(loc, ident);
-    ds->level = level;
+    VersionSymbol *ds = ident ? new VersionSymbol(loc, ident)
+                              : new VersionSymbol(loc, level);
     return ds;
 }
 
@@ -191,6 +193,8 @@ void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
 
 void VersionSymbol::semantic(Scope *sc)
 {
+    if (semanticRun < PASSsemanticdone)
+        semanticRun = PASSsemanticdone;
 }
 
 const char *VersionSymbol::kind()

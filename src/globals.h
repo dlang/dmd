@@ -70,6 +70,7 @@ struct Param
     bool vfield;        // identify non-mutable field variables
     bool vcomplex;      // identify complex/imaginary type usage
     char symdebug;      // insert debug symbolic information
+    bool symdebugref;   // insert debug information for all referenced types, too
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
     bool map;           // generate linker .map file
@@ -218,17 +219,19 @@ struct Global
 
     unsigned errorLimit;
 
+    void* console;         // opaque pointer to console for controlling text attributes
+
     /* Start gagging. Return the current number of gagged errors
      */
     unsigned startGagging();
 
     /* End gagging, restoring the old gagged state.
-     * Return true if errors occured while gagged.
+     * Return true if errors occurred while gagged.
      */
     bool endGagging(unsigned oldGagged);
 
     /*  Increment the error count to record that an error
-     *  has occured in the current context. An error message
+     *  has occurred in the current context. An error message
      *  may or may not have been printed.
      */
     void increaseErrorCount();

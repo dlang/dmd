@@ -583,6 +583,72 @@
     ],
     "constraint" : "T == string",
     "members" : []
+   },
+   {
+    "name" : "a0",
+    "kind" : "variable",
+    "line" : 116,
+    "char" : 5,
+    "deco" : "i",
+    "init" : "1"
+   },
+   {
+    "name" : "a1",
+    "kind" : "variable",
+    "line" : 116,
+    "char" : 5,
+    "deco" : "i",
+    "init" : "1"
+   },
+   {
+    "name" : "a2",
+    "kind" : "variable",
+    "line" : 116,
+    "char" : 5,
+    "deco" : "i",
+    "init" : "1"
+   },
+   {
+    "kind" : "template",
+    "line" : 119,
+    "char" : 1,
+    "name" : "Seq",
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "tuple"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "Seq",
+      "kind" : "alias",
+      "line" : 119,
+      "char" : 1,
+      "type" : "T"
+     }
+    ]
+   },
+   {},
+   {
+    "name" : "b0",
+    "kind" : "alias",
+    "line" : 123,
+    "char" : 1
+   },
+   {},
+   {
+    "name" : "b1",
+    "kind" : "alias",
+    "line" : 123,
+    "char" : 1
+   },
+   {},
+   {
+    "name" : "b2",
+    "kind" : "alias",
+    "line" : 123,
+    "char" : 1
    }
   ]
  }

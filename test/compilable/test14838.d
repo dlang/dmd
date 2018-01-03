@@ -20,34 +20,34 @@ void test14838() pure nothrow @nogc @safe
  * to fix the semantic analysis order issue for correct destructor attribute inference.
  *
  * Before the bugfix:
- *   1. StructDeclaration('Array!int')->semantic() instantiates
+ *   1. StructDeclaration('Array!int').semantic() instantiates
  *      RangeT!(Array!int) at the `alias Range = ...;`, but
- *      StructDeclaration('RangeT!(Array!int)')->semantic() exits
+ *      StructDeclaration('RangeT!(Array!int)').semantic() exits
  *      with sizeok == SIZEOKfwd, because the size of _outer_ field is not yet determined.
- *   2. StructDeclaration('Array!int')->semantic() succeeds to determine the size
+ *   2. StructDeclaration('Array!int').semantic() succeeds to determine the size
  *      (sizeok = SIZEOKdone).
- *   3. StructDeclaration('Array!int')->buildOpAssign() will generate opAssign because
+ *   3. StructDeclaration('Array!int').buildOpAssign() will generate opAssign because
  *      Array!int._data field has identity opAssign member function.
  *   4. The semantic3 will get called for the generated opAssign, then
  *         6-1. Array!int.~this() semantic3, and
  *         6-2. RefCounted!(Array!int.Payload).~this() semantic3
  *      will also get called to infer their attributes.
  *   5. In RefCounted!(Array!int.Payload).~this(), destroy(t) will be instantiated.
- *      At that, TemplateInstance::expandMembers() will invoke runDeferredSemantic()
- *      and it will re-run StructDeclaration('RangeT!(Array!int)')->semantic().
- *   6. StructDeclaration('RangeT!(Array!int)')->semantic() determines the size
+ *      At that, TemplateInstance.expandMembers() will invoke runDeferredSemantic()
+ *      and it will re-run StructDeclaration('RangeT!(Array!int)').semantic().
+ *   6. StructDeclaration('RangeT!(Array!int)').semantic() determines the size
  *      (sizeok = SIZEOKdone). Then, it will generate identity opAssign and run its semantic3.
  *      It will need to infer RangeT!(Array!int).~this() attribute, then it requires the
  *      correct attribute of Array!int.~this().
- * 
+ *
  *      However, the Array!int.~this() attribute is not yet determined! [bug]
  *      -> it's wongly handled as impure/system/throwable/gc-able.
- * 
+ *
  *      -> then, the attribute inference results for
  *         RangeT!(Array!int).~this() and Array!int.~this() will be incorrect.
  *
  * After the bugfix:
- *   In 6, StructDeclaration('RangeT!(Array!int)')->semantic() will check that:
+ *   In 6, StructDeclaration('RangeT!(Array!int)').semantic() will check that:
  *   all base struct types of the instance fields have completed addition of
  *   special functions (dtor, opAssign, etc).
  *   If not, it will defer the completion of its semantic pass.

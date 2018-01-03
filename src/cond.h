@@ -12,6 +12,9 @@
 #ifndef DMD_DEBCOND_H
 #define DMD_DEBCOND_H
 
+#include "globals.h"
+#include "visitor.h"
+
 class Expression;
 class Identifier;
 struct OutBuffer;
@@ -19,6 +22,8 @@ class Module;
 struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
+class ForeachStatement;
+class ForeachRangeStatement;
 
 int findCondition(Strings *ids, Identifier *ident);
 
@@ -37,6 +42,19 @@ public:
     virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
+};
+
+class StaticForeach
+{
+public:
+    Loc loc;
+
+    ForeachStatement *aggrfe;
+    ForeachRangeStatement *rangefe;
+
+    bool needExpansion;
+
+    StaticForeach *syntaxCopy();
 };
 
 class DVCondition : public Condition

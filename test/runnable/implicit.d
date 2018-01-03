@@ -437,6 +437,30 @@ struct S13640
 }
 
 /***********************************/
+// 15778
+
+void test15778()
+{
+     char[] cs = new  char[](3);
+    wchar[] ws = new wchar[](3);
+    dchar[] ds = new dchar[](3);
+
+    cs[] = "abc";   assert(cs == "abc");
+    cs[] = "def"c;  assert(cs == "def");
+    ws[] = "abc";   assert(ws == "abc");
+    ws[] = "def"w;  assert(ws == "def");
+    ds[] = "abc";   assert(ds == "abc");
+    ds[] = "def"d;  assert(ds == "def");
+
+    static assert(!__traits(compiles, (cs[] = "a"w)));
+    static assert(!__traits(compiles, (cs[] = "a"d)));
+    static assert(!__traits(compiles, (ws[] = "a"c)));
+    static assert(!__traits(compiles, (ws[] = "a"d)));
+    static assert(!__traits(compiles, (ds[] = "a"c)));
+    static assert(!__traits(compiles, (ds[] = "a"w)));
+}
+
+/***********************************/
 
 void main()
 {
@@ -451,6 +475,7 @@ void main()
     testDIP29_4();
     testDIP29_5();
     testDIP29_6();
+    test15778();
 
     writefln("Success");
 }

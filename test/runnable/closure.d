@@ -898,6 +898,57 @@ void test12406()
 }
 
 /************************************/
+// 14730
+
+void test14730()
+{
+    static auto makeS(int x)
+    {
+        struct S
+        {
+            int n;
+            int get() { return x; }     // x will be a closure variable
+        }
+        return S(x);
+    }
+    auto s = makeS(1);
+    assert(s.get() == 1);
+    // By inlining get() function call, it's rewritten to:
+    // assert(*(s.tupleof[$-1] + x.offset) == 1);
+    // --> In DotVarExp::toElem(), x->offset should be already nonzero.
+}
+
+// ----
+
+// This is questionable case. Currently it works without any errors,
+// but not sure it's really intentional
+
+struct S14730x(alias f)
+{
+    auto foo()() { return f(0); }
+
+    void dummy() {}
+}
+
+auto makeS14730x() //@nogc
+{
+    int x = 10;
+    S14730x!(a => x) s;
+    //assert(s.foo() == 10);
+    return s;
+}
+
+void test14730x()
+{
+    auto s = makeS14730x();
+    assert(s.tupleof[$-1] !is null);
+
+    // instantiationg foo outside of makeS will place the variable x in closure
+    // *after* the semantic3 completion of makeS() function.
+    assert(s.foo() == 10);
+}
+
+/************************************/
 
 int main()
 {
@@ -929,6 +980,8 @@ int main()
     test9685a();
     test9685b();
     test12406();
+    test14730();
+    test14730x();
 
     printf("Success\n");
     return 0;

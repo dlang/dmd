@@ -49,7 +49,7 @@ public:
 
     bool isAncestorPackageOf(const Package * const pkg) const;
 
-    void semantic(Scope *) { }
+    void semantic(Scope *);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     void accept(Visitor *v) { v->visit(this); }
 
@@ -165,10 +165,6 @@ public:
     Symbol *stest;              // module unit test
 
     Symbol *sfilename;          // symbol for filename
-
-    Symbol *massert;            // module assert function
-    Symbol *munittest;          // module unittest failure function
-    Symbol *marray;             // module array bounds function
 
     Module *isModule() { return this; }
     void accept(Visitor *v) { v->visit(this); }

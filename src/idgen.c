@@ -91,6 +91,7 @@ Msgtable msgtable[] =
     { "cpp_type_info_ptr", "__cpp_type_info_ptr" },
     { "_assert", "assert" },
     { "_unittest", "unittest" },
+    { "_body", "body" },
 
     { "TypeInfo" },
     { "TypeInfo_Class" },
@@ -158,9 +159,7 @@ Msgtable msgtable[] =
     { "values" },
     { "rehash" },
 
-    { "sort" },
-    { "reverse" },
-
+    { "future", "__future" },
     { "property" },
     { "nogc" },
     { "safe" },
@@ -257,8 +256,6 @@ Msgtable msgtable[] =
     { "Fback", "back" },
     { "FpopFront", "popFront" },
     { "FpopBack", "popBack" },
-
-    { "adReverse", "_adReverse" },
 
     // For internal functions
     { "aaLen", "_aaLen" },
@@ -357,6 +354,9 @@ Msgtable msgtable[] =
     { "getAliasThis" },
     { "getAttributes" },
     { "getFunctionAttributes" },
+    { "getFunctionVariadicStyle" },
+    { "getParameterStorageClasses" },
+    { "getLinkage" },
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
@@ -371,6 +371,12 @@ Msgtable msgtable[] =
 
     // Compiler recognized UDA's
     { "udaSelector", "selector" },
+
+    // C names, for undefined identifier error messages
+    { "_NULL", "NULL" },
+    { "_TRUE", "TRUE" },
+    { "_FALSE", "FALSE" },
+    { "_unsigned", "unsigned" },
 };
 
 

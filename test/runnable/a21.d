@@ -9,8 +9,8 @@ template BadMixin()
 {
     int badFunc()
     {
-	printf("badFunc\n");
-	return 2;
+        printf("badFunc\n");
+        return 2;
     }
 }
 

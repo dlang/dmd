@@ -29,6 +29,7 @@
 FuncDeclaration *isFuncAddress(Expression *e, bool *hasOverloads = NULL);
 bool isCommutative(TOK op);
 MOD MODmerge(MOD mod1, MOD mod2);
+Expression *semantic(Expression *e, Scope *sc);
 
 /* ==================== implicitCast ====================== */
 
@@ -1502,7 +1503,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                 TypeVector *tv = (TypeVector *)tob;
                 result = new CastExp(e->loc, e, tv->elementType());
                 result = new VectorExp(e->loc, result, tob);
-                result = result->semantic(sc);
+                result = ::semantic(result, sc);
                 return;
             }
             else if (tob->ty != Tvector && t1b->ty == Tvector)
@@ -2001,7 +2002,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     {
                         f->tookAddressOf++;
                         SymOffExp *se = new SymOffExp(e->loc, f, 0, false);
-                        se->semantic(sc);
+                        ::semantic(se, sc);
                         // Let SymOffExp::castTo() do the heavy lifting
                         visit(se);
                         return;
@@ -2165,7 +2166,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                     (*ae->elements)[i] = ex;
                 }
                 Expression *ev = new VectorExp(e->loc, ae, tb);
-                ev = ev->semantic(sc);
+                ev = ::semantic(ev, sc);
                 result = ev;
                 return;
             }
@@ -2242,12 +2243,12 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                         if (f->needThis() && hasThis(sc))
                         {
                             result = new DelegateExp(e->loc, new ThisExp(e->loc), f, false);
-                            result = result->semantic(sc);
+                            result = ::semantic(result, sc);
                         }
                         else if (f->isNested())
                         {
                             result = new DelegateExp(e->loc, new IntegerExp(0), f, false);
-                            result = result->semantic(sc);
+                            result = ::semantic(result, sc);
                         }
                         else if (f->needThis())
                         {
@@ -2308,7 +2309,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
                             int offset;
                             if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
                                 e->error("%s", msg);
-                            f->tookAddressOf++;
+                            if (f != e->func)    // if address not already marked as taken
+                                f->tookAddressOf++;
                             result = new DelegateExp(e->loc, e->e1, f, false);
                             result->type = t;
                             return;
@@ -3041,8 +3043,8 @@ Lcc:
 
                 if (cd1 && cd2)
                 {
-                    t1 = cd1->type;
-                    t2 = cd2->type;
+                    t1 = cd1->type->castMod(t1->mod);
+                    t2 = cd2->type->castMod(t2->mod);
                 }
                 else if (cd1)
                     t1 = cd1->type;

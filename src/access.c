@@ -526,7 +526,7 @@ bool symbolIsVisible(Module *mod, Dsymbol *s)
         case PROTprivate:
             return s->getAccessModule() == mod;
         case PROTpackage:
-            return hasPackageAccess(mod, s);
+            return s->getAccessModule() == mod || hasPackageAccess(mod, s);
         case PROTprotected:
             return s->getAccessModule() == mod;
         case PROTpublic:
@@ -567,7 +567,7 @@ bool symbolIsVisible(Scope *sc, Dsymbol *s)
         case PROTprivate:
             return sc->_module == s->getAccessModule();
         case PROTpackage:
-            return hasPackageAccess(sc->_module, s);
+            return sc->_module == s->getAccessModule() || hasPackageAccess(sc->_module, s);
         case PROTprotected:
             return hasProtectedAccess(sc, s);
         case PROTpublic:

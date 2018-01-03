@@ -1149,19 +1149,15 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
-    objc_tryMain_dObjc();
 
     // Initialization
-    Lexer::initLexer();
     Type::_init();
     Id::initialize();
     Module::_init();
     Target::_init();
     Expression::_init();
-    objc_tryMain_init();
-    initPrecedence();
+    Objc::_init();
     builtin_init();
-    initTraitsStringTable();
 
     if (global.params.verbose)
     {   fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);

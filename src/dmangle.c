@@ -249,7 +249,7 @@ public:
                 buf->writestring("Ni");
             if (ta->isreturn)
                 buf->writestring("Nj");
-            if (ta->isscope && !ta->isreturn)
+            if (ta->isscope && !ta->isreturn && !ta->isscopeinferred)
                 buf->writestring("Nl");
             switch (ta->trust)
             {
@@ -833,7 +833,7 @@ public:
 
     void visit(Parameter *p)
     {
-        if (p->storageClass & STCscope)
+        if (p->storageClass & STCscope && !(p->storageClass & STCscopeinferred))
             buf->writeByte('M');
         // 'return inout ref' is the same as 'inout ref'
         if ((p->storageClass & (STCreturn | STCwild)) == STCreturn)

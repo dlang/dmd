@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13024.d(15): Error: cannot implicitly convert expression (t.x) of type A to B
+fail_compilation/ice13024.d(15): Error: cannot implicitly convert expression `t.x` of type `A` to `B`
 ---
 */
 

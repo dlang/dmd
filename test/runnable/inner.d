@@ -828,6 +828,56 @@ void test14046()
 }
 
 /*******************************************************/
+// 15839
+
+class AnimatedProgress15839(bool makeClosure)
+{
+    static AnimatedProgress15839 saveThis;
+
+    interface Runnable {}
+
+    static class GC
+    {
+        this(AnimatedProgress15839 ap)
+        {
+            assert(ap is saveThis);
+        }
+    }
+
+    void start()
+    {
+        assert(this is saveThis);
+
+        static if (makeClosure) int a;
+
+        auto r = new class Runnable
+        {
+            void run()
+            {
+                static assert(is(typeof(this.outer) == AnimatedProgress15839));
+                assert(this.outer is saveThis);
+
+                GC gc = new GC(this.outer);
+
+                static if (makeClosure) int b = a;
+            }
+        };
+        r.run();
+    }
+}
+
+void test15839()
+{
+    auto ap1 = new AnimatedProgress15839!false();
+    ap1.saveThis = ap1;
+    ap1.start();
+
+    auto ap2 = new AnimatedProgress15839!true();
+    ap2.saveThis = ap2;
+    ap2.start();
+}
+
+/*******************************************************/
 
 int main()
 {
@@ -861,6 +911,7 @@ int main()
     test24();
 
     test14046();
+    test15839();
 
     printf("Success\n");
     return 0;

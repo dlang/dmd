@@ -13,15 +13,15 @@ void test1()
     real r;
 
     while (x > 1e-5)
-    {	double y = x / 101.0;
+    {   double y = x / 101.0;
 
-	std.stdio.writef("x = %g\t%f\t%e\n",x/101.0,x/101.0,x/101.0);
-	x /= 10.0;
+        std.stdio.writef("x = %g\t%f\t%e\n",x/101.0,x/101.0,x/101.0);
+        x /= 10.0;
     }
 
     double a = 123456789.0;
     for (int i = 20; i--; a /= 10)
-	std.stdio.writef("%20.6g|%20.6e|%20.6f\n",a,a,a);
+        std.stdio.writef("%20.6g|%20.6e|%20.6f\n",a,a,a);
 
     std.stdio.writef("%e %e %e %e\n",float.nan,double.nan,real.nan,double.infinity);
     std.stdio.writef("%e %e %e\n",-float.nan,-double.nan,-double.infinity);

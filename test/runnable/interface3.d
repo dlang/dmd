@@ -18,12 +18,12 @@ interface I3 : I2 {}
 
 class Newline : I3
 {
-	static int OKset;
+        static int OKset;
 
         void write (IWriter writer)
         {
                 printf ("OK\n");
-		OKset += 1;
+                OKset += 1;
         }
 }
 
@@ -58,18 +58,18 @@ class FlushWriter : Writer
 
 void test (IWriter w)
 {
-	//w.put (new Newline);
+        //w.put (new Newline);
 
-	I3 NL = new Newline;
-	w.put (NL);
+        I3 NL = new Newline;
+        w.put (NL);
 }
 
 
 int main()
 {
         test (new FlushWriter);
-	assert(Newline.OKset == 1);
-	return 0;
+        assert(Newline.OKset == 1);
+        return 0;
 }
 
 

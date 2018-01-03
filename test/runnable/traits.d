@@ -390,7 +390,7 @@ void test13()
 
     auto k = __traits(classInstanceSize, C);
     writeln(k);
-    assert(k == C.classinfo.init.length);
+    assert(k == C.classinfo.initializer.length);
 }
 
 /********************************************************/
@@ -943,7 +943,7 @@ void getProtection()
 
 void test9546()
 {
-    import imports.a9546;
+    import imports.a9546 : S;
 
     S s;
     static assert(__traits(getProtection, s.privA) == "private");
@@ -1372,17 +1372,17 @@ void test_getFunctionAttributes()
     ref int ref_property() @property { return *(new int); }
     void safe_nothrow() @safe nothrow { }
 
-    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@system"));
+    static assert(__traits(getFunctionAttributes, pure_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(pure_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
 
-    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("@property", "ref", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("@property", "ref", "@system"));
+    static assert(__traits(getFunctionAttributes, static_ref_property) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(&static_ref_property)) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
 
-    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("@property", "ref", "@system"));
-    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("@property", "ref", "@system"));
+    static assert(__traits(getFunctionAttributes, ref_property) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(&ref_property)) == tuple!("pure", "nothrow", "@property", "ref", "@safe"));
 
-    static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("nothrow", "@safe"));
-    static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("nothrow", "@safe"));
+    static assert(__traits(getFunctionAttributes, safe_nothrow) == tuple!("pure", "nothrow", "@nogc", "@safe"));
+    static assert(__traits(getFunctionAttributes, typeof(safe_nothrow)) == tuple!("pure", "nothrow", "@nogc", "@safe"));
 
     struct S2
     {
@@ -1511,6 +1511,19 @@ void test12237()
             return 10;
     }(1) == 10);
 }
+
+/********************************************************/
+
+void async(ARGS...)(ARGS)
+{
+        static void compute(ARGS)
+        {
+        }
+
+        auto x = __traits(getParameterStorageClasses, compute, 1);
+}
+
+alias test17495 = async!(int, int);
 
 /********************************************************/
 

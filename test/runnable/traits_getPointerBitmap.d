@@ -11,7 +11,7 @@ version(RTInfo)
     import gc.rtinfo;
 else
     enum bool RTInfoMark__Monitor = false; // is __monitor GC allocated?
-    
+
 
 enum bytesPerPtr = (size_t.sizeof);
 enum bytesPerBitmapWord = bytesPerPtr * bytesPerPtr * 8;
@@ -41,7 +41,7 @@ void __testType(T)(size_t[] expected)
         enum info = RTInfoImpl2!(Unqual!T); // we want the array, not the pointer
     else
         enum info = __traits(getPointerBitmap,T); // we want the array, not the pointer
-    
+
     debug(LOG) writef("%-20s:", T.stringof);
     debug(LOG) writef(" CT:%s", info);
     debug(LOG) writef(" EXP:%d %s", allocatedSize!T, expected);
@@ -144,6 +144,7 @@ alias string[3] sint3;
 alias string[3][2] sint3_2;
 alias int delegate() dg;
 alias int function() fn;
+alias typeof(null) NullType;
 
 // span multiple bitmap elements
 struct Large
@@ -214,6 +215,7 @@ void testRTInfo()
     testType!(dg)           ([ 0b01 ]);
     testType!(fn)           ([ 0b0 ]);
     testType!(S!fn)         ([ 0b100 ]);
+    testType!(NullType)     ([ 0b0 ]);
     version(D_LP64)
         testType!(__vector(float[4]))  ([ 0b00 ]);
 
@@ -260,7 +262,7 @@ void testRTInfo()
     _testType!(CFNested)     ([ 0b110000 ]);
 }
 
-void main() 
+void main()
 {
     testRTInfo();
 }

@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: 
+// PERMUTE_ARGS:
 // REQUIRED_ARGS: -version=3 -version=foo
 
 extern(C) int printf(const char*, ...);
@@ -11,11 +11,11 @@ void test1()
 
     version(2)
     {
-	i = 2;
+        i = 2;
     }
     else
     {
-	i = 0;
+        i = 0;
     }
     printf("i = %d\n", i);
     assert(i == 2);
@@ -24,11 +24,11 @@ void test1()
 
     version(foo)
     {
-	i = 2;
+        i = 2;
     }
     else
     {
-	i = 0;
+        i = 0;
     }
     printf("i = %d\n", i);
     assert(i == 2);
@@ -51,7 +51,7 @@ void test2()
     {
     }
     else
-	assert(0);
+        assert(0);
 
     version(4) assert(0);
 }

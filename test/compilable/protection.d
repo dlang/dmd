@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -de
 import imports.protectionimp;
 
 alias TypeTuple(T...) = T;

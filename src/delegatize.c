@@ -23,6 +23,13 @@
 #include "init.h"
 #include "tokens.h"
 
+
+bool walkPostorder(Expression *e, StoppableVisitor *v);
+void lambdaSetParent(Expression *e, Scope *sc);
+bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
+Expression *semantic(Expression *e, Scope *sc);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+
 /********************************************
  * Convert from expression to delegate that returns the expression,
  * i.e. convert:
@@ -30,11 +37,6 @@
  * to:
  *      typeof(expr) delegate() { return expr; }
  */
-
-bool walkPostorder(Expression *e, StoppableVisitor *v);
-void lambdaSetParent(Expression *e, Scope *sc);
-bool lambdaCheckForNestedRef(Expression *e, Scope *sc);
-
 Expression *toDelegate(Expression *e, Type* t, Scope *sc)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), e->toChars());
@@ -63,7 +65,7 @@ Expression *toDelegate(Expression *e, Type* t, Scope *sc)
     fld->fbody = s;
 
     e = new FuncExp(loc, fld);
-    e = e->semantic(sc);
+    e = semantic(e, sc);
     return e;
 }
 
@@ -171,7 +173,7 @@ bool lambdaCheckForNestedRef(Expression *e, Scope *sc)
                  */
                 if (v->_init && v->_init->isExpInitializer())
                 {
-                    Expression *ie = v->_init->toExpression();
+                    Expression *ie = initializerToExpression(v->_init);
                     result = lambdaCheckForNestedRef(ie, sc);
                 }
             }

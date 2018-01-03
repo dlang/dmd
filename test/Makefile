@@ -1,21 +1,25 @@
 # Execute the dmd test suite
 #
-# Targets:
+# Targets
+# -------
 #
 #    default | all:      run all unit tests that haven't been run yet
 #
 #    run_tests:          run all tests
 #    run_runnable_tests:         run just the runnable tests
-#    run_compilable_tests:       run just the runnable tests
-#    run_fail_compilation_tests: run just the runnable tests
+#    run_compilable_tests:       run just the compilable tests
+#    run_fail_compilation_tests: run just the fail compilation tests
 #
 #    quick:              run all tests with no default permuted args
 #                        (individual test specified options still honored)
 #
 #    clean:              remove all temporary or result files from prevous runs
 #
-#
-# In-test variables:
+#    test_results/compilable/json.d.out      runs an individual test
+#                                            (run log of the test is stored)
+
+# In-test variables
+# -----------------
 #
 #   COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
 #                        together in an extra setp.
@@ -31,7 +35,8 @@
 #                        default: (none). Test files with this variable will be ignored unless
 #                        the D_OBJC environment variable is set to "1"
 #
-#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
+#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
+#                        An empty set means only one permutation with no arguments.
 #                        default: the make variable ARGS (see below)
 #
 #   TEST_OUTPUT:         the output is expected from the compilation (if the
@@ -83,6 +88,8 @@ export OS
 
 ifeq (freebsd,$(OS))
     SHELL=/usr/local/bin/bash
+else ifeq (netbsd,$(OS))
+    SHELL=/usr/pkg/bin/bash
 else
     SHELL=/bin/bash
 endif
@@ -92,7 +99,7 @@ export MODEL
 export REQUIRED_ARGS=
 
 ifeq ($(findstring win,$(OS)),win)
-export ARGS=-inline -release -g -O -unittest
+export ARGS=-inline -release -g -O
 export DMD=../src/dmd.exe
 export EXE=.exe
 export OBJ=.obj
@@ -104,7 +111,7 @@ PHOBOS_PATH=..\..\phobos
 export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
 export LIB=$(PHOBOS_PATH)
 else
-export ARGS=-inline -release -gc -O -unittest -fPIC
+export ARGS=-inline -release -g -O -fPIC
 export DMD=../src/dmd
 export EXE=
 export OBJ=.o
@@ -113,7 +120,13 @@ export SEP=/
 
 DRUNTIME_PATH=../../druntime
 PHOBOS_PATH=../../phobos
-export DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+# link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
+SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+ifeq (1,$(SHARED))
+DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/release/$(MODEL)
+endif
+export DFLAGS
 endif
 
 ifeq ($(OS),osx)
@@ -122,25 +135,7 @@ export D_OBJC=1
 endif
 endif
 
-ifeq ($(OS),freebsd)
-DISABLED_TESTS += dhry
-# runnable/dhry.d(488): Error: undefined identifier dtime
-endif
-
-ifeq ($(OS),win32)
-DISABLED_FAIL_TESTS += fail13939
-endif
-
-ifeq ($(OS),win64)
-DISABLED_TESTS += testxmm
-DISABLED_FAIL_TESTS += fail13939
-endif
-
-ifeq ($(OS),osx)
-ifeq ($(MODEL),64)
-DISABLED_TESTS += test6423
-endif
-endif
+export DMD_TEST_COVERAGE=
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
@@ -152,12 +147,6 @@ fail_compilation_tests=$(wildcard fail_compilation/*.d) $(wildcard fail_compilat
 fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fail_compilation_tests)))
 
 all: run_tests
-
-$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
-	$(QUIET) echo " ... $@ - disabled"
-
-$(addsuffix .sh.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_SH_TESTS))): $(RESULTS_DIR)/.created
-	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
@@ -172,9 +161,6 @@ $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(RESU
 $(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) echo " ... $(<D)/$*.sh"
 	$(QUIET) ./$(<D)/$*.sh
-
-$(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/fail_compilation/,$(DISABLED_FAIL_TESTS))): $(RESULTS_DIR)/.created
-	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test$(EXE) $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d

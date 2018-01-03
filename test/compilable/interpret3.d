@@ -897,13 +897,6 @@ int staticdynamic()
 }
 static assert(staticdynamic() == 0);
 
-int[] crashing()
-{
-    int[12] cra;
-    return (cra[2 .. $] = 3);
-}
-static assert(crashing()[9] == 3);
-
 int chainassign()
 {
     int[4] x = 6;
@@ -2362,7 +2355,7 @@ static assert(!is(typeof(Compileable!(bug10840(1)))));
 **************************************************/
 
 // Four-pointer relations. Return true if [p1 .. p2] points inside [q1 .. q2]
-// (where the end points dont coincide).
+// (where the end points don't coincide).
 bool ptr4cmp(void* p1, void* p2, void* q1, void* q2)
 {
 // Each compare can be written with <, <=, >, or >=.
@@ -2691,11 +2684,6 @@ enum arr12528V1 = dup12528([0]);
 enum arr12528V2 = dup12528([0, 1]);
 static assert(arr12528V1 == [0]);
 static assert(arr12528V2 == [0, 1]);
-
-enum arr12528C1 = dup12528([new immutable Object]);
-enum arr12528C2 = dup12528([new immutable Object, new immutable Object]);
-static assert(arr12528C1.length == 1);
-static assert(arr12528C2.length == 2 && arr12528C2[0] !is arr12528C2[1]);
 
 /**************************************************
     9745 Allow pointers to static variables
@@ -4255,7 +4243,7 @@ static assert({ bug6851(); return true; }());
     7876
 **************************************************/
 
-int* bug7876(int n)
+int* bug7876(int n) @system
 {
     int x;
     auto ptr = &x;
@@ -4269,7 +4257,7 @@ struct S7876
     int* p;
 }
 
-S7876 bug7876b(int n)
+S7876 bug7876b(int n) @system
 {
     int x;
     S7876 s;
@@ -6493,11 +6481,26 @@ label:
 static assert(bug8865());
 
 /******************************************************/
+// 15450 labeled foreach + continue/break
+
+static assert({
+  L1:
+    foreach (l; [0])
+        continue L1;
+
+  L2:
+    foreach (l; [0])
+        break L2;
+
+    return true;
+}());
 
 struct Test75
 {
     this(int) pure {}
 }
+
+/******************************************************/
 
 static assert( __traits(compiles, { static shared(Test75*)   t75 = new shared(Test75)(0);    return t75; }));
 static assert( __traits(compiles, { static shared(Test75)*   t75 = new shared(Test75)(0);    return t75; }));
@@ -6708,7 +6711,7 @@ static assert(test11510());
 
 struct MultiArray11534
 {
-    this(size_t[] sizes...)
+    void set(size_t[] sizes...)
     {
         storage = new size_t[5];
     }
@@ -6721,7 +6724,8 @@ struct MultiArray11534
 }
 
 enum test11534 = () {
-    auto m = MultiArray11534(3,2,1);
+    auto m = MultiArray11534();
+    m.set(3,2,1);
     auto start = m.raw_ptr;   //this trigger the bug
     //auto start = m.storage.ptr + 1; //this obviously works
     return 0;
@@ -7341,7 +7345,7 @@ string getStr12495()
     s ~= 'a';                               // this should allocate.
     assert(buf.ptr != s.ptr);
     return s.idup;                          // this should allocate again, and
-                                            // definitly point immutable memory.
+                                            // definitely point immutable memory.
 }
 auto indexOf12495(string s)
 {
@@ -7652,3 +7656,78 @@ auto structInCaseScope()
 }
 
 static assert(!structInCaseScope());
+
+/**************************************************
+    15233 - ICE in TupleExp, Copy On Write bug
+**************************************************/
+
+alias TT15233(stuff ...) = stuff;
+
+struct Tok15233 {}
+enum tup15233 = TT15233!(Tok15233(), "foo");
+static assert(tup15233[0] == Tok15233());
+static assert(tup15233[1] == "foo");
+
+/**************************************************
+    15251 - void cast in ForStatement.increment
+**************************************************/
+
+int test15251()
+{
+    for (ubyte lwr = 19;
+        lwr != 20;
+        cast(void)++lwr)    // have to to be evaluated with ctfeNeedNothing
+    {}
+    return 1;
+}
+static assert(test15251());
+
+/**************************************************
+    15998 - Sagfault caused by memory corruption
+**************************************************/
+
+immutable string[2] foo15998 = ["",""];
+immutable string[2][] bar15998a = foo15998 ~ baz15998;
+immutable string[2][] bar15998b = baz15998 ~ foo15998;
+
+auto baz15998()
+{
+    immutable(string[2])[] r;
+    return r;
+}
+
+static assert(bar15998a == [["", ""]]);
+static assert(bar15998b == [["", ""]]);
+
+/**************************************************
+    16094 - Non-overlapped slice assignment on an aggregate
+**************************************************/
+
+char[] f16094a()
+{
+    char[] x = new char[](6);
+    x[3..6] = x[0..3];
+    return x;
+}
+
+int[] f16094b()
+{
+    int[] x = new int[](6);
+    x[3..6] = x[0..3];
+    return x;
+}
+
+enum copy16094a = f16094a();
+enum copy16094b = f16094b();
+
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17407
+
+bool foo17407()
+{
+    void delegate ( ) longest_convert;
+    return __traits(compiles, longest_convert = &doesNotExists);
+}
+
+static assert(!foo17407);
+

@@ -319,11 +319,16 @@ public:
         s->condition->accept(this);
         buf->writeByte(')');
         buf->writenl();
-        if (!s->ifbody->isScopeStatement())
+        if (s->ifbody->isScopeStatement())
+        {
+            s->ifbody->accept(this);
+        }
+        else
+        {
             buf->level++;
-        s->ifbody->accept(this);
-        if (!s->ifbody->isScopeStatement())
+            s->ifbody->accept(this);
             buf->level--;
+        }
         if (s->elsebody)
         {
             buf->writestring("else");
@@ -335,11 +340,16 @@ public:
             {
                 buf->writeByte(' ');
             }
-            if (!s->elsebody->isScopeStatement() && !s->elsebody->isIfStatement())
+            if (s->elsebody->isScopeStatement() || s->elsebody->isIfStatement())
+            {
+                s->elsebody->accept(this);
+            }
+            else
+            {
                 buf->level++;
-            s->elsebody->accept(this);
-            if (!s->elsebody->isScopeStatement() && !s->elsebody->isIfStatement())
+                s->elsebody->accept(this);
                 buf->level--;
+            }
         }
     }
 
@@ -565,11 +575,16 @@ public:
         buf->writenl();
         buf->writestring("finally");
         buf->writenl();
-        buf->writeByte('{');
-        buf->writenl();
-        buf->level++;
-        s->finalbody->accept(this);
-        buf->level--;
+        if (s->finalbody->isScopeStatement())
+        {
+            s->finalbody->accept(this);
+        }
+        else
+        {
+            buf->level++;
+            s->finalbody->accept(this);
+            buf->level--;
+        }
         buf->writeByte('}');
         buf->writenl();
     }
@@ -2325,7 +2340,7 @@ public:
         (ie, 8 chars more than mantissa). Plus one for trailing \0.
         Plus one for rounding. */
         const size_t BUFFER_LEN = sizeof(value) * 3 + 8 + 1 + 1;
-        char buffer[BUFFER_LEN];
+        char buffer[BUFFER_LEN] = {};
         CTFloat::sprint(buffer, 'g', value);
         assert(strlen(buffer) < BUFFER_LEN);
 
@@ -3043,7 +3058,7 @@ public:
         if (p->type && p->type->mod & MODshared)
             stc &= ~STCshared;
 
-        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope)))
+        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope | STCscopeinferred)))
             buf->writeByte(' ');
 
         if (p->storageClass & STCalias)
@@ -3164,6 +3179,8 @@ bool stcToBuffer(OutBuffer *buf, StorageClass stc)
     bool result = false;
     if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
         stc &= ~STCscope;
+    if (stc & STCscopeinferred)
+        stc &= ~(STCscope | STCscopeinferred);
     while (stc)
     {
         const char *p = stcToChars(stc);
@@ -3223,6 +3240,7 @@ const char *stcToChars(StorageClass& stc)
         { STCtrusted,      TOKat,       "@trusted" },
         { STCsystem,       TOKat,       "@system" },
         { STCdisable,      TOKat,       "@disable" },
+        { STCfuture,       TOKat,       "@__future" },
         { 0,               TOKreserved }
     };
 

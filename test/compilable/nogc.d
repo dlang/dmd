@@ -71,8 +71,8 @@ void test12630() @nogc
     enum         v2 = aa2[1];
 
     Object o;
-    static const del1 = (delete o).sizeof;
-    enum         del2 = (delete o).sizeof;
+    //static const del1 = (delete o).sizeof;
+    //enum         del2 = (delete o).sizeof;
 
     int[] a;
     static const len1 = (a.length = 1).sizeof;

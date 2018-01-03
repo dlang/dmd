@@ -23,7 +23,7 @@ char *Port::strupr(char *s)
     return ::strupr(s);
 }
 
-int Port::memicmp(const char *s1, const char *s2, int n)
+int Port::memicmp(const char *s1, const char *s2, size_t n)
 {
     return ::memicmp(s1, s2, n);
 }
@@ -70,7 +70,7 @@ char *Port::strupr(char *s)
     return ::strupr(s);
 }
 
-int Port::memicmp(const char *s1, const char *s2, int n)
+int Port::memicmp(const char *s1, const char *s2, size_t n)
 {
     return ::memicmp(s1, s2, n);
 }
@@ -121,7 +121,7 @@ char *Port::strupr(char *s)
     return t;
 }
 
-int Port::memicmp(const char *s1, const char *s2, int n)
+int Port::memicmp(const char *s1, const char *s2, size_t n)
 {
     int result = 0;
 
@@ -180,7 +180,7 @@ char *Port::strupr(char *s)
     return t;
 }
 
-int Port::memicmp(const char *s1, const char *s2, int n)
+int Port::memicmp(const char *s1, const char *s2, size_t n)
 {
     int result = 0;
 
@@ -241,7 +241,7 @@ char *Port::strupr(char *s)
     return t;
 }
 
-int Port::memicmp(const char *s1, const char *s2, int n)
+int Port::memicmp(const char *s1, const char *s2, size_t n)
 {
     int result = 0;
 

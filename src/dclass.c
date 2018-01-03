@@ -16,7 +16,6 @@
 
 #include "root.h"
 #include "rmem.h"
-#include "target.h"
 
 #include "enum.h"
 #include "init.h"
@@ -30,9 +29,11 @@
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
+#include "target.h"
 #include "objc.h"
 
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
+Objc *objc();
 
 
 /********************************* ClassDeclaration ****************************/
@@ -43,7 +44,7 @@ ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 ClassDeclaration *ClassDeclaration::cpp_type_info_ptr;   // Object.__cpp_type_info_ptr
 
-ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject)
     : AggregateDeclaration(loc, id ? id : Identifier::generateId("__anonclass"))
 {
     static const char msg[] = "only object.d can define this reserved class name";
@@ -55,6 +56,9 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     }
     else
         this->baseclasses = new BaseClasses();
+
+    this->members = members;
+
     baseClass = NULL;
 
     interfaces.length = 0;
@@ -245,8 +249,13 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isabstract = ABSfwdref;
     inuse = 0;
     baseok = BASEOKnone;
-    objc.objc = false;
+    isobjc = false;
     cpp_type_info_ptr_sym = NULL;
+}
+
+ClassDeclaration *ClassDeclaration::create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject)
+{
+    return new ClassDeclaration(loc, id, baseclasses, members, inObject);
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -254,7 +263,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     //printf("ClassDeclaration::syntaxCopy('%s')\n", toChars());
     ClassDeclaration *cd =
         s ? (ClassDeclaration *)s
-          : new ClassDeclaration(loc, ident, NULL);
+          : new ClassDeclaration(loc, ident, NULL, NULL, false);
 
     cd->storage_class |= storage_class;
 
@@ -319,6 +328,12 @@ static void resolveBase(ClassDeclaration *cd, Scope *sc, Scope *&scx, ClassDecla
     cd->_scope = NULL;
 }
 
+static void badObjectDotD(ClassDeclaration *cd)
+{
+    cd->error("missing or corrupt object.d");
+    fatal();
+}
+
 void ClassDeclaration::semantic(Scope *sc)
 {
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
@@ -380,7 +395,7 @@ void ClassDeclaration::semantic(Scope *sc)
         if (sc->linkage == LINKcpp)
             cpp = true;
         if (sc->linkage == LINKobjc)
-            objc_ClassDeclaration_semantic_PASSinit_LINKobjc(this);
+            objc()->setObjc(this);
     }
     else if (symtab && !scx)
     {
@@ -547,14 +562,13 @@ void ClassDeclaration::semantic(Scope *sc)
         // If no base class, and this is not an Object, use Object as base class
         if (!baseClass && ident != Id::Object && !cpp)
         {
-            if (!object)
-            {
-                error("missing or corrupt object.d");
-                fatal();
-            }
+            if (!object || object->errors)
+                badObjectDotD(this);
 
             Type *t = object->type;
             t = t->semantic(loc, sc)->toBasetype();
+            if (t->ty == Terror)
+                badObjectDotD(this);
             assert(t->ty == Tclass);
             TypeClass *tc = (TypeClass *)t;
 
@@ -593,7 +607,8 @@ void ClassDeclaration::semantic(Scope *sc)
                 com = true;
             if (cpp && !b->sym->isCPPinterface())
             {
-                ::error(loc, "C++ class '%s' cannot implement D interface '%s'", toPrettyChars(), b->sym->toPrettyChars());
+                ::error(loc, "C++ class '%s' cannot implement D interface '%s'",
+                    toPrettyChars(), b->sym->toPrettyChars());
             }
         }
 
@@ -788,12 +803,15 @@ Lancestorsdone:
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        FuncDeclaration *fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, NULL, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, type, NULL, 1);
+        if (!fd) // try shared base ctor instead
+            fd = resolveFuncCall(loc, sc2, baseClass->ctor, NULL, type->sharedOf(), NULL, 1);
         if (fd && !fd->errors)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
             TypeFunction *btf = (TypeFunction *)fd->type;
             TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
+            tf->mod = btf->mod;
             tf->purity = btf->purity;
             tf->isnothrow = btf->isnothrow;
             tf->isnogc = btf->isnogc;
@@ -811,7 +829,8 @@ Lancestorsdone:
         }
         else
         {
-            error("cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
+            error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                baseClass->toPrettyChars());
         }
     }
 
@@ -832,7 +851,7 @@ Lancestorsdone:
 
     sc2->pop();
 
-    if (type->ty != Tclass || ((TypeClass *)type)->sym != this)
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
         // https://issues.dlang.org/show_bug.cgi?id=17492
         ClassDeclaration *cd = ((TypeClass *)type)->sym;
@@ -1240,7 +1259,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
                 continue;
 
             Lfd:
-                fdmatch = fd, fdambig = NULL;
+                fdmatch = fd;
+                fdambig = NULL;
                 //printf("Lfd fdmatch = %s %s [%s]\n", fdmatch->toChars(), fdmatch->type->toChars(), fdmatch->loc.toChars());
                 continue;
 
@@ -1389,7 +1409,7 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 /********************************* InterfaceDeclaration ****************************/
 
 InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
-    : ClassDeclaration(loc, id, baseclasses)
+    : ClassDeclaration(loc, id, baseclasses, NULL, false)
 {
     if (id == Id::IUnknown)     // IUnknown is the root of all COM interfaces
     {
@@ -1413,7 +1433,7 @@ Scope *InterfaceDeclaration::newScope(Scope *sc)
         sc2->linkage = LINKwindows;
     else if (cpp)
         sc2->linkage = LINKcpp;
-    else if (objc.isInterface())
+    else if (isobjc)
         sc2->linkage = LINKobjc;
     return sc2;
 }
@@ -1513,7 +1533,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         if (!baseclasses->dim && sc->linkage == LINKcpp)
             cpp = true;
-        objc_InterfaceDeclaration_semantic_objcExtern(this, sc);
+        if (sc->linkage == LINKobjc)
+            objc()->setObjc(this);
 
         // Check for errors, handle forward references
         for (size_t i = 0; i < baseclasses->dim; )

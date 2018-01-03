@@ -583,8 +583,9 @@ class C42
 
 void test42()
 {
-    printf("%d\n", C42.classinfo.init.length);
-    assert(C42.classinfo.init.length == 12 + (void*).sizeof + (void*).sizeof);
+    printf("%d\n", C42.classinfo.initializer.length);
+    assert(C42.classinfo.initializer.length == 12 + (void*).sizeof +
+        (void*).sizeof);
     C42 c = new C42;
     assert(c.a == 1);
     assert(c.b == 2);
@@ -1175,7 +1176,7 @@ void test72()
 {
     int a;
     const int b;
-    enum { int c = 0 };
+    enum { int c = 0 }
     immutable int d = 0;
 
     assert(__traits(isSame, a, a));
@@ -2160,7 +2161,7 @@ void test5473()
         static void g(){};
     }
 
-    void dummy(){}
+    void dummy();
     alias typeof(dummy) VoidFunc;
 
     const C c = new C;
@@ -2677,6 +2678,25 @@ void test11966()
 }
 
 /************************************/
+// 14788
+
+auto make14788(K, V)(inout V[K] aa)
+{
+    static struct Result
+    {
+        V[K] aa;
+        ref front() inout { return aa[1]; }
+    }
+    return inout Result(aa);
+}
+
+void test14788()
+{
+    int[int] aa = [1:1];
+    make14788(aa).front();
+}
+
+/************************************/
 // 12089
 
 void foo12089(inout(char[]) a)
@@ -2710,11 +2730,11 @@ void test12524(inout(int))
 /************************************/
 // 6941
 
-static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
+static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");   // fail
 static assert((const(shared(int[])[])).stringof != "const(shared(const(int[]))[])"); // fail
 
-static assert((inout(shared(int[])[])).stringof == "inout(shared(int[])[])");	// fail
-static assert((inout(shared(int[])[])).stringof != "inout(shared(inout(int[]))[])");	// fail
+static assert((inout(shared(int[])[])).stringof == "inout(shared(int[])[])");   // fail
+static assert((inout(shared(int[])[])).stringof != "inout(shared(inout(int[]))[])");    // fail
 
 /************************************/
 // 6872
@@ -2786,9 +2806,15 @@ void test6982()
 /************************************/
 // 7038
 
-static assert(!is(S7038 == const));
+static assert(is(S7038 == const));
 const struct S7038{ int x; }
-static assert(!is(S7038 == const));
+static assert(is(S7038 == const));
+
+shared struct S7038b{ int x; }
+static assert(is(S7038b == shared));
+
+immutable struct S7038c{ int x; }
+static assert(is(S7038c == immutable));
 
 static assert(!is(C7038 == const));
 const class C7038{ int x; }
@@ -2797,7 +2823,7 @@ static assert(!is(C7038 == const));
 void test7038()
 {
     S7038 s;
-    static assert(!is(typeof(s) == const));
+    static assert(is(typeof(s) == const));
     static assert(is(typeof(s.x) == const int));
 
     C7038 c;
@@ -3408,7 +3434,7 @@ inout(int)* function(inout(int)*) fptr10761(inout(int)*)
 {
     static inout(int)* screwUp(inout(int)* x) { return x; }
     auto fp = &screwUp;
-    static assert(is(typeof(fp) == inout(int)* function(inout(int)*)));
+    static assert(is(typeof(fp) == inout(int)* function(inout(int)*) pure nothrow @nogc @safe));
     return fp;
 }
 
@@ -3416,7 +3442,7 @@ inout(int)* delegate(inout(int)*) nest10761(inout(int)* x)
 {
     inout(int)* screwUp(inout(int)* _) { return x; }
     auto dg = &screwUp;
-    static assert(is(typeof(dg) == inout(int)* delegate(inout(int)*)));
+    static assert(is(typeof(dg) == inout(int)* delegate(inout(int)*) pure nothrow @nogc @safe));
     return dg;
 }
 

@@ -32,6 +32,10 @@
 
 bool checkNestedRef(Dsymbol *s, Dsymbol *p);
 VarDeclaration *copyToTemp(StorageClass stc, const char *name, Expression *e);
+Expression *semantic(Expression *e, Scope *sc);
+Expression *initializerToExpression(Initializer *i, Type *t = NULL);
+Initializer *inferType(Initializer *init, Scope *sc);
+Initializer *semantic(Initializer *init, Scope *sc, Type *t, NeedInterpret needInterpret);
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is
@@ -312,6 +316,11 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     assert(s);
 }
 
+AliasDeclaration *AliasDeclaration::create(Loc loc, Identifier *id, Type *type)
+{
+    return new AliasDeclaration(loc, id, type);
+}
+
 Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
 {
     //printf("AliasDeclaration::syntaxCopy()\n");
@@ -352,7 +361,7 @@ void AliasDeclaration::aliasSemantic(Scope *sc)
                 return;
 
             Expression *e = new FuncExp(loc, aliassym);
-            e = e->semantic(sc);
+            e = ::semantic(e, sc);
             if (e->op == TOKfunction)
             {
                 FuncExp *fe = (FuncExp *)e;
@@ -832,7 +841,6 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     lastVar = NULL;
     endlinnum = 0;
     ctfeAdrOnStack = -1;
-    rundtor = NULL;
     edtor = NULL;
     range = NULL;
 
@@ -905,8 +913,8 @@ void VarDeclaration::semantic(Scope *sc)
         if (needctfe) sc = sc->startCTFE();
 
         //printf("inferring type for %s with init %s\n", toChars(), _init->toChars());
-        _init = _init->inferType(sc);
-        type = _init->toExpression()->type;
+        _init = inferType(_init, sc);
+        type = initializerToExpression(_init)->type;
 
         if (needctfe) sc = sc->endCTFE();
 
@@ -1009,8 +1017,9 @@ void VarDeclaration::semantic(Scope *sc)
          */
         TypeTuple *tt = (TypeTuple *)tb;
         size_t nelems = Parameter::dim(tt->arguments);
-        Expression *ie = (_init && !_init->isVoidInitializer()) ? _init->toExpression() : NULL;
-        if (ie) ie = ie->semantic(sc);
+        Expression *ie = (_init && !_init->isVoidInitializer()) ? initializerToExpression(_init) : NULL;
+        if (ie)
+            ie = ::semantic(ie, sc);
 
         if (nelems > 0 && ie)
         {
@@ -1375,27 +1384,24 @@ Lnomatch:
         if (sz == SIZE_INVALID && type->ty != Terror)
             error("size of type %s is invalid", type->toChars());
 
-        if (type->needsNested())
+        Type *tv = type;
+        while (tv->ty == Tsarray)    // Don't skip Tenum
+            tv = tv->nextOf();
+        if (tv->needsNested())
         {
-            Type *tv = type;
-            while (tv->toBasetype()->ty == Tsarray)
-                tv = tv->toBasetype()->nextOf();
-            assert(tv->toBasetype()->ty == Tstruct);
-
             /* Nested struct requires valid enclosing frame pointer.
              * In StructLiteralExp::toElem(), it's calculated.
              */
-
-            checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
+            assert(tv->toBasetype()->ty == Tstruct);
+            checkFrameAccess(loc, sc, ((TypeStruct *)tbn)->sym);
 
             Expression *e = tv->defaultInitLiteral(loc);
             e = new BlitExp(loc, new VarExp(loc, this), e);
-            e = e->semantic(sc);
+            e = ::semantic(e, sc);
             _init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
-        if (type->ty == Tstruct &&
-            ((TypeStruct *)type)->sym->zeroInit == 1)
+        if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->zeroInit == 1)
         {
             /* If a struct is all zeros, as a special case
              * set it's initializer to the integer 0.
@@ -1447,12 +1453,12 @@ Lnomatch:
                     if (ai && tb->ty == Taarray)
                         e = ai->toAssocArrayLiteral();
                     else
-                        e = _init->toExpression();
+                        e = initializerToExpression(_init);
                     if (!e)
                     {
                         // Run semantic, but don't need to interpret
-                        _init = _init->semantic(sc, type, INITnointerpret);
-                        e = _init->toExpression();
+                        _init = ::semantic(_init, sc, type, INITnointerpret);
+                        e = initializerToExpression(_init);
                         if (!e)
                         {
                             error("is not a static and cannot have static initializer");
@@ -1470,7 +1476,7 @@ Lnomatch:
                 else
                     exp = new ConstructExp(loc, e1, exp);
                 canassign++;
-                exp = exp->semantic(sc);
+                exp = ::semantic(exp, sc);
                 canassign--;
                 exp = exp->optimize(WANTvalue);
 
@@ -1517,7 +1523,7 @@ Lnomatch:
             else
             {
                 // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-                _init = _init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+                _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
             }
         }
         else if (parent->isAggregateDeclaration())
@@ -1544,7 +1550,7 @@ Lnomatch:
 
                     bool needctfe = isDataseg() || (storage_class & STCmanifest);
                     if (needctfe) sc = sc->startCTFE();
-                    exp = exp->semantic(sc);
+                    exp = ::semantic(exp, sc);
                     exp = resolveProperties(sc, exp);
                     if (needctfe) sc = sc->endCTFE();
 
@@ -1580,7 +1586,7 @@ Lnomatch:
                     }
                     ei->exp = exp;
                 }
-                _init = _init->semantic(sc, type, INITinterpret);
+                _init = ::semantic(_init, sc, type, INITinterpret);
                 inuse--;
                 if (global.errors > errors)
                 {
@@ -1604,9 +1610,9 @@ Ldtor:
     if (edtor)
     {
         if (sc->func && storage_class & (STCstatic | STCgshared))
-            edtor = edtor->semantic(sc->_module->_scope);
+            edtor = ::semantic(edtor, sc->_module->_scope);
         else
-            edtor = edtor->semantic(sc);
+            edtor = ::semantic(edtor, sc);
 
 #if 0 // currently disabled because of std.stdio.stdin, stdout and stderr
         if (isDataseg() && !(storage_class & STCextern))
@@ -1646,40 +1652,51 @@ void VarDeclaration::semantic2(Scope *sc)
         }
 #endif
         // Bugzilla 14166: Don't run CTFE for the temporary variables inside typeof
-        _init = _init->semantic(sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
+        _init = ::semantic(_init, sc, type, sc->intypeof == 1 ? INITnointerpret : INITinterpret);
         inuse--;
     }
-    if (storage_class & STCmanifest)
+    if (_init && storage_class & STCmanifest)
     {
-    #if 0
-        if ((type->ty == Tclass)&&type->isMutable())
+        /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
+         * Scan initializer looking for them. Issue error if found.
+         */
+        if (ExpInitializer *ei = _init->isExpInitializer())
         {
-            error("is mutable. Only const and immutable class enum are allowed, not %s", type->toChars());
-        }
-        else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct && type->nextOf()->isMutable())
-        {
-            ExpInitializer *ei = _init->isExpInitializer();
-            if (ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
+            struct EnumInitializer
             {
-                error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type->toChars());
-            }
-        }
-    #else
-        if (type->ty == Tclass && _init)
-        {
-            ExpInitializer *ei = _init->isExpInitializer();
-            if (ei->exp->op == TOKclassreference)
+                static bool arrayHasInvalidEnumInitializer(Expressions *elems)
+                {
+                    for (size_t i = 0; i < elems->dim; i++)
+                    {
+                        Expression *e = (*elems)[i];
+                        if (e && hasInvalidEnumInitializer(e))
+                            return true;
+                    }
+                    return false;
+                }
+
+                static bool hasInvalidEnumInitializer(Expression *e)
+                {
+                    if (e->op == TOKclassreference)
+                        return true;
+                    if (e->op == TOKaddress && ((AddrExp *)e)->e1->op == TOKstructliteral)
+                        return true;
+                    if (e->op == TOKarrayliteral)
+                        return arrayHasInvalidEnumInitializer(((ArrayLiteralExp *)e)->elements);
+                    if (e->op == TOKstructliteral)
+                        return arrayHasInvalidEnumInitializer(((StructLiteralExp *)e)->elements);
+                    if (e->op == TOKassocarrayliteral)
+                    {
+                        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e;
+                        return arrayHasInvalidEnumInitializer(ae->values) ||
+                            arrayHasInvalidEnumInitializer(ae->keys);
+                    }
+                    return false;
+                }
+            };
+            if (EnumInitializer::hasInvalidEnumInitializer(ei->exp))
                 error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
         }
-        else if (type->ty == Tpointer && type->nextOf()->ty == Tstruct)
-        {
-            ExpInitializer *ei = _init->isExpInitializer();
-            if (ei && ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
-            {
-                error(": Unable to initialize enum with class or pointer to struct. Use static const variable instead.");
-            }
-        }
-    #endif
     }
     else if (_init && isThreadlocal())
     {
@@ -1914,7 +1931,7 @@ bool VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
     /* __require and __ensure will always get called directly,
      * so they never make outer functions closure.
      */
-    if (fdthis->ident == Id::require && fdthis->ident == Id::ensure)
+    if (fdthis->ident == Id::require || fdthis->ident == Id::ensure)
         return false;
 
     //printf("\tfdv = %s\n", fdv->toChars());
@@ -1982,11 +1999,11 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     if (_scope)
     {
         inuse++;
-        _init = _init->semantic(_scope, type, INITinterpret);
+        _init = ::semantic(_init, _scope, type, INITinterpret);
         _scope = NULL;
         inuse--;
     }
-    Expression *e = _init->toExpression(needFullType ? type : NULL);
+    Expression *e = initializerToExpression(_init, needFullType ? type : NULL);
 
     global.gag = oldgag;
     return e;
@@ -2113,7 +2130,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-        if (!sd->dtor)
+        if (!sd->dtor || sd->errors)
            return NULL;
 
         const d_uns64 sz = type->size();
@@ -2131,6 +2148,11 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
              * fix properly.
              */
             e->type = e->type->mutableOf();
+
+            // Enable calling destructors on shared objects.
+            // The destructor is always a single, non-overloaded function,
+            // and must serve both shared and non-shared objects.
+            e->type = e->type->unSharedOf();
 
             e = new DotVarExp(loc, e, sd->dtor, false);
             e = new CallExp(loc, e);
@@ -2171,12 +2193,13 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             //if (cd->isInterfaceDeclaration())
                 //error("interface %s cannot be scope", cd->toChars());
 
+            // Destroying C++ scope classes crashes currently. Since C++ class dtors are not currently supported, simply do not run dtors for them.
+            // See https://issues.dlang.org/show_bug.cgi?id=13182
             if (cd->cpp)
             {
-                // Destructors are not supported on extern(C++) classes
                 break;
             }
-            if (mynew || onstack || cd->dtors.dim) // if any destructors
+            if (mynew || onstack) // if any destructors
             {
                 // delete this;
                 Expression *ec;
@@ -2232,6 +2255,7 @@ TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo)
     storage_class = STCstatic | STCgshared;
     protection = Prot(PROTpublic);
     linkage = LINKc;
+    alignment = Target::ptrsize;
 }
 
 TypeInfoDeclaration *TypeInfoDeclaration::create(Type *tinfo)

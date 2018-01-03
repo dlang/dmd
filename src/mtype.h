@@ -238,7 +238,7 @@ public:
     bool equivalent(Type *t);
     // kludge for template.isType()
     int dyncast() const { return DYNCAST_TYPE; }
-    int covariant(Type *t, StorageClass *pstc = NULL);
+    int covariant(Type *t, StorageClass *pstc = NULL, bool fix17349 = true);
     const char *toChars();
     char *toPrettyChars(bool QualifyTypes = false);
     static void _init();
@@ -333,7 +333,6 @@ public:
     virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps);
     virtual int hasWild() const;
-    virtual Expression *toExpression();
     virtual bool hasPointers();
     virtual bool hasVoidInitPointers();
     virtual Type *nextOf();
@@ -424,6 +423,7 @@ public:
     Type *basetype;
 
     TypeVector(Loc loc, Type *basetype);
+    static TypeVector *create(Loc loc, Type *basetype);
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
@@ -474,7 +474,6 @@ public:
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    Expression *toExpression();
     bool hasPointers();
     bool needsDestruction();
     bool needsNested();
@@ -522,7 +521,6 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
-    Expression *toExpression();
     bool hasPointers() /*const*/;
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
@@ -534,6 +532,7 @@ class TypePointer : public TypeNext
 {
 public:
     TypePointer(Type *t);
+    static TypePointer *create(Type *t);
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
@@ -609,6 +608,7 @@ public:
     bool isref;         // true: returns a reference
     bool isreturn;      // true: 'this' is returned by ref
     bool isscope;       // true: 'this' is scope
+    bool isscopeinferred; // true: 'this' is scope from inference
     LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
@@ -646,9 +646,11 @@ public:
     // .next is a TypeFunction
 
     TypeDelegate(Type *t);
+    static TypeDelegate *create(Type *t);
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    Type *addStorageClass(StorageClass stc);
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize() /*const*/;
     MATCH implicitConvTo(Type *to);
@@ -678,7 +680,6 @@ public:
 
     void resolveTupleIndex(Loc loc, Scope *sc, Dsymbol *s,
         Expression **pe, Type **pt, Dsymbol **ps, RootObject *oindex);
-    Expression *toExpressionHelper(Expression *e, size_t i = 0);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
 
@@ -697,7 +698,6 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    Expression *toExpression();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -714,7 +714,6 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *toExpression();
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -766,6 +765,7 @@ public:
     CPPMANGLE cppmangle;
 
     TypeStruct(StructDeclaration *sym);
+    static TypeStruct *create(StructDeclaration *sym);
     const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();
@@ -932,7 +932,8 @@ public:
     static size_t dim(Parameters *parameters);
     static Parameter *getNth(Parameters *parameters, d_size_t nth, d_size_t *pn = NULL);
     const char *toChars();
-    bool isCovariant(const Parameter *p) const;
+    bool isCovariant(bool returnByRef, const Parameter *p) const;
+    static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to);
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);

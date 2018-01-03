@@ -347,24 +347,6 @@ UnionExp copyLiteral(Expression *e)
         r->type = e->type;
         return ue;
     }
-    if (isPointer(e->type))
-    {
-        // For pointers, we only do a shallow copy.
-        if (e->op == TOKaddress)
-            new(&ue) AddrExp(e->loc, ((AddrExp *)e)->e1);
-        else if (e->op == TOKindex)
-            new(&ue) IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
-        else if (e->op == TOKdotvar)
-        {
-            new(&ue) DotVarExp(e->loc, ((DotVarExp *)e)->e1,
-                ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
-        }
-        else
-            assert(0);
-        Expression *r = ue.exp();
-        r->type = e->type;
-        return ue;
-    }
     if (e->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)e;
@@ -391,6 +373,24 @@ UnionExp copyLiteral(Expression *e)
             r->type = e->type;
             return ue;
         }
+    }
+    if (isPointer(e->type))
+    {
+        // For pointers, we only do a shallow copy.
+        if (e->op == TOKaddress)
+            new(&ue) AddrExp(e->loc, ((AddrExp *)e)->e1);
+        else if (e->op == TOKindex)
+            new(&ue) IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
+        else if (e->op == TOKdotvar)
+        {
+            new(&ue) DotVarExp(e->loc, ((DotVarExp *)e)->e1,
+                ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
+        }
+        else
+            assert(0);
+        Expression *r = ue.exp();
+        r->type = e->type;
+        return ue;
     }
     if (e->op == TOKclassreference)
     {
@@ -1032,23 +1032,6 @@ static bool numCmp(TOK op, N n1, N n2)
         case TOKge:
             return n1 >= n2;
 
-        case TOKleg:
-            return true;
-        case TOKlg:
-            return n1 != n2;
-        case TOKunord:
-            return false;
-        case TOKue:
-            return n1 == n2;
-        case TOKug:
-            return n1 >  n2;
-        case TOKuge:
-            return n1 >= n2;
-        case TOKul:
-            return n1 <  n2;
-        case TOKule:
-            return n1 <= n2;
-
         default:
             assert(0);
     }
@@ -1084,17 +1067,7 @@ int realCmp(TOK op, real_t r1, real_t r2)
             case TOKle:
             case TOKgt:
             case TOKge:
-            case TOKleg:
-            case TOKlg:
                 return 0;
-
-            case TOKunord:
-            case TOKue:
-            case TOKug:
-            case TOKuge:
-            case TOKul:
-            case TOKule:
-                return 1;
 
             default:
                 assert(0);
@@ -1382,7 +1355,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         mem.xfree(used);
         return 0;
     }
-    error(loc, "CTFE internal error: bad compare");
+    error(loc, "CTFE internal error: bad compare of `%s` and `%s`", e1->toChars(), e2->toChars());
     assert(0);
     return 0;
 }
@@ -1453,9 +1426,8 @@ int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2)
         return intSignedCmp(op, e1->toInteger(), e2->toInteger());
 }
 
-UnionExp ctfeCat(Type *type, Expression *e1, Expression *e2)
+UnionExp ctfeCat(Loc loc, Type *type, Expression *e1, Expression *e2)
 {
-    Loc loc = e1->loc;
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     UnionExp ue;
@@ -1646,7 +1618,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     }
     else
     {
-        r = Cast(type, to, e).copy();
+        r = Cast(loc, type, to, e).copy();
     }
     if (CTFEExp::isCantExp(r))
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
@@ -1879,7 +1851,8 @@ bool isCtfeValueValid(Expression *newval)
                tb->ty == Tpointer ||
                tb->ty == Tarray ||
                tb->ty == Taarray ||
-               tb->ty == Tclass;
+               tb->ty == Tclass ||
+               tb->ty == Tdelegate;
     }
 
     if (newval->op == TOKstring)

@@ -23,7 +23,7 @@ class Bar
     Field field;
 }
 
-void test1() @safe @nogc pure nothrow
+void test1() @nogc pure nothrow
 {
     Foo foo;
     foo.__xdtor();

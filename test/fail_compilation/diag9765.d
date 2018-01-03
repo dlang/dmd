@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9765.d(9): Error: cannot implicitly convert expression ('x') of type char to char[]
+fail_compilation/diag9765.d(9): Error: cannot implicitly convert expression `'x'` of type `char` to `char[]`
 ---
 */
 

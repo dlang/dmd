@@ -29,6 +29,7 @@
 
 void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments);
 Expression *buildArrayLoop(Expression *e, Parameters *fparams);
+Expression *semantic(Expression *e, Scope *sc);
 
 /**************************************
  * Hash table of array op functions already generated or known about.
@@ -69,7 +70,7 @@ FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc
 
     /* Construct the function
      */
-    TypeFunction *ftype = new TypeFunction(fparams, exp->type, 0, LINKc, stc);
+    TypeFunction *ftype = new TypeFunction(fparams, exp->e1->type, 0, LINKc, stc);
     //printf("fd: %s %s\n", ident->toChars(), ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
@@ -147,8 +148,8 @@ bool isNonAssignmentArrayOp(Expression *e)
 {
     if (e->op == TOKslice)
         return isNonAssignmentArrayOp(((SliceExp *)e)->e1);
-    Type *tb = e->type->toBasetype();
 
+    Type *tb = e->type->toBasetype();
     if (tb->ty == Tarray || tb->ty == Tsarray)
     {
         return (isUnaArrayOp(e->op) || isBinArrayOp(e->op));
@@ -234,7 +235,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     Expression *ev = new VarExp(e->loc, fd);
     Expression *ec = new CallExp(e->loc, ev, arguments);
 
-    return ec->semantic(sc);
+    return semantic(ec, sc);
 }
 
 Expression *arrayOp(BinAssignExp *e, Scope *sc)
@@ -323,7 +324,7 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
             switch(e->op)
             {
             case TOKaddass: s = "Addass"; break;
-            case TOKminass: s = "Subass"; break;
+            case TOKminass: s = "Minass"; break;
             case TOKmulass: s = "Mulass"; break;
             case TOKdivass: s = "Divass"; break;
             case TOKmodass: s = "Modass"; break;
@@ -356,7 +357,7 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
             switch(e->op)
             {
             case TOKadd: s = "Add"; break;
-            case TOKmin: s = "Sub"; break;
+            case TOKmin: s = "Min"; break;
             case TOKmul: s = "Mul"; break;
             case TOKdiv: s = "Div"; break;
             case TOKmod: s = "Mod"; break;

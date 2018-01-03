@@ -29,7 +29,7 @@ typedef unsigned char utf8_t;
 
 struct Port
 {
-    static int memicmp(const char *s1, const char *s2, int n);
+    static int memicmp(const char *s1, const char *s2, size_t n);
     static char *strupr(char *s);
 
     static bool isFloat32LiteralOutOfRange(const char *s);

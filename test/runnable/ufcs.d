@@ -152,7 +152,6 @@ void test3()
     assert("s"  .init!string()     == 1);
 
     assert([1].sort!"a<b"() == 1);
-    assert([1].sort == [1]);
 
     // templatized properties runs UFCS call.
     assert(1024.max!"a<b" == 1);
@@ -808,6 +807,20 @@ void test11312()
     int x = op.getValue();
     assert(x == 10);
 }
+
+/*******************************************/
+// 15123
+
+auto keys15123(K, V)(V[K] aa) { return [1]; }
+auto values15123(K, V)(V[K] aa) { return [2]; }
+
+alias id15123(alias arg) = arg;
+
+enum int[int] aa15123 = [1:2];
+static assert(id15123!(aa15123.keys15123) == [1]);  // TypeIdentifier + UFCS
+
+T[T] f15123(T)() { return [1:2]; }
+static assert(id15123!(f15123!int.values15123) == [2]); // TypeInstance + UFCS
 
 /*******************************************/
 

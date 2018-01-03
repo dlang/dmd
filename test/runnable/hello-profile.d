@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: 
+// PERMUTE_ARGS:
 // REQUIRED_ARGS: -profile
 // POST_SCRIPT: runnable/extra-files/hello-profile-postscript.sh
 // EXECUTE_ARGS: ${RESULTS_DIR}/runnable
@@ -17,7 +17,7 @@ void showargs(string[] args)
     printf("hello world\n");
     printf("args.length = %d\n", args.length);
     for (int i = 0; i < args.length; i++)
-	printf("args[%d] = '%.*s'\n", i, args[i].length, args[i].ptr);
+        printf("args[%d] = '%.*s'\n", i, args[i].length, args[i].ptr);
 }
 
 int main(string[] args)

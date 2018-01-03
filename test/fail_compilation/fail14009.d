@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14009.d(12): Error: end of instruction expected, not ':'
+fail_compilation/fail14009.d(12): Error: expression expected not :
 ---
 */
 

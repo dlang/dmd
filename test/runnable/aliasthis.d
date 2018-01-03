@@ -402,6 +402,20 @@ void test7()
     // Expression::checkToBoolean
     static assert(!__traits(compiles, { if (s1){} }));
     static assert(!__traits(compiles, { if (s3){} }));
+
+    // SwitchStatement::semantic
+    static assert(!__traits(compiles, { switch (c0) { default: } }));
+    static assert(!__traits(compiles, { switch (c1) { default: } }));
+    static assert(!__traits(compiles, { switch (c3) { default: } }));
+
+    // Bugzilla 12537: function arguments with IFTI
+    void eq12537()(Object lhs) {}
+    const C0 cc0;
+    const C1 cc1;
+    const C3 cc3;
+    static assert(!__traits(compiles, eq12537(cc0)));
+    static assert(!__traits(compiles, eq12537(cc1)));
+    static assert(!__traits(compiles, eq12537(cc3)));
 }
 
 /***************************************************/
@@ -1192,6 +1206,65 @@ void test7945()
 }
 
 /***************************************************/
+// 15674 - alias this on out parameter, consistent with 7945 case
+
+struct S15674
+{
+    int v;
+    alias v this;
+}
+void foo15674(out int i){ i = 42; }
+
+void test15674()
+{
+    S15674 s;
+    s.v = 1;    foo15674(s);    assert(s.v == 42);
+    s.v = 1;    foo15674(s.v);  assert(s.v == 42);
+    s.v = 1;    s.foo15674();   assert(s.v == 42);
+    s.v = 1;    s.v.foo15674(); assert(s.v == 42);
+}
+
+/***************************************************/
+// 7979
+
+void test7979()
+{
+    static struct N
+    {
+        int val;
+        alias val this;
+    }
+    N n = N(1);
+
+    switch (n)
+    {
+        case 0:
+            assert(0);
+        case 1:
+            break;
+        default:
+            assert(0);
+    }
+
+    static struct S
+    {
+        string val;
+        alias val this;
+    }
+    S s = S("b");
+
+    switch (s)
+    {
+        case "a":
+            assert(0);
+        case "b":
+            break;
+        default:
+            assert(0);
+    }
+}
+
+/***************************************************/
 // 7992
 
 struct S7992
@@ -1763,20 +1836,19 @@ struct T13009
     void put(char c) {}
 }
 
-struct S13009
+struct S13009(bool rev)
 {
     T13009 t;
 
-    @property
-    T13009 getT()
+    static if (!rev)
     {
-        return t;
+        @property       T13009  getT()       { return t; }
+        @property inout(T13009) getT() inout { return t; }
     }
-
-    @property
-    inout(T13009) getT() inout
+    else
     {
-        return t;
+        @property inout(T13009) getT() inout { return t; }
+        @property       T13009  getT()       { return t; }
     }
 
     alias getT this;
@@ -1784,25 +1856,30 @@ struct S13009
 
 void test13009()
 {
-    alias MS   =                    S13009;
-    alias CS   =              const(S13009);
-    alias WS   =        inout(      S13009);
-    alias WCS  =        inout(const S13009);
-    alias SMS  = shared(            S13009);
-    alias SCS  = shared(      const S13009);
-    alias SWS  = shared(inout       S13009);
-    alias SWCS = shared(inout const S13009);
-    alias IS   =          immutable(S13009);
+    foreach (bool rev; Seq!(false, true))
+    {
+        alias S = S13009!rev;
 
-    alias MSput  = MS .put;
-    alias CSput  = CS .put;
-    alias WSput  = WS .put;
-    alias WCSput = WCS.put;
-    static assert(!__traits(compiles, { alias SMSput  = SMS .put; }));
-    static assert(!__traits(compiles, { alias SCSput  = SCS .put; }));
-    static assert(!__traits(compiles, { alias SWSput  = SWS .put; }));
-    static assert(!__traits(compiles, { alias SWCSput = SWCS.put; }));
-    alias ISput  = IS .put;
+        alias MS   =                    S;
+        alias CS   =              const(S);
+        alias WS   =        inout(      S);
+        alias WCS  =        inout(const S);
+        alias SMS  = shared(            S);
+        alias SCS  = shared(      const S);
+        alias SWS  = shared(inout       S);
+        alias SWCS = shared(inout const S);
+        alias IS   =          immutable(S);
+
+        alias MSput  = MS .put;
+        alias CSput  = CS .put;
+        alias WSput  = WS .put;
+        alias WCSput = WCS.put;
+        static assert(!__traits(compiles, { alias SMSput  = SMS .put; }));
+        static assert(!__traits(compiles, { alias SCSput  = SCS .put; }));
+        static assert(!__traits(compiles, { alias SWSput  = SWS .put; }));
+        static assert(!__traits(compiles, { alias SWCSput = SWCS.put; }));
+        alias ISput  = IS .put;
+    }
 }
 
 /***************************************************/
@@ -1864,6 +1941,36 @@ void test14948()
 }
 
 /***************************************************/
+// 15292
+
+struct NullableRef15292(T)
+{
+    inout(T) get() inout
+    {
+        assert(false);
+    }
+
+    alias get this;
+}
+
+struct S15292
+{
+    NullableRef15292!S15292 n;  // -> no segfault
+
+    /* The field 'n' contains alias this, so to use it for the equality,
+     * following helper function is automatically generated in buildXopEquals().
+     *
+     *  static bool __xopEquals(ref const S15292 p, ref const S15292 q)
+     *  {
+     *      return p == q;
+     *  }
+     *
+     * In its definition, const(S15292) equality is analyzed. It fails, then
+     * the error is gagged.
+     */
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1902,6 +2009,8 @@ int main()
     test7731();
     test7808();
     test7945();
+    test15674();
+    test7979();
     test7992();
     test8169();
     test8735();

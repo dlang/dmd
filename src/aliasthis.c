@@ -22,6 +22,8 @@
 #include "declaration.h"
 #include "tokens.h"
 
+Expression *semantic(Expression *e, Scope *sc);
+
 Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 {
     AggregateDeclaration *ad = isAggregate(e->type);
@@ -33,7 +35,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
         Loc loc = e->loc;
         Type *tthis = (e->op == TOKtype ? e->type : NULL);
         e = new DotIdExp(loc, e, ad->aliasthis->ident);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
         if (tthis && ad->aliasthis->needThis())
         {
             if (e->op == TOKvar)
@@ -65,7 +67,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e, bool gag)
 
         L1:
             e = new TypeExp(loc, new TypeTypeof(loc, e));
-            e = e->semantic(sc);
+            e = semantic(e, sc);
         }
         e = resolveProperties(sc, e);
 
@@ -86,14 +88,25 @@ AliasThis::AliasThis(Loc loc, Identifier *ident)
 Dsymbol *AliasThis::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    /* Since there is no semantic information stored here,
-     * we don't need to copy it.
-     */
-    return this;
+    return new AliasThis(loc, ident);
 }
 
 void AliasThis::semantic(Scope *sc)
 {
+    if (semanticRun != PASSinit)
+        return;
+
+    if (_scope)
+    {
+        sc = _scope;
+        _scope = NULL;
+    }
+
+    if (!sc)
+        return;
+
+    semanticRun = PASSsemantic;
+
     Dsymbol *p = sc->parent->pastMixin();
     AggregateDeclaration *ad = p->isAggregateDeclaration();
     if (!ad)
@@ -148,6 +161,7 @@ void AliasThis::semantic(Scope *sc)
     }
 
     ad->aliasthis = s;
+    semanticRun = PASSsemanticdone;
 }
 
 const char *AliasThis::kind()

@@ -3,12 +3,12 @@
 // NOTE: the shootout appears to be BSD licensed content.
 // Including this in the test suite based on that license.
 
-/* The Great Computer Language Shootout 
+/* The Great Computer Language Shootout
    http://shootout.alioth.debian.org/
 
    Unoptimised reference implementation
-   
-   contributed by Isaac Gouy 
+
+   contributed by Isaac Gouy
 */
 
 import std.stdio, std.string, std.conv;
@@ -21,14 +21,14 @@ int main(string[] args)
 
     HealthcareRegion healthcareSystem = HealthcareRegion.Create();
 
-    for(int i = 0; i < n; i++) 
+    for(int i = 0; i < n; i++)
         healthcareSystem.TransferPatients();
 
     Totals t = healthcareSystem.AccumulateTotals();
 
-    writeln("Patients: ", t.patients ); 
-    writeln("Time:     ", t.hospitalTime ); 
-    writeln("Visits:   ", t.hospitalVisits ); 
+    writeln("Patients: ", t.patients );
+    writeln("Time:     ", t.hospitalTime );
+    writeln("Visits:   ", t.hospitalVisits );
 
     if (n == 1000)
     {
@@ -39,7 +39,7 @@ int main(string[] args)
     return 0;
 }
 
-class HealthcareRegion 
+class HealthcareRegion
 {
 public:
     static HealthcareRegion Create()
@@ -79,7 +79,7 @@ package:
                 foreach(Patient p; districts[i].TransferPatients().dup)
                     localHospital.NewArrival(p);
 
-        localHospital.TriageExaminationTreatment(); 
+        localHospital.TriageExaminationTreatment();
 
         return localHospital.RegionalTransferPatients();
     }
@@ -224,12 +224,12 @@ private:
     }
 }
 
-class Patient 
+class Patient
 {
     package int remainingTime, hospitalTime, hospitalVisits;
 }
 
-class Totals 
+class Totals
 {
     public Totals opAddAssign(Totals b)
     {

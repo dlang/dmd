@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice8499.d(18): Error: undefined identifier 'i'
+fail_compilation/ice8499.d(18): Error: undefined identifier `i`
 ---
 */
 

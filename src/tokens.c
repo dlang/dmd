@@ -314,7 +314,6 @@ static Keyword keywords[] =
     {   "public",       TOKpublic       },
     {   "export",       TOKexport       },
 
-    {   "body",         TOKbody         },
     {   "invariant",    TOKinvariant    },
     {   "unittest",     TOKunittest     },
     {   "version",      TOKversion      },
@@ -351,8 +350,16 @@ int Token::isKeyword()
     return 0;
 }
 
-void Token::initTokens()
+struct TokenInitializer
 {
+    TokenInitializer();
+};
+
+static TokenInitializer tokeninitializer;
+
+TokenInitializer::TokenInitializer()
+{
+    Identifier::initTable();
     for (nkeywords = 0; keywords[nkeywords].name; nkeywords++)
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);

@@ -376,36 +376,6 @@ printf("i = %d\n", i);
     i = 1 >= a;
     assert(i == 0);
 
-    i = a !<>= 1;
-    assert(i == 0);
-    i = a !<> 1;
-    assert(i == 0);
-    i = a <>= 1;
-    assert(i == 1);
-    i = a !>= 1;
-    assert(i == 0);
-    i = a !>= 1;
-    assert(i == 0);
-    i = a !< 1;
-    assert(i == 1);
-    i = a !<= 1;
-    assert(i == 1);
-
-    i = 1 !<>= a;
-    assert(i == 0);
-    i = 1 !<> a;
-    assert(i == 0);
-    i = 1 <>= a;
-    assert(i == 1);
-    i = 1 !>= a;
-    assert(i == 1);
-    i = 1 !>= a;
-    assert(i == 1);
-    i = 1 !< a;
-    assert(i == 0);
-    i = 1 !<= a;
-    assert(i == 0);
-
     i = (a += 1);
     assert(i == 35);
     i = ++a;
@@ -591,36 +561,6 @@ void test6()
     i = 1 > a;
     assert(i == 0);
     i = 1 >= a;
-    assert(i == 0);
-
-    i = a !<>= 1;
-    assert(i == 0);
-    i = a !<> 1;
-    assert(i == 0);
-    i = a <>= 1;
-    assert(i == 1);
-    i = a !>= 1;
-    assert(i == 0);
-    i = a !>= 1;
-    assert(i == 0);
-    i = a !< 1;
-    assert(i == 1);
-    i = a !<= 1;
-    assert(i == 1);
-
-    i = 1 !<>= a;
-    assert(i == 0);
-    i = 1 !<> a;
-    assert(i == 0);
-    i = 1 <>= a;
-    assert(i == 1);
-    i = 1 !>= a;
-    assert(i == 1);
-    i = 1 !>= a;
-    assert(i == 1);
-    i = 1 !< a;
-    assert(i == 0);
-    i = 1 !<= a;
     assert(i == 0);
 
     i = (a += 1);

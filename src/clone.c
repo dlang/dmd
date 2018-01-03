@@ -26,6 +26,8 @@
 #include "template.h"
 #include "tokens.h"
 
+Expression *semantic(Expression *e, Scope *sc);
+
 /*******************************************
  * Merge function attributes pure, nothrow, @safe, @nogc, and @disable
  */
@@ -523,7 +525,7 @@ FuncDeclaration *buildXopEquals(StructDeclaration *sd, Scope *sc)
         Expression *e = new IdentifierExp(sd->loc, Id::empty);
         e = new DotIdExp(sd->loc, e, Id::object);
         e = new DotIdExp(sd->loc, e, id);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
         Dsymbol *s = getDsymbol(e);
         assert(s);
         sd->xerreq = s->isFuncDeclaration();
@@ -643,7 +645,7 @@ FuncDeclaration *buildXopCmp(StructDeclaration *sd, Scope *sc)
         Expression *e = new IdentifierExp(sd->loc, Id::empty);
         e = new DotIdExp(sd->loc, e, Id::object);
         e = new DotIdExp(sd->loc, e, id);
-        e = e->semantic(sc);
+        e = semantic(e, sc);
         Dsymbol *s = getDsymbol(e);
         assert(s);
         sd->xerrcmp = s->isFuncDeclaration();
@@ -825,7 +827,7 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         stc |= sd->postblits[i]->storage_class & STCdisable;
     }
 
-    Statements *a = NULL;
+    Statements *a = new Statements();
     for (size_t i = 0; i < sd->fields.dim && !(stc & STCdisable); i++)
     {
         VarDeclaration *v = sd->fields[i];
@@ -846,11 +848,9 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         stc = mergeFuncAttrs(stc, sdv->dtor);
         if (stc & STCdisable)
         {
-            a = NULL;
+            a->setDim(0);
             break;
         }
-        if (!a)
-            a = new Statements();
 
         Expression *ex = NULL;
         tv = v->type->toBasetype();
@@ -961,15 +961,14 @@ FuncDeclaration *buildPostBlit(StructDeclaration *sd, Scope *sc)
         a->push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
     }
 
-    /* Build our own "postblit" which executes a
-     */
-    if (a || (stc & STCdisable))
+    // Build our own "postblit" which executes a, but only if needed.
+    if (a->dim || (stc & STCdisable))
     {
         //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id::__fieldPostblit);
-        dd->storage_class |= STCinference;
         dd->generated = true;
-        dd->fbody = a ? new CompoundStatement(loc, a) : NULL;
+        dd->storage_class |= STCinference;
+        dd->fbody = (stc & STCdisable) ? NULL : new CompoundStatement(loc, a);
         sd->postblits.shift(dd);
         sd->members->push(dd);
         dd->semantic(sc);
@@ -1119,6 +1118,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
     {
         //printf("Building __fieldDtor()\n");
         DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__fieldDtor);
+        dd->generated = true;
         dd->storage_class |= STCinference;
         dd->fbody = new ExpStatement(loc, e);
         ad->dtors.shift(dd);
@@ -1154,6 +1154,7 @@ FuncDeclaration *buildDtor(AggregateDeclaration *ad, Scope *sc)
                 e = Expression::combine(ex, e);
             }
             DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Id::__aggrDtor);
+            dd->generated = true;
             dd->storage_class |= STCinference;
             dd->fbody = new ExpStatement(loc, e);
             ad->members->push(dd);

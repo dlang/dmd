@@ -119,7 +119,7 @@ class CppMangleVisitor : public Visitor
             if (!skipname && !substitute(ti->tempdecl))
             {
                 store(ti->tempdecl);
-                const char *name = ti->toAlias()->ident->toChars();
+                const char *name = ti->tempdecl->toAlias()->ident->toChars();
                 buf.printf("%d%s", strlen(name), name);
             }
             buf.writeByte('I');
@@ -268,7 +268,10 @@ class CppMangleVisitor : public Visitor
 
             if (p && !p->isModule())
             {
-                prefix_name(p);
+                if (p->ident == Id::std && is_initial_qualifier(p))
+                    buf.writestring("St");
+                else
+                    prefix_name(p);
             }
             if (!(s->ident == Id::std && is_initial_qualifier(s)))
                 store(s);
@@ -442,7 +445,9 @@ class CppMangleVisitor : public Visitor
 
         buf.writestring("_Z");
         Dsymbol *p = d->toParent();
-        if (p && !p->isModule() && tf->linkage == LINKcpp)
+        TemplateDeclaration *ftd = getFuncTemplateDecl(d);
+
+        if (p && !p->isModule() && tf->linkage == LINKcpp && !ftd)
         {
             buf.writeByte('N');
             if (d->type->isConst())
@@ -486,6 +491,13 @@ class CppMangleVisitor : public Visitor
                 source_name(d);
             }
             buf.writeByte('E');
+        }
+        else if (ftd)
+        {
+            source_name(p);
+            this->is_top_level = true;
+            tf->nextOf()->accept(this);
+            this->is_top_level = false;
         }
         else
         {
@@ -1443,7 +1455,12 @@ private:
 
         assert((d->storage_class & STCfield) || !d->needThis());
 
-        if (d->parent && d->parent->isModule()) // static member
+        Dsymbol *parent = d->toParent();
+        while (parent && parent->isNspace())
+        {
+            parent = parent->toParent();
+        }
+        if (parent && parent->isModule()) // static member
         {
             buf.writeByte('3');
         }

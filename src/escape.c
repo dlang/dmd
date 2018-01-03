@@ -27,7 +27,7 @@ struct EscapeByResults
     Expressions byexp;          // array into which temporaries being returned by ref are inserted
 };
 
-static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag);
+static bool checkReturnEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag);
 static void inferReturn(FuncDeclaration *fd, VarDeclaration *v);
 static void escapeByValue(Expression *e, EscapeByResults *er);
 static void escapeByRef(Expression *e, EscapeByResults *er);
@@ -42,7 +42,9 @@ static void unsafeAssign(Scope *sc, FuncDeclaration *fdc, Identifier *par, Expre
     {
         if (!gag)
             error(arg->loc, "%s %s assigned to non-scope parameter %s calling %s",
-                desc, v->toChars(), par->toChars(), fdc ? fdc->toPrettyChars() : "indirectly");
+                desc, v->toChars(),
+                par ? par->toChars() : "unnamed",
+                fdc ? fdc->toPrettyChars() : "indirectly");
         result = true;
     }
 }
@@ -79,6 +81,7 @@ bool checkParamArgumentEscape(Scope *sc, FuncDeclaration *fdc, Identifier *par, 
 
     for (size_t i = 0; i < er.byvalue.dim; i++)
     {
+        //printf("byvalue %s\n", v->toChars());
         VarDeclaration *v = er.byvalue[i];
         if (v->isDataseg())
             continue;
@@ -136,8 +139,7 @@ bool checkParamArgumentEscape(Scope *sc, FuncDeclaration *fdc, Identifier *par, 
         {
             VarDeclaration *v = vars[j];
             //printf("v = %s\n", v->toChars());
-            if (v->isDataseg())
-                continue;
+            assert(!v->isDataseg());     // these are not put in the closureVars[]
 
             Dsymbol *p = v->toParent2();
 
@@ -158,7 +160,8 @@ bool checkParamArgumentEscape(Scope *sc, FuncDeclaration *fdc, Identifier *par, 
         {
             if (!gag)
                 error(ee->loc, "reference to stack allocated value returned by %s assigned to non-scope parameter %s",
-                    ee->toChars(), par->toChars());
+                    ee->toChars(),
+                    par ? par->toChars() : "unnamed");
             result = true;
         }
     }
@@ -237,8 +240,22 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
 
         if (v->isScope())
         {
+            if (va && va->isScope() && va->storage_class & STCreturn && !(v->storage_class & STCreturn) &&
+                sc->func->setUnsafe())
+            {
+                if (!gag)
+                    error(ae->loc, "scope variable %s assigned to return scope %s", v->toChars(), va->toChars());
+                result = true;
+                continue;
+            }
+
             // If va's lifetime encloses v's, then error
-            if (va && va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter) && sc->func->setUnsafe())
+            if (va &&
+                (va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter) ||
+                 // va is class reference
+                 ae->e1->op == TOKdotvar && va->type->toBasetype()->ty == Tclass && (va->enclosesLifetimeOf(v) || !va->isScope()) ||
+                 va->storage_class & STCref) &&
+                sc->func->setUnsafe())
             {
                 if (!gag)
                     error(ae->loc, "scope variable %s assigned to %s with longer lifetime", v->toChars(), va->toChars());
@@ -250,7 +267,8 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
             {
                 if (!va->isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va->toChars());
-                    va->storage_class |= STCscope;
+                    va->storage_class |= STCscope | STCscopeinferred;
+                    va->storage_class |= v->storage_class & STCreturn;
                 }
                 continue;
             }
@@ -270,7 +288,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
                 {
                     if (!va->isScope() && inferScope)
                     {   //printf("inferring scope for %s\n", va->toChars());
-                        va->storage_class |= STCscope;
+                        va->storage_class |= STCscope | STCscopeinferred;
                     }
                     continue;
                 }
@@ -301,7 +319,9 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         Dsymbol *p = v->toParent2();
 
         // If va's lifetime encloses v's, then error
-        if (va && va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter) && sc->func->setUnsafe())
+        if (va &&
+            (va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter) || va->storage_class & STCref) &&
+            sc->func->setUnsafe())
         {
             if (!gag)
                 error(ae->loc, "address of variable %s assigned to %s with longer lifetime", v->toChars(), va->toChars());
@@ -316,10 +336,9 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         {
             if (va && !va->isDataseg() && !va->doNotInferScope)
             {
-                if (!va->isScope() && inferScope &&
-                    va->type->toBasetype()->ty != Tclass)  // scope classes are special
+                if (!va->isScope() && inferScope)
                 {   //printf("inferring scope for %s\n", va->toChars());
-                    va->storage_class |= STCscope;
+                    va->storage_class |= STCscope | STCscopeinferred;
                 }
                 continue;
             }
@@ -344,8 +363,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         {
             VarDeclaration *v = vars[j];
             //printf("v = %s\n", v->toChars());
-            if (v->isDataseg())
-                continue;
+            assert(!v->isDataseg());     // these are not put in the closureVars[]
 
             Dsymbol *p = v->toParent2();
 
@@ -360,7 +378,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
                      * won't be generated for sc->func.
                      */
                     //if (!va->isScope() && inferScope)
-                        //va->storage_class |= STCscope;
+                        //va->storage_class |= STCscope | STCscopeinferred;
                     continue;
                 }
                 if (sc->func->setUnsafe())
@@ -381,7 +399,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
         {
             if (!va->isScope() && inferScope)
             {   //printf("inferring scope for %s\n", va->toChars());
-                va->storage_class |= STCscope;
+                va->storage_class |= STCscope | STCscopeinferred;
             }
             continue;
         }
@@ -399,7 +417,61 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
- * lifetime of the stack frame.
+ * lifetime of the stack frame when throwing `e`.
+ * Print error messages when these are detected.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check for any pointers to the stack
+ *      gag = do not print error messages
+ * Returns:
+ *      true if pointers to the stack can escape
+ */
+bool checkThrowEscape(Scope *sc, Expression *e, bool gag)
+{
+    //printf("[%s] checkThrowEscape, e = %s\n", e->loc->toChars(), e->toChars());
+    EscapeByResults er;
+
+    escapeByValue(e, &er);
+
+    if (!er.byref.dim && !er.byvalue.dim && !er.byexp.dim)
+        return false;
+
+    bool result = false;
+    for (size_t i = 0; i < er.byvalue.dim; i++)
+    {
+        VarDeclaration *v = er.byvalue[i];
+        //printf("byvalue %s\n", v->toChars());
+        if (v->isDataseg())
+            continue;
+
+        Dsymbol *p = v->toParent2();
+
+        if (v->isScope())
+        {
+            if (sc->_module && sc->_module->isRoot())
+            {
+                // Only look for errors if in module listed on command line
+                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                {
+                    if (!gag)
+                        error(e->loc, "scope variable %s may not be thrown", v->toChars());
+                    result = true;
+                }
+                continue;
+            }
+        }
+        else
+        {
+            //printf("no infer for %s\n", v->toChars());
+            v->doNotInferScope = true;
+        }
+    }
+    return result;
+}
+
+/************************************
+ * Detect cases where pointers to the stack can 'escape' the
+ * lifetime of the stack frame by returning 'e' by value.
  * Params:
  *      sc = used to determine current function and module
  *      e = expression to check for any pointers to the stack
@@ -408,10 +480,10 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
  *      true if pointers to the stack can escape
  */
 
-bool checkEscape(Scope *sc, Expression *e, bool gag)
+bool checkReturnEscape(Scope *sc, Expression *e, bool gag)
 {
-    //printf("[%s] checkEscape, e = %s\n", e->loc->toChars(), e->toChars());
-    return checkEscapeImpl(sc, e, false, gag);
+    //printf("[%s] checkReturnEscape, e = %s\n", e->loc->toChars(), e->toChars());
+    return checkReturnEscapeImpl(sc, e, false, gag);
 }
 
 /************************************
@@ -425,18 +497,32 @@ bool checkEscape(Scope *sc, Expression *e, bool gag)
  * Returns:
  *      true if references to the stack can escape
  */
-bool checkEscapeRef(Scope *sc, Expression *e, bool gag)
+bool checkReturnEscapeRef(Scope *sc, Expression *e, bool gag)
 {
-    //printf("[%s] checkEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
+    //printf("[%s] checkReturnEscapeRef, e = %s\n", e->loc.toChars(), e->toChars());
     //printf("current function %s\n", sc->func->toChars());
     //printf("parent2 function %s\n", sc->func->toParent2()->toChars());
 
-    return checkEscapeImpl(sc, e, true, gag);
+    return checkReturnEscapeImpl(sc, e, true, gag);
 }
 
-static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag)
+static void escapingRef(VarDeclaration *v, Expression *e, bool &result, bool gag)
 {
-    //printf("[%s] checkEscapeImpl, e = %s\n", e->loc->toChars(), e->toChars());
+    if (!gag)
+    {
+        const char *msg;
+        if (v->storage_class & STCparameter)
+            msg = "returning `%s` escapes a reference to parameter `%s`, perhaps annotate with `return`";
+        else
+            msg = "returning `%s` escapes a reference to local variable `%s`";
+        error(e->loc, msg, e->toChars(), v->toChars());
+    }
+    result = true;
+}
+
+static bool checkReturnEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag)
+{
+    //printf("[%s] checkReturnEscapeImpl, e = %s\n", e->loc->toChars(), e->toChars());
     EscapeByResults er;
 
     if (refs)
@@ -500,7 +586,7 @@ static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag)
             if (tb->ty == Tarray || tb->ty == Tsarray)
             {
                 if (!gag)
-                    error(e->loc, "escaping reference to variadic parameter %s", v->toChars());
+                    error(e->loc, "returning `%s` escapes a reference to variadic parameter `%s`", e->toChars(), v->toChars());
                 result = false;
             }
         }
@@ -524,9 +610,7 @@ static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag)
         {
             if (p == sc->func)
             {
-                if (!gag)
-                    error(e->loc, "escaping reference to local variable %s", v->toChars());
-                result = true;
+                escapingRef(v, e, result, gag);
                 continue;
             }
             FuncDeclaration *fd = p->isFuncDeclaration();
@@ -563,9 +647,7 @@ static bool checkEscapeImpl(Scope *sc, Expression *e, bool refs, bool gag)
                 {
                     //printf("escaping reference to local ref variable %s\n", v->toChars());
                     //printf("storage class = x%llx\n", v->storage_class);
-                    if (!gag)
-                        error(e->loc, "escaping reference to local variable %s", v->toChars());
-                    result = true;
+                    escapingRef(v, e, result, gag);
                     continue;
                 }
                 // Don't need to be concerned if v's parent does not return a ref
@@ -609,7 +691,7 @@ static void inferReturn(FuncDeclaration *fd, VarDeclaration *v)
 {
     // v is a local in the current function
 
-    //printf("inferring 'return' for variable '%s'\n", v->toChars());
+    //printf("for function '%s' inferring 'return' for variable '%s'\n", fd->toChars(), v->toChars());
     v->storage_class |= STCreturn;
 
     TypeFunction *tf = (TypeFunction *)fd->type;
@@ -713,6 +795,11 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
 
         void visit(DelegateExp *e)
         {
+            Type *t = e->e1->type->toBasetype();
+            if (t->ty == Tclass || t->ty == Tpointer)
+                escapeByValue(e->e1, er);
+            else
+                escapeByRef(e->e1, er);
             er->byfunc.push(e->func);
         }
 
@@ -724,10 +811,7 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
 
         void visit(TupleExp *e)
         {
-            if (e->exps->dim)
-            {
-                (*e->exps)[e->exps->dim - 1]->accept(this); // last one only
-            }
+            assert(0); // should have been lowered by now
         }
 
         void visit(ArrayLiteralExp *e)
@@ -1128,6 +1212,7 @@ static void escapeByRef(Expression *e, EscapeByResults *er)
  */
 void findAllOuterAccessedVariables(FuncDeclaration *fd, VarDeclarations *vars)
 {
+    //printf("findAllOuterAccessedVariables(fd: %s)\n", fd.toChars());
     for (Dsymbol *p = fd->parent; p; p = p->parent)
     {
         FuncDeclaration *fdp = p->isFuncDeclaration();

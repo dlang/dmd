@@ -468,6 +468,41 @@ void test7()
 }
 
 /********************************************************/
+// 4350
+
+template Mix4350() { int b; }
+
+struct S4350
+{
+    int a;
+
+    mixin Mix4350 mix;
+
+    int c;
+    template Func() { void call(int n) { c = n; } }
+    alias func = Func!();
+}
+
+void test4350()
+{
+    S4350 s;
+
+    s.a = 1;
+    s.mix.b = 2;
+    s.func.call(3);
+    assert(s.a == 1);
+    assert(s.b == 2);
+    assert(s.c == 3);
+
+    with (s) { a = 2; }
+    with (s) { mix.b = 3; }
+    with (s) { func.call(4); }
+    assert(s.a == 2);
+    assert(s.b == 3);
+    assert(s.c == 4);
+}
+
+/********************************************************/
 // 6430
 
 auto bug6430(int a)
@@ -594,6 +629,44 @@ void test11993()
 }
 
 /********************************************************/
+// 15934
+
+class B15934
+{
+    int foo()       { return 1; }
+    int foo() const { return 2; }
+}
+
+class C15934 : B15934
+{
+    override int foo()       { return 3; }
+    override int foo() const { return 4; }
+
+    void test1()
+    {
+        assert(this.foo() == 3);
+        assert(     foo() == 3);
+        assert(this.B15934.foo() == 1);
+        assert(     B15934.foo() == 1);
+    }
+
+    void test2() const
+    {
+        assert(this.foo() == 4);
+        assert(     foo() == 4);
+        assert(this.B15934.foo() == 2);  // OK <- wrongly returns 1
+        assert(     B15934.foo() == 2);  // OK <- wrongly returns 1
+    }
+}
+
+void test15934()
+{
+    auto c = new C15934();
+    c.test1();
+    c.test2();
+}
+
+/********************************************************/
 
 int main()
 {
@@ -604,8 +677,10 @@ int main()
     test5();
     test6();
     test7();
+    test4350();
     test9619();
     test9633();
+    test15934();
 
     printf("Success\n");
     return 0;

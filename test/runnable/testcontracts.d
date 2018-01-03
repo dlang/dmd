@@ -21,7 +21,7 @@ class A
         assert(result & 1);
         assert(x == 7);
     }
-    body
+    do
     {
         return i;
     }
@@ -43,7 +43,7 @@ class B : A
         assert(result < 8);
         assert(x == 7);
     }
-    body
+    do
     {
         return i - 1;
     }
@@ -75,7 +75,7 @@ class A2
         assert(result & 1);
         assert(x == 7);
     }
-    body
+    do
     {
         return i;
     }
@@ -97,7 +97,7 @@ class B2 : A2
         assert(result < 8);
         assert(x == 7);
     }
-    body
+    do
     {
         return i - 1;
     }
@@ -119,7 +119,7 @@ class C : B2
         assert(result == 1 || result == 3 || result == 5);
         assert(x == 7);
     }
-    body
+    do
     {
         return i - 1;
     }
@@ -139,7 +139,7 @@ void fun(int x)
 in {
     if (x < 0) throw new Exception("a");
 }
-body {
+do {
 }
 
 void test3()
@@ -161,7 +161,7 @@ interface Stack {
 class CC : Stack
 {
     int pop()
-    //out (result) { printf("CC.pop.out\n"); } body
+    //out (result) { printf("CC.pop.out\n"); } do
     {
         printf("CC.pop.in\n");
         return 3;
@@ -181,7 +181,7 @@ out(result)
 {
     assert(result == 500);
 }
-body
+do
 {
     return n * 100;
 }
@@ -208,7 +208,7 @@ out(r)
     // Regression check of issue 3390
     static assert(!__traits(compiles, r = 1));
 }
-body
+do
 {
     static int dummy;
     return dummy;
@@ -231,7 +231,7 @@ class Bug3722A
 }
 class Bug3722B : Bug3722A
 {
-    override void fun() in { assert(false); } body {}
+    override void fun() in { assert(false); } do {}
 }
 
 void test6()
@@ -246,7 +246,7 @@ void test6()
 auto test7foo()
 in{
     ++cnt;
-}body{
+}do{
     ++cnt;
     return "str";
 }
@@ -264,7 +264,7 @@ auto foo8()
 out(r){
     ++cnt;
     assert(r == 10);
-}body{
+}do{
     ++cnt;
     return 10;
 }
@@ -272,7 +272,7 @@ out(r){
 auto bar8()
 out{
     ++cnt;
-}body{
+}do{
     ++cnt;
 }
 
@@ -292,6 +292,18 @@ void test8()
 
 void test9()
 {
+  {
+    auto f1 = function() do { }; // fine
+    auto f2 = function() in { } do { }; // fine
+    auto f3 = function() out { } do { }; // error
+    auto f4 = function() in { } out { } do { }; // error
+
+    auto d1 = delegate() do { }; // fine
+    auto d2 = delegate() in { } do { }; // fine
+    auto d3 = delegate() out { } do { }; // error
+    auto d4 = delegate() in { } out { } do { }; // error
+  }
+  {
     auto f1 = function() body { }; // fine
     auto f2 = function() in { } body { }; // fine
     auto f3 = function() out { } body { }; // error
@@ -301,6 +313,25 @@ void test9()
     auto d2 = delegate() in { } body { }; // fine
     auto d3 = delegate() out { } body { }; // error
     auto d4 = delegate() in { } out { } body { }; // error
+  }
+}
+
+/*******************************************/
+
+auto test10() body { return 3; }
+auto test11()() body { return 3; }
+
+auto test12()
+{
+    auto test10() body { return 3; }
+    auto test11()() body { return 3; }
+    return 3;
+}
+
+
+void test13()
+{
+    int function() fp13;
 }
 
 /*******************************************/
@@ -316,7 +347,7 @@ in{
 out(r){
     assert(r == 10);
     ++cnt;
-}body{
+}do{
     ++cnt;
     int r = 10;
     return r;
@@ -382,7 +413,7 @@ class Bug6417
         };
         dg();
     }
-    body {}
+    do {}
 }
 
 void test6417()
@@ -395,10 +426,102 @@ void test6417()
 
 void test7218()
 {
-    size_t foo()  in{}  out{}  body{ return 0; } // OK
-    size_t bar()  in{}/*out{}*/body{ return 0; } // OK
-    size_t hoo()/*in{}*/out{}  body{ return 0; } // NG1
-    size_t baz()/*in{}  out{}*/body{ return 0; } // NG2
+  {
+    size_t foo()  in{}  out{}  do{ return 0; } // OK
+    size_t bar()  in{}/*out{}*/do{ return 0; } // OK
+    size_t hoo()/*in{}*/out{}  do{ return 0; } // NG1
+    size_t baz()/*in{}  out{}*/do{ return 0; } // NG2
+  }
+  {
+    size_t goo()  in{}  out{}  body{ return 0; } // OK
+    size_t gar()  in{}/*out{}*/body{ return 0; } // OK
+    size_t gob()/*in{}*/out{}  body{ return 0; } // NG1
+    size_t gaz()/*in{}  out{}*/body{ return 0; } // NG2
+  }
+}
+
+/*******************************************/
+// 7517
+
+void test7517()
+{
+    static string result;
+
+    interface I
+    {
+        static I self;
+
+        void setEnable()
+        in
+        {
+            assert(self is this);
+            result ~= "I.setEnable.in/";
+            assert(!enabled);
+        }
+        out
+        {
+            assert(self is this);
+            result ~= "I.setEnable.out/";
+            assert( enabled);
+        }
+
+        void setDisable()
+        in
+        {
+            assert(self is this);
+            result ~= "I.setDisable.in/";
+            assert( enabled);
+        }
+        out
+        {
+            assert(self is this);
+            result ~= "I.setDisable.out/";
+            assert(!enabled);
+        }
+
+        @property bool enabled() const;
+    }
+
+    class C : I
+    {
+        static C self;
+
+        void setEnable()
+        in {}       // supply in-contract to invoke I.setEnable.in
+        do
+        {
+            assert(self is this);
+            result ~= "C.setEnable/";
+            _enabled = true;
+        }
+
+        void setDisable()
+        {
+            assert(self is this);
+            result ~= "C.setDisable/";
+            _enabled = false;
+        }
+
+        @property bool enabled() const
+        {
+            assert(self is this);
+            result ~= "C.enabled/";
+            return _enabled;
+        }
+
+        bool _enabled;
+    }
+
+    C c = C.self = new C;
+    I i = I.self = c;
+
+    result = null;
+    i.setEnable();
+    assert(result == "I.setEnable.in/C.enabled/C.setEnable/I.setEnable.out/C.enabled/");
+
+    result = null;
+    i.setDisable();
+    assert(result == "C.setDisable/I.setDisable.out/C.enabled/");
 }
 
 /*******************************************/
@@ -408,11 +531,11 @@ class P7699
 {
     void f(int n) in {
         assert (n);
-    } body { }
+    } do { }
 }
 class D7699 : P7699
 {
-    override void f(int n) in { } body { }
+    override void f(int n) in { } do { }
 }
 
 /*******************************************/
@@ -423,20 +546,20 @@ class AA7883
 {
     int foo()
     out (r1) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 class BA7883 : AA7883
 {
     override int foo()
     out (r2) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 class CA7883 : BA7883
 {
     override int foo()
-    body { return 1; }
+    do { return 1; }
 }
 
 // Error: undefined identifier r2, did you mean variable r3?
@@ -444,14 +567,14 @@ class AB7883
 {
     int foo()
     out (r1) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 class BB7883 : AB7883
 {
     override int foo()
     out (r2) { }
-    body { return 1; }
+    do { return 1; }
 
 }
 
@@ -459,7 +582,7 @@ class CB7883 : BB7883
 {
     override int foo()
     out (r3) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 // Error: undefined identifier r3, did you mean variable r4?
@@ -467,28 +590,28 @@ class AC7883
 {
     int foo()
     out (r1) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 class BC7883 : AC7883
 {
     override int foo()
     out (r2) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 class CC7883 : BC7883
 {
     override int foo()
     out (r3) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 class DC7883 : CC7883
 {
     override int foo()
     out (r4) { }
-    body { return 1; }
+    do { return 1; }
 }
 
 /*******************************************/
@@ -502,7 +625,7 @@ struct S7892
 
 S7892 f7892()
 out (result) {}     // case 1
-body
+do
 {
     return S7892(1);
 }
@@ -547,7 +670,7 @@ class Bug8073
 {
     static int test;
     int foo()
-    out(r) { test = 7; } body
+    out(r) { test = 7; } do
     {
         Container8073 ww;
         foreach( xxx ; ww ) {  }
@@ -555,7 +678,7 @@ class Bug8073
     }
 
     ref int bar()
-    out { } body
+    out { } do
     {
         Container8073 ww;
         foreach( xxx ; ww ) {  }
@@ -582,7 +705,7 @@ void test8093()
     static int g = 10;
     static int* p;
 
-    enum fbody = q{
+    enum fdo = q{
         static struct S {
             int opApply(scope int delegate(ref int) dg) { return dg(g); }
         }
@@ -593,19 +716,19 @@ void test8093()
     };
 
     ref int foo_ref1() out(r) { assert(&r is &g && r == 10); }
-    body { mixin(fbody); }
+    do { mixin(fdo); }
 
     ref int foo_ref2()
-    body { mixin(fbody); }
+    do { mixin(fdo); }
 
     { auto q = &foo_ref1(); assert(q is &g && *q == 10); }
     { auto q = &foo_ref2(); assert(q is &g && *q == 10); }
 
     int foo_val1() out(r) { assert(&r !is &g && r == 10); }
-    body { mixin(fbody); }
+    do { mixin(fdo); }
 
     int foo_val2()
-    body { mixin(fbody); }
+    do { mixin(fdo); }
 
     { auto n = foo_val1(); assert(&n !is &g && n == 10); }
     { auto n = foo_val2(); assert(&n !is &g && n == 10); }
@@ -622,22 +745,22 @@ class A9383
     void failInBase() { assert(typeid(this) is typeid(A9383)); }
 
     // in-contract tests
-    void foo1(int i) in  { A9383.val = i; failInBase; } body { }                        // no closure
-    void foo2(int i) in  { A9383.val = i; failInBase; } body { int x; dg = { ++x; }; }  // closure [local]
-    void foo3(int i) in  { A9383.val = i; failInBase; } body {        dg = { ++i; }; }  // closure [parameter]
-    void foo4(int i) in  { A9383.val = i; failInBase; } body { }                        // no closure
-    void foo5(int i) in  { A9383.val = i; failInBase; } body { }                        // no closure
-    void foo6(int i) in  { A9383.val = i; failInBase; } body { int x; dg = { ++x; }; }  // closure [local]
-    void foo7(int i) in  { A9383.val = i; failInBase; } body {        dg = { ++i; }; }  // closure [parameter]
+    void foo1(int i) in  { A9383.val = i; failInBase; } do { }                        // no closure
+    void foo2(int i) in  { A9383.val = i; failInBase; } do { int x; dg = { ++x; }; }  // closure [local]
+    void foo3(int i) in  { A9383.val = i; failInBase; } do {        dg = { ++i; }; }  // closure [parameter]
+    void foo4(int i) in  { A9383.val = i; failInBase; } do { }                        // no closure
+    void foo5(int i) in  { A9383.val = i; failInBase; } do { }                        // no closure
+    void foo6(int i) in  { A9383.val = i; failInBase; } do { int x; dg = { ++x; }; }  // closure [local]
+    void foo7(int i) in  { A9383.val = i; failInBase; } do {        dg = { ++i; }; }  // closure [parameter]
 
     // out-contract tests
-    void bar1(int i) out { A9383.val = i;             } body { }                        // no closure
-    void bar2(int i) out { A9383.val = i;             } body { int x; dg = { ++x; }; }  // closure [local]
-    void bar3(int i) out { A9383.val = i;             } body {        dg = { ++i; }; }  // closure [parameter]
-    void bar4(int i) out { A9383.val = i;             } body { }                        // no closure
-    void bar5(int i) out { A9383.val = i;             } body { }                        // no closure
-    void bar6(int i) out { A9383.val = i;             } body { int x; dg = { ++x; }; }  // closure [local]
-    void bar7(int i) out { A9383.val = i;             } body {        dg = { ++i; }; }  // closure [parameter]
+    void bar1(int i) out { A9383.val = i;             } do { }                        // no closure
+    void bar2(int i) out { A9383.val = i;             } do { int x; dg = { ++x; }; }  // closure [local]
+    void bar3(int i) out { A9383.val = i;             } do {        dg = { ++i; }; }  // closure [parameter]
+    void bar4(int i) out { A9383.val = i;             } do { }                        // no closure
+    void bar5(int i) out { A9383.val = i;             } do { }                        // no closure
+    void bar6(int i) out { A9383.val = i;             } do { int x; dg = { ++x; }; }  // closure [local]
+    void bar7(int i) out { A9383.val = i;             } do {        dg = { ++i; }; }  // closure [parameter]
 }
 
 class B9383 : A9383
@@ -645,22 +768,22 @@ class B9383 : A9383
     static int val;
 
     // in-contract tests
-    override void foo1(int i) in  { B9383.val = i; } body { }                           // -> no closure
-    override void foo2(int i) in  { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
-    override void foo3(int i) in  { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter]
-    override void foo4(int i) in  { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
-    override void foo5(int i) in  { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter] appears
-    override void foo6(int i) in  { B9383.val = i; } body { }                           // -> closure [local] disappears
-    override void foo7(int i) in  { B9383.val = i; } body { }                           // -> closure [parameter] disappears
+    override void foo1(int i) in  { B9383.val = i; } do { }                           // -> no closure
+    override void foo2(int i) in  { B9383.val = i; } do { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void foo3(int i) in  { B9383.val = i; } do {        dg = { ++i; }; }     // -> closure [parameter]
+    override void foo4(int i) in  { B9383.val = i; } do { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void foo5(int i) in  { B9383.val = i; } do {        dg = { ++i; }; }     // -> closure [parameter] appears
+    override void foo6(int i) in  { B9383.val = i; } do { }                           // -> closure [local] disappears
+    override void foo7(int i) in  { B9383.val = i; } do { }                           // -> closure [parameter] disappears
 
     // out-contract tests
-    override void bar1(int i) out { B9383.val = i; } body { }                           // -> no closure
-    override void bar2(int i) out { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
-    override void bar3(int i) out { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter]
-    override void bar4(int i) out { B9383.val = i; } body { int x; dg = { ++x; }; }     // -> closure [local] appears
-    override void bar5(int i) out { B9383.val = i; } body {        dg = { ++i; }; }     // -> closure [parameter] appears
-    override void bar6(int i) out { B9383.val = i; } body { }                           // -> closure [local] disappears
-    override void bar7(int i) out { B9383.val = i; } body { }                           // -> closure [parameter] disappears
+    override void bar1(int i) out { B9383.val = i; } do { }                           // -> no closure
+    override void bar2(int i) out { B9383.val = i; } do { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void bar3(int i) out { B9383.val = i; } do {        dg = { ++i; }; }     // -> closure [parameter]
+    override void bar4(int i) out { B9383.val = i; } do { int x; dg = { ++x; }; }     // -> closure [local] appears
+    override void bar5(int i) out { B9383.val = i; } do {        dg = { ++i; }; }     // -> closure [parameter] appears
+    override void bar6(int i) out { B9383.val = i; } do { }                           // -> closure [local] disappears
+    override void bar7(int i) out { B9383.val = i; } do { }                           // -> closure [parameter] disappears
 }
 
 void test9383()
@@ -698,12 +821,145 @@ void test9383()
 }
 
 /*******************************************/
+// 15524 - Different from issue 9383 cases, closed variable size is bigger than REGSIZE.
+
+class A15524
+{
+    static void delegate() dg;
+    static string val;
+
+    void failInBase() { assert(typeid(this) is typeid(A15524)); }
+
+    // in-contract tests
+    void foo1(string s) in  { A15524.val = s; failInBase; } do { }                                // no closure
+    void foo2(string s) in  { A15524.val = s; failInBase; } do { string x; dg = { x = null; }; }  // closure [local]
+    void foo3(string s) in  { A15524.val = s; failInBase; } do {           dg = { s = null; }; }  // closure [parameter]
+    void foo4(string s) in  { A15524.val = s; failInBase; } do { }                                // no closure
+    void foo5(string s) in  { A15524.val = s; failInBase; } do { }                                // no closure
+    void foo6(string s) in  { A15524.val = s; failInBase; } do { string x; dg = { x = null; }; }  // closure [local]
+    void foo7(string s) in  { A15524.val = s; failInBase; } do {           dg = { s = null; }; }  // closure [parameter]
+
+    // out-contract tests
+    void bar1(string s) out { A15524.val = s;             } do { }                                // no closure
+    void bar2(string s) out { A15524.val = s;             } do { string x; dg = { x = null; }; }  // closure [local]
+    void bar3(string s) out { A15524.val = s;             } do {           dg = { s = null; }; }  // closure [parameter]
+    void bar4(string s) out { A15524.val = s;             } do { }                                // no closure
+    void bar5(string s) out { A15524.val = s;             } do { }                                // no closure
+    void bar6(string s) out { A15524.val = s;             } do { string x; dg = { x = null; }; }  // closure [local]
+    void bar7(string s) out { A15524.val = s;             } do {           dg = { s = null; }; }  // closure [parameter]
+}
+
+class B15524 : A15524
+{
+    static string val;
+
+    // in-contract tests
+    override void foo1(string s) in  { B15524.val = s; } do { }                                   // -> no closure
+    override void foo2(string s) in  { B15524.val = s; } do { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void foo3(string s) in  { B15524.val = s; } do {           dg = { s = null; }; }     // -> closure [parameter]
+    override void foo4(string s) in  { B15524.val = s; } do { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void foo5(string s) in  { B15524.val = s; } do {           dg = { s = null; }; }     // -> closure [parameter] appears
+    override void foo6(string s) in  { B15524.val = s; } do { }                                   // -> closure [local] disappears
+    override void foo7(string s) in  { B15524.val = s; } do { }                                   // -> closure [parameter] disappears
+
+    // out-contract tests
+    override void bar1(string s) out { B15524.val = s; } do { }                                   // -> no closure
+    override void bar2(string s) out { B15524.val = s; } do { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void bar3(string s) out { B15524.val = s; } do {           dg = { s = null; }; }     // -> closure [parameter]
+    override void bar4(string s) out { B15524.val = s; } do { string x; dg = { x = null; }; }     // -> closure [local] appears
+    override void bar5(string s) out { B15524.val = s; } do {           dg = { s = null; }; }     // -> closure [parameter] appears
+    override void bar6(string s) out { B15524.val = s; } do { }                                   // -> closure [local] disappears
+    override void bar7(string s) out { B15524.val = s; } do { }                                   // -> closure [parameter] disappears
+}
+
+void test15524()
+{
+    auto a = new A15524();
+    auto b = new B15524();
+
+    // base class in-contract is used from derived class.           // base                   derived
+    b.foo1("1"); assert(A15524.val == "1" && B15524.val == "1");    // no closure          -> no closure
+    b.foo2("2"); assert(A15524.val == "2" && B15524.val == "2");    // closure [local]     -> closure [local] appears
+    b.foo3("3"); assert(A15524.val == "3" && B15524.val == "3");    // closure [parameter] -> closure [parameter]
+    b.foo4("4"); assert(A15524.val == "4" && B15524.val == "4");    // no closure          -> closure [local] appears
+    b.foo5("5"); assert(A15524.val == "5" && B15524.val == "5");    // no closure          -> closure [parameter] appears
+    b.foo6("6"); assert(A15524.val == "6" && B15524.val == "6");    // closure [local]     -> closure [local] disappears
+    b.foo7("7"); assert(A15524.val == "7" && B15524.val == "7");    // closure [parameter] -> closure [parameter] disappears
+
+    // base class out-contract is used from derived class.          // base                   derived
+    b.bar1("1"); assert(A15524.val == "1" && B15524.val == "1");    // no closure          -> no closure
+    b.bar2("2"); assert(A15524.val == "2" && B15524.val == "2");    // closure [local]     -> closure [local] appears
+    b.bar3("3"); assert(A15524.val == "3" && B15524.val == "3");    // closure [parameter] -> closure [parameter]
+    b.bar4("4"); assert(A15524.val == "4" && B15524.val == "4");    // no closure          -> closure [local] appears
+    b.bar5("5"); assert(A15524.val == "5" && B15524.val == "5");    // no closure          -> closure [parameter] appears
+    b.bar6("6"); assert(A15524.val == "6" && B15524.val == "6");    // closure [local]     -> closure [local] disappears
+    b.bar7("7"); assert(A15524.val == "7" && B15524.val == "7");    // closure [parameter] -> closure [parameter] disappears
+
+    // in-contract in base class.
+    a.foo1("1"); assert(A15524.val == "1");     // no closure
+    a.foo2("2"); assert(A15524.val == "2");     // closure [local]
+    a.foo3("3"); assert(A15524.val == "3");     // closure [parameter]
+
+    // out-contract in base class.
+    a.bar1("1"); assert(A15524.val == "1");     // no closure
+    a.bar2("2"); assert(A15524.val == "2");     // closure [local]
+    a.bar3("3"); assert(A15524.val == "3");     // closure [parameter]
+}
+
+void test15524a()
+{
+    auto t1 = new Test15524a();
+    t1.infos["first"] = 0; //t1.add("first");
+    t1.add("second");
+
+    auto t2 = new Test15524b();
+    t2.add("second");
+}
+
+class Test15524a
+{
+    int[string] infos;
+
+    void add(string key)
+    in
+    {
+        assert(key !in infos); // @@@ crash here at second
+    }
+    do
+    {
+        auto item = new class
+        {
+            void notCalled()
+            {
+                infos[key] = 0;
+                    // affects, key parameter is made a closure variable.
+            }
+        };
+    }
+}
+
+class Test15524b
+{
+    void add(string key)
+    in
+    {
+        assert(key == "second"); // @@@ fails
+    }
+    do
+    {
+        static void delegate() dg;
+        dg = { auto x = key; };
+            // affects, key parameter is made a closure variable.
+    }
+}
+
+/*******************************************/
 // 10479
 
 class B10479
 {
     B10479 foo()
-    out { } body { return null; }
+    out { } do { return null; }
 }
 
 class D10479 : B10479
@@ -718,7 +974,7 @@ class Foo10596
 {
     auto bar()
     out (result) { }
-    body { return 0; }
+    do { return 0; }
 }
 
 /*******************************************/
@@ -728,18 +984,18 @@ class Foo10721
 {
     this()
     out { }
-    body { }
+    do { }
 
     ~this()
     out { }
-    body { }
+    do { }
 }
 
 struct Bar10721
 {
     this(this)
     out { }
-    body { }
+    do { }
 }
 
 /*******************************************/
@@ -750,7 +1006,7 @@ class C10981
     void foo(int i) pure
     in { assert(i); }
     out { assert(i); }
-    body {}
+    do {}
 }
 
 /*******************************************/
@@ -761,7 +1017,7 @@ class C14779
     final void foo(int v)
     in  { assert(v == 0); }
     out { assert(v == 0); }
-    body
+    do
     {
     }
 }
@@ -788,9 +1044,12 @@ int main()
     test4785();
     test6417();
     test7218();
+    test7517();
     test8073();
     test8093();
     test9383();
+    test15524();
+    test15524a();
     test14779();
 
     printf("Success\n");

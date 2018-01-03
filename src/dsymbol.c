@@ -39,6 +39,7 @@
 bool symbolIsVisible(Dsymbol *origin, Dsymbol *s);
 typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
 int ScopeDsymbol_foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn = NULL);
+Expression *semantic(Expression *e, Scope *sc);
 
 
 /****************************** Dsymbol ******************************/
@@ -683,7 +684,7 @@ void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
     {
         if (!sds->symtabInsert(this))    // if name is already defined
         {
-            Dsymbol *s2 = sds->symtab->lookup(ident);
+            Dsymbol *s2 = sds->symtabLookup(this, ident);
             if (!s2->overloadInsert(this))
             {
                 sds->multiplyDefined(Loc(), this, s2);
@@ -956,6 +957,10 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     sds->members = arraySyntaxCopy(members);
     sds->endlinnum = endlinnum;
     return sds;
+}
+
+void ScopeDsymbol::semantic(Scope *)
+{
 }
 
 /*****************************************
@@ -1282,6 +1287,15 @@ const char *ScopeDsymbol::kind()
 Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
 {
     return symtab->insert(s);
+}
+
+/****************************************
+ * Look up identifier in symbol table.
+ */
+
+Dsymbol *ScopeDsymbol::symtabLookup(Dsymbol *s, Identifier *id)
+{
+    return symtab->lookup(id);
 }
 
 /****************************************
@@ -1632,7 +1646,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
                     Objects *tiargs = new Objects();
                     Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
-                    edim = edim->semantic(sc);
+                    edim = ::semantic(edim, sc);
                     tiargs->push(edim);
                     e = new DotTemplateInstanceExp(loc, ce, td->ident, tiargs);
                 }
@@ -1652,7 +1666,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     assert(d);
                     e = new DotVarExp(loc, ce, d);
                 }
-                e = e->semantic(sc);
+                e = ::semantic(e, sc);
                 if (!e->type)
                     exp->error("%s has no value", e->toChars());
                 t = e->type->toBasetype();

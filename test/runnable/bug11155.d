@@ -10,9 +10,9 @@ version(D_SIMD)
     }
 
     void main()
-    { 
+    {
         float4 v;
-        foo(&v, v); 
+        foo(&v, v);
     }
 }
 else

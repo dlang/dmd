@@ -6,7 +6,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/lexer.h
+ * https://github.com/dlang/dmd/blob/master/src/tokens.h
  */
 
 #ifndef DMD_TOKENS_H
@@ -151,7 +151,7 @@ enum TOK
         TOKon_scope_exit, TOKon_scope_failure, TOKon_scope_success,
 
         // Contracts
-        TOKbody, TOKinvariant,
+        TOKinvariant,
 
         // Testing
         TOKunittest,
@@ -217,7 +217,6 @@ struct Token
     };
 
     static const char *tochars[TOKMAX];
-    static void initTokens();
 
     static Token *freelist;
     static Token *alloc();

@@ -1,4 +1,5 @@
 // REQUIRED_ARGS:
+// PERMUTE_ARGS: -mcpu=native
 
 version (D_SIMD)
 {
@@ -8,6 +9,60 @@ import core.stdc.string;
 import std.stdio;
 
 alias TypeTuple(T...) = T;
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16087
+
+static assert(void16.alignof == 16);
+static assert(double2.alignof == 16);
+static assert(float4.alignof == 16);
+static assert(byte16.alignof == 16);
+static assert(ubyte16.alignof == 16);
+static assert(short8.alignof == 16);
+static assert(ushort8.alignof == 16);
+static assert(int4.alignof == 16);
+static assert(uint4.alignof == 16);
+static assert(long2.alignof == 16);
+static assert(ulong2.alignof == 16);
+
+static assert(void16.sizeof == 16);
+static assert(double2.sizeof == 16);
+static assert(float4.sizeof == 16);
+static assert(byte16.sizeof == 16);
+static assert(ubyte16.sizeof == 16);
+static assert(short8.sizeof == 16);
+static assert(ushort8.sizeof == 16);
+static assert(int4.sizeof == 16);
+static assert(uint4.sizeof == 16);
+static assert(long2.sizeof == 16);
+static assert(ulong2.sizeof == 16);
+
+version (D_AVX)
+{
+    static assert(void32.alignof == 32);
+    static assert(double4.alignof == 32);
+    static assert(float8.alignof == 32);
+    static assert(byte32.alignof == 32);
+    static assert(ubyte32.alignof == 32);
+    static assert(short16.alignof == 32);
+    static assert(ushort16.alignof == 32);
+    static assert(int8.alignof == 32);
+    static assert(uint8.alignof == 32);
+    static assert(long4.alignof == 32);
+    static assert(ulong4.alignof == 32);
+
+    static assert(void32.sizeof == 32);
+    static assert(double4.sizeof == 32);
+    static assert(float8.sizeof == 32);
+    static assert(byte32.sizeof == 32);
+    static assert(ubyte32.sizeof == 32);
+    static assert(short16.sizeof == 32);
+    static assert(ushort16.sizeof == 32);
+    static assert(int8.sizeof == 32);
+    static assert(uint8.sizeof == 32);
+    static assert(long4.sizeof == 32);
+    static assert(ulong4.sizeof == 32);
+}
 
 /*****************************************/
 
@@ -35,6 +90,14 @@ void test1()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -95,6 +158,14 @@ void test2()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -155,6 +226,14 @@ void test2b()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -215,6 +294,14 @@ void test2c()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -238,6 +325,7 @@ void test2c()
     static assert(!__traits(compiles, v1 <<= 1));
     static assert(!__traits(compiles, v1 >>= 1));
     static assert(!__traits(compiles, v1 >>>= 1));
+    v1 = v1 * 3;
 
     //  A cast from vector to non-vector is allowed only when the target is same size Tsarray.
     static assert(!__traits(compiles, cast(byte)v1));       // 1byte
@@ -275,6 +363,14 @@ void test2d()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -319,7 +415,10 @@ void test2e()
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
-    static assert(!__traits(compiles, v1 * v2));
+    version (D_AVX) // SSE4.1
+        v1 = v2 * v3;
+    else
+        static assert(!__traits(compiles, v1 * v2));
     static assert(!__traits(compiles, v1 / v2));
     static assert(!__traits(compiles, v1 % v2));
     v1 = v2 & v3;
@@ -335,6 +434,14 @@ void test2e()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -347,7 +454,10 @@ void test2e()
 
     v1 += v2;
     v1 -= v2;
-    static assert(!__traits(compiles, v1 *= v2));
+    version (D_AVX) // SSE4.1
+        v1 *= v2;
+    else
+        static assert(!__traits(compiles, v1 *= v2));
     static assert(!__traits(compiles, v1 /= v2));
     static assert(!__traits(compiles, v1 %= v2));
     v1 &= v2;
@@ -379,7 +489,10 @@ void test2f()
     v1 = v2;
     v1 = v2 + v3;
     v1 = v2 - v3;
-    static assert(!__traits(compiles, v1 * v2));
+    version (D_AVX) // SSE4.1
+        v1 = v2 * v3;
+    else
+        static assert(!__traits(compiles, v1 * v2));
     static assert(!__traits(compiles, v1 / v2));
     static assert(!__traits(compiles, v1 % v2));
     v1 = v2 & v3;
@@ -395,6 +508,14 @@ void test2f()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -407,7 +528,10 @@ void test2f()
 
     v1 += v2;
     v1 -= v2;
-    static assert(!__traits(compiles, v1 *= v2));
+    version (D_AVX) // SSE4.1
+        v1 *= v2;
+    else
+        static assert(!__traits(compiles, v1 *= v2));
     static assert(!__traits(compiles, v1 /= v2));
     static assert(!__traits(compiles, v1 %= v2));
     v1 &= v2;
@@ -455,6 +579,14 @@ void test2g()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -515,6 +647,14 @@ void test2h()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -575,6 +715,14 @@ void test2i()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -635,6 +783,14 @@ void test2j()
     static assert(!__traits(compiles, v1 > v2));
     static assert(!__traits(compiles, v1 <= v2));
     static assert(!__traits(compiles, v1 >= v2));
+    static assert(!__traits(compiles, v1 <> v2));
+    static assert(!__traits(compiles, v1 !< v2));
+    static assert(!__traits(compiles, v1 !> v2));
+    static assert(!__traits(compiles, v1 !<> v2));
+    static assert(!__traits(compiles, v1 <>= v2));
+    static assert(!__traits(compiles, v1 !<= v2));
+    static assert(!__traits(compiles, v1 !>= v2));
+    static assert(!__traits(compiles, v1 !<>= v2));
     static assert(!__traits(compiles, v1 << 1));
     static assert(!__traits(compiles, v1 >> 1));
     static assert(!__traits(compiles, v1 >>> 1));
@@ -1031,22 +1187,34 @@ float4 test5(float4 a, float4 b)
 
     a = __simd_sto(XMM.STOSS, a, b);
     a = __simd_sto(XMM.STOSD, a, b);
+    a = __simd_sto(XMM.STOD, a, b);
+    a = __simd_sto(XMM.STOQ, a, b);
     a = __simd_sto(XMM.STOAPS, a, b);
     a = __simd_sto(XMM.STOAPD, a, b);
     a = __simd_sto(XMM.STODQA, a, b);
-    //a = __simd_sto(XMM.STOD, a, b);
-    a = __simd_sto(XMM.STOQ, a, b);
+    a = __simd_sto(XMM.STOUPS, a, b);
+    a = __simd_sto(XMM.STOUPD, a, b);
+    a = __simd_sto(XMM.STODQU, a, b);
+    a = __simd_sto(XMM.STOHPD, a, b);
+    a = __simd_sto(XMM.STOHPS, a, b);
+    a = __simd_sto(XMM.STOLPD, a, b);
+    a = __simd_sto(XMM.STOLPS, a, b);
 
     a = __simd(XMM.LODSS, a);
     a = __simd(XMM.LODSD, a);
     a = __simd(XMM.LODAPS, a);
     a = __simd(XMM.LODAPD, a);
     a = __simd(XMM.LODDQA, a);
-    //a = __simd(XMM.LODD, a);
-    a = __simd(XMM.LODQ, a);
-
+    a = __simd(XMM.LODUPS, a);
+    a = __simd(XMM.LODUPD, a);
     a = __simd(XMM.LODDQU, a);
-    a = __simd_sto(XMM.STODQU, a, b);
+    a = __simd(XMM.LODD, a);
+    a = __simd(XMM.LODQ, a);
+    a = __simd(XMM.LODHPD, a);
+    a = __simd(XMM.LODHPS, a);
+    a = __simd(XMM.LODLPD, a);
+    a = __simd(XMM.LODLPS, a);
+
     //MOVDQ2Q  = 0xF20FD6,        // MOVDQ2Q mmx, xmm          F2 0F D6 /r
 /+
     LODHPD   = 0x660F16,        // MOVHPD xmm, mem64         66 0F 16 /r
@@ -1311,7 +1479,7 @@ void test12852()
 
 void test9449()
 {
-    ubyte16 table[1];
+    ubyte16[1] table;
 }
 
 /*****************************************/
@@ -1385,7 +1553,7 @@ void foo13988(double[] arr)
 {
     static ulong repr(double d) { return *cast(ulong*)&d; }
     foreach (x; arr)
-	assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
+        assert(repr(arr[0]) == *cast(ulong*)&(arr[0]));
 }
 
 
@@ -1393,6 +1561,432 @@ void test13988()
 {
     double[] arr = [3.0];
     foo13988(arr);
+}
+
+/*****************************************/
+// 15123
+
+void test15123()
+{
+    alias Vector16s = TypeTuple!(
+        void16,  byte16,  short8,  int4,  long2,
+                ubyte16, ushort8, uint4, ulong2, float4, double2);
+    foreach (V; Vector16s)
+    {
+        auto x = V.init;
+    }
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15144
+
+void test15144()
+{
+        enum      ubyte16 csXMM1 = ['a','b','c',0,0,0,0,0];
+        __gshared ubyte16 csXMM2 = ['a','b','c',0,0,0,0,0];
+        immutable ubyte16 csXMM3 = ['a','b','c',0,0,0,0,0];
+        version (D_PIC)
+        {
+        }
+        else
+        {
+            asm @nogc nothrow
+            {
+                movdqa      XMM0, [csXMM1];
+                movdqa      XMM0, [csXMM2];
+                movdqa      XMM0, [csXMM3];
+            }
+        }
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11585
+
+ubyte16 test11585(ubyte16* d)
+{
+    ubyte16 a;
+    if (d is null) return a;
+
+    return __simd(XMM.PCMPEQB, *d, *d);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=13927
+
+void test13927(ulong2 a)
+{
+    ulong2 b = [long.min, long.min];
+    auto tmp = a - b;
+}
+
+/*****************************************/
+
+int fooprefetch(byte a)
+{
+    /* These should be run only if the CPUID PRFCHW
+     * bit 0 of cpuid.{EAX = 7, ECX = 0}.ECX
+     * Unfortunately, that bit isn't yet set by core.cpuid
+     * so disable for the moment.
+     */
+    version (none)
+    {
+        prefetch!(false, 0)(&a);
+        prefetch!(false, 1)(&a);
+        prefetch!(false, 2)(&a);
+        prefetch!(false, 3)(&a);
+        prefetch!(true, 0)(&a);
+        prefetch!(true, 1)(&a);
+        prefetch!(true, 2)(&a);
+        prefetch!(true, 3)(&a);
+    }
+    return 3;
+}
+
+void testprefetch()
+{
+    byte b;
+    int i = fooprefetch(1);
+    assert(i == 3);
+}
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=16488
+
+void foo_byte16(byte t, byte s)
+{
+    byte16 f = s;
+    auto p = cast(byte*)&f;
+    foreach (i; 0 .. 16)
+        assert(p[i] == s);
+}
+
+void foo_ubyte16(ubyte t, ubyte s)
+{
+    ubyte16 f = s;
+    auto p = cast(ubyte*)&f;
+    foreach (i; 0 .. 16)
+        assert(p[i] == s);
+}
+
+
+void foo_short8(short t, short s)
+{
+    short8 f = s;
+    auto p = cast(short*)&f;
+    foreach (i; 0 .. 8)
+        assert(p[i] == s);
+}
+
+void foo_ushort8(ushort t, ushort s)
+{
+    ushort8 f = s;
+    auto p = cast(ushort*)&f;
+    foreach (i; 0 .. 8)
+        assert(p[i] == s);
+}
+
+
+void foo_int4(int t, int s)
+{
+    int4 f = s;
+    auto p = cast(int*)&f;
+    foreach (i; 0 .. 4)
+        assert(p[i] == s);
+}
+
+void foo_uint4(uint t, uint s, uint u)
+{
+    uint4 f = s;
+    auto p = cast(uint*)&f;
+    foreach (i; 0 .. 4)
+        assert(p[i] == s);
+}
+
+
+void foo_long2(long t, long s, long u)
+{
+    long2 f = s;
+    auto p = cast(long*)&f;
+    foreach (i; 0 .. 2)
+        assert(p[i] == s);
+}
+
+void foo_ulong2(ulong t, ulong s)
+{
+    ulong2 f = s;
+    auto p = cast(ulong*)&f;
+    foreach (i; 0 .. 2)
+        assert(p[i] == s);
+}
+
+void foo_float4(float t, float s)
+{
+    float4 f = s;
+    auto p = cast(float*)&f;
+    foreach (i; 0 .. 4)
+        assert(p[i] == s);
+}
+
+void foo_double2(double t, double s, double u)
+{
+    double2 f = s;
+    auto p = cast(double*)&f;
+    foreach (i; 0 .. 2)
+        assert(p[i] == s);
+}
+
+
+void test16448()
+{
+    foo_byte16(5, -10);
+    foo_ubyte16(5, 11);
+
+    foo_short8(5, -6);
+    foo_short8(5, 7);
+
+    foo_int4(5, -6);
+    foo_uint4(5, 0x12345678, 22);
+
+    foo_long2(5, -6, 1);
+    foo_ulong2(5, 0x12345678_87654321L);
+
+    foo_float4(5, -6);
+    foo_double2(5, -6, 2);
+}
+
+/*****************************************/
+
+version (D_AVX)
+{
+    void foo_byte32(byte t, byte s)
+    {
+        byte32 f = s;
+        auto p = cast(byte*)&f;
+        foreach (i; 0 .. 32)
+            assert(p[i] == s);
+    }
+
+    void foo_ubyte32(ubyte t, ubyte s)
+    {
+        ubyte32 f = s;
+        auto p = cast(ubyte*)&f;
+        foreach (i; 0 .. 32)
+            assert(p[i] == s);
+    }
+
+    void foo_short16(short t, short s)
+    {
+        short16 f = s;
+        auto p = cast(short*)&f;
+        foreach (i; 0 .. 16)
+            assert(p[i] == s);
+    }
+
+    void foo_ushort16(ushort t, ushort s)
+    {
+        ushort16 f = s;
+        auto p = cast(ushort*)&f;
+        foreach (i; 0 .. 16)
+            assert(p[i] == s);
+    }
+
+    void foo_int8(int t, int s)
+    {
+        int8 f = s;
+        auto p = cast(int*)&f;
+        foreach (i; 0 .. 8)
+            assert(p[i] == s);
+    }
+
+    void foo_uint8(uint t, uint s, uint u)
+    {
+        uint8 f = s;
+        auto p = cast(uint*)&f;
+        foreach (i; 0 .. 8)
+            assert(p[i] == s);
+    }
+
+    void foo_long4(long t, long s, long u)
+    {
+        long4 f = s;
+        auto p = cast(long*)&f;
+        foreach (i; 0 .. 4)
+            assert(p[i] == s);
+    }
+
+    void foo_ulong4(ulong t, ulong s)
+    {
+        ulong4 f = s;
+        auto p = cast(ulong*)&f;
+        foreach (i; 0 .. 4)
+            assert(p[i] == s);
+    }
+
+    void foo_float8(float t, float s)
+    {
+        float8 f = s;
+        auto p = cast(float*)&f;
+        foreach (i; 0 .. 8)
+            assert(p[i] == s);
+    }
+
+    void foo_double4(double t, double s, double u)
+    {
+        double4 f = s;
+        auto p = cast(double*)&f;
+        foreach (i; 0 .. 4)
+            assert(p[i] == s);
+    }
+
+    void test16448_32()
+    {
+        foo_byte32(5, -10);
+        foo_ubyte32(5, 11);
+
+        foo_short16(5, -6);
+        foo_short16(5, 7);
+
+        foo_int8(5, -6);
+        foo_uint8(5, 0x12345678, 22);
+
+        foo_long4(5, -6, 1);
+        foo_ulong4(5, 0x12345678_87654321L);
+
+        foo_float8(5, -6);
+        foo_double4(5, -6, 2);
+    }
+}
+else
+{
+    void test16448_32()
+    {
+    }
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=16703
+
+float index(float4 f4, size_t i)
+{
+    return f4[i];
+    //return (*cast(float[4]*)&f4)[2];
+}
+
+float[4] slice(float4 f4)
+{
+    return f4[];
+}
+
+float slice2(float4 f4, size_t lwr, size_t upr, size_t i)
+{
+    float[] fa = f4[lwr .. upr];
+    return fa[i];
+}
+
+void test16703()
+{
+    float4 f4 = [1,2,3,4];
+    assert(index(f4, 0) == 1);
+    assert(index(f4, 1) == 2);
+    assert(index(f4, 2) == 3);
+    assert(index(f4, 3) == 4);
+
+    float[4] fsa = slice(f4);
+    assert(fsa == [1.0f,2,3,4]);
+
+    assert(slice2(f4, 1, 3, 0) == 2);
+    assert(slice2(f4, 1, 3, 1) == 3);
+}
+
+/*****************************************/
+
+struct Sunsto
+{
+  align (1): // make sure f4 is misaligned
+    byte b;
+    union
+    {
+        float4 f4;
+        ubyte[16] a;
+    }
+}
+
+ubyte[16] foounsto()
+{
+    float4 vf = 6;
+    Sunsto s;
+    s.f4 = vf * 2;
+    vf = s.f4;
+
+    return s.a;
+}
+
+void testOPvecunsto()
+{
+    auto a = foounsto();
+    assert(a == [0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65, 0, 0, 64, 65]);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=10447
+
+void test10447()
+{
+    immutable __vector(double[2]) a = [1.0, 2.0];
+    __vector(double[2]) r;
+    r += a;
+    r = r * a;
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17237
+
+version (D_AVX)
+{
+    struct S17237
+    {
+        bool a;
+        struct
+        {
+            bool b;
+            int8 c;
+        }
+    }
+
+    static assert(S17237.a.offsetof == 0);
+    static assert(S17237.b.offsetof == 32);
+    static assert(S17237.c.offsetof == 64);
+}
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17344
+
+void test17344()
+{
+    __vector(int[4]) vec1 = 2, vec2 = vec1++;
+    assert(cast(int[4])vec1 == [3, 3, 3, 3]);
+    assert(cast(int[4])vec2 == [2, 2, 2, 2]);
+}
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17356
+
+void test17356()
+{
+    float4 a = 13, b = 0;
+    __simd_sto(XMM.STOUPS, b, a);
+    assert(b.array == [13, 13, 13, 13]);
+}
+
+/*****************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=17695
+
+void test17695(__vector(ubyte[16]) a)
+{
+    auto b = -a;
 }
 
 /*****************************************/
@@ -1428,6 +2022,14 @@ int main()
     test9449();
     test9449_2();
     test13988();
+    testprefetch();
+    test16448();
+    test16448_32();
+    test16703();
+    testOPvecunsto();
+    test10447();
+    test17344();
+    test17356();
 
     return 0;
 }
@@ -1439,4 +2041,3 @@ else
 int main() { return 0; }
 
 }
-

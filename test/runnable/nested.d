@@ -866,6 +866,8 @@ class Foo35
                 //writefln("y = %s", y);
                 assert(x == 42);
                 assert(y == 43);
+              //static assert(is(typeof(this.outer) == void*)); // Bugzilla 14442
+                static assert(is(typeof(this.outer) == Foo35)); // Bugzilla 15839
             }
         };
     }
@@ -1513,7 +1515,7 @@ alias void delegate() dg_t;
 
 void Y(dg_t delegate (dg_t) y)
 {
-    struct F { void delegate(F) f; };
+    struct F { void delegate(F) f; }
 
   version (all)
   { // generates error
@@ -2360,8 +2362,32 @@ void xreduce(alias f)()
     f(4);
 }
 
-void test11297() {
+void test11297()
+{
     xreduce!foo11297();
+}
+
+/*******************************************/
+// 11886
+
+struct Lambda11886(alias fun)
+{
+    auto opCall(A...)(A args) { return fun(args); }
+}
+void test11886()
+{
+    int n = 10;
+    Lambda11886!(x => x + n) f;
+    assert(f(1) == 11); // Line 9
+
+    struct NS
+    {
+        auto foo(T)(T t) { return t * n; }
+    }
+    static assert(NS.tupleof.length == 1);
+    static assert(NS.sizeof == (void*).sizeof);
+    NS ns;
+    assert(ns.foo(2) == 20);
 }
 
 /*******************************************/
@@ -2486,6 +2512,199 @@ void test14846()
 }
 
 /*******************************************/
+// 15422
+
+class App15422(T)
+{
+    this() {}
+
+    auto test1(T val)
+    in {} body      // necessary to reproduce the crash
+    {
+        struct Foo
+        {
+            this(int k) {}
+            T a;
+        }
+
+        Foo foo;
+        foo.a = val;
+
+        // Frame of test2 function, allocated on heap.
+        assert(foo.tupleof[$-1] !is null);
+
+        //printf("&foo = %p\n", &foo);                  // stack
+        //printf("&this = %p\n", &this);                // stack?
+        //printf("foo.vthis = %p\n", foo.tupleof[$-1]); // stack...!?
+        //assert(cast(void*)&this !is *cast(void**)&foo.tupleof[$-1], "bad");
+        // BUG: currently foo.vthis set to the address of 'this' variable on the stack.
+        // It's should be stomped to null, because Foo.vthis is never be used.
+
+        int[Foo] map;
+        map[foo] = 1;   // OK <- crash
+
+        return foo;
+    }
+
+    auto test2(T val)
+    //in {} body
+    {
+        int closVar;
+        struct Foo
+        {
+            this(int k) { closVar = k; }
+            // Make val a closure variable.
+
+            T a;
+        }
+
+        Foo foo;
+        foo.a = val;
+
+        // Frame of test2 function, allocated on heap.
+        assert(foo.tupleof[$-1] !is null);
+
+        return foo;
+    }
+}
+
+void test15422a()
+{
+    alias App = App15422!int;
+    App app1 = new App;
+    {
+        auto x = app1.test1(1);
+        auto y = app1.test1(1);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // int (bitwise comparison)
+        assert(x.a == y.a);
+
+        assert(*cast(void**)&x.tupleof[$-1] is *cast(void**)&y.tupleof[$-1]);
+
+        // bitwise equality (needOpEquals() and needToHash() returns false)
+        assert(x == y);
+
+        // BUG
+        //assert(*cast(void**)&x.tupleof[$-1] is null);
+        //assert(*cast(void**)&y.tupleof[$-1] is null);
+        auto getZ() { auto z = app1.test1(1); return z; }
+        auto z = getZ();
+        assert(x.a == z.a);
+        //assert(x.tupleof[$-1] is z.tupleof[$-1]);   // should pass
+        //assert(x == z);                             // should pass
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+    App app2 = new App;
+    {
+        auto x = app1.test2(1);
+        auto y = app2.test2(1);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // int (bitwise comparison)
+        assert(x.a == y.a);
+
+        // closure envirionments
+        assert(*cast(void**)&x.tupleof[$-1] !is *cast(void**)&y.tupleof[$-1]);
+
+        // Changed to bitwise equality (needOpEquals() and needToHash() returns false)
+        assert(x != y);         // OK <- crash
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+}
+
+void test15422b()
+{
+    alias App = App15422!string;
+    App app1 = new App;
+    {
+        auto x = app1.test1("a".idup);
+        auto y = app1.test1("a".idup);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // string (element-wise comparison)
+        assert(x.a == y.a);
+
+        assert(*cast(void**)&x.tupleof[$-1] is *cast(void**)&y.tupleof[$-1]);
+
+        // memberwise equality (needToHash() returns true)
+        assert(x == y);
+        // Lowered to: x.a == y.a && x.tupleof[$-1] is y.tupleof[$-1]
+
+        // BUG
+        //assert(*cast(void**)&x.tupleof[$-1] is null);
+        //assert(*cast(void**)&y.tupleof[$-1] is null);
+        auto getZ() { auto z = app1.test1("a".idup); return z; }
+        auto z = getZ();
+        assert(x.a == z.a);
+        //assert(x.tupleof[$-1] is z.tupleof[$-1]);   // should pass
+        //assert(x == z);                             // should pass
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+    App app2 = new App;
+    {
+        auto x = app1.test2("a".idup);
+        auto y = app2.test2("a".idup);
+        static assert(is(typeof(x) == typeof(y)));
+
+        // string (element-wise comparison)
+        assert(x.a == y.a);
+
+        // closure envirionments
+        assert(*cast(void**)&x.tupleof[$-1] !is *cast(void**)&y.tupleof[$-1]);
+
+        // Changed to memberwise equality (needToHash() returns true)
+        // Lowered to: x.a == y.a && x.tupleof[$-1] is y.tupleof[$-1]
+        assert(x != y);         // OK <- crash
+
+        x = y;  // OK, x.tupleof[$-1] = y.tupleof[$-1] is a blit copy.
+    }
+}
+
+/***************************************************/
+// 15757
+
+template map15757(fun...)
+{
+    auto map15757(R)(R r)
+    {
+        return MapResult15757!(fun, R)(r);
+    }
+}
+
+struct MapResult15757(alias fun, R)
+{
+    R _input;
+
+    this(R input)
+    {
+        _input = input;
+    }
+}
+
+void wrap15757(R)(R r)
+{
+    struct M(R)
+    {
+        this(R r)
+        {
+            payload = r;
+        }
+        R payload;
+    }
+
+    M!R m = M!R(r);
+}
+
+void test15757() @safe
+{
+    [1,2,3].map15757!(x => x*x).wrap15757;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2573,12 +2792,15 @@ int main()
     test9244();
     test11385();
     test11297();
+    test11886();
     test12234();
     test13861();
     test14398();
     test14846();
+    test15422a();
+    test15422b();
+    test15757();
 
     printf("Success\n");
     return 0;
 }
-

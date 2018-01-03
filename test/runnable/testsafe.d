@@ -12,7 +12,7 @@ void pointercast()
     static assert(!__traits(compiles, cast(int*)b));
     static assert(!__traits(compiles, cast(int*)b));
     static assert(!__traits(compiles, cast(short*)b));
-    static assert( __traits(compiles, cast(byte*)b));
+    static assert(!__traits(compiles, cast(byte*)b));
     static assert( __traits(compiles, cast(short*)a));
     static assert( __traits(compiles, cast(byte*)a));
 }
@@ -155,10 +155,10 @@ void safeunions()   // improved for issue 11510
     // Writing field is always allowed, even if it is overlapped.
     su1.a = 7, su1.b = 8, su1.c = null;
     su2.a = 7, su2.b = 8, su2.c = 9;
-    uu1.a = 7,            uu1.c = null;
-    uu2.a = 7; uu2.b = 8, uu2.c = null;
-    uu3.a = 7;            uu3.c = null;
-    uu4.a = 7; uu4.b = 8, uu4.c = null;
+    uu1.a = 7,            //uu1.c = null;
+    uu2.a = 7; uu2.b = 8, //uu2.c = null;
+    uu3.a = 7;            //uu3.c = null;
+    uu4.a = 7; uu4.b = 8, //uu4.c = null;
     uu5.x.a = 7; uu5.x.b = 8, uu5.x.c = 9;
     uud.a.a.a.a = null, uud.a.a.a.b = null;
 
@@ -173,11 +173,11 @@ void safeunions()   // improved for issue 11510
     p = uud.a.a.a.a, p = uud.a.a.a.b;
 
     // Reading overlapped pointer field is not allowed.
-    static assert(!__traits(compiles, { auto p = uu1.c; }));
-    static assert(!__traits(compiles, { auto p = uu2.c; }));
-    static assert(!__traits(compiles, { auto c = uu3.c; }));
-    static assert(!__traits(compiles, { auto c = uu4.c; }));
-    static assert(!__traits(compiles, { auto p = uu5.b.a; }));
+    static assert(!__traits(compiles, () @safe { auto p = uu1.c; }));
+    static assert(!__traits(compiles, () @safe { auto p = uu2.c; }));
+    static assert(!__traits(compiles, () @safe { auto c = uu3.c; }));
+    static assert(!__traits(compiles, () @safe { auto c = uu4.c; }));
+    static assert(!__traits(compiles, () @safe { auto p = uu5.b.a; }));
 }
 
 
@@ -188,17 +188,17 @@ void safeexception()
     try {}
     catch(Exception e) {}
 
-    static assert(!__traits(compiles, {
+    static assert(!__traits(compiles, () @safe {
         try {}
         catch(Error e) {}
     }));
 
-    static assert(!__traits(compiles, {
+    static assert(!__traits(compiles, () @safe {
         try {}
         catch(Throwable e) {}
     }));
 
-    static assert(!__traits(compiles, {
+    static assert(!__traits(compiles, () @safe {
         try {}
         catch {}
     }));
@@ -259,10 +259,10 @@ int threadlocalvar;
 @safe
 void takeaddr()
 {
-    static assert(!__traits(compiles, (int x) { auto y = &x; } ));
-    static assert(!__traits(compiles, { int x; auto y = &x; } ));
-    static assert( __traits(compiles, { static int x; auto y = &x; } ));
-    static assert( __traits(compiles, { auto y = &threadlocalvar; } ));
+    static assert(!__traits(compiles, (int x) @safe { auto y = &x; } ));
+    static assert(!__traits(compiles, () @safe { int x; auto y = &x; } ));
+    static assert( __traits(compiles, () @safe { static int x; auto y = &x; } ));
+    static assert( __traits(compiles, () @safe { auto y = &threadlocalvar; } ));
 }
 
 __gshared int gsharedvar;
@@ -270,31 +270,31 @@ __gshared int gsharedvar;
 @safe
 void use__gshared()
 {
-    static assert(!__traits(compiles, { int x = gsharedvar; } ));
+    static assert(!__traits(compiles, () @safe { int x = gsharedvar; } ));
 }
 
 @safe
 void voidinitializers()
 {//http://d.puremagic.com/issues/show_bug.cgi?id=4885
-    static assert(!__traits(compiles, { uint* ptr = void; } ));
-    static assert( __traits(compiles, { uint i = void; } ));
-    static assert( __traits(compiles, { uint[2] a = void; } ));
+    static assert(!__traits(compiles, () @safe { uint* ptr = void; } ));
+    static assert( __traits(compiles, () @safe { uint i = void; } ));
+    static assert( __traits(compiles, () @safe { uint[2] a = void; } ));
 
     struct ValueStruct { int a; }
     struct NonValueStruct { int* a; }
-    static assert( __traits(compiles, { ValueStruct a = void; } ));
-    static assert(!__traits(compiles, { NonValueStruct a = void; } ));
+    static assert( __traits(compiles, () @safe { ValueStruct a = void; } ));
+    static assert(!__traits(compiles, () @safe { NonValueStruct a = void; } ));
 
-    static assert(!__traits(compiles, { uint[] a = void; } ));
-    static assert(!__traits(compiles, { int** a = void; } ));
-    static assert(!__traits(compiles, { int[int] a = void; } ));
+    static assert(!__traits(compiles, () @safe { uint[] a = void; } ));
+    static assert(!__traits(compiles, () @safe { int** a = void; } ));
+    static assert(!__traits(compiles, () @safe { int[int] a = void; } ));
 }
 
 @safe
 void pointerindex()
 {//http://d.puremagic.com/issues/show_bug.cgi?id=9195
-    static assert(!__traits(compiles, { int* p; auto a = p[30]; }));
-    static assert( __traits(compiles, { int* p; auto a = p[0]; }));
+    static assert(!__traits(compiles, () @safe { int* p; auto a = p[30]; }));
+    static assert( __traits(compiles, () @safe{ int* p; auto a = p[0]; }));
 }
 
 @safe
@@ -311,7 +311,7 @@ void arraycast()
     int[] x;
     void[] y = x;
     static assert( __traits(compiles, cast(void[])x));
-    static assert( __traits(compiles, cast(int[])y));
+    static assert(!__traits(compiles, cast(int[])y));
     static assert(!__traits(compiles, cast(int*[])y));
     static assert(!__traits(compiles, cast(void[][])y));
 
@@ -367,8 +367,8 @@ extern(C++) interface F : E {}
 @safe
 void classcast()
 {
-    class A {};
-    class B : A {};
+    class A {}
+    class B : A {}
 
     A a;
     B b;
@@ -391,8 +391,8 @@ void classcast()
     static assert(!__traits(compiles, cast(A)cb));
     static assert(!__traits(compiles, cast(B)cb));
 
-    interface C {};
-    interface D : C {};
+    interface C {}
+    interface D : C {}
 
     C c;
     D d;
@@ -462,6 +462,34 @@ void test12502() @safe
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=14162
 
-void main() { }
+@trusted auto trusted(alias fun)() { return fun(); }
+
+@safe void func1()()
+{
+    char[3] s = "abc";
+    string t = trusted!(() => cast(string)(s[]));
+    assert(t == "abc");
+}
+
+@safe void func2()()
+{
+    char[3] s = "abc";
+    string t = trusted!(() => cast(string)(s[]));
+    assert(t == "abc");
+}
+
+@safe void test14162()
+{
+    func1();
+    func2();
+}
+
+/***************************************************/
+
+void main()
+{
+    test14162();
+}
 

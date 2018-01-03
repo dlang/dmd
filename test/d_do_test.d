@@ -1,3 +1,4 @@
+#!/usr/bin/env rdmd
 module d_do_test;
 
 import std.algorithm;
@@ -16,25 +17,25 @@ import core.sys.posix.sys.wait;
 void usage()
 {
     write("d_do_test <input_dir> <test_name> <test_extension>\n"
-          "\n"
-          "   input_dir: one of: compilable, fail_compilation, runnable\n"
-          "   test_name: basename of test case to run\n"
-          "   test_extension: one of: d, html, or sh\n"
-          "\n"
-          "   example: d_do_test runnable pi d\n"
-          "\n"
-          "   relevant environment variables:\n"
-          "      ARGS:          set to execute all combinations of\n"
-          "      REQUIRED_ARGS: arguments always passed to the compiler\n"
-          "      DMD:           compiler to use, ex: ../src/dmd\n"
-          "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          "      OS:            win32, win64, linux, freebsd, osx\n"
-          "      RESULTS_DIR:   base directory for test results\n"
-          "   windows vs non-windows portability env vars:\n"
-          "      DSEP:          \\\\ or /\n"
-          "      SEP:           \\ or /\n"
-          "      OBJ:          .obj or .o\n"
-          "      EXE:          .exe or <null>\n");
+          ~ "\n"
+          ~ "   input_dir: one of: compilable, fail_compilation, runnable\n"
+          ~ "   test_name: basename of test case to run\n"
+          ~ "   test_extension: one of: d, html, or sh\n"
+          ~ "\n"
+          ~ "   example: d_do_test runnable pi d\n"
+          ~ "\n"
+          ~ "   relevant environment variables:\n"
+          ~ "      ARGS:          set to execute all combinations of\n"
+          ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
+          ~ "      DMD:           compiler to use, ex: ../src/dmd\n"
+          ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
+          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
+          ~ "      RESULTS_DIR:   base directory for test results\n"
+          ~ "   windows vs non-windows portability env vars:\n"
+          ~ "      DSEP:          \\\\ or /\n"
+          ~ "      SEP:           \\ or /\n"
+          ~ "      OBJ:          .obj or .o\n"
+          ~ "      EXE:          .exe or <null>\n");
 }
 
 enum TestMode
@@ -61,8 +62,8 @@ struct TestArgs
     string   requiredArgs;
     string   requiredArgsForLink;
     // reason for disabling the test (if empty, the test is not disabled)
-    string   disabled_reason;
-    @property bool disabled() { return disabled_reason != ""; }
+    string[] disabledPlatforms;
+    bool     disabled;
 }
 
 struct EnvData
@@ -80,6 +81,7 @@ struct EnvData
     string model;
     string required_args;
     bool dobjc;
+    bool coverage_build;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -170,7 +172,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
-        if (testArgs.mode != TestMode.FAIL_COMPILE)
+        if (testArgs.mode == TestMode.RUN)
             testArgs.permuteArgs = envData.all_args;
 
         string unittestJunk;
@@ -227,7 +229,9 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // COMPILE_SEPARATELY can take optional compiler switches when link .o files
     testArgs.compileSeparately = findTestParameter(file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
 
-    findTestParameter(file, "DISABLED", testArgs.disabled_reason);
+    string disabledPlatformsStr;
+    findTestParameter(file, "DISABLED", disabledPlatformsStr);
+    testArgs.disabledPlatforms = split(disabledPlatformsStr);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
@@ -282,6 +286,7 @@ string genTempFilename(string result_path)
 
 int system(string command)
 {
+    static import core.stdc.stdlib;
     if (!command) return core.stdc.stdlib.system(null);
     const commandz = toStringz(command);
     auto status = core.stdc.stdlib.system(commandz);
@@ -400,6 +405,8 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 // marked by $n$ that contain compiler generated unique numbers
 bool compareOutput(string output, string refoutput)
 {
+    import std.ascii : digits;
+    import std.utf : byCodeUnit;
     for ( ; ; )
     {
         auto pos = refoutput.indexOf("$n$");
@@ -411,7 +418,8 @@ bool compareOutput(string output, string refoutput)
             return false;
         refoutput = refoutput[pos + 3 ..$];
         output = output[pos..$];
-        munch(output, "0123456789");
+        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
+        output = output[p..$];
     }
 }
 
@@ -443,6 +451,7 @@ int main(string[] args)
     envData.model         = environment.get("MODEL");
     envData.required_args = environment.get("REQUIRED_ARGS");
     envData.dobjc         = environment.get("D_OBJC") == "1";
+    envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
@@ -461,6 +470,10 @@ int main(string[] args)
             writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
             return 1;
     }
+
+    // running & linking costs time - for coverage builds we can save this
+    if (envData.coverage_build && testArgs.mode == TestMode.RUN)
+        testArgs.mode = TestMode.COMPILE;
 
     if (envData.ccompiler.empty)
     {
@@ -508,8 +521,11 @@ int main(string[] args)
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
 
-    if (testArgs.disabled)
-        writefln("!!! [DISABLED: %s]", testArgs.disabled_reason);
+    if (testArgs.disabledPlatforms.canFind(envData.os, envData.os ~ envData.model))
+    {
+        testArgs.disabled = true;
+        writefln("!!! [DISABLED on %s]", envData.os);
+    }
     else
         write("\n");
 
@@ -539,6 +555,11 @@ int main(string[] args)
             auto reqArgs =
                 (testArgs.mode == TestMode.FAIL_COMPILE ? "-verrors=0 " : null) ~
                 testArgs.requiredArgs;
+
+            // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
+            // it also slows down some tests drastically, e.g. runnable/test17338.d
+            if (msc)
+                reqArgs ~= " -L/OPT:NOICF";
 
             string compile_output;
             if (!testArgs.compileSeparately)
@@ -626,7 +647,7 @@ int main(string[] args)
 
             fThisRun.close();
 
-            if (testArgs.postScript)
+            if (testArgs.postScript && !envData.coverage_build)
             {
                 f.write("Executing post-test script: ");
                 string prefix = "";

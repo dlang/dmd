@@ -18,10 +18,10 @@ void test2()
 {
     int j;
     mixin("
-	int x = 3;
-	for (int i = 0; i < 10; i++)
-	    writeln(x + i, ++j);
-	");
+        int x = 3;
+        for (int i = 0; i < 10; i++)
+            writeln(x + i, ++j);
+        ");
     assert(j == 10);
 }
 
@@ -49,27 +49,27 @@ int x5;
 
 scope class Foo5
 {
-	this ()
-	{
-		writeln ("Constructor");
-		assert(x5 == 0);
-		x5++;
-	}
-	~this ()
-	{
-		writeln ("Destructor");
-		assert(x5 == 2);
-		x5++;
-	}
+        this ()
+        {
+                writeln ("Constructor");
+                assert(x5 == 0);
+                x5++;
+        }
+        ~this ()
+        {
+                writeln ("Destructor");
+                assert(x5 == 2);
+                x5++;
+        }
 }
 
 void test5()
 {
     {
-	mixin ("scope Foo5 f = new Foo5;\n");
-	writeln ("  Inside Scope");
-	assert(x5 == 1);
-	x5++;
+        mixin ("scope Foo5 f = new Foo5;\n");
+        writeln ("  Inside Scope");
+        assert(x5 == 1);
+        x5++;
     }
     assert(x5 == 3);
 }
@@ -81,7 +81,7 @@ void test6()
     static const b = "printf(`hey\n`);";
 
     if (true)
-	mixin(b);
+        mixin(b);
 }
 
 /*********************************************/

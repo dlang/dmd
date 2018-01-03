@@ -41,7 +41,7 @@ void test1()
     alias Tuple!(__traits(getAttributes, x1)) tp;
     assert(tp.length == 1);
     if (!is(FFF == tp[0]))
-	assert(0);
+        assert(0);
 }
 
 /************************************************/
@@ -76,8 +76,8 @@ void test4()
     {
         alias Tuple!(__traits(getAttributes, o)) attrs;
         pragma(msg, attrs.stringof);
-	assert(attrs[0] == i);
-	++i;
+        assert(attrs[0] == i);
+        ++i;
     }
 }
 
