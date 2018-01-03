@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10259.d(11): Error: circular reference to 'ice10259.D.d'
+fail_compilation/ice10259.d(11): Error: circular reference to `ice10259.D.d`
 fail_compilation/ice10259.d(11):        called from here: (*function () => x)()
 ---
 */
@@ -15,7 +15,7 @@ enum x = new D;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10259.d(25): Error: circular reference to 'ice10259.D2.d'
+fail_compilation/ice10259.d(25): Error: circular reference to `ice10259.D2.d`
 fail_compilation/ice10259.d(25):        called from here: (*function () => x)()
 ---
 */

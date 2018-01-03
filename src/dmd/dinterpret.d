@@ -2998,7 +2998,7 @@ public:
                     VarDeclaration v = c.fields[i];
                     if (v.inuse)
                     {
-                        e.error("circular reference to '%s'", v.toPrettyChars());
+                        e.error("circular reference to `%s`", v.toPrettyChars());
                         result = CTFEExp.cantexp;
                         return;
                     }

@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
+ * Documentation:  https://dlang.org/phobos/dmd_mtype.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mtype.d
  */
 
 module dmd.mtype;
@@ -6653,7 +6655,7 @@ extern (C++) abstract class TypeQualified : Type
                     !v.type.deco && v.inuse)
                 {
                     if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
-                        error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                        error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                     else
                         error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                     *pt = Type.terror;
@@ -7319,7 +7321,7 @@ extern (C++) final class TypeStruct : Type
                 !v.type.deco && v.inuse)
             {
                 if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
-                    e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    e.error("circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                 else
                     e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
@@ -7497,7 +7499,7 @@ extern (C++) final class TypeStruct : Type
             Expression e;
             if (vd.inuse)
             {
-                error(loc, "circular reference to '%s'", vd.toPrettyChars());
+                error(loc, "circular reference to `%s`", vd.toPrettyChars());
                 return new ErrorExp();
             }
             if (vd.offset < offset || vd.type.size() == 0)
@@ -8267,7 +8269,7 @@ extern (C++) final class TypeClass : Type
                 !v.type.deco && v.inuse)
             {
                 if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
-                    e.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    e.error("circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                 else
                     e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
