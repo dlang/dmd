@@ -1,6 +1,0 @@
-Generate header files using `do` instead of `body` as per DIP1003
-
-Support for
-$(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/DIP1003.md, DIP1003)
-was added in release 2.075.0. Use of `body` in an error message and
-header file generation has been fixed in this release.
