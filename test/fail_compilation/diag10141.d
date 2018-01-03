@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10141.d(9): Error: module imports.diag10141a import 'unexisting_symbol' not found
+fail_compilation/diag10141.d(9): Error: module imports.diag10141a import `unexisting_symbol` not found
 ---
 */
 

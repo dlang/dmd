@@ -403,10 +403,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (inferred)
             {
-                dsym.error("type %s is inferred from initializer %s, and variables cannot be of type void", dsym.type.toChars(), dsym._init.toChars());
+                dsym.error("type `%s` is inferred from initializer `%s`, and variables cannot be of type `void`", dsym.type.toChars(), dsym._init.toChars());
             }
             else
-                dsym.error("variables cannot be of type void");
+                dsym.error("variables cannot be of type `void`");
             dsym.type = Type.terror;
             tb = dsym.type;
         }
@@ -421,11 +421,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             TypeStruct ts = cast(TypeStruct)tb;
             if (!ts.sym.members)
             {
-                dsym.error("no definition of struct %s", ts.toChars());
+                dsym.error("no definition of struct `%s`", ts.toChars());
             }
         }
         if ((dsym.storage_class & STCauto) && !inferred)
-            dsym.error("storage class 'auto' has no effect if type is not inferred, did you mean 'scope'?");
+            dsym.error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
 
         if (tb.ty == Ttuple)
         {
@@ -624,11 +624,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be 'scope' and '%s'", buf.peekString());
+                dsym.error("cannot be `scope` and `%s`", buf.peekString());
             }
             else if (dsym.isMember())
             {
-                dsym.error("field cannot be 'scope'");
+                dsym.error("field cannot be `scope`");
             }
             else if (!dsym.type.hasPointers())
             {
@@ -685,7 +685,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 AggregateDeclaration ad2 = ti.tempdecl.isMember();
                 if (ad2 && dsym.storage_class != STCundefined)
                 {
-                    dsym.error("cannot use template to add field to aggregate '%s'", ad2.toChars());
+                    dsym.error("cannot use template to add field to aggregate `%s`", ad2.toChars());
                 }
             }
         }
@@ -736,7 +736,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                 }
                 else
-                    dsym.error("default construction is disabled for type %s", dsym.type.toChars());
+                    dsym.error("default construction is disabled for type `%s`", dsym.type.toChars());
             }
         }
 
@@ -796,7 +796,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             //printf("Providing default initializer for '%s'\n", toChars());
             if (sz == SIZE_INVALID && dsym.type.ty != Terror)
-                dsym.error("size of type %s is invalid", dsym.type.toChars());
+                dsym.error("size of type `%s` is invalid", dsym.type.toChars());
 
             Type tv = dsym.type;
             while (tv.ty == Tsarray)    // Don't skip Tenum
@@ -831,7 +831,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (dsym.type.baseElemOf().ty == Tvoid)
             {
-                dsym.error("%s does not have a default initializer", dsym.type.toChars());
+                dsym.error("`%s` does not have a default initializer", dsym.type.toChars());
             }
             else if (auto e = dsym.type.defaultInit(dsym.loc))
             {
@@ -993,7 +993,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             {
                                 // The only allowable initializer is a (non-copy) constructor
                                 if (exp.isLvalue())
-                                    dsym.error("of type struct %s uses this(this), which is not allowed in static initialization", tb2.toChars());
+                                    dsym.error("of type struct `%s` uses `this(this)`, which is not allowed in static initialization", tb2.toChars());
                             }
                         }
                         ei.exp = exp;
@@ -1159,9 +1159,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     Dsymbol s = imp.mod.search_correct(imp.names[i]);
                     if (s)
-                        imp.mod.error(imp.loc, "import '%s' not found, did you mean %s '%s'?", imp.names[i].toChars(), s.kind(), s.toChars());
+                        imp.mod.error(imp.loc, "import `%s` not found, did you mean %s `%s`?", imp.names[i].toChars(), s.kind(), s.toChars());
                     else
-                        imp.mod.error(imp.loc, "import '%s' not found", imp.names[i].toChars());
+                        imp.mod.error(imp.loc, "import `%s` not found", imp.names[i].toChars());
                     ad.type = Type.terror;
                 }
             }
@@ -1328,7 +1328,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
                     {
-                        errorSupplemental(pd.loc, "while evaluating pragma(msg, %s)", (*pd.args)[i].toChars());
+                        errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
                         return;
                     }
                     StringExp se = e.toStringExp();
@@ -2134,7 +2134,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             TemplateParameter tp = (*tempdecl.parameters)[i];
             if (!tp.declareParameter(paramscope))
             {
-                error(tp.loc, "parameter '%s' multiply defined", tp.ident.toChars());
+                error(tp.loc, "parameter `%s` multiply defined", tp.ident.toChars());
                 tempdecl.errors = true;
             }
             if (!tp.tpsemantic(paramscope, tempdecl.parameters))
@@ -2579,7 +2579,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (funcdecl.type.ty != Terror)
             {
-                funcdecl.error("%s must be a function instead of %s", funcdecl.toChars(), funcdecl.type.toChars());
+                funcdecl.error("`%s` must be a function instead of `%s`", funcdecl.toChars(), funcdecl.type.toChars());
                 funcdecl.type = Type.terror;
             }
             funcdecl.errors = true;
@@ -2682,7 +2682,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 OutBuffer buf;
                 MODtoBuffer(&buf, tf.mod);
-                funcdecl.error("without 'this' cannot be %s", buf.peekString());
+                funcdecl.error("without `this` cannot be `%s`", buf.peekString());
                 tf.mod = 0; // remove qualifiers
             }
 
@@ -2707,7 +2707,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (funcdecl.type.ty != Terror)
             {
-                funcdecl.error("%s must be a function instead of %s", funcdecl.toChars(), funcdecl.type.toChars());
+                funcdecl.error("`%s` must be a function instead of `%s`", funcdecl.toChars(), funcdecl.type.toChars());
                 funcdecl.type = Type.terror;
             }
             funcdecl.errors = true;
@@ -2736,7 +2736,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         size_t nparams = Parameter.dim(f.parameters);
 
         if ((funcdecl.storage_class & STCauto) && !f.isref && !funcdecl.inferRetType)
-            funcdecl.error("storage class 'auto' has no effect if return type is not inferred");
+            funcdecl.error("storage class `auto` has no effect if return type is not inferred");
 
         /* Functions can only be 'scope' if they have a 'this'
          */
@@ -2750,7 +2750,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             /* Non-static nested functions have a hidden 'this' pointer to which
              * the 'return' applies
              */
-            funcdecl.error("static member has no 'this' to which 'return' can apply");
+            funcdecl.error("static member has no `this` to which `return` can apply");
         }
 
         if (funcdecl.isAbstract() && !funcdecl.isVirtual())

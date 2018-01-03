@@ -2211,7 +2211,7 @@ else
                     e = ctfeInterpretForPragmaMsg(e);
                     if (e.op == TOKerror)
                     {
-                        errorSupplemental(ps.loc, "while evaluating pragma(msg, %s)", arg.toChars());
+                        errorSupplemental(ps.loc, "while evaluating `pragma(msg, %s)`", arg.toChars());
                         return setError();
                     }
                     StringExp se = e.toStringExp();

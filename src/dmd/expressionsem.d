@@ -2108,7 +2108,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 cd.ctor = cd.searchCtor();
             if (cd.noDefaultCtor && !nargs && !cd.defaultCtor)
             {
-                exp.error("default construction is disabled for type %s", cd.type.toChars());
+                exp.error("default construction is disabled for type `%s`", cd.type.toChars());
                 return setError();
             }
 
@@ -2283,7 +2283,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 sd.ctor = sd.searchCtor();
             if (sd.noDefaultCtor && !nargs)
             {
-                exp.error("default construction is disabled for type %s", sd.type.toChars());
+                exp.error("default construction is disabled for type `%s`", sd.type.toChars());
                 return setError();
             }
             // checkDeprecated() is already done in newtype.typeSemantic().
@@ -2382,7 +2382,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             AggregateDeclaration ad = s ? s.isAggregateDeclaration() : null;
             if (ad && ad.noDefaultCtor)
             {
-                exp.error("default construction is disabled for type %s", tb.nextOf().toChars());
+                exp.error("default construction is disabled for type `%s`", tb.nextOf().toChars());
                 return setError();
             }
             for (size_t i = 0; i < nargs; i++)
