@@ -644,7 +644,7 @@ extern (C++) class Dsymbol : RootObject
             {
                 if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
                 {
-                    error(".%s property cannot be redefined", ident.toChars());
+                    error("`.%s` property cannot be redefined", ident.toChars());
                     errors = true;
                 }
             }
@@ -728,7 +728,7 @@ extern (C++) class Dsymbol : RootObject
         {
             if (d.inuse)
             {
-                .error(loc, "circular reference to '%s'", d.toPrettyChars());
+                .error(loc, "circular reference to `%s`", d.toPrettyChars());
                 return null;
             }
         }
@@ -748,16 +748,16 @@ extern (C++) class Dsymbol : RootObject
                 {
                     sm = s.search_correct(ti.name);
                     if (sm)
-                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
                     else
-                        .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
                 }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
                 {
-                    .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
+                    .error(loc, "`%s.%s` is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
                     return null;
                 }
                 ti.tempdecl = td;
@@ -786,7 +786,7 @@ extern (C++) class Dsymbol : RootObject
      */
     d_uns64 size(Loc loc)
     {
-        error("Dsymbol '%s' has no size", toChars());
+        error("Dsymbol `%s` has no size", toChars());
         return SIZE_INVALID;
     }
 
@@ -1426,7 +1426,7 @@ public:
                     if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
                     {}
                     else
-                        error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
+                        error(loc, "%s `%s` is private", s.kind(), s.toPrettyChars());
                 }
                 //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
                 return s;
@@ -1547,11 +1547,11 @@ public:
         }
         if (loc.filename)
         {
-            .error(loc, "%s at %s conflicts with %s at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "`%s` at %s conflicts with `%s` at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
         }
         else
         {
-            s1.error(s1.loc, "conflicts with %s %s at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            s1.error(s1.loc, "conflicts with %s `%s` at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
         }
     }
 
@@ -1939,7 +1939,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                          */
                         if (exp.op == TOKarray && (cast(ArrayExp)exp).arguments.dim != 1)
                         {
-                            exp.error("%s only defines opDollar for one dimension", ad.toChars());
+                            exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
                             return null;
                         }
                         Declaration d = s.isDeclaration();
@@ -1948,7 +1948,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     }
                     e = e.expressionSemantic(sc);
                     if (!e.type)
-                        exp.error("%s has no value", e.toChars());
+                        exp.error("`%s` has no value", e.toChars());
                     t = e.type.toBasetype();
                     if (t && t.ty == Tfunction)
                         e = new CallExp(e.loc, e);

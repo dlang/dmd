@@ -9631,7 +9631,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                     !v.type.deco && v.inuse)
                 {
                     if (v.inuse)
-                        exp.error("circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                        exp.error("circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                     else
                         exp.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
                     return new ErrorExp();

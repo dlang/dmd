@@ -224,7 +224,7 @@ Lagain:
             !v.type.deco && v.inuse)    // during variable type semantic
         {
             if (v.inuse)    // variable type depends on the variable itself
-                error(loc, "circular reference to %s '%s'", v.kind(), v.toPrettyChars());
+                error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
             else            // variable type cannot be determined
                 error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
             return new ErrorExp();

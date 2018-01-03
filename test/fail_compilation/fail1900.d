@@ -29,7 +29,7 @@ void test1900a()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail1900.d(41): Error: imports.fail1900b.Bar(short n) at fail_compilation/imports/fail1900b.d(2) conflicts with imports.fail1900a.Bar(int n) at fail_compilation/imports/fail1900a.d(2)
+fail_compilation/fail1900.d(41): Error: `imports.fail1900b.Bar(short n)` at fail_compilation/imports/fail1900b.d(2) conflicts with `imports.fail1900a.Bar(int n)` at fail_compilation/imports/fail1900a.d(2)
 ---
 */
 
@@ -44,7 +44,7 @@ void test1900b()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail1900.d(65): Error: fail1900.Mix2b!().Baz(int x) at fail_compilation/fail1900.d(57) conflicts with fail1900.Mix2a!().Baz(byte x) at fail_compilation/fail1900.d(53)
+fail_compilation/fail1900.d(65): Error: `fail1900.Mix2b!().Baz(int x)` at fail_compilation/fail1900.d(57) conflicts with `fail1900.Mix2a!().Baz(byte x)` at fail_compilation/fail1900.d(53)
 ---
 */
 
