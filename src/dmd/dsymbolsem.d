@@ -663,7 +663,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 dsym.error("field not allowed in interface");
             }
-            else if (aad && aad.sizeok == SIZEOKdone)
+            else if (aad && aad.sizeok == Sizeok.done)
             {
                 dsym.error("cannot be further field because it will change the determined %s size", aad.toChars());
             }
@@ -4123,7 +4123,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 /* https://issues.dlang.org/show_bug.cgi?id=11034
                  * Class inheritance hierarchy
                  * and instance size of each classes are orthogonal information.
-                 * Therefore, even if tc.sym.sizeof == SIZEOKnone,
+                 * Therefore, even if tc.sym.sizeof == Sizeok.none,
                  * we need to set baseClass field for class covariance check.
                  */
                 cldec.baseClass = tc.sym;
@@ -4597,7 +4597,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         else if (idec.symtab)
         {
-            if (idec.sizeok == SIZEOKdone || !scx)
+            if (idec.sizeok == Sizeok.done || !scx)
             {
                 idec.semanticRun = PASSsemanticdone;
                 return;

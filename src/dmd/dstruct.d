@@ -357,7 +357,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override final void finalizeSize()
     {
         //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
-        assert(sizeok != SIZEOKdone);
+        assert(sizeok != Sizeok.done);
 
         //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
 
@@ -389,7 +389,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         else
             structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
-        sizeok = SIZEOKdone;
+        sizeok = Sizeok.done;
 
         //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 

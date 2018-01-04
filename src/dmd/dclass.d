@@ -606,12 +606,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final override void finalizeSize()
     {
-        assert(sizeok != SIZEOKdone);
+        assert(sizeok != Sizeok.done);
 
         // Set the offsets of the fields and determine the size of the class
         if (baseClass)
         {
-            assert(baseClass.sizeok == SIZEOKdone);
+            assert(baseClass.sizeok == Sizeok.done);
 
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
@@ -654,9 +654,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             foreach (BaseClass* b; cd.interfaces)
             {
-                if (b.sym.sizeok != SIZEOKdone)
+                if (b.sym.sizeok != Sizeok.done)
                     b.sym.finalizeSize();
-                assert(b.sym.sizeok == SIZEOKdone);
+                assert(b.sym.sizeok == Sizeok.done);
 
                 if (!b.sym.alignsize)
                     b.sym.alignsize = Target.ptrsize;
@@ -690,7 +690,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (isInterfaceDeclaration())
         {
-            sizeok = SIZEOKdone;
+            sizeok = Sizeok.done;
             return;
         }
 
@@ -704,7 +704,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             s.setFieldOffset(this, &offset, false);
         }
 
-        sizeok = SIZEOKdone;
+        sizeok = Sizeok.done;
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
@@ -1058,7 +1058,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 {
                     // don't return incorrect offsets
                     // https://issues.dlang.org/show_bug.cgi?id=16980
-                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_FWDREF;
+                    *poffset = cd.sizeok == Sizeok.done ? b.offset : OFFSET_FWDREF;
                 }
                 // printf("\tfound at offset %d\n", b.offset);
                 return true;

@@ -37,14 +37,10 @@ import dmd.visitor;
 
 enum Sizeok : int
 {
-    SIZEOKnone,             // size of aggregate is not yet able to compute
-    SIZEOKfwd,              // size of aggregate is ready to compute
-    SIZEOKdone,             // size of aggregate is set correctly
+    none,           // size of aggregate is not yet able to compute
+    fwd,            // size of aggregate is ready to compute
+    done,           // size of aggregate is set correctly
 }
-
-alias SIZEOKnone = Sizeok.SIZEOKnone;
-alias SIZEOKdone = Sizeok.SIZEOKdone;
-alias SIZEOKfwd = Sizeok.SIZEOKfwd;
 
 enum Baseok : int
 {
@@ -110,7 +106,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         super(id);
         this.loc = loc;
         protection = Prot(PROTpublic);
-        sizeok = SIZEOKnone; // size not determined yet
+        sizeok = Sizeok.none; // size not determined yet
     }
 
     /***************************************
@@ -147,14 +143,14 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Runs semantic() for all instance field variables, but also
      * the field types can remain yet not resolved forward references,
      * except direct recursive definitions.
-     * After the process sizeok is set to SIZEOKfwd.
+     * After the process sizeok is set to Sizeok.fwd.
      *
      * Returns:
      *      false if any errors occur.
      */
     final bool determineFields()
     {
-        if (sizeok != SIZEOKnone)
+        if (sizeok != Sizeok.none)
             return true;
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
@@ -174,7 +170,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.semanticRun < PASSsemanticdone)
                 v.dsymbolSemantic(null);
             // Return in case a recursive determineFields triggered by v.semantic already finished
-            if (ad.sizeok != SIZEOKnone)
+            if (ad.sizeok != Sizeok.none)
                 return 1;
 
             if (v.aliassym)
@@ -208,7 +204,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto s = (*members)[i];
             if (s.apply(&func, cast(void*)this))
             {
-                if (sizeok != SIZEOKnone)
+                if (sizeok != Sizeok.none)
                 {
                     // recursive determineFields already finished
                     return true;
@@ -217,8 +213,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             }
         }
 
-        if (sizeok != SIZEOKdone)
-            sizeok = SIZEOKfwd;
+        if (sizeok != Sizeok.done)
+            sizeok = Sizeok.fwd;
 
         return true;
     }
@@ -235,7 +231,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // The previous instance size finalizing had:
         if (type.ty == Terror)
             return false;   // failed already
-        if (sizeok == SIZEOKdone)
+        if (sizeok == Sizeok.done)
             return true;    // succeeded
 
         if (!members)
@@ -255,16 +251,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 goto Lfail;
         }
 
-        // Determine instance fields when sizeok == SIZEOKnone
+        // Determine instance fields when sizeok == Sizeok.none
         if (!determineFields())
             goto Lfail;
-        if (sizeok != SIZEOKdone)
+        if (sizeok != Sizeok.done)
             finalizeSize();
 
         // this aggregate type has:
         if (type.ty == Terror)
             return false;   // marked as invalid during the finalizing.
-        if (sizeok == SIZEOKdone)
+        if (sizeok == Sizeok.done)
             return true;    // succeeded to calculate instance size.
 
     Lfail:
@@ -300,7 +296,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool checkOverlappedFields()
     {
         //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
+        assert(sizeok == Sizeok.done);
         size_t nfields = fields.dim;
         if (isNested())
         {
@@ -375,7 +371,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool fill(Loc loc, Expressions* elements, bool ctorinit)
     {
         //printf("AggregateDeclaration::fill() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
+        assert(sizeok == Sizeok.done);
         assert(elements);
         size_t nfields = fields.dim - isNested();
         bool errors = false;
@@ -610,7 +606,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         if (enclosing) // if already nested
             return;
-        if (sizeok == SIZEOKdone)
+        if (sizeok == Sizeok.done)
             return;
         if (isUnionDeclaration() || isInterfaceDeclaration())
             return;
@@ -668,7 +664,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             vthis.alignment = t.alignment();
             vthis.semanticRun = PASSsemanticdone;
 
-            if (sizeok == SIZEOKfwd)
+            if (sizeok == Sizeok.fwd)
                 fields.push(vthis);
         }
     }
