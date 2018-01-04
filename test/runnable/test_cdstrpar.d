@@ -198,12 +198,14 @@ alias baselineCases = AliasSeq!(
         /* add    rsi,0x38                */ 0x48, 0x83, 0xc6, 0x38,
         /* push   QWORD PTR [rsi]         */ 0xff, 0x36,
         /* sub    rsi,0x8                 */ 0x48, 0x83, 0xee, 0x08,
-        /* loop   1d <testee_ubyte_64+0x1d> */ 0xe2, 0xf8,
-        /* call   2a <testee_ubyte_64+0x2a> */ 0xe8, 0x00, 0x00, 0x00, 0x00,
+        /* dec    ecx                     */ 0xff, 0xc9,
+        /* jne    1d <testee_ubyte_64+0x1d> */ 0x75, 0xf6,
+        /* call   2c <testee_ubyte_64+0x2c> */ 0xe8, 0x00, 0x00, 0x00, 0x00,
         /* add    rsp,0x40                */ 0x48, 0x83, 0xc4, 0x40,
         /* mov    rsp,rbp                 */ 0x48, 0x8b, 0xe5,
         /* pop    rbp                     */ 0x5d,
         /* ret                            */ 0xc3,
+        /* add    BYTE PTR [rax],al       */ 0x00, 0x00,
     ]),
 );
 

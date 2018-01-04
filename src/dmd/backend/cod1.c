@@ -4035,15 +4035,24 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                     if (!doneoff)
                     {   // This should be done when
                         // reg is loaded. Fix later
-                                                        // ADD reg,sz-2
+                                                        // ADD reg,sz-pushsize
                         cdb.genc2(0x81,grex | modregrmx(3,0,reg),sz-pushsize);
                     }
                     getregs(cdb,mCX);                       // the LOOP decrements it
-                    cdb.gen2(0xFF,buildModregrm(0,6,rm));           // PUSH [reg]
+                    cdb.gen2(0xFF,buildModregrm(0,6,rm));   // PUSH [reg]
                     cdb.last()->Iflags |= seg | CFtarg2;
                     code *c3 = cdb.last();
-                    cdb.genc2(0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,2
-                    genjmp(cdb,0xE2,FLcode,(block *)c3);        // LOOP c3
+                    cdb.genc2(0x81,grex | buildModregrm(3,5,reg),pushsize);  // SUB reg,pushsize
+                    if (I16 || config.flags4 & CFG4space)
+                        genjmp(cdb,0xE2,FLcode,(block *)c3);// LOOP c3
+                    else
+                    {
+                        if (I64)
+                            cdb.gen2(0xFF,modregrm(3,1,CX));// DEC CX
+                        else
+                            cdb.gen1(0x48 + CX);            // DEC CX
+                        genjmp(cdb,JNE,FLcode,(block *)c3); // JNE c3
+                    }
                     regimmed_set(CX,0);
                     cdb.genadjesp(sz);
                 }
