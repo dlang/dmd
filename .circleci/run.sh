@@ -73,12 +73,9 @@ setup_repos() {
    # merge upstream branch with changes, s.t. we check with the latest changes
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
         local head=$(git rev-parse HEAD)
-        git fetch https://github.com/dlang/$CIRCLE_PROJECT_REPONAME.git $base_branch
+        git remote add upstream "https://github.com/dlang/$CIRCLE_PROJECT_REPONAME.git"
+        git fetch -q upstream "+refs/pull/${CIRCLE_PR_NUMBER}/merge:"
         git checkout -f FETCH_HEAD
-        local base=$(git rev-parse HEAD)
-        git config user.name 'CI'
-        git config user.email '<>'
-        git merge -m "Merge $head into $base" $head
     fi
 
     for proj in dmd ; do
