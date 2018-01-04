@@ -6061,8 +6061,11 @@ extern (C++) final class TypeFunction : TypeNext
                      */
                     while (1)
                     {
-                        Type tat = ta.toBasetype().aliasthisOf();
+                        Type tab = ta.toBasetype();
+                        Type tat = tab.aliasthisOf();
                         if (!tat || !tat.implicitConvTo(tprm))
+                            break;
+                        if (tat == tab)
                             break;
                         ta = tat;
                     }
