@@ -3,7 +3,7 @@
  * This module provides ELF-specific support for sections with shared libraries.
  *
  * Copyright: Copyright Martin Nowak 2012-2013.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  * Source: $(DRUNTIMESRC src/rt/_sections_linux.d)
  */

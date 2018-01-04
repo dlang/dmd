@@ -2,7 +2,7 @@
  * String manipulation and comparison utilities.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly, Walter Bright
  * Source: $(DRUNTIMESRC src/rt/util/_string.d)
  */

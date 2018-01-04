@@ -15,10 +15,10 @@
  * mq_notify(3)        register asynchronous notify
  *
  * Copyright: Copyright (c) 2016 sociomantic labs. All rights reserved
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Andreas Bok Andersen, Mathias Lang
  * Standards: POSIX.1-2001.
- * See_Also:  $(WEB pubs.opengroup.org/onlinepubs/9699919799/basedefs/mqueue.h.html, Standard)
+ * See_Also:  $(HTTP pubs.opengroup.org/onlinepubs/9699919799/basedefs/mqueue.h.html, Standard)
  */
 module core.sys.posix.mqueue;
 

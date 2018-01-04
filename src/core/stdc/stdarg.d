@@ -4,7 +4,7 @@
  * $(C_HEADER_DESCRIPTION pubs.opengroup.org/onlinepubs/009695399/basedefs/_stdarg.h.html, _stdarg.h)
  *
  * Copyright: Copyright Digital Mars 2000 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Hauke Duden
  * Standards: ISO/IEC 9899:1999 (E)
  * Source: $(DRUNTIMESRC core/stdc/_stdarg.d)

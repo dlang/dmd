@@ -2,7 +2,7 @@
  * SpinLock for runtime internal usage.
  *
  * Copyright: Copyright Digital Mars 2015 -.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  * Source: $(DRUNTIMESRC core/internal/_spinlock.d)
  */

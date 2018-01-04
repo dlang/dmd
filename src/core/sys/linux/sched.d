@@ -6,7 +6,7 @@
     types they operate on.
 
     Copyright:  Copyright (c) 2016 Sociomantic Labs. All rights reserved.
-    License:    $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+    License:    $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:    Nemanja Boric
 
 *******************************************************************************/

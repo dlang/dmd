@@ -69,7 +69,7 @@
     ))
 
     Copyright: Copyright 2010 - 2012
-    License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+    License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Jonathan M Davis and Kato Shoichi
     Source:    $(DRUNTIMESRC core/_time.d)
     Macros:

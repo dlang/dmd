@@ -11,7 +11,7 @@
     iconv_close(3)  Deallocates allocated resources
 
     Copyright:  Copyright (c) 2016 Sociomantic Labs. All rights reserved.
-    License:    $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+    License:    $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:    Nemanja Boric
     Standards:  POSIX.1-2001, POSIX.1-2008
     See_Also:
