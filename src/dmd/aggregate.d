@@ -44,16 +44,11 @@ enum Sizeok : int
 
 enum Baseok : int
 {
-    BASEOKnone,             // base classes not computed yet
-    BASEOKin,               // in process of resolving base classes
-    BASEOKdone,             // all base classes are resolved
-    BASEOKsemanticdone,     // all base classes semantic done
+    none,             // base classes not computed yet
+    start,            // in process of resolving base classes
+    done,             // all base classes are resolved
+    semanticdone,     // all base classes semantic done
 }
-
-alias BASEOKnone = Baseok.BASEOKnone;
-alias BASEOKin = Baseok.BASEOKin;
-alias BASEOKdone = Baseok.BASEOKdone;
-alias BASEOKsemanticdone = Baseok.BASEOKsemanticdone;
 
 /***********************************************************
  */

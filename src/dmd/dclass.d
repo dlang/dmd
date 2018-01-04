@@ -419,7 +419,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 cpp_type_info_ptr = this;
             }
         }
-        baseok = BASEOKnone;
+        baseok = Baseok.none;
     }
 
     static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
@@ -514,14 +514,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     final bool isBaseInfoComplete() const
     {
-        return baseok >= BASEOKdone;
+        return baseok >= Baseok.done;
     }
 
     override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
-        if (_scope && baseok < BASEOKdone)
+        if (_scope && baseok < Baseok.done)
         {
             if (!inuse)
             {
