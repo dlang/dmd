@@ -33,14 +33,10 @@ import dmd.visitor;
 
 enum Abstract : int
 {
-    ABSfwdref = 0,      // whether an abstract class is not yet computed
-    ABSyes,             // is abstract class
-    ABSno,              // is not abstract class
+    fwdref = 0,      // whether an abstract class is not yet computed
+    yes,             // is abstract class
+    no,              // is not abstract class
 }
-
-alias ABSfwdref = Abstract.ABSfwdref;
-alias ABSyes = Abstract.ABSyes;
-alias ABSno = Abstract.ABSno;
 
 /***********************************************************
  */
@@ -866,13 +862,13 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool isAbstract()
     {
         enum log = false;
-        if (isabstract != ABSfwdref)
-            return isabstract == ABSyes;
+        if (isabstract != Abstract.fwdref)
+            return isabstract == Abstract.yes;
 
         if (log) printf("isAbstract(%s)\n", toChars());
 
-        bool no()  { if (log) printf("no\n");  isabstract = ABSno;  return false; }
-        bool yes() { if (log) printf("yes\n"); isabstract = ABSyes; return true;  }
+        bool no()  { if (log) printf("no\n");  isabstract = Abstract.no;  return false; }
+        bool yes() { if (log) printf("yes\n"); isabstract = Abstract.yes; return true;  }
 
         if (storage_class & STC.abstract_ || _scope && _scope.stc & STC.abstract_)
             return yes();
