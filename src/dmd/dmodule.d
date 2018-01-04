@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmodule.d, _dmodule.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dmodule.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmodule.d
  */
 
 module dmd.dmodule;
-
-// Online documentation: https://dlang.org/phobos/dmd_dmodule.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -463,7 +463,7 @@ extern (C++) final class Module : Package
                     const m = (*ms)[j];
                     const q = strchr(m, '=');
                     assert(q);
-                    if (dotmods.offset <= q - m && memcmp(dotmods.peekString(), m, q - m) == 0)
+                    if (dotmods.offset == q - m && memcmp(dotmods.peekString(), m, q - m) == 0)
                     {
                         buf.reset();
                         auto qlen = strlen(q + 1);
