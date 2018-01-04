@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test13867.d(12): Error: function test13867.X.blah does not override any function, did you mean to override 'extern (C++) test13867.Base.blah'?
-fail_compilation/test13867.d(19): Error: function test13867.Z.blah does not override any function, did you mean to override 'extern (C++) test13867.Base.blah'?
+fail_compilation/test13867.d(12): Error: function test13867.X.blah does not override any function, did you mean to override `extern (C++) test13867.Base.blah`?
+fail_compilation/test13867.d(19): Error: function test13867.Z.blah does not override any function, did you mean to override `extern (C++) test13867.Base.blah`?
 ---
 */
 extern (C++) class Base {
