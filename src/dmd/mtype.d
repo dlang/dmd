@@ -4283,7 +4283,7 @@ extern (C++) final class TypeBasic : Type
             }
 
         case Tvoid:
-            error(loc, "void does not have a default initializer");
+            error(loc, "`void` does not have a default initializer");
             return new ErrorExp();
 
         default:
@@ -6189,7 +6189,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     override Expression defaultInit(Loc loc) const
     {
-        error(loc, "function does not have a default initializer");
+        error(loc, "`function` does not have a default initializer");
         return new ErrorExp();
     }
 
