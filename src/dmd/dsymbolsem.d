@@ -2799,14 +2799,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             funcdecl.storage_class |= STCabstract;
             if (funcdecl.isCtorDeclaration() || funcdecl.isPostBlitDeclaration() || funcdecl.isDtorDeclaration() || funcdecl.isInvariantDeclaration() || funcdecl.isNewDeclaration() || funcdecl.isDelete())
-                funcdecl.error("constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface %s", id.toChars());
+                funcdecl.error("constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", id.toChars());
             if (funcdecl.fbody && funcdecl.isVirtual())
-                funcdecl.error("function body only allowed in final functions in interface %s", id.toChars());
+                funcdecl.error("function body only allowed in final functions in interface `%s`", id.toChars());
         }
         if (UnionDeclaration ud = parent.isUnionDeclaration())
         {
             if (funcdecl.isPostBlitDeclaration() || funcdecl.isDtorDeclaration() || funcdecl.isInvariantDeclaration())
-                funcdecl.error("destructors, postblits and invariants are not allowed in union %s", ud.toChars());
+                funcdecl.error("destructors, postblits and invariants are not allowed in union `%s`", ud.toChars());
         }
 
         if (StructDeclaration sd = parent.isStructDeclaration())
@@ -2891,7 +2891,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
                             if (f2 && f2.isFinalFunc() && f2.prot().kind != PROTprivate)
-                                funcdecl.error("cannot override final function %s", f2.toPrettyChars());
+                                funcdecl.error("cannot override final function `%s`", f2.toPrettyChars());
                         }
                     }
                 }
@@ -2990,7 +2990,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     // This function overrides fdv
                     if (fdv.isFinalFunc())
-                        funcdecl.error("cannot override final function %s", fdv.toPrettyChars());
+                        funcdecl.error("cannot override final function `%s`", fdv.toPrettyChars());
 
                     if (!funcdecl.isOverride())
                     {
@@ -3007,7 +3007,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 // https://issues.dlang.org/show_bug.cgi?id=17349
                                 deprecation(funcdecl.loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute", fdv.toPrettyChars(), funcdecl.toPrettyChars());
                             else
-                                error(funcdecl.loc, "cannot implicitly override base class method %s with %s; add 'override' attribute", fdv.toPrettyChars(), funcdecl.toPrettyChars());
+                                error(funcdecl.loc, "cannot implicitly override base class method `%s` with `%s`; add `override` attribute", fdv.toPrettyChars(), funcdecl.toPrettyChars());
                         }
                     }
                     doesoverride = true;
@@ -3111,7 +3111,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             {
                                 if (!funcdecl.tintro.nextOf().equals(ti.nextOf()) && !funcdecl.tintro.nextOf().isBaseOf(ti.nextOf(), null) && !ti.nextOf().isBaseOf(funcdecl.tintro.nextOf(), null))
                                 {
-                                    funcdecl.error("incompatible covariant types %s and %s", funcdecl.tintro.toChars(), ti.toChars());
+                                    funcdecl.error("incompatible covariant types `%s` and `%s`", funcdecl.tintro.toChars(), ti.toChars());
                                 }
                             }
                             funcdecl.tintro = ti;
@@ -3134,7 +3134,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
 
                 if (s)
-                    funcdecl.error("does not override any function, did you mean to override '%s%s'?",
+                    funcdecl.error("does not override any function, did you mean to override `%s%s`?",
                         bc.sym.isCPPclass() ? "extern (C++) ".ptr : "".ptr, s.toPrettyChars());
                 else
                     funcdecl.error("does not override any function");
@@ -3156,7 +3156,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
                             if (f2 && f2.isFinalFunc() && f2.prot().kind != PROTprivate)
-                                funcdecl.error("cannot override final function %s.%s", b.sym.toChars(), f2.toPrettyChars());
+                                funcdecl.error("cannot override final function `%s.%s`", b.sym.toChars(), f2.toPrettyChars());
                         }
                     }
                 }
@@ -3206,7 +3206,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 ClassDeclaration cd = ti.tempdecl.isClassMember();
                 if (cd)
                 {
-                    funcdecl.error("cannot use template to add virtual function to class '%s'", cd.toChars());
+                    funcdecl.error("cannot use template to add virtual function to class `%s`", cd.toChars());
                 }
             }
         }
@@ -3271,7 +3271,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            error(ctd.loc, "constructor can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            error(ctd.loc, "constructor can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             ctd.type = Type.terror;
             ctd.errors = true;
             return;
@@ -3352,7 +3352,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         StructDeclaration ad = p.isStructDeclaration();
         if (!ad)
         {
-            error(pbd.loc, "postblit can only be a member of struct/union, not %s %s", p.kind(), p.toChars());
+            error(pbd.loc, "postblit can only be a member of struct/union, not %s `%s`", p.kind(), p.toChars());
             pbd.type = Type.terror;
             pbd.errors = true;
             return;
@@ -3388,7 +3388,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            error(dd.loc, "destructor can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            error(dd.loc, "destructor can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             dd.type = Type.terror;
             dd.errors = true;
             return;
@@ -3424,7 +3424,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (scd.isSharedStaticCtorDeclaration() ? "shared " : "");
-            error(scd.loc, "%sstatic constructor can only be member of module/aggregate/template, not %s %s", s, p.kind(), p.toChars());
+            error(scd.loc, "%sstatic constructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
             scd.type = Type.terror;
             scd.errors = true;
             return;
@@ -3491,7 +3491,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (sdd.isSharedStaticDtorDeclaration() ? "shared " : "");
-            error(sdd.loc, "%sstatic destructor can only be member of module/aggregate/template, not %s %s", s, p.kind(), p.toChars());
+            error(sdd.loc, "%sstatic destructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
             sdd.type = Type.terror;
             sdd.errors = true;
             return;
@@ -3561,7 +3561,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            error(invd.loc, "invariant can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            error(invd.loc, "invariant can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             invd.type = Type.terror;
             invd.errors = true;
             return;
@@ -3607,7 +3607,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Dsymbol p = utd.parent.pastMixin();
         if (!p.isScopeDsymbol())
         {
-            error(utd.loc, "unittest can only be a member of module/aggregate/template, not %s %s", p.kind(), p.toChars());
+            error(utd.loc, "unittest can only be a member of module/aggregate/template, not %s `%s`", p.kind(), p.toChars());
             utd.type = Type.terror;
             utd.errors = true;
             return;
@@ -3655,7 +3655,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Dsymbol p = nd.parent.pastMixin();
         if (!p.isAggregateDeclaration())
         {
-            error(nd.loc, "allocator can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            error(nd.loc, "allocator can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             nd.type = Type.terror;
             nd.errors = true;
             return;
@@ -3676,7 +3676,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             Parameter fparam = Parameter.getNth(tf.parameters, 0);
             if (!fparam.type.equals(Type.tsize_t))
-                nd.error("first argument must be type size_t, not %s", fparam.type.toChars());
+                nd.error("first argument must be type size_t, not `%s`", fparam.type.toChars());
         }
 
         funcDeclarationSemantic(nd);
@@ -3697,7 +3697,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Dsymbol p = deld.parent.pastMixin();
         if (!p.isAggregateDeclaration())
         {
-            error(deld.loc, "deallocator can only be a member of aggregate, not %s %s", p.kind(), p.toChars());
+            error(deld.loc, "deallocator can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             deld.type = Type.terror;
             deld.errors = true;
             return;
@@ -3717,7 +3717,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             Parameter fparam = Parameter.getNth(tf.parameters, 0);
             if (!fparam.type.equals(Type.tvoid.pointerTo()))
-                deld.error("one argument of type void* expected, not %s", fparam.type.toChars());
+                deld.error("one argument of type void* expected, not `%s`", fparam.type.toChars());
         }
 
         funcDeclarationSemantic(deld);
