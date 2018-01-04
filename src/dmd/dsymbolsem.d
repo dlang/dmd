@@ -3999,7 +3999,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cldec.storage_class & STCdeprecated)
                 cldec.isdeprecated = true;
             if (cldec.storage_class & STCauto)
-                cldec.error("storage class 'auto' is invalid when declaring a class, did you mean to use 'scope'?");
+                cldec.error("storage class `auto` is invalid when declaring a class, did you mean to use `scope`?");
             if (cldec.storage_class & STCscope)
                 cldec.stack = true;
             if (cldec.storage_class & STCabstract)
@@ -4094,7 +4094,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!tc)
                 {
                     if (b.type != Type.terror)
-                        cldec.error("base type must be class or interface, not %s", b.type.toChars());
+                        cldec.error("base type must be class or interface, not `%s`", b.type.toChars());
                     cldec.baseclasses.remove(0);
                     goto L7;
                 }
@@ -4151,7 +4151,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     if (b.type != Type.terror)
-                        cldec.error("base type must be interface, not %s", b.type.toChars());
+                        cldec.error("base type must be interface, not `%s`", b.type.toChars());
                     cldec.baseclasses.remove(i);
                     continue;
                 }
@@ -4162,7 +4162,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     BaseClass* b2 = (*cldec.baseclasses)[j];
                     if (b2.sym == tc.sym)
                     {
-                        cldec.error("inherits from duplicate interface %s", b2.sym.toChars());
+                        cldec.error("inherits from duplicate interface `%s`", b2.sym.toChars());
                         cldec.baseclasses.remove(i);
                         continue;
                     }
@@ -4230,7 +4230,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cldec.baseClass)
             {
                 if (cldec.baseClass.storage_class & STCfinal)
-                    cldec.error("cannot inherit from final class %s", cldec.baseClass.toChars());
+                    cldec.error("cannot inherit from class `%s` because it is `final`", cldec.baseClass.toChars());
 
                 // Inherit properties from base class
                 if (cldec.baseClass.isCOMclass())
@@ -4252,7 +4252,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     cldec.com = true;
                 if (cldec.classKind == ClassKind.cpp && !b.sym.isCPPinterface())
                 {
-                    error(cldec.loc, "C++ class '%s' cannot implement D interface '%s'",
+                    error(cldec.loc, "C++ class `%s` cannot implement D interface `%s`",
                         cldec.toPrettyChars(), b.sym.toPrettyChars());
                 }
             }
@@ -4326,7 +4326,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 if (cldec.classKind == ClassKind.cpp && cldec.baseClass.vtbl.dim == 0)
                 {
-                    cldec.error("C++ base class %s needs at least one virtual function", cldec.baseClass.toChars());
+                    cldec.error("C++ base class `%s` needs at least one virtual function", cldec.baseClass.toChars());
                 }
 
                 // Copy vtbl[] from base class
@@ -4350,7 +4350,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // Use the base class's 'this' member
                 if (cldec.storage_class & STCstatic)
-                    cldec.error("static class cannot inherit from nested class %s", cldec.baseClass.toChars());
+                    cldec.error("static class cannot inherit from nested class `%s`", cldec.baseClass.toChars());
                 if (cldec.toParent2() != cldec.baseClass.toParent2() &&
                     (!cldec.toParent2() ||
                      !cldec.baseClass.toParent2().getType() ||
@@ -4358,14 +4358,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     if (cldec.toParent2())
                     {
-                        cldec.error("is nested within %s, but super class %s is nested within %s",
+                        cldec.error("is nested within `%s`, but super class `%s` is nested within `%s`",
                             cldec.toParent2().toChars(),
                             cldec.baseClass.toChars(),
                             cldec.baseClass.toParent2().toChars());
                     }
                     else
                     {
-                        cldec.error("is not nested, but super class %s is nested within %s",
+                        cldec.error("is not nested, but super class `%s` is nested within `%s`",
                             cldec.baseClass.toChars(),
                             cldec.baseClass.toParent2().toChars());
                     }
@@ -4434,7 +4434,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             foreach (v; cldec.fields)
             {
                 if (v.storage_class & STCnodefaultctor)
-                    error(v.loc, "field %s must be initialized in constructor", v.toChars());
+                    error(v.loc, "field `%s` must be initialized in constructor", v.toChars());
             }
         }
 
@@ -4469,7 +4469,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else
             {
-                cldec.error("cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                cldec.error("cannot implicitly generate a default constructor when base class `%s` is missing a default constructor",
                     cldec.baseClass.toPrettyChars());
             }
         }
@@ -4534,7 +4534,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!vd.isThisDeclaration() &&
                     !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
                 {
-                    vd.error("Field members of a synchronized class cannot be %s",
+                    vd.error("Field members of a synchronized class cannot be `%s`",
                         protectionToChars(vd.prot().kind));
                 }
             }
@@ -4677,7 +4677,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     if (b.type != Type.terror)
-                        idec.error("base type must be interface, not %s", b.type.toChars());
+                        idec.error("base type must be interface, not `%s`", b.type.toChars());
                     idec.baseclasses.remove(i);
                     continue;
                 }
@@ -4688,7 +4688,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     BaseClass* b2 = (*idec.baseclasses)[j];
                     if (b2.sym == tc.sym)
                     {
-                        idec.error("inherits from duplicate interface %s", b2.sym.toChars());
+                        idec.error("inherits from duplicate interface `%s`", b2.sym.toChars());
                         idec.baseclasses.remove(i);
                         continue;
                     }
@@ -5094,7 +5094,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     Scope* _scope = tempdecl._scope;
     if (tempdecl.semanticRun == PASSinit)
     {
-        tempinst.error("template instantiation %s forward references template declaration %s", tempinst.toChars(), tempdecl.toChars());
+        tempinst.error("template instantiation `%s` forward references template declaration `%s`", tempinst.toChars(), tempdecl.toChars());
         return;
     }
 
@@ -5506,7 +5506,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             if (!s)
             {
                 if (e.op != TOKerror)
-                    ds.error("cannot alias an expression %s", e.toChars());
+                    ds.error("cannot alias an expression `%s`", e.toChars());
                 t = Type.terror;
             }
         }
