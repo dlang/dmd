@@ -3,7 +3,7 @@
  *       module will be removed in June 2018.)
  *
  * Copyright: Copyright Digital Mars 2010.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Jacob Carlborg
  * Version: Initial created: Mar 16, 2010
  */

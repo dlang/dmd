@@ -2,7 +2,7 @@
  * Contains a memset implementation used by compiler-generated code.
  *
  * Copyright: Copyright Digital Mars 2004 - 2010.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright
  */
 

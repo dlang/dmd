@@ -4,7 +4,7 @@
  * $(LINK2 https://opensource.apple.com/source/dyld/dyld-360.22/include/dlfcn.h, Apple dyld/dlfcn.h)
  *
  * Copyright: Copyright David Nadlinger 2016.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   David Nadlinger
  */
 module core.sys.darwin.dlfcn;

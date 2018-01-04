@@ -2,7 +2,7 @@
  * D header file for Linux file ops.
  *
  * Copyright: Copyright Nemanja Boric 2016.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Nemanja Boric
  */
 module core.sys.linux.sys.file;

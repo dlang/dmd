@@ -4,8 +4,8 @@
  * Interface to C++ <exception>
  *
  * Copyright: Copyright (c) 2016 D Language Foundation
- * License:   $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0).
- * Authors:   $(WEB digitalmars.com, Walter Bright)
+ * License:   $(HTTP boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * Authors:   $(HTTP digitalmars.com, Walter Bright)
  * Source:    $(DRUNTIMESRC core/stdcpp/_exception.d)
  */
 
