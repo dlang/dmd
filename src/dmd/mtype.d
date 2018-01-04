@@ -6,6 +6,8 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mtype.d, _mtype.d)
+ * Documentation:  https://dlang.org/phobos/dmd_mtype.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mtype.d
  */
 
 module dmd.mtype;
@@ -6057,8 +6059,11 @@ extern (C++) final class TypeFunction : TypeNext
                      */
                     while (1)
                     {
-                        Type tat = ta.toBasetype().aliasthisOf();
+                        Type tab = ta.toBasetype();
+                        Type tat = tab.aliasthisOf();
                         if (!tat || !tat.implicitConvTo(tprm))
+                            break;
+                        if (tat == tab)
                             break;
                         ta = tat;
                     }
