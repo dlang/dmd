@@ -764,6 +764,11 @@ Language changes listed by -transition=id:\n\
                 global.params.useInline = true;
             else if (strcmp(p + 1, "dip25") == 0)
                 global.params.useDIP25 = true;
+            else if (strcmp(p + 1, "dip1000") == 0)
+            {
+                global.params.useDIP25 = true;
+                global.params.vsafe = true;
+            }
             else if (strcmp(p + 1, "lib") == 0)
                 global.params.lib = true;
             else if (strcmp(p + 1, "nofloat") == 0)

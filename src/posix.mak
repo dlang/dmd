@@ -238,7 +238,7 @@ SRC = win32.mak posix.mak osmodel.mak \
 	intrange.h intrange.c blockexit.c canthrow.c target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	ctfe.h ctfeexpr.c visitor.h nspace.h nspace.c errors.h errors.c \
-	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h objc_stubs.c \
+	escape.c tokens.h tokens.c globals.h globals.c objc.c objc.h \
 	utils.c statementsem.c typesem.c
 
 ROOT_SRC = $(ROOT)/root.h \
@@ -510,7 +510,6 @@ ifeq ($(D_OBJC),1)
 	gcov objc.c
 	gcov objc_glue.c
 else
-	gcov objc_stubs.c
 	gcov objc_glue_stubs.c
 endif
 	gcov opover.c

@@ -63,6 +63,7 @@ Symbol *toModuleUnittest(Module *m);
 Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
 static void genhelpers(Module *m);
+int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -1197,7 +1198,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             Statement *sf = ExpStatement::create(fd->loc, e);
 
             Statement *stf;
-            if (sbody->blockExit(fd, false) == BEfallthru)
+            if (blockExit(sbody, fd, false) == BEfallthru)
                 stf = CompoundStatement::create(Loc(), sbody, sf);
             else
                 stf = TryFinallyStatement::create(Loc(), sbody, sf);

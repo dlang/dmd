@@ -17,6 +17,11 @@ class Type;
 class TypeFunction;
 struct elem;
 
+void objc_initSymbols()
+{
+    // noop
+}
+
 void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse)
 {
     // noop
