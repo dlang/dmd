@@ -1093,6 +1093,8 @@ final class A { }
 class B : A { }  // error, class A is final
 ---
 
+        $(P Methods of a final class are `final` by default.)
+
 $(H2 $(LNAME2 nested, Nested Classes))
 
 $(P A $(I nested class) is a class that is declared inside the scope of a
