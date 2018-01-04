@@ -1,10 +1,11 @@
 DRuntime: Runtime Library for the D Programming Language
 ========================================================
 
-[![GitHub tag](https://img.shields.io/github/tag/dlang/druntime.svg?maxAge=86400)](#)
+[![GitHub tag](https://img.shields.io/github/tag/dlang/druntime.svg?maxAge=86400)](https://github.com/dlang/druntime/releases)
 [![Build status](https://img.shields.io/circleci/project/dlang/druntime.svg?maxAge=86400)](https://circleci.com/gh/dlang/druntime)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/druntime.svg?maxAge=86400)](https://codecov.io/gh/dlang/druntime)
 [![Issue Stats](https://img.shields.io/issuestats/p/github/dlang/druntime.svg?maxAge=2592000)](http://www.issuestats.com/github/dlang/druntime)
+[![license](https://img.shields.io/github/license/dlang/druntime.svg)](https://github.com/dlang/druntime/blob/master/LICENSE.txt)
 
 This is DRuntime. It is the low-level runtime library
 backing the D programming language.
@@ -56,7 +57,7 @@ the [bug tracker](http://issues.dlang.org/).
 Licensing
 ---------
 
-See the LICENSE.txt file for licensing information.
+See the [LICENSE.txt](https://github.com/dlang/druntim/blob/master/LICENSE.txt) file for licensing information.
 
 Building
 --------
