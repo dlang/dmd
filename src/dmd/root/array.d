@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/array.d, root/_array.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_array.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/array.d
  */
 
 module dmd.root.array;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_array.html
 
 import core.stdc.string;
 

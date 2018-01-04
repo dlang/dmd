@@ -6,11 +6,11 @@
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/speller.d, root/_speller.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_speller.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/speller.d
  */
 
 module dmd.root.speller;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_speller.html
 
 import core.stdc.limits;
 import core.stdc.stdlib;
