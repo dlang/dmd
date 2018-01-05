@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail124.d(15): Error: class fail124.CC inherits from duplicate interface C
+fail_compilation/fail124.d(15): Error: class fail124.CC inherits from duplicate interface `C`
 ---
 */
 
