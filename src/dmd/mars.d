@@ -1532,6 +1532,24 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         return (overflow || value > max || *p) ? uint.max : value;
     }
 
+    /********************************
+     * Params:
+     *  p = 0 terminated string
+     *  s = string
+     * Returns:
+     *  true if `p` starts with `s`
+     */
+    static pure bool startsWith(const(char)* p, string s)
+    {
+        foreach (const c; s)
+        {
+            if (c != *p)
+                return false;
+            ++p;
+        }
+        return true;
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1554,7 +1572,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)  // https://dlang.org/dmd.html#switch-c
                 params.link = false;
-            else if (memcmp(p + 1, cast(char*)"color", 5) == 0) // https://dlang.org/dmd.html#switch-color
+            else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
             {
                 params.color = true;
                 // Parse:
@@ -1570,11 +1588,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else if (p[6])
                     goto Lerror;
             }
-            else if (memcmp(p + 1, cast(char*)"conf=", 5) == 0) // https://dlang.org/dmd.html#switch-conf
+            else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
             {
                 // ignore, already handled above
             }
-            else if (memcmp(p + 1, cast(char*)"cov", 3) == 0) // https://dlang.org/dmd.html#switch-cov
+            else if (startsWith(p + 1, "cov")) // https://dlang.org/dmd.html#switch-cov
             {
                 params.cov = true;
                 // Parse:
@@ -1684,7 +1702,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     error("-mscrtlib");
                 }
             }
-            else if (memcmp(p + 1, cast(char*)"profile", 7) == 0) // https://dlang.org/dmd.html#switch-profile
+            else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
             {
                 // Parse:
                 //      -profile
@@ -1711,7 +1729,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.showColumns = true;
             else if (strcmp(p + 1, "vgc") == 0) // https://dlang.org/dmd.html#switch-vgc
                 params.vgc = true;
-            else if (memcmp(p + 1, cast(char*)"verrors", 7) == 0) // https://dlang.org/dmd.html#switch-verrors
+            else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
             {
                 if (p[8] == '=' && isdigit(cast(char)p[9]))
                 {
@@ -1720,14 +1738,14 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         goto Lerror;
                     params.errorLimit = num;
                 }
-                else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
+                else if (startsWith(p + 9, "spec"))
                 {
                     params.showGaggedErrors = true;
                 }
                 else
                     goto Lerror;
             }
-            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0) // https://dlang.org/dmd.html#switch-mcpu
+            else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
             {
                 // Parse:
                 //      -mcpu=identifier
@@ -1765,7 +1783,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (memcmp(p + 1, cast(char*)"transition", 10) == 0) // https://dlang.org/dmd.html#switch-transition
+            else if (startsWith(p + 1, "transition") ) // https://dlang.org/dmd.html#switch-transition
             {
                 // Parse:
                 //      -transition=number
@@ -1979,7 +1997,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 params.useArrayBounds = CHECKENABLE.off;
             }
-            else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0) // https://dlang.org/dmd.html#switch-boundscheck
+            else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
             {
                 // Parse:
                 //      -boundscheck=[on|safeonly|off]
@@ -2028,7 +2046,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     params.fileImppath = new Strings();
                 params.fileImppath.push(p + 2 + (p[2] == '='));
             }
-            else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
+            else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
             {
                 // Parse:
                 //      -debug
@@ -2058,7 +2076,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     params.debuglevel = 1;
             }
-            else if (memcmp(p + 1, cast(char*)"version", 7) == 0) // https://dlang.org/dmd.html#switch-version
+            else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
             {
                 // Parse:
                 //      -version=number
@@ -2110,15 +2128,15 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 params.linkswitches.push(p + 2 + (p[2] == '='));
             }
-            else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0) // https://dlang.org/dmd.html#switch-defaultlib
+            else if (startsWith(p + 1, "defaultlib=")) // https://dlang.org/dmd.html#switch-defaultlib
             {
                 params.defaultlibname = p + 1 + 11;
             }
-            else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)     // https://dlang.org/dmd.html#switch-debuglib
+            else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
             {
                 params.debuglibname = p + 1 + 9;
             }
-            else if (memcmp(p + 1, cast(char*)"deps", 4) == 0) // https://dlang.org/dmd.html#switch-deps
+            else if (startsWith(p + 1, "deps")) // https://dlang.org/dmd.html#switch-deps
             {
                 if (params.moduleDeps)
                 {
@@ -2142,7 +2160,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 params.addMain = true;
             }
-            else if (memcmp(p + 1, cast(char*)"man", 3) == 0)   // https://dlang.org/dmd.html#switch-man
+            else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
             {
                 params.manual = true;
                 return false;
