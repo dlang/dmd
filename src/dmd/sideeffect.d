@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sideeffect.d, _sideeffect.d)
+ * Documentation:  https://dlang.org/phobos/dmd_sideeffect.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/sideeffect.d
  */
 
 module dmd.sideeffect;
-
-// Online documentation: https://dlang.org/phobos/dmd_sideeffect.html
 
 import dmd.apply;
 import dmd.declaration;

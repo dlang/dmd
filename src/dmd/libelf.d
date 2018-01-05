@@ -6,11 +6,12 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
+ * Documentation:  https://dlang.org/phobos/dmd_libelf.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libelf.d
  */
 
 module dmd.libelf;
 
-// Online documentation: https://dlang.org/phobos/dmd_libelf.html
 version(Windows) {}
 else version(OSX) {}
 else:

@@ -12,8 +12,6 @@
 
 module dmd.statementsem;
 
-// Online documentation: https://dlang.org/phobos/dmd_statementsem.html
-
 import core.stdc.stdio;
 
 import dmd.aggregate;

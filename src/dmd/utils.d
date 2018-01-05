@@ -9,11 +9,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/utils.d, _utils.d)
+ * Documentation:  https://dlang.org/phobos/dmd_utils.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/utils.d
  */
 
 module dmd.utils;
-
-// Online documentation: https://dlang.org/phobos/dmd_utils.html
 
 import core.stdc.string;
 import dmd.errors;

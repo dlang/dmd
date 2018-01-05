@@ -1,6 +1,9 @@
 module dmd.astbase;
 
-// Online documentation: https://dlang.org/phobos/dmd_astbase.html
+/**
+ * Documentation:  https://dlang.org/phobos/dmd_astbase.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astbase.d
+ */
 
 import dmd.parsetimevisitor;
 

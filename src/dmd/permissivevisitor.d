@@ -1,6 +1,9 @@
-module dmd.permissivevisitor;
+/**
+ * Documentation:  https://dlang.org/phobos/dmd_permissivevisitor.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/permissivevisitor.d
+ */
 
-// Online documentation: https://dlang.org/phobos/dmd_permissivevisitor.html
+module dmd.permissivevisitor;
 
 import dmd.parsetimevisitor;
 

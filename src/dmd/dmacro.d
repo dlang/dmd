@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmacro.d, _dmacro.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dmacro.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmacro.d
  */
 
 module dmd.dmacro;
-
-// Online documentation: https://dlang.org/phobos/dmd_dmacro.html
 
 import core.stdc.ctype;
 import core.stdc.string;
