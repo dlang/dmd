@@ -134,31 +134,31 @@ public:
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
 
-    bool isStatic() { return (storage_class & STCstatic) != 0; }
+    bool isStatic() const { return (storage_class & STCstatic) != 0; }
     virtual bool isDelete();
     virtual bool isDataseg();
     virtual bool isThreadlocal();
     virtual bool isCodeseg();
-    bool isCtorinit()     { return (storage_class & STCctorinit) != 0; }
-    bool isFinal()        { return (storage_class & STCfinal) != 0; }
-    virtual bool isAbstract()     { return (storage_class & STCabstract) != 0; }
-    bool isConst()        { return (storage_class & STCconst) != 0; }
-    bool isImmutable()    { return (storage_class & STCimmutable) != 0; }
-    bool isWild()         { return (storage_class & STCwild) != 0; }
-    bool isAuto()         { return (storage_class & STCauto) != 0; }
-    bool isScope()        { return (storage_class & STCscope) != 0; }
-    bool isSynchronized() { return (storage_class & STCsynchronized) != 0; }
-    bool isParameter()    { return (storage_class & STCparameter) != 0; }
-    bool isDeprecated()   { return (storage_class & STCdeprecated) != 0; }
-    bool isOverride()     { return (storage_class & STCoverride) != 0; }
-    bool isResult()       { return (storage_class & STCresult) != 0; }
-    bool isField()        { return (storage_class & STCfield) != 0; }
+    bool isCtorinit() const     { return (storage_class & STCctorinit) != 0; }
+    bool isFinal() const        { return (storage_class & STCfinal) != 0; }
+    virtual bool isAbstract()   { return (storage_class & STCabstract) != 0; }
+    bool isConst() const        { return (storage_class & STCconst) != 0; }
+    bool isImmutable() const    { return (storage_class & STCimmutable) != 0; }
+    bool isWild() const         { return (storage_class & STCwild) != 0; }
+    bool isAuto() const         { return (storage_class & STCauto) != 0; }
+    bool isScope() const        { return (storage_class & STCscope) != 0; }
+    bool isSynchronized() const { return (storage_class & STCsynchronized) != 0; }
+    bool isParameter() const    { return (storage_class & STCparameter) != 0; }
+    bool isDeprecated() const   { return (storage_class & STCdeprecated) != 0; }
+    bool isOverride() const     { return (storage_class & STCoverride) != 0; }
+    bool isResult() const       { return (storage_class & STCresult) != 0; }
+    bool isField() const        { return (storage_class & STCfield) != 0; }
 
-    bool isIn()    { return (storage_class & STCin) != 0; }
-    bool isOut()   { return (storage_class & STCout) != 0; }
-    bool isRef()   { return (storage_class & STCref) != 0; }
+    bool isIn()  const  { return (storage_class & STCin) != 0; }
+    bool isOut() const  { return (storage_class & STCout) != 0; }
+    bool isRef() const  { return (storage_class & STCref) != 0; }
 
-    bool isFuture() { return (storage_class & STCfuture) != 0; }
+    bool isFuture() const { return (storage_class & STCfuture) != 0; }
 
     Prot prot();
 
