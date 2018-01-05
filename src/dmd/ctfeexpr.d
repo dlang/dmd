@@ -181,7 +181,7 @@ extern (C++) final class ThrownExceptionExp : Expression
     {
         Expression e = resolveSlice((*thrown.value.elements)[0]);
         StringExp se = e.toStringExp();
-        thrown.error("uncaught CTFE exception %s(%s)", thrown.type.toChars(), se ? se.toChars() : e.toChars());
+        thrown.error("uncaught CTFE exception `%s(%s)`", thrown.type.toChars(), se ? se.toChars() : e.toChars());
         /* Also give the line where the throw statement was. We won't have it
          * in the case where the ThrowStatement is generated internally
          * (eg, in ScopeStatement)
@@ -457,7 +457,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
         emplaceExp!(UnionExp)(&ue, e);
         return ue;
     }
-    e.error("CTFE internal error: literal %s", e.toChars());
+    e.error("CTFE internal error: literal `%s`", e.toChars());
     assert(0);
 }
 
@@ -523,7 +523,7 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
         // Can't type paint from struct to struct*; this needs another
         // level of indirection
         if (lit.op == TOKstructliteral && isPointer(type))
-            lit.error("CTFE internal error: painting %s", type.toChars());
+            lit.error("CTFE internal error: painting `%s`", type.toChars());
         ue = copyLiteral(lit);
     }
     ue.exp().type = type;
@@ -815,7 +815,7 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
     }
     else
     {
-        error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toChars(), e2.toChars());
+        error(loc, "`%s - %s` cannot be interpreted at compile time: cannot subtract pointers to two different memory blocks", e1.toChars(), e2.toChars());
         emplaceExp!(CTFEExp)(&ue, TOKcantexp);
     }
     return ue;
@@ -828,7 +828,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
     UnionExp ue;
     if (eptr.type.nextOf().ty == Tvoid)
     {
-        error(loc, "cannot perform arithmetic on void* pointers at compile time");
+        error(loc, "cannot perform arithmetic on `void*` pointers at compile time");
     Lcant:
         emplaceExp!(CTFEExp)(&ue, TOKcantexp);
         return ue;
@@ -878,7 +878,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
     }
     if (indx < 0 || len < indx)
     {
-        error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
+        error(loc, "cannot assign pointer to index %lld inside memory block `[0..%lld]`", indx, len);
         goto Lcant;
     }
     if (agg1.op == TOKsymoff)
@@ -890,7 +890,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
     }
     if (agg1.op != TOKarrayliteral && agg1.op != TOKstring)
     {
-        error(loc, "CTFE internal error: pointer arithmetic %s", agg1.toChars());
+        error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toChars());
         goto Lcant;
     }
     if (eptr.type.toBasetype().ty == Tsarray)
@@ -1590,7 +1590,7 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
         r = Cast(loc, type, to, e).copy();
     }
     if (CTFEExp.isCantExp(r))
-        error(loc, "cannot cast %s to %s at compile time", e.toChars(), to.toChars());
+        error(loc, "cannot cast `%s` to `%s` at compile time", e.toChars(), to.toChars());
     if (e.op == TOKarrayliteral)
         (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDctfe;
     if (e.op == TOKstring)
@@ -1828,7 +1828,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     }
     if (newval.op == TOKvoid)
         return true; // uninitialized value
-    newval.error("CTFE internal error: illegal CTFE value %s", newval.toChars());
+    newval.error("CTFE internal error: illegal CTFE value `%s`", newval.toChars());
     return false;
 }
 
