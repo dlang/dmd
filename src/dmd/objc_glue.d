@@ -6,11 +6,11 @@
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/_objc_glue.d
+ * Documentation:  https://dlang.org/phobos/dmd_objc_glue.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc_glue.d
  */
 
 module dmd.objc_glue;
-
-// Online documentation: https://dlang.org/phobos/dmd_objc_glue.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;

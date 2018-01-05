@@ -7,6 +7,8 @@
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
  * https://github.com/dlang/dmd/blob/master/src/_objc_glue_stubs.d
+ * Documentation:  https://dlang.org/phobos/dmd_objc_glue_stubs.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc_glue_stubs.d
  */
 
 import core.stdc.stdio : printf;

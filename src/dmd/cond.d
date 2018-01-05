@@ -12,8 +12,6 @@
 
 module dmd.cond;
 
-// Online documentation: https://dlang.org/phobos/dmd_cond.html
-
 import core.stdc.string;
 import dmd.arraytypes;
 import dmd.dmodule;

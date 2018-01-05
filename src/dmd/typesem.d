@@ -5,9 +5,9 @@
  * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
- * Documentation:  https://dlang.org/phobos/dmd_mars.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/mars.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/typesem.d, _typesem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_typesem.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/typesem.d
  */
 
 module dmd.typesem;

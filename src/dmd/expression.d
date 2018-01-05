@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/expression.d, _expression.d)
+ * Documentation:  https://dlang.org/phobos/dmd_expression.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/expression.d
  */
 
 module dmd.expression;
-
-// Online documentation: https://dlang.org/phobos/dmd_expression.html
 
 import core.stdc.stdarg;
 import core.stdc.stdio;

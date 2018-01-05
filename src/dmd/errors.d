@@ -6,11 +6,11 @@
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
+ * Documentation:  https://dlang.org/phobos/dmd_errors.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/errors.d
  */
 
 module dmd.errors;
-
-// Online documentation: https://dlang.org/phobos/dmd_errors.html
 
 import core.stdc.stdarg;
 import core.stdc.stdio;

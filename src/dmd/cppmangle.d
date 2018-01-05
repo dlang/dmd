@@ -1,35 +1,26 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
+ * Do mangling for C++ linkage.
+ *
  * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
  * Documentation:  https://dlang.org/phobos/dmd_cppmangle.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmangle.d
- */
-
-module dmd.cppmangle;
-
-
-/**
- * Do mangling for C++ linkage.
  *
  * References:
  *  Follows Itanium C++ ABI 1.86 section 5.1
  *  http://refspecs.linux-foundation.org/cxxabi-1.86.html#mangling
  *  which is where the grammar comments come from.
  *
- * Documentation:
- *  https://dlang.org/phobos/dmd_cppmangle.html
- *
- * Coverage:
- *  https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmangle.d
- *
  * Bugs:
  *  https://issues.dlang.org/query.cgi
  *  enter `C++, mangling` as the keywords.
  */
+
+module dmd.cppmangle;
 
 import core.stdc.string;
 import core.stdc.stdio;

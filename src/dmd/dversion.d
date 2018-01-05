@@ -12,8 +12,6 @@
 
 module dmd.dversion;
 
-// Online documentation: https://dlang.org/phobos/dmd_dversion.html
-
 import dmd.arraytypes;
 import dmd.cond;
 import dmd.dmodule;

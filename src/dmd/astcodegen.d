@@ -1,6 +1,9 @@
 module dmd.astcodegen;
 
-// Online documentation: https://dlang.org/phobos/dmd_astcodegen.html
+/**
+ * Documentation:  https://dlang.org/phobos/dmd_astcodegen.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astcodegen.d
+ */
 
 struct ASTCodegen
 {

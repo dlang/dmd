@@ -12,8 +12,6 @@
 
 module dmd.globals;
 
-// Online documentation: https://dlang.org/phobos/dmd_globals.html
-
 import core.stdc.stdint;
 import core.stdc.stdio;
 import dmd.root.array;

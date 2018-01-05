@@ -12,8 +12,6 @@
 
 module dmd.target;
 
-// Online documentation: https://dlang.org/phobos/dmd_target.html
-
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
