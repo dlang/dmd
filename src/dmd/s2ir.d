@@ -137,7 +137,7 @@ private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelD
 {
     if (!label.statement)
     {
-        error(loc, "undefined label %s", label.toChars());
+        error(loc, "undefined label `%s`", label.toChars());
         return null;
     }
     Label *l = getLabel(irs, null, label.statement);
@@ -442,7 +442,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (!bt)
             {
                 //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                s.error("cannot goto into try block");
+                s.error("cannot `goto` into `try` block");
                 break;
             }
         }
@@ -475,7 +475,7 @@ private extern (C++) class S2irVisitor : Visitor
                     if (!bt)
                     {
                         //printf("b.Btry = %p, label.lblock.Btry = %p\n", b.Btry, label.lblock.Btry);
-                        s.error("cannot goto into try block");
+                        s.error("cannot `goto` into `try` block");
                         break;
                     }
 
@@ -605,7 +605,7 @@ private extern (C++) class S2irVisitor : Visitor
             bsw.appendSucc(clabel.lblock);   // second entry in pair
         bcase.appendSucc(clabel.lblock);
         if (blx.tryblock != bsw.Btry)
-            s.error("case cannot be in different try block level from switch");
+            s.error("case cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -619,7 +619,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
         if (blx.tryblock != irs.getSwitchBlock().Btry)
-            s.error("default cannot be in different try block level from switch");
+            s.error("default cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -644,7 +644,7 @@ private extern (C++) class S2irVisitor : Visitor
                 if (!bt)
                 {
                     //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot goto into try block");
+                    s.error("cannot `goto` into `try` block");
                     break;
                 }
             }
@@ -675,7 +675,7 @@ private extern (C++) class S2irVisitor : Visitor
                 if (!bt)
                 {
                     //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot goto into try block");
+                    s.error("cannot `goto` into `try` block");
                     break;
                 }
             }
