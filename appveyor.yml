@@ -1,3 +1,2 @@
-build_script:
-  - cmd: echo "Disabled"
-test: off
+except:
+  - dmd-cxx
