@@ -44,6 +44,7 @@ import dmd.init;
 import dmd.irstate;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.objc_glue;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
@@ -214,7 +215,7 @@ void genModuleInfo(Module m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    objc_Module_genmoduleinfo_classes();
+    objc.generateModuleInfo();
     m.csym.Sdt = dtb.finish();
     out_readonly(m.csym);
     outdata(m.csym);

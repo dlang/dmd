@@ -117,6 +117,11 @@ struct ObjcSelector
         buf.writeByte('\0');
         return lookup(cast(const(char)*)buf.data, buf.size, pcount);
     }
+
+    extern (D) final const(char)[] toString() const pure
+    {
+        return stringvalue[0 .. stringlen];
+    }
 }
 
 private __gshared Objc _objc;
@@ -148,6 +153,7 @@ extern(C++) private final class Unsupported : Objc
 {
     extern(D) final this()
     {
+        ObjcGlue.initialize();
     }
 
     override void setObjc(ClassDeclaration cd)
@@ -182,7 +188,7 @@ extern(C++) private final class Supported : Objc
     {
         VersionCondition.addPredefinedGlobalIdent("D_ObjectiveC");
 
-        objc_initSymbols();
+        ObjcGlue.initialize();
         ObjcSelector._init();
     }
 

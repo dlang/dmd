@@ -6,7 +6,6 @@
 module dmd.backend.mach;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_mach.html
-version(OSX):
 
 alias cpu_type_t = int;
 alias cpu_subtype_t = int;

@@ -300,13 +300,7 @@ GLUE_OBJS =
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir eh iasm))
-
-ifeq ($(D_OBJC),1)
-	GLUE_SRCS += $D/objc_glue.d
-else
-	GLUE_SRCS += $D/objc_glue_stubs.d
-endif
+	tocvdebug s2ir toobj e2ir eh iasm objc_glue))
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
