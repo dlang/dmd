@@ -39,7 +39,7 @@ $(GNAME AsmStatement):
 
     $(P Assembler instructions must be located inside an `asm` block.
         Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
-        Asm statments attributes must be explicit, they are not infered.
+        Asm statements attributes must be explicitly defined, they are not infered.
     )
 
 ---
