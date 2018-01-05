@@ -1,11 +1,13 @@
 // REQUIRED_ARGS: -O
-// PERMUTE_ARGS: -mcpu=avx -mcpu=avx2
+// PERMUTE_ARGS: -mcpu=avx -mcpu=avx2 -fPIC
 // only testing on SYSV-ABI, but backend code is identical across platforms
 // DISABLED: win32 win64 osx linux32 freebsd32
 debug = PRINTF;
 debug (PRINTF) import core.stdc.stdio;
 
-// Run `env DMD=generated/linux/release/64/dmd rdmd -version=update test/runnable/test_cdvecfill.d` after codegen changes.
+// Run this after codegen changes:
+// env DMD=generated/linux/release/64/dmd rdmd -version=update test/runnable/test_cdvecfill.d
+// env DMD=generated/linux/release/64/dmd rdmd -fPIC -version=update test/runnable/test_cdvecfill.d
 version (update)
 {
     import std.algorithm : canFind, find, splitter, until;
@@ -15,6 +17,7 @@ version (update)
     import std.file : readText;
     import std.format : formattedWrite;
     import std.meta : AliasSeq;
+    import std.path : baseName, setExtension;
     import std.process : environment, execute, pipeProcess, wait;
     import std.range : dropOne;
     import std.regex : ctRegex, matchFirst, replaceFirstInto;
@@ -50,29 +53,31 @@ version (update)
 
     void main()
     {
-        enum src = "test/runnable/test_cdvecfill.d";
+        enum src = __FILE__;
         auto dmd = environment.get("DMD", "dmd");
         auto sink = appender!string();
         foreach (arch; [EnumMembers!Arch])
         {
-            auto args = [dmd, "-c", "-O", "-mcpu=" ~ arch.to!string, "test/runnable/test_cdvecfill.d"];
+            auto args = [dmd, "-c", "-O", "-mcpu=" ~ arch.to!string, __FILE__];
             auto rc = execute(args);
             enforce(rc.status == 0, rc.output);
             formattedWrite(sink, "alias %sCases = AliasSeq!(\n", arch);
             // Just add empty Code!(newtype, count)(null) elements when adding a new type
-            foreach (type; AliasSeq!(ubyte, byte, ushort, short, uint, int, ulong, long, float, double))
+            foreach (type; AliasSeq!(ubyte, byte, ushort, short, uint, int,
+                    ulong, long, float, double))
             {
                 foreach (sz; sizes(arch))
                 {
                     foreach (suffix; [tuple("", ""), tuple("_ptr", "*")])
                     {
                         args = ["objdump", "--disassemble", "--disassembler-options=intel-mnemonic",
-                                "--section=.text.load_" ~ type.stringof ~ suffix[0] ~ "_" ~ (sz / type.sizeof)
-                                .to!string, "test_cdvecfill.o"];
+                            "--section=.text.testee_" ~ type.stringof ~ suffix[0] ~ "_" ~ (sz / type.sizeof)
+                                .to!string, __FILE__.baseName.setExtension(".o")];
                         auto p = pipeProcess(args);
-                        formattedWrite(sink, "    Code!(%s%s, %s / %s.sizeof)([\n", type.stringof, suffix[1], sz, type.stringof);
+                        formattedWrite(sink, "    Code!(%s%s, %s / %s.sizeof)([\n",
+                                type.stringof, suffix[1], sz, type.stringof);
                         foreach (line; p.stdout.byLine.find!(ln => ln.matchFirst(ctRegex!">:$"))
-                                 .dropOne.until!(ln => ln.canFind("...")))
+                                .dropOne.until!(ln => ln.canFind("...")))
                         {
                             replaceFirstInto!formatASM(sink, line, asmRE);
                         }
@@ -87,7 +92,7 @@ version (update)
             auto content = src.readText;
             auto f = File(src, "w");
             auto orng = f.lockingTextWriter;
-            version(D_PIC)
+            version (D_PIC)
             {
                 immutable string start = "// PIC begin";
                 immutable string end = "// PIC end";
@@ -97,25 +102,26 @@ version (update)
                 immutable string start = "// nonPIC begin";
                 immutable string end = "// nonPIC end";
             }
-            replaceFirstInto!((_, orng) => formattedWrite(orng, start ~ "\n%s" ~ end, sink.data))(orng, content, ctRegex!(`^` ~ start ~ `[^$]*` ~ end ~ `$`, "m"));
+            replaceFirstInto!((_, orng) => formattedWrite(orng, start ~ "\n%s" ~ end, sink.data))(orng,
+                    content, ctRegex!(`^` ~ start ~ `[^$]*` ~ end ~ `$`, "m"));
         }
     }
 }
 else:
 
-template load(T, int N)
+template testee(T, int N)
 {
-    pragma(mangle, "load_"~T.stringof~"_"~N.stringof)
-    __vector(T[N]) load(T val)
+    pragma(mangle, "testee_" ~ T.stringof ~ "_" ~ N.stringof)
+    __vector(T[N]) testee(T val)
     {
         return val;
     }
 }
 
-template load(T : T*, int N)
+template testee(T : T*, int N)
 {
-    pragma(mangle, "load_"~T.stringof~"_ptr_"~N.stringof)
-    __vector(T[N]) load(T* val)
+    pragma(mangle, "testee_" ~ T.stringof ~ "_ptr_" ~ N.stringof)
+    __vector(T[N]) testee(T* val)
     {
         return *val;
     }
@@ -1711,33 +1717,50 @@ else version (D_SIMD)
 else
     alias testCases = AliasSeq!();
 
-bool canFind(const(ubyte)[] haystack, const(ubyte)[] needle)
+bool matches(const(ubyte)[] code, const(ubyte)[] exp)
 {
-    while (haystack.length >= needle.length)
+    assert(code.length == exp.length);
+    foreach (ref i; 0 .. code.length)
     {
-        if (haystack[0 .. needle.length] == needle)
-            return true;
-        haystack = haystack[1 .. $];
+        if (code[i] == exp[i])
+            continue;
+        // wildcard match for relative call displacement
+        if (i && exp.length - (i - 1) >= 5 && exp[i - 1 .. i + 4] == [0xe8, 0x00, 0x00, 0x00, 0x00])
+        {
+            i += 3;
+            continue;
+        }
+        return false;
     }
-    return false;
+    return true;
 }
 
 void main()
 {
     foreach (tc; testCases)
     {
-        enum maxLen = 0x40; // should be sufficient and unlikely to crash
-        auto code = (cast(ubyte*)&load!(tc.T, tc.N))[0 .. maxLen];
+        auto code = (cast(ubyte*)&testee!(tc.T, tc.N))[0 .. tc.code.length];
         bool failure;
-        if (!code.canFind(tc.code))
+        if (!code.matches(tc.code))
         {
-            fprintf(stderr, "Expected code sequence for load!(%s, %u) not found.", tc.T.stringof.ptr, tc.N);
+            fprintf(stderr, "Expected code sequence for testee!(%s, %u) not found.",
+                    tc.T.stringof.ptr, tc.N);
             fprintf(stderr, "\n  Expected:");
-            foreach (d; tc.code)
-                fprintf(stderr, " 0x%02x", d);
-            fprintf(stderr, "\n  Actual:");
-            foreach (d; code)
-                fprintf(stderr, " 0x%02x", d);
+            foreach (i, d; tc.code)
+            {
+                if (tc.code[i] != code[i])
+                    fprintf(stderr, " \033[32m0x%02x\033[0m", d);
+                else
+                    fprintf(stderr, " 0x%02x", d);
+            }
+            fprintf(stderr, "\n    Actual:");
+            foreach (i, d; code)
+            {
+                if (tc.code[i] != code[i])
+                    fprintf(stderr, " \033[31m0x%02x\033[0m", d);
+                else
+                    fprintf(stderr, " 0x%02x", d);
+            }
             fprintf(stderr, "\n");
             failure = true;
         }
