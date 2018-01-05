@@ -1041,8 +1041,8 @@ version (Windows)
                     // debug info needs DLLs from $(VSInstallDir)\Common7\IDE for most linker versions
                     //  so prepend it too the PATH environment variable
                     const char* path = getenv("PATH");
-                    auto pathlen = strlen(path);
-                    auto addpathlen = strlen(addpath);
+                    const pathlen = strlen(path);
+                    const addpathlen = strlen(addpath);
 
                     char* npath = cast(char*)mem.xmalloc(5 + pathlen + 1 + addpathlen + 1);
                     memcpy(npath, "PATH=".ptr, 5);
@@ -1055,7 +1055,7 @@ version (Windows)
             }
 
             // try lld-link.exe alongside dmd.exe
-            char[MAX_PATH + 1] dmdpath;
+            char[MAX_PATH + 1] dmdpath = void;
             if (GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length) <= MAX_PATH)
             {
                 auto lldpath = FileName.replaceName(dmdpath.ptr, "lld-link.exe");

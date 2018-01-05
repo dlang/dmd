@@ -382,7 +382,7 @@ private int tryMain(size_t argc, const(char)** argv)
         if (global.params.mscoff && !global.params.mscrtlib)
         {
             VSOptions vsopt;
-            vsopt.initialize ();
+            vsopt.initialize();
             global.params.mscrtlib = vsopt.defaultRuntimeLibrary(global.params.is64bit);
         }
     }
