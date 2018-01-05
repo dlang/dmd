@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail208.d(18): Error: return expression expected
-fail_compilation/fail208.d(21):        called from here: MakeA()
+fail_compilation/fail208.d(21):        called from here: `MakeA()`
 ---
 */
 

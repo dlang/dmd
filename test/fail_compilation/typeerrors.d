@@ -3,7 +3,7 @@ PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
 fail_compilation/typeerrors.d(36): Error: tuple index 4 exceeds 4
-fail_compilation/typeerrors.d(38): Error: variable x cannot be read at compile time
+fail_compilation/typeerrors.d(38): Error: variable `x` cannot be read at compile time
 fail_compilation/typeerrors.d(39): Error: cannot have array of `void()`
 fail_compilation/typeerrors.d(40): Error: cannot have array of scope `typeerrors.C`
 fail_compilation/typeerrors.d(41): Error: cannot have array of scope `typeerrors.C`

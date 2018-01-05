@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9766.d(14): Error: cannot interpret Foo!int at compile time
+fail_compilation/fail9766.d(14): Error: cannot interpret `Foo!int` at compile time
 fail_compilation/fail9766.d(17): Error: alignment must be an integer positive power of 2, not -1
 fail_compilation/fail9766.d(20): Error: alignment must be an integer positive power of 2, not 0
 fail_compilation/fail9766.d(23): Error: alignment must be an integer positive power of 2, not 3

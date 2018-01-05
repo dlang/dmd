@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11717.d(13): Error: cannot interpret array literal expression [1, 2, 3, 4] + [1, 2, 3, 4] at compile time
+fail_compilation/fail11717.d(13): Error: cannot interpret array literal expression `[1, 2, 3, 4] + [1, 2, 3, 4]` at compile time
 ---
 */
 
