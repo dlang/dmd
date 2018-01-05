@@ -6,11 +6,11 @@
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/port.d, root/_port.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_port.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/port.d
  */
 
 module dmd.root.port;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_port.html
 
 import core.stdc.ctype;
 import core.stdc.errno;

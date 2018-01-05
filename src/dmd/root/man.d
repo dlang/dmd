@@ -6,11 +6,11 @@
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/man.d, root/_man.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_man.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/man.d
  */
 
 module dmd.root.man;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_man.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
