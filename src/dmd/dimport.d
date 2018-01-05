@@ -129,7 +129,7 @@ extern (C++) final class Import : Dsymbol
         {
             if (pkg && pkg.isModule())
             {
-                .error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?", pkg.toChars(), pkg.toPrettyChars(), id.toChars());
+                .error(loc, "can only import from a module, not from a member of module `%s`. Did you mean `import %s : %s`?", pkg.toChars(), pkg.toPrettyChars(), id.toChars());
                 mod = pkg.isModule(); // Error recovery - treat as import of that module
                 return;
             }
@@ -143,7 +143,7 @@ extern (C++) final class Import : Dsymbol
             {
                 if (s.isAliasDeclaration())
                 {
-                    .error(loc, "%s %s conflicts with %s", s.kind(), s.toPrettyChars(), id.toChars());
+                    .error(loc, "%s `%s` conflicts with `%s`", s.kind(), s.toPrettyChars(), id.toChars());
                 }
                 else if (Package p = s.isPackage())
                 {
@@ -166,16 +166,16 @@ extern (C++) final class Import : Dsymbol
                     }
                     if (!mod)
                     {
-                        .error(loc, "can only import from a module, not from package %s.%s", p.toPrettyChars(), id.toChars());
+                        .error(loc, "can only import from a module, not from package `%s.%s`", p.toPrettyChars(), id.toChars());
                     }
                 }
                 else if (pkg)
                 {
-                    .error(loc, "can only import from a module, not from package %s.%s", pkg.toPrettyChars(), id.toChars());
+                    .error(loc, "can only import from a module, not from package `%s.%s`", pkg.toPrettyChars(), id.toChars());
                 }
                 else
                 {
-                    .error(loc, "can only import from a module, not from package %s", id.toChars());
+                    .error(loc, "can only import from a module, not from package `%s`", id.toChars());
                 }
             }
         }
