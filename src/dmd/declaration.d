@@ -337,7 +337,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return s;
     }
 
-    final bool isStatic()
+    final bool isStatic() const pure nothrow @nogc @safe
     {
         return (storage_class & STCstatic) != 0;
     }
@@ -362,12 +362,12 @@ extern (C++) abstract class Declaration : Dsymbol
         return false;
     }
 
-    final bool isCtorinit()
+    final bool isCtorinit() const pure nothrow @nogc @safe
     {
         return (storage_class & STCctorinit) != 0;
     }
 
-    final bool isFinal()
+    final bool isFinal() const pure nothrow @nogc @safe
     {
         return (storage_class & STCfinal) != 0;
     }
@@ -377,82 +377,82 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STCabstract) != 0;
     }
 
-    final bool isConst()
+    final bool isConst() const pure nothrow @nogc @safe
     {
         return (storage_class & STCconst) != 0;
     }
 
-    final bool isImmutable()
+    final bool isImmutable() const pure nothrow @nogc @safe
     {
         return (storage_class & STCimmutable) != 0;
     }
 
-    final bool isWild()
+    final bool isWild() const pure nothrow @nogc @safe
     {
         return (storage_class & STCwild) != 0;
     }
 
-    final bool isAuto()
+    final bool isAuto() const pure nothrow @nogc @safe
     {
         return (storage_class & STCauto) != 0;
     }
 
-    final bool isScope()
+    final bool isScope() const pure nothrow @nogc @safe
     {
         return (storage_class & STCscope) != 0;
     }
 
-    final bool isSynchronized()
+    final bool isSynchronized() const pure nothrow @nogc @safe
     {
         return (storage_class & STCsynchronized) != 0;
     }
 
-    final bool isParameter()
+    final bool isParameter() const pure nothrow @nogc @safe
     {
         return (storage_class & STCparameter) != 0;
     }
 
-    override final bool isDeprecated()
+    override final bool isDeprecated() const pure nothrow @nogc @safe
     {
         return (storage_class & STCdeprecated) != 0;
     }
 
-    final bool isOverride()
+    final bool isOverride() const pure nothrow @nogc @safe
     {
         return (storage_class & STCoverride) != 0;
     }
 
-    final bool isResult()
+    final bool isResult() const pure nothrow @nogc @safe
     {
         return (storage_class & STCresult) != 0;
     }
 
-    final bool isField()
+    final bool isField() const pure nothrow @nogc @safe
     {
         return (storage_class & STCfield) != 0;
     }
 
-    final bool isIn()
+    final bool isIn() const pure nothrow @nogc @safe
     {
         return (storage_class & STCin) != 0;
     }
 
-    final bool isOut()
+    final bool isOut() const pure nothrow @nogc @safe
     {
         return (storage_class & STCout) != 0;
     }
 
-    final bool isRef()
+    final bool isRef() const pure nothrow @nogc @safe
     {
         return (storage_class & STCref) != 0;
     }
 
-    final bool isFuture()
+    final bool isFuture() const pure nothrow @nogc @safe
     {
         return (storage_class & STCfuture) != 0;
     }
 
-    override final Prot prot()
+    override final Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }
