@@ -3430,8 +3430,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            size_t failIndex;
-            if (!tf.callMatch(null, exp.arguments, 0, &failIndex))
+            const(char)* failMessage;
+            if (!tf.callMatch(null, exp.arguments, 0, &failMessage))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -3443,7 +3443,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                 .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
                     p, exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
-                showArgMismatch(exp.loc, exp.arguments, tf, failIndex);
+                if (failMessage)
+                    errorSupplemental(exp.loc, failMessage);
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -3503,8 +3504,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
-                size_t failIndex;
-                if (!tf.callMatch(null, exp.arguments, 0, &failIndex))
+                const(char)* failMessage;
+                if (!tf.callMatch(null, exp.arguments, 0, &failMessage))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -3514,7 +3515,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
                     .error(exp.loc, "`%s%s` is not callable using argument types `%s`",
                         exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
-                    showArgMismatch(exp.loc, exp.arguments, tf, failIndex);
+                    if (failMessage)
+                        errorSupplemental(exp.loc, failMessage);
                     exp.f = null;
                 }
             }

@@ -5885,16 +5885,33 @@ extern (C++) final class TypeFunction : TypeNext
         return t.merge();
     }
 
+    // arguments get specially formatted
+    private const(char)* getParamError(const(char)* format, Expression arg, Parameter par)
+    {
+        // disambiguate when toChars() is the same
+        auto at = arg.type.toChars();
+        bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
+        if (qual)
+            at = arg.type.toPrettyChars(true);
+        OutBuffer as;
+        as.printf("`%s` of type `%s`", arg.toChars(), at);
+        OutBuffer ps;
+        ps.printf("`%s`", parameterToChars(par, this, qual));
+        OutBuffer buf;
+        buf.printf(format, as.peekString(), ps.peekString());
+        return buf.extractString();
+    }
+
     /********************************
      * 'args' are being matched to function 'this'
      * Determine match level.
      * Input:
      *      flag    1       performing a partial ordering match
-     *      failedIndex     address to store argument index of first type mismatch
+     *      pMessage        address to store error message, or null
      * Returns:
      *      MATCHxxxx
      */
-    MATCH callMatch(Type tthis, Expressions* args, int flag = 0, size_t* failedIndex = null)
+    MATCH callMatch(Type tthis, Expressions* args, int flag = 0, const(char)** pMessage = null)
     {
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
@@ -5929,7 +5946,6 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        auto u = size_t.max; // used for failedIndex if no match
         size_t nparams = Parameter.dim(parameters);
         size_t nargs = args ? args.dim : 0;
         if (nparams == nargs)
@@ -5943,7 +5959,7 @@ extern (C++) final class TypeFunction : TypeNext
             match = MATCH.convert; // match ... with a "conversion" match level
         }
 
-        for (u = 0; u < nargs; u++)
+        for (size_t u = 0; u < nargs; u++)
         {
             if (u >= nparams)
                 break;
@@ -5976,7 +5992,7 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        for (u = 0; u < nparams; u++)
+        for (size_t u = 0; u < nparams; u++)
         {
             MATCH m;
 
@@ -6024,7 +6040,10 @@ extern (C++) final class TypeFunction : TypeNext
                     if (m && !arg.isLvalue())
                     {
                         if (p.storageClass & STC.out_)
+                        {
+                            if (pMessage) *pMessage = getParamError("cannot pass rvalue argument %s to parameter %s", arg, p);
                             goto Nomatch;
+                        }
 
                         if (arg.op == TOK.string_ && tp.ty == Tsarray)
                         {
@@ -6046,7 +6065,10 @@ extern (C++) final class TypeFunction : TypeNext
                             }
                         }
                         else
+                        {
+                            if (pMessage) *pMessage = getParamError("cannot pass rvalue argument %s to parameter %s", arg, p);
                             goto Nomatch;
+                        }
                     }
 
                     /* Find most derived alias this type being matched.
@@ -6070,7 +6092,12 @@ extern (C++) final class TypeFunction : TypeNext
                      *  ref T[dim] <- an lvalue of const(T[dim]) argument
                      */
                     if (!ta.constConv(tp))
+                    {
+                        if (pMessage) *pMessage = getParamError(
+                            arg.isLvalue() ? "cannot pass argument %s to parameter %s" :
+                                "cannot pass rvalue argument %s to parameter %s", arg, p);
                         goto Nomatch;
+                    }
                 }
             }
 
@@ -6127,7 +6154,10 @@ extern (C++) final class TypeFunction : TypeNext
                                     m = arg.implicitConvTo(ta.next);
 
                                 if (m == MATCH.nomatch)
+                                {
+                                    if (pMessage) *pMessage = getParamError("cannot pass argument %s to parameter %s", arg, p);
                                     goto Nomatch;
+                                }
                                 if (m < match)
                                     match = m;
                             }
@@ -6139,9 +6169,12 @@ extern (C++) final class TypeFunction : TypeNext
                         goto Ldone;
 
                     default:
+                        if (pMessage) *pMessage = getParamError("cannot pass argument %s to parameter %s", (*args)[u], p);
                         goto Nomatch;
                     }
                 }
+                if (pMessage && u < nargs)
+                    *pMessage = getParamError("cannot pass argument %s to parameter %s", (*args)[u], p);
                 goto Nomatch;
             }
             if (m < match)
@@ -6154,8 +6187,6 @@ extern (C++) final class TypeFunction : TypeNext
 
     Nomatch:
         //printf("no match\n");
-        if (failedIndex)
-            *failedIndex = u;
         return MATCH.nomatch;
     }
 
@@ -9228,7 +9259,7 @@ extern (C++) final class Parameter : RootObject
     extern (D) static immutable bool[SR.max + 1][SR.max + 1] covariant = covariantInit();
 }
 
-/**
+/*************************************************************
  * For printing two types with qualification when necessary.
  * Params:
  *    t1 = The first type to receive the type name for
@@ -9241,6 +9272,7 @@ const(char*)[2] toAutoQualChars(Type t1, Type t2)
 {
     auto s1 = t1.toChars();
     auto s2 = t2.toChars();
+    // show qualification only if it's different
     if (!t1.equals(t2) && strcmp(s1, s2) == 0)
     {
         s1 = t1.toPrettyChars(true);
