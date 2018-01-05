@@ -331,7 +331,7 @@ fail_compilation/fail_arrayop2.d(349): Error: array operation `[1] * 6` without 
 fail_compilation/fail_arrayop2.d(352): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(355): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(358): Error: array operation `"str"[] + cast(immutable(char))1` without destination memory not allowed
-fail_compilation/fail_arrayop2.d(366): Error: CTFE internal error: non-constant value "uvt"[]
+fail_compilation/fail_arrayop2.d(366): Error: CTFE internal error: non-constant value `"uvt"[]`
 ---
 */
 // Test all statements, which can take arrays as their operands.
