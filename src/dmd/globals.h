@@ -224,9 +224,9 @@ struct Global
     Array<const char *> *path;        // Array of char*'s which form the import lookup path
     Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
 
-    const char *version;
+    const char *version;     // Compiler version string
+    const char *vendor;      // Compiler backend name
 
-    Compiler compiler;
     Param params;
     unsigned errors;         // number of errors reported so far
     unsigned warnings;       // number of warnings reported so far
