@@ -16,7 +16,7 @@
 
 struct Compiler
 {
-    const char *vendor;     // Compiler backend name
+    static void _init();
 };
 
 #endif /* DMD_COMPILER_H */

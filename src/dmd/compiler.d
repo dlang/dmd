@@ -12,7 +12,12 @@
 
 module dmd.compiler;
 
+import dmd.globals;
+
 struct Compiler
 {
-    const(char)* vendor; // Compiler backend name
+    extern(C++) static void _init()
+    {
+        global.vendor = "Digital Mars D";
+    }
 }
