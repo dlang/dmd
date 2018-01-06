@@ -3006,6 +3006,8 @@ extern (C++) abstract class Type : RootObject
      * https://issues.dlang.org/show_bug.cgi?id=14488
      * Check if the inner most base type is complex or imaginary.
      * Should only give alerts when set to emit transitional messages.
+     * Params:
+     *  loc = The source location.
      */
     final void checkComplexTransition(Loc loc)
     {
@@ -3013,9 +3015,12 @@ extern (C++) abstract class Type : RootObject
         while (t.ty == Tpointer || t.ty == Tarray)
             t = t.nextOf().baseElemOf();
 
+        // Basetype is an opaque enum, nothing to check.
+        if (t.ty == Tenum && !(cast(TypeEnum)t).sym.memtype)
+            return;
+
         if (t.isimaginary() || t.iscomplex())
         {
-            const(char)* p = loc.toChars();
             Type rt;
             switch (t.ty)
             {
@@ -3039,11 +3044,13 @@ extern (C++) abstract class Type : RootObject
             }
             if (t.iscomplex())
             {
-                fprintf(global.stdmsg, "%s: use of complex type '%s' is scheduled for deprecation, use 'std.complex.Complex!(%s)' instead\n", p ? p : "", toChars(), rt.toChars());
+                deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
+                    toChars(), rt.toChars());
             }
             else
             {
-                fprintf(global.stdmsg, "%s: use of imaginary type '%s' is scheduled for deprecation, use '%s' instead\n", p ? p : "", toChars(), rt.toChars());
+                deprecation(loc, "use of imaginary type `%s` is deprecated, use `%s` instead",
+                    toChars(), rt.toChars());
             }
         }
     }
