@@ -77,7 +77,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                 {
                     if (v.storage_class & STCmanifest)
                     {
-                        v.error("enum cannot be initialized with %s", v._init.toChars());
+                        v.error("enum cannot be initialized with `%s`", v._init.toChars());
                         return errorReturn();
                     }
                     goto L1;
@@ -674,7 +674,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     sz *= 8;
                     if (i2 < 0 || i2 >= sz)
                     {
-                        e.error("shift assign by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
+                        e.error("shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                         return error();
                     }
                 }
@@ -750,7 +750,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 sz *= 8;
                 if (i2 < 0 || i2 >= sz)
                 {
-                    e.error("shift by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
+                    e.error("shift by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                     return error();
                 }
                 if (e.e1.isConst() == 1)
@@ -847,7 +847,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // All other negative integral powers are illegal
             if (e.e1.type.isintegral() && (e.e2.op == TOKint64) && cast(sinteger_t)e.e2.toInteger() < 0)
             {
-                e.error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
+                e.error("cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
                 return error();
             }
             // If e2 *could* have been an integer, make it one.
