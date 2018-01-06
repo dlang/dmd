@@ -1880,27 +1880,27 @@ size_t skipchars(OutBuffer* buf, size_t i, string chars)
 }
 
 /************************************************
- * Scan past tabs and spaces, counting a tab as four spaces.
+ * Get the indent from one index to another, counting a tab as four spaces.
  */
-size_t countSpaces(OutBuffer* buf, size_t i)
+size_t getIndent(OutBuffer* buf, size_t from, size_t to)
 {
     const slice = buf.peekSlice();
-    size_t count = 0;
-    for (; i < slice.length; i++)
+    if (to > slice.length)
+        to = slice.length;
+    size_t indent = 0;
+    for (; from < to; from++)
     {
-        switch (slice[i])
+        switch (slice[from])
         {
-        case ' ':
-            ++count;
-            break;
         case '\t':
-            count += 4;
+            indent += (4 - (indent % 4));
             break;
         default:
-            return count;
+            ++indent;
+            break;
         }
     }
-    return 0;
+    return indent;
 }
 
 /************************************************
@@ -2183,51 +2183,6 @@ bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStar
 }
 
 /****************************************************
- * Handle a Markdown list item by creating/deleting lists and starting the item.
- */
-size_t handleMarkdownListItem(OutBuffer *buf, MarkdownList list, ref MarkdownList[] lists)
-{
-    buf.remove(list.iStart, list.contentIndent);
-
-    // end any nested lists
-    while (lists.length && (lists[$-1].itemIndent > list.contentIndent || lists[$-1].type != list.type))
-    {
-        list.iStart = buf.insert(list.iStart, "))\n");
-        --lists.length;
-    }
-
-    if (!lists.length || list.itemIndent >= lists[$-1].contentIndent)
-    {
-        // start a list
-        lists ~= list;
-        if (list.type == '.' || list.type == ')')
-        {
-            if (list.orderedStart.length && list.orderedStart == "1")
-            {
-                list.iStart = buf.insert(list.iStart, "$(OL_START ");
-                list.iStart = buf.insert(list.iStart, list.orderedStart);
-                list.iStart = buf.insert(list.iStart, ",\n");
-            }
-            else
-                list.iStart = buf.insert(list.iStart, "$(OL\n");
-        }
-        else
-            list.iStart = buf.insert(list.iStart, "$(UL\n");
-    }
-    else if (lists.length)
-    {
-        // end the previous list item
-        list.iStart = buf.insert(list.iStart, ")\n");
-
-        lists[$-1].itemIndent = list.itemIndent;
-        lists[$-1].contentIndent = list.contentIndent;
-    }
-
-    list.iStart = buf.insert(list.iStart, "$(LI\n");
-    return list.iStart;
-}
-
-/****************************************************
  */
 extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 {
@@ -2424,6 +2379,9 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
     return false;
 }
 
+/****************************************************
+* A delimiter for Markdown inline content like emphasis and links.
+*/
 struct MarkdownDelimiter
 {
     size_t iStart;
@@ -2433,13 +2391,93 @@ struct MarkdownDelimiter
     bool rightFlanking;
 }
 
+/****************************************************
+* Info about a Markdown list.
+*/
 struct MarkdownList
 {
     size_t iStart;
-    size_t itemIndent;
-    size_t contentIndent;
+    size_t iContentStart;
+    size_t indent;
     char type;
     string orderedStart;
+
+    /****************************************************
+    * Return whether the context is at a list item of the same type as this list.
+    */
+    bool atSameListItem(OutBuffer *buf, size_t iLineStart, size_t i)
+    {
+        MarkdownList item = (type == '.' || type == ')') ? parseOrderedListItem(buf, iLineStart, i) : parseUnorderedListItem(buf, iLineStart, i);
+        return item.type == type;
+    }
+
+    /****************************************************
+    * Start a Markdown list item by creating/deleting nested lists and starting the item.
+    */
+    static bool startItem(OutBuffer *buf, size_t iLineStart, ref size_t i, ref MarkdownList[] nestedLists)
+    {
+        MarkdownList list;
+        if (buf.data[i] == '+' || buf.data[i] == '-' || buf.data[i] == '*')
+            list = parseUnorderedListItem(buf, iLineStart, i);
+        else
+            list = parseOrderedListItem(buf, iLineStart, i);
+
+        if (!list.type)
+            return false;
+
+        buf.remove(list.iStart, list.iContentStart - list.iStart);
+
+        if (!nestedLists.length || getIndent(buf, iLineStart, i) >= nestedLists[$-1].indent)
+        {
+            // start a list macro
+            nestedLists ~= list;
+            if (list.type == '.' || list.type == ')')
+            {
+                if (list.orderedStart.length && list.orderedStart == "1")
+                {
+                    list.iStart = buf.insert(list.iStart, "$(OL_START ");
+                    list.iStart = buf.insert(list.iStart, list.orderedStart);
+                    list.iStart = buf.insert(list.iStart, ",\n");
+                }
+                else
+                    list.iStart = buf.insert(list.iStart, "$(OL\n");
+            }
+            else
+                list.iStart = buf.insert(list.iStart, "$(UL\n");
+        }
+        else if (nestedLists.length)
+        {
+            nestedLists[$-1].indent = list.indent;
+        }
+
+        i = list.iStart = buf.insert(list.iStart, "$(LI\n");
+
+        return true;
+    }
+
+    private static MarkdownList parseUnorderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
+    {
+        if (i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
+        {
+            size_t iContentStart = skipchars(buf, i + 1, " \t");
+            size_t indent = getIndent(buf, iLineStart, iContentStart);
+            auto list = MarkdownList(iLineStart, iContentStart, indent, buf.data[i]);
+            return list;
+        }
+        return MarkdownList(0, 0, 0, 0);
+    }
+
+    private static MarkdownList parseOrderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
+    {
+        size_t iAfterNumbers = skipchars(buf, i, "0123456789");
+        if (iAfterNumbers - i <= 10 && iAfterNumbers < buf.offset && (buf.data[iAfterNumbers] == '.' || buf.data[iAfterNumbers] == ')'))
+        {
+            size_t iContentStart = skipchars(buf, iAfterNumbers + 1, " \t");
+            size_t indent = getIndent(buf, iLineStart, iContentStart);
+            return MarkdownList(iLineStart, iContentStart, indent, buf.data[iAfterNumbers], cast(string) buf.data[i..iAfterNumbers].idup);
+        }
+        return MarkdownList(0, 0, 0, 0);
+    }
 }
 
 /**************************************************
@@ -2454,7 +2492,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iHeadingStart = 0;
     int quoteLevel = 0;
     int previousQuoteLevel = 0;
-    MarkdownList[] lists;
+    MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
     int inCode = 0;
     int inBacktick = 0;
@@ -2496,17 +2534,31 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 iHeadingStart = 0;
                 headingLevel = 0;
             }
-            if (lists.length)
+            if (!inCode && nestedLists.length)
             {
-                size_t contentIndent = countSpaces(buf, i + 1);
-                size_t iAfterSpaces = contentIndent ? skipchars(buf, i + 1, " \t") : i + 1;
-                if (iAfterSpaces >= buf.offset || (buf.data[iAfterSpaces] != '\r' && buf.data[iAfterSpaces] != '\n'))
+                size_t iAfterSpaces = skipchars(buf, i + 1, " \t");
+                size_t iBeforeNewline = i;
+                if (iBeforeNewline > offset && buf.data[iBeforeNewline] == '\r')
+                    --iBeforeNewline;
+
+                if (nestedLists[$-1].atSameListItem(buf, i + 1, iAfterSpaces))
                 {
-                    while (lists.length && lists[$-1].contentIndent > contentIndent)
+                    // end a sibling list item
+                    buf.insert(iBeforeNewline, ")");
+                    ++i;
+                }
+                else
+                {
+                    size_t indent = getIndent(buf, i + 1, iAfterSpaces);
+                    if (iAfterSpaces >= buf.offset || (buf.data[iAfterSpaces] != '\r' && buf.data[iAfterSpaces] != '\n'))
                     {
-printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, contentIndent);
-                        i = buf.insert(i, "))\n");
-                        --lists.length;
+                        // end nested lists that are indented more than this content
+                        while (nestedLists.length && nestedLists[$-1].indent > indent)
+                        {
+                            buf.insert(iBeforeNewline, ")\n)");
+                            i += 3;
+                            --nestedLists.length;
+                        }
                     }
                 }
             }
@@ -2716,12 +2768,8 @@ printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, co
              */
             if (leadingBlank)
             {
-                if (!inCode && i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
+                if (!inCode && MarkdownList.startItem(buf, iLineStart, i, nestedLists))
                 {
-                    // handle a list item
-                    size_t contentIndent = countSpaces(buf, i + 1) + (i - iLineStart) + 1;
-                    MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, c);
-                    i = iLineStart = handleMarkdownListItem(buf, list, lists);
                     leadingBlank = 1;
                     break;
                 }
@@ -2907,13 +2955,11 @@ printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, co
 
         case '+':
         {
-            if (leadingBlank && !inCode && i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
-            {
-                size_t contentIndent = countSpaces(buf, i + 1) + (i - iLineStart) + 1;
-                MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, c);
-                i = iLineStart = handleMarkdownListItem(buf, list, lists);
+            if (!leadingBlank || inCode)
+                break;
+
+            if (MarkdownList.startItem(buf, iLineStart, i, nestedLists))
                 leadingBlank = 1;
-            }
             break;
         }
 
@@ -2921,17 +2967,11 @@ printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, co
         ..
         case '9':
         {
-            if (leadingBlank && !inCode)
-            {
-                size_t iAfterNumbers = skipchars(buf, i, "0123456789");
-                if (iAfterNumbers - i <= 10 && iAfterNumbers < buf.offset && (buf.data[iAfterNumbers] == '.' || buf.data[iAfterNumbers] == ')'))
-                {
-                    size_t contentIndent = countSpaces(buf, iAfterNumbers + 1) + (iAfterNumbers - iLineStart) + 1;
-                    MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, buf.data[iAfterNumbers], cast(string) buf.data[i..iAfterNumbers].idup);
-                    i = iLineStart = handleMarkdownListItem(buf, list, lists);
-                    leadingBlank = 1;
-                }
-            }
+            if (!leadingBlank || inCode)
+                break;
+
+            if (MarkdownList.startItem(buf, iLineStart, i, nestedLists))
+                leadingBlank = 1;
             break;
         }
 
@@ -2959,14 +2999,6 @@ printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, co
 
             if (leadingBlank)
             {
-                if (i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
-                {
-                    size_t contentIndent = countSpaces(buf, i + 1) + (i - iLineStart) + 1;
-                    MarkdownList list = MarkdownList(iLineStart, i - iLineStart, contentIndent, c);
-                    i = iLineStart = handleMarkdownListItem(buf, list, lists);
-                    break;
-                }
-
                 /* A line consisting solely of ** indicates a Markdown heading on the previous line, or a thematic break after an empty line. */
                 leadingBlank = 0;
                 size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
@@ -2986,9 +3018,10 @@ printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, co
                         headingLevel = 2;
                     }
                 }
-                else
+                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists))
                 {
-                    // TODO: perhaps the start of a list item?
+                    leadingBlank = 1;
+                    break;
                 }
             }
             else
@@ -3212,11 +3245,10 @@ printf("Ending list item because indent %d > %d\n", lists[$-1].contentIndent, co
     if (inCode)
         error(s ? s.loc : Loc.initial, "unmatched --- in DDoc comment");
 
-    while (lists.length)
+    while (nestedLists.length)
     {
-printf("End-ending list item\n");
-        buf.insert(buf.offset, "))\n");
-        --lists.length;
+        buf.insert(buf.offset, ")\n)");
+        --nestedLists.length;
     }
 // TODO: end quote section?
 }
