@@ -3058,6 +3058,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (e.type)
         {
+            e.verifyTypeInfo(sc);
             result = e;
             return;
         }
@@ -9134,6 +9135,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // if (global.params.verbose)
             //     message("lowered   %s =>\n          %s", exp.toChars(), res.toChars());
             return setResult(res);
+            ale.e1.type.toBasetype().genTypeInfo(sc);
         }
         else if (auto se = exp.e1.isSliceExp())
         {
@@ -9668,6 +9670,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e2.checkValue() || exp.e2.checkSharedAccess(sc))
             return setError();
+
+        if (tb1.ty == Tarray)
+            tb1.genTypeInfo(sc);
 
         exp.type = exp.e1.type;
         auto res = exp.reorderSettingAAElem(sc);
