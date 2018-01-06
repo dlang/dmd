@@ -143,7 +143,8 @@ MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_WINDOS=1 -DDM_TARG
 DFLAGS=$(DOPT) $(DMODEL) $(DDEBUG) -wi -version=MARS
 
 # Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$(HOST_DC)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
+DMDMAKE1=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" MODEL=$(MODEL) CC="$(CC)" LIB="$(LIB)" OBJ_MSVC="$(OBJ_MSVC)"
+DMDMAKE=$(DMDMAKE1) HOST_DC="$(HOST_DC)"
 
 ############################### Rule Variables ###############################
 
@@ -272,13 +273,19 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 ############################## Release Targets ###############################
 
-defaulttarget: $G debdmd
+defaulttarget:
+	@if "$(HOST_DC)"=="" (echo HOST_DC=dmd & $(DMDMAKE1) HOST_DC=dmd defaulttarget_hostdc) else ($(DMDMAKE) defaulttarget_hostdc)
+
+defaulttarget_hostdc: $G debdmd
 
 auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
 
 dmd: $G reldmd
 
 release:
+	@if "$(HOST_DC)"=="" (echo HOST_DC=dmd & $(DMDMAKE1) HOST_DC=dmd release_hostdc) else ($(DMDMAKE) release_hostdc)
+
+release_hostdc:
 	$(DMDMAKE) clean
 	$(DEL) $(TARGETEXE)
 	$(DMDMAKE) reldmd
