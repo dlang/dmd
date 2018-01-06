@@ -12,13 +12,13 @@ struct S5 { @nogc new(size_t); }
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc1.d(27): vgc: 'new' causes GC allocation
-compilable/vgc1.d(29): vgc: 'new' causes GC allocation
-compilable/vgc1.d(30): vgc: 'new' causes GC allocation
-compilable/vgc1.d(32): vgc: 'new' causes GC allocation
-compilable/vgc1.d(33): vgc: 'new' causes GC allocation
-compilable/vgc1.d(34): vgc: 'new' causes GC allocation
-compilable/vgc1.d(38): vgc: 'new' causes GC allocation
+compilable/vgc1.d(27): vgc: `new` causes a GC allocation
+compilable/vgc1.d(29): vgc: `new` causes a GC allocation
+compilable/vgc1.d(30): vgc: `new` causes a GC allocation
+compilable/vgc1.d(32): vgc: `new` causes a GC allocation
+compilable/vgc1.d(33): vgc: `new` causes a GC allocation
+compilable/vgc1.d(34): vgc: `new` causes a GC allocation
+compilable/vgc1.d(38): vgc: `new` causes a GC allocation
 ---
 */
 
@@ -41,12 +41,12 @@ void testNew()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc1.d(55): vgc: 'new' causes GC allocation
-compilable/vgc1.d(57): vgc: 'new' causes GC allocation
-compilable/vgc1.d(58): vgc: 'new' causes GC allocation
-compilable/vgc1.d(60): vgc: 'new' causes GC allocation
-compilable/vgc1.d(61): vgc: 'new' causes GC allocation
-compilable/vgc1.d(62): vgc: 'new' causes GC allocation
+compilable/vgc1.d(55): vgc: `new` causes a GC allocation
+compilable/vgc1.d(57): vgc: `new` causes a GC allocation
+compilable/vgc1.d(58): vgc: `new` causes a GC allocation
+compilable/vgc1.d(60): vgc: `new` causes a GC allocation
+compilable/vgc1.d(61): vgc: `new` causes a GC allocation
+compilable/vgc1.d(62): vgc: `new` causes a GC allocation
 ---
 */
 
@@ -74,9 +74,9 @@ void testNewScope()
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc1.d(84): vgc: 'delete' requires GC
-compilable/vgc1.d(85): vgc: 'delete' requires GC
-compilable/vgc1.d(86): vgc: 'delete' requires GC
+compilable/vgc1.d(84): vgc: `delete` requires the GC
+compilable/vgc1.d(85): vgc: `delete` requires the GC
+compilable/vgc1.d(86): vgc: `delete` requires the GC
 ---
 */
 void testDelete(int* p, Object o, S1* s)
