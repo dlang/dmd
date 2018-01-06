@@ -5823,7 +5823,7 @@ extern (C++) final class TypeStruct : Type
     {
         // Determine zeroInit here, as this can be called before semantic2
         sym.determineSize(sym.loc);
-        return sym.zeroInit;
+        return sym.isZeroInit();
     }
 
     override bool isAssignable()

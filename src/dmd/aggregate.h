@@ -159,7 +159,7 @@ struct StructFlags
 class StructDeclaration : public AggregateDeclaration
 {
 public:
-    bool zeroInit;              // !=0 if initialize with 0 fill
+    byte zeroInit;              // -1 if still unknown, 1 if initialize with 0 fill, 0 otherwise
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasBlitAssign;         // true if opAssign is a blit
     bool hasIdentityEquals;     // true if has identity opEquals
@@ -193,6 +193,8 @@ public:
     void finalizeSize();
     bool fit(const Loc &loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
+    bool isZeroInit();
+    int calcZeroInit();
 
     StructDeclaration *isStructDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }

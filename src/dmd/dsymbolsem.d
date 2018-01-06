@@ -1310,7 +1310,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._init = new ExpInitializer(dsym.loc, e);
                 goto Ldtor;
             }
-            if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit)
+            if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.isZeroInit())
             {
                 /* If a struct is all zeros, as a special case
                  * set it's initializer to the integer 0.
