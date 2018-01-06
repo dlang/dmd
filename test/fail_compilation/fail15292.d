@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15292.d(27): Error: cannot compare S15292 because its auto generated member-wise equality has recursive definition
+fail_compilation/fail15292.d(27): Error: cannot compare `S15292` because its auto generated member-wise equality has recursive definition
 ---
 */
 
