@@ -838,7 +838,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     s = search_function(ad1, Id.opBinary);
                     if (s && !s.isTemplateDeclaration())
                     {
-                        e.e1.error("%s.opBinary isn't a template", e.e1.toChars());
+                        e.e1.error("`%s.opBinary` isn't a template", e.e1.toChars());
                         result = new ErrorExp();
                         return;
                     }
@@ -848,7 +848,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     s_r = search_function(ad2, Id.opBinaryRight);
                     if (s_r && !s_r.isTemplateDeclaration())
                     {
-                        e.e2.error("%s.opBinaryRight isn't a template", e.e2.toChars());
+                        e.e2.error("`%s.opBinaryRight` isn't a template", e.e2.toChars());
                         result = new ErrorExp();
                         return;
                     }
@@ -901,7 +901,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (m.count > 1)
                 {
                     // Error, ambiguous
-                    e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                    e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
                 else if (m.last <= MATCH.nomatch)
                 {
@@ -987,7 +987,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                         if (m.count > 1)
                         {
                             // Error, ambiguous
-                            e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                            e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                         }
                         else if (m.last <= MATCH.nomatch)
                         {
@@ -1113,7 +1113,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     result = result.trySemantic(sc); // for better error message
                     if (!result)
                     {
-                        e.error("cannot compare %s and %s", t1.toChars(), t2.toChars());
+                        e.error("cannot compare `%s` and `%s`", t1.toChars(), t2.toChars());
                         result = new ErrorExp();
                     }
                     return;
@@ -1125,7 +1125,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             if (t1.ty == Tclass && e.e2.op == TOKnull ||
                 t2.ty == Tclass && e.e1.op == TOKnull)
             {
-                e.error("use '%s' instead of '%s' when comparing with null",
+                e.error("use `%s` instead of `%s` when comparing with `null`",
                     Token.toChars(e.op == TOKequal ? TOKidentity : TOKnotidentity),
                     Token.toChars(e.op));
                 result = new ErrorExp();
@@ -1249,7 +1249,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (result.op == e.op &&
                     (cast(EqualExp)result).e1.type.toBasetype() == t1)
                 {
-                    e.error("cannot compare %s because its auto generated member-wise equality has recursive definition",
+                    e.error("cannot compare `%s` because its auto generated member-wise equality has recursive definition",
                         t1.toChars());
                     result = new ErrorExp();
                 }
@@ -1265,7 +1265,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 size_t dim = tup1.exps.dim;
                 if (dim != tup2.exps.dim)
                 {
-                    e.error("mismatched tuple lengths, %d and %d",
+                    e.error("mismatched tuple lengths, `%d` and `%d`",
                         cast(int)dim, cast(int)tup2.exps.dim);
                     result = new ErrorExp();
                     return;
@@ -1447,7 +1447,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     s = search_function(ad1, Id.opOpAssign);
                     if (s && !s.isTemplateDeclaration())
                     {
-                        e.error("%s.opOpAssign isn't a template", e.e1.toChars());
+                        e.error("`%s.opOpAssign` isn't a template", e.e1.toChars());
                         result = new ErrorExp();
                         return;
                     }
@@ -1481,7 +1481,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 if (m.count > 1)
                 {
                     // Error, ambiguous
-                    e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                    e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
                 }
                 else if (m.last <= MATCH.nomatch)
                 {
@@ -1610,7 +1610,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id)
             if (!(m.lastf == lastf && m.count == 2 && count == 1))
             {
                 // Error, ambiguous
-                e.error("overloads %s and %s both match argument list for %s", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+                e.error("overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
             }
         }
         else if (m.last <= MATCH.nomatch)
@@ -1992,7 +1992,7 @@ private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Pa
         inferApplyArgTypesY(cast(TypeFunction)fd_best.type, parameters);
         if (fd_ambig)
         {
-            .error(ethis.loc, "%s.%s matches more than one declaration:\n%s:     %s\nand:\n%s:     %s",
+            .error(ethis.loc, "`%s.%s` matches more than one declaration:\n`%s`:     `%s`\nand:\n`%s`:     `%s`",
                 ethis.toChars(), fstart.ident.toChars(),
                 fd_best.loc.toChars(), fd_best.type.toChars(),
                 fd_ambig.loc.toChars(), fd_ambig.type.toChars());
