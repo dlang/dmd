@@ -72,12 +72,12 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("array literal in @nogc %s '%s' may cause GC allocation",
+            e.error("array literal in `@nogc` %s `%s` may cause a GC allocation",
                 f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
-        f.printGCUsage(e.loc, "array literal may cause GC allocation");
+        f.printGCUsage(e.loc, "array literal may cause a GC allocation");
     }
 
     override void visit(AssocArrayLiteralExp e)
@@ -86,12 +86,12 @@ public:
             return;
         if (f.setGC())
         {
-            e.error("associative array literal in @nogc %s '%s' may cause GC allocation",
+            e.error("associative array literal in `@nogc` %s `%s` may cause a GC allocation",
                 f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
-        f.printGCUsage(e.loc, "associative array literal may cause GC allocation");
+        f.printGCUsage(e.loc, "associative array literal may cause a GC allocation");
     }
 
     override void visit(NewExp e)
@@ -109,12 +109,12 @@ public:
             return;                     // separate allocator is called for this, not the GC
         if (f.setGC())
         {
-            e.error("cannot use 'new' in @nogc %s '%s'",
+            e.error("cannot use `new` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
-        f.printGCUsage(e.loc, "'new' causes GC allocation");
+        f.printGCUsage(e.loc, "`new` causes a GC allocation");
     }
 
     override void visit(DeleteExp e)
@@ -148,12 +148,12 @@ public:
 
         if (f.setGC())
         {
-            e.error("cannot use 'delete' in @nogc %s '%s'",
+            e.error("cannot use `delete` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
-        f.printGCUsage(e.loc, "'delete' requires GC");
+        f.printGCUsage(e.loc, "`delete` requires the GC");
     }
 
     override void visit(IndexExp e)
@@ -163,12 +163,12 @@ public:
         {
             if (f.setGC())
             {
-                e.error("indexing an associative array in @nogc %s '%s' may cause GC allocation",
+                e.error("indexing an associative array in `@nogc` %s `%s` may cause a GC allocation",
                     f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
-            f.printGCUsage(e.loc, "indexing an associative array may cause GC allocation");
+            f.printGCUsage(e.loc, "indexing an associative array may cause a GC allocation");
         }
     }
 
@@ -178,12 +178,12 @@ public:
         {
             if (f.setGC())
             {
-                e.error("setting 'length' in @nogc %s '%s' may cause GC allocation",
+                e.error("setting `length` in `@nogc` %s `%s` may cause a GC allocation",
                     f.kind(), f.toPrettyChars());
                 err = true;
                 return;
             }
-            f.printGCUsage(e.loc, "setting 'length' may cause GC allocation");
+            f.printGCUsage(e.loc, "setting `length` may cause a GC allocation");
         }
     }
 
@@ -191,24 +191,24 @@ public:
     {
         if (f.setGC())
         {
-            e.error("cannot use operator ~= in @nogc %s '%s'",
+            e.error("cannot use operator `~=` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
-        f.printGCUsage(e.loc, "operator ~= may cause GC allocation");
+        f.printGCUsage(e.loc, "operator `~=` may cause a GC allocation");
     }
 
     override void visit(CatExp e)
     {
         if (f.setGC())
         {
-            e.error("cannot use operator ~ in @nogc %s '%s'",
+            e.error("cannot use operator `~` in `@nogc` %s `%s`",
                 f.kind(), f.toPrettyChars());
             err = true;
             return;
         }
-        f.printGCUsage(e.loc, "operator ~ may cause GC allocation");
+        f.printGCUsage(e.loc, "operator `~` may cause a GC allocation");
     }
 }
 
