@@ -2,11 +2,19 @@
 
 set -uexo pipefail
 
-N=2
+if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
+if [ -z ${BRANCH+x} ] ; then echo "Variable 'BRANCH' needs to be set."; exit 1; fi
+if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
+if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
+if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
+if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
+
+CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 
 # use faster ld.gold linker on linux
-if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-    mkdir linker
+if [ "$OS_NAME" == "linux" ]; then
+    mkdir -p linker
+    rm -f linker/ld
     ln -s /usr/bin/ld.gold linker/ld
     NM="nm --print-size"
     export PATH="$PWD/linker:$PATH"
@@ -42,7 +50,7 @@ build() {
 
 # self-compile dmd
 rebuild() {
-    local build_path=generated/$TRAVIS_OS_NAME/release/$MODEL
+    local build_path=generated/$OS_NAME/release/$MODEL
     local compare=${1:-0}
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
@@ -53,7 +61,7 @@ rebuild() {
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd clean
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
 
-    # compare binaries to test reproducibile build
+    # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
         if ! diff _${build_path}/host_dmd $build_path/dmd; then
             $NM _${build_path}/host_dmd > a
@@ -75,7 +83,7 @@ test() {
 # test dmd
 test_dmd() {
     # test fewer compiler argument permutations for PRs to reduce CI load
-    if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_OS_NAME" == "linux"  ]; then
+    if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux"  ]; then
         make -j$N -C test MODEL=$MODEL # all ARGS by default
     else
         make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
@@ -98,18 +106,49 @@ test_dub_package() {
     deactivate
 }
 
+setup_repos() {
 for proj in druntime phobos; do
-    if [ $TRAVIS_BRANCH != master ] && [ $TRAVIS_BRANCH != stable ] &&
-           ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $TRAVIS_BRANCH > /dev/null; then
+    if [ $BRANCH != master ] && [ $BRANCH != stable ] &&
+           ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $BRANCH > /dev/null; then
         # use master as fallback for other repos to test feature branches
         clone https://github.com/dlang/$proj.git ../$proj master
     else
-        clone https://github.com/dlang/$proj.git ../$proj $TRAVIS_BRANCH
+        clone https://github.com/dlang/$proj.git ../$proj $BRANCH
     fi
 done
+}
 
-date
-for step in build test rebuild "rebuild 1" test_dmd; do
-    $step
+testsuite() {
     date
-done
+    for step in build test rebuild "rebuild 1" test_dmd; do
+        $step
+        date
+    done
+}
+
+download_install_sh() {
+  local mirrors location
+  location="${1:-install.sh}"
+  mirrors=(
+    "https://dlang.org/install.sh"
+    "https://downloads.dlang.org/other/install.sh"
+    "https://nightlies.dlang.org/install.sh"
+    "https://github.com/dlang/installer/raw/master/script/install.sh"
+  )
+  if [ -f "$location" ] ; then
+      return
+  fi
+  for i in {0..4}; do
+    for mirror in "${mirrors[@]}" ; do
+        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -O ; then
+            break 2
+        fi
+    done
+    sleep $((1 << i))
+  done
+}
+
+activate_d() {
+  download_install_sh "$@"
+  CURL_USER_AGENT="$CURL_USER_AGENT" bash install.sh "$1" --activate
+}
