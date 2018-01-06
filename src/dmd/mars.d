@@ -26,6 +26,7 @@ import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.gluelayer;
 import dmd.builtin;
+import dmd.compiler;
 import dmd.cond;
 import dmd.console;
 import dmd.dinifile;
@@ -267,6 +268,7 @@ private int tryMain(size_t argc, const(char)** argv)
     Strings files;
     Strings libmodules;
     global._init();
+    Compiler._init();
     debug
     {
         printf("DMD %s DEBUG\n", global._version);

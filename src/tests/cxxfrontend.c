@@ -25,6 +25,7 @@
 #include "aliasthis.h"
 #include "arraytypes.h"
 #include "attrib.h"
+#include "compiler.h"
 #include "complex_t.h"
 #include "cond.h"
 #include "ctfe.h"
@@ -68,6 +69,7 @@ static void frontend_init()
     global._init();
     global.params.isLinux = true;
 
+    Compiler::_init();
     Type::_init();
     Id::initialize();
     Module::_init();

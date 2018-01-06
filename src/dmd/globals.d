@@ -17,7 +17,6 @@ import core.stdc.stdio;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
-import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -240,9 +239,9 @@ struct Global
     Array!(const(char)*)* path;     // Array of char*'s which form the import lookup path
     Array!(const(char)*)* filePath; // Array of char*'s which form the file import lookup path
 
-    const(char)* _version;
+    const(char)* vendor;    // Compiler backend name
+    const(char)* _version;  // Compiler version string
 
-    Compiler compiler;
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
@@ -353,7 +352,6 @@ struct Global
         copyright = "Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved";
         written = "written by Walter Bright";
         _version = (import("VERSION") ~ '\0').ptr;
-        compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
         main_d = "__main.d";
     }
