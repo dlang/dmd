@@ -59,7 +59,6 @@ else version (CRuntime_Glibc)
         terminate_handler set_terminate(terminate_handler f) nothrow;
         void terminate();
 
-        void unexpected();
         pure bool uncaught_exception();
 
         class exception
