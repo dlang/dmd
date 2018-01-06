@@ -250,6 +250,8 @@ else
 }
 __gshared SharedCtfeState!BCGenT _sharedCtfeState;
 __gshared SharedCtfeState!BCGenT* sharedCtfeState = &_sharedCtfeState;
+__gshared SharedExecutionState _sharedExecutionState;
+__gshared SharedExecutionState* sharedExecutionState = &_sharedExecutionState;
 __gshared BlackList _blacklist;
 
 ulong evaluateUlong(Expression e)
@@ -279,8 +281,8 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         StopWatch psw;
         hiw.start();
     }
-    _sharedCtfeState.initHeap();
-    _sharedCtfeState.initStack();
+    _sharedExecutionState.initHeap();
+    _sharedExecutionState.initStack();
     _sharedCtfeState.clearState();
     static if (perf)
     {
@@ -397,7 +399,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
         {
             bcv.gen.print();
 
-            auto retval = bcv.gen.interpret(bc_args, &_sharedCtfeState.heap);
+            auto retval = bcv.gen.interpret(bc_args, &_sharedExecutionState.heap);
         }
         else static if (UseCBackend)
         {
@@ -426,9 +428,9 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
             }
 
             auto retval = interpret_(bcv.byteCodeArray[0 .. bcv.ip], bc_args,
-                &_sharedCtfeState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
+                &_sharedExecutionState.heap, &_sharedCtfeState.functions[0], &bcv.calls[0],
                 &errorValues[0], &errorValues[1], &errorValues[2], &errorValues[3],
-                &_sharedCtfeState.errors[0], _sharedCtfeState.stack[], bcv.stackMap());
+                &_sharedCtfeState.errors[0], _sharedExecutionState.stack[], bcv.stackMap());
             /*            if (fd.ident == Identifier.idPool("extractAttribFlags"))
             {
                 import ddmd.hdrgen;
@@ -459,7 +461,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
                 esw.start();
             }
             if (auto exp = toExpression(retval, ft.nextOf,
-                    &_sharedCtfeState.heap, &errorValues, &_sharedCtfeState.errors[0]))
+                    &_sharedExecutionState.heap, &errorValues, &_sharedCtfeState.errors[0]))
             {
                 static if (perf)
                 {
@@ -502,6 +504,7 @@ Expression evaluateFunction(FuncDeclaration fd, Expression[] args, Expression _t
     }
 
 }
+
 /*
  * params(e) The Expression to test.
  * Retruns 1 if the expression is __ctfe, returns -1 if the expression is !__ctfe, 0 for anything else;
@@ -718,13 +721,49 @@ struct BCUnion
 
 }
 
-struct BCClass {}
+struct BCClass 
+{
+    
+}
+
+struct SharedExecutionState
+{
+    BCHeap heap;
+    long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
+
+    void initStack()
+    {
+        import core.stdc.string : memset;
+
+        memset(&stack, 0, stack[0].sizeof * stack.length / 4);
+    }
+
+    void initHeap(uint maxHeapSize = 2 ^^ 25)
+    {
+        import ddmd.root.rmem;
+
+        if (heap.heapMax < maxHeapSize)
+        {
+            void* mem = allocmemory(maxHeapSize * uint.sizeof);
+            heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
+            heap.heapMax = maxHeapSize;
+            heap.heapSize = 100;
+        }
+        else
+        {
+            import core.stdc.string : memset;
+
+            memset(&heap._heap[0], 0, heap._heap[0].sizeof * heap.heapSize);
+            heap.heapSize = 100;
+        }
+    }
+
+
+}
 
 struct SharedCtfeState(BCGenT)
 {
     uint _threadLock;
-    BCHeap heap;
-    long[ushort.max / 4] stack; // a Stack of 64K/4 is the Hard Limit;
 
     BCClass[bc_max_classes] classTypes;
     ClassDeclaration[bc_max_classes] classDeclTypePointers;
@@ -881,33 +920,6 @@ struct SharedCtfeState(BCGenT)
 
     }
 
-
-    void initStack()
-    {
-        import core.stdc.string : memset;
-
-        memset(&stack, 0, stack[0].sizeof * stack.length / 4);
-    }
-
-    void initHeap(uint maxHeapSize = 2 ^^ 25)
-    {
-        import ddmd.root.rmem;
-
-        if (heap.heapMax < maxHeapSize)
-        {
-            void* mem = allocmemory(maxHeapSize * uint.sizeof);
-            heap._heap = (cast(uint*) mem)[0 .. maxHeapSize];
-            heap.heapMax = maxHeapSize;
-            heap.heapSize = 100;
-        }
-        else
-        {
-            import core.stdc.string : memset;
-
-            memset(&heap._heap[0], 0, heap._heap[0].sizeof * heap.heapSize);
-            heap.heapSize = 100;
-        }
-    }
 
     static if (is(BCFunction))
     {
@@ -1185,7 +1197,7 @@ struct RetainedError // Name is still undecided
 }
 
 Expression toExpression(const BCValue value, Type expressionType,
-    const BCHeap* heapPtr = &_sharedCtfeState.heap,
+    const BCHeap* heapPtr = &_sharedExecutionState.heap,
     const BCValue[4]* errorValues = null, const RetainedError* errors = null)
 {
     debug (abi)
@@ -3339,9 +3351,9 @@ static if (is(BCGen))
             }
             else
             {
-                fnPtr = imm32(_sharedCtfeState.heap.heapSize);
-                _sharedCtfeState.heap._heap[_sharedCtfeState.heap.heapSize] = fnIdx;
-                _sharedCtfeState.heap.heapSize += 4;
+                fnPtr = imm32(_sharedExecutionState.heap.heapSize);
+                _sharedExecutionState.heap._heap[_sharedExecutionState.heap.heapSize] = fnIdx;
+                _sharedExecutionState.heap.heapSize += 4;
                 //compileUncompiledFunctions();
             }
             retval = fnPtr;
@@ -3929,12 +3941,12 @@ static if (is(BCGen))
         uint allocSize = uint(SliceDescriptor.Size) + //ptr and length
             arrayLength * heapAdd;
 
-        BCValue arrayAddr = imm32(_sharedCtfeState.heap.heapSize);
-        bailout(_sharedCtfeState.heap.heapSize + allocSize > _sharedCtfeState.heap.heapMax, "heap overflow");
+        BCValue arrayAddr = imm32(_sharedExecutionState.heap.heapSize);
+        bailout(_sharedExecutionState.heap.heapSize + allocSize > _sharedExecutionState.heap.heapMax, "heap overflow");
 
-        _sharedCtfeState.heap._heap[arrayAddr.imm32 + SliceDescriptor.LengthOffset] = arrayLength;
-        _sharedCtfeState.heap._heap[arrayAddr.imm32 + SliceDescriptor.BaseOffset] = arrayAddr.imm32 + SliceDescriptor.Size; // point to the begining of the array;
-        _sharedCtfeState.heap.heapSize += align4(allocSize);
+        _sharedExecutionState.heap._heap[arrayAddr.imm32 + SliceDescriptor.LengthOffset] = arrayLength;
+        _sharedExecutionState.heap._heap[arrayAddr.imm32 + SliceDescriptor.BaseOffset] = arrayAddr.imm32 + SliceDescriptor.Size; // point to the begining of the array;
+        _sharedExecutionState.heap.heapSize += align4(allocSize);
 
         auto oldInsideArrayLiteralExp = insideArrayLiteralExp;
         scope(exit) insideArrayLiteralExp = oldInsideArrayLiteralExp;
@@ -3958,7 +3970,7 @@ static if (is(BCGen))
             {
                 if (elexpr.vType == BCValueType.Immediate)
                 {
-                    _sharedCtfeState.heap._heap[arrayAddr.imm32 + offset] = elexpr.imm32;
+                    _sharedExecutionState.heap._heap[arrayAddr.imm32 + offset] = elexpr.imm32;
                 }
                 else
                 {
@@ -3969,8 +3981,8 @@ static if (is(BCGen))
             {
                 if (elexpr.vType == BCValueType.Immediate)
                 {
-                    _sharedCtfeState.heap._heap[arrayAddr.imm32 + offset] = elexpr.imm64 & uint.max;
-                    _sharedCtfeState.heap._heap[arrayAddr.imm32 + offset + 4] = elexpr.imm64 >> 32;
+                    _sharedExecutionState.heap._heap[arrayAddr.imm32 + offset] = elexpr.imm64 & uint.max;
+                    _sharedExecutionState.heap._heap[arrayAddr.imm32 + offset + 4] = elexpr.imm64 >> 32;
                 }
                 else
                 {
@@ -3991,8 +4003,8 @@ static if (is(BCGen))
                     immutable size_t sourceAddr = elexpr.imm32;
                     immutable size_t targetAddr = arrayAddr.imm32 + offset;
 
-                    _sharedCtfeState.heap._heap[targetAddr .. targetAddr + heapAdd] =
-                        _sharedCtfeState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
+                    _sharedExecutionState.heap._heap[targetAddr .. targetAddr + heapAdd] =
+                        _sharedExecutionState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
                 }
                 else
                 {
@@ -4026,8 +4038,8 @@ static if (is(BCGen))
                     immutable size_t sourceAddr = elexpr.imm32;
                     immutable size_t targetAddr = arrayAddr.imm32 + offset;
 
-                    _sharedCtfeState.heap._heap[targetAddr .. targetAddr + heapAdd] =
-                        _sharedCtfeState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
+                    _sharedExecutionState.heap._heap[targetAddr .. targetAddr + heapAdd] =
+                        _sharedExecutionState.heap._heap[sourceAddr .. sourceAddr + heapAdd];
 
                 }
                 else
@@ -4118,8 +4130,8 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
         }
         else
         {
-            structVal = imm32(_sharedCtfeState.heap.heapSize);
-            sharedCtfeState.heap.heapSize += align4(struct_size);
+            structVal = imm32(_sharedExecutionState.heap.heapSize);
+            sharedExecutionState.heap.heapSize += align4(struct_size);
         }
 
         structVal.type = BCType(BCTypeEnum.Struct, idx);
@@ -4180,15 +4192,15 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
                     immutable size_t sourceAddr = elexpr.imm32;
 
                     if (targetAddr != sourceAddr)
-                        _sharedCtfeState.heap._heap[targetAddr .. targetAddr + _size] = _sharedCtfeState.heap._heap[sourceAddr .. sourceAddr + _size];
+                        _sharedExecutionState.heap._heap[targetAddr .. targetAddr + _size] = _sharedExecutionState.heap._heap[sourceAddr .. sourceAddr + _size];
                 }
                 else if (basicTypeSize(elexpr.type.type) == 8)
                 {
-                    _sharedCtfeState.heap._heap[structVal.imm32 + offset] = elexpr.imm64 & uint.max;
-                    _sharedCtfeState.heap._heap[structVal.imm32 + offset + 4] = elexpr.imm64 >> 32;
+                    _sharedExecutionState.heap._heap[structVal.imm32 + offset] = elexpr.imm64 & uint.max;
+                    _sharedExecutionState.heap._heap[structVal.imm32 + offset + 4] = elexpr.imm64 >> 32;
                 }
                 else if (basicTypeSize(elexpr.type.type) && basicTypeSize(elexpr.type.type) <= 4)
-                    _sharedCtfeState.heap._heap[structVal.imm32 + offset] = elexpr.imm32;
+                    _sharedExecutionState.heap._heap[structVal.imm32 + offset] = elexpr.imm32;
                 else
                     bailout("Invalid type for StructLiteralExp: " ~ sle.toString);
             }
@@ -4416,7 +4428,7 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
                 {
                     assert(arr.vType == BCValueType.Immediate);
                     if (arr.imm32)
-                        length = imm32(_sharedCtfeState.heap._heap[arr.imm32 + SliceDescriptor.LengthOffset]);
+                        length = imm32(_sharedExecutionState.heap._heap[arr.imm32 + SliceDescriptor.LengthOffset]);
                     else
                         length = imm32(0);
                 }
@@ -4475,7 +4487,7 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
             if (insideArgumentProcessing)
             {
                 assert(arr.vType == BCValueType.Immediate);
-                baseAddr = imm32(_sharedCtfeState.heap._heap[arr.imm32 + SliceDescriptor.BaseOffset]);
+                baseAddr = imm32(_sharedExecutionState.heap._heap[arr.imm32 + SliceDescriptor.BaseOffset]);
             }
             else
             {
@@ -5148,7 +5160,7 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
         uint length = cast(uint)se.len;
 
 
-        auto heap = _sharedCtfeState.heap;
+        auto heap = _sharedExecutionState.heap;
         BCValue stringAddr = imm32(heap.heapSize);
         uint heapAdd = SliceDescriptor.Size;
 
@@ -5157,15 +5169,15 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
         heapAdd = align4(heapAdd);
 
         bailout(heap.heapSize + heapAdd > heap.heapMax, "heapMax exceeded while pushing: " ~ se.toString);
-        _sharedCtfeState.heap.heapSize += heapAdd;
+        _sharedExecutionState.heap.heapSize += heapAdd;
 
         auto baseAddr = stringAddr.imm32 + SliceDescriptor.Size;
         // first set length
         if (length)
         {
-            _sharedCtfeState.heap._heap[stringAddr.imm32 + SliceDescriptor.LengthOffset] = length;
+            _sharedExecutionState.heap._heap[stringAddr.imm32 + SliceDescriptor.LengthOffset] = length;
             // then set base
-            _sharedCtfeState.heap._heap[stringAddr.imm32 + SliceDescriptor.BaseOffset] = baseAddr;
+            _sharedExecutionState.heap._heap[stringAddr.imm32 + SliceDescriptor.BaseOffset] = baseAddr;
         }
 
         uint offset = baseAddr;
@@ -5173,7 +5185,7 @@ BCTypeEnum.i8, BCTypeEnum.i32, BCTypeEnum.i64, BCTypeEnum.f23, BCTypeEnum.f52, B
         {
             case 1 : foreach(c;se.string[0 .. length])
             {
-                _sharedCtfeState.heap._heap[offset++] = c;
+                _sharedExecutionState.heap._heap[offset++] = c;
             }
             break;
             default : bailout("char_size: " ~ to!string(sz) ~" unsupported");
