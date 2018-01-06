@@ -315,6 +315,20 @@ extern (C++) abstract class Declaration : Dsymbol
             }
         }
 
+        if (e1 && e1.op == TOKthis && isField())
+        {
+            VarDeclaration vthis = (cast(ThisExp)e1).var;
+            for (Scope* scx = sc; scx; scx = scx.enclosing)
+            {
+                if (scx.func == vthis.parent && (scx.flags & SCOPEcontract))
+                {
+                    if (!flag)
+                        error(loc, "cannot modify parameter 'this' in contract");
+                    return 2; // do not report type related errors
+                }
+            }
+        }
+
         if (v && (isCtorinit() || isField()))
         {
             // It's only modifiable if inside the right constructor

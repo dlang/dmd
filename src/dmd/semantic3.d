@@ -885,7 +885,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPErequire;
 
                 // BUG: need to error if accessing out parameters
-                // BUG: need to treat parameters as const
                 // BUG: need to disallow returns and throws
                 // BUG: verify that all in and ref parameters are read
                 freq = freq.statementSemantic(sc2);
@@ -908,7 +907,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sc2 = scout; //push
                 sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPEensure;
 
-                // BUG: need to treat parameters as const
                 // BUG: need to disallow returns and throws
 
                 if (funcdecl.fensure && f.next.ty != Tvoid)
