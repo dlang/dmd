@@ -297,7 +297,7 @@ class StaticIfCondition;
 
 class Parameter;
 
-class Visitor
+class ParseTimeVisitor
 {
 public:
     virtual void visit(Dsymbol *) { assert(0); }
@@ -557,6 +557,12 @@ public:
     virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
+};
+
+class Visitor : public ParseTimeVisitor
+{
+public:
+    using ParseTimeVisitor::visit;
 
     // Miscellaneous
     virtual void visit(ErrorStatement *s) { visit((Statement *)s); }

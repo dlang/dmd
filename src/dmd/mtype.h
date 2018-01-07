@@ -245,7 +245,6 @@ public:
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
     Type *trySemantic(Loc loc, Scope *sc);
-    Type *merge();
     Type *merge2();
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
