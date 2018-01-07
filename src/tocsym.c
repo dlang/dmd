@@ -249,7 +249,7 @@ Symbol *toSymbol(Dsymbol *s)
                     break;
                 case LINKcpp:
                     s->Sflags |= SFLpublic;
-                    m = mTYman_d;
+                    m = mTYman_cpp;
                     break;
                 default:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
@@ -357,7 +357,7 @@ Symbol *toSymbol(Dsymbol *s)
                                 t->Tty = TYmfunc;
                             }
                         }
-                        t->Tmangle = mTYman_d;
+                        t->Tmangle = mTYman_cpp;
                         break;
                     default:
                         printf("linkage = %d\n", fd->linkage);

@@ -911,6 +911,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             s->Sclass = SCglobal;
         }
 #endif
+        else if (fd->ident == Id::tls_get_addr && fd->linkage == LINKd)
+        {
+            // TODO: Change linkage in druntime to extern(C).
+            f->Fredirect = (char *)Id::tls_get_addr->toChars();
+        }
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;

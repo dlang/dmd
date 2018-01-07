@@ -2090,8 +2090,6 @@ char *obj_mangle2(Symbol *s,char *dest)
                 memcpy(dest + 1 + len, pstr, pstrlen + 1);
                 break;
             }
-        case mTYman_cpp:
-        case mTYman_d:
         case mTYman_sys:
         case 0:
             if (len >= DEST_LEN)
@@ -2100,6 +2098,8 @@ char *obj_mangle2(Symbol *s,char *dest)
             break;
 
         case mTYman_c:
+        case mTYman_cpp:
+        case mTYman_d:
             if (len >= DEST_LEN - 1)
                 dest = (char *)mem_malloc(1 + len + 1);
             dest[0] = '_';
