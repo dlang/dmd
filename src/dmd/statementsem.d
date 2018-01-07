@@ -3753,24 +3753,21 @@ else
 
     override void visit(OnScopeStatement oss)
     {
-        static if (!IN_GCC)
+        if (oss.tok != TOKon_scope_exit)
         {
-            if (oss.tok != TOKon_scope_exit)
+            // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
+            // so the generated catch block cannot be placed in finally block.
+            // See also Catch::semantic.
+            if (sc.os && sc.os.tok != TOKon_scope_failure)
             {
-                // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
-                // so the generated catch block cannot be placed in finally block.
-                // See also Catch::semantic.
-                if (sc.os && sc.os.tok != TOKon_scope_failure)
-                {
-                    // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
-                    oss.error("cannot put `%s` statement inside `%s`", Token.toChars(oss.tok), Token.toChars(sc.os.tok));
-                    return setError();
-                }
-                if (sc.tf)
-                {
-                    oss.error("cannot put `%s` statement inside finally block", Token.toChars(oss.tok));
-                    return setError();
-                }
+                // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
+                oss.error("cannot put `%s` statement inside `%s`", Token.toChars(oss.tok), Token.toChars(sc.os.tok));
+                return setError();
+            }
+            if (sc.tf)
+            {
+                oss.error("cannot put `%s` statement inside finally block", Token.toChars(oss.tok));
+                return setError();
             }
         }
 
@@ -3977,25 +3974,22 @@ void catchSemantic(Catch c, Scope* sc)
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
 
-    static if (!IN_GCC)
+    if (sc.os && sc.os.tok != TOKon_scope_failure)
     {
-        if (sc.os && sc.os.tok != TOKon_scope_failure)
-        {
-            // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
-            error(c.loc, "cannot put catch statement inside `%s`", Token.toChars(sc.os.tok));
-            c.errors = true;
-        }
-        if (sc.tf)
-        {
-            /* This is because the _d_local_unwind() gets the stack munged
-             * up on this. The workaround is to place any try-catches into
-             * a separate function, and call that.
-             * To fix, have the compiler automatically convert the finally
-             * body into a nested function.
-             */
-            error(c.loc, "cannot put catch statement inside finally block");
-            c.errors = true;
-        }
+        // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
+        error(c.loc, "cannot put catch statement inside `%s`", Token.toChars(sc.os.tok));
+        c.errors = true;
+    }
+    if (sc.tf)
+    {
+        /* This is because the _d_local_unwind() gets the stack munged
+         * up on this. The workaround is to place any try-catches into
+         * a separate function, and call that.
+         * To fix, have the compiler automatically convert the finally
+         * body into a nested function.
+         */
+        error(c.loc, "cannot put catch statement inside finally block");
+        c.errors = true;
     }
 
     auto sym = new ScopeDsymbol();
