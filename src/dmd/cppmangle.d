@@ -638,29 +638,7 @@ private final class CppMangleVisitor : Visitor
 
         int paramsCppMangleDg(size_t n, Parameter fparam)
         {
-            Type t = fparam.type.merge2();
-            if (fparam.storageClass & (STC.out_ | STC.ref_))
-                t = t.referenceTo();
-            else if (fparam.storageClass & STC.lazy_)
-            {
-                // Mangle as delegate
-                Type td = new TypeFunction(null, t, 0, LINK.d);
-                td = new TypeDelegate(td);
-                t = merge(t);
-            }
-            static if (IN_GCC)
-            {
-                // Could be a va_list, which we mangle as a pointer.
-                if (t.ty == Tsarray && Type.tvalist.ty == Tsarray)
-                {
-                    Type tb = t.toBasetype().mutableOf();
-                    if (tb == Type.tvalist)
-                    {
-                        tb = t.nextOf().pointerTo();
-                        t = tb.castMod(t.mod);
-                    }
-                }
-            }
+            Type t = Target.cppParameterType(fparam);
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
