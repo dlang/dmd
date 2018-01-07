@@ -418,7 +418,7 @@ struct Scope
                 bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
                 if (!.mergeFieldInit(loc, fieldinit[i], fies[i], mustInit))
                 {
-                    .error(loc, "one path skips field %s", ad.fields[i].toChars());
+                    .error(loc, "one path skips field `%s`", ad.fields[i].toChars());
                 }
             }
         }
