@@ -71,7 +71,9 @@ void genTypeInfo(Loc loc, Type torig, Scope* sc)
         /* If this has a custom implementation in std/typeinfo, then
          * do not generate a COMDAT for it.
          */
-        if (!builtinTypeInfo(t))
+        if (t.ty == Terror)
+            t.vtinfo.errors = 1;
+        else if (!builtinTypeInfo(t))
         {
             // Generate COMDAT
             if (sc) // if in semantic() pass

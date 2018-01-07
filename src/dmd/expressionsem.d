@@ -8019,6 +8019,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 semanticTypeInfo(sc, taa);
+                semanticTypeInfo(sc, taa.index);
 
                 exp.type = taa.next;
                 break;
@@ -11021,6 +11022,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
+
+        Type tb = e.e1.type.toBasetype();
+        assert(tb.ty == Taarray);
+        TypeAArray taa = cast(TypeAArray)tb;
+        semanticTypeInfo(sc, taa.index); // needed by toElem
+
         result = e;
     }
 

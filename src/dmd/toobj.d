@@ -720,6 +720,24 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 objmod.export_symbol(s, 0);
         }
 
+        override void visit(TypeInfoStructDeclaration tid)
+        {
+            if (!isError((cast(TypeStruct)tid.tinfo).sym))
+                visit(cast(TypeInfoDeclaration)tid);
+        }
+
+        override void visit(TypeInfoClassDeclaration tid)
+        {
+            if (!isError((cast(TypeClass)tid.tinfo).sym))
+                visit(cast(TypeInfoDeclaration)tid);
+        }
+
+        override void visit(TypeInfoInterfaceDeclaration tid)
+        {
+            if (!isError((cast(TypeClass)tid.tinfo).sym))
+                visit(cast(TypeInfoDeclaration)tid);
+        }
+
         override void visit(AttribDeclaration ad)
         {
             Dsymbols *d = ad.include(null);
