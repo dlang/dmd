@@ -37,7 +37,58 @@ enum PS = 0x2029;       // UTF paragraph separator
 /********************************************
  * Do our own char maps
  */
-immutable ubyte[256] cmtable;
+static immutable cmtable = () {
+    ubyte[256] table;
+    foreach (const c; 0 .. table.length)
+    {
+        if ('0' <= c && c <= '7')
+            table[c] |= CMoctal;
+        if (c_isxdigit(c))
+            table[c] |= CMhex;
+        if (c_isalnum(c) || c == '_')
+            table[c] |= CMidchar;
+
+        switch (c)
+        {
+            case 'x': case 'X':
+            case 'b': case 'B':
+                table[c] |= CMzerosecond;
+                break;
+
+            case '0': .. case '9':
+            case 'e': case 'E':
+            case 'f': case 'F':
+            case 'l': case 'L':
+            case 'p': case 'P':
+            case 'u': case 'U':
+            case 'i':
+            case '.':
+            case '_':
+                table[c] |= CMzerosecond | CMdigitsecond;
+                break;
+
+            default:
+                break;
+        }
+
+        switch (c)
+        {
+            case '\\':
+            case '\n':
+            case '\r':
+            case 0:
+            case 0x1A:
+            case '\'':
+                break;
+            default:
+                if (!(c & 0x80))
+                    table[c] |= CMsinglechar;
+                break;
+        }
+    }
+    return table;
+}();
+
 enum CMoctal  = 0x1;
 enum CMhex    = 0x2;
 enum CMidchar = 0x4;
@@ -75,55 +126,18 @@ bool issinglechar(char c)
     return (cmtable[c] & CMsinglechar) != 0;
 }
 
-shared static this()
+private bool c_isxdigit(int c)
 {
-    foreach (const c; 0 .. cmtable.length)
-    {
-        if ('0' <= c && c <= '7')
-            cmtable[c] |= CMoctal;
-        if (isxdigit(c))
-            cmtable[c] |= CMhex;
-        if (isalnum(c) || c == '_')
-            cmtable[c] |= CMidchar;
+    return (( c >= '0' && c <= '9') ||
+            ( c >= 'a' && c <= 'f') ||
+            ( c >= 'A' && c <= 'F'));
+}
 
-        switch (c)
-        {
-            case 'x': case 'X':
-            case 'b': case 'B':
-                cmtable[c] |= CMzerosecond;
-                break;
-
-            case '0': .. case '9':
-            case 'e': case 'E':
-            case 'f': case 'F':
-            case 'l': case 'L':
-            case 'p': case 'P':
-            case 'u': case 'U':
-            case 'i':
-            case '.':
-            case '_':
-                cmtable[c] |= CMzerosecond | CMdigitsecond;
-                break;
-
-            default:
-                break;
-        }
-
-        switch (c)
-        {
-            case '\\':
-            case '\n':
-            case '\r':
-            case 0:
-            case 0x1A:
-            case '\'':
-                break;
-            default:
-                if (!(c & 0x80))
-                    cmtable[c] |= CMsinglechar;
-                break;
-        }
-    }
+private bool c_isalnum(int c)
+{
+    return (( c >= '0' && c <= '9') ||
+            ( c >= 'a' && c <= 'z') ||
+            ( c >= 'A' && c <= 'Z'));
 }
 
 unittest
