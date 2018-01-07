@@ -18,7 +18,6 @@ import core.stdc.string;
 import dmd.access;
 import dmd.aggregate;
 import dmd.aliasthis;
-import dmd.argtypes;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.attrib;
@@ -3991,7 +3990,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * The results of this are highly platform dependent, and intended
                  * primarly for use in implementing va_arg().
                  */
-                tded = toArgTypes(e.targ);
+                tded = Target.toArgTypes(e.targ);
                 if (!tded)
                     goto Lno;
                 // not valid for a parameter

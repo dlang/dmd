@@ -21,6 +21,7 @@ class ClassDeclaration;
 class Dsymbol;
 class Expression;
 class Type;
+class TypeTuple;
 class Module;
 struct OutBuffer;
 
@@ -78,6 +79,7 @@ struct Target
     static const char *cppTypeInfoMangle(ClassDeclaration *cd);
     static const char *cppTypeMangle(Type *t);
     static LINK systemLinkage();
+    static TypeTuple *toArgTypes(Type *t);
 };
 
 #endif

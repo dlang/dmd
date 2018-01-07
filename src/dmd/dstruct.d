@@ -13,7 +13,6 @@
 module dmd.dstruct;
 
 import dmd.aggregate;
-import dmd.argtypes;
 import dmd.arraytypes;
 import dmd.declaration;
 import dmd.dmodule;
@@ -31,6 +30,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
 import dmd.semantic3;
+import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.typinf;
@@ -420,7 +420,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
         }
 
-        auto tt = toArgTypes(type);
+        auto tt = Target.toArgTypes(type);
         size_t dim = tt.arguments.dim;
         if (dim >= 1)
         {

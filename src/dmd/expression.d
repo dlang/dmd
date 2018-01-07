@@ -19,7 +19,6 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.apply;
-import dmd.argtypes;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.gluelayer;

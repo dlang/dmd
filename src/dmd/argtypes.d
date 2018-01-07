@@ -28,7 +28,7 @@ import dmd.visitor;
  *      tuple of types, each element can be passed in a register.
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  */
-extern (C++) TypeTuple toArgTypes(Type t)
+TypeTuple toArgTypes(Type t)
 {
     extern (C++) final class ToArgTypes : Visitor
     {
