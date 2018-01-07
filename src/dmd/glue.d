@@ -968,6 +968,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 objmod.includelib(libname);
             s.Sclass = SCglobal;
         }
+        else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
+        {
+            // TODO: Change linkage in druntime to extern(C).
+            f.Fredirect = cast(char*)Id.tls_get_addr.toChars();
+        }
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;

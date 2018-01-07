@@ -263,7 +263,7 @@ Symbol *toSymbol(Dsymbol s)
                     break;
                 case LINK.cpp:
                     s.Sflags |= SFLpublic;
-                    m = mTYman_d;
+                    m = mTYman_cpp;
                     break;
                 case LINK.default_:
                 case LINK.system:
@@ -374,7 +374,7 @@ Symbol *toSymbol(Dsymbol s)
                                 t.Tty = TYmfunc;
                             }
                         }
-                        t.Tmangle = mTYman_d;
+                        t.Tmangle = mTYman_cpp;
                         break;
                     case LINK.default_:
                     case LINK.system:

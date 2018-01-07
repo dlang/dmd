@@ -1357,7 +1357,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     return mTYman_d;
 
                 case LINK.cpp:
-                    return mTYman_d;
+                    return mTYman_cpp;
 
                 case LINK.default_:
                 case LINK.system:

@@ -1,0 +1,8 @@
+D ABI change on Win32 and OSX targets
+
+The compiler has been updated to prefix all `extern(D)` symbols with an extra
+underscore where the platform expects one on all external symbols. This allows
+compiled code to work better with binutil programs, such as the ability to list
+symbols demangled inside a debugger.
+
+This is an ABI breaking change and requires recompiling libraries.

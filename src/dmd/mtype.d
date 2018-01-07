@@ -2807,13 +2807,7 @@ extern (C++) abstract class Type : RootObject
         //printf("%p %s, deco = %s, name = %s\n", this, toChars(), deco, name);
         assert(0 < length && length < namelen); // don't overflow the buffer
 
-        int off = 0;
-        static if (!IN_GCC)
-        {
-            if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
-                ++off; // C mangling will add '_' back in
-        }
-        auto id = Identifier.idPool(name + off, length - off);
+        auto id = Identifier.idPool(name, length);
 
         if (name != namebuf.ptr)
             free(name);
