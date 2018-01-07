@@ -6,6 +6,9 @@ DMD
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](https://codecov.io/gh/dlang/dmd)
 [![license](https://img.shields.io/github/license/dlang/dmd.svg)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
+[![CircleCI](https://circleci.com/gh/dlang/dmd/tree/master.svg?style=svg)](https://circleci.com/gh/dlang/dmd/tree/master)
+[![Build Status](https://semaphoreci.com/api/v1/cybershadow/dmd/branches/master/badge.svg)](https://semaphoreci.com/cybershadow/dmd)
+
 DMD is the reference compiler for the D programming language.
 
 To report a problem or browse the list of open bugs, please visit the
