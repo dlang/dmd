@@ -2554,102 +2554,107 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.fd.treq)
                 printf("  treq = %s\n", exp.fd.treq.toChars());
         }
+
+        if (exp.type)
+        {
+            result = exp;
+            return;
+        }
+
         Expression e = exp;
+        uint olderrors;
 
         sc = sc.push(); // just create new scope
         sc.flags &= ~SCOPEctfe; // temporary stop CTFE
         sc.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=12506
 
-        if (!exp.type || exp.type == Type.tvoid)
+        /* fd.treq might be incomplete type,
+            * so should not semantic it.
+            * void foo(T)(T delegate(int) dg){}
+            * foo(a=>a); // in IFTI, treq == T delegate(int)
+            */
+        //if (fd.treq)
+        //    fd.treq = fd.treq.dsymbolSemantic(loc, sc);
+
+        exp.genIdent(sc);
+
+        // Set target of return type inference
+        if (exp.fd.treq && !exp.fd.type.nextOf())
         {
-            /* fd.treq might be incomplete type,
-             * so should not semantic it.
-             * void foo(T)(T delegate(int) dg){}
-             * foo(a=>a); // in IFTI, treq == T delegate(int)
-             */
-            //if (fd.treq)
-            //    fd.treq = fd.treq.dsymbolSemantic(loc, sc);
-
-            exp.genIdent(sc);
-
-            // Set target of return type inference
-            if (exp.fd.treq && !exp.fd.type.nextOf())
+            TypeFunction tfv = null;
+            if (exp.fd.treq.ty == Tdelegate || (exp.fd.treq.ty == Tpointer && exp.fd.treq.nextOf().ty == Tfunction))
+                tfv = cast(TypeFunction)exp.fd.treq.nextOf();
+            if (tfv)
             {
-                TypeFunction tfv = null;
-                if (exp.fd.treq.ty == Tdelegate || (exp.fd.treq.ty == Tpointer && exp.fd.treq.nextOf().ty == Tfunction))
-                    tfv = cast(TypeFunction)exp.fd.treq.nextOf();
-                if (tfv)
-                {
-                    TypeFunction tfl = cast(TypeFunction)exp.fd.type;
-                    tfl.next = tfv.nextOf();
-                }
+                TypeFunction tfl = cast(TypeFunction)exp.fd.type;
+                tfl.next = tfv.nextOf();
             }
-
-            //printf("td = %p, treq = %p\n", td, fd.treq);
-            if (exp.td)
-            {
-                assert(exp.td.parameters && exp.td.parameters.dim);
-                exp.td.dsymbolSemantic(sc);
-                exp.type = Type.tvoid; // temporary type
-
-                if (exp.fd.treq) // defer type determination
-                {
-                    FuncExp fe;
-                    if (exp.matchType(exp.fd.treq, sc, &fe) > MATCH.nomatch)
-                        e = fe;
-                    else
-                        e = new ErrorExp();
-                }
-                goto Ldone;
-            }
-
-            uint olderrors = global.errors;
-            exp.fd.dsymbolSemantic(sc);
-            if (olderrors == global.errors)
-            {
-                exp.fd.semantic2(sc);
-                if (olderrors == global.errors)
-                    exp.fd.semantic3(sc);
-            }
-            if (olderrors != global.errors)
-            {
-                if (exp.fd.type && exp.fd.type.ty == Tfunction && !exp.fd.type.nextOf())
-                    (cast(TypeFunction)exp.fd.type).next = Type.terror;
-                e = new ErrorExp();
-                goto Ldone;
-            }
-
-            // Type is a "delegate to" or "pointer to" the function literal
-            if ((exp.fd.isNested() && exp.fd.tok == TOKdelegate) || (exp.tok == TOKreserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
-            {
-                exp.type = new TypeDelegate(exp.fd.type);
-                exp.type = exp.type.typeSemantic(exp.loc, sc);
-
-                exp.fd.tok = TOKdelegate;
-            }
-            else
-            {
-                exp.type = new TypePointer(exp.fd.type);
-                exp.type = exp.type.typeSemantic(exp.loc, sc);
-                //type = fd.type.pointerTo();
-
-                /* A lambda expression deduced to function pointer might become
-                 * to a delegate literal implicitly.
-                 *
-                 *   auto foo(void function() fp) { return 1; }
-                 *   assert(foo({}) == 1);
-                 *
-                 * So, should keep fd.tok == TOKreserve if fd.treq == NULL.
-                 */
-                if (exp.fd.treq && exp.fd.treq.ty == Tpointer)
-                {
-                    // change to non-nested
-                    exp.fd.tok = TOKfunction;
-                    exp.fd.vthis = null;
-                }
-            }
-            exp.fd.tookAddressOf++;
         }
+
+        //printf("td = %p, treq = %p\n", td, fd.treq);
+        if (exp.td)
+        {
+            assert(exp.td.parameters && exp.td.parameters.dim);
+            exp.td.dsymbolSemantic(sc);
+            exp.type = Type.tvoid; // temporary type
+
+            if (exp.fd.treq) // defer type determination
+            {
+                FuncExp fe;
+                if (exp.matchType(exp.fd.treq, sc, &fe) > MATCH.nomatch)
+                    e = fe;
+                else
+                    e = new ErrorExp();
+            }
+            goto Ldone;
+        }
+
+        olderrors = global.errors;
+        exp.fd.dsymbolSemantic(sc);
+        if (olderrors == global.errors)
+        {
+            exp.fd.semantic2(sc);
+            if (olderrors == global.errors)
+                exp.fd.semantic3(sc);
+        }
+        if (olderrors != global.errors)
+        {
+            if (exp.fd.type && exp.fd.type.ty == Tfunction && !exp.fd.type.nextOf())
+                (cast(TypeFunction)exp.fd.type).next = Type.terror;
+            e = new ErrorExp();
+            goto Ldone;
+        }
+
+        // Type is a "delegate to" or "pointer to" the function literal
+        if ((exp.fd.isNested() && exp.fd.tok == TOKdelegate) || (exp.tok == TOKreserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
+        {
+            exp.type = new TypeDelegate(exp.fd.type);
+            exp.type = exp.type.typeSemantic(exp.loc, sc);
+
+            exp.fd.tok = TOKdelegate;
+        }
+        else
+        {
+            exp.type = new TypePointer(exp.fd.type);
+            exp.type = exp.type.typeSemantic(exp.loc, sc);
+            //type = fd.type.pointerTo();
+
+            /* A lambda expression deduced to function pointer might become
+                * to a delegate literal implicitly.
+                *
+                *   auto foo(void function() fp) { return 1; }
+                *   assert(foo({}) == 1);
+                *
+                * So, should keep fd.tok == TOKreserve if fd.treq == NULL.
+                */
+            if (exp.fd.treq && exp.fd.treq.ty == Tpointer)
+            {
+                // change to non-nested
+                exp.fd.tok = TOKfunction;
+                exp.fd.vthis = null;
+            }
+        }
+        exp.fd.tookAddressOf++;
 
     Ldone:
         sc = sc.pop();
