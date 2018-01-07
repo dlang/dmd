@@ -1356,11 +1356,11 @@ bool onlyOneMain(Loc loc)
     {
         const(char)* msg = "";
         if (global.params.addMain)
-            msg = ", -main switch added another main()";
+            msg = ", -main switch added another `main()`";
         const(char)* otherMainNames = "";
         if (config.exe == EX_WIN32 || config.exe == EX_WIN64)
-            otherMainNames = "/WinMain/DllMain";
-        error(loc, "only one main%s allowed%s. Previously found main at %s",
+            otherMainNames = ", `WinMain`, or `DllMain`";
+        error(loc, "only one `main`%s allowed%s. Previously found `main` at %s",
             otherMainNames, msg, lastLoc.toChars());
         return false;
     }
@@ -1426,7 +1426,7 @@ uint totym(Type tx)
         case Tident:
         case Ttypeof:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc(), "forward reference of %s", tx.toChars());
+            error(Loc(), "forward reference of `%s`", tx.toChars());
             t = TYint;
             break;
 
