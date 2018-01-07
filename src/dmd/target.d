@@ -12,6 +12,7 @@
 
 module dmd.target;
 
+import dmd.argtypes;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
@@ -478,6 +479,15 @@ struct Target
     extern (C++) static LINK systemLinkage()
     {
         return global.params.isWindows ? LINKwindows : LINKc;
+    }
+
+    /**
+     * Return a tuple describing how argument type is put to a function.
+     * Value is an empty tuple if type is always passed on the stack.
+     */
+    extern (C++) static TypeTuple toArgTypes(Type t)
+    {
+        return .toArgTypes(t);
     }
 }
 
