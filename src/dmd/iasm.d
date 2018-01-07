@@ -502,7 +502,7 @@ PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
         asmstate.ucItype != ITfloat)
     {
 PARAM_ERROR:
-        asmerr("%u operands found for %s instead of the expected %u", usNumops, asm_opstr(pop), usActual);
+        asmerr("%u operands found for `%s` instead of the expected %u", usNumops, asm_opstr(pop), usActual);
     }
     if (usActual < usNumops)
         *pusNumops = usActual;
@@ -542,9 +542,9 @@ PARAM_ERROR:
         if (bRetry)
         {
             if(bInvalid64bit)
-                asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
+                asmerr("operand for `%s` invalid in 64bit mode", asm_opstr(pop));
             else
-                asmerr("bad type/size of operands '%s'", asm_opstr(pop));
+                asmerr("bad type/size of operands `%s`", asm_opstr(pop));
         }
         bRetry = true;
     }
@@ -559,7 +559,7 @@ RETRY:
     {
         case 0:
             if (global.params.is64bit && (pop.ptb.pptb0.usFlags & _i64_bit))
-                asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
+                asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
 
             if ((asmstate.ucItype == ITopt ||
                  asmstate.ucItype == ITfloat) &&
@@ -664,7 +664,7 @@ RETRY:
                 //printf("table1   = "); asm_output_flags(table2.usOp1); printf(" ");
                 //printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n");
                 if (global.params.is64bit && (table2.usFlags & _i64_bit))
-                    asmerr("opcode %s is unavailable in 64bit mode", asm_opstr(pop));
+                    asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
                 bMatch1 = asm_match_flags(opflags1, table2.usOp1);
                 bMatch2 = asm_match_flags(opflags2, table2.usOp2);
@@ -958,7 +958,7 @@ version (none)
 RETURN_IT:
     if (bRetry)
     {
-        asmerr("bad type/size of operands '%s'", asm_opstr(pop));
+        asmerr("bad type/size of operands `%s`", asm_opstr(pop));
     }
     return ptbRet;
 }
@@ -2108,7 +2108,7 @@ ILLEGAL_ADDRESS_ERROR:
                     return;
                 }
             }
-            error(asmstate.loc, "invalid asm operand %s", o1.s.toChars());
+            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toChars());
         }
     }
 
@@ -2216,7 +2216,7 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
         v.checkNestedReference(asmstate.sc, asmstate.loc);
         if (0 && !v.isDataseg() && v.parent != asmstate.sc.parent && v.parent)
         {
-            asmerr("uplevel nested reference to variable %s", v.toChars());
+            asmerr("uplevel nested reference to variable `%s`", v.toChars());
         }
         if (v.isField())
         {
@@ -2234,9 +2234,9 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             }
         }
         if (v.isThreadlocal())
-            error(asmstate.loc, "cannot directly load TLS variable '%s'", v.toChars());
+            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
         else if (v.isDataseg() && global.params.pic)
-            error(asmstate.loc, "cannot directly load global variable '%s' with PIC code", v.toChars());
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC code", v.toChars());
     }
     em = s.isEnumMember();
     if (em)
@@ -2249,10 +2249,10 @@ L2:
     Declaration d = s.isDeclaration();
     if (!d)
     {
-        asmerr("%s %s is not a declaration", s.kind(), s.toChars());
+        asmerr("%s `%s` is not a declaration", s.kind(), s.toChars());
     }
     else if (d.getType())
-        asmerr("cannot use type %s as an operand", d.getType().toChars());
+        asmerr("cannot use type `%s` as an operand", d.getType().toChars());
     else if (d.isTupleDeclaration())
     {
     }
@@ -2532,13 +2532,13 @@ void asm_make_modrm_byte(
             if (popnd.pregDisp2)
             {
                 if (popnd.pregDisp2.val == _ESP)
-                    error(asmstate.loc, "ESP cannot be scaled index register");
+                    error(asmstate.loc, "`ESP` cannot be scaled index register");
             }
             else
             {
                 if (popnd.uchMultiplier &&
                     popnd.pregDisp1.val ==_ESP)
-                    error(asmstate.loc, "ESP cannot be scaled index register");
+                    error(asmstate.loc, "`ESP` cannot be scaled index register");
                 bDisp = true;
             }
 
@@ -2561,7 +2561,7 @@ void asm_make_modrm_byte(
                     if (popnd.pregDisp2)
                     {
                         if (popnd.pregDisp2.val != _EBP)
-                            error(asmstate.loc, "EBP cannot be base register");
+                            error(asmstate.loc, "`EBP` cannot be base register");
                     }
                     else
                     {
@@ -2634,7 +2634,7 @@ void asm_make_modrm_byte(
                     break;
 
                 case _ESP:
-                    error(asmstate.loc, "[ESP] addressing mode not allowed");
+                    error(asmstate.loc, "`[ESP]` addressing mode not allowed");
                     rm = 0;                     // no uninitialized data
                     break;
 
@@ -3262,7 +3262,7 @@ uint asm_type_size(Type ptype)
     {
         switch (cast(int)ptype.size())
         {
-            case 0:     asmerr("bad type/size of operands '%s'", "0 size".ptr);    break;
+            case 0:     asmerr("bad type/size of operands `%s`", "0 size".ptr);    break;
             case 1:     u = _8;         break;
             case 2:     u = _16;        break;
             case 4:     u = _32;        break;
@@ -3302,7 +3302,7 @@ code *asm_da_parse(OP *pop)
         {
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident);
             if (!label)
-                error(asmstate.loc, "label '%s' not found", asmstate.tok.ident.toChars());
+                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
 
             if (global.params.symdebug)
                 cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
@@ -3953,7 +3953,7 @@ void asm_br_exp(out OPND o1)
                 OPND o2;
                 asm_cond_exp(o2);
                 asmstate.lbracketNestCount--;
-                asm_chktok(TOKrbracket,"] expected instead of '%s'");
+                asm_chktok(TOKrbracket,"`]` expected instead of `%s`");
                 debug (EXTRA_DEBUG) printf("Saw a right bracket\n");
                 asm_merge_opnds(o1, o2);
                 if (asmstate.tokValue == TOKidentifier)
@@ -4020,7 +4020,7 @@ version (none)
                 fixdeclar(ptype);/* fix declarator               */
                 type_free(ptypeSpec);/* the declar() function
                                     allocates the typespec again */
-                chktok(TOKrparen,") expected instead of '%s'");
+                chktok(TOKrparen,"`)` expected instead of `%s`");
                 ptype.Tcount--;
                 goto CAST_REF;
             }
@@ -4028,7 +4028,7 @@ version (none)
             {
                 type_free(ptypeSpec);
                 asm_cond_exp(o1);
-                chktok(TOKrparen, ") expected instead of '%s'");
+                chktok(TOKrparen, "`)` expected instead of `%s`");
             }
             break;
 }
@@ -4185,7 +4185,7 @@ void asm_primary_exp(out OPND o1)
                             o1.base = &(aregFp[n]);
                     }
                     asm_chktok(TOKint32v, "integer expected");
-                    asm_chktok(TOKrparen, ") expected instead of '%s'");
+                    asm_chktok(TOKrparen, "`)` expected instead of `%s`");
                 }
                 else
                     o1.base = &regFp;
@@ -4248,7 +4248,7 @@ void asm_primary_exp(out OPND o1)
                         }
                         else
                         {
-                            asmerr("bad type/size of operands '%s'", e.toChars());
+                            asmerr("bad type/size of operands `%s`", e.toChars());
                         }
                     }
                     else if (e.op == TOKvar)
@@ -4258,7 +4258,7 @@ void asm_primary_exp(out OPND o1)
                     }
                     else
                     {
-                        asmerr("bad type/size of operands '%s'", e.toChars());
+                        asmerr("bad type/size of operands `%s`", e.toChars());
                     }
                 }
 
@@ -4327,7 +4327,7 @@ void asm_primary_exp(out OPND o1)
             break;
 
          default:
-            asmerr("expression expected not %s", asmstate.tok ? asmstate.tok.toChars() : ";");
+            asmerr("expression expected not `%s`", asmstate.tok ? asmstate.tok.toChars() : ";");
             break;
     }
 }
@@ -4429,7 +4429,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             asm_token();
             uint _align = asm_getnum();
             if (ispow2(_align) == -1)
-                asmerr("align %d must be a power of 2", _align);
+                asmerr("`align %d` must be a power of 2", _align);
             else
                 s.asmalign = _align;
             break;
@@ -4542,7 +4542,7 @@ version (none)
 
         default:
         OPCODE_EXPECTED:
-            asmerr("opcode expected, not %s", asmstate.tok.toChars());
+            asmerr("opcode expected, not `%s`", asmstate.tok.toChars());
             break;
     }
 
@@ -4550,7 +4550,7 @@ AFTER_EMIT:
 
     if (asmstate.tokValue != TOKeof)
     {
-        asmerr("end of instruction expected, not '%s'", asmstate.tok.toChars());  // end of line expected
+        asmerr("end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
     }
     //return asmstate.bReturnax;
     return s;

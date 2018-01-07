@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail152.d(15): Error: cannot use type double as an operand
+fail_compilation/fail152.d(15): Error: cannot use type `double` as an operand
 ---
 */
 
