@@ -223,22 +223,22 @@ enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 struct Global
 {
     const(char)* inifilename;
-    const(char)* mars_ext;
+    const(char)* mars_ext = "d";
     const(char)* obj_ext;
     const(char)* lib_ext;
     const(char)* dll_ext;
-    const(char)* doc_ext;           // for Ddoc generated files
-    const(char)* ddoc_ext;          // for Ddoc macro include files
-    const(char)* hdr_ext;           // for D 'header' import files
-    const(char)* json_ext;          // for JSON files
-    const(char)* map_ext;           // for .map files
-    bool run_noext;                 // allow -run sources without extensions.
+    const(char)* doc_ext = "html";      // for Ddoc generated files
+    const(char)* ddoc_ext = "ddoc";     // for Ddoc macro include files
+    const(char)* hdr_ext = "di";        // for D 'header' import files
+    const(char)* json_ext = "json";     // for JSON files
+    const(char)* map_ext = "map";       // for .map files
+    bool run_noext;                     // allow -run sources without extensions.
 
-    const(char)* copyright;
-    const(char)* written;
-    const(char)* main_d;            // dummy filename for dummy main()
-    Array!(const(char)*)* path;     // Array of char*'s which form the import lookup path
-    Array!(const(char)*)* filePath; // Array of char*'s which form the file import lookup path
+    const(char)* copyright = "Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved";
+    const(char)* written = "written by Walter Bright";
+    const(char)* main_d = "__main.d";   // dummy filename for dummy main()
+    Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
+    Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     const(char)* _version;
 
@@ -290,13 +290,6 @@ struct Global
 
     extern (C++) void _init()
     {
-        inifilename = null;
-        mars_ext = "d";
-        hdr_ext = "di";
-        doc_ext = "html";
-        ddoc_ext = "ddoc";
-        json_ext = "json";
-        map_ext = "map";
         static if (TARGET_WINDOS)
         {
             obj_ext = "obj";
@@ -350,12 +343,9 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        copyright = "Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved";
-        written = "written by Walter Bright";
         _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
         stdmsg = stdout;
-        main_d = "__main.d";
     }
 }
 
