@@ -31,11 +31,6 @@ src/dmd/vcbuild @rainers
 # GitHub's implementation of the CODEOWNERS format is buggy, so this might not work
 src/dmd/*.h @ibuclaw
 
-src/dmd/* @WalterBright
-src/dmd/backend/* @WalterBright
-src/dmd/root/* @WalterBright
-src/dmd/tk/* @WalterBright
-
 # CI & automation
 posix.mak @MartinNowak @wilzbach
 src/posix.mak @MartinNowak @wilzbach
