@@ -516,7 +516,7 @@ bool Target::isVectorOpSupported(Type *type, TOK op, Type *t2)
             supported = tvec->isintegral();
             break;
 
-	case TOKpow: case TOKpowass:
+        case TOKpow: case TOKpowass:
             supported = false;
             break;
 

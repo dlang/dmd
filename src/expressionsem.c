@@ -981,15 +981,15 @@ public:
             return;
         }
 
-	// Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
-	// T should be analyzed first and edim should go into arguments iff it's
-	// not a tuple.
-	Expression *edim = NULL;
-	if (!exp->arguments && exp->newtype->ty == Tsarray)
-	{
-	    edim = ((TypeSArray *)exp->newtype)->dim;
-	    exp->newtype = ((TypeNext *)exp->newtype)->next;
-	}
+        // Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
+        // T should be analyzed first and edim should go into arguments iff it's
+        // not a tuple.
+        Expression *edim = NULL;
+        if (!exp->arguments && exp->newtype->ty == Tsarray)
+        {
+            edim = ((TypeSArray *)exp->newtype)->dim;
+            exp->newtype = ((TypeNext *)exp->newtype)->next;
+        }
 
         ClassDeclaration *cdthis = NULL;
         if (exp->thisexp)
