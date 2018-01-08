@@ -831,8 +831,7 @@ $(P
     And all the summary sections will now be green.
 )
 
-$(H3 $(LNAME2 macro_def_scini, Macro Definitions from $(DPLLINK $(ROOT_DIR)dmd-windows.html, sc.ini)'s
-    DDOCFILE))
+$(H3 $(LNAME2 macro_def_scini, Macro Definitions from `sc.ini`'s DDOCFILE))
 
 $(P
     A text file of macro definitions can be created,
