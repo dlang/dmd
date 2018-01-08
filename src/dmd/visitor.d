@@ -112,7 +112,8 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
 {
     alias visit = SemanticTimePermissiveVisitor.visit;
 
-    mixin ParseVisitMethods!ASTCodegen;
+    mixin ParseVisitMethods!ASTCodegen __methods;
+    alias visit = __methods.visit;
 
     override void visit(ASTCodegen.PeelStatement s)
     {
