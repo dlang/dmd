@@ -64,8 +64,8 @@ struct Target
 
     static void _init();
     // Type sizes and support.
-    static unsigned alignsize(Type* type);
-    static unsigned fieldalign(Type* type);
+    static unsigned alignsize(Type *type);
+    static unsigned fieldalign(Type *type);
     static unsigned critsecsize();
     static Type *va_listType();  // get type of va_list
     static int isVectorTypeSupported(int sz, Type *type);

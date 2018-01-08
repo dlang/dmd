@@ -36,7 +36,7 @@ public:
     int inc;
 
     virtual Condition *syntaxCopy() = 0;
-    virtual int include(Scope *sc, ScopeDsymbol *sds) = 0;
+    virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
