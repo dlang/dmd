@@ -27,6 +27,7 @@ enum UsePrinterBackend = 0;
 enum UseCBackend = 0;
 enum UseGCCJITBackend = 0;
 enum abortOnCritical = 1;
+debug = abi;
 
 private static void clearArray(T)(auto ref T array, uint count)
 {

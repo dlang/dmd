@@ -1,7 +1,7 @@
-uint[] fold (int[4][3] a)
+int[12] fold (int[4][3] a)
 {
-  uint[]result;
-  result.length = 4 * 3;
+  int[12] result;
+
   uint pos;
   foreach (i; 0 .. 3)
   {
@@ -12,9 +12,8 @@ uint[] fold (int[4][3] a)
   }
   return result;
 }
-
-static assert (fold ([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]) ==
-	       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+static assert (fold([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+==	       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 
 
 int[2][3]
@@ -28,10 +27,15 @@ split(int[6] a)
     foreach(j;0 .. 3)
         foreach(i;0 .. 2)
     {
-//        result[j][i] = a[p++]; 
+        result[j][i] = a[p++]; 
     }
 
     return result;
 }
 
-static assert ( split([1, 2, 3, 4, 5, 6]) == [[1, 2], [3, 4], [5, 6]] );
+int[2][3] echo(int[2][3] a) { return a; }
+
+
+//static assert ( split([1, 2, 3, 4, 5, 6]) == [[1, 2], [3, 4], [5, 6]] );
+pragma(msg, split([1,2,3,4,5,6]));
+//pragma(msg, echo([[1,1],[2,2],[3,3]]) );
