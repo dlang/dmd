@@ -1,13 +1,13 @@
 /**
- * Documentation:  https://dlang.org/phobos/dmd_parsetimevisitor.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/parsetimevisitor.d
+ * Documentation:  https://dlang.org/phobos/dmd_visitor_parsetime.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/parsetime.d
  */
 
-module dmd.parsetimevisitor;
+module dmd.visitor.parsetime;
 
 /** Basic and dumm visitor which implements a visit method for each AST node
   * implemented in AST. This visitor is the parent of strict, transitive
-  * and permissive visitors.
+  * and permissive visitor.
   */
 extern (C++) class ParseTimeVisitor(AST)
 {

@@ -1,11 +1,11 @@
 /**
- * Documentation:  https://dlang.org/phobos/dmd_transitivevisitor.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/transitivevisitor.d
+ * Documentation:  https://dlang.org/phobos/dmd_visitor_transitive.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/transitive.d
  */
 
-module dmd.transitivevisitor;
+module dmd.visitor.transitive;
 
-import dmd.permissivevisitor;
+import dmd.visitor.permissive;
 import dmd.tokens;
 import dmd.root.rootobject;
 

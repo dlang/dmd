@@ -1,11 +1,11 @@
 /**
- * Documentation:  https://dlang.org/phobos/dmd_strictvisitor.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/strictvisitor.d
+ * Documentation:  https://dlang.org/phobos/dmd_visitor_strict.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/strict.d
  */
 
-module dmd.strictvisitor;
+module dmd.visitor.strict;
 
-import dmd.parsetimevisitor;
+import dmd.visitor.parsetime;
 
 /** The StrictVisitor asserts 0 an all visiting functions in order to
   * make sure that all the nodes are visited.

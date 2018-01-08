@@ -43,9 +43,11 @@ subPackage {
   sourceFiles \
     "src/dmd/astbase.d" \
     "src/dmd/parse.d" \
-    "src/dmd/transitivevisitor.d" \
-    "src/dmd/permissivevisitor.d" \
-    "src/dmd/strictvisitor.d"
+    "src/dmd/visitor/package.d" \
+    "src/dmd/visitor/parsetime.d" \
+    "src/dmd/visitor/permissive.d" \
+    "src/dmd/visitor/strict.d" \
+    "src/dmd/visitor/transitive.d"
 
   dependency "dmd:lexer" version="*"
 }
