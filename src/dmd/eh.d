@@ -50,7 +50,7 @@ Symbol *except_gentables()
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
         if (Alloca.size)
-            error(null, 0, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", &funcsym_p.Sident[0]);
+            error(null, 0, 0, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
 
         char[13+5+1] name = void;
         __gshared int tmpnum;
