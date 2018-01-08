@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1994-1998 by Symantec
- * Copyright (c) 2000-2015 by Digital Mars
+ * Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright

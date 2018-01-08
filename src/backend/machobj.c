@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 2009-2011 by Digital Mars
+// Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com

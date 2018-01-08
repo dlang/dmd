@@ -1,7 +1,7 @@
 /*_ mem.h */
-/* Copyright 1986-2012 by Walter Bright         */
-/* All Rights Reserved                          */
-/* Written by Walter Bright                     */
+/* Copyright (C) 1986-2018 by The D Language Foundation, All Rights Reserved */
+/* All Rights Reserved                                                       */
+/* Written by Walter Bright                                                  */
 
 #ifndef MEM_H
 #define MEM_H   1

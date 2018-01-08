@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2008-2014 by Digital Mars
+/* Copyright (C) 2008-2018 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.

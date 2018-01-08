@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by Digital Mars
+ * Copyright (C) 2013-2018 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
@@ -516,7 +516,7 @@ bool Target::isVectorOpSupported(Type *type, TOK op, Type *t2)
             supported = tvec->isintegral();
             break;
 
-	case TOKpow: case TOKpowass:
+        case TOKpow: case TOKpowass:
             supported = false;
             break;
 

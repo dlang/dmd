@@ -1,6 +1,6 @@
 #_ win32.mak
 #
-# Copyright (c) 1999-2012 by Digital Mars
+# Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
 # All Rights Reserved
 # written by Walter Bright
 # http://www.digitalmars.com

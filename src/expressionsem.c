@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2017 by Digital Mars
+ * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
@@ -981,15 +981,15 @@ public:
             return;
         }
 
-	// Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
-	// T should be analyzed first and edim should go into arguments iff it's
-	// not a tuple.
-	Expression *edim = NULL;
-	if (!exp->arguments && exp->newtype->ty == Tsarray)
-	{
-	    edim = ((TypeSArray *)exp->newtype)->dim;
-	    exp->newtype = ((TypeNext *)exp->newtype)->next;
-	}
+        // Bugzilla 11581: With the syntax `new T[edim]` or `thisexp.new T[edim]`,
+        // T should be analyzed first and edim should go into arguments iff it's
+        // not a tuple.
+        Expression *edim = NULL;
+        if (!exp->arguments && exp->newtype->ty == Tsarray)
+        {
+            edim = ((TypeSArray *)exp->newtype)->dim;
+            exp->newtype = ((TypeNext *)exp->newtype)->next;
+        }
 
         ClassDeclaration *cdthis = NULL;
         if (exp->thisexp)

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright: Copyright (c) 2014 by Digital Mars, All Rights Reserved
+// Copyright: Copyright (C) 2014-2018 by The D Language Foundation, All Rights Reserved
 // Authors: Walter Bright, http://www.digitalmars.com
 // License: http://boost.org/LICENSE_1_0.txt
 // Source: https://github.com/D-Programming-Language/dmd/blob/master/src/nspace.c
