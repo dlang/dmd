@@ -328,8 +328,9 @@ struct Usage
     {
         string bugzillaNumber; /// bugzilla issue number (if existent)
         string name; /// name of the transition
-        string paramName; // internal transition parameter name
-        string helpText; // detailed description of the transition
+        string paramName; /// internal transition parameter name
+        string helpText; /// detailed description of the transition
+        bool deprecated_; /// the flag isn't in use anymore
     }
 
     /// Returns all available transitions
@@ -341,7 +342,7 @@ struct Usage
         Transition(null, "checkimports", "check10378",
             "give deprecation messages about 10378 anomalies"),
         Transition("14488", "complex", "vcomplex",
-            "give deprecation messages about all usages of complex or imaginary types"),
+            "give deprecation messages about all usages of complex or imaginary types", true),
         Transition("16997", "intpromote", "fix16997",
             "fix integral promotions for unary + - ~ operators"),
         Transition(null, "tls", "vtls",
@@ -416,6 +417,8 @@ CPU architectures supported by -mcpu=id:
                 "list information on all language changes")] ~ Usage.transitions;
             foreach (t; allTransitions)
             {
+                if (t.deprecated_)
+                    continue;
                 buf ~= "  =";
                 buf ~= t.name;
                 auto lineLength = 3 + t.name.length;

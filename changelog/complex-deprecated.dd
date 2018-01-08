@@ -1,0 +1,21 @@
+Imaginary and complex types types have been deprecated - use `std.complex`
+
+D supported imaginary and complex versions of all floating point types:
+
+---
+float a = 2;
+ifloat b = 4i;
+cfloat c = a + b;
+assert(c == 2 + 4i);
+---
+
+Corrective action: Use the library types in $(MREF std, complex)
+
+---
+import std.complex, std.conv;
+float a = 2;
+auto b = complex(0f, 4);
+static assert(is(typeof(b) == Complex!float));
+auto c = a + b;
+assert(c.to!string == "2+4i");
+---
