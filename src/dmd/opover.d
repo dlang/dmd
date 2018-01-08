@@ -33,7 +33,7 @@ import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************
  * Determine if operands of binary op can be reversed

@@ -33,7 +33,7 @@ import dmd.mtype;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum Sizeok : int
 {

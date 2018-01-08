@@ -38,7 +38,7 @@ import dmd.id;
 import dmd.mtype;
 import dmd.target;
 import dmd.toctype;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;

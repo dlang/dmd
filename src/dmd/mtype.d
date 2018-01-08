@@ -56,7 +56,7 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()

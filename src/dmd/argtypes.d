@@ -18,7 +18,7 @@ import core.checkedint;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function

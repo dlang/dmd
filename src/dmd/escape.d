@@ -27,7 +27,7 @@ import dmd.init;
 import dmd.mtype;
 import dmd.root.rootobject;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.arraytypes;
 
 /****************************************

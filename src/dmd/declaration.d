@@ -36,7 +36,7 @@ import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /************************************
  * Check to see the aggregate type is nested and its context pointer is

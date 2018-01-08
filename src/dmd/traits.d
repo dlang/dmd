@@ -39,7 +39,7 @@ import dmd.root.speller;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.root.rootobject;
 
 enum LOGSEMANTIC = false;

@@ -24,7 +24,7 @@ import dmd.expressionsem;
 import dmd.root.rootobject;
 import dmd.mtype;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /************************************************
  * Performs semantic on TemplateParameter AST nodes.

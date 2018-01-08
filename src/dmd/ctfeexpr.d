@@ -32,7 +32,7 @@ import dmd.root.port;
 import dmd.root.rmem;
 import dmd.target;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  * Global status of the CTFE engine. Mostly used for performance diagnostics

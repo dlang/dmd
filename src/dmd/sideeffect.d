@@ -23,7 +23,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.stoppable;
 
 /**************************************************
  * Front-end expression rewriting should create temporary variables for

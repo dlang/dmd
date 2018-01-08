@@ -16,7 +16,7 @@ import core.stdc.stdio;
 
 import dmd.expression;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /********************
  * Print AST data structure in a nice format.

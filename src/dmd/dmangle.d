@@ -35,7 +35,7 @@ import dmd.root.aav;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 private immutable char[TMAX] mangleChar =
 [

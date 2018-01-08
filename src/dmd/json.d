@@ -33,7 +33,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);

@@ -53,7 +53,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.

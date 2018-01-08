@@ -23,7 +23,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  * alias ident this;

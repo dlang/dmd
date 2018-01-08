@@ -43,7 +43,7 @@ import dmd.toctype;
 import dmd.todt;
 import dmd.tokens;
 import dmd.typinf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.irstate;
 import dmd.dmangle;
 

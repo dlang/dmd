@@ -43,9 +43,10 @@ subPackage {
   sourceFiles \
     "src/dmd/astbase.d" \
     "src/dmd/parse.d" \
-    "src/dmd/visitor/package.d" \
     "src/dmd/visitor/parse_time.d" \
     "src/dmd/visitor/permissive.d" \
+    "src/dmd/visitor/semantic.d" \
+    "src/dmd/visitor/stoppable.d" \
     "src/dmd/visitor/strict.d" \
     "src/dmd/visitor/transitive.d"
 

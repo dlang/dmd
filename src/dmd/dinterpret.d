@@ -41,7 +41,9 @@ import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.stoppable;
+import dmd.visitor.transitive;
+import dmd.visitor.semantic;
 
 enum CtfeGoal : int
 {

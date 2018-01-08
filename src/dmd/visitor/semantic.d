@@ -5,19 +5,15 @@
  * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/visitor/package.d, _package.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/visitor/semantic.d, _semantic.d)
  * Documentation:  https://dlang.org/phobos/dmd_visitor.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/package.d
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/semantic.d
  */
 
-module dmd.visitor;
+module dmd.visitor.semantic;
 
 import dmd.astcodegen;
 import dmd.visitor.parse_time;
-import dmd.tokens;
-import dmd.visitor.transitive;
-import dmd.expression;
-import dmd.root.rootobject;
 
 /**
  * Classic Visitor class which implements visit methods for all the AST
@@ -85,155 +81,4 @@ public:
     void visit(ASTCodegen.ClassReferenceExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.VoidInitExp e) { visit(cast(ASTCodegen.Expression)e); }
     void visit(ASTCodegen.ThrownExceptionExp e) { visit(cast(ASTCodegen.Expression)e); }
-}
-
-/**
- * The PermissiveVisitor overrides the root AST nodes with
- * empty visiting methods.
- */
-extern (C++) class SemanticTimePermissiveVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-
-    override void visit(ASTCodegen.Dsymbol){}
-    override void visit(ASTCodegen.Parameter){}
-    override void visit(ASTCodegen.Statement){}
-    override void visit(ASTCodegen.Type){}
-    override void visit(ASTCodegen.Expression){}
-    override void visit(ASTCodegen.TemplateParameter){}
-    override void visit(ASTCodegen.Condition){}
-    override void visit(ASTCodegen.Initializer){}
-}
-
-/**
- * The TransitiveVisitor implements the AST traversal logic for all AST nodes.
- */
-extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
-{
-    alias visit = SemanticTimePermissiveVisitor.visit;
-
-    mixin ParseVisitMethods!ASTCodegen __methods;
-    alias visit = __methods.visit;
-
-    override void visit(ASTCodegen.PeelStatement s)
-    {
-        if (s.s)
-            s.s.accept(this);
-    }
-
-    override void visit(ASTCodegen.UnrolledLoopStatement s)
-    {
-        foreach(sx; *s.statements)
-        {
-            if (sx)
-                sx.accept(this);
-        }
-    }
-
-    override void visit(ASTCodegen.DebugStatement s)
-    {
-        if (s.statement)
-            s.statement.accept(this);
-    }
-
-    override void visit(ASTCodegen.ForwardingStatement s)
-    {
-        if (s.statement)
-            s.statement.accept(this);
-    }
-
-    override void visit(ASTCodegen.StructLiteralExp e)
-    {
-        // CTFE can generate struct literals that contain an AddrExp pointing to themselves,
-        // need to avoid infinite recursion.
-        if (!(e.stageflags & stageToCBuffer))
-        {
-            int old = e.stageflags;
-            e.stageflags |= stageToCBuffer;
-            foreach (el; *e.elements)
-                if (el)
-                    el.accept(this);
-            e.stageflags = old;
-        }
-    }
-
-    override void visit(ASTCodegen.DotTemplateExp e)
-    {
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.DotVarExp e)
-    {
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.DelegateExp e)
-    {
-        if (!e.func.isNested())
-            e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.DotTypeExp e)
-    {
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.VectorExp e)
-    {
-        visitType(e.to);
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.SliceExp e)
-    {
-        e.e1.accept(this);
-        if (e.upr)
-            e.upr.accept(this);
-        if (e.lwr)
-            e.lwr.accept(this);
-    }
-
-    override void visit(ASTCodegen.ArrayLengthExp e)
-    {
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.DelegatePtrExp e)
-    {
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.DelegateFuncptrExp e)
-    {
-        e.e1.accept(this);
-    }
-
-    override void visit(ASTCodegen.DotExp e)
-    {
-        e.e1.accept(this);
-        e.e2.accept(this);
-    }
-
-    override void visit(ASTCodegen.IndexExp e)
-    {
-        e.e1.accept(this);
-        e.e2.accept(this);
-    }
-
-    override void visit(ASTCodegen.RemoveExp e)
-    {
-        e.e1.accept(this);
-        e.e2.accept(this);
-    }
-}
-
-extern (C++) class StoppableVisitor : Visitor
-{
-    alias visit = Visitor.visit;
-public:
-    bool stop;
-
-    final extern (D) this()
-    {
-    }
 }

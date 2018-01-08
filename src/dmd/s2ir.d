@@ -46,7 +46,7 @@ import dmd.toctype;
 import dmd.tocsym;
 import dmd.toir;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.tk.dlist;
 

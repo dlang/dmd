@@ -21,7 +21,7 @@ import dmd.dsymbolsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.root.outbuffer;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  * DebugSymbol's happen for statements like:

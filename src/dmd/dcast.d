@@ -39,7 +39,7 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOG = false;
 

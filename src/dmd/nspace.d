@@ -19,7 +19,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.globals;
 import dmd.identifier;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import core.stdc.stdio;
 
 private enum LOG = false;

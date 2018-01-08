@@ -29,7 +29,7 @@ import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /* Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++
  */

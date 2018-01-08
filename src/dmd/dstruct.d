@@ -34,7 +34,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.typinf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***************************************
  * Search sd for a member function of the form:

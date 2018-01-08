@@ -62,7 +62,8 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.stoppable;
+import dmd.visitor.semantic;
 
 enum LOGSEMANTIC = false;
 void emplaceExp(T : Expression, Args...)(void* p, Args args)

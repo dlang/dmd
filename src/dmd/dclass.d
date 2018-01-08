@@ -29,7 +29,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.rmem;
 import dmd.target;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum Abstract : int
 {

@@ -22,7 +22,7 @@ import dmd.globals;
 import dmd.init;
 import dmd.mtype;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.stoppable;
 
 /**************************************
  * Look for GC-allocations

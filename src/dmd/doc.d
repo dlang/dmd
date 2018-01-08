@@ -47,7 +47,7 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
 import dmd.utils;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 struct Escape
 {

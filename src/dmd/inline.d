@@ -37,7 +37,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.inlinecost;
 
 private:

@@ -35,7 +35,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.mtype;
 import dmd.opover;
 import dmd.root.rmem;

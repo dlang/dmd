@@ -46,7 +46,8 @@ import dmd.sapply;
 import dmd.sideeffect;
 import dmd.staticassert;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.stoppable;
+import dmd.visitor.semantic;
 
 /**
  * Returns:
@@ -405,7 +406,7 @@ extern (C++) abstract class Statement : RootObject
     /**************************
      * Support Visitor Pattern
      * Params:
-     *  v = visitor
+     *  v = visitor;
      */
     void accept(Visitor v)
     {

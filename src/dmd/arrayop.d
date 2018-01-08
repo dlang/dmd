@@ -27,7 +27,7 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /**********************************************
  * Check that there are no uses of arrays without [].

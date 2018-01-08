@@ -56,7 +56,7 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
 import dmd.typinf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;

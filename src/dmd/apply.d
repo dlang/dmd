@@ -15,7 +15,7 @@ module dmd.apply;
 import dmd.arraytypes;
 import dmd.dtemplate;
 import dmd.expression;
-import dmd.visitor;
+import dmd.visitor.stoppable;
 
 /**************************************
  * An Expression tree walker that will visit each Expression e in the tree,

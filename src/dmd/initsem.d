@@ -34,7 +34,7 @@ import dmd.init;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************
  * Translate init to an `Expression` in order to infer the type.

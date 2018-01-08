@@ -157,9 +157,9 @@ FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D
 	$D/expression.d $D/expressionsem.d $D/func.d $D/hdrgen.d $D/id.d $D/imphint.d	\
 	$D/impcnvtab.d $D/init.d $D/initsem.d $D/inline.d $D/inlinecost.d $D/intrange.d $D/json.d $D/lib.d $D/link.d	\
 	$D/mars.d $D/mtype.d $D/nogc.d $D/nspace.d $D/objc.d $D/opover.d $D/optimize.d $D/parse.d	\
-	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d	\
-	$D/safe.d $D/blockexit.d $D/visitor/permissive.d $D/visitor/transitive.d $D/visitor/parse_time.d $D/printast.d $D/typesem.d \
-	$D/traits.d $D/utils.d $D/visitor/package.d $D/libomf.d $D/scanomf.d $D/templateparamsem.d $D/typinf.d \
+	$D/sapply.d $D/sideeffect.d $D/statement.d $D/staticassert.d $D/target.d $D/safe.d $D/blockexit.d \
+	$D/visitor/parse_time.d $D/visitor/permissive.d $D/visitor/semantic.d $D/visitor/stoppable.d $D/visitor/transitive.d \
+	$D/printast.d $D/typesem.d $D/traits.d $D/utils.d$D/libomf.d $D/scanomf.d $D/templateparamsem.d $D/typinf.d \
 	$D/libmscoff.d $D/scanmscoff.d $D/statement_rewrite_walker.d $D/statementsem.d $D/staticcond.d \
 	$D/semantic2.d $D/semantic3.d
 
@@ -170,7 +170,7 @@ LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
 	$(ROOT)/outbuffer.d $(ROOT)/port.d $(ROOT)/rmem.d $(ROOT)/rootobject.d \
 	$(ROOT)/stringtable.d $(ROOT)/hash.d
 
-PARSER_SRCS=$D/astbase.d $D/visitor/parse_time.d $D/parse.d $D/visitor/transitive.d $D/visitor/permissive.d $D/visitor/strict.d
+PARSER_SRCS=$D/astbase.d $D/visitor/parse_time.d $D/parse.d $D/visitor/stoppable.d $D/visitor/transitive.d $D/visitor/permissive.d $D/visitor/strict.d
 
 GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym.d $D/toir.d $D/dmsc.d \
 	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue.d $D/eh.d $D/iasm.d

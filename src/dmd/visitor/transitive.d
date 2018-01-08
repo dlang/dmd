@@ -5,9 +5,12 @@
 
 module dmd.visitor.transitive;
 
+import dmd.astcodegen;
+import dmd.expression;
 import dmd.visitor.permissive;
 import dmd.tokens;
 import dmd.root.rootobject;
+import dmd.visitor.semantic;
 
 import core.stdc.stdio;
 
@@ -1138,5 +1141,127 @@ package mixin template ParseVisitMethods(AST)
         {
            s.accept(this);
         }
+    }
+}
+
+/**
+ * The TransitiveVisitor implements the AST traversal logic for all AST nodes.
+ */
+extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
+{
+    alias visit = SemanticTimePermissiveVisitor.visit;
+
+    mixin ParseVisitMethods!ASTCodegen __methods;
+    alias visit = __methods.visit;
+
+    override void visit(ASTCodegen.PeelStatement s)
+    {
+        if (s.s)
+            s.s.accept(this);
+    }
+
+    override void visit(ASTCodegen.UnrolledLoopStatement s)
+    {
+        foreach(sx; *s.statements)
+        {
+            if (sx)
+                sx.accept(this);
+        }
+    }
+
+    override void visit(ASTCodegen.DebugStatement s)
+    {
+        if (s.statement)
+            s.statement.accept(this);
+    }
+
+    override void visit(ASTCodegen.ForwardingStatement s)
+    {
+        if (s.statement)
+            s.statement.accept(this);
+    }
+
+    override void visit(ASTCodegen.StructLiteralExp e)
+    {
+        // CTFE can generate struct literals that contain an AddrExp pointing to themselves,
+        // need to avoid infinite recursion.
+        if (!(e.stageflags & stageToCBuffer))
+        {
+            int old = e.stageflags;
+            e.stageflags |= stageToCBuffer;
+            foreach (el; *e.elements)
+                if (el)
+                    el.accept(this);
+            e.stageflags = old;
+        }
+    }
+
+    override void visit(ASTCodegen.DotTemplateExp e)
+    {
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.DotVarExp e)
+    {
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.DelegateExp e)
+    {
+        if (!e.func.isNested())
+            e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.DotTypeExp e)
+    {
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.VectorExp e)
+    {
+        visitType(e.to);
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.SliceExp e)
+    {
+        e.e1.accept(this);
+        if (e.upr)
+            e.upr.accept(this);
+        if (e.lwr)
+            e.lwr.accept(this);
+    }
+
+    override void visit(ASTCodegen.ArrayLengthExp e)
+    {
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.DelegatePtrExp e)
+    {
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.DelegateFuncptrExp e)
+    {
+        e.e1.accept(this);
+    }
+
+    override void visit(ASTCodegen.DotExp e)
+    {
+        e.e1.accept(this);
+        e.e2.accept(this);
+    }
+
+    override void visit(ASTCodegen.IndexExp e)
+    {
+        e.e1.accept(this);
+        e.e2.accept(this);
+    }
+
+    override void visit(ASTCodegen.RemoveExp e)
+    {
+        e.e1.accept(this);
+        e.e2.accept(this);
     }
 }

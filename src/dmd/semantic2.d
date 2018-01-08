@@ -67,7 +67,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOG = false;
 

@@ -49,7 +49,7 @@ import dmd.staticassert;
 import dmd.target;
 import dmd.tokens;
 import dmd.utils;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 struct HdrGenState
 {

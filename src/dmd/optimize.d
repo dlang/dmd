@@ -28,7 +28,7 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.sideeffect;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /*************************************
  * If variable has a const initializer,

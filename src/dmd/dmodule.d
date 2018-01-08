@@ -38,7 +38,7 @@ import dmd.root.port;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);

@@ -68,7 +68,7 @@ import dmd.typesem;
 import dmd.typinf;
 import dmd.utf;
 import dmd.utils;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOGSEMANTIC = false;
 

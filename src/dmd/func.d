@@ -46,7 +46,7 @@ import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /// Inline Status
 enum ILS : int

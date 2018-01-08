@@ -300,7 +300,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	sideeffect statement staticassert target typesem traits \
 	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
 	semantic2 semantic3 \
-	$(addprefix visitor/, package parse_time permissive transitive)))
+	$(addprefix visitor/, parse_time permissive semantic stoppable transitive)))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 

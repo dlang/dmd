@@ -46,7 +46,7 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.templateparamsem;
 

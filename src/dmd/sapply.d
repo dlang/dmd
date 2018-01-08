@@ -13,7 +13,7 @@
 module dmd.sapply;
 
 import dmd.statement;
-import dmd.visitor;
+import dmd.visitor.stoppable;
 
 /**************************************
  * A Statement tree walker that will visit each Statement s in the tree,

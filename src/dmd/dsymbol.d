@@ -49,7 +49,7 @@ import dmd.root.rootobject;
 import dmd.root.speller;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 struct Ungag
 {
