@@ -685,7 +685,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
     //printf("resolveLengthVar()\n");
     elem *einit = null;
 
-    if (lengthVar && !(lengthVar.storage_class & STCconst))
+    if (lengthVar && !(lengthVar.storage_class & STC.const_))
     {
         elem *elength;
         Symbol *slength;
@@ -738,7 +738,7 @@ void setClosureVarOffset(FuncDeclaration fd)
             uint memsize;
             uint memalignsize;
             structalign_t xalign;
-            if (v.storage_class & STClazy)
+            if (v.storage_class & STC.lazy_)
             {
                 /* Lazy variables are really delegates,
                  * so give same answers that TypeDelegate would
@@ -747,7 +747,7 @@ void setClosureVarOffset(FuncDeclaration fd)
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
             }
-            else if (v.storage_class & (STCout | STCref))
+            else if (v.storage_class & (STC.out_ | STC.ref_))
             {
                 // reference parameters are just pointers
                 memsize = Target.ptrsize;
@@ -846,7 +846,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
             // Hack for the case fail_compilation/fail10666.d,
             // until proper issue 5730 fix will come.
-            bool isScopeDtorParam = v.edtor && (v.storage_class & STCparameter);
+            bool isScopeDtorParam = v.edtor && (v.storage_class & STC.parameter);
             if (v.needsScopeDtor() || isScopeDtorParam)
             {
                 /* Because the value needs to survive the end of the scope!
@@ -875,7 +875,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         // Calculate the size of the closure
         VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
         typeof(Type.size()) lastsize;
-        if (vlast.storage_class & STClazy)
+        if (vlast.storage_class & STC.lazy_)
             lastsize = Target.ptrsize * 2;
         else if (vlast.isRef() || vlast.isOut())
             lastsize = Target.ptrsize;
@@ -917,12 +917,12 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             bool win64ref = ISWIN64REF(v);
             if (win64ref)
             {
-                if (v.storage_class & STClazy)
+                if (v.storage_class & STC.lazy_)
                     tym = TYdelegate;
             }
             else if (ISREF(v))
                 tym = TYnptr;   // reference parameters are just pointers
-            else if (v.storage_class & STClazy)
+            else if (v.storage_class & STC.lazy_)
                 tym = TYdelegate;
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v.offset));
             ex = el_una(OPind, tym, ex);

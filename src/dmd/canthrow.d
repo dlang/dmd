@@ -260,10 +260,10 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
         s = s.toAlias();
         if (s != vd)
             return Dsymbol_canThrow(s, func, mustNotThrow);
-        if (vd.storage_class & STCmanifest)
+        if (vd.storage_class & STC.manifest)
         {
         }
-        else if (vd.isStatic() || vd.storage_class & (STCextern | STCtls | STCgshared))
+        else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
         {
         }
         else

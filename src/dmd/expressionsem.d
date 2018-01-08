@@ -284,7 +284,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         if (e1.op == TOKvar)
         {
             VarExp ve = cast(VarExp)e1;
-            if (ve.var.storage_class & STClazy)
+            if (ve.var.storage_class & STC.lazy_)
             {
                 Expression e = new CallExp(loc, e1);
                 return e.expressionSemantic(sc);
@@ -697,9 +697,9 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             }
 
         L1:
-            if (!(p.storageClass & STClazy && p.type.ty == Tvoid))
+            if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
-                bool isRef = (p.storageClass & (STCref | STCout)) != 0;
+                bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                 if (ubyte wm = arg.type.deduceWild(p.type, isRef))
                 {
                     if (wildmatch)
@@ -766,7 +766,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
         if (i < nparams)
         {
             Parameter p = Parameter.getNth(tf.parameters, i);
-            if (!(p.storageClass & STClazy && p.type.ty == Tvoid))
+            if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
             {
                 Type tprm = p.type;
                 if (p.type.hasWild())
@@ -775,17 +775,17 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
                     arg = arg.implicitCastTo(sc, tprm);
-                    arg = arg.optimize(WANTvalue, (p.storageClass & (STCref | STCout)) != 0);
+                    arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
                 }
             }
-            if (p.storageClass & STCref)
+            if (p.storageClass & STC.ref_)
             {
                 arg = arg.toLvalue(sc, arg);
 
                 // Look for mutable misaligned pointer, etc., in @safe mode
                 err |= checkUnsafeAccess(sc, arg, false, true);
             }
-            else if (p.storageClass & STCout)
+            else if (p.storageClass & STC.out_)
             {
                 Type t = arg.type;
                 if (!t.isMutable() || !t.isAssignable()) // check blit assignable
@@ -801,7 +801,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 }
                 arg = arg.toLvalue(sc, arg);
             }
-            else if (p.storageClass & STClazy)
+            else if (p.storageClass & STC.lazy_)
             {
                 // Convert lazy argument to a delegate
                 if (p.type.ty == Tvoid)
@@ -854,7 +854,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                     }
                 }
             }
-            arg = arg.optimize(WANTvalue, (p.storageClass & (STCref | STCout)) != 0);
+            arg = arg.optimize(WANTvalue, (p.storageClass & (STC.ref_ | STC.out_)) != 0);
         }
         else
         {
@@ -970,7 +970,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             if (firstdtor == -1 && arg.type.needsDestruction())
             {
                 Parameter p = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
-                if (!(p && (p.storageClass & (STClazy | STCref | STCout))))
+                if (!(p && (p.storageClass & (STC.lazy_ | STC.ref_ | STC.out_))))
                     firstdtor = i;
             }
         }
@@ -988,7 +988,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             // eprefix => bool __gate [= false]
             Identifier idtmp = Identifier.generateId("__gate");
             gate = new VarDeclaration(loc, Type.tbool, idtmp, null);
-            gate.storage_class |= STCtemp | STCctfe | STCvolatile;
+            gate.storage_class |= STC.temp | STC.ctfe | STC.volatile_;
             gate.dsymbolSemantic(sc);
 
             auto ae = new DeclarationExp(loc, gate);
@@ -1000,8 +1000,8 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             Expression arg = (*arguments)[i];
 
             Parameter parameter = (i >= nparams ? null : Parameter.getNth(tf.parameters, i));
-            const bool isRef = (parameter && (parameter.storageClass & (STCref | STCout)));
-            const bool isLazy = (parameter && (parameter.storageClass & STClazy));
+            const bool isRef = (parameter && (parameter.storageClass & (STC.ref_ | STC.out_)));
+            const bool isLazy = (parameter && (parameter.storageClass & STC.lazy_));
 
             /* Skip lazy parameters
              */
@@ -1099,7 +1099,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
         args.setDim(arguments.dim - nparams);
         for (size_t i = 0; i < arguments.dim - nparams; i++)
         {
-            auto arg = new Parameter(STCin, (*arguments)[nparams + i].type, null, null);
+            auto arg = new Parameter(STC.in_, (*arguments)[nparams + i].type, null, null);
             (*args)[i] = arg;
         }
         auto tup = new TypeTuple(args);
@@ -1343,7 +1343,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Create the magic __ctfe bool variable
             auto vd = new VarDeclaration(exp.loc, Type.tbool, Id.ctfe, null);
-            vd.storage_class |= STCtemp;
+            vd.storage_class |= STC.temp;
             vd.semanticRun = PASSsemanticdone;
             Expression e = new VarExp(exp.loc, vd);
             e = e.expressionSemantic(sc);
@@ -1894,7 +1894,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     Dsymbol p = td.toParent2();
                     FuncDeclaration fdthis = hasThis(sc);
                     AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+                    if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STC.static_) == 0)
                     {
                         Expression e = new DotTemplateInstanceExp(exp.loc, new ThisExp(exp.loc), ti.name, ti.tiargs);
                         result = e.expressionSemantic(sc);
@@ -1945,7 +1945,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.error("forward reference of %s %s", v.kind(), v.toChars());
                     return setError();
                 }
-                if ((v.storage_class & STCmanifest) && v._init)
+                if ((v.storage_class & STC.manifest) && v._init)
                 {
                     /* When an instance that will be converted to a constant exists,
                      * the instance representation "foo!tiargs" is treated like a
@@ -2920,12 +2920,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e1.op == TOKvar)
             {
                 VarExp ve = cast(VarExp)exp.e1;
-                if (ve.var.storage_class & STClazy)
+                if (ve.var.storage_class & STC.lazy_)
                 {
                     // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODconst);
-                    auto tf = new TypeFunction(null, tc, 0, LINKd, STCsafe | STCpure);
+                    auto tf = new TypeFunction(null, tc, 0, LINKd, STC.safe | STC.pure_);
                     (tf = cast(TypeFunction)tf.typeSemantic(exp.loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
                     ve.type = t.typeSemantic(exp.loc, sc);
@@ -3244,7 +3244,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                     else if (ue.e1.op == TOKsuper)
                         exp.directcall = true;
-                    else if ((cd.storage_class & STCfinal) != 0) // https://issues.dlang.org/show_bug.cgi?id=14211
+                    else if ((cd.storage_class & STC.final_) != 0) // https://issues.dlang.org/show_bug.cgi?id=14211
                         exp.directcall = true;
 
                     if (ad != cd)
@@ -3700,10 +3700,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         Dsymbol s2;
                         if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
                         {
-                            // allow STClocal symbols to be shadowed
+                            // allow STC.local symbols to be shadowed
                             // TODO: not really an optimal design
                             auto decl = s2.isDeclaration();
-                            if (!decl || !(decl.storage_class & STClocal))
+                            if (!decl || !(decl.storage_class & STC.local))
                             {
                                 e.error("%s %s is shadowing %s %s", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
                                 return setError();
@@ -3716,9 +3716,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!s.isVarDeclaration())
         {
             Scope* sc2 = sc;
-            if (sc2.stc & (STCpure | STCnothrow | STCnogc))
+            if (sc2.stc & (STC.pure_ | STC.nothrow_ | STC.nogc))
                 sc2 = sc.push();
-            sc2.stc &= ~(STCpure | STCnothrow | STCnogc);
+            sc2.stc &= ~(STC.pure_ | STC.nothrow_ | STC.nogc);
             e.declaration.dsymbolSemantic(sc2);
             if (sc2 != sc)
                 sc2.pop();
@@ -3920,7 +3920,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     for (size_t i = 0; i < cd.baseclasses.dim; i++)
                     {
                         BaseClass* b = (*cd.baseclasses)[i];
-                        args.push(new Parameter(STCin, b.type, null, null));
+                        args.push(new Parameter(STC.in_, b.type, null, null));
                     }
                     tded = new TypeTuple(args);
                 }
@@ -4567,7 +4567,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             checkAccess(exp.loc, sc, exp.e1, exp.var);
 
             VarDeclaration v = exp.var.isVarDeclaration();
-            if (v && (v.isDataseg() || (v.storage_class & STCmanifest)))
+            if (v && (v.isDataseg() || (v.storage_class & STC.manifest)))
             {
                 Expression e = expandVar(WANTvalue, v);
                 if (e)
@@ -4805,7 +4805,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 ThisExp ve = cast(ThisExp)dve.e1;
                 VarDeclaration v = ve.var.isVarDeclaration();
-                if (v && v.storage_class & STCref)
+                if (v && v.storage_class & STC.ref_)
                 {
                     if (!checkAddressVar(sc, exp, v))
                         return setError();
@@ -5574,7 +5574,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     {
                         ThisExp ve = cast(ThisExp)dve.e1;
                         v = ve.var.isVarDeclaration();
-                        if (v && !(v.storage_class & STCref))
+                        if (v && !(v.storage_class & STC.ref_))
                             v = null;
                     }
                 }
@@ -6210,7 +6210,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e1.op != TOKvar && exp.e1.op != TOKarraylength)
             {
                 // ref v = e1;
-                auto v = copyToTemp(STCref, "__postref", exp.e1);
+                auto v = copyToTemp(STC.ref_, "__postref", exp.e1);
                 de = new DeclarationExp(exp.loc, v);
                 exp.e1 = new VarExp(exp.e1.loc, v);
             }
@@ -6635,7 +6635,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         else if (exp.op == TOKconstruct && exp.e1.op == TOKvar &&
-                 (cast(VarExp)exp.e1).var.storage_class & (STCout | STCref))
+                 (cast(VarExp)exp.e1).var.storage_class & (STC.out_ | STC.ref_))
         {
             exp.memset |= MemorySet.referenceInit;
         }
@@ -7392,7 +7392,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
             {
                 // Rewrite: ref tmp = e1; tmp = tmp ^^ e2
-                auto v = copyToTemp(STCref, "__powtmp", exp.e1);
+                auto v = copyToTemp(STC.ref_, "__powtmp", exp.e1);
                 auto de = new DeclarationExp(exp.e1.loc, v);
                 auto ve = new VarExp(exp.e1.loc, v);
                 e = new PowExp(exp.loc, ve, exp.e2);
@@ -9654,7 +9654,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                 if (v.type.ty == Terror)
                     return new ErrorExp();
 
-                if ((v.storage_class & STCmanifest) && v._init && !exp.wantsym)
+                if ((v.storage_class & STC.manifest) && v._init && !exp.wantsym)
                 {
                     /* Normally, the replacement of a symbol with its initializer is supposed to be in semantic2().
                      * Introduced by https://github.com/dlang/dmd/pull/5588 which should probably
@@ -10042,9 +10042,9 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
             if (global.params.vsafe)
             {
                 // Taking the address of v means it cannot be set to 'scope' later
-                v.storage_class &= ~STCmaybescope;
+                v.storage_class &= ~STC.maybescope;
                 v.doNotInferScope = true;
-                if (v.storage_class & STCscope && sc.func.setUnsafe())
+                if (v.storage_class & STC.scope_ && sc.func.setUnsafe())
                 {
                     exp.error("cannot take address of scope %s %s in @safe function %s", p, v.toChars(), sc.func.toChars());
                     return false;

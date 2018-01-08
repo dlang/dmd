@@ -735,19 +735,19 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             }
         }
 
-        if (sc.stc & STCpure)
+        if (sc.stc & STC.pure_)
             tf.purity = PUREfwdref;
-        if (sc.stc & STCnothrow)
+        if (sc.stc & STC.nothrow_)
             tf.isnothrow = true;
-        if (sc.stc & STCnogc)
+        if (sc.stc & STC.nogc)
             tf.isnogc = true;
-        if (sc.stc & STCref)
+        if (sc.stc & STC.ref_)
             tf.isref = true;
-        if (sc.stc & STCreturn)
+        if (sc.stc & STC.return_)
             tf.isreturn = true;
-        if (sc.stc & STCscope)
+        if (sc.stc & STC.scope_)
             tf.isscope = true;
-        if (sc.stc & STCscopeinferred)
+        if (sc.stc & STC.scopeinferred)
             tf.isscopeinferred = true;
 
 //        if (tf.isreturn && !tf.isref)
@@ -755,15 +755,15 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         if (tf.trust == TRUSTdefault)
         {
-            if (sc.stc & STCsafe)
+            if (sc.stc & STC.safe)
                 tf.trust = TRUSTsafe;
-            else if (sc.stc & STCsystem)
+            else if (sc.stc & STC.system)
                 tf.trust = TRUSTsystem;
-            else if (sc.stc & STCtrusted)
+            else if (sc.stc & STC.trusted)
                 tf.trust = TRUSTtrusted;
         }
 
-        if (sc.stc & STCproperty)
+        if (sc.stc & STC.property)
             tf.isproperty = true;
 
         tf.linkage = sc.linkage;
@@ -791,7 +791,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         if (tf.next)
         {
             sc = sc.push();
-            sc.stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
+            sc.stc &= ~(STC.TYPECTOR | STC.FUNCATTR);
             tf.next = tf.next.typeSemantic(loc, sc);
             sc = sc.pop();
             errors |= tf.checkRetType(loc);
@@ -835,7 +835,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
                 fparam.type = fparam.type.addStorageClass(fparam.storageClass);
 
-                if (fparam.storageClass & (STCauto | STCalias | STCstatic))
+                if (fparam.storageClass & (STC.auto_ | STC.alias_ | STC.static_))
                 {
                     if (!fparam.type)
                         continue;
@@ -848,7 +848,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     mtype.error(loc, "cannot have parameter of function type `%s`", fparam.type.toChars());
                     errors = true;
                 }
-                else if (!(fparam.storageClass & (STCref | STCout)) &&
+                else if (!(fparam.storageClass & (STC.ref_ | STC.out_)) &&
                          (t.ty == Tstruct || t.ty == Tsarray || t.ty == Tenum))
                 {
                     Type tb2 = t.baseElemOf();
@@ -859,27 +859,27 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         errors = true;
                     }
                 }
-                else if (!(fparam.storageClass & STClazy) && t.ty == Tvoid)
+                else if (!(fparam.storageClass & STC.lazy_) && t.ty == Tvoid)
                 {
                     mtype.error(loc, "cannot have parameter of type `%s`", fparam.type.toChars());
                     errors = true;
                 }
 
-                if ((fparam.storageClass & (STCref | STCwild)) == (STCref | STCwild))
+                if ((fparam.storageClass & (STC.ref_ | STC.wild)) == (STC.ref_ | STC.wild))
                 {
                     // 'ref inout' implies 'return'
-                    fparam.storageClass |= STCreturn;
+                    fparam.storageClass |= STC.return_;
                 }
 
-                if (fparam.storageClass & STCreturn)
+                if (fparam.storageClass & STC.return_)
                 {
-                    if (fparam.storageClass & (STCref | STCout))
+                    if (fparam.storageClass & (STC.ref_ | STC.out_))
                     {
                         // Disabled for the moment awaiting improvement to allow return by ref
                         // to be transformed into return by scope.
                         if (0 && !tf.isref)
                         {
-                            auto stc = fparam.storageClass & (STCref | STCout);
+                            auto stc = fparam.storageClass & (STC.ref_ | STC.out_);
                             mtype.error(loc, "parameter `%s` is `return %s` but function does not return by `ref`",
                                 fparam.ident ? fparam.ident.toChars() : "",
                                 stcToChars(stc));
@@ -888,7 +888,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     }
                     else
                     {
-                        fparam.storageClass |= STCscope;        // 'return' implies 'scope'
+                        fparam.storageClass |= STC.scope_;        // 'return' implies 'scope'
                         if (tf.isref)
                         {
                         }
@@ -901,10 +901,10 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     }
                 }
 
-                if (fparam.storageClass & (STCref | STClazy))
+                if (fparam.storageClass & (STC.ref_ | STC.lazy_))
                 {
                 }
-                else if (fparam.storageClass & STCout)
+                else if (fparam.storageClass & STC.out_)
                 {
                     if (ubyte m = fparam.type.mod & (MODimmutable | MODconst | MODwild))
                     {
@@ -924,11 +924,11 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     }
                 }
 
-                if (fparam.storageClass & STCscope && !fparam.type.hasPointers() && fparam.type.ty != Ttuple)
+                if (fparam.storageClass & STC.scope_ && !fparam.type.hasPointers() && fparam.type.ty != Ttuple)
                 {
-                    fparam.storageClass &= ~STCscope;
-                    if (!(fparam.storageClass & STCref))
-                        fparam.storageClass &= ~STCreturn;
+                    fparam.storageClass &= ~STC.scope_;
+                    if (!(fparam.storageClass & STC.ref_))
+                        fparam.storageClass &= ~STC.return_;
                 }
 
                 if (t.hasWild())
@@ -941,7 +941,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 if (fparam.defaultArg)
                 {
                     Expression e = fparam.defaultArg;
-                    if (fparam.storageClass & (STCref | STCout))
+                    if (fparam.storageClass & (STC.ref_ | STC.out_))
                     {
                         e = e.expressionSemantic(argsc);
                         e = resolveProperties(argsc, e);
@@ -966,7 +966,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                     e = e.implicitCastTo(argsc, fparam.type);
 
                     // default arg must be an lvalue
-                    if (fparam.storageClass & (STCout | STCref))
+                    if (fparam.storageClass & (STC.out_ | STC.ref_))
                         e = e.toLvalue(argsc, e);
 
                     fparam.defaultArg = e;
@@ -1002,17 +1002,17 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                             // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
                             StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STCref | STCout | STClazy);
-                            StorageClass stc2 =   narg.storageClass & (STCref | STCout | STClazy);
+                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
-                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STCref) ? (fparam.storageClass & STCauto) : 0));
+                                OutBuffer buf1;  stcToBuffer(&buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
                                 OutBuffer buf2;  stcToBuffer(&buf2, stc2);
 
                                 mtype.error(loc, "incompatible parameter storage classes `%s` and `%s`",
                                     buf1.peekString(), buf2.peekString());
                                 errors = true;
-                                stc = stc1 | (stc & ~(STCref | STCout | STClazy));
+                                stc = stc1 | (stc & ~(STC.ref_ | STC.out_ | STC.lazy_));
                             }
 
                             (*newparams)[j] = new Parameter(
@@ -1033,9 +1033,9 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 /* Resolve "auto ref" storage class to be either ref or value,
                  * based on the argument matching the parameter
                  */
-                if (fparam.storageClass & STCauto)
+                if (fparam.storageClass & STC.auto_)
                 {
-                    if (mtype.fargs && i < mtype.fargs.dim && (fparam.storageClass & STCref))
+                    if (mtype.fargs && i < mtype.fargs.dim && (fparam.storageClass & STC.ref_))
                     {
                         Expression farg = (*mtype.fargs)[i];
                         if (farg.isLvalue())
@@ -1043,9 +1043,9 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                             // ref parameter
                         }
                         else
-                            fparam.storageClass &= ~STCref; // value parameter
-                        fparam.storageClass &= ~STCauto;    // https://issues.dlang.org/show_bug.cgi?id=14656
-                        fparam.storageClass |= STCautoref;
+                            fparam.storageClass &= ~STC.ref_; // value parameter
+                        fparam.storageClass &= ~STC.auto_;    // https://issues.dlang.org/show_bug.cgi?id=14656
+                        fparam.storageClass |= STC.autoref;
                     }
                     else
                     {
@@ -1055,7 +1055,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 }
 
                 // Remove redundant storage classes for type, they are already applied
-                fparam.storageClass &= ~(STC_TYPECTOR | STCin);
+                fparam.storageClass &= ~(STC.TYPECTOR | STC.in_);
             }
             argsc.pop();
         }

@@ -510,9 +510,9 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         {
             // Assume the worst
             result = BE.fallthru | BE.return_ | BE.goto_ | BE.halt;
-            if (!(s.stc & STCnothrow))
+            if (!(s.stc & STC.nothrow_))
             {
-                if (mustNotThrow && !(s.stc & STCnothrow))
+                if (mustNotThrow && !(s.stc & STC.nothrow_))
                     s.deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
                 else
                     result |= BE.throw_;

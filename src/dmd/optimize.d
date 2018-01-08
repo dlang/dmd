@@ -52,20 +52,20 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
         return e;
     if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
         v.dsymbolSemantic(null);
-    if (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest)
+    if (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest)
     {
         if (!v.type)
         {
             return e;
         }
         Type tb = v.type.toBasetype();
-        if (v.storage_class & STCmanifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
+        if (v.storage_class & STC.manifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
             {
                 if (v.inuse)
                 {
-                    if (v.storage_class & STCmanifest)
+                    if (v.storage_class & STC.manifest)
                     {
                         v.error("recursive initialization of constant");
                         return errorReturn();
@@ -75,7 +75,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                 Expression ei = v.getConstInitializer();
                 if (!ei)
                 {
-                    if (v.storage_class & STCmanifest)
+                    if (v.storage_class & STC.manifest)
                     {
                         v.error("enum cannot be initialized with `%s`", v._init.toChars());
                         return errorReturn();
@@ -113,7 +113,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                     else
                         goto L1;
                 }
-                else if (!(v.storage_class & STCmanifest) && ei.isConst() != 1 && ei.op != TOKstring && ei.op != TOKaddress)
+                else if (!(v.storage_class & STC.manifest) && ei.isConst() != 1 && ei.op != TOKstring && ei.op != TOKaddress)
                 {
                     goto L1;
                 }
@@ -248,7 +248,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (keepLvalue)
             {
                 VarDeclaration v = e.var.isVarDeclaration();
-                if (v && !(v.storage_class & STCmanifest))
+                if (v && !(v.storage_class & STC.manifest))
                     return;
             }
             ret = fromConstInitializer(result, e);
@@ -535,7 +535,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
                     Parameter p = Parameter.getNth(tf.parameters, i);
-                    bool keep = p && (p.storageClass & (STCref | STCout)) != 0;
+                    bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
             }
@@ -925,7 +925,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.e1.op == TOKvar)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                if (v && (v.storage_class & STCstatic) && (v.storage_class & STCimmutable) && v._init)
+                if (v && (v.storage_class & STC.static_) && (v.storage_class & STC.immutable_) && v._init)
                 {
                     if (Expression ci = v.getConstInitializer())
                         e.e1 = ci;
@@ -997,7 +997,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             Expression dollar = new IntegerExp(Loc(), len, Type.tsize_t);
             lengthVar._init = new ExpInitializer(Loc(), dollar);
-            lengthVar.storage_class |= STCstatic | STCconst;
+            lengthVar.storage_class |= STC.static_ | STC.const_;
         }
 
         override void visit(IndexExp e)

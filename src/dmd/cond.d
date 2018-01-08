@@ -227,7 +227,7 @@ extern (C++) final class StaticForeach : RootObject
     {   // TODO: move to druntime?
         auto sid = Identifier.generateId("Tuple");
         auto sdecl = new StructDeclaration(loc, sid, false);
-        sdecl.storage_class |= STCstatic;
+        sdecl.storage_class |= STC.static_;
         sdecl.members = new Dsymbols();
         auto fid = Identifier.idPool(tupleFieldName.ptr, tupleFieldName.length);
         auto ty = new TypeTypeof(loc, new TupleExp(loc, e));

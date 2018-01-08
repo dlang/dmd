@@ -1134,7 +1134,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
                 if (d.isImmutable())
                     buf.writestring("immutable ");
-                if (d.storage_class & STCshared)
+                if (d.storage_class & STC.shared_)
                     buf.writestring("shared ");
                 if (d.isWild())
                     buf.writestring("inout ");
@@ -1144,12 +1144,12 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (d.isSynchronized())
                     buf.writestring("synchronized ");
 
-                if (d.storage_class & STCmanifest)
+                if (d.storage_class & STC.manifest)
                     buf.writestring("enum ");
 
                 // Add "auto" for the untyped variable in template members
                 if (!d.type && d.isVarDeclaration() &&
-                    !d.isImmutable() && !(d.storage_class & STCshared) && !d.isWild() && !d.isConst() &&
+                    !d.isImmutable() && !(d.storage_class & STC.shared_) && !d.isWild() && !d.isConst() &&
                     !d.isSynchronized())
                 {
                     buf.writestring("auto ");

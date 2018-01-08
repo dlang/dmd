@@ -520,7 +520,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.isFinalClass)
     {
         return isTypeX(t => t.toBasetype().ty == Tclass &&
-                            ((cast(TypeClass)t.toBasetype()).sym.storage_class & STCfinal) != 0);
+                            ((cast(TypeClass)t.toBasetype()).sym.storage_class & STC.final_) != 0);
     }
     if (e.ident == Id.isTemplate)
     {
@@ -639,7 +639,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        return isDeclX(d => (d.storage_class & STClazy) != 0);
+        return isDeclX(d => (d.storage_class & STC.lazy_) != 0);
     }
     if (e.ident == Id.identifier)
     {
@@ -1132,7 +1132,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         // This mirrors hdrgen.visit(Parameter p)
         if (p.type && p.type.mod & MODshared)
-            stc &= ~STCshared;
+            stc &= ~STC.shared_;
 
         auto exps = new Expressions;
 
@@ -1141,31 +1141,31 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             exps.push(new StringExp(e.loc, cast(char*)s.ptr, cast(uint)s.length));
         }
 
-        if (stc & STCauto)
+        if (stc & STC.auto_)
             push("auto");
-        if (stc & STCreturn)
+        if (stc & STC.return_)
             push("return");
 
-        if (stc & STCout)
+        if (stc & STC.out_)
             push("out");
-        else if (stc & STCref)
+        else if (stc & STC.ref_)
             push("ref");
-        else if (stc & STCin)
+        else if (stc & STC.in_)
             push("in");
-        else if (stc & STClazy)
+        else if (stc & STC.lazy_)
             push("lazy");
-        else if (stc & STCalias)
+        else if (stc & STC.alias_)
             push("alias");
 
-        if (stc & STCconst)
+        if (stc & STC.const_)
             push("const");
-        if (stc & STCimmutable)
+        if (stc & STC.immutable_)
             push("immutable");
-        if (stc & STCwild)
+        if (stc & STC.wild)
             push("inout");
-        if (stc & STCshared)
+        if (stc & STC.shared_)
             push("shared");
-        if (stc & STCscope && !(stc & STCscopeinferred))
+        if (stc & STC.scope_ && !(stc & STC.scopeinferred))
             push("scope");
 
         auto tup = new TupleExp(e.loc, exps);
@@ -1243,7 +1243,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             // skip local symbols, such as static foreach loop variables
             if (auto decl = sm.isDeclaration())
             {
-                if (decl.storage_class & STClocal)
+                if (decl.storage_class & STC.local)
                 {
                     return 0;
                 }

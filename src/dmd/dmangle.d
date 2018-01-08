@@ -1058,29 +1058,29 @@ public:
 
     override void visit(Parameter p)
     {
-        if (p.storageClass & STCscope && !(p.storageClass & STCscopeinferred))
+        if (p.storageClass & STC.scope_ && !(p.storageClass & STC.scopeinferred))
             buf.writeByte('M');
         // 'return inout ref' is the same as 'inout ref'
-        if ((p.storageClass & (STCreturn | STCwild)) == STCreturn)
+        if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_)
             buf.writestring("Nk");
-        switch (p.storageClass & (STCin | STCout | STCref | STClazy))
+        switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
         {
         case 0:
-        case STCin:
+        case STC.in_:
             break;
-        case STCout:
+        case STC.out_:
             buf.writeByte('J');
             break;
-        case STCref:
+        case STC.ref_:
             buf.writeByte('K');
             break;
-        case STClazy:
+        case STC.lazy_:
             buf.writeByte('L');
             break;
         default:
             debug
             {
-                printf("storageClass = x%llx\n", p.storageClass & (STCin | STCout | STCref | STClazy));
+                printf("storageClass = x%llx\n", p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_));
             }
             assert(0);
         }

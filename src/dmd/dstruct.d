@@ -552,7 +552,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         for (size_t i = 0; i < fields.dim; i++)
         {
             VarDeclaration v = fields[i];
-            if (v.storage_class & STCref)
+            if (v.storage_class & STC.ref_)
             {
                 ispod = ISPODno;
                 break;

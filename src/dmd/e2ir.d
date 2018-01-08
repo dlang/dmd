@@ -90,7 +90,7 @@ void* mem_malloc2(uint);
 bool ISREF(Declaration var)
 {
     return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc()) > REGSIZE || var.storage_class & STClazy))
+            (var.type.size(Loc()) > REGSIZE || var.storage_class & STC.lazy_))
             || var.isOut() || var.isRef();
 }
 
@@ -99,7 +99,7 @@ bool ISREF(Declaration var)
 bool ISWIN64REF(Declaration var)
 {
     return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc()) > REGSIZE || var.storage_class & STClazy))
+            (var.type.size(Loc()) > REGSIZE || var.storage_class & STC.lazy_))
             && !(var.isOut() || var.isRef());
 }
 
@@ -208,7 +208,7 @@ private elem *callfunc(Loc loc,
             {
                 Parameter p = Parameter.getNth(tf.parameters, i - j);
 
-                if (p.storageClass & (STCout | STCref))
+                if (p.storageClass & (STC.out_ | STC.ref_))
                 {
                     // Convert argument to a pointer
                     ea = addressElem(ea, arg.type.pointerTo());
@@ -1250,7 +1250,7 @@ elem *toElem(Expression e, IRState *irs)
                 }
 
                 tym_t tym;
-                if (se.var.storage_class & STClazy)
+                if (se.var.storage_class & STC.lazy_)
                     tym = TYdelegate;       // Tdelegate as C type
                 else if (tb.ty == Tfunction)
                     tym = s.Stype.Tty;
@@ -2829,7 +2829,7 @@ elem *toElem(Expression e, IRState *irs)
 
                 VarExp ve = cast(VarExp)ae.e1;
                 Declaration d = ve.var;
-                if (d.storage_class & (STCout | STCref))
+                if (d.storage_class & (STC.out_ | STC.ref_))
                 {
                     e = toElem(ae.e2, irs);
                     e = addressElem(e, ae.e2.type);
@@ -2874,7 +2874,7 @@ elem *toElem(Expression e, IRState *irs)
             }
 
             // inlining may generate lazy variable initialization
-            if (ae.e1.op == TOKvar && ((cast(VarExp)ae.e1).var.storage_class & STClazy))
+            if (ae.e1.op == TOKvar && ((cast(VarExp)ae.e1).var.storage_class & STC.lazy_))
             {
                 assert(ae.op == TOKconstruct || ae.op == TOKblit);
                 e = el_bin(OPeq, tym, e1, toElem(ae.e2, irs));
@@ -3538,7 +3538,7 @@ elem *toElem(Expression e, IRState *irs)
             if (tb1.ty != Tclass && tb1.ty != Tpointer)
                 e = addressElem(e, tb1);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
-            if (v.storage_class & (STCout | STCref))
+            if (v.storage_class & (STC.out_ | STC.ref_))
                 e = el_una(OPind, TYnptr, e);
             e = el_una(OPind, totym(dve.type), e);
             if (tybasic(e.Ety) == TYstruct)
@@ -4822,7 +4822,7 @@ elem *toElem(Expression e, IRState *irs)
                         }
                         else if (t1.ty == Tarray)
                         {
-                            if (se.lengthVar && !(se.lengthVar.storage_class & STCconst))
+                            if (se.lengthVar && !(se.lengthVar.storage_class & STC.const_))
                                 elen = el_var(toSymbol(se.lengthVar));
                             else
                             {
@@ -5136,9 +5136,9 @@ elem *toElem(Expression e, IRState *irs)
                 s = s.toAlias();
                 if (s != vd)
                     return Dsymbol_toElem(s);
-                if (vd.storage_class & STCmanifest)
+                if (vd.storage_class & STC.manifest)
                     return null;
-                else if (vd.isStatic() || vd.storage_class & (STCextern | STCtls | STCgshared))
+                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
                     toObjFile(vd, false);
                 else
                 {

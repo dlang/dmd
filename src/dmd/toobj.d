@@ -515,7 +515,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             dtb.size(0);            // null for now, fix later
 
             // defaultConstructor
-            if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STCdisable))
+            if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable))
                 dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
             else
                 dtb.size(0);
@@ -905,7 +905,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (!vd.isDataseg() || vd.storage_class & STCextern)
+            if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
 
             Symbol *s = toSymbol(vd);

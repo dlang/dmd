@@ -1362,7 +1362,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         // xpostblit
         FuncDeclaration spostblit = sd.postblit;
-        if (spostblit && !(spostblit.storage_class & STCdisable))
+        if (spostblit && !(spostblit.storage_class & STC.disable))
             dtb.xoff(toSymbol(spostblit), 0);
         else
             dtb.size(0);                     // xpostblit

@@ -74,9 +74,9 @@ public:
         {
             Parameter p = Parameter.getNth(t.parameters, i);
             type* tp = Type_toCtype(p.type);
-            if (p.storageClass & (STCout | STCref))
+            if (p.storageClass & (STC.out_ | STC.ref_))
                 tp = type_allocn(TYnref, tp);
-            else if (p.storageClass & STClazy)
+            else if (p.storageClass & STC.lazy_)
             {
                 // Mangle as delegate
                 type* tf = type_function(TYnfunc, null, 0, false, tp);

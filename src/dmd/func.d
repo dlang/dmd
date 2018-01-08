@@ -263,7 +263,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             // Normalize storage_class, because function-type related attributes
             // are already set in the 'type' in parsing phase.
-            this.storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
+            this.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
         }
         this.loc = loc;
         this.endloc = endloc;
@@ -339,7 +339,7 @@ extern (C++) class FuncDeclaration : Declaration
                 return functionSemantic3() || !errors;
         }
 
-        if (storage_class & STCinference)
+        if (storage_class & STC.inference)
             return functionSemantic3() || !errors;
 
         return !errors;
@@ -410,24 +410,24 @@ extern (C++) class FuncDeclaration : Declaration
             thandle = thandle.addMod(type.mod);
             thandle = thandle.addStorageClass(storage_class);
             VarDeclaration v = new ThisDeclaration(loc, thandle);
-            v.storage_class |= STCparameter;
+            v.storage_class |= STC.parameter;
             if (thandle.ty == Tstruct)
             {
-                v.storage_class |= STCref;
+                v.storage_class |= STC.ref_;
                 // if member function is marked 'inout', then 'this' is 'return ref'
                 if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
-                    v.storage_class |= STCreturn;
+                    v.storage_class |= STC.return_;
             }
             if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
                 if (tf.isreturn)
-                    v.storage_class |= STCreturn;
+                    v.storage_class |= STC.return_;
                 if (tf.isscope)
-                    v.storage_class |= STCscope;
+                    v.storage_class |= STC.scope_;
             }
-            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STCscope))
-                v.storage_class |= STCmaybescope;
+            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STC.scope_))
+                v.storage_class |= STC.maybescope;
 
             v.dsymbolSemantic(sc);
             if (!sc.insert(v))
@@ -442,17 +442,17 @@ extern (C++) class FuncDeclaration : Declaration
              * Note that nested functions and member functions are disjoint.
              */
             VarDeclaration v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
-            v.storage_class |= STCparameter;
+            v.storage_class |= STC.parameter;
             if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
                 if (tf.isreturn)
-                    v.storage_class |= STCreturn;
+                    v.storage_class |= STC.return_;
                 if (tf.isscope)
-                    v.storage_class |= STCscope;
+                    v.storage_class |= STC.scope_;
             }
-            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STCscope))
-                v.storage_class |= STCmaybescope;
+            if (flags & FUNCFLAG.inferScope && !(v.storage_class & STC.scope_))
+                v.storage_class |= STC.maybescope;
 
             v.dsymbolSemantic(sc);
             if (!sc.insert(v))
@@ -925,7 +925,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             Parameter p = Parameter.getNth(tf.parameters, u);
             Expression e;
-            if (p.storageClass & (STCref | STCout))
+            if (p.storageClass & (STC.ref_ | STC.out_))
             {
                 e = new IdentifierExp(Loc(), p.ident);
                 e.type = p.type;
@@ -1125,14 +1125,14 @@ extern (C++) class FuncDeclaration : Declaration
      */
     override final bool isAbstract()
     {
-        if (storage_class & STCabstract)
+        if (storage_class & STC.abstract_)
             return true;
         if (semanticRun >= PASSsemanticdone)
             return false;
 
         if (_scope)
         {
-           if (_scope.stc & STCabstract)
+           if (_scope.stc & STC.abstract_)
                 return true;
            parent = _scope.parent;
            Dsymbol parent = toParent();
@@ -1162,7 +1162,7 @@ extern (C++) class FuncDeclaration : Declaration
             return true;
 
         if (isFuncLiteralDeclaration() ||               // externs are not possible with literals
-            (storage_class & STCinference) ||           // do attribute inference
+            (storage_class & STC.inference) ||           // do attribute inference
             (inferRetType && !isCtorDeclaration()))
             return true;
 
@@ -1198,7 +1198,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!isVirtual() || introducing)
             flags |= FUNCFLAG.returnInprocess;
 
-        // Initialize for inferring STCscope
+        // Initialize for inferring STC.scope_
         if (global.params.vsafe)
             flags |= FUNCFLAG.inferScope;
     }
@@ -1440,7 +1440,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (!tp)
                 continue;
 
-            if (fparam.storageClass & (STClazy | STCout | STCref))
+            if (fparam.storageClass & (STC.lazy_ | STC.out_ | STC.ref_))
             {
                 if (!traverseIndirections(tp, t))
                     return false;
@@ -1509,7 +1509,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         auto f = toAliasFunc();
         //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
-        return ((f.storage_class & STCstatic) == 0) &&
+        return ((f.storage_class & STC.static_) == 0) &&
                 (f.linkage == LINKd) &&
                 (f.toParent2().isFuncDeclaration() !is null);
     }
@@ -1525,7 +1525,7 @@ extern (C++) class FuncDeclaration : Declaration
     override AggregateDeclaration isThis()
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        auto ad = (storage_class & STCstatic) ? null : isMember2();
+        auto ad = (storage_class & STC.static_) ? null : isMember2();
         //printf("-FuncDeclaration::isThis() %p\n", ad);
         return ad;
     }
@@ -1578,12 +1578,12 @@ extern (C++) class FuncDeclaration : Declaration
         version (none)
         {
             printf("FuncDeclaration::isFinalFunc(%s), %x\n", toChars(), Declaration.isFinal());
-            printf("%p %d %d %d\n", isMember(), isStatic(), Declaration.isFinal(), ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal));
-            printf("result is %d\n", isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal)));
+            printf("%p %d %d %d\n", isMember(), isStatic(), Declaration.isFinal(), ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STC.final_));
+            printf("result is %d\n", isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STC.final_)));
             if (cd)
                 printf("\tmember of %s\n", cd.toChars());
         }
-        return isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STCfinal));
+        return isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STC.final_));
     }
 
     bool addPreInvariant()
@@ -1907,13 +1907,13 @@ extern (C++) class FuncDeclaration : Declaration
              * fbody.dsymbolSemantic() running, vresult.type might be modified.
              */
             vresult = new VarDeclaration(loc, tret, outId ? outId : Id.result, null);
-            vresult.storage_class |= STCnodtor;
+            vresult.storage_class |= STC.nodtor;
 
             if (outId == Id.result)
-                vresult.storage_class |= STCtemp;
+                vresult.storage_class |= STC.temp;
             if (!isVirtual())
-                vresult.storage_class |= STCconst;
-            vresult.storage_class |= STCresult;
+                vresult.storage_class |= STC.const_;
+            vresult.storage_class |= STC.result;
 
             // set before the semantic() for checkNestedReference()
             vresult.parent = this;
@@ -1923,7 +1923,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             TypeFunction tf = type.toTypeFunction();
             if (tf.isref)
-                vresult.storage_class |= STCref;
+                vresult.storage_class |= STC.ref_;
             vresult.type = tret;
 
             vresult.dsymbolSemantic(sc);
@@ -1982,7 +1982,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
-                sc.stc &= ~STCoverride;
+                sc.stc &= ~STC.override_;
                 fdv.semantic3(sc);
                 sc.pop();
             }
@@ -2056,7 +2056,7 @@ extern (C++) class FuncDeclaration : Declaration
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
-            auto fd = new FuncDeclaration(loc, loc, Id.require, STCundefined, tf);
+            auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined_, tf);
             fd.fbody = frequire;
             Statement s1 = new ExpStatement(loc, fd);
             Expression e = new CallExp(loc, new VarExp(loc, fd, false), cast(Expressions*)null);
@@ -2080,7 +2080,7 @@ extern (C++) class FuncDeclaration : Declaration
             Parameter p = null;
             if (outId)
             {
-                p = new Parameter(STCref | STCconst, f.nextOf(), outId, null);
+                p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), outId, null);
                 fparams.push(p);
             }
             auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
@@ -2088,7 +2088,7 @@ extern (C++) class FuncDeclaration : Declaration
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
             tf.trust = f.trust;
-            auto fd = new FuncDeclaration(loc, loc, Id.ensure, STCundefined, tf);
+            auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
             fd.fbody = fensure;
             Statement s1 = new ExpStatement(loc, fd);
             Expression eresult = null;
@@ -2127,7 +2127,7 @@ extern (C++) class FuncDeclaration : Declaration
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
-                sc.stc &= ~STCoverride;
+                sc.stc &= ~STC.override_;
                 fdv.semantic3(sc);
                 sc.pop();
             }
@@ -2153,7 +2153,7 @@ extern (C++) class FuncDeclaration : Declaration
                          */
                         auto ei = new ExpInitializer(Loc(), eresult);
                         auto v = new VarDeclaration(Loc(), t1, Identifier.generateId("__covres"), ei);
-                        v.storage_class |= STCtemp;
+                        v.storage_class |= STC.temp;
                         auto de = new DeclarationExp(Loc(), v);
                         auto ve = new VarExp(Loc(), v);
                         eresult = new CommaExp(Loc(), de, ve);
@@ -2225,7 +2225,7 @@ extern (C++) class FuncDeclaration : Declaration
         else
         {
             tf = new TypeFunction(fparams, treturn, 0, LINKc, stc);
-            fd = new FuncDeclaration(Loc(), Loc(), id, STCstatic, tf);
+            fd = new FuncDeclaration(Loc(), Loc(), id, STC.static_, tf);
             fd.protection = Prot(PROTpublic);
             fd.linkage = LINKc;
 
@@ -2250,7 +2250,7 @@ extern (C++) class FuncDeclaration : Declaration
             if (t.ty != Tarray ||
                 t.nextOf().ty != Tarray ||
                 t.nextOf().nextOf().ty != Tchar ||
-                fparam0.storageClass & (STCout | STCref | STClazy))
+                fparam0.storageClass & (STC.out_ | STC.ref_ | STC.lazy_))
             {
                 argerr = true;
             }
@@ -2929,7 +2929,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 
     extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {
-        super(loc, endloc, null, STCundefined, type);
+        super(loc, endloc, null, STC.undefined_, type);
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
@@ -3157,7 +3157,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 {
     extern (D) this(Loc loc, Loc endloc)
     {
-        super(loc, endloc, Id.dtor, STCundefined, null);
+        super(loc, endloc, Id.dtor, STC.undefined_, null);
     }
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
@@ -3220,12 +3220,12 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId("_staticCtor"), STCstatic | stc, null);
+        super(loc, endloc, Identifier.generateId("_staticCtor"), STC.static_ | stc, null);
     }
 
     final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
+        super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3306,12 +3306,12 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
 
     final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId("_staticDtor"), STCstatic | stc, null);
+        super(loc, endloc, Identifier.generateId("_staticDtor"), STC.static_ | stc, null);
     }
 
     final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
     {
-        super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
+        super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -3522,7 +3522,7 @@ extern (C++) final class NewDeclaration : FuncDeclaration
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
     {
-        super(loc, endloc, Id.classNew, STCstatic | stc, null);
+        super(loc, endloc, Id.classNew, STC.static_ | stc, null);
         this.parameters = fparams;
         this.varargs = varargs;
     }
@@ -3573,7 +3573,7 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
     {
-        super(loc, endloc, Id.classDelete, STCstatic | stc, null);
+        super(loc, endloc, Id.classDelete, STC.static_ | stc, null);
         this.parameters = fparams;
     }
 

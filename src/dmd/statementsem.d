@@ -605,12 +605,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
      *  - ForwardingStatement, for `static foreach` statements.
      *  - ForwardingAttribDeclaration, for `static foreach` declarations.
      *
-     * `static foreach` variables are declared as `STClocal`, such
+     * `static foreach` variables are declared as `STC.local`, such
      * that they are inserted into the local symbol tables of the
      * forwarding constructs instead of forwarded. For `static
      * foreach` with multiple foreach loop variables whose aggregate
      * has been lowered into a sequence of tuples, this function
-     * expands the tuples into multiple `STClocal` `static foreach`
+     * expands the tuples into multiple `STC.local` `static foreach`
      * variables.
      */
     MakeTupleForeachRet!isDecl makeTupleForeach(bool isStatic, bool isDecl)(ForeachStatement fs, TupleForeachArgs!(isStatic, isDecl) args)
@@ -710,7 +710,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (!skip && dim == 2)
             {
                 // Declare key
-                if (p.storageClass & (STCout | STCref | STClazy))
+                if (p.storageClass & (STC.out_ | STC.ref_ | STC.lazy_))
                 {
                     fs.error("no storage class for key `%s`", p.ident.toChars());
                     setError();
@@ -745,8 +745,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);
-                var.storage_class |= STCmanifest;
-                static if(isStatic) var.storage_class |= STClocal;
+                var.storage_class |= STC.manifest;
+                static if(isStatic) var.storage_class |= STC.local;
                 static if(!isDecl)
                 {
                     st.push(new ExpStatement(loc, var));
@@ -771,8 +771,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
              */
             bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
             {
-                if (storageClass & (STCout | STClazy) ||
-                    storageClass & STCref && !te)
+                if (storageClass & (STC.out_ | STC.lazy_) ||
+                    storageClass & STC.ref_ && !te)
                 {
                     fs.error("no storage class for value `%s`", ident.toChars());
                     setError();
@@ -783,9 +783,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     Type tb = e.type.toBasetype();
                     Dsymbol ds = null;
-                    if (!(storageClass & STCmanifest))
+                    if (!(storageClass & STC.manifest))
                     {
-                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STCalias) && e.op == TOKvar)
+                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STC.alias_) && e.op == TOKvar)
                             ds = (cast(VarExp)e).var;
                         else if (e.op == TOKtemplate)
                             ds = (cast(TemplateExp)e).td;
@@ -797,7 +797,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                         }
                     }
-                    else if (storageClass & STCalias)
+                    else if (storageClass & STC.alias_)
                     {
                         fs.error("foreach loop variable cannot be both enum and alias");
                         setError();
@@ -807,7 +807,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (ds)
                     {
                         var = new AliasDeclaration(loc, ident, ds);
-                        if (storageClass & STCref)
+                        if (storageClass & STC.ref_)
                         {
                             fs.error("symbol `%s` cannot be ref", ds.toChars());
                             setError();
@@ -838,14 +838,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             type = paramtype;
                         Initializer ie = new ExpInitializer(Loc(), e);
                         auto v = new VarDeclaration(loc, type, ident, ie);
-                        if (storageClass & STCref)
-                            v.storage_class |= STCref | STCforeach;
-                        if (isStatic || storageClass&STCmanifest || e.isConst() ||
+                        if (storageClass & STC.ref_)
+                            v.storage_class |= STC.ref_ | STC.foreach_;
+                        if (isStatic || storageClass&STC.manifest || e.isConst() ||
                             e.op == TOKstring ||
                             e.op == TOKstructliteral ||
                             e.op == TOKarrayliteral)
                         {
-                            if (v.storage_class & STCref)
+                            if (v.storage_class & STC.ref_)
                             {
                                 static if (!isStatic)
                                 {
@@ -866,7 +866,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                                 return false;
                             }
                             else
-                                v.storage_class |= STCmanifest;
+                                v.storage_class |= STC.manifest;
                         }
                         var = v;
                     }
@@ -883,7 +883,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 static if (isStatic)
                 {
-                    var.storage_class |= STClocal;
+                    var.storage_class |= STC.local;
                 }
                 static if (!isDecl)
                 {
@@ -1025,7 +1025,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         {
             // https://issues.dlang.org/show_bug.cgi?id=14653
             // Extend the life of rvalue aggregate till the end of foreach.
-            vinit = copyToTemp(STCrvalue, "__aggr", fs.aggr);
+            vinit = copyToTemp(STC.rvalue, "__aggr", fs.aggr);
             vinit.endlinnum = fs.endloc.linnum;
             vinit.dsymbolSemantic(sc);
             fs.aggr = new VarExp(fs.aggr.loc, vinit);
@@ -1111,11 +1111,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         foreach (i; 0 .. dim)
         {
             Parameter p = (*fs.parameters)[i];
-            if (p.storageClass & STCmanifest)
+            if (p.storageClass & STC.manifest)
             {
                 fs.error("cannot declare enum loop variables for non-unrolled foreach");
             }
-            if (p.storageClass & STCalias)
+            if (p.storageClass & STC.alias_)
             {
                 fs.error("cannot declare alias loop variables for non-unrolled foreach");
             }
@@ -1152,7 +1152,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tnv.ty != tn.ty &&
                         (tnv.ty == Tchar || tnv.ty == Twchar || tnv.ty == Tdchar))
                     {
-                        if (p.storageClass & STCref)
+                        if (p.storageClass & STC.ref_)
                         {
                             fs.error("foreach: value of UTF conversion cannot be ref");
                             goto case Terror;
@@ -1160,7 +1160,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (dim == 2)
                         {
                             p = (*fs.parameters)[0];
-                            if (p.storageClass & STCref)
+                            if (p.storageClass & STC.ref_)
                             {
                                 fs.error("foreach: key cannot be ref");
                                 goto case Terror;
@@ -1181,12 +1181,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (dim == 2 && i == 0)
                     {
                         var = new VarDeclaration(loc, p.type.mutableOf(), Identifier.generateId("__key"), null);
-                        var.storage_class |= STCtemp | STCforeach;
-                        if (var.storage_class & (STCref | STCout))
-                            var.storage_class |= STCnodtor;
+                        var.storage_class |= STC.temp | STC.foreach_;
+                        if (var.storage_class & (STC.ref_ | STC.out_))
+                            var.storage_class |= STC.nodtor;
 
                         fs.key = var;
-                        if (p.storageClass & STCref)
+                        if (p.storageClass & STC.ref_)
                         {
                             if (var.type.constConv(p.type) <= MATCH.nomatch)
                             {
@@ -1211,16 +1211,16 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     else
                     {
                         var = new VarDeclaration(loc, p.type, p.ident, null);
-                        var.storage_class |= STCforeach;
-                        var.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
-                        if (var.storage_class & (STCref | STCout))
-                            var.storage_class |= STCnodtor;
+                        var.storage_class |= STC.foreach_;
+                        var.storage_class |= p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.TYPECTOR);
+                        if (var.storage_class & (STC.ref_ | STC.out_))
+                            var.storage_class |= STC.nodtor;
 
                         fs.value = var;
-                        if (var.storage_class & STCref)
+                        if (var.storage_class & STC.ref_)
                         {
                             if (fs.aggr.checkModifiable(sc2, 1) == 2)
-                                var.storage_class |= STCctorinit;
+                                var.storage_class |= STC.ctorinit;
 
                             Type t = tab.nextOf();
                             if (t.constConv(p.type) <= MATCH.nomatch)
@@ -1246,7 +1246,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
                 VarDeclaration tmp;
                 if (fs.aggr.op == TOKarrayliteral &&
-                    !((*fs.parameters)[dim - 1].storageClass & STCref))
+                    !((*fs.parameters)[dim - 1].storageClass & STC.ref_))
                 {
                     auto ale = cast(ArrayLiteralExp)fs.aggr;
                     size_t edim = ale.elements ? ale.elements.dim : 0;
@@ -1264,7 +1264,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 else
                     tmp = new VarDeclaration(loc, tab.nextOf().arrayOf(), id, ie);
-                tmp.storage_class |= STCtemp;
+                tmp.storage_class |= STC.temp;
 
                 Expression tmp_length = new DotIdExp(loc, new VarExp(loc, tmp), Id.length);
 
@@ -1272,7 +1272,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     Identifier idkey = Identifier.generateId("__key");
                     fs.key = new VarDeclaration(loc, Type.tsize_t, idkey, null);
-                    fs.key.storage_class |= STCtemp;
+                    fs.key.storage_class |= STC.temp;
                 }
                 if (fs.op == TOKforeach_reverse)
                     fs.key._init = new ExpInitializer(loc, tmp_length);
@@ -1314,7 +1314,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 if (dim == 2)
                 {
                     Parameter p = (*fs.parameters)[0];
-                    if ((p.storageClass & STCref) && p.type.equals(fs.key.type))
+                    if ((p.storageClass & STC.ref_) && p.type.equals(fs.key.type))
                     {
                         fs.key.range = null;
                         auto v = new AliasDeclaration(loc, p.ident, fs.key);
@@ -1324,7 +1324,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         auto ei = new ExpInitializer(loc, new IdentifierExp(loc, fs.key.ident));
                         auto v = new VarDeclaration(loc, p.type, p.ident, ei);
-                        v.storage_class |= STCforeach | (p.storageClass & STCref);
+                        v.storage_class |= STC.foreach_ | (p.storageClass & STC.ref_);
                         fs._body = new CompoundStatement(loc, new ExpStatement(loc, v), fs._body);
                         if (fs.key.range && !p.type.isMutable())
                         {
@@ -1432,14 +1432,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     auto p = (*fs.parameters)[0];
                     auto ve = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, einit));
-                    ve.storage_class |= STCforeach;
-                    ve.storage_class |= p.storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+                    ve.storage_class |= STC.foreach_;
+                    ve.storage_class |= p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.TYPECTOR);
 
                     makeargs = new ExpStatement(loc, ve);
                 }
                 else
                 {
-                    auto vd = copyToTemp(STCref, "__front", einit);
+                    auto vd = copyToTemp(STC.ref_, "__front", einit);
                     vd.dsymbolSemantic(sc);
                     makeargs = new ExpStatement(loc, vd);
 
@@ -1510,7 +1510,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             goto Lrangeerr;
 
                         auto var = new VarDeclaration(loc, p.type, p.ident, new ExpInitializer(loc, exp));
-                        var.storage_class |= STCctfe | STCref | STCforeach;
+                        var.storage_class |= STC.ctfe | STC.ref_ | STC.foreach_;
                         makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, var));
                     }
                 }
@@ -1583,7 +1583,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 foreach (i; 0 .. dim)
                 {
                     Parameter p = (*fs.parameters)[i];
-                    StorageClass stc = STCref;
+                    StorageClass stc = STC.ref_;
                     Identifier id;
 
                     p.type = p.type.typeSemantic(loc, sc2);
@@ -1591,10 +1591,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tfld)
                     {
                         Parameter prm = Parameter.getNth(tfld.parameters, i);
-                        //printf("\tprm = %s%s\n", (prm.storageClass&STCref?"ref ":"").ptr, prm.ident.toChars());
-                        stc = prm.storageClass & STCref;
+                        //printf("\tprm = %s%s\n", (prm.storageClass&STC.ref_?"ref ":"").ptr, prm.ident.toChars());
+                        stc = prm.storageClass & STC.ref_;
                         id = p.ident; // argument copy is not need.
-                        if ((p.storageClass & STCref) != stc)
+                        if ((p.storageClass & STC.ref_) != stc)
                         {
                             if (!stc)
                             {
@@ -1604,7 +1604,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             goto LcopyArg;
                         }
                     }
-                    else if (p.storageClass & STCref)
+                    else if (p.storageClass & STC.ref_)
                     {
                         // default delegate parameters are marked as ref, then
                         // argument copy is not need.
@@ -1619,7 +1619,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                         Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
                         auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
-                        v.storage_class |= STCtemp;
+                        v.storage_class |= STC.temp;
                         s = new ExpStatement(Loc(), v);
                         fs._body = new CompoundStatement(loc, s, fs._body);
                     }
@@ -1627,7 +1627,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 }
                 // https://issues.dlang.org/show_bug.cgi?id=13840
                 // Throwable nested function inside nothrow function is acceptable.
-                StorageClass stc = mergeFuncAttrs(STCsafe | STCpure | STCnogc, fs.func);
+                StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
                 tfld = new TypeFunction(params, Type.tint32, 0, LINKd, stc);
                 fs.cases = new Statements();
                 fs.gotos = new ScopeStatements();
@@ -1664,7 +1664,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     // Check types
                     Parameter p = (*fs.parameters)[0];
-                    bool isRef = (p.storageClass & STCref) != 0;
+                    bool isRef = (p.storageClass & STC.ref_) != 0;
                     Type ta = p.type;
                     if (dim == 2)
                     {
@@ -1676,7 +1676,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             goto case Terror;
                         }
                         p = (*fs.parameters)[1];
-                        isRef = (p.storageClass & STCref) != 0;
+                        isRef = (p.storageClass & STC.ref_) != 0;
                         ta = p.type;
                     }
                     Type taav = taa.nextOf();
@@ -1703,7 +1703,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         params = new Parameters();
                         params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
-                        params.push(new Parameter(STCin, Type.tsize_t, null, null));
+                        params.push(new Parameter(STC.in_, Type.tsize_t, null, null));
                         auto dgparams = new Parameters();
                         dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
                         if (dim == 2)
@@ -1771,7 +1771,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     FuncDeclaration fdapply;
                     TypeDelegate dgty;
                     params = new Parameters();
-                    params.push(new Parameter(STCin, tn.arrayOf(), null, null));
+                    params.push(new Parameter(STC.in_, tn.arrayOf(), null, null));
                     auto dgparams = new Parameters();
                     dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
                     if (dim == 2)
@@ -1921,7 +1921,7 @@ else
             fs.prm.type = fs.prm.type.addStorageClass(fs.prm.storageClass);
             fs.lwr = fs.lwr.implicitCastTo(sc, fs.prm.type);
 
-            if (fs.upr.implicitConvTo(fs.prm.type) || (fs.prm.storageClass & STCref))
+            if (fs.upr.implicitConvTo(fs.prm.type) || (fs.prm.storageClass & STC.ref_))
             {
                 fs.upr = fs.upr.implicitCastTo(sc, fs.prm.type);
             }
@@ -1979,7 +1979,7 @@ else
          */
         auto ie = new ExpInitializer(loc, (fs.op == TOKforeach) ? fs.lwr : fs.upr);
         fs.key = new VarDeclaration(loc, fs.upr.type.mutableOf(), Identifier.generateId("__key"), ie);
-        fs.key.storage_class |= STCtemp;
+        fs.key.storage_class |= STC.temp;
         SignExtendedNumber lower = getIntRange(fs.lwr).imin;
         SignExtendedNumber upper = getIntRange(fs.upr).imax;
         if (lower <= upper)
@@ -1990,7 +1990,7 @@ else
         Identifier id = Identifier.generateId("__limit");
         ie = new ExpInitializer(loc, (fs.op == TOKforeach) ? fs.upr : fs.lwr);
         auto tmp = new VarDeclaration(loc, fs.upr.type, id, ie);
-        tmp.storage_class |= STCtemp;
+        tmp.storage_class |= STC.temp;
 
         auto cs = new Statements();
         // Keep order of evaluation as lwr, then upr
@@ -2042,7 +2042,7 @@ else
             //increment = new AddAssignExp(loc, new VarExp(loc, fs.key), new IntegerExp(1));
             increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, fs.key));
         }
-        if ((fs.prm.storageClass & STCref) && fs.prm.type.equals(fs.key.type))
+        if ((fs.prm.storageClass & STC.ref_) && fs.prm.type.equals(fs.key.type))
         {
             fs.key.range = null;
             auto v = new AliasDeclaration(loc, fs.prm.ident, fs.key);
@@ -2052,7 +2052,7 @@ else
         {
             ie = new ExpInitializer(loc, new CastExp(loc, new VarExp(loc, fs.key), fs.prm.type));
             auto v = new VarDeclaration(loc, fs.prm.type, fs.prm.ident, ie);
-            v.storage_class |= STCtemp | STCforeach | (fs.prm.storageClass & STCref);
+            v.storage_class |= STC.temp | STC.foreach_ | (fs.prm.storageClass & STC.ref_);
             fs._body = new CompoundStatement(loc, new ExpStatement(loc, v), fs._body);
             if (fs.key.range && !fs.prm.type.isMutable())
             {
@@ -2061,7 +2061,7 @@ else
                 v.range = new IntRange(fs.key.range.imin, fs.key.range.imax - SignExtendedNumber(1));
             }
         }
-        if (fs.prm.storageClass & STCref)
+        if (fs.prm.storageClass & STC.ref_)
         {
             if (fs.key.type.constConv(fs.prm.type) <= MATCH.nomatch)
             {
@@ -2112,7 +2112,7 @@ else
                 Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
                 sdtor = new OnScopeStatement(ifs.loc, TOKon_scope_exit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
-                ifs.match.storage_class |= STCnodtor;
+                ifs.match.storage_class |= STC.nodtor;
             }
         }
         else
@@ -2933,7 +2933,7 @@ else
         Type tret = tf.next;
         Type tbret = tret ? tret.toBasetype() : null;
 
-        bool inferRef = (tf.isref && (fd.storage_class & STCauto));
+        bool inferRef = (tf.isref && (fd.storage_class & STC.auto_));
         Expression e0 = null;
 
         bool errors = false;
@@ -3167,7 +3167,7 @@ else
             foreach (i; 0 .. dim)
             {
                 VarDeclaration v = ad.fields[i];
-                bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
+                bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
                 if (mustInit && !(sc.fieldinit[i] & CSXthis_ctor))
                 {
                     rs.error("an earlier return statement skips field `%s` initialization", v.toChars());
@@ -3472,7 +3472,7 @@ else
             auto id = Identifier.generateId("__critsec");
             auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
-            tmp.storage_class |= STCtemp | STCgshared | STCstatic;
+            tmp.storage_class |= STC.temp | STC.gshared | STC.static_;
 
             auto cs = new Statements();
             cs.push(new ExpStatement(ss.loc, tmp));
@@ -3487,14 +3487,14 @@ else
             auto args = new Parameters();
             args.push(new Parameter(0, t.pointerTo(), null, null));
 
-            FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STCnothrow);
+            FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
-            FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STCnothrow);
+            FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STC.nothrow_);
             e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), e);
@@ -3929,11 +3929,11 @@ else
         assert(sc.func);
         // use setImpure/setGC when the deprecation cycle is over
         PURE purity;
-        if (!(cas.stc & STCpure) && (purity = sc.func.isPureBypassingInference()) != PUREimpure && purity != PUREfwdref)
+        if (!(cas.stc & STC.pure_) && (purity = sc.func.isPureBypassingInference()) != PUREimpure && purity != PUREfwdref)
             cas.deprecation("asm statement is assumed to be impure - mark it with 'pure' if it is not");
-        if (!(cas.stc & STCnogc) && sc.func.isNogcBypassingInference())
+        if (!(cas.stc & STC.nogc) && sc.func.isNogcBypassingInference())
             cas.deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");
-        if (!(cas.stc & (STCtrusted | STCsafe)) && sc.func.setUnsafe())
+        if (!(cas.stc & (STC.trusted | STC.safe)) && sc.func.setUnsafe())
             cas.error("asm statement is assumed to be @system - mark it with '@trusted' if it is not");
 
         result = cas;
@@ -4043,7 +4043,7 @@ void catchSemantic(Catch c, Scope* sc)
         }
         else if (global.params.ehnogc)
         {
-            stc |= STCscope;
+            stc |= STC.scope_;
         }
 
         if (c.ident)
@@ -4053,7 +4053,7 @@ void catchSemantic(Catch c, Scope* sc)
             c.var.dsymbolSemantic(sc);
             sc.insert(c.var);
 
-            if (global.params.ehnogc && stc & STCscope)
+            if (global.params.ehnogc && stc & STC.scope_)
             {
                 /* Add a destructor for c.var
                  * try { handler } finally { if (!__ctfe) _d_delThrowable(var); }

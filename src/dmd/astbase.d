@@ -168,7 +168,7 @@ struct ASTBase
     }
 
     extern (C++) __gshared const(StorageClass) STCStorageClass =
-        (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCreturn | STCtls | STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
+        (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property | STC.safe | STC.trusted | STC.system | STC.disable);
 
     enum ENUMTY : int
     {
@@ -540,7 +540,7 @@ struct ASTBase
         final extern (D) this(Identifier id)
         {
             super(id);
-            storage_class = STCundefined;
+            storage_class = STC.undefined_;
             protection = Prot(PROTundefined);
             linkage = LINKdefault;
         }
@@ -710,7 +710,7 @@ struct ASTBase
         uint sequenceNumber;
         __gshared uint nextSequenceNumber;
 
-        final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STCundefined)
+        final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
         {
             super(id);
             this.type = type;
@@ -754,7 +754,7 @@ struct ASTBase
             {
                 // Normalize storage_class, because function-type related attributes
                 // are already set in the 'type' in parsing phase.
-                this.storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
+                this.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
             }
             this.loc = loc;
             this.endloc = endloc;
@@ -836,7 +836,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
         {
-            super(loc, endloc, null, STCundefined, type);
+            super(loc, endloc, null, STC.undefined_, type);
             this.ident = id ? id : Id.empty;
             this.tok = tok;
             this.fes = fes;
@@ -883,7 +883,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Loc endloc)
         {
-            super(loc, endloc, Id.dtor, STCundefined, null);
+            super(loc, endloc, Id.dtor, STC.undefined_, null);
         }
         extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
@@ -935,7 +935,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
         {
-            super(loc, endloc, Id.classNew, STCstatic | stc, null);
+            super(loc, endloc, Id.classNew, STC.static_ | stc, null);
             this.parameters = fparams;
             this.varargs = varargs;
         }
@@ -952,7 +952,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
         {
-            super(loc, endloc, Id.classDelete, STCstatic | stc, null);
+            super(loc, endloc, Id.classDelete, STC.static_ | stc, null);
             this.parameters = fparams;
         }
 
@@ -966,11 +966,11 @@ struct ASTBase
     {
         final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId("_staticCtor"), STCstatic | stc, null);
+            super(loc, endloc, Identifier.generateId("_staticCtor"), STC.static_ | stc, null);
         }
         final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
+            super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
         }
 
         override void accept(Visitor v)
@@ -983,11 +983,11 @@ struct ASTBase
     {
         final extern (D) this()(Loc loc, Loc endloc, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId("__staticDtor"), STCstatic | stc, null);
+            super(loc, endloc, Identifier.generateId("__staticDtor"), STC.static_ | stc, null);
         }
         final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
         {
-            super(loc, endloc, Identifier.generateId(name), STCstatic | stc, null);
+            super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
         }
 
         override void accept(Visitor v)
@@ -1425,7 +1425,7 @@ struct ASTBase
 
         extern (D) this(Expression msg, Dsymbols* decl)
         {
-            super(STCdeprecated, decl);
+            super(STC.deprecated_, decl);
             this.msg = msg;
         }
 
@@ -2966,13 +2966,13 @@ struct ASTBase
             if (t.isImmutable())
             {
             }
-            else if (stc & STCimmutable)
+            else if (stc & STC.immutable_)
             {
                 t = t.makeImmutable();
             }
             else
             {
-                if ((stc & STCshared) && !t.isShared())
+                if ((stc & STC.shared_) && !t.isShared())
                 {
                     if (t.isWild())
                     {
@@ -2989,7 +2989,7 @@ struct ASTBase
                             t = t.makeShared();
                     }
                 }
-                if ((stc & STCconst) && !t.isConst())
+                if ((stc & STC.const_) && !t.isConst())
                 {
                     if (t.isShared())
                     {
@@ -3006,7 +3006,7 @@ struct ASTBase
                             t = t.makeConst();
                     }
                 }
-                if ((stc & STCwild) && !t.isWild())
+                if ((stc & STC.wild) && !t.isWild())
                 {
                     if (t.isShared())
                     {
@@ -3669,7 +3669,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form tuple of tuples");
-                    auto arg = new Parameter(STCundefined, e.type, null, null);
+                    auto arg = new Parameter(STC.undefined_, e.type, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -3886,28 +3886,28 @@ struct ASTBase
             this.varargs = varargs;
             this.linkage = linkage;
 
-            if (stc & STCpure)
+            if (stc & STC.pure_)
                 this.purity = PUREfwdref;
-            if (stc & STCnothrow)
+            if (stc & STC.nothrow_)
                 this.isnothrow = true;
-            if (stc & STCnogc)
+            if (stc & STC.nogc)
                 this.isnogc = true;
-            if (stc & STCproperty)
+            if (stc & STC.property)
                 this.isproperty = true;
 
-            if (stc & STCref)
+            if (stc & STC.ref_)
                 this.isref = true;
-            if (stc & STCreturn)
+            if (stc & STC.return_)
                 this.isreturn = true;
-            if (stc & STCscope)
+            if (stc & STC.scope_)
                 this.isscope = true;
 
             this.trust = TRUSTdefault;
-            if (stc & STCsafe)
+            if (stc & STC.safe)
                 this.trust = TRUSTsafe;
-            if (stc & STCsystem)
+            if (stc & STC.system)
                 this.trust = TRUSTsystem;
-            if (stc & STCtrusted)
+            if (stc & STC.trusted)
                 this.trust = TRUSTtrusted;
         }
 
@@ -6236,8 +6236,8 @@ struct ASTBase
     extern (C++) static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
     {
         bool result = false;
-        if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
-            stc &= ~STCscope;
+        if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
+            stc &= ~STC.scope_;
         while (stc)
         {
             const(char)* p = stcToChars(stc);
@@ -6273,36 +6273,36 @@ struct ASTBase
 
         static __gshared SCstring* table =
         [
-            SCstring(STCauto, TOKauto),
-            SCstring(STCscope, TOKscope),
-            SCstring(STCstatic, TOKstatic),
-            SCstring(STCextern, TOKextern),
-            SCstring(STCconst, TOKconst),
-            SCstring(STCfinal, TOKfinal),
-            SCstring(STCabstract, TOKabstract),
-            SCstring(STCsynchronized, TOKsynchronized),
-            SCstring(STCdeprecated, TOKdeprecated),
-            SCstring(STCoverride, TOKoverride),
-            SCstring(STClazy, TOKlazy),
-            SCstring(STCalias, TOKalias),
-            SCstring(STCout, TOKout),
-            SCstring(STCin, TOKin),
-            SCstring(STCmanifest, TOKenum),
-            SCstring(STCimmutable, TOKimmutable),
-            SCstring(STCshared, TOKshared),
-            SCstring(STCnothrow, TOKnothrow),
-            SCstring(STCwild, TOKwild),
-            SCstring(STCpure, TOKpure),
-            SCstring(STCref, TOKref),
-            SCstring(STCtls),
-            SCstring(STCgshared, TOKgshared),
-            SCstring(STCnogc, TOKat, "@nogc"),
-            SCstring(STCproperty, TOKat, "@property"),
-            SCstring(STCsafe, TOKat, "@safe"),
-            SCstring(STCtrusted, TOKat, "@trusted"),
-            SCstring(STCsystem, TOKat, "@system"),
-            SCstring(STCdisable, TOKat, "@disable"),
-            SCstring(STCfuture, TOKat, "@__future"),
+            SCstring(STC.auto_, TOKauto),
+            SCstring(STC.scope_, TOKscope),
+            SCstring(STC.static_, TOKstatic),
+            SCstring(STC.extern_, TOKextern),
+            SCstring(STC.const_, TOKconst),
+            SCstring(STC.final_, TOKfinal),
+            SCstring(STC.abstract_, TOKabstract),
+            SCstring(STC.synchronized_, TOKsynchronized),
+            SCstring(STC.deprecated_, TOKdeprecated),
+            SCstring(STC.override_, TOKoverride),
+            SCstring(STC.lazy_, TOKlazy),
+            SCstring(STC.alias_, TOKalias),
+            SCstring(STC.out_, TOKout),
+            SCstring(STC.in_, TOKin),
+            SCstring(STC.manifest, TOKenum),
+            SCstring(STC.immutable_, TOKimmutable),
+            SCstring(STC.shared_, TOKshared),
+            SCstring(STC.nothrow_, TOKnothrow),
+            SCstring(STC.wild, TOKwild),
+            SCstring(STC.pure_, TOKpure),
+            SCstring(STC.ref_, TOKref),
+            SCstring(STC.tls),
+            SCstring(STC.gshared, TOKgshared),
+            SCstring(STC.nogc, TOKat, "@nogc"),
+            SCstring(STC.property, TOKat, "@property"),
+            SCstring(STC.safe, TOKat, "@safe"),
+            SCstring(STC.trusted, TOKat, "@trusted"),
+            SCstring(STC.system, TOKat, "@system"),
+            SCstring(STC.disable, TOKat, "@disable"),
+            SCstring(STC.future, TOKat, "@__future"),
             SCstring(0, TOKreserved)
         ];
         for (int i = 0; table[i].stc; i++)
@@ -6312,7 +6312,7 @@ struct ASTBase
             if (stc & tbl)
             {
                 stc &= ~tbl;
-                if (tbl == STCtls) // TOKtls was removed
+                if (tbl == STC.tls) // TOKtls was removed
                     return "__thread";
                 TOK tok = table[i].tok;
                 if (tok == TOKat)
