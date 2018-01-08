@@ -2222,6 +2222,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 exp.checkDeprecated(sc, f);
+                exp.checkDisabled(sc, f);
                 exp.checkPurity(sc, f);
                 exp.checkSafety(sc, f);
                 exp.checkNogc(sc, f);
@@ -2251,6 +2252,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 exp.checkDeprecated(sc, f);
+                exp.checkDisabled(sc, f);
                 exp.checkPurity(sc, f);
                 exp.checkSafety(sc, f);
                 exp.checkNogc(sc, f);
@@ -2302,6 +2304,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 exp.checkDeprecated(sc, f);
+                exp.checkDisabled(sc, f);
                 exp.checkPurity(sc, f);
                 exp.checkSafety(sc, f);
                 exp.checkNogc(sc, f);
@@ -2331,6 +2334,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 exp.checkDeprecated(sc, f);
+                exp.checkDisabled(sc, f);
                 exp.checkPurity(sc, f);
                 exp.checkSafety(sc, f);
                 exp.checkNogc(sc, f);
@@ -3193,6 +3197,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             exp.checkDeprecated(sc, exp.f);
+            exp.checkDisabled(sc, exp.f);
             exp.checkPurity(sc, exp.f);
             exp.checkSafety(sc, exp.f);
             exp.checkNogc(sc, exp.f);
@@ -3296,6 +3301,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
 
             exp.checkDeprecated(sc, exp.f);
+            exp.checkDisabled(sc, exp.f);
             exp.checkPurity(sc, exp.f);
             exp.checkSafety(sc, exp.f);
             exp.checkNogc(sc, exp.f);
@@ -3336,6 +3342,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
 
             exp.checkDeprecated(sc, exp.f);
+            exp.checkDisabled(sc, exp.f);
             exp.checkPurity(sc, exp.f);
             exp.checkSafety(sc, exp.f);
             exp.checkNogc(sc, exp.f);
@@ -3563,6 +3570,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             exp.checkDeprecated(sc, exp.f);
+            exp.checkDisabled(sc, exp.f);
             exp.checkPurity(sc, exp.f);
             exp.checkSafety(sc, exp.f);
             exp.checkNogc(sc, exp.f);
@@ -9623,6 +9631,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             s = s.toAlias();
 
             exp.checkDeprecated(sc, s);
+            exp.checkDisabled(sc, s);
 
             EnumMember em = s.isEnumMember();
             if (em)

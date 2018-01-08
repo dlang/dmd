@@ -201,7 +201,11 @@ Lagain:
     else
     {
         if (!s.isFuncDeclaration()) // functions are checked after overloading
+        {
             s.checkDeprecated(loc, sc);
+            if (d)
+                d.checkDisabled(loc, sc);
+        }
 
         // https://issues.dlang.org/show_bug.cgi?id=12023
         // if 's' is a tuple variable, the tuple is returned.
@@ -209,7 +213,11 @@ Lagain:
 
         //printf("s = '%s', s.kind = '%s', s.needThis() = %p\n", s.toChars(), s.kind(), s.needThis());
         if (s != olds && !s.isFuncDeclaration())
+        {
             s.checkDeprecated(loc, sc);
+            if (d)
+                d.checkDisabled(loc, sc);
+        }
     }
 
     if (auto em = s.isEnumMember())
@@ -1920,6 +1928,12 @@ extern (C++) abstract class Expression : RootObject
         s.checkDeprecated(loc, sc);
     }
 
+    final void checkDisabled(Scope* sc, Dsymbol s)
+    {
+        if (auto d = s.isDeclaration())
+            d.checkDisabled(loc, sc);
+    }
+
     /*********************************************
      * Calling function f.
      * Check the purity, i.e. if we're in a pure function
@@ -2227,11 +2241,9 @@ extern (C++) abstract class Expression : RootObject
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.postblit)
             {
-                if (sd.postblit.storage_class & STCdisable)
-                {
-                    sd.error(loc, "is not copyable because it is annotated with @disable");
+                if (sd.postblit.checkDisabled(loc, sc))
                     return true;
-                }
+
                 //checkDeprecated(sc, sd.postblit);        // necessary?
                 checkPurity(sc, sd.postblit);
                 checkSafety(sc, sd.postblit);
