@@ -1,0 +1,7 @@
+macOS deployment target was increased to 10.9
+
+The compiler has been updated to use 10.9 and link with `libc++` on OSX.
+This is due the shared `libstdc++` library from older versions of macOS
+having compatibility issues with the headers included in a modern XCode.
+
+The minimum required version of running the compiler is now Mac OS X Mavericks (10.9).
