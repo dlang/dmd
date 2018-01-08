@@ -12,7 +12,7 @@
 #define DMD_DEBCOND_H
 
 #include "globals.h"
-#include "visitor.h"
+#include "visitors.h"
 
 class Expression;
 class Identifier;

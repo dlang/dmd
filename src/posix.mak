@@ -403,7 +403,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	id.h import.h init.h intrange.h json.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
+	version.h visitors.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \

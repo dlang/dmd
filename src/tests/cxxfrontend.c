@@ -54,7 +54,7 @@
 #include "template.h"
 #include "tokens.h"
 #include "version.h"
-#include "visitor.h"
+#include "visitors.h"
 
 /**********************************/
 

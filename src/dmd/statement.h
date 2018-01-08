@@ -19,7 +19,7 @@
 
 #include "arraytypes.h"
 #include "dsymbol.h"
-#include "visitor.h"
+#include "visitors.h"
 #include "tokens.h"
 
 struct OutBuffer;

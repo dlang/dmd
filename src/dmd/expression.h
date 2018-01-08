@@ -15,7 +15,7 @@
 #include "identifier.h"
 #include "arraytypes.h"
 #include "intrange.h"
-#include "visitor.h"
+#include "visitors.h"
 #include "tokens.h"
 
 #include "rmem.h"

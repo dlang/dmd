@@ -21,7 +21,7 @@
 
 #include "arraytypes.h"
 #include "expression.h"
-#include "visitor.h"
+#include "visitors.h"
 
 struct Scope;
 class Identifier;

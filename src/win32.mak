@@ -213,7 +213,7 @@ SRCS = $D/aggregate.h $D/aliasthis.h $D/arraytypes.h	\
 	$D/id.h $D/import.h $D/init.h $D/intrange.h $D/json.h	\
 	$D/mars.h $D/module.h $D/mtype.h $D/nspace.h $D/objc.h                         \
 	$D/scope.h $D/statement.h $D/staticassert.h $D/target.h $D/template.h $D/tokens.h	\
-	$D/version.h $D/visitor.h $D/objc.d $(DMD_SRCS)
+	$D/version.h $D/visitors.h $D/objc.d $(DMD_SRCS)
 
 # Glue layer
 GLUESRC= \

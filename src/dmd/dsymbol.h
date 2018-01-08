@@ -20,7 +20,7 @@
 
 #include "mars.h"
 #include "arraytypes.h"
-#include "visitor.h"
+#include "visitors.h"
 
 class Identifier;
 struct Scope;
