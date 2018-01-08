@@ -6034,8 +6034,7 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
             if (MODimplicitConv(t->mod, mod))
                 match = MATCHconst;
-            else if ((mod & MODwild)
-                && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
+            else if ((mod & MODwild) && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
             {
                 match = MATCHconst;
             }
@@ -6209,12 +6208,12 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 
                 switch (tb->ty)
                 {
-                    case Tsarray:
-                        tsa = (TypeSArray *)tb;
-                        sz = tsa->dim->toInteger();
-                        if (sz != nargs - u)
-                            goto Nomatch;
-                    case Tarray:
+                case Tsarray:
+                    tsa = (TypeSArray *)tb;
+                    sz = tsa->dim->toInteger();
+                    if (sz != nargs - u)
+                        goto Nomatch;
+                case Tarray:
                     {
                         TypeArray *ta = (TypeArray *)tb;
                         for (; u < nargs; u++)
@@ -6249,13 +6248,13 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
                         }
                         goto Ldone;
                     }
-                    case Tclass:
-                        // Should see if there's a constructor match?
-                        // Or just leave it ambiguous?
-                        goto Ldone;
+                case Tclass:
+                    // Should see if there's a constructor match?
+                    // Or just leave it ambiguous?
+                    goto Ldone;
 
-                    default:
-                        goto Nomatch;
+                default:
+                    goto Nomatch;
                 }
             }
             goto Nomatch;

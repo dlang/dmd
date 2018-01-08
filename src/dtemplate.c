@@ -2313,9 +2313,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         Expressions *fargs;
         // result
         Match *m;
-        int property;       // 0: unintialized
-        // 1: seen @property
-        // 2: not @property
+        int property;   // 0: unintialized
+                        // 1: seen @property
+                        // 2: not @property
         size_t ov_index;
         TemplateDeclaration *td_best;
         TemplateInstance *ti_best;
@@ -2324,13 +2324,12 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         static int fp(void *param, Dsymbol *s)
         {
-            if (!s->errors)
-            {
-                if (FuncDeclaration *fd = s->isFuncDeclaration())
-                    return ((ParamDeduce *)param)->applyFunction(fd);
-                if (TemplateDeclaration *td = s->isTemplateDeclaration())
-                    return ((ParamDeduce *)param)->applyTemplate(td);
-            }
+            if (s->errors)
+                return 0;
+            if (FuncDeclaration *fd = s->isFuncDeclaration())
+                return ((ParamDeduce *)param)->applyFunction(fd);
+            if (TemplateDeclaration *td = s->isTemplateDeclaration())
+                return ((ParamDeduce *)param)->applyTemplate(td);
             return 0;
         }
 
@@ -2750,7 +2749,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
          * Now instantiate the template.
          */
         assert(p.td_best->_scope);
-        if (!sc) sc = p.td_best->_scope; // workaround for Type::aliasthisOf
+        if (!sc)
+            sc = p.td_best->_scope; // workaround for Type::aliasthisOf
 
         TemplateInstance *ti = new TemplateInstance(loc, p.td_best, p.ti_best->tiargs);
         ti->semantic(sc, fargs);

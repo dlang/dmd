@@ -430,6 +430,10 @@ static void initInferAttributes(FuncDeclaration *fd)
 
     if (!fd->isVirtual() || fd->introducing)
         fd->flags |= FUNCFLAGreturnInprocess;
+
+    // Initialize for inferring STCscope
+    if (global.params.vsafe)
+        fd->flags |= FUNCFLAGinferScope;
 }
 
 // Do the semantic analysis on the external interface to the function.
@@ -1573,7 +1577,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 stc |= STCparameter;
                 if (f->varargs == 2 && i + 1 == nparams)
                     stc |= STCvariadic;
-                if (flags & FUNCFLAGinferScope)
+                if (flags & FUNCFLAGinferScope && !(fparam->storageClass & STCscope))
                     stc |= STCmaybescope;
                 stc |= fparam->storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
                 v->storage_class = stc;
@@ -2482,7 +2486,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
                 if (tf->isscope)
                     v->storage_class |= STCscope;
             }
-            if (flags & FUNCFLAGinferScope)
+            if (flags & FUNCFLAGinferScope && !(v->storage_class & STCscope))
                 v->storage_class |= STCmaybescope;
 
             v->semantic(sc);
@@ -2508,7 +2512,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
             if (tf->isscope)
                 v->storage_class |= STCscope;
         }
-        if (flags & FUNCFLAGinferScope)
+        if (flags & FUNCFLAGinferScope && !(v->storage_class & STCscope))
             v->storage_class |= STCmaybescope;
 
         v->semantic(sc);
