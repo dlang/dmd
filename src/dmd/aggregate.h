@@ -187,7 +187,6 @@ public:
 
     static StructDeclaration *create(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic(Scope *sc);
     void semanticTypeInfoMembers();
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
@@ -295,7 +294,6 @@ public:
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void semantic(Scope *sc);
     bool isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210
@@ -331,7 +329,6 @@ class InterfaceDeclaration : public ClassDeclaration
 public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void semantic(Scope *sc);
     bool isBaseOf(ClassDeclaration *cd, int *poffset);
     bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind() const;

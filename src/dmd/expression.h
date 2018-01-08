@@ -684,7 +684,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
-typedef UnionExp (*fp_t)(Type *, Expression *, Expression *);
+typedef UnionExp (*fp_t)(Loc loc, Type *, Expression *, Expression *);
 typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
 
 class BinExp : public Expression
@@ -1390,28 +1390,28 @@ UnionExp Neg(Type *type, Expression *e1);
 UnionExp Com(Type *type, Expression *e1);
 UnionExp Not(Type *type, Expression *e1);
 UnionExp Bool(Type *type, Expression *e1);
-UnionExp Cast(Type *type, Type *to, Expression *e1);
+UnionExp Cast(Loc loc, Type *type, Type *to, Expression *e1);
 UnionExp ArrayLength(Type *type, Expression *e1);
 UnionExp Ptr(Type *type, Expression *e1);
 
-UnionExp Add(Type *type, Expression *e1, Expression *e2);
-UnionExp Min(Type *type, Expression *e1, Expression *e2);
-UnionExp Mul(Type *type, Expression *e1, Expression *e2);
-UnionExp Div(Type *type, Expression *e1, Expression *e2);
-UnionExp Mod(Type *type, Expression *e1, Expression *e2);
-UnionExp Pow(Type *type, Expression *e1, Expression *e2);
-UnionExp Shl(Type *type, Expression *e1, Expression *e2);
-UnionExp Shr(Type *type, Expression *e1, Expression *e2);
-UnionExp Ushr(Type *type, Expression *e1, Expression *e2);
-UnionExp And(Type *type, Expression *e1, Expression *e2);
-UnionExp Or(Type *type, Expression *e1, Expression *e2);
-UnionExp Xor(Type *type, Expression *e1, Expression *e2);
+UnionExp Add(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Min(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Mul(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Div(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Mod(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Pow(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Shl(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Shr(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Ushr(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp And(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Or(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Xor(Loc loc, Type *type, Expression *e1, Expression *e2);
 UnionExp Index(Type *type, Expression *e1, Expression *e2);
 UnionExp Cat(Type *type, Expression *e1, Expression *e2);
 
-UnionExp Equal(TOK op, Type *type, Expression *e1, Expression *e2);
-UnionExp Cmp(TOK op, Type *type, Expression *e1, Expression *e2);
-UnionExp Identity(TOK op, Type *type, Expression *e1, Expression *e2);
+UnionExp Equal(TOK op, Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Cmp(TOK op, Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp Identity(TOK op, Loc loc, Type *type, Expression *e1, Expression *e2);
 
 UnionExp Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 

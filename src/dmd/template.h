@@ -343,7 +343,6 @@ public:
     TypeQualified *tqual;
 
     Dsymbol *syntaxCopy(Dsymbol *s);
-    void semantic2(Scope *sc);
     const char *kind() const;
     bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);

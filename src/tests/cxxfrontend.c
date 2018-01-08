@@ -25,6 +25,7 @@
 #include "aliasthis.h"
 #include "arraytypes.h"
 #include "attrib.h"
+#include "compiler.h"
 #include "complex_t.h"
 #include "cond.h"
 #include "ctfe.h"
@@ -189,11 +190,41 @@ void test_visitors()
 
 /**********************************/
 
+void test_semantic()
+{
+    /* Mini object.d source. Module::parse will add internal members also. */
+    const char *buf =
+        "module object;\n"
+        "class Object { }\n"
+        "class Throwable { }\n"
+        "class Error : Throwable { this(immutable(char)[]); }";
+
+    Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
+
+    unsigned errors = global.startGagging();
+
+    m->srcfile->setbuffer((void*)buf, strlen(buf));
+    m->srcfile->ref = 1;
+    m->parse();
+    m->importedFrom = m;
+    m->importAll(NULL);
+    dsymbolSemantic(m, NULL);
+    semantic2(m, NULL);
+    semantic3(m, NULL);
+
+    assert(!global.endGagging(errors));
+}
+
+/**********************************/
+
 int main(int argc, char **argv)
 {
     frontend_init();
 
     test_visitors();
+    test_semantic();
 
     frontend_term();
+
+    return 0;
 }
