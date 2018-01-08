@@ -1923,15 +1923,19 @@ extern (C++) abstract class Expression : RootObject
         return checkValue();
     }
 
-    final void checkDeprecated(Scope* sc, Dsymbol s)
+    final bool checkDeprecated(Scope* sc, Dsymbol s)
     {
-        s.checkDeprecated(loc, sc);
+        return s.checkDeprecated(loc, sc);
     }
 
-    final void checkDisabled(Scope* sc, Dsymbol s)
+    final bool checkDisabled(Scope* sc, Dsymbol s)
     {
         if (auto d = s.isDeclaration())
-            d.checkDisabled(loc, sc);
+        {
+            return d.checkDisabled(loc, sc);
+        }
+
+        return false;
     }
 
     /*********************************************

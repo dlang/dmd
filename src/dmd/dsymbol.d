@@ -305,7 +305,7 @@ extern (C++) class Dsymbol : RootObject
         va_end(ap);
     }
 
-    final void checkDeprecated(Loc loc, Scope* sc)
+    final bool checkDeprecated(Loc loc, Scope* sc)
     {
         if (global.params.useDeprecated != 1 && isDeprecated())
         {
@@ -313,16 +313,16 @@ extern (C++) class Dsymbol : RootObject
             for (Dsymbol sp = sc.parent; sp; sp = sp.parent)
             {
                 if (sp.isDeprecated())
-                    return;
+                    return false;
             }
             for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
             {
                 if (sc2.scopesym && sc2.scopesym.isDeprecated())
-                    return;
+                    return false;
 
                 // If inside a StorageClassDeclaration that is deprecated
                 if (sc2.stc & STC.deprecated_)
-                    return;
+                    return false;
             }
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
@@ -335,7 +335,11 @@ extern (C++) class Dsymbol : RootObject
                 deprecation(loc, "is deprecated - %s", message);
             else
                 deprecation(loc, "is deprecated");
+
+            return true;
         }
+
+        return false;
     }
 
     /**********************************
