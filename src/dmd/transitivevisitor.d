@@ -56,7 +56,7 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    void visitVarDecl(AST.VarDeclaration v)
+    private void visitVarDecl(AST.VarDeclaration v)
     {
         //printf("Visiting VarDeclaration\n");
         if (v.type)
@@ -168,7 +168,7 @@ package mixin template ParseVisitMethods(AST)
             s.elsebody.accept(this);
     }
 
-    void visitArgs(AST.Expressions* expressions, AST.Expression basis = null)
+    private void visitArgs(AST.Expressions* expressions, AST.Expression basis = null)
     {
         if (!expressions || !expressions.dim)
             return;
@@ -298,7 +298,7 @@ package mixin template ParseVisitMethods(AST)
             imp.accept(this);
     }
 
-    void visit(AST.Catch c)
+    private void visit(AST.Catch c)
     {
         //printf("Visiting Catch\n");
         if (c.type)
@@ -310,7 +310,7 @@ package mixin template ParseVisitMethods(AST)
 //   Type Nodes
 //============================================================
 
-    void visitType(AST.Type t)
+    private void visitType(AST.Type t)
     {
         //printf("Visiting Type\n");
         if (!t)
@@ -324,7 +324,7 @@ package mixin template ParseVisitMethods(AST)
             t.accept(this);
     }
 
-    void visitFunctionType(AST.TypeFunction t, AST.TemplateDeclaration td)
+    private void visitFunctionType(AST.TypeFunction t, AST.TemplateDeclaration td)
     {
         if (t.next)
             visitType(t.next);
@@ -336,7 +336,7 @@ package mixin template ParseVisitMethods(AST)
         visitParameters(t.parameters);
     }
 
-    void visitParameters(AST.Parameters* parameters)
+    private void visitParameters(AST.Parameters* parameters)
     {
         if (parameters)
         {
@@ -405,7 +405,7 @@ package mixin template ParseVisitMethods(AST)
         visitFunctionType(cast(AST.TypeFunction)t.next, null);
     }
 
-    void visitTypeQualified(AST.TypeQualified t)
+    private void visitTypeQualified(AST.TypeQualified t)
     {
         //printf("Visiting TypeQualified\n");
         foreach (id; t.idents)
@@ -481,7 +481,7 @@ package mixin template ParseVisitMethods(AST)
 
 //      Declarations
 //=========================================================
-    void visitAttribDeclaration(AST.AttribDeclaration d)
+    private void visitAttribDeclaration(AST.AttribDeclaration d)
     {
         if (d.decl)
             foreach (de; *d.decl)
@@ -570,7 +570,7 @@ package mixin template ParseVisitMethods(AST)
         visitAttribDeclaration(cast(AST.AttribDeclaration)d);
     }
 
-    void visitFuncBody(AST.FuncDeclaration f)
+    private void visitFuncBody(AST.FuncDeclaration f)
     {
         //printf("Visiting funcBody\n");
         if (!f.fbody)
@@ -582,7 +582,7 @@ package mixin template ParseVisitMethods(AST)
         f.fbody.accept(this);
     }
 
-    void visitBaseClasses(AST.ClassDeclaration d)
+    private void visitBaseClasses(AST.ClassDeclaration d)
     {
         //printf("Visiting ClassDeclaration\n");
         if (!d || !d.baseclasses.dim)
@@ -591,7 +591,7 @@ package mixin template ParseVisitMethods(AST)
             visitType(b.type);
     }
 
-    bool visitEponymousMember(AST.TemplateDeclaration d)
+    private bool visitEponymousMember(AST.TemplateDeclaration d)
     {
         //printf("Visiting EponymousMember\n");
         if (!d.members || d.members.dim != 1)
@@ -647,7 +647,7 @@ package mixin template ParseVisitMethods(AST)
         return false;
     }
 
-    void visitTemplateParameters(AST.TemplateParameters* parameters)
+    private void visitTemplateParameters(AST.TemplateParameters* parameters)
     {
         if (!parameters || !parameters.dim)
             return;
@@ -669,7 +669,7 @@ package mixin template ParseVisitMethods(AST)
             s.accept(this);
     }
 
-    void visitObject(RootObject oarg)
+    private void visitObject(RootObject oarg)
     {
         if (auto t = AST.isType(oarg))
         {
@@ -687,7 +687,7 @@ package mixin template ParseVisitMethods(AST)
         }
     }
 
-    void visitTiargs(AST.TemplateInstance ti)
+    private void visitTiargs(AST.TemplateInstance ti)
     {
         //printf("Visiting tiargs\n");
         if (!ti.tiargs)
