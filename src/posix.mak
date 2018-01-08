@@ -548,9 +548,20 @@ $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
+################################################################################
+# Generate the man pages
+################################################################################
+
+DMD_MAN_PAGE = $(GENERATED)/docs/man1/dmd.1
+
+$(DMD_MAN_PAGE): dmd/cli.d
+	${MAKE} -C ../docs DMD=$(HOST_DMD_PATH) build
+
+man: $(DMD_MAN_PAGE)
+
 ######################################################
 
-install: all
+install: all $(DMD_MAN_PAGE)
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
 	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
