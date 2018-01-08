@@ -1173,8 +1173,7 @@ extern (C++) abstract class Type : RootObject
      */
     void checkDeprecated(Loc loc, Scope* sc)
     {
-        Dsymbol s = toDsymbol(sc);
-        if (s)
+        if (Dsymbol s = toDsymbol(sc))
         {
             s.checkDeprecated(loc, sc);
         }

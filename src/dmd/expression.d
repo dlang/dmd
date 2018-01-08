@@ -1931,8 +1931,7 @@ extern (C++) abstract class Expression : RootObject
 
     final void checkDisabled(Scope* sc, Dsymbol s)
     {
-        auto d = s.isDeclaration();
-        if (d)
+        if (auto d = s.isDeclaration())
             d.checkDisabled(loc, sc);
     }
 
