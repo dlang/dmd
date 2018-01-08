@@ -141,7 +141,7 @@ public:
 
     extern (C++) Expression getValue(VarDeclaration v)
     {
-        if ((v.isDataseg() || v.storage_class & STCmanifest) && !v.isCTFE())
+        if ((v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE())
         {
             assert(v.ctfeAdrOnStack >= 0 && v.ctfeAdrOnStack < globalValues.dim);
             return globalValues[v.ctfeAdrOnStack];
@@ -175,7 +175,7 @@ public:
     extern (C++) void pop(VarDeclaration v)
     {
         assert(!v.isDataseg() || v.isCTFE());
-        assert(!(v.storage_class & (STCref | STCout)));
+        assert(!(v.storage_class & (STC.ref_ | STC.out_)));
         int oldid = v.ctfeAdrOnStack;
         v.ctfeAdrOnStack = cast(int)cast(size_t)savedId[oldid];
         if (v.ctfeAdrOnStack == values.dim - 1)
@@ -203,7 +203,7 @@ public:
 
     extern (C++) void saveGlobalConstant(VarDeclaration v, Expression e)
     {
-        assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !v.isCTFE());
+        assert(v._init && (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) && !v.isCTFE());
         v.ctfeAdrOnStack = cast(int)globalValues.dim;
         globalValues.push(e);
     }
@@ -310,7 +310,7 @@ struct CompiledCtfeFunction
                             ccf.onDeclaration(v2);
                     }
                 }
-                else if (!(v.isDataseg() || v.storage_class & STCmanifest) || v.isCTFE())
+                else if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
                     ccf.onDeclaration(v);
                 Dsymbol s = v.toAlias();
                 if (s == v && !v.isStatic() && v._init)
@@ -789,9 +789,9 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
         Expression earg = (*arguments)[i];
         Parameter fparam = Parameter.getNth(tf.parameters, i);
 
-        if (fparam.storageClass & (STCout | STCref))
+        if (fparam.storageClass & (STC.out_ | STC.ref_))
         {
-            if (!istate && (fparam.storageClass & STCout))
+            if (!istate && (fparam.storageClass & STC.out_))
             {
                 // initializing an out parameter involves writing to it.
                 earg.error("global `%s` cannot be passed as an `out` parameter at compile time", earg.toChars());
@@ -802,7 +802,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
             if (CTFEExp.isCantExp(earg))
                 return earg;
         }
-        else if (fparam.storageClass & STClazy)
+        else if (fparam.storageClass & STC.lazy_)
         {
         }
         else
@@ -824,7 +824,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
             /* Struct literals are passed by value, but we don't need to
              * copy them if they are passed as const
              */
-            if (earg.op == TOKstructliteral && !(fparam.storageClass & (STCconst | STCimmutable)))
+            if (earg.op == TOKstructliteral && !(fparam.storageClass & (STC.const_ | STC.immutable_)))
                 earg = copyLiteral(earg).copy();
         }
         if (earg.op == TOKthrownexception)
@@ -860,7 +860,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
         }
         ctfeStack.push(v);
 
-        if ((fparam.storageClass & (STCout | STCref)) && earg.op == TOKvar && (cast(VarExp)earg).var.toParent2() == fd)
+        if ((fparam.storageClass & (STC.out_ | STC.ref_)) && earg.op == TOKvar && (cast(VarExp)earg).var.toParent2() == fd)
         {
             VarDeclaration vx = (cast(VarExp)earg).var.isVarDeclaration();
             if (!vx)
@@ -1194,7 +1194,7 @@ public:
             VarDeclaration v;
             while (x.op == TOKvar && (v = (cast(VarExp)x).var.isVarDeclaration()) !is null)
             {
-                if (v.storage_class & STCref)
+                if (v.storage_class & STC.ref_)
                 {
                     x = getValue(v);
                     if (e.op == TOKaddress)
@@ -2253,7 +2253,7 @@ public:
                     return CTFEExp.cantexp;
             }
 
-            if ((v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) && !hasValue(v) && v._init && !v.isCTFE())
+            if ((v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) && !hasValue(v) && v._init && !v.isCTFE())
             {
                 if (v.inuse)
                 {
@@ -2281,7 +2281,7 @@ public:
                 {
                     // FIXME: Ultimately all errors should be detected in prior semantic analysis stage.
                 }
-                else if (v.isDataseg() || (v.storage_class & STCmanifest))
+                else if (v.isDataseg() || (v.storage_class & STC.manifest))
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=14304
                      * e is a value that is not yet owned by CTFE.
@@ -2318,7 +2318,7 @@ public:
 
                 e = interpret(e, istate);
             }
-            else if (!(v.isDataseg() || v.storage_class & STCmanifest) && !v.isCTFE() && !istate)
+            else if (!(v.isDataseg() || v.storage_class & STC.manifest) && !v.isCTFE() && !istate)
             {
                 error(loc, "variable `%s` cannot be read at compile time", v.toChars());
                 return CTFEExp.cantexp;
@@ -2398,7 +2398,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            if (v && (v.storage_class & (STCout | STCref)) && hasValue(v))
+            if (v && (v.storage_class & (STC.out_ | STC.ref_)) && hasValue(v))
             {
                 // Strip off the nest of ref variables
                 Expression ev = getValue(v);
@@ -2414,9 +2414,9 @@ public:
         result = getVarExp(e.loc, istate, e.var, goal);
         if (exceptionOrCant(result))
             return;
-        if ((e.var.storage_class & (STCref | STCout)) == 0 && e.type.baseElemOf().ty != Tstruct)
+        if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct)
         {
-            /* Ultimately, STCref|STCout check should be enough to see the
+            /* Ultimately, STC.ref_|STC.out_ check should be enough to see the
              * necessity of type repainting. But currently front-end paints
              * non-ref struct variables by the const type.
              *
@@ -2486,7 +2486,7 @@ public:
                 result = null;
                 return;
             }
-            if (!(v.isDataseg() || v.storage_class & STCmanifest) || v.isCTFE())
+            if (!(v.isDataseg() || v.storage_class & STC.manifest) || v.isCTFE())
                 ctfeStack.push(v);
             if (v._init)
             {
@@ -3597,7 +3597,7 @@ public:
             {
                 VarDeclaration v = (cast(VarExp)e1).var.isVarDeclaration();
                 assert(v);
-                if (v.storage_class & STCout)
+                if (v.storage_class & STC.out_)
                     goto L1;
             }
             else if (ultimateVar && !getValue(ultimateVar))
@@ -4987,7 +4987,7 @@ public:
         if (e.e1.op == TOKdeclaration &&
             e.e2.op == TOKvar &&
             (cast(DeclarationExp)e.e1).declaration == (cast(VarExp)e.e2).var &&
-            (cast(VarExp)e.e2).var.storage_class & STCctfe)
+            (cast(VarExp)e.e2).var.storage_class & STC.ctfe)
         {
             VarExp ve = cast(VarExp)e.e2;
             VarDeclaration v = ve.var.isVarDeclaration();
@@ -6529,7 +6529,7 @@ private Expression interpret_aaApply(InterState* istate, Expression aa, Expressi
     assert(numParams == 1 || numParams == 2);
 
     Parameter fparam = Parameter.getNth((cast(TypeFunction)fd.type).parameters, numParams - 1);
-    bool wantRefValue = 0 != (fparam.storageClass & (STCout | STCref));
+    bool wantRefValue = 0 != (fparam.storageClass & (STC.out_ | STC.ref_));
 
     Expressions args;
     args.setDim(numParams);
@@ -7005,11 +7005,11 @@ private void setValue(VarDeclaration vd, Expression newval)
 {
     version (none)
     {
-        if (!((vd.storage_class & (STCout | STCref)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval)))
+        if (!((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval)))
         {
             printf("[%s] vd = %s %s, newval = %s\n", vd.loc.toChars(), vd.type.toChars(), vd.toChars(), newval.toChars());
         }
     }
-    assert((vd.storage_class & (STCout | STCref)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval));
+    assert((vd.storage_class & (STC.out_ | STC.ref_)) ? isCtfeReferenceValid(newval) : isCtfeValueValid(newval));
     ctfeStack.setValue(vd, newval);
 }

@@ -254,7 +254,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
             vd.inuse--;
         }
-        if (vd._init && vd.storage_class & STCmanifest)
+        if (vd._init && vd.storage_class & STC.manifest)
         {
             /* Cannot initializer enums with CTFE classreferences and addresses of struct literals.
              * Scan initializer looking for them. Issue error if found.

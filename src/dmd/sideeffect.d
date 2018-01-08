@@ -240,7 +240,7 @@ extern (C++) bool discardValue(Expression e)
     case TOKvar:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
-            if (v && (v.storage_class & STCtemp))
+            if (v && (v.storage_class & STC.temp))
             {
                 // https://issues.dlang.org/show_bug.cgi?id=5810
                 // Don't complain about an internal generated variable.
@@ -371,8 +371,8 @@ VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
     auto ez = new ExpInitializer(e.loc, e);
     auto vd = new VarDeclaration(e.loc, e.type, id, ez);
     vd.storage_class = stc;
-    vd.storage_class |= STCtemp;
-    vd.storage_class |= STCctfe; // temporary is always CTFEable
+    vd.storage_class |= STC.temp;
+    vd.storage_class |= STC.ctfe; // temporary is always CTFEable
     return vd;
 }
 
@@ -388,7 +388,7 @@ VarDeclaration copyToTemp(StorageClass stc, const char* name, Expression e)
  *  When e is trivial and alwaysCopy == false, e itself is returned.
  *  Otherwise, a new VarExp is returned.
  * Note:
- *  e's lvalue-ness will be handled well by STCref or STCrvalue.
+ *  e's lvalue-ness will be handled well by STC.ref_ or STC.rvalue.
  */
 Expression extractSideEffect(Scope* sc, const char* name,
     ref Expression e0, Expression e, bool alwaysCopy = false)
@@ -398,9 +398,9 @@ Expression extractSideEffect(Scope* sc, const char* name,
 
     auto vd = copyToTemp(0, name, e);
     if (e.isLvalue())
-        vd.storage_class |= STCref;
+        vd.storage_class |= STC.ref_;
     else
-        vd.storage_class |= STCrvalue;
+        vd.storage_class |= STC.rvalue;
 
     Expression de = new DeclarationExp(vd.loc, vd);
     Expression ve = new VarExp(vd.loc, vd);

@@ -1893,7 +1893,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
                 {
                     p.type = taa.index; // key type
                     p.type = p.type.addStorageClass(p.storageClass);
-                    if (p.storageClass & STCref) // key must not be mutated via ref
+                    if (p.storageClass & STC.ref_) // key must not be mutated via ref
                         p.type = p.type.addMod(MODconst);
                 }
                 p = (*fes.parameters)[1];

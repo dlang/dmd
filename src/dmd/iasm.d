@@ -1054,10 +1054,10 @@ opflag_t asm_determine_operand_flags(OPND *popnd)
 
     ps = popnd.s;
     Declaration ds = ps ? ps.isDeclaration() : null;
-    if (ds && ds.storage_class & STClazy)
+    if (ds && ds.storage_class & STC.lazy_)
         sz = _anysize;
     else
-        sz = asm_type_size((ds && ds.storage_class & (STCout | STCref)) ? popnd.ptype.pointerTo() : popnd.ptype);
+        sz = asm_type_size((ds && ds.storage_class & (STC.out_ | STC.ref_)) ? popnd.ptype.pointerTo() : popnd.ptype);
     if (popnd.pregDisp1 && !popnd.base)
     {
         if (ps && ps.isLabel() && sz == _anysize)
@@ -2223,7 +2223,7 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             o1.disp += v.offset;
             goto L2;
         }
-        if ((v.isConst() || v.isImmutable() || v.storage_class & STCmanifest) &&
+        if ((v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) &&
             !v.type.isfloating() && v.type.ty != Tvector && v._init)
         {
             ExpInitializer ei = v._init.isExpInitializer();

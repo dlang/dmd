@@ -540,7 +540,7 @@ private final class CppMangleVisitor : Visitor
     void mangle_variable(VarDeclaration d, bool is_temp_arg_ref)
     {
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
-        if (!(d.storage_class & (STCextern | STCfield | STCgshared)))
+        if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
             d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
             fatal();
@@ -639,9 +639,9 @@ private final class CppMangleVisitor : Visitor
         int paramsCppMangleDg(size_t n, Parameter fparam)
         {
             Type t = fparam.type.merge2();
-            if (fparam.storageClass & (STCout | STCref))
+            if (fparam.storageClass & (STC.out_ | STC.ref_))
                 t = t.referenceTo();
-            else if (fparam.storageClass & STClazy)
+            else if (fparam.storageClass & STC.lazy_)
             {
                 // Mangle as delegate
                 Type td = new TypeFunction(null, t, 0, LINKd);

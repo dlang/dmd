@@ -191,7 +191,7 @@ private Expression getValue(ref Dsymbol s)
     if (s)
     {
         VarDeclaration v = s.isVarDeclaration();
-        if (v && v.storage_class & STCmanifest)
+        if (v && v.storage_class & STC.manifest)
         {
             e = v.getConstInitializer();
         }
@@ -207,7 +207,7 @@ private Expression getValue(Expression e)
     if (e && e.op == TOKvar)
     {
         VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
-        if (v && v.storage_class & STCmanifest)
+        if (v && v.storage_class & STC.manifest)
         {
             e = v.getConstInitializer();
         }
@@ -738,10 +738,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < nfparams; i++)
             {
                 Parameter fparam = Parameter.getNth(fparameters, i);
-                fparam.storageClass &= (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
-                fparam.storageClass |= STCparameter;
+                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                fparam.storageClass |= STC.parameter;
                 if (fvarargs == 2 && i + 1 == nfparams)
-                    fparam.storageClass |= STCvariadic;
+                    fparam.storageClass |= STC.variadic;
             }
             for (size_t i = 0; i < fparameters.dim; i++)
             {
@@ -760,7 +760,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     v.parent = fd;
             }
             if (isstatic)
-                fd.storage_class |= STCstatic;
+                fd.storage_class |= STC.static_;
             fd.vthis = fd.declareThis(scx, fd.isThis());
         }
 
@@ -1253,7 +1253,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (toParent().isModule() || (_scope.stc & STCstatic))
+        if (toParent().isModule() || (_scope.stc & STC.static_))
             tthis = null;
         if (tthis)
         {
@@ -1289,15 +1289,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     stc |= ad.storage_class;
 
                 ubyte mod = fd.type.mod;
-                if (stc & STCimmutable)
+                if (stc & STC.immutable_)
                     mod = MODimmutable;
                 else
                 {
-                    if (stc & (STCshared | STCsynchronized))
+                    if (stc & (STC.shared_ | STC.synchronized_))
                         mod |= MODshared;
-                    if (stc & STCconst)
+                    if (stc & STC.const_)
                         mod |= MODconst;
-                    if (stc & STCwild)
+                    if (stc & STC.wild)
                         mod |= MODwild;
                 }
 
@@ -1371,7 +1371,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             if (farg.op == TOKerror || farg.type.ty == Terror)
                                 goto Lnomatch;
 
-                            if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
+                            if (!(fparam.storageClass & STC.lazy_) && farg.type.ty == Tvoid)
                                 goto Lnomatch;
 
                             Type tt;
@@ -1392,7 +1392,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             /* Remove top const for dynamic array types and pointer types
                              */
-                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STCref) || (fparam.storageClass & STCauto) && !farg.isLvalue()))
+                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
                             {
                                 tt = tt.mutableOf();
                             }
@@ -1568,16 +1568,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     Type argtype = farg.type;
 
-                    if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
+                    if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Tvoid && farg.op != TOKfunction)
                         goto Lnomatch;
 
                     // https://issues.dlang.org/show_bug.cgi?id=12876
                     // Optimize argument to allow CT-known length matching
-                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
+                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STC.ref_ | STC.out_)) != 0);
                     //printf("farg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                     RootObject oarg = farg;
-                    if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
+                    if ((fparam.storageClass & STC.ref_) && (!(fparam.storageClass & STC.auto_) || farg.isLvalue()))
                     {
                         /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
                          */
@@ -1604,7 +1604,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                         oarg = argtype;
                     }
-                    else if ((fparam.storageClass & STCout) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
+                    else if ((fparam.storageClass & STC.out_) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
                     {
                         /* The farg passing to the prmtype always make a copy. Therefore,
                          * we can shrink the set of the deduced type arguments for prmtype
@@ -1658,7 +1658,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (m > MATCH.nomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
+                    if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_)) == STC.ref_)
                     {
                         if (!farg.isLvalue())
                         {
@@ -1670,14 +1670,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 goto Lnomatch;
                         }
                     }
-                    if (m > MATCH.nomatch && (fparam.storageClass & STCout))
+                    if (m > MATCH.nomatch && (fparam.storageClass & STC.out_))
                     {
                         if (!farg.isLvalue())
                             goto Lnomatch;
                         if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                             goto Lnomatch;
                     }
-                    if (m == MATCH.nomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
+                    if (m == MATCH.nomatch && (fparam.storageClass & STC.lazy_) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
                         m = MATCH.convert;
                     if (m != MATCH.nomatch)
                     {
@@ -2040,7 +2040,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             TemplateValueParameter tvp = tp.isTemplateValueParameter();
             Type t = tvp ? tvp.valType : null;
             v = new VarDeclaration(loc, t, tp.ident, _init);
-            v.storage_class = STCmanifest | STCtemplateparameter;
+            v.storage_class = STC.manifest | STC.templateparameter;
             d = v;
         }
         else if (va)
@@ -2056,7 +2056,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             assert(0);
         }
-        d.storage_class |= STCtemplateparameter;
+        d.storage_class |= STC.templateparameter;
 
         if (ta)
         {
@@ -2071,13 +2071,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (Dsymbol s = t.toDsymbol(sc))
             {
                 if (s.isDeprecated())
-                    d.storage_class |= STCdeprecated;
+                    d.storage_class |= STC.deprecated_;
             }
         }
         else if (sa)
         {
             if (sa.isDeprecated())
-                d.storage_class |= STCdeprecated;
+                d.storage_class |= STC.deprecated_;
         }
 
         if (!sc.insert(d))
@@ -3534,7 +3534,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (tparam.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tparam;
-                    if (tsa.dim.op == TOKvar && (cast(VarExp)tsa.dim).var.storage_class & STCtemplateparameter)
+                    if (tsa.dim.op == TOKvar && (cast(VarExp)tsa.dim).var.storage_class & STC.templateparameter)
                     {
                         Identifier id = (cast(VarExp)tsa.dim).var.ident;
                         i = templateIdentifierLookup(id, parameters);
@@ -3613,7 +3613,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     // https://issues.dlang.org/show_bug.cgi?id=2579
                     // Apply function parameter storage classes to parameter types
                     fparam.type = fparam.type.addStorageClass(fparam.storageClass);
-                    fparam.storageClass &= ~(STC_TYPECTOR | STCin);
+                    fparam.storageClass &= ~(STC.TYPECTOR | STC.in_);
 
                     // https://issues.dlang.org/show_bug.cgi?id=15243
                     // Resolve parameter type if it's not related with template parameters
@@ -3937,7 +3937,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         /* If it is one of the template parameters for this template,
                          * we should not attempt to interpret it. It already has a value.
                          */
-                        if (e2.op == TOKvar && ((cast(VarExp)e2).var.storage_class & STCtemplateparameter))
+                        if (e2.op == TOKvar && ((cast(VarExp)e2).var.storage_class & STC.templateparameter))
                         {
                             /*
                              * (T:Number!(e2), int e2)
@@ -5331,7 +5331,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     override bool declareParameter(Scope* sc)
     {
         auto v = new VarDeclaration(loc, valType, ident, null);
-        v.storage_class = STCtemplateparameter;
+        v.storage_class = STC.templateparameter;
         return sc.insert(v) !is null;
     }
 
@@ -5483,7 +5483,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         {
             Initializer _init = new ExpInitializer(loc, ei);
             Declaration sparam = new VarDeclaration(loc, vt, ident, _init);
-            sparam.storage_class = STCmanifest;
+            sparam.storage_class = STC.manifest;
             *psparam = sparam;
         }
         return dependent ? MATCH.exact : m;
@@ -5701,7 +5701,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 // Declare manifest constant
                 Initializer _init = new ExpInitializer(loc, ea);
                 auto v = new VarDeclaration(loc, null, ident, _init);
-                v.storage_class = STCmanifest;
+                v.storage_class = STC.manifest;
                 v.dsymbolSemantic(sc);
                 *psparam = v;
             }
@@ -6151,7 +6151,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 for (size_t j = 0; j < nfparams; j++)
                 {
                     Parameter fparam = Parameter.getNth(fparameters, j);
-                    if (fparam.storageClass & STCautoref)       // if "auto ref"
+                    if (fparam.storageClass & STC.autoref)       // if "auto ref"
                     {
                         if (!fargs)
                             goto Lnotequals;
@@ -6160,12 +6160,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         Expression farg = (*fargs)[j];
                         if (farg.isLvalue())
                         {
-                            if (!(fparam.storageClass & STCref))
+                            if (!(fparam.storageClass & STC.ref_))
                                 goto Lnotequals; // auto ref's don't match
                         }
                         else
                         {
-                            if (fparam.storageClass & STCref)
+                            if (fparam.storageClass & STC.ref_)
                                 goto Lnotequals; // auto ref's don't match
                         }
                     }
@@ -6651,7 +6651,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     ea = ea.expressionSemantic(sc);
 
                     // must not interpret the args, excepting template parameters
-                    if (ea.op != TOKvar || ((cast(VarExp)ea).var.storage_class & STCtemplateparameter))
+                    if (ea.op != TOKvar || ((cast(VarExp)ea).var.storage_class & STC.templateparameter))
                     {
                         ea = ea.optimize(WANTvalue);
                     }
@@ -7098,7 +7098,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     foreach (size_t i; 0 .. dim)
                     {
                         // 'auto ref' needs inference.
-                        if (Parameter.getNth(tf.parameters, i).storageClass & STCauto)
+                        if (Parameter.getNth(tf.parameters, i).storageClass & STC.auto_)
                             return 1;
                     }
                 }
@@ -7220,7 +7220,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
                     // if module level template
                     if (isstatic)
@@ -7571,7 +7571,7 @@ bool definitelyValueParameter(Expression e)
 
     // https://issues.dlang.org/show_bug.cgi?id=16685
     // var.x.y where var is a constant available at compile time
-    if (v.storage_class & STCmanifest)
+    if (v.storage_class & STC.manifest)
         return true;
 
     // TODO: Should we force CTFE if it is a global constant?

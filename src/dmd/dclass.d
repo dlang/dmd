@@ -874,7 +874,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         bool no()  { if (log) printf("no\n");  isabstract = ABSno;  return false; }
         bool yes() { if (log) printf("yes\n"); isabstract = ABSyes; return true;  }
 
-        if (storage_class & STCabstract || _scope && _scope.stc & STCabstract)
+        if (storage_class & STC.abstract_ || _scope && _scope.stc & STC.abstract_)
             return yes();
 
         if (errors)
@@ -889,7 +889,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             auto fd = s.isFuncDeclaration();
             if (!fd)
                 return 0;
-            if (fd.storage_class & STCstatic)
+            if (fd.storage_class & STC.static_)
                 return 0;
 
             if (fd.isAbstract())
@@ -930,7 +930,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             extern (C++) static int virtualSemantic(Dsymbol s, void* param)
             {
                 auto fd = s.isFuncDeclaration();
-                if (fd && !(fd.storage_class & STCstatic) && !fd.isUnitTestDeclaration())
+                if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
                     fd.dsymbolSemantic(null);
                 return 0;
             }

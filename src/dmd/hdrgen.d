@@ -331,7 +331,7 @@ public:
         {
             StorageClass stc = p.storageClass;
             if (!p.type && !stc)
-                stc = STCauto;
+                stc = STC.auto_;
             if (stcToBuffer(buf, stc))
                 buf.writeByte(' ');
             if (p.type)
@@ -1795,7 +1795,7 @@ public:
 
     override void visit(AliasDeclaration d)
     {
-        if (d.storage_class & STClocal)
+        if (d.storage_class & STC.local)
             return;
         buf.writestring("alias ");
         if (d.aliassym)
@@ -1828,7 +1828,7 @@ public:
 
     override void visit(VarDeclaration d)
     {
-        if (d.storage_class & STClocal)
+        if (d.storage_class & STC.local)
             return;
         visitVarDecl(d, false);
         buf.writeByte(';');
@@ -1873,7 +1873,7 @@ public:
         if (hgs.hdrgen)
         {
             // if the return type is missing (e.g. ref functions or auto)
-            if (!tf.next || f.storage_class & STCauto)
+            if (!tf.next || f.storage_class & STC.auto_)
             {
                 hgs.autoMember++;
                 bodyToBuffer(f);
@@ -1989,13 +1989,13 @@ public:
 
     override void visit(DtorDeclaration d)
     {
-        if (d.storage_class & STCtrusted)
+        if (d.storage_class & STC.trusted)
             buf.writestring("@trusted ");
-        if (d.storage_class & STCsafe)
+        if (d.storage_class & STC.safe)
             buf.writestring("@safe ");
-        if (d.storage_class & STCnogc)
+        if (d.storage_class & STC.nogc)
             buf.writestring("@nogc ");
-        if (d.storage_class & STCdisable)
+        if (d.storage_class & STC.disable)
             buf.writestring("@disable ");
 
         buf.writestring("~this()");
@@ -2004,7 +2004,7 @@ public:
 
     override void visit(StaticCtorDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         if (d.isSharedStaticCtorDeclaration())
             buf.writestring("shared ");
@@ -2020,7 +2020,7 @@ public:
 
     override void visit(StaticDtorDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         if (d.isSharedStaticDtorDeclaration())
             buf.writestring("shared ");
@@ -2056,7 +2056,7 @@ public:
 
     override void visit(NewDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("new");
         parametersToBuffer(d.parameters, d.varargs);
@@ -2065,7 +2065,7 @@ public:
 
     override void visit(DeleteDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("delete");
         parametersToBuffer(d.parameters, 0);
@@ -3049,26 +3049,26 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Parameter p)
     {
-        if (p.storageClass & STCauto)
+        if (p.storageClass & STC.auto_)
             buf.writestring("auto ");
-        if (p.storageClass & STCreturn)
+        if (p.storageClass & STC.return_)
             buf.writestring("return ");
-        if (p.storageClass & STCout)
+        if (p.storageClass & STC.out_)
             buf.writestring("out ");
-        else if (p.storageClass & STCref)
+        else if (p.storageClass & STC.ref_)
             buf.writestring("ref ");
-        else if (p.storageClass & STCin)
+        else if (p.storageClass & STC.in_)
             buf.writestring("in ");
-        else if (p.storageClass & STClazy)
+        else if (p.storageClass & STC.lazy_)
             buf.writestring("lazy ");
-        else if (p.storageClass & STCalias)
+        else if (p.storageClass & STC.alias_)
             buf.writestring("alias ");
         StorageClass stc = p.storageClass;
         if (p.type && p.type.mod & MODshared)
-            stc &= ~STCshared;
-        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope | STCscopeinferred)))
+            stc &= ~STC.shared_;
+        if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
             buf.writeByte(' ');
-        if (p.storageClass & STCalias)
+        if (p.storageClass & STC.alias_)
         {
             if (p.ident)
                 buf.writestring(p.ident.toString());
@@ -3182,10 +3182,10 @@ extern (C++) void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
     bool result = false;
-    if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
-        stc &= ~STCscope;
-    if (stc & STCscopeinferred)
-        stc &= ~(STCscope | STCscopeinferred);
+    if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
+        stc &= ~STC.scope_;
+    if (stc & STC.scopeinferred)
+        stc &= ~(STC.scope_ | STC.scopeinferred);
     while (stc)
     {
         const(char)* p = stcToChars(stc);
@@ -3216,38 +3216,38 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
 
     static __gshared SCstring* table =
     [
-        SCstring(STCauto, TOKauto),
-        SCstring(STCscope, TOKscope),
-        SCstring(STCstatic, TOKstatic),
-        SCstring(STCextern, TOKextern),
-        SCstring(STCconst, TOKconst),
-        SCstring(STCfinal, TOKfinal),
-        SCstring(STCabstract, TOKabstract),
-        SCstring(STCsynchronized, TOKsynchronized),
-        SCstring(STCdeprecated, TOKdeprecated),
-        SCstring(STCoverride, TOKoverride),
-        SCstring(STClazy, TOKlazy),
-        SCstring(STCalias, TOKalias),
-        SCstring(STCout, TOKout),
-        SCstring(STCin, TOKin),
-        SCstring(STCmanifest, TOKenum),
-        SCstring(STCimmutable, TOKimmutable),
-        SCstring(STCshared, TOKshared),
-        SCstring(STCnothrow, TOKnothrow),
-        SCstring(STCwild, TOKwild),
-        SCstring(STCpure, TOKpure),
-        SCstring(STCref, TOKref),
-        SCstring(STCreturn, TOKreturn),
-        SCstring(STCtls),
-        SCstring(STCgshared, TOKgshared),
-        SCstring(STCnogc, TOKat, "@nogc"),
-        SCstring(STCproperty, TOKat, "@property"),
-        SCstring(STCsafe, TOKat, "@safe"),
-        SCstring(STCtrusted, TOKat, "@trusted"),
-        SCstring(STCsystem, TOKat, "@system"),
-        SCstring(STCdisable, TOKat, "@disable"),
-        SCstring(STCfuture, TOKat, "@__future"),
-        SCstring(STClocal, TOKat, "__local"),
+        SCstring(STC.auto_, TOKauto),
+        SCstring(STC.scope_, TOKscope),
+        SCstring(STC.static_, TOKstatic),
+        SCstring(STC.extern_, TOKextern),
+        SCstring(STC.const_, TOKconst),
+        SCstring(STC.final_, TOKfinal),
+        SCstring(STC.abstract_, TOKabstract),
+        SCstring(STC.synchronized_, TOKsynchronized),
+        SCstring(STC.deprecated_, TOKdeprecated),
+        SCstring(STC.override_, TOKoverride),
+        SCstring(STC.lazy_, TOKlazy),
+        SCstring(STC.alias_, TOKalias),
+        SCstring(STC.out_, TOKout),
+        SCstring(STC.in_, TOKin),
+        SCstring(STC.manifest, TOKenum),
+        SCstring(STC.immutable_, TOKimmutable),
+        SCstring(STC.shared_, TOKshared),
+        SCstring(STC.nothrow_, TOKnothrow),
+        SCstring(STC.wild, TOKwild),
+        SCstring(STC.pure_, TOKpure),
+        SCstring(STC.ref_, TOKref),
+        SCstring(STC.return_, TOKreturn),
+        SCstring(STC.tls),
+        SCstring(STC.gshared, TOKgshared),
+        SCstring(STC.nogc, TOKat, "@nogc"),
+        SCstring(STC.property, TOKat, "@property"),
+        SCstring(STC.safe, TOKat, "@safe"),
+        SCstring(STC.trusted, TOKat, "@trusted"),
+        SCstring(STC.system, TOKat, "@system"),
+        SCstring(STC.disable, TOKat, "@disable"),
+        SCstring(STC.future, TOKat, "@__future"),
+        SCstring(STC.local, TOKat, "__local"),
         SCstring(0, TOKreserved)
     ];
     for (int i = 0; table[i].stc; i++)
@@ -3257,7 +3257,7 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         if (stc & tbl)
         {
             stc &= ~tbl;
-            if (tbl == STCtls) // TOKtls was removed
+            if (tbl == STC.tls) // TOKtls was removed
                 return "__thread";
             TOK tok = table[i].tok;
             if (tok == TOKat)

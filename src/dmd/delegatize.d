@@ -234,7 +234,7 @@ bool ensureStaticLinkTo(Dsymbol s, Dsymbol p)
         }
         if (auto ad = s.isAggregateDeclaration())
         {
-            if (ad.storage_class & STCstatic)
+            if (ad.storage_class & STC.static_)
                 break;
         }
         s = s.toParent2();

@@ -415,7 +415,7 @@ struct Scope
             for (size_t i = 0; i < ad.fields.dim; i++)
             {
                 VarDeclaration v = ad.fields[i];
-                bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
+                bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
                 if (!.mergeFieldInit(loc, fieldinit[i], fies[i], mustInit))
                 {
                     .error(loc, "one path skips field `%s`", ad.fields[i].toChars());

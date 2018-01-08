@@ -296,16 +296,16 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
          */
-        if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
-        if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared);
-        if (stc & (STCconst | STCimmutable | STCmanifest))
-            scstc &= ~(STCconst | STCimmutable | STCmanifest);
-        if (stc & (STCgshared | STCshared | STCtls))
-            scstc &= ~(STCgshared | STCshared | STCtls);
-        if (stc & (STCsafe | STCtrusted | STCsystem))
-            scstc &= ~(STCsafe | STCtrusted | STCsystem);
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.manifest | STC.gshared))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.manifest | STC.gshared);
+        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
+            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
+        if (stc & (STC.gshared | STC.shared_ | STC.tls))
+            scstc &= ~(STC.gshared | STC.shared_ | STC.tls);
+        if (stc & (STC.safe | STC.trusted | STC.system))
+            scstc &= ~(STC.safe | STC.trusted | STC.system);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
         return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
@@ -349,13 +349,13 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
             {
                 Dsymbol s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
-                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                // STC.local needs to be attached before the member is added to the scope (because it influences the parent symbol)
                 if (auto decl = s.isDeclaration())
                 {
-                    decl.storage_class |= stc & STClocal;
+                    decl.storage_class |= stc & STC.local;
                     if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
                     {
-                        sdecl.stc |= stc & STClocal;
+                        sdecl.stc |= stc & STC.local;
                     }
                 }
                 s.addMember(sc2, sds);
@@ -386,7 +386,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 
     extern (D) this(Expression msg, Dsymbols* decl)
     {
-        super(STCdeprecated, decl);
+        super(STC.deprecated_, decl);
         this.msg = msg;
     }
 
@@ -397,7 +397,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     }
 
     /**
-     * Provides a new scope with `STCdeprecated` and `Scope.depdecl` set
+     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
      *
      * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
      * in any function overriding `newScope`), then set the `Scope`'s depdecl.
@@ -1142,7 +1142,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
  * another scope, like:
  *
  *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
- *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STClocal
+ *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STC.local
  *          mixin("enum x" ~ to!string(i) ~ " = i"); // ok, can access current loop variable
  *      }
  *

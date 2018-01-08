@@ -229,13 +229,13 @@ StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
 {
     StorageClass stc = 0;
     if (mod & MODimmutable)
-        stc |= STCimmutable;
+        stc |= STC.immutable_;
     if (mod & MODconst)
-        stc |= STCconst;
+        stc |= STC.const_;
     if (mod & MODwild)
-        stc |= STCwild;
+        stc |= STC.wild;
     if (mod & MODshared)
-        stc |= STCshared;
+        stc |= STC.shared_;
     return stc;
 }
 
@@ -805,19 +805,19 @@ extern (C++) abstract class Type : RootObject
 
         if (!t1.isref && (t1.isscope || t2.isscope))
         {
-            StorageClass stc1 = t1.isscope ? STCscope : 0;
-            StorageClass stc2 = t2.isscope ? STCscope : 0;
+            StorageClass stc1 = t1.isscope ? STC.scope_ : 0;
+            StorageClass stc2 = t2.isscope ? STC.scope_ : 0;
             if (t1.isreturn)
             {
-                stc1 |= STCreturn;
+                stc1 |= STC.return_;
                 if (!t1.isscope)
-                    stc1 |= STCref;
+                    stc1 |= STC.ref_;
             }
             if (t2.isreturn)
             {
-                stc2 |= STCreturn;
+                stc2 |= STC.return_;
                 if (!t2.isscope)
-                    stc2 |= STCref;
+                    stc2 |= STC.ref_;
             }
             if (!Parameter.isCovariantScope(t1.isref, stc1, stc2))
                 goto Lnotcovariant;
@@ -836,7 +836,7 @@ extern (C++) abstract class Type : RootObject
                 //stop attribute inference with const
                 // If adding 'const' will make it covariant
                 if (MODimplicitConv(t2.mod, MODmerge(t1.mod, MODconst)))
-                    stc |= STCconst;
+                    stc |= STC.const_;
                 else
                     goto Lnotcovariant;
             }
@@ -849,20 +849,20 @@ extern (C++) abstract class Type : RootObject
         /* Can convert pure to impure, nothrow to throw, and nogc to gc
          */
         if (!t1.purity && t2.purity)
-            stc |= STCpure;
+            stc |= STC.pure_;
 
         if (!t1.isnothrow && t2.isnothrow)
-            stc |= STCnothrow;
+            stc |= STC.nothrow_;
 
         if (!t1.isnogc && t2.isnogc)
-            stc |= STCnogc;
+            stc |= STC.nogc;
 
         /* Can convert safe/trusted to system
          */
         if (t1.trust <= TRUSTsystem && t2.trust >= TRUSTtrusted)
         {
             // Should we infer trusted or safe? Go with safe.
-            stc |= STCsafe;
+            stc |= STC.safe;
         }
 
         if (stc)
@@ -1829,13 +1829,13 @@ extern (C++) abstract class Type : RootObject
         if (t.isImmutable())
         {
         }
-        else if (stc & STCimmutable)
+        else if (stc & STC.immutable_)
         {
             t = t.makeImmutable();
         }
         else
         {
-            if ((stc & STCshared) && !t.isShared())
+            if ((stc & STC.shared_) && !t.isShared())
             {
                 if (t.isWild())
                 {
@@ -1852,7 +1852,7 @@ extern (C++) abstract class Type : RootObject
                         t = t.makeShared();
                 }
             }
-            if ((stc & STCconst) && !t.isConst())
+            if ((stc & STC.const_) && !t.isConst())
             {
                 if (t.isShared())
                 {
@@ -1869,7 +1869,7 @@ extern (C++) abstract class Type : RootObject
                         t = t.makeConst();
                 }
             }
-            if ((stc & STCwild) && !t.isWild())
+            if ((stc & STC.wild) && !t.isWild())
             {
                 if (t.isShared())
                 {
@@ -2053,15 +2053,15 @@ extern (C++) abstract class Type : RootObject
         /* Just translate to MOD bits and let addMod() do the work
          */
         MOD mod = 0;
-        if (stc & STCimmutable)
+        if (stc & STC.immutable_)
             mod = MODimmutable;
         else
         {
-            if (stc & (STCconst | STCin))
+            if (stc & (STC.const_ | STC.in_))
                 mod |= MODconst;
-            if (stc & STCwild)
+            if (stc & STC.wild)
                 mod |= MODwild;
-            if (stc & STCshared)
+            if (stc & STC.shared_)
                 mod |= MODshared;
         }
         return addMod(mod);
@@ -5106,7 +5106,7 @@ extern (C++) final class TypeAArray : TypeArray
             if (fd_aaLen is null)
             {
                 auto fparams = new Parameters();
-                fparams.push(new Parameter(STCin, this, null, null));
+                fparams.push(new Parameter(STC.in_, this, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PUREconst;
@@ -5481,30 +5481,30 @@ extern (C++) final class TypeFunction : TypeNext
         this.varargs = varargs;
         this.linkage = linkage;
 
-        if (stc & STCpure)
+        if (stc & STC.pure_)
             this.purity = PUREfwdref;
-        if (stc & STCnothrow)
+        if (stc & STC.nothrow_)
             this.isnothrow = true;
-        if (stc & STCnogc)
+        if (stc & STC.nogc)
             this.isnogc = true;
-        if (stc & STCproperty)
+        if (stc & STC.property)
             this.isproperty = true;
 
-        if (stc & STCref)
+        if (stc & STC.ref_)
             this.isref = true;
-        if (stc & STCreturn)
+        if (stc & STC.return_)
             this.isreturn = true;
-        if (stc & STCscope)
+        if (stc & STC.scope_)
             this.isscope = true;
-        if (stc & STCscopeinferred)
+        if (stc & STC.scopeinferred)
             this.isscopeinferred = true;
 
         this.trust = TRUSTdefault;
-        if (stc & STCsafe)
+        if (stc & STC.safe)
             this.trust = TRUSTsafe;
-        if (stc & STCsystem)
+        if (stc & STC.system)
             this.trust = TRUSTsystem;
-        if (stc & STCtrusted)
+        if (stc & STC.trusted)
             this.trust = TRUSTtrusted;
     }
 
@@ -5603,12 +5603,12 @@ extern (C++) final class TypeFunction : TypeNext
             if (!t)
                 continue;
 
-            if (fparam.storageClass & (STClazy | STCout))
+            if (fparam.storageClass & (STC.lazy_ | STC.out_))
             {
                 purity = PUREweak;
                 break;
             }
-            switch (purityOfType((fparam.storageClass & STCref) != 0, t))
+            switch (purityOfType((fparam.storageClass & STC.ref_) != 0, t))
             {
                 case PUREweak:
                     purity = PUREweak;
@@ -5647,7 +5647,7 @@ extern (C++) final class TypeFunction : TypeNext
         for (size_t i = 0; i < dim; i++)
         {
             Parameter fparam = Parameter.getNth(parameters, i);
-            if (fparam.storageClass & STClazy)
+            if (fparam.storageClass & STC.lazy_)
                 return true;
         }
         return false;
@@ -5670,7 +5670,7 @@ extern (C++) final class TypeFunction : TypeNext
          * as lazy parameters to the next function, but that isn't
          * escaping.
          */
-        if (parameterStorageClass(p) & (STCscope | STClazy))
+        if (parameterStorageClass(p) & (STC.scope_ | STC.lazy_))
             return false;
         return true;
     }
@@ -5679,12 +5679,12 @@ extern (C++) final class TypeFunction : TypeNext
     /************************************
      * Take the specified storage class for p,
      * and use the function signature to infer whether
-     * STCscope and STCreturn should be OR'd in.
+     * STC.scope_ and STC.return_ should be OR'd in.
      * (This will not affect the name mangling.)
      * Params:
      *  p = one of the parameters to 'this'
      * Returns:
-     *  storage class with STCscope or STCreturn OR'd in
+     *  storage class with STC.scope_ or STC.return_ OR'd in
      */
     final StorageClass parameterStorageClass(Parameter p)
     {
@@ -5693,7 +5693,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (!global.params.vsafe)
             return stc;
 
-        if (stc & (STCscope | STCreturn | STClazy) || purity == PUREimpure)
+        if (stc & (STC.scope_ | STC.return_ | STC.lazy_) || purity == PUREimpure)
             return stc;
 
         /* If haven't inferred the return type yet, can't infer storage classes
@@ -5718,7 +5718,7 @@ extern (C++) final class TypeFunction : TypeNext
                 t = t.baseElemOf();
                 if (t.isMutable() && t.hasPointers())
                 {
-                    if (fparam.storageClass & (STCref | STCout))
+                    if (fparam.storageClass & (STC.ref_ | STC.out_))
                     {
                     }
                     else if (t.ty == Tarray || t.ty == Tpointer)
@@ -5732,9 +5732,9 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        stc |= STCscope;
+        stc |= STC.scope_;
 
-        /* Inferring STCreturn here has false positives
+        /* Inferring STC.return_ here has false positives
          * for pure functions, producing spurious error messages
          * about escaping references.
          * Give up on it for now.
@@ -5747,7 +5747,7 @@ extern (C++) final class TypeFunction : TypeNext
                 /* The result has references, so p could be escaping
                  * that way.
                  */
-                stc |= STCreturn;
+                stc |= STC.return_;
             }
         }
 
@@ -5756,13 +5756,13 @@ extern (C++) final class TypeFunction : TypeNext
 
     override Type addStorageClass(StorageClass stc)
     {
-        //printf("addStorageClass(%llx) %d\n", stc, (stc & STCscope) != 0);
+        //printf("addStorageClass(%llx) %d\n", stc, (stc & STC.scope_) != 0);
         TypeFunction t = Type.addStorageClass(stc).toTypeFunction();
-        if ((stc & STCpure && !t.purity) ||
-            (stc & STCnothrow && !t.isnothrow) ||
-            (stc & STCnogc && !t.isnogc) ||
-            (stc & STCscope && !t.isscope) ||
-            (stc & STCsafe && t.trust < TRUSTtrusted))
+        if ((stc & STC.pure_ && !t.purity) ||
+            (stc & STC.nothrow_ && !t.isnothrow) ||
+            (stc & STC.nogc && !t.isnogc) ||
+            (stc & STC.scope_ && !t.isscope) ||
+            (stc & STC.safe && t.trust < TRUSTtrusted))
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
@@ -5779,18 +5779,18 @@ extern (C++) final class TypeFunction : TypeNext
             tf.trust = t.trust;
             tf.iswild = t.iswild;
 
-            if (stc & STCpure)
+            if (stc & STC.pure_)
                 tf.purity = PUREfwdref;
-            if (stc & STCnothrow)
+            if (stc & STC.nothrow_)
                 tf.isnothrow = true;
-            if (stc & STCnogc)
+            if (stc & STC.nogc)
                 tf.isnogc = true;
-            if (stc & STCsafe)
+            if (stc & STC.safe)
                 tf.trust = TRUSTsafe;
-            if (stc & STCscope)
+            if (stc & STC.scope_)
             {
                 tf.isscope = true;
-                if (stc & STCscopeinferred)
+                if (stc & STC.scopeinferred)
                     tf.isscopeinferred = true;
             }
 
@@ -5965,9 +5965,9 @@ extern (C++) final class TypeFunction : TypeNext
             Type tprm = p.type;
             Type targ = arg.type;
 
-            if (!(p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid))
+            if (!(p.storageClass & STC.lazy_ && tprm.ty == Tvoid && targ.ty != Tvoid))
             {
-                bool isRef = (p.storageClass & (STCref | STCout)) != 0;
+                bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                 wildmatch |= targ.deduceWild(tprm, isRef);
             }
         }
@@ -6009,7 +6009,7 @@ extern (C++) final class TypeFunction : TypeNext
                 Type targ = arg.type;
                 Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
 
-                if (p.storageClass & STClazy && tprm.ty == Tvoid && targ.ty != Tvoid)
+                if (p.storageClass & STC.lazy_ && tprm.ty == Tvoid && targ.ty != Tvoid)
                     m = MATCH.convert;
                 else
                 {
@@ -6025,7 +6025,7 @@ extern (C++) final class TypeFunction : TypeNext
                 }
 
                 // Non-lvalues do not match ref or out parameters
-                if (p.storageClass & (STCref | STCout))
+                if (p.storageClass & (STC.ref_ | STC.out_))
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=13783
                     // Don't use toBasetype() to handle enum types.
@@ -6035,7 +6035,7 @@ extern (C++) final class TypeFunction : TypeNext
 
                     if (m && !arg.isLvalue())
                     {
-                        if (p.storageClass & STCout)
+                        if (p.storageClass & STC.out_)
                             goto Nomatch;
 
                         if (arg.op == TOKstring && tp.ty == Tsarray)
@@ -6253,13 +6253,13 @@ extern (C++) final class TypeDelegate : TypeNext
          *  alias dg_t = void* delegate();
          *  scope dg_t dg = ...;
          */
-        if(stc & STCscope)
+        if(stc & STC.scope_)
         {
-            auto n = t.next.addStorageClass(STCscope | STCscopeinferred);
+            auto n = t.next.addStorageClass(STC.scope_ | STC.scopeinferred);
             if (n != t.next)
             {
                 t.next = n;
-                t.deco = t.merge().deco; // mangling supposed to not be changed due to STCscopeinferrred
+                t.deco = t.merge().deco; // mangling supposed to not be changed due to STC.scope_inferrred
             }
         }
         return t;
@@ -6521,7 +6521,7 @@ extern (C++) abstract class TypeQualified : Type
         {
             //printf("\t1: s = '%s' %p, kind = '%s'\n",s.toChars(), s, s.kind());
             Declaration d = s.isDeclaration();
-            if (d && (d.storage_class & STCtemplateparameter))
+            if (d && (d.storage_class & STC.templateparameter))
                 s = s.toAlias();
             else
             {
@@ -6575,7 +6575,7 @@ extern (C++) abstract class TypeQualified : Type
                     goto L3;
                 if (VarDeclaration v = s.isVarDeclaration())
                 {
-                    if (v.storage_class & (STCconst | STCimmutable | STCmanifest) ||
+                    if (v.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) ||
                         v.type.isConst() || v.type.isImmutable())
                     {
                         // https://issues.dlang.org/show_bug.cgi?id=13087
@@ -7347,7 +7347,7 @@ extern (C++) final class TypeStruct : Type
             if (v.type.ty == Terror)
                 return new ErrorExp();
 
-            if ((v.storage_class & STCmanifest) && v._init)
+            if ((v.storage_class & STC.manifest) && v._init)
             {
                 if (v.inuse)
                 {
@@ -7490,7 +7490,7 @@ extern (C++) final class TypeStruct : Type
         Declaration d = new SymbolDeclaration(sym.loc, sym);
         assert(d);
         d.type = this;
-        d.storage_class |= STCrvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
+        d.storage_class |= STC.rvalue; // https://issues.dlang.org/show_bug.cgi?id=14398
         return new VarExp(sym.loc, d);
     }
 
@@ -7623,7 +7623,7 @@ extern (C++) final class TypeStruct : Type
         sym.size(Loc()); // give error for forward references
         foreach (VarDeclaration v; s.fields)
         {
-            if (v.storage_class & STCref || v.hasPointers())
+            if (v.storage_class & STC.ref_ || v.hasPointers())
                 return true;
         }
         return false;
@@ -8299,7 +8299,7 @@ extern (C++) final class TypeClass : Type
             if (v.type.ty == Terror)
                 return new ErrorExp();
 
-            if ((v.storage_class & STCmanifest) && v._init)
+            if ((v.storage_class & STC.manifest) && v._init)
             {
                 if (v.inuse)
                 {
@@ -8654,7 +8654,7 @@ extern (C++) final class TypeTuple : Type
                 Expression e = (*exps)[i];
                 if (e.type.ty == Ttuple)
                     e.error("cannot form tuple of tuples");
-                auto arg = new Parameter(STCundefined, e.type, null, null);
+                auto arg = new Parameter(STC.undefined_, e.type, null, null);
                 (*arguments)[i] = arg;
             }
         }
@@ -9032,7 +9032,7 @@ extern (C++) final class Parameter : RootObject
 
         int isTPLDg(size_t n, Parameter p)
         {
-            if (p.storageClass & (STCalias | STCauto | STCstatic))
+            if (p.storageClass & (STC.alias_ | STC.auto_ | STC.static_))
                 return 1;
             return 0;
         }
@@ -9138,7 +9138,7 @@ extern (C++) final class Parameter : RootObject
      */
     final bool isCovariant(bool returnByRef, const Parameter p) const pure nothrow @nogc @safe
     {
-        enum stc = STCref | STCin | STCout | STClazy;
+        enum stc = STC.ref_ | STC.in_ | STC.out_ | STC.lazy_;
         if ((this.storageClass & stc) != (p.storageClass & stc))
             return false;
         return isCovariantScope(returnByRef, this.storageClass, p.storageClass);
@@ -9157,15 +9157,15 @@ extern (C++) final class Parameter : RootObject
         static uint buildSR(bool returnByRef, StorageClass stc) pure nothrow @nogc @safe
         {
             uint result;
-            final switch (stc & (STCref | STCscope | STCreturn))
+            final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
             {
                 case 0:                    result = SR.None;        break;
-                case STCref:               result = SR.Ref;         break;
-                case STCscope:             result = SR.Scope;       break;
-                case STCreturn | STCref:   result = SR.ReturnRef;   break;
-                case STCreturn | STCscope: result = SR.ReturnScope; break;
-                case STCref    | STCscope: result = SR.RefScope;    break;
-                case STCreturn | STCref | STCscope:
+                case STC.ref_:               result = SR.Ref;         break;
+                case STC.scope_:             result = SR.Scope;       break;
+                case STC.return_ | STC.ref_:   result = SR.ReturnRef;   break;
+                case STC.return_ | STC.scope_: result = SR.ReturnScope; break;
+                case STC.ref_    | STC.scope_: result = SR.RefScope;    break;
+                case STC.return_ | STC.ref_ | STC.scope_:
                     result = returnByRef ? SR.ReturnRef_Scope : SR.Ref_ReturnScope;
                     break;
             }
@@ -9175,7 +9175,7 @@ extern (C++) final class Parameter : RootObject
         /* result is true if the 'from' can be used as a 'to'
          */
 
-        if ((from ^ to) & STCref)               // differing in 'ref' means no covariance
+        if ((from ^ to) & STC.ref_)               // differing in 'ref' means no covariance
             return false;
 
         return covariant[buildSR(returnByRef, from)][buildSR(returnByRef, to)];

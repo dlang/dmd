@@ -321,7 +321,7 @@ extern (C++) class Dsymbol : RootObject
                     return;
 
                 // If inside a StorageClassDeclaration that is deprecated
-                if (sc2.stc & STCdeprecated)
+                if (sc2.stc & STC.deprecated_)
                     return;
             }
             const(char)* message = null;
@@ -1552,7 +1552,7 @@ public:
             {
                 Scope sc;
                 auto parameters = new Parameters();
-                Parameters* p = new Parameter(STCin, Type.tchar.constOf().arrayOf(), null, null);
+                Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
                 parameters.push(p);
                 Type tret = null;
                 tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
@@ -1793,7 +1793,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
                 Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
-                v.storage_class |= STCtemp | STCstatic | STCconst;
+                v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 v.dsymbolSemantic(sc);
                 return v;
             }
@@ -1804,7 +1804,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
                 Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
                 v._init = new ExpInitializer(Loc(), e);
-                v.storage_class |= STCtemp | STCstatic | STCconst;
+                v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 v.dsymbolSemantic(sc);
                 return v;
             }
@@ -1870,7 +1870,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      */
                     Expression e = new IntegerExp(Loc(), (cast(TupleExp)ce).exps.dim, Type.tsize_t);
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
-                    v.storage_class |= STCtemp | STCstatic | STCconst;
+                    v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 }
                 else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
                 {
@@ -1928,7 +1928,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     if (t && t.ty == Tfunction)
                         e = new CallExp(e.loc, e);
                     v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
-                    v.storage_class |= STCtemp | STCctfe | STCrvalue;
+                    v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
                 }
                 else
                 {
@@ -1940,7 +1940,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     auto e = new VoidInitializer(Loc());
                     e.type = Type.tsize_t;
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
-                    v.storage_class |= STCtemp | STCctfe; // it's never a true static variable
+                    v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
                 }
                 *pvar = v;
             }
@@ -2022,9 +2022,9 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         assert(forward);
         if (auto d = s.isDeclaration())
         {
-            if (d.storage_class & STClocal)
+            if (d.storage_class & STC.local)
             {
-                // Symbols with storage class STClocal are not
+                // Symbols with storage class STC.local are not
                 // forwarded, but stored in the local symbol
                 // table. (Those are the `static foreach` variables.)
                 if (!symtab)
@@ -2038,7 +2038,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         {
             forward.symtab = new DsymbolTable();
         }
-        // Non-STClocal symbols are forwarded to `forward`.
+        // Non-STC.local symbols are forwarded to `forward`.
         return forward.symtabInsert(s);
     }
 
@@ -2054,7 +2054,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         // correctly diagnose clashing foreach loop variables.
         if (auto d = s.isDeclaration())
         {
-            if (d.storage_class & STClocal)
+            if (d.storage_class & STC.local)
             {
                 if (!symtab)
                 {

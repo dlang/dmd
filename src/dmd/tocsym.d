@@ -153,16 +153,16 @@ Symbol *toSymbol(Dsymbol s)
                 s = symbol_calloc(id, cast(uint)strlen(id));
             }
             s.Salignment = vd.alignment;
-            if (vd.storage_class & STCtemp)
+            if (vd.storage_class & STC.temp)
                 s.Sflags |= SFLartifical;
 
             TYPE *t;
-            if (vd.storage_class & (STCout | STCref))
+            if (vd.storage_class & (STC.out_ | STC.ref_))
             {
                 t = type_allocn(TYnref, Type_toCtype(vd.type));
                 t.Tcount++;
             }
-            else if (vd.storage_class & STClazy)
+            else if (vd.storage_class & STC.lazy_)
             {
                 if (config.exe == EX_WIN64 && vd.isParameter())
                     t = type_fake(TYnptr);
@@ -191,7 +191,7 @@ Symbol *toSymbol(Dsymbol s)
 
             if (vd.isDataseg())
             {
-                if (vd.isThreadlocal() && !(vd.storage_class & STCtemp))
+                if (vd.isThreadlocal() && !(vd.storage_class & STC.temp))
                 {
                     /* Thread local storage
                      */
@@ -237,7 +237,7 @@ Symbol *toSymbol(Dsymbol s)
                 }
             }
 
-            if (vd.storage_class & STCvolatile)
+            if (vd.storage_class & STC.volatile_)
             {
                 type_setcv(&t, t.Tty | mTYvolatile);
             }

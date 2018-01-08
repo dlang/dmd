@@ -263,7 +263,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         assert(dsym.semanticRun <= PASSsemantic);
 
-        dsym.storage_class |= sc.stc & STCdeprecated;
+        dsym.storage_class |= sc.stc & STC.deprecated_;
         dsym.protection = sc.protection;
         dsym.userAttribDecl = sc.userAttribDecl;
 
@@ -307,15 +307,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* Pick up storage classes from context, but except synchronized,
          * override, abstract, and final.
          */
-        dsym.storage_class |= (sc.stc & ~(STCsynchronized | STCoverride | STCabstract | STCfinal));
-        if (dsym.storage_class & STCextern && dsym._init)
+        dsym.storage_class |= (sc.stc & ~(STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_));
+        if (dsym.storage_class & STC.extern_ && dsym._init)
             dsym.error("extern symbols cannot have initializers");
 
         dsym.userAttribDecl = sc.userAttribDecl;
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
-            dsym.storage_class |= ad.storage_class & STC_TYPECTOR;
+            dsym.storage_class |= ad.storage_class & STC.TYPECTOR;
 
         /* If auto type inference, do the inference
          */
@@ -326,7 +326,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Infering the type requires running semantic,
             // so mark the scope as ctfe if required
-            bool needctfe = (dsym.storage_class & (STCmanifest | STCstatic)) != 0;
+            bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0;
             if (needctfe)
                 sc = sc.startCTFE();
 
@@ -342,7 +342,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             /* This is a kludge to support the existing syntax for RAII
              * declarations.
              */
-            dsym.storage_class &= ~STCauto;
+            dsym.storage_class &= ~STC.auto_;
             dsym.originalType = dsym.type.syntaxCopy();
         }
         else
@@ -356,7 +356,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              *      static assert(is(typeof(fp) == void function() pure nothrow));
              */
             Scope* sc2 = sc.push();
-            sc2.stc |= (dsym.storage_class & STC_FUNCATTR);
+            sc2.stc |= (dsym.storage_class & STC.FUNCATTR);
             dsym.inuse++;
             dsym.type = dsym.type.typeSemantic(dsym.loc, sc2);
             dsym.inuse--;
@@ -388,7 +388,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Calculate type size + safety checks
         if (sc.func && !sc.intypeof)
         {
-            if (dsym.storage_class & STCgshared && !dsym.isMember())
+            if (dsym.storage_class & STC.gshared && !dsym.isMember())
             {
                 if (sc.func.setUnsafe())
                     dsym.error("__gshared not allowed in safe functions; use shared");
@@ -399,7 +399,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         Type tb = dsym.type.toBasetype();
         Type tbn = tb.baseElemOf();
-        if (tb.ty == Tvoid && !(dsym.storage_class & STClazy))
+        if (tb.ty == Tvoid && !(dsym.storage_class & STC.lazy_))
         {
             if (inferred)
             {
@@ -424,7 +424,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym.error("no definition of struct `%s`", ts.toChars());
             }
         }
-        if ((dsym.storage_class & STCauto) && !inferred)
+        if ((dsym.storage_class & STC.auto_) && !inferred)
             dsym.error("storage class `auto` has no effect if type is not inferred, did you mean `scope`?");
 
         if (tb.ty == Ttuple)
@@ -559,8 +559,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                     ti = dsym._init ? dsym._init.syntaxCopy() : null;
 
-                StorageClass storage_class = STCtemp | dsym.storage_class;
-                if (arg.storageClass & STCparameter)
+                StorageClass storage_class = STC.temp | dsym.storage_class;
+                if (arg.storageClass & STC.parameter)
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(dsym.loc, arg.type, id, ti, storage_class);
                 //printf("declaring field %s of type %s\n", v.toChars(), v.type.toChars());
@@ -593,20 +593,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         if (dsym.type.isConst())
         {
-            dsym.storage_class |= STCconst;
+            dsym.storage_class |= STC.const_;
             if (dsym.type.isShared())
-                dsym.storage_class |= STCshared;
+                dsym.storage_class |= STC.shared_;
         }
         else if (dsym.type.isImmutable())
-            dsym.storage_class |= STCimmutable;
+            dsym.storage_class |= STC.immutable_;
         else if (dsym.type.isShared())
-            dsym.storage_class |= STCshared;
+            dsym.storage_class |= STC.shared_;
         else if (dsym.type.isWild())
-            dsym.storage_class |= STCwild;
+            dsym.storage_class |= STC.wild;
 
-        if (StorageClass stc = dsym.storage_class & (STCsynchronized | STCoverride | STCabstract | STCfinal))
+        if (StorageClass stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
         {
-            if (stc == STCfinal)
+            if (stc == STC.final_)
                 dsym.error("cannot be final, perhaps you meant const?");
             else
             {
@@ -617,9 +617,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.storage_class &= ~stc; // strip off
         }
 
-        if (dsym.storage_class & STCscope)
+        if (dsym.storage_class & STC.scope_)
         {
-            StorageClass stc = dsym.storage_class & (STCstatic | STCextern | STCmanifest | STCtls | STCgshared);
+            StorageClass stc = dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.tls | STC.gshared);
             if (stc)
             {
                 OutBuffer buf;
@@ -632,11 +632,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (!dsym.type.hasPointers())
             {
-                dsym.storage_class &= ~STCscope;     // silently ignore; may occur in generic code
+                dsym.storage_class &= ~STC.scope_;     // silently ignore; may occur in generic code
             }
         }
 
-        if (dsym.storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
+        if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.tls | STC.gshared | STC.ctfe))
         {
         }
         else
@@ -644,13 +644,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             AggregateDeclaration aad = parent.isAggregateDeclaration();
             if (aad)
             {
-                if (global.params.vfield && dsym.storage_class & (STCconst | STCimmutable) && dsym._init && !dsym._init.isVoidInitializer())
+                if (global.params.vfield && dsym.storage_class & (STC.const_ | STC.immutable_) && dsym._init && !dsym._init.isVoidInitializer())
                 {
                     const(char)* p = dsym.loc.toChars();
-                    const(char)* s = (dsym.storage_class & STCimmutable) ? "immutable" : "const";
+                    const(char)* s = (dsym.storage_class & STC.immutable_) ? "immutable" : "const";
                     fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), dsym.toChars(), s);
                 }
-                dsym.storage_class |= STCfield;
+                dsym.storage_class |= STC.field;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
                 {
                     if (!dsym.isThisDeclaration() && !dsym._init)
@@ -683,21 +683,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 // If it's a member template
                 AggregateDeclaration ad2 = ti.tempdecl.isMember();
-                if (ad2 && dsym.storage_class != STCundefined)
+                if (ad2 && dsym.storage_class != STC.undefined_)
                 {
                     dsym.error("cannot use template to add field to aggregate `%s`", ad2.toChars());
                 }
             }
         }
 
-        if ((dsym.storage_class & (STCref | STCparameter | STCforeach | STCtemp | STCresult)) == STCref && dsym.ident != Id.This)
+        if ((dsym.storage_class & (STC.ref_ | STC.parameter | STC.foreach_ | STC.temp | STC.result)) == STC.ref_ && dsym.ident != Id.This)
         {
             dsym.error("only parameters or foreach declarations can be ref");
         }
 
         if (dsym.type.hasWild())
         {
-            if (dsym.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) || dsym.isDataseg())
+            if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field) || dsym.isDataseg())
             {
                 dsym.error("only parameters or stack based variables can be inout");
             }
@@ -722,7 +722,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (!(dsym.storage_class & (STCctfe | STCref | STCresult)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
+        if (!(dsym.storage_class & (STC.ctfe | STC.ref_ | STC.result)) && tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
         {
             if (!dsym._init)
             {
@@ -730,9 +730,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     /* For fields, we'll check the constructor later to make sure it is initialized
                      */
-                    dsym.storage_class |= STCnodefaultctor;
+                    dsym.storage_class |= STC.nodefaultctor;
                 }
-                else if (dsym.storage_class & STCparameter)
+                else if (dsym.storage_class & STC.parameter)
                 {
                 }
                 else
@@ -741,15 +741,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         FuncDeclaration fd = parent.isFuncDeclaration();
-        if (dsym.type.isscope() && !(dsym.storage_class & STCnodtor))
+        if (dsym.type.isscope() && !(dsym.storage_class & STC.nodtor))
         {
-            if (dsym.storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
+            if (dsym.storage_class & (STC.field | STC.out_ | STC.ref_ | STC.static_ | STC.manifest | STC.tls | STC.gshared) || !fd)
             {
                 dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
             }
-            if (!(dsym.storage_class & STCscope))
+            if (!(dsym.storage_class & STC.scope_))
             {
-                if (!(dsym.storage_class & STCparameter) && dsym.ident != Id.withSym)
+                if (!(dsym.storage_class & STC.parameter) && dsym.ident != Id.withSym)
                     dsym.error("reference to scope class must be scope");
             }
         }
@@ -763,7 +763,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     dsym.error("void initializers for pointers not allowed in safe functions");
             }
             else if (!dsym._init &&
-                     !(dsym.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield | STCparameter)) &&
+                     !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
                      dsym.type.hasVoidInitPointers())
             {
                 if (sc.func.setUnsafe())
@@ -774,22 +774,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!dsym._init && !fd)
         {
             // If not mutable, initializable by constructor only
-            dsym.storage_class |= STCctorinit;
+            dsym.storage_class |= STC.ctorinit;
         }
 
         if (dsym._init)
-            dsym.storage_class |= STCinit; // remember we had an explicit initializer
-        else if (dsym.storage_class & STCmanifest)
+            dsym.storage_class |= STC.init; // remember we had an explicit initializer
+        else if (dsym.storage_class & STC.manifest)
             dsym.error("manifest constants must have initializers");
 
         bool isBlit = false;
         d_uns64 sz;
         if (!dsym._init &&
             !sc.inunion &&
-            !(dsym.storage_class & (STCstatic | STCgshared | STCextern)) &&
+            !(dsym.storage_class & (STC.static_ | STC.gshared | STC.extern_)) &&
             fd &&
-            (!(dsym.storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult)) ||
-             (dsym.storage_class & STCout)) &&
+            (!(dsym.storage_class & (STC.field | STC.in_ | STC.foreach_ | STC.parameter | STC.result)) ||
+             (dsym.storage_class & STC.out_)) &&
             (sz = dsym.type.size()) != 0)
         {
             // Provide a default initializer
@@ -844,7 +844,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym._init)
         {
             sc = sc.push();
-            sc.stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCnogc | STCref | STCdisable);
+            sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.disable);
 
             ExpInitializer ei = dsym._init.isExpInitializer();
             if (ei) // https://issues.dlang.org/show_bug.cgi?id=13424
@@ -856,7 +856,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 // If local variable, use AssignExp to handle all the various
                 // possibilities.
-                if (fd && !(dsym.storage_class & (STCmanifest | STCstatic | STCtls | STCgshared | STCextern)) && !dsym._init.isVoidInitializer())
+                if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.tls | STC.gshared | STC.extern_)) && !dsym._init.isVoidInitializer())
                 {
                     //printf("fd = '%s', var = '%s'\n", fd.toChars(), toChars());
                     if (!ei)
@@ -944,7 +944,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._scope = scx ? scx : sc.copy();
                 dsym._scope.setNoFree();
             }
-            else if (dsym.storage_class & (STCconst | STCimmutable | STCmanifest) || dsym.type.isConst() || dsym.type.isImmutable())
+            else if (dsym.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) || dsym.type.isConst() || dsym.type.isImmutable())
             {
                 /* Because we may need the results of a const declaration in a
                  * subsequent type, such as an array dimension, before semantic2()
@@ -959,7 +959,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     {
                         Expression exp = ei.exp.syntaxCopy();
 
-                        bool needctfe = dsym.isDataseg() || (dsym.storage_class & STCmanifest);
+                        bool needctfe = dsym.isDataseg() || (dsym.storage_class & STC.manifest);
                         if (needctfe)
                             sc = sc.startCTFE();
                         exp = exp.expressionSemantic(sc);
@@ -1025,20 +1025,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * then make dsym scope, too.
              */
             if (global.params.vsafe &&
-                !(dsym.storage_class & (STCparameter | STCtemp | STCfield | STCin | STCforeach | STCresult | STCmanifest)) &&
+                !(dsym.storage_class & (STC.parameter | STC.temp | STC.field | STC.in_ | STC.foreach_ | STC.result | STC.manifest)) &&
                 !dsym.isDataseg() &&
                 !dsym.doNotInferScope &&
                 dsym.type.hasPointers())
             {
                 auto tv = dsym.type.baseElemOf();
                 if (tv.ty == Tstruct &&
-                    (cast(TypeStruct)tv).sym.dtor.storage_class & STCscope)
+                    (cast(TypeStruct)tv).sym.dtor.storage_class & STC.scope_)
                 {
-                    dsym.storage_class |= STCscope;
+                    dsym.storage_class |= STC.scope_;
                 }
             }
 
-            if (sc.func && dsym.storage_class & (STCstatic | STCgshared))
+            if (sc.func && dsym.storage_class & (STC.static_ | STC.gshared))
                 dsym.edtor = dsym.edtor.expressionSemantic(sc._module._scope);
             else
                 dsym.edtor = dsym.edtor.expressionSemantic(sc);
@@ -1046,7 +1046,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             version (none)
             {
                 // currently disabled because of std.stdio.stdin, stdout and stderr
-                if (dsym.isDataseg() && !(dsym.storage_class & STCextern))
+                if (dsym.isDataseg() && !(dsym.storage_class & STC.extern_))
                     dsym.error("static storage variables cannot have destructors");
             }
         }
@@ -1205,7 +1205,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ob.writeByte(' ');
             if (imp.isstatic)
             {
-                stcToBuffer(ob, STCstatic);
+                stcToBuffer(ob, STC.static_);
                 ob.writeByte(' ');
             }
             ob.writestring(": ");
@@ -1292,7 +1292,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (scd.decl)
         {
             sc = sc.push();
-            sc.stc &= ~(STCauto | STCscope | STCstatic | STCtls | STCgshared);
+            sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.gshared);
             sc.inunion = scd.isunion;
             sc.flags = 0;
             for (size_t i = 0; i < scd.decl.dim; i++)
@@ -1690,7 +1690,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ed.type = ed.type.typeSemantic(ed.loc, sc);
 
         ed.protection = sc.protection;
-        if (sc.stc & STCdeprecated)
+        if (sc.stc & STC.deprecated_)
             ed.isdeprecated = true;
         ed.userAttribDecl = sc.userAttribDecl;
 
@@ -1875,7 +1875,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(PROTpublic);
         em.linkage = LINKd;
-        em.storage_class = STCmanifest;
+        em.storage_class = STC.manifest;
         em.userAttribDecl = em.ed.isAnonymous() ? em.ed.userAttribDecl : null;
 
         // The first enum member is special
@@ -2104,7 +2104,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         tempdecl.parent = sc.parent;
         tempdecl.protection = sc.protection;
-        tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STCstatic);
+        tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
 
         if (!tempdecl.isstatic)
         {
@@ -2537,20 +2537,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         funcdecl.foverrides.setDim(0); // reset in case semantic() is being retried for this function
 
-        funcdecl.storage_class |= sc.stc & ~STCref;
+        funcdecl.storage_class |= sc.stc & ~STC.ref_;
         ad = funcdecl.isThis();
         // Don't nest structs b/c of generated methods which should not access the outer scopes.
         // https://issues.dlang.org/show_bug.cgi?id=16627
         if (ad && !funcdecl.generated)
         {
-            funcdecl.storage_class |= ad.storage_class & (STC_TYPECTOR | STCsynchronized);
+            funcdecl.storage_class |= ad.storage_class & (STC.TYPECTOR | STC.synchronized_);
             ad.makeNested();
         }
         if (sc.func)
-            funcdecl.storage_class |= sc.func.storage_class & STCdisable;
+            funcdecl.storage_class |= sc.func.storage_class & STC.disable;
         // Remove prefix storage classes silently.
-        if ((funcdecl.storage_class & STC_TYPECTOR) && !(ad || funcdecl.isNested()))
-            funcdecl.storage_class &= ~STC_TYPECTOR;
+        if ((funcdecl.storage_class & STC.TYPECTOR) && !(ad || funcdecl.isNested()))
+            funcdecl.storage_class &= ~STC.TYPECTOR;
 
         //printf("function storage_class = x%llx, sc.stc = x%llx, %x\n", storage_class, sc.stc, Declaration::isFinal());
 
@@ -2588,7 +2588,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!funcdecl.type.deco)
         {
             sc = sc.push();
-            sc.stc |= funcdecl.storage_class & (STCdisable | STCdeprecated); // forward to function type
+            sc.stc |= funcdecl.storage_class & (STC.disable | STC.deprecated_); // forward to function type
 
             TypeFunction tf = funcdecl.type.toTypeFunction();
             if (sc.func)
@@ -2633,25 +2633,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             if (tf.isref)
-                sc.stc |= STCref;
+                sc.stc |= STC.ref_;
             if (tf.isscope)
-                sc.stc |= STCscope;
+                sc.stc |= STC.scope_;
             if (tf.isnothrow)
-                sc.stc |= STCnothrow;
+                sc.stc |= STC.nothrow_;
             if (tf.isnogc)
-                sc.stc |= STCnogc;
+                sc.stc |= STC.nogc;
             if (tf.isproperty)
-                sc.stc |= STCproperty;
+                sc.stc |= STC.property;
             if (tf.purity == PUREfwdref)
-                sc.stc |= STCpure;
+                sc.stc |= STC.pure_;
             if (tf.trust != TRUSTdefault)
-                sc.stc &= ~(STCsafe | STCsystem | STCtrusted);
+                sc.stc &= ~(STC.safe | STC.system | STC.trusted);
             if (tf.trust == TRUSTsafe)
-                sc.stc |= STCsafe;
+                sc.stc |= STC.safe;
             if (tf.trust == TRUSTsystem)
-                sc.stc |= STCsystem;
+                sc.stc |= STC.system;
             if (tf.trust == TRUSTtrusted)
-                sc.stc |= STCtrusted;
+                sc.stc |= STC.trusted;
 
             if (funcdecl.isCtorDeclaration())
             {
@@ -2662,17 +2662,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 tret = tret.addMod(funcdecl.type.mod);
                 tf.next = tret;
                 if (ad.isStructDeclaration())
-                    sc.stc |= STCref;
+                    sc.stc |= STC.ref_;
             }
 
             // 'return' on a non-static class member function implies 'scope' as well
-            if (ad && ad.isClassDeclaration() && (tf.isreturn || sc.stc & STCreturn) && !(sc.stc & STCstatic))
-                sc.stc |= STCscope;
+            if (ad && ad.isClassDeclaration() && (tf.isreturn || sc.stc & STC.return_) && !(sc.stc & STC.static_))
+                sc.stc |= STC.scope_;
 
             // If 'this' has no pointers, remove 'scope' as it has no meaning
-            if (sc.stc & STCscope && ad && ad.isStructDeclaration() && !ad.type.hasPointers())
+            if (sc.stc & STC.scope_ && ad && ad.isStructDeclaration() && !ad.type.hasPointers())
             {
-                sc.stc &= ~STCscope;
+                sc.stc &= ~STC.scope_;
                 tf.isscope = false;
             }
 
@@ -2691,13 +2691,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              */
             auto stc = funcdecl.storage_class;
             if (funcdecl.type.isImmutable())
-                stc |= STCimmutable;
+                stc |= STC.immutable_;
             if (funcdecl.type.isConst())
-                stc |= STCconst;
-            if (funcdecl.type.isShared() || funcdecl.storage_class & STCsynchronized)
-                stc |= STCshared;
+                stc |= STC.const_;
+            if (funcdecl.type.isShared() || funcdecl.storage_class & STC.synchronized_)
+                stc |= STC.shared_;
             if (funcdecl.type.isWild())
-                stc |= STCwild;
+                stc |= STC.wild;
             funcdecl.type = funcdecl.type.addSTC(stc);
 
             funcdecl.type = funcdecl.type.typeSemantic(funcdecl.loc, sc);
@@ -2729,13 +2729,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             tfo.purity = tfx.purity;
             tfo.trust = tfx.trust;
 
-            funcdecl.storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
+            funcdecl.storage_class &= ~(STC.TYPECTOR | STC.FUNCATTR);
         }
 
         f = cast(TypeFunction)funcdecl.type;
         size_t nparams = Parameter.dim(f.parameters);
 
-        if ((funcdecl.storage_class & STCauto) && !f.isref && !funcdecl.inferRetType)
+        if ((funcdecl.storage_class & STC.auto_) && !f.isref && !funcdecl.inferRetType)
             funcdecl.error("storage class `auto` has no effect if return type is not inferred");
 
         /* Functions can only be 'scope' if they have a 'this'
@@ -2797,7 +2797,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         id = parent.isInterfaceDeclaration();
         if (id)
         {
-            funcdecl.storage_class |= STCabstract;
+            funcdecl.storage_class |= STC.abstract_;
             if (funcdecl.isCtorDeclaration() || funcdecl.isPostBlitDeclaration() || funcdecl.isDtorDeclaration() || funcdecl.isInvariantDeclaration() || funcdecl.isNewDeclaration() || funcdecl.isDelete())
                 funcdecl.error("constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", id.toChars());
             if (funcdecl.fbody && funcdecl.isVirtual())
@@ -2824,7 +2824,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 goto Ldone;
             }
 
-            if (funcdecl.storage_class & STCabstract)
+            if (funcdecl.storage_class & STC.abstract_)
                 cd.isabstract = ABSyes;
 
             // if static function, do not put in vtbl[]
@@ -3164,7 +3164,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (funcdecl.isOverride)
             {
-                if (funcdecl.storage_class & STCdisable)
+                if (funcdecl.storage_class & STC.disable)
                     deprecation(funcdecl.loc,
                                 "`%s` cannot be annotated with `@disable` because it is overriding a function in the base class",
                                 funcdecl.toPrettyChars);
@@ -3278,7 +3278,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         sc = sc.push();
-        sc.stc &= ~STCstatic; // not a static constructor
+        sc.stc &= ~STC.static_; // not a static constructor
         sc.flags |= SCOPEctor;
 
         funcDeclarationSemantic(ctd);
@@ -3301,11 +3301,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 if (dim == 0 && tf.varargs == 0) // empty default ctor w/o any varargs
                 {
-                    if (ctd.fbody || !(ctd.storage_class & STCdisable))
+                    if (ctd.fbody || !(ctd.storage_class & STC.disable))
                     {
                         ctd.error("default constructor for structs only allowed " ~
                             "with @disable, no body, and no parameters");
-                        ctd.storage_class |= STCdisable;
+                        ctd.storage_class |= STC.disable;
                         ctd.fbody = null;
                     }
                     sd.noDefaultCtor = true;
@@ -3316,7 +3316,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else if (dim && Parameter.getNth(tf.parameters, 0).defaultArg)
                 {
                     // if the first parameter has a default argument, then the rest does as well
-                    if (ctd.storage_class & STCdisable)
+                    if (ctd.storage_class & STC.disable)
                     {
                         ctd.deprecation("@disable'd constructor cannot have default "~
                                     "arguments for all parameters.");
@@ -3363,7 +3363,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             pbd.type = new TypeFunction(null, Type.tvoid, false, LINKd, pbd.storage_class);
 
         sc = sc.push();
-        sc.stc &= ~STCstatic; // not static
+        sc.stc &= ~STC.static_; // not static
         sc.linkage = LINKd;
 
         funcDeclarationSemantic(pbd);
@@ -3399,7 +3399,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dd.type = new TypeFunction(null, Type.tvoid, false, LINKd, dd.storage_class);
 
         sc = sc.push();
-        sc.stc &= ~STCstatic; // not a static destructor
+        sc.stc &= ~STC.static_; // not a static destructor
         if (sc.linkage != LINKcpp)
             sc.linkage = LINKd;
 
@@ -3445,7 +3445,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * during static construction.
              */
             auto v = new VarDeclaration(Loc(), Type.tint32, Id.gate, null);
-            v.storage_class = STCtemp | (scd.isSharedStaticCtorDeclaration() ? STCstatic : STCtls);
+            v.storage_class = STC.temp | (scd.isSharedStaticCtorDeclaration() ? STC.static_ : STC.tls);
 
             auto sa = new Statements();
             Statement s = new ExpStatement(Loc(), v);
@@ -3513,7 +3513,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * during static destruction.
              */
             auto v = new VarDeclaration(Loc(), Type.tint32, Id.gate, null);
-            v.storage_class = STCtemp | (sdd.isSharedStaticDtorDeclaration() ? STCstatic : STCtls);
+            v.storage_class = STC.temp | (sdd.isSharedStaticDtorDeclaration() ? STC.static_ : STC.tls);
 
             auto sa = new Statements();
             Statement s = new ExpStatement(Loc(), v);
@@ -3575,8 +3575,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             invd.type = new TypeFunction(null, Type.tvoid, false, LINKd, invd.storage_class);
 
         sc = sc.push();
-        sc.stc &= ~STCstatic; // not a static invariant
-        sc.stc |= STCconst; // invariant() is always const
+        sc.stc &= ~STC.static_; // not a static invariant
+        sc.stc |= STC.const_; // invariant() is always const
         sc.flags = (sc.flags & ~SCOPEcontract) | SCOPEinvariant;
         sc.linkage = LINKd;
 
@@ -3771,9 +3771,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sd.alignment = sc.alignment();
 
             sd.storage_class |= sc.stc;
-            if (sd.storage_class & STCdeprecated)
+            if (sd.storage_class & STC.deprecated_)
                 sd.isdeprecated = true;
-            if (sd.storage_class & STCabstract)
+            if (sd.storage_class & STC.abstract_)
                 sd.error("structs, unions cannot be abstract");
 
             sd.userAttribDecl = sc.userAttribDecl;
@@ -3996,13 +3996,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             cldec.protection = sc.protection;
 
             cldec.storage_class |= sc.stc;
-            if (cldec.storage_class & STCdeprecated)
+            if (cldec.storage_class & STC.deprecated_)
                 cldec.isdeprecated = true;
-            if (cldec.storage_class & STCauto)
+            if (cldec.storage_class & STC.auto_)
                 cldec.error("storage class `auto` is invalid when declaring a class, did you mean to use `scope`?");
-            if (cldec.storage_class & STCscope)
+            if (cldec.storage_class & STC.scope_)
                 cldec.stack = true;
-            if (cldec.storage_class & STCabstract)
+            if (cldec.storage_class & STC.abstract_)
                 cldec.isabstract = ABSyes;
 
             cldec.userAttribDecl = sc.userAttribDecl;
@@ -4229,7 +4229,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (cldec.baseClass)
             {
-                if (cldec.baseClass.storage_class & STCfinal)
+                if (cldec.baseClass.storage_class & STC.final_)
                     cldec.error("cannot inherit from class `%s` because it is `final`", cldec.baseClass.toChars());
 
                 // Inherit properties from base class
@@ -4240,7 +4240,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (cldec.baseClass.stack)
                     cldec.stack = true;
                 cldec.enclosing = cldec.baseClass.enclosing;
-                cldec.storage_class |= cldec.baseClass.storage_class & STC_TYPECTOR;
+                cldec.storage_class |= cldec.baseClass.storage_class & STC.TYPECTOR;
             }
 
             cldec.interfaces = cldec.baseclasses.tdata()[(cldec.baseClass ? 1 : 0) .. cldec.baseclasses.dim];
@@ -4349,7 +4349,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cldec.vthis) // if inheriting from nested class
             {
                 // Use the base class's 'this' member
-                if (cldec.storage_class & STCstatic)
+                if (cldec.storage_class & STC.static_)
                     cldec.error("static class cannot inherit from nested class `%s`", cldec.baseClass.toChars());
                 if (cldec.toParent2() != cldec.baseClass.toParent2() &&
                     (!cldec.toParent2() ||
@@ -4433,7 +4433,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // A class object is always created by constructor, so this check is legitimate.
             foreach (v; cldec.fields)
             {
-                if (v.storage_class & STCnodefaultctor)
+                if (v.storage_class & STC.nodefaultctor)
                     error(v.loc, "field `%s` must be initialized in constructor", v.toChars());
             }
         }
@@ -4478,7 +4478,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (auto f = hasIdentityOpAssign(cldec, sc2))
         {
-            if (!(f.storage_class & STCdisable))
+            if (!(f.storage_class & STC.disable))
                 cldec.error(f.loc, "identity assignment operator overload is illegal");
         }
 
@@ -4527,7 +4527,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         // Verify fields of a synchronized class are not public
-        if (cldec.storage_class & STCsynchronized)
+        if (cldec.storage_class & STC.synchronized_)
         {
             foreach (vd; cldec.fields)
             {
@@ -4590,7 +4590,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             idec.protection = sc.protection;
 
             idec.storage_class |= sc.stc;
-            if (idec.storage_class & STCdeprecated)
+            if (idec.storage_class & STC.deprecated_)
                 idec.isdeprecated = true;
 
             idec.userAttribDecl = sc.userAttribDecl;
@@ -5488,12 +5488,12 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         Type t;
         Expression e;
         Scope* sc2 = sc;
-        if (ds.storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
+        if (ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.disable))
         {
             // For 'ref' to be attached to function types, and picked
             // up by Type.resolve(), it has to go into sc.
             sc2 = sc.push();
-            sc2.stc |= ds.storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
+            sc2.stc |= ds.storage_class & (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
         }
         ds.type = ds.type.addSTC(ds.storage_class);
         ds.type.resolve(ds.loc, sc2, &e, &t, &s);

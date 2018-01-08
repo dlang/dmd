@@ -120,7 +120,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
+        sc2.stc &= STC.safe | STC.trusted | STC.system;
         sc2.parent = this;
         if (isUnionDeclaration())
             sc2.inunion = 1;
@@ -166,7 +166,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto v = s.isVarDeclaration();
             if (!v)
                 return 0;
-            if (v.storage_class & STCmanifest)
+            if (v.storage_class & STC.manifest)
                 return 0;
 
             auto ad = cast(AggregateDeclaration)param;
@@ -180,14 +180,14 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
 
-            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
+            if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
                 return 0;
             if (!v.isField() || v.semanticRun < PASSsemanticdone)
                 return 1;   // unresolvable forward reference
 
             ad.fields.push(v);
 
-            if (v.storage_class & STCref)
+            if (v.storage_class & STC.ref_)
                 return 0;
             auto tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
@@ -472,7 +472,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 }
                 else
                 {
-                    if ((vx.storage_class & STCnodefaultctor) && !ctorinit)
+                    if ((vx.storage_class & STC.nodefaultctor) && !ctorinit)
                     {
                         .error(loc, "field `%s.%s` must be initialized because it has no default constructor",
                             type.toChars(), vx.toChars());
@@ -614,7 +614,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             return;
         if (isUnionDeclaration() || isInterfaceDeclaration())
             return;
-        if (storage_class & STCstatic)
+        if (storage_class & STC.static_)
             return;
 
         // If nested struct, add in hidden 'this' pointer to outer scope
@@ -656,13 +656,13 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             assert(!vthis);
             vthis = new ThisDeclaration(loc, t);
-            //vthis.storage_class |= STCref;
+            //vthis.storage_class |= STC.ref_;
 
             // Emulate vthis.addMember()
             members.push(vthis);
 
             // Emulate vthis.dsymbolSemantic()
-            vthis.storage_class |= STCfield;
+            vthis.storage_class |= STC.field;
             vthis.parent = this;
             vthis.protection = Prot(PROTpublic);
             vthis.alignment = t.alignment();

@@ -194,7 +194,7 @@ Lagain:
     //printf("s = '%s', s.kind = '%s'\n", s.toChars(), s.kind());
     Dsymbol olds = s;
     Declaration d = s.isDeclaration();
-    if (d && (d.storage_class & STCtemplateparameter))
+    if (d && (d.storage_class & STC.templateparameter))
     {
         s = s.toAlias();
     }
@@ -239,7 +239,7 @@ Lagain:
         if (v.type.ty == Terror)
             return new ErrorExp();
 
-        if ((v.storage_class & STCmanifest) && v._init)
+        if ((v.storage_class & STC.manifest) && v._init)
         {
             if (v.inuse)
             {
@@ -353,7 +353,7 @@ Lagain:
         Dsymbol p = td.toParent2();
         FuncDeclaration fdthis = hasThis(sc);
         AggregateDeclaration ad = p ? p.isAggregateDeclaration() : null;
-        if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STCstatic) == 0)
+        if (fdthis && ad && isAggregate(fdthis.vthis.type) == ad && (td._scope.stc & STC.static_) == 0)
         {
             e = new DotTemplateExp(loc, new ThisExp(loc), td);
         }
@@ -534,7 +534,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
             }
             else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
             {
-                if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STCproperty) || (td._scope.stc & STCproperty))
+                if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STC.property) || (td._scope.stc & STC.property))
                 {
                     return resolveProperties(sc, e1);
                 }
@@ -569,7 +569,7 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         assert(td);
         if (td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
         {
-            if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STCproperty) || (td._scope.stc & STCproperty))
+            if ((cast(TypeFunction)fd.type).isproperty || (fd.storage_class2 & STC.property) || (td._scope.stc & STC.property))
             {
                 return resolveProperties(sc, e1);
             }
@@ -1110,7 +1110,7 @@ extern (C++) Expression valueNoDtor(Expression e)
                         VarDeclaration ctmp = ve.var.isVarDeclaration();
                         if (ctmp)
                         {
-                            ctmp.storage_class |= STCnodtor;
+                            ctmp.storage_class |= STC.nodtor;
                             assert(!ce.isLvalue());
                         }
                     }
@@ -1121,9 +1121,9 @@ extern (C++) Expression valueNoDtor(Expression e)
     else if (ex.op == TOKvar)
     {
         auto vtmp = (cast(VarExp)ex).var.isVarDeclaration();
-        if (vtmp && (vtmp.storage_class & STCrvalue))
+        if (vtmp && (vtmp.storage_class & STC.rvalue))
         {
-            vtmp.storage_class |= STCnodtor;
+            vtmp.storage_class |= STC.nodtor;
         }
     }
     return e;
@@ -1150,8 +1150,8 @@ private Expression callCpCtor(Scope* sc, Expression e)
              * This is not the most efficient, ideally tmp would be constructed
              * directly onto the stack.
              */
-            auto tmp = copyToTemp(STCrvalue, "__copytmp", e);
-            tmp.storage_class |= STCnodtor;
+            auto tmp = copyToTemp(STC.rvalue, "__copytmp", e);
+            tmp.storage_class |= STC.nodtor;
             tmp.dsymbolSemantic(sc);
             Expression de = new DeclarationExp(e.loc, tmp);
             Expression ve = new VarExp(e.loc, tmp);
@@ -1345,7 +1345,7 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
         e1 = extractSideEffect(sc, "__dop", e0, e1, false);
         assert(e1.op == TOKvar);
         VarExp ve = cast(VarExp)e1;
-        ve.var.storage_class |= STCexptemp;     // lifetime limited to expression
+        ve.var.storage_class |= STC.exptemp;     // lifetime limited to expression
     }
     ue.e1 = e1;
     return e0;
@@ -2049,7 +2049,7 @@ extern (C++) abstract class Expression : RootObject
             return false; // always safe and pure to access immutables...
         if (v.isConst() && !v.isRef() && (v.isDataseg() || v.isParameter()) && v.type.implicitConvTo(v.type.immutableOf()))
             return false; // or const global/parameter values which have no mutable indirections
-        if (v.storage_class & STCmanifest)
+        if (v.storage_class & STC.manifest)
             return false; // ...or manifest constants
 
         bool err = false;
@@ -2150,7 +2150,7 @@ extern (C++) abstract class Expression : RootObject
 
         /* Do not allow safe functions to access __gshared data
          */
-        if (v.storage_class & STCgshared)
+        if (v.storage_class & STC.gshared)
         {
             if (sc.func.setUnsafe())
             {
@@ -4216,19 +4216,19 @@ extern (C++) final class VarExp : SymbolExp
 
     override bool isLvalue()
     {
-        if (var.storage_class & (STClazy | STCrvalue | STCmanifest))
+        if (var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
             return false;
         return true;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
-        if (var.storage_class & STCmanifest)
+        if (var.storage_class & STC.manifest)
         {
             error("manifest constant '%s' is not lvalue", var.toChars());
             return new ErrorExp();
         }
-        if (var.storage_class & STClazy)
+        if (var.storage_class & STC.lazy_)
         {
             error("lazy variables cannot be lvalues");
             return new ErrorExp();
@@ -4249,7 +4249,7 @@ extern (C++) final class VarExp : SymbolExp
     override Expression modifiableLvalue(Scope* sc, Expression e)
     {
         //printf("VarExp::modifiableLvalue('%s')\n", var.toChars());
-        if (var.storage_class & STCmanifest)
+        if (var.storage_class & STC.manifest)
         {
             error("cannot modify manifest constant '%s'", toChars());
             return new ErrorExp();
@@ -4498,7 +4498,7 @@ extern (C++) final class FuncExp : Expression
              */
             convertMatch = true;
 
-            auto tfy = new TypeFunction(tfx.parameters, tof.next, tfx.varargs, tfx.linkage, STCundefined);
+            auto tfy = new TypeFunction(tfx.parameters, tof.next, tfx.varargs, tfx.linkage, STC.undefined_);
             tfy.mod = tfx.mod;
             tfy.isnothrow = tfx.isnothrow;
             tfy.isnogc = tfx.isnogc;
@@ -4608,7 +4608,7 @@ extern (C++) final class DeclarationExp : Expression
     {
         if (auto vd = declaration.isVarDeclaration())
         {
-            return !(vd.storage_class & (STCmanifest | STCstatic));
+            return !(vd.storage_class & (STC.manifest | STC.static_));
         }
         return false;
     }
@@ -6266,7 +6266,7 @@ extern (C++) final class PreExp : UnaExp
 enum MemorySet
 {
     blockAssign     = 1,    // setting the contents of an array
-    referenceInit   = 2,    // setting the reference of STCref variable
+    referenceInit   = 2,    // setting the reference of STC.ref_ variable
 }
 
 /***********************************************************
@@ -6343,7 +6343,7 @@ extern (C++) final class ConstructExp : AssignExp
         super(loc, ve, e2);
         op = TOKconstruct;
 
-        if (v.storage_class & (STCref | STCout))
+        if (v.storage_class & (STC.ref_ | STC.out_))
             memset |= MemorySet.referenceInit;
     }
 
@@ -6373,7 +6373,7 @@ extern (C++) final class BlitExp : AssignExp
         super(loc, ve, e2);
         op = TOKblit;
 
-        if (v.storage_class & (STCref | STCout))
+        if (v.storage_class & (STC.ref_ | STC.out_))
             memset |= MemorySet.referenceInit;
     }
 
@@ -7004,7 +7004,7 @@ extern (C++) final class CondExp : BinExp
                     {
                         if (!vcond)
                         {
-                            vcond = copyToTemp(STCvolatile, "__cond", ce.econd);
+                            vcond = copyToTemp(STC.volatile_, "__cond", ce.econd);
                             vcond.dsymbolSemantic(sc);
 
                             Expression de = new DeclarationExp(ce.econd.loc, vcond);

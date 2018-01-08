@@ -569,14 +569,14 @@ private:
         // <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
         assert(d);
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
-        if (!(d.storage_class & (STCextern | STCfield | STCgshared)))
+        if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
             d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
             fatal();
         }
         buf.writeByte('?');
         mangleIdent(d);
-        assert((d.storage_class & STCfield) || !d.needThis());
+        assert((d.storage_class & STC.field) || !d.needThis());
         Dsymbol parent = d.toParent();
         while (parent && parent.isNspace())
         {
@@ -1031,11 +1031,11 @@ private:
             int mangleParameterDg(size_t n, Parameter p)
             {
                 Type t = p.type;
-                if (p.storageClass & (STCout | STCref))
+                if (p.storageClass & (STC.out_ | STC.ref_))
                 {
                     t = t.referenceTo();
                 }
-                else if (p.storageClass & STClazy)
+                else if (p.storageClass & STC.lazy_)
                 {
                     // Mangle as delegate
                     Type td = new TypeFunction(null, t, 0, LINKd);

@@ -915,12 +915,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (i - j < nparams)
                 {
                     Parameter fparam = Parameter.getNth(tf.parameters, i - j);
-                    if (fparam.storageClass & STClazy)
+                    if (fparam.storageClass & STC.lazy_)
                         return; // not sure what to do with this
                     Type tparam = fparam.type;
                     if (!tparam)
                         continue;
-                    if (fparam.storageClass & (STCout | STCref))
+                    if (fparam.storageClass & (STC.out_ | STC.ref_))
                     {
                         if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                             return;
@@ -1209,12 +1209,12 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     if (i - j < nparams)
                     {
                         Parameter fparam = Parameter.getNth(tf.parameters, i - j);
-                        if (fparam.storageClass & STClazy)
+                        if (fparam.storageClass & STC.lazy_)
                             return; // not sure what to do with this
                         Type tparam = fparam.type;
                         if (!tparam)
                             continue;
-                        if (fparam.storageClass & (STCout | STCref))
+                        if (fparam.storageClass & (STC.out_ | STC.ref_))
                         {
                             if (targ.constConv(tparam.castMod(mod)) == MATCH.nomatch)
                                 return;
@@ -1454,7 +1454,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             if (e.op == TOKvar)
             {
                 VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
-                if (v && v.storage_class & STCmanifest)
+                if (v && v.storage_class & STC.manifest)
                 {
                     result = e.ctfeInterpret();
                     result = result.castTo(sc, t);

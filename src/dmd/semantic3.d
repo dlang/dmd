@@ -230,7 +230,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         if (funcdecl.ident == Id.assign && !funcdecl.inuse)
         {
-            if (funcdecl.storage_class & STCinference)
+            if (funcdecl.storage_class & STC.inference)
             {
                 /* https://issues.dlang.org/show_bug.cgi?id=15044
                  * For generated opAssign function, any errors
@@ -243,7 +243,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (global.endGagging(oldErrors))   // if errors happened
                 {
                     // Disable generated opAssign, because some members forbid identity assignment.
-                    funcdecl.storage_class |= STCdisable;
+                    funcdecl.storage_class |= STC.disable;
                     funcdecl.fbody = null;   // remove fbody which contains the error
                     funcdecl.semantic3Errors = false;
                 }
@@ -316,7 +316,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINKd;
-            sc2.stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCoverride | STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref | STCreturn | STCproperty | STCnothrow | STCpure | STCsafe | STCtrusted | STCsystem);
+            sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
             sc2.protection = Prot(PROTpublic);
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
@@ -378,7 +378,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     // Declare _arguments[]
                     funcdecl.v_arguments = new VarDeclaration(Loc(), Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
-                    funcdecl.v_arguments.storage_class |= STCtemp | STCparameter;
+                    funcdecl.v_arguments.storage_class |= STC.temp | STC.parameter;
                     funcdecl.v_arguments.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_arguments);
                     funcdecl.v_arguments.parent = funcdecl;
@@ -386,7 +386,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     //Type *t = Type::typeinfo.type.constOf().arrayOf();
                     Type t = Type.dtypeinfo.type.arrayOf();
                     _arguments = new VarDeclaration(Loc(), t, Id._arguments, null);
-                    _arguments.storage_class |= STCtemp;
+                    _arguments.storage_class |= STC.temp;
                     _arguments.dsymbolSemantic(sc2);
                     sc2.insert(_arguments);
                     _arguments.parent = funcdecl;
@@ -397,7 +397,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     Type t = Type.tvalist;
                     // Init is handled in FuncDeclaration_toObjFile
                     funcdecl.v_argptr = new VarDeclaration(Loc(), t, Id._argptr, new VoidInitializer(funcdecl.loc));
-                    funcdecl.v_argptr.storage_class |= STCtemp;
+                    funcdecl.v_argptr.storage_class |= STC.temp;
                     funcdecl.v_argptr.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
                     funcdecl.v_argptr.parent = funcdecl;
@@ -426,17 +426,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
                          * because we need it later on.
                          */
                         fparam.ident = id = Identifier.generateId("_param_", i);
-                        stc |= STCtemp;
+                        stc |= STC.temp;
                     }
                     Type vtype = fparam.type;
                     auto v = new VarDeclaration(funcdecl.loc, vtype, id, null);
                     //printf("declaring parameter %s of type %s\n", v.toChars(), v.type.toChars());
-                    stc |= STCparameter;
+                    stc |= STC.parameter;
                     if (f.varargs == 2 && i + 1 == nparams)
-                        stc |= STCvariadic;
-                    if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STCscope))
-                        stc |= STCmaybescope;
-                    stc |= fparam.storageClass & (STCin | STCout | STCref | STCreturn | STCscope | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+                        stc |= STC.variadic;
+                    if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
+                        stc |= STC.maybescope;
+                    stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                     v.storage_class = stc;
                     v.dsymbolSemantic(sc2);
                     if (!sc2.insert(v))
@@ -557,7 +557,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (!funcdecl.inferRetType && retStyle(f) != RETstack)
                     funcdecl.nrvo_can = 0;
 
-                bool inferRef = (f.isref && (funcdecl.storage_class & STCauto));
+                bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
@@ -605,8 +605,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
                 if (f.isref) // Function returns a reference
                 {
-                    if (funcdecl.storage_class & STCauto)
-                        funcdecl.storage_class &= ~STCauto;
+                    if (funcdecl.storage_class & STC.auto_)
+                        funcdecl.storage_class &= ~STC.auto_;
                 }
                 if (retStyle(f) != RETstack)
                     funcdecl.nrvo_can = 0;
@@ -647,14 +647,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                  */
                                 if (v.isCtorinit() && !v.type.isMutable() && cd)
                                     funcdecl.error("missing initializer for %s field `%s`", MODtoChars(v.type.mod), v.toChars());
-                                else if (v.storage_class & STCnodefaultctor)
+                                else if (v.storage_class & STC.nodefaultctor)
                                     error(funcdecl.loc, "field `%s` must be initialized in constructor", v.toChars());
                                 else if (v.type.needsNested())
                                     error(funcdecl.loc, "field `%s` must be initialized in constructor, because it is nested struct", v.toChars());
                             }
                             else
                             {
-                                bool mustInit = (v.storage_class & STCnodefaultctor || v.type.needsNested());
+                                bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
                                 if (mustInit && !(sc2.fieldinit[i] & CSXthis_ctor))
                                 {
                                     funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
@@ -674,7 +674,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");
                         }
-                        else if (fd.storage_class & STCdisable)
+                        else if (fd.storage_class & STC.disable)
                         {
                             funcdecl.error("cannot call `super()` implicitly because it is annotated with `@disable`");
                         }
@@ -934,7 +934,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     for (size_t i = 0; i < funcdecl.parameters.dim; i++)
                     {
                         VarDeclaration v = (*funcdecl.parameters)[i];
-                        if (v.storage_class & STCout)
+                        if (v.storage_class & STC.out_)
                         {
                             assert(v._init);
                             ExpInitializer ie = v._init.isExpInitializer();
@@ -1015,13 +1015,13 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     foreach (v; *funcdecl.parameters)
                     {
-                        if (v.storage_class & (STCref | STCout | STClazy))
+                        if (v.storage_class & (STC.ref_ | STC.out_ | STC.lazy_))
                             continue;
                         if (v.needsScopeDtor())
                         {
                             // same with ExpStatement.scopeCode()
                             Statement s = new DtorExpStatement(Loc(), v.edtor, v);
-                            v.storage_class |= STCnodtor;
+                            v.storage_class |= STC.nodtor;
 
                             s = s.statementSemantic(sc2);
 
@@ -1137,7 +1137,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (funcdecl.flags & FUNCFLAG.returnInprocess)
         {
             funcdecl.flags &= ~FUNCFLAG.returnInprocess;
-            if (funcdecl.storage_class & STCreturn)
+            if (funcdecl.storage_class & STC.return_)
             {
                 if (funcdecl.type == f)
                     f = cast(TypeFunction)f.copy();
@@ -1147,29 +1147,29 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         funcdecl.flags &= ~FUNCFLAG.inferScope;
 
-        // Infer STCscope
+        // Infer STC.scope_
         if (funcdecl.parameters && !funcdecl.errors)
         {
             size_t nfparams = Parameter.dim(f.parameters);
             assert(nfparams == funcdecl.parameters.dim);
             foreach (u, v; *funcdecl.parameters)
             {
-                if (v.storage_class & STCmaybescope)
+                if (v.storage_class & STC.maybescope)
                 {
                     //printf("Inferring scope for %s\n", v.toChars());
                     Parameter p = Parameter.getNth(f.parameters, u);
-                    v.storage_class &= ~STCmaybescope;
-                    v.storage_class |= STCscope | STCscopeinferred;
-                    p.storageClass |= STCscope | STCscopeinferred;
-                    assert(!(p.storageClass & STCmaybescope));
+                    v.storage_class &= ~STC.maybescope;
+                    v.storage_class |= STC.scope_ | STC.scopeinferred;
+                    p.storageClass |= STC.scope_ | STC.scopeinferred;
+                    assert(!(p.storageClass & STC.maybescope));
                 }
             }
         }
 
-        if (funcdecl.vthis && funcdecl.vthis.storage_class & STCmaybescope)
+        if (funcdecl.vthis && funcdecl.vthis.storage_class & STC.maybescope)
         {
-            funcdecl.vthis.storage_class &= ~STCmaybescope;
-            funcdecl.vthis.storage_class |= STCscope | STCscopeinferred;
+            funcdecl.vthis.storage_class &= ~STC.maybescope;
+            funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
             f.isscope = true;
             f.isscopeinferred = true;
         }
@@ -1276,7 +1276,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc3.tinst = sc.tinst;
             sc3.minst = sc.minst;
             if (ad.isDeprecated())
-                sc3.stc |= STCdeprecated;
+                sc3.stc |= STC.deprecated_;
 
             ti.dsymbolSemantic(sc3);
             ti.semantic2(sc3);

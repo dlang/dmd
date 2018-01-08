@@ -660,7 +660,7 @@ extern (C++) class ExpStatement : Statement
                 {
                     //printf("dtor is: "); v.edtor.print();
                     *sfinally = new DtorExpStatement(loc, v.edtor, v);
-                    v.storage_class |= STCnodtor; // don't add in dtor again
+                    v.storage_class |= STC.nodtor; // don't add in dtor again
                 }
             }
         }
@@ -1587,7 +1587,7 @@ extern (C++) final class SwitchStatement : Statement
     {
         bool checkVar(VarDeclaration vd)
         {
-            if (!vd || vd.isDataseg() || (vd.storage_class & STCmanifest))
+            if (!vd || vd.isDataseg() || (vd.storage_class & STC.manifest))
                 return false;
 
             VarDeclaration last = lastVar;
@@ -2243,7 +2243,7 @@ extern (C++) final class GotoStatement : Statement
         }
 
         VarDeclaration vd = label.statement.lastVar;
-        if (!vd || vd.isDataseg() || (vd.storage_class & STCmanifest))
+        if (!vd || vd.isDataseg() || (vd.storage_class & STC.manifest))
             return false;
 
         VarDeclaration last = lastVar;
@@ -2253,7 +2253,7 @@ extern (C++) final class GotoStatement : Statement
         {
             // All good, the label's scope has no variables
         }
-        else if (vd.storage_class & STCexptemp)
+        else if (vd.storage_class & STC.exptemp)
         {
             // Lifetime ends at end of expression, so no issue with skipping the statement
         }
