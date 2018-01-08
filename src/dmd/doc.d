@@ -2955,11 +2955,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
         case '+':
         {
-            if (!leadingBlank || inCode)
-                break;
-
-            if (MarkdownList.startItem(buf, iLineStart, i, nestedLists))
-                leadingBlank = 1;
+            if (leadingBlank && !inCode)
+                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists))
+                    leadingBlank = 0;
             break;
         }
 
@@ -2967,11 +2965,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         ..
         case '9':
         {
-            if (!leadingBlank || inCode)
-                break;
-
-            if (MarkdownList.startItem(buf, iLineStart, i, nestedLists))
-                leadingBlank = 1;
+            if (leadingBlank && !inCode)
+                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists))
+                    leadingBlank = 0;
             break;
         }
 
