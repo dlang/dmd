@@ -191,6 +191,18 @@ false
 enum isAbstractClass = "isAbstractClass";
 
 /**
+Checks whether a given symbols is `deprecated`.
+*/
+enum isDeprecated = "isDeprecated";
+
+/**
+Takes one argument. It returns `true` if the argument is a symbol
+marked with the `@future` keyword, otherwise `false`. Currently, only
+functions and variable declarations have support for the `@future` keyword.
+*/
+enum isFuture = "isFuture";
+
+/**
 Works like $(D isAbstractClass), except it's for final classes.
 */
 enum isFinalClass = "isFinalClass";
