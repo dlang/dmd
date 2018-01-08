@@ -4,208 +4,208 @@ $(SPEC_S Garbage Collection,
 
 $(SPEC_HEADERNAV_TOC)
 
-	$(P D is a systems programming language with support for garbage collection.
-	Usually it is not necessary
-	to free memory explicitly. Just allocate as needed, and the garbage collector will
-	periodically return all unused memory to the pool of available memory.
-	)
+        $(P D is a systems programming language with support for garbage collection.
+        Usually it is not necessary
+        to free memory explicitly. Just allocate as needed, and the garbage collector will
+        periodically return all unused memory to the pool of available memory.
+        )
 
-	$(P D also provides the mechanisms to write code where the garbage collector
-	is $(B not involved). More information is provided below.
-	)
+        $(P D also provides the mechanisms to write code where the garbage collector
+        is $(B not involved). More information is provided below.
+        )
 
-	$(P C and C++ programmers accustomed to explicitly managing memory
-	allocation and
-	deallocation will likely be skeptical of the benefits and efficacy of
-	garbage collection. Experience both with new projects written with
-	garbage collection in mind, and converting existing projects to garbage
-	collection shows that:
-	)
+        $(P C and C++ programmers accustomed to explicitly managing memory
+        allocation and
+        deallocation will likely be skeptical of the benefits and efficacy of
+        garbage collection. Experience both with new projects written with
+        garbage collection in mind, and converting existing projects to garbage
+        collection shows that:
+        )
 
-	$(UL
+        $(UL
 
-	$(LI Garbage collected programs are often faster. This is
-	counterintuitive, but the reasons are:
+        $(LI Garbage collected programs are often faster. This is
+        counterintuitive, but the reasons are:
 
-	$(UL
-	    $(LI Reference counting is a common solution to solve explicit
-	    memory allocation problems. The code to implement the increment and
-	    decrement operations whenever assignments are made is one source
-	    of slowdown. Hiding it behind smart pointer classes doesn't help
-	    the speed. (Reference counting methods are not a general solution
-	    anyway, as circular references never get deleted.)
-	    )
+        $(UL
+            $(LI Reference counting is a common solution to solve explicit
+            memory allocation problems. The code to implement the increment and
+            decrement operations whenever assignments are made is one source
+            of slowdown. Hiding it behind smart pointer classes doesn't help
+            the speed. (Reference counting methods are not a general solution
+            anyway, as circular references never get deleted.)
+            )
 
-	    $(LI Destructors are used to deallocate resources acquired by an object.
-	    For most classes, this resource is allocated memory.
-	    With garbage collection, most destructors then become empty and
-	    can be discarded entirely.
-	    )
+            $(LI Destructors are used to deallocate resources acquired by an object.
+            For most classes, this resource is allocated memory.
+            With garbage collection, most destructors then become empty and
+            can be discarded entirely.
+            )
 
-	    $(LI All those destructors freeing memory can become significant when
-	    objects are allocated on the stack. For each one, some mechanism must
-	    be established so that if an exception happens, the destructors all
-	    get called in each frame to release any memory they hold. If the
-	    destructors become irrelevant, then there's no need to set up special
-	    stack frames to handle exceptions, and the code runs faster.
-	    )
+            $(LI All those destructors freeing memory can become significant when
+            objects are allocated on the stack. For each one, some mechanism must
+            be established so that if an exception happens, the destructors all
+            get called in each frame to release any memory they hold. If the
+            destructors become irrelevant, then there's no need to set up special
+            stack frames to handle exceptions, and the code runs faster.
+            )
 
-	    $(LI Garbage collection kicks in only when memory gets tight. When
-	    memory is not tight, the program runs at full speed and does not
-	    spend any time tracing and freeing memory.
-	    )
+            $(LI Garbage collection kicks in only when memory gets tight. When
+            memory is not tight, the program runs at full speed and does not
+            spend any time tracing and freeing memory.
+            )
 
-	    $(LI Garbage collected programs do not suffer from gradual deterioration
-	    due to an accumulation of memory leaks.
-	    )
-	)
-	)
+            $(LI Garbage collected programs do not suffer from gradual deterioration
+            due to an accumulation of memory leaks.
+            )
+        )
+        )
 
-	$(LI Garbage collectors reclaim unused memory, therefore they do not suffer
-	from "memory leaks" which can cause long running applications to gradually
-	consume more and more memory until they bring down the system. GC programs
-	have longer term stability.
-	)
+        $(LI Garbage collectors reclaim unused memory, therefore they do not suffer
+        from "memory leaks" which can cause long running applications to gradually
+        consume more and more memory until they bring down the system. GC programs
+        have longer term stability.
+        )
 
-	$(LI Garbage collected programs have fewer hard-to-find pointer bugs. This
-	is because there are no dangling references to freed memory. There is no
-	code to explicitly manage memory, hence no bugs in such code.
-	)
+        $(LI Garbage collected programs have fewer hard-to-find pointer bugs. This
+        is because there are no dangling references to freed memory. There is no
+        code to explicitly manage memory, hence no bugs in such code.
+        )
 
-	$(LI Garbage collected programs are faster to develop and debug, because
-	there's no need for developing, debugging, testing, or maintaining the
-	explicit deallocation code.
-	)
+        $(LI Garbage collected programs are faster to develop and debug, because
+        there's no need for developing, debugging, testing, or maintaining the
+        explicit deallocation code.
+        )
 
-	)
+        )
 
-	$(P Garbage collection is not a panacea. There are some downsides:
-	)
+        $(P Garbage collection is not a panacea. There are some downsides:
+        )
 
-	$(UL
+        $(UL
 
-	$(LI It is not always obvious when the GC allocates memory, which in
-	turn can trigger a collection, so the program can pause unexpectedly.
-	)
+        $(LI It is not always obvious when the GC allocates memory, which in
+        turn can trigger a collection, so the program can pause unexpectedly.
+        )
 
-	$(LI The time it takes for a collection to complete is not bounded.
-	While in practice it is very quick, this cannot normally be guaranteed.
-	)
+        $(LI The time it takes for a collection to complete is not bounded.
+        While in practice it is very quick, this cannot normally be guaranteed.
+        )
 
-	$(LI Normally, all threads other than the collector thread must be
-	halted while the collection is in progress.
-	)
+        $(LI Normally, all threads other than the collector thread must be
+        halted while the collection is in progress.
+        )
 
-	$(LI Garbage collectors can keep around some memory that an explicit
-	deallocator would not.
-	)
+        $(LI Garbage collectors can keep around some memory that an explicit
+        deallocator would not.
+        )
 
-	$(LI Garbage collection should be implemented as a basic operating
-	system
-	kernel service. But since it is not, garbage collecting programs must
-	carry around with them the garbage collection implementation. While this
-	can be a shared library, it is still there.
-	)
-	)
+        $(LI Garbage collection should be implemented as a basic operating
+        system
+        kernel service. But since it is not, garbage collecting programs must
+        carry around with them the garbage collection implementation. While this
+        can be a shared library, it is still there.
+        )
+        )
 
-	$(P These constraints are addressed by techniques outlined
-	in $(LINK2 https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
-	D to control allocations outside the GC heap.
-	)
+        $(P These constraints are addressed by techniques outlined
+        in $(LINK2 https://wiki.dlang.org/Memory_Management, Memory Management), including the mechanisms provided by
+        D to control allocations outside the GC heap.
+        )
 
-	$(P There is currently work in progress to make the runtime library free of GC heap allocations,
-	to allow its use in scenarios where the use of GC infrastructure is not possible.
-	)
+        $(P There is currently work in progress to make the runtime library free of GC heap allocations,
+        to allow its use in scenarios where the use of GC infrastructure is not possible.
+        )
 
 $(H2 $(LNAME2 how_gc_works, How Garbage Collection Works))
 
-	$(P The GC works by:)
+        $(P The GC works by:)
 
-	$(OL
-	$(LI Stopping all other threads than the thread currently trying to
-	allocate GC memory.)
+        $(OL
+        $(LI Stopping all other threads than the thread currently trying to
+        allocate GC memory.)
 
-	$(LI $(SINGLEQUOTE Hijacking) the current thread for GC work.)
+        $(LI $(SINGLEQUOTE Hijacking) the current thread for GC work.)
 
-	$(LI Scanning all $(SINGLEQUOTE root) memory ranges for pointers into
-	GC allocated memory.)
+        $(LI Scanning all $(SINGLEQUOTE root) memory ranges for pointers into
+        GC allocated memory.)
 
-	$(LI Recursively scanning all allocated memory pointed to by
-	roots looking for more pointers into GC allocated memory.)
+        $(LI Recursively scanning all allocated memory pointed to by
+        roots looking for more pointers into GC allocated memory.)
 
-	$(LI Freeing all GC allocated memory that has no active pointers
-	to it and do not need destructors to run.)
+        $(LI Freeing all GC allocated memory that has no active pointers
+        to it and do not need destructors to run.)
 
-	$(LI Queueing all unreachable memory that needs destructors to run.)
+        $(LI Queueing all unreachable memory that needs destructors to run.)
 
-	$(LI Resuming all other threads.)
+        $(LI Resuming all other threads.)
 
-	$(LI Running destructors for all queued memory.)
+        $(LI Running destructors for all queued memory.)
 
-	$(LI Freeing any remaining unreachable memory.)
+        $(LI Freeing any remaining unreachable memory.)
 
-	$(LI Returning the current thread to whatever work it was doing.)
-	)
+        $(LI Returning the current thread to whatever work it was doing.)
+        )
 
 $(H2 $(LNAME2 gc_foreign_obj, Interfacing Garbage Collected Objects With Foreign Code))
 
-	$(P The garbage collector looks for roots in:)
-	$(OL
-	$(LI the static data segment)
-	$(LI the stacks and register contents of each thread)
-	$(LI the TLS (thread-local storage) areas of each thread)
-	$(LI any roots added by core.memory.GC.addRoot() or core.memory.GC.addRange())
-	)
+        $(P The garbage collector looks for roots in:)
+        $(OL
+        $(LI the static data segment)
+        $(LI the stacks and register contents of each thread)
+        $(LI the TLS (thread-local storage) areas of each thread)
+        $(LI any roots added by core.memory.GC.addRoot() or core.memory.GC.addRange())
+        )
 
-	$(P If the only pointer to an object
-	is held outside of these areas, then the collector will miss it and free the
-	memory.
-	)
+        $(P If the only pointer to an object
+        is held outside of these areas, then the collector will miss it and free the
+        memory.
+        )
 
-	$(P To avoid this from happening, either)
+        $(P To avoid this from happening, either)
 
-	$(UL
-	$(LI maintain a pointer to the object in an area the collector does scan
-	for pointers;)
+        $(UL
+        $(LI maintain a pointer to the object in an area the collector does scan
+        for pointers;)
 
-	$(LI add a root where a pointer to the object is stored using core.memory.GC.addRoot()
-	or core.memory.GC.addRange().)
+        $(LI add a root where a pointer to the object is stored using core.memory.GC.addRoot()
+        or core.memory.GC.addRange().)
 
-	$(LI reallocate and copy the object using the foreign code's storage
-	allocator
-	or using the C runtime library's malloc/free.
-	)
-	)
+        $(LI reallocate and copy the object using the foreign code's storage
+        allocator
+        or using the C runtime library's malloc/free.
+        )
+        )
 
 $(H2 $(LNAME2 pointers_and_gc, Pointers and the Garbage Collector))
 
-	$(P Pointers in D can be broadly divided into two categories: Those that
-	point to garbage collected memory, and those that do not. Examples
-	of the latter are pointers created by calls to C's malloc(), pointers
-	received from C library routines, pointers to static data,
-	pointers to objects on the stack, etc. For those pointers, anything
-	that is legal in C can be done with them.
-	)
+        $(P Pointers in D can be broadly divided into two categories: Those that
+        point to garbage collected memory, and those that do not. Examples
+        of the latter are pointers created by calls to C's malloc(), pointers
+        received from C library routines, pointers to static data,
+        pointers to objects on the stack, etc. For those pointers, anything
+        that is legal in C can be done with them.
+        )
 
-	$(P For garbage collected pointers and references, however, there are
-	some
-	restrictions. These restrictions are minor, but they are intended
-	to enable the maximum flexibility in garbage collector design.
-	)
+        $(P For garbage collected pointers and references, however, there are
+        some
+        restrictions. These restrictions are minor, but they are intended
+        to enable the maximum flexibility in garbage collector design.
+        )
 
-	$(P Undefined behavior:)
+        $(P Undefined behavior:)
 
-	$(UL
+        $(UL
 
-	$(LI Do not xor pointers with other values, like the
-	xor pointer linked list trick used in C.
-	)
+        $(LI Do not xor pointers with other values, like the
+        xor pointer linked list trick used in C.
+        )
 
-	$(LI Do not use the xor trick to swap two pointer values.
-	)
+        $(LI Do not use the xor trick to swap two pointer values.
+        )
 
-	$(LI Do not store pointers into non-pointer variables using casts and
-	other tricks.
+        $(LI Do not store pointers into non-pointer variables using casts and
+        other tricks.
 
 ------
 void* p;
@@ -213,53 +213,53 @@ void* p;
 int x = cast(int)p;   // error: undefined behavior
 ------
 
-	The garbage collector does not scan non-pointer fields for GC pointers.
-	)
+        The garbage collector does not scan non-pointer fields for GC pointers.
+        )
 
-	$(LI Do not take advantage of alignment of pointers to store bit flags
-	in the low order bits:
+        $(LI Do not take advantage of alignment of pointers to store bit flags
+        in the low order bits:
 
 ------
 p = cast(void*)(cast(int)p | 1);  // error: undefined behavior
 ------
-	)
+        )
 
-	$(LI Do not store into pointers values that may point into the
-	garbage collected heap:
+        $(LI Do not store into pointers values that may point into the
+        garbage collected heap:
 
 ------
 p = cast(void*)12345678;   // error: undefined behavior
 ------
 
-	A copying garbage collector may change this value.
-	)
+        A copying garbage collector may change this value.
+        )
 
-	$(LI Do not store magic values into pointers, other than $(D null).
-	)
+        $(LI Do not store magic values into pointers, other than $(D null).
+        )
 
-	$(LI Do not write pointer values out to disk and read them back in
-	again.
-	)
+        $(LI Do not write pointer values out to disk and read them back in
+        again.
+        )
 
-	$(LI Do not use pointer values to compute a hash function. A copying
-	garbage collector can arbitrarily move objects around in memory,
-	thus invalidating
-	the computed hash value.
-	)
+        $(LI Do not use pointer values to compute a hash function. A copying
+        garbage collector can arbitrarily move objects around in memory,
+        thus invalidating
+        the computed hash value.
+        )
 
-	$(LI Do not depend on the ordering of pointers:
+        $(LI Do not depend on the ordering of pointers:
 
 ------
 if (p1 < p2)  // error: undefined behavior
     ...
 ------
-	since, again, the garbage collector can move objects around in
-	memory.
-	)
+        since, again, the garbage collector can move objects around in
+        memory.
+        )
 
-	$(LI Do not add or subtract an offset to a pointer such that the result
-	points outside of the bounds of the garbage collected object originally
-	allocated.
+        $(LI Do not add or subtract an offset to a pointer such that the result
+        points outside of the bounds of the garbage collected object originally
+        allocated.
 
 ------
 char* p = new char[10];
@@ -267,10 +267,10 @@ char* q = p + 6; // ok
 q = p + 11;      // error: undefined behavior
 q = p - 1;       // error: undefined behavior
 ------
-	)
+        )
 
-	$(LI Do not misalign pointers if those pointers may
-	point into the GC heap, such as:
+        $(LI Do not misalign pointers if those pointers may
+        point into the GC heap, such as:
 
 ------
 struct Foo
@@ -281,43 +281,43 @@ struct Foo
 }
 ------
 
-	Misaligned pointers may be used if the underlying hardware
-	supports them $(B and) the pointer is never used to point
-	into the GC heap.
-	)
+        Misaligned pointers may be used if the underlying hardware
+        supports them $(B and) the pointer is never used to point
+        into the GC heap.
+        )
 
-	$(LI Do not use byte-by-byte memory copies to copy pointer values.
-	This may result in intermediate conditions where there is
-	not a valid pointer, and if the gc pauses the thread in such a
-	condition, it can corrupt memory.
-	Most implementations of $(D memcpy()) will work since the
-	internal implementation of it does the copy in aligned chunks
-	greater than or equal to the pointer size, but since this kind of
-	implementation is not guaranteed by the C standard, use
-	$(D memcpy()) only with extreme caution.
-	)
+        $(LI Do not use byte-by-byte memory copies to copy pointer values.
+        This may result in intermediate conditions where there is
+        not a valid pointer, and if the gc pauses the thread in such a
+        condition, it can corrupt memory.
+        Most implementations of $(D memcpy()) will work since the
+        internal implementation of it does the copy in aligned chunks
+        greater than or equal to the pointer size, but since this kind of
+        implementation is not guaranteed by the C standard, use
+        $(D memcpy()) only with extreme caution.
+        )
 
-	$(LI Do not have pointers in a struct instance that point back
-	to the same instance. The trouble with this is if the instance
-	gets moved in memory, the pointer will point back to where it
-	came from, with likely disastrous results.
-	)
+        $(LI Do not have pointers in a struct instance that point back
+        to the same instance. The trouble with this is if the instance
+        gets moved in memory, the pointer will point back to where it
+        came from, with likely disastrous results.
+        )
 
-	)
+        )
 
-	$(P Things that are reliable and can be done:)
+        $(P Things that are reliable and can be done:)
 
-	$(UL
+        $(UL
 
-	$(LI Use a union to share storage with a pointer:
+        $(LI Use a union to share storage with a pointer:
 
 ------
 union U { void* ptr; int value }
 ------
-	)
+        )
 
-	$(LI A pointer to the start of a garbage collected object need not
-	be maintained if a pointer to the interior of the object exists.
+        $(LI A pointer to the start of a garbage collected object need not
+        be maintained if a pointer to the interior of the object exists.
 
 ------
 char[] p = new char[10];
@@ -325,62 +325,62 @@ char[] q = p[3..6];
 // q is enough to hold on to the object, don't need to keep
 // p as well.
 ------
-	)
-	)
+        )
+        )
 
-	$(P One can avoid using pointers anyway for most tasks. D provides
-	features
-	rendering most explicit pointer uses obsolete, such as reference
-	objects,
-	dynamic arrays, and garbage collection. Pointers
-	are provided in order to interface successfully with C APIs and for
-	some low level work.
-	)
+        $(P One can avoid using pointers anyway for most tasks. D provides
+        features
+        rendering most explicit pointer uses obsolete, such as reference
+        objects,
+        dynamic arrays, and garbage collection. Pointers
+        are provided in order to interface successfully with C APIs and for
+        some low level work.
+        )
 
 $(H2 $(LNAME2 working_with_the_gc, Working with the Garbage Collector))
 
-	$(P Garbage collection doesn't solve every memory deallocation problem.
-	For
-	example, if a pointer to a large data structure is kept, the garbage
-	collector cannot reclaim it, even if it is never referred to again. To
-	eliminate this problem, it is good practice to set a reference or
-	pointer to an object to null when no longer needed.
-	)
+        $(P Garbage collection doesn't solve every memory deallocation problem.
+        For
+        example, if a pointer to a large data structure is kept, the garbage
+        collector cannot reclaim it, even if it is never referred to again. To
+        eliminate this problem, it is good practice to set a reference or
+        pointer to an object to null when no longer needed.
+        )
 
-	$(P This advice applies only to static references or references embedded
-	inside other objects. There is not much point for such stored on the
-	stack to be nulled because new stack frames are initialized anyway.
-	)
+        $(P This advice applies only to static references or references embedded
+        inside other objects. There is not much point for such stored on the
+        stack to be nulled because new stack frames are initialized anyway.
+        )
 
 $(H2 $(LNAME2 obj_pinning_and_gc, Object Pinning and a Moving Garbage Collector))
 
-	$(P Although D does not currently use a moving garbage collector, by following
-	the rules listed above one can be implemented. No special action is required
-	to pin objects. A moving collector will only move objects for which there
-	are no ambiguous references, and for which it can update those references.
-	All other objects will be automatically pinned.
-	)
+        $(P Although D does not currently use a moving garbage collector, by following
+        the rules listed above one can be implemented. No special action is required
+        to pin objects. A moving collector will only move objects for which there
+        are no ambiguous references, and for which it can update those references.
+        All other objects will be automatically pinned.
+        )
 
 $(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
 
-	$(P Some sections of code may need to avoid using the garbage collector.
-	The following constructs may allocate memory using the garbage collector:
-	)
+        $(P Some sections of code may need to avoid using the garbage collector.
+        The following constructs may allocate memory using the garbage collector:
+        )
 
-	$(UL
-	$(LI $(GLINK2 expression, NewExpression))
-	$(LI Array appending)
-	$(LI Array concatenation)
-	$(LI Array literals (except when used to initialize static data))
-	$(LI Associative array literals)
-	$(LI Any insertion, removal, or lookups in an associative array)
-	$(LI Extracting keys or values from an associative array)
-		$(LI Taking the address of (i.e. making a delegate to) a nested function that
-	 accesses variables in an outer scope)
-	$(LI A function literal that accesses variables in an outer scope)
+        $(UL
+        $(LI $(GLINK2 expression, NewExpression))
+        $(LI Array appending)
+        $(LI Array concatenation)
+        $(LI Array literals (except when used to initialize static data))
+        $(LI Associative array literals)
+        $(LI Any insertion, removal, or lookups in an associative array)
+        $(LI Extracting keys or values from an associative array)
+                $(LI Taking the address of (i.e. making a delegate to) a nested function that
+         accesses variables in an outer scope)
+        $(LI A function literal that accesses variables in an outer scope)
 
-	$(LI An $(GLINK2 expression, AssertExpression) that fails its condition)
-	)
+        $(LI An $(GLINK2 expression, AssertExpression) that fails its condition)
+        )
 
 $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
 
@@ -484,16 +484,16 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
 
 $(H2 $(LNAME2 references, References))
 
-	$(UL
-	$(LI $(LINK2 https://en.wikipedia.org/wiki/Garbage_collection_$(PERCENT)28computer_science$(PERCENT)29, Wikipedia))
-	$(LI $(LINK2 http://www.iecc.com/gclist/GC-faq.html, GC FAQ))
-	$(LI $(LINK2 ftp://ftp.cs.utexas.edu/pub/garbage/gcsurvey.ps, Uniprocessor Garbage Collector Techniques))
-	$(LI $(AMAZONLINK 0471941484, Garbage Collection: Algorithms for Automatic Dynamic Memory Management))
-	)
+        $(UL
+        $(LI $(LINK2 https://en.wikipedia.org/wiki/Garbage_collection_$(PERCENT)28computer_science$(PERCENT)29, Wikipedia))
+        $(LI $(LINK2 http://www.iecc.com/gclist/GC-faq.html, GC FAQ))
+        $(LI $(LINK2 ftp://ftp.cs.utexas.edu/pub/garbage/gcsurvey.ps, Uniprocessor Garbage Collector Techniques))
+        $(LI $(AMAZONLINK 0471941484, Garbage Collection: Algorithms for Automatic Dynamic Memory Management))
+        )
 
 $(SPEC_SUBNAV_PREV_NEXT unittest, Unit Tests, float, Floating Point)
 )
 
 Macros:
-	CHAPTER=28
-	TITLE=Garbage Collection
+        CHAPTER=28
+        TITLE=Garbage Collection

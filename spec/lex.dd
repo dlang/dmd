@@ -16,26 +16,26 @@ $(H2 $(LNAME2 source_text, Source Text))
 
 $(P Source text can be in one of the following formats:)
 
-	$(LIST
-	ASCII,
-	UTF-8,
-	UTF-16BE,
-	UTF-16LE,
-	UTF-32BE,
-	UTF-32LE
-	)
+        $(LIST
+        ASCII,
+        UTF-8,
+        UTF-16BE,
+        UTF-16LE,
+        UTF-32BE,
+        UTF-32LE
+        )
 
 $(P UTF-8 is a superset of traditional 7-bit ASCII. One of the following UTF
 BOMs (Byte Order Marks) can be present at the beginning of the source text:)
 
 $(TABLE2 UTF Byte Order Marks,
     $(THEAD Format, BOM)
-	$(TROW UTF-8, EF BB BF)
-	$(TROW UTF-16BE, FE FF)
-	$(TROW UTF-16LE, FF FE)
+        $(TROW UTF-8, EF BB BF)
+        $(TROW UTF-16BE, FE FF)
+        $(TROW UTF-16LE, FF FE)
     $(TROW UTF-32BE, 00 00 FE FF)
-	$(TROW UTF-32LE, FF FE 00 00)
-	$(TROW ASCII, no BOM)
+        $(TROW UTF-32LE, FF FE 00 00)
+        $(TROW ASCII, no BOM)
 )
 
 $(P If the source file does not start with a BOM, then the first character must
@@ -54,10 +54,10 @@ $(D >>) is a right shift token, not two greater than tokens. There are two
 exceptions to this rule:)
 
 $(UL
-	$(LI A $(D ..) embedded inside what looks like two floating point
-		literals, as in $(D 1..2), is interpreted as if the $(D ..) was
-		separated by a space from the first integer.)
-	$(LI A `1.a` is interpreted as the three tokens `1`, `.`, and `a`, whereas `1. a` is interpreted as the two tokens `1.` and `a`.)
+        $(LI A $(D ..) embedded inside what looks like two floating point
+                literals, as in $(D 1..2), is interpreted as if the $(D ..) was
+                separated by a space from the first integer.)
+        $(LI A `1.a` is interpreted as the three tokens `1`, `.`, and `a`, whereas `1. a` is interpreted as the two tokens `1.` and `a`.)
 )
 
 $(H2 $(LNAME2 character_set, Character Set))
@@ -137,20 +137,20 @@ $(GNAME Characters):
 
     $(P D has three kinds of comments:)
 
-	$(OL
-	$(LI Block comments can span multiple lines, but do not nest.)
-	$(LI Line comments terminate at the end of the line.)
-	$(LI Nesting block comments can span multiple lines and can nest.)
-	)
+        $(OL
+        $(LI Block comments can span multiple lines, but do not nest.)
+        $(LI Line comments terminate at the end of the line.)
+        $(LI Nesting block comments can span multiple lines and can nest.)
+        )
 
-	$(P
-	The contents of strings and comments are not tokenized.  Consequently,
-	comment openings occurring within a string do not begin a comment, and
-	string delimiters within a comment do not affect the recognition of
-	comment closings and nested "/+" comment openings.  With the exception
-	of "/+" occurring within a "/+" comment, comment openings within a
-	comment are ignored.
-	)
+        $(P
+        The contents of strings and comments are not tokenized.  Consequently,
+        comment openings occurring within a string do not begin a comment, and
+        string delimiters within a comment do not affect the recognition of
+        comment closings and nested "/+" comment openings.  With the exception
+        of "/+" occurring within a "/+" comment, comment openings within a
+        comment are ignored.
+        )
 
 -------------
 a = /+ // +/ 1;    // parses as if 'a = 1;'
@@ -350,22 +350,22 @@ $(GNAME TokenString):
 
 )
 
-	$(P
-	A string literal is either a double quoted string, a wysiwyg quoted
-	string, a delimited string, a token string,	or a hex string.
-	)
+        $(P
+        A string literal is either a double quoted string, a wysiwyg quoted
+        string, a delimited string, a token string,     or a hex string.
+        )
 
-	$(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
-	$(D \n) character.)
+        $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
+        $(D \n) character.)
 
 $(H3 $(LNAME2 wysiwyg, Wysiwyg Strings))
 
-	$(P
-	Wysiwyg ("what you see is what you get") quoted strings are enclosed by r" and ".
-	All characters between
-	the r" and " are part of the string.
-	There are no escape sequences inside r" ":
-	)
+        $(P
+        Wysiwyg ("what you see is what you get") quoted strings are enclosed by r" and ".
+        All characters between
+        the r" and " are part of the string.
+        There are no escape sequences inside r" ":
+        )
 
 ---------------
 r"hello"
@@ -374,13 +374,13 @@ r"ab\n" // string is 4 characters,
         // 'a', 'b', '\', 'n'
 ---------------
 
-	$(P
-	An alternate form of wysiwyg strings are enclosed by backquotes,
-	the $(BACKTICK) character. The $(BACKTICK) character is not available on some keyboards
-	and the font rendering of it is sometimes indistinguishable from
-	the regular ' character. Since, however, the $(BACKTICK) is rarely used,
-	it is useful to delineate strings with " in them.
-	)
+        $(P
+        An alternate form of wysiwyg strings are enclosed by backquotes,
+        the $(BACKTICK) character. The $(BACKTICK) character is not available on some keyboards
+        and the font rendering of it is sometimes indistinguishable from
+        the regular ' character. Since, however, the $(BACKTICK) is rarely used,
+        it is useful to delineate strings with " in them.
+        )
 
 ---------------
 `hello`
@@ -392,8 +392,8 @@ r"ab\n" // string is 4 characters,
 
 $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
 
-	$(P Double quoted strings are enclosed by "". Escape sequences can be
-	embedded into them with the typical $(D \) notation.)
+        $(P Double quoted strings are enclosed by "". Escape sequences can be
+        embedded into them with the typical $(D \) notation.)
 
 ---------------
 "hello"
@@ -409,9 +409,9 @@ $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
 
 $(H3 $(LNAME2 hex_strings, Hex Strings))
 
-	$(P Hex strings allow string literals to be created using hex data.
-	The hex data need not form valid UTF characters.
-	)
+        $(P Hex strings allow string literals to be created using hex data.
+        The hex data need not form valid UTF characters.
+        )
 
 --------------
 x"0A"              // same as "\x0A"
@@ -439,20 +439,20 @@ r"a" ~ "bc"
 "a" ~ "b" ~ "c"
 -----------------
 
-	$(P The optional $(I StringPostfix) character gives a specific type
-	to the string, rather than it being inferred from the context.
-	This is useful when the type cannot be unambiguously inferred,
-	such as when overloading based on string type. The types corresponding
-	to the postfix characters are:
-	)
+        $(P The optional $(I StringPostfix) character gives a specific type
+        to the string, rather than it being inferred from the context.
+        This is useful when the type cannot be unambiguously inferred,
+        such as when overloading based on string type. The types corresponding
+        to the postfix characters are:
+        )
 
 
-	$(TABLE2 String Literal Postfix Characters,
-	$(THEAD Postfix, Type, Aka)
-	$(TROW $(B c), $(D immutable(char)[]), $(D string))
-	$(TROW $(B w), $(D immutable(wchar)[]), $(D wstring))
-	$(TROW $(B d), $(D immutable(dchar)[]), $(D dstring))
-	)
+        $(TABLE2 String Literal Postfix Characters,
+        $(THEAD Postfix, Type, Aka)
+        $(TROW $(B c), $(D immutable(char)[]), $(D string))
+        $(TROW $(B w), $(D immutable(wchar)[]), $(D wstring))
+        $(TROW $(B d), $(D immutable(dchar)[]), $(D dstring))
+        )
 
 ---
 "hello"c  // string
@@ -460,42 +460,42 @@ r"a" ~ "bc"
 "hello"d  // dstring
 ---
 
-	$(P The string literals are assembled as UTF-8 char arrays,
-	and the postfix is applied
-	to convert to wchar or dchar as necessary as a final step.)
+        $(P The string literals are assembled as UTF-8 char arrays,
+        and the postfix is applied
+        to convert to wchar or dchar as necessary as a final step.)
 
-	$(P String literals are read only. Writes to string literals
-	cannot always be detected, but cause undefined behavior.)
+        $(P String literals are read only. Writes to string literals
+        cannot always be detected, but cause undefined behavior.)
 
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
-	$(P Delimited strings use various forms of delimiters.
-	The delimiter, whether a character or identifer,
-	must immediately follow the " without any intervening whitespace.
-	The terminating delimiter must immediately precede the closing "
-	without any intervening whitespace.
-	A $(I nesting delimiter) nests, and is one of the
-	following characters:
-	)
+        $(P Delimited strings use various forms of delimiters.
+        The delimiter, whether a character or identifer,
+        must immediately follow the " without any intervening whitespace.
+        The terminating delimiter must immediately precede the closing "
+        without any intervening whitespace.
+        A $(I nesting delimiter) nests, and is one of the
+        following characters:
+        )
 
-	$(TABLE2 Nesting Delimiters,
-	$(THEAD Delimiter, Matching Delimiter)
-	$(TROW $(D [), $(D ]))
-	$(TROW $(LPAREN), $(RPAREN))
-	$(TROW $(D <), $(D >))
-	$(TROW $(CODE_LCURL), $(CODE_RCURL))
-	)
+        $(TABLE2 Nesting Delimiters,
+        $(THEAD Delimiter, Matching Delimiter)
+        $(TROW $(D [), $(D ]))
+        $(TROW $(LPAREN), $(RPAREN))
+        $(TROW $(D <), $(D >))
+        $(TROW $(CODE_LCURL), $(CODE_RCURL))
+        )
 
 ---
 q"(foo(xxx))"   // "foo(xxx)"
 q"[foo{]"       // "foo{"
 ---
 
-	$(P If the delimiter is an identifier, the identifier must
-	be immediately followed by a newline, and the matching
-	delimiter is the same identifier starting at the beginning
-	of the line:
-	)
+        $(P If the delimiter is an identifier, the identifier must
+        be immediately followed by a newline, and the matching
+        delimiter is the same identifier starting at the beginning
+        of the line:
+        )
 ---
 writeln(q"EOS
 This
@@ -504,14 +504,14 @@ heredoc string
 EOS"
 );
 ---
-	$(P The newline following the opening identifier is not part
-	of the string, but the last newline before the closing
-	identifier is part of the string. The closing identifier
+        $(P The newline following the opening identifier is not part
+        of the string, but the last newline before the closing
+        identifier is part of the string. The closing identifier
     must be placed on its own line at the leftmost column.
-	)
+        )
 
-	$(P Otherwise, the matching delimiter is the same as
-	the delimiter character:)
+        $(P Otherwise, the matching delimiter is the same as
+        the delimiter character:)
 
 ---
 q"/foo]/"          // "foo]"
@@ -520,12 +520,12 @@ q"/foo]/"          // "foo]"
 
 $(H3 $(LNAME2 token_strings, Token Strings))
 
-	$(P Token strings open with the characters $(D q)$(CODE_LCURL) and close with
-	the token $(CODE_RCURL). In between must be valid D tokens.
-	The $(CODE_LCURL) and $(CODE_RCURL) tokens nest.
-	The string is formed of all the characters between the opening
-	and closing of the token string, including comments.
-	)
+        $(P Token strings open with the characters $(D q)$(CODE_LCURL) and close with
+        the token $(CODE_RCURL). In between must be valid D tokens.
+        The $(CODE_LCURL) and $(CODE_RCURL) tokens nest.
+        The string is formed of all the characters between the opening
+        and closing of the token string, including comments.
+        )
 
 ---
 q{foo}              // "foo"
@@ -724,65 +724,65 @@ $(GNAME HexLetter):
     $(B F)
 )
 
-	$(P Integers can be specified in decimal, binary, or hexadecimal.)
+        $(P Integers can be specified in decimal, binary, or hexadecimal.)
 
-	$(P Decimal integers are a sequence of decimal digits.)
+        $(P Decimal integers are a sequence of decimal digits.)
 
-	$(P $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
-	by a $(SINGLEQUOTE 0b) or $(SINGLEQUOTE 0B).
-	)
+        $(P $(LNAME2 binary-literals, Binary integers) are a sequence of binary digits preceded
+        by a $(SINGLEQUOTE 0b) or $(SINGLEQUOTE 0B).
+        )
 
-	$(P C-style octal integer notation was deemed too easy to mix up with decimal notation;
-	it is only fully supported in string literals.
-	D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
-	template, as in $(D octal!167).)
+        $(P C-style octal integer notation was deemed too easy to mix up with decimal notation;
+        it is only fully supported in string literals.
+        D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
+        template, as in $(D octal!167).)
 
-	$(P Hexadecimal integers are a sequence of hexadecimal digits preceded
-	by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
-	)
+        $(P Hexadecimal integers are a sequence of hexadecimal digits preceded
+        by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
+        )
 
-	$(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters, which are ignored.
-	The embedded $(SINGLEQUOTE $(UNDERSCORE)) are useful for formatting long literals, such
-	as using them as a thousands separator:
-	)
+        $(P Integers can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters, which are ignored.
+        The embedded $(SINGLEQUOTE $(UNDERSCORE)) are useful for formatting long literals, such
+        as using them as a thousands separator:
+        )
 
 -------------
 123_456       // 123456
 1_2_3_4_5_6_  // 123456
 -------------
 
-	$(P Integers can be immediately followed by one $(SINGLEQUOTE L) or one of
-	$(SINGLEQUOTE u) or $(SINGLEQUOTE U) or both.
-	Note that there is no $(SINGLEQUOTE l) suffix.
-	)
+        $(P Integers can be immediately followed by one $(SINGLEQUOTE L) or one of
+        $(SINGLEQUOTE u) or $(SINGLEQUOTE U) or both.
+        Note that there is no $(SINGLEQUOTE l) suffix.
+        )
 
-	$(P The type of the integer is resolved as follows:)
+        $(P The type of the integer is resolved as follows:)
 
-	$(TABLE2 Decimal Literal Types,
-	$(THEAD Literal, Type)
+        $(TABLE2 Decimal Literal Types,
+        $(THEAD Literal, Type)
     $(TROW_EXPLANATORY $(I Usual decimal notation))
-	$(TROW $(D 0 .. 2_147_483_647), $(D int))
-	$(TROW $(D 2_147_483_648 .. 9_223_372_036_854_775_807), $(D long))
+        $(TROW $(D 0 .. 2_147_483_647), $(D int))
+        $(TROW $(D 2_147_483_648 .. 9_223_372_036_854_775_807), $(D long))
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Explicit suffixes))
-	$(TROW $(D 0L .. 9_223_372_036_854_775_807L), $(D long))
-	$(TROW $(D 0U .. 4_294_967_295U), $(D uint))
-	$(TROW $(D 4_294_967_296U .. 18_446_744_073_709_551_615U), `ulong`)
-	$(TROW $(D 0UL .. 18_446_744_073_709_551_615UL), $(D ulong))
+        $(TROW $(D 0L .. 9_223_372_036_854_775_807L), $(D long))
+        $(TROW $(D 0U .. 4_294_967_295U), $(D uint))
+        $(TROW $(D 4_294_967_296U .. 18_446_744_073_709_551_615U), `ulong`)
+        $(TROW $(D 0UL .. 18_446_744_073_709_551_615UL), $(D ulong))
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Hexadecimal notation))
-	$(TROW $(D 0x0 .. 0x7FFF_FFFF), $(D int))
-	$(TROW $(D 0x8000_0000 .. 0xFFFF_FFFF), $(D uint))
-	$(TROW $(D 0x1_0000_0000 .. 0x7FFF_FFFF_FFFF_FFFF), $(D long))
-	$(TROW $(D 0x8000_0000_0000_0000 .. 0xFFFF_FFFF_FFFF_FFFF), `ulong`)
+        $(TROW $(D 0x0 .. 0x7FFF_FFFF), $(D int))
+        $(TROW $(D 0x8000_0000 .. 0xFFFF_FFFF), $(D uint))
+        $(TROW $(D 0x1_0000_0000 .. 0x7FFF_FFFF_FFFF_FFFF), $(D long))
+        $(TROW $(D 0x8000_0000_0000_0000 .. 0xFFFF_FFFF_FFFF_FFFF), `ulong`)
     $(MIDRULE)
     $(TROW_EXPLANATORY $(I Hexadecimal notation with explicit suffixes))
-	$(TROW $(D 0x0L .. 0x7FFF_FFFF_FFFF_FFFFL), $(D long))
-	$(TROW $(D 0x8000_0000_0000_0000L .. 0xFFFF_FFFF_FFFF_FFFFL), `ulong`)
-	$(TROW $(D 0x0U .. 0xFFFF_FFFFU), $(D uint))
-	$(TROW $(D 0x1_0000_0000U .. 0xFFFF_FFFF_FFFF_FFFFU), `ulong`)
-	$(TROW $(D 0x0UL .. 0xFFFF_FFFF_FFFF_FFFFUL), $(D ulong))
-	)
+        $(TROW $(D 0x0L .. 0x7FFF_FFFF_FFFF_FFFFL), $(D long))
+        $(TROW $(D 0x8000_0000_0000_0000L .. 0xFFFF_FFFF_FFFF_FFFFL), `ulong`)
+        $(TROW $(D 0x0U .. 0xFFFF_FFFFU), $(D uint))
+        $(TROW $(D 0x1_0000_0000U .. 0xFFFF_FFFF_FFFF_FFFFU), `ulong`)
+        $(TROW $(D 0x0UL .. 0xFFFF_FFFF_FFFF_FFFFUL), $(D ulong))
+        )
 
 
 $(H2 $(LNAME2 floatliteral, Floating Point Literals))
@@ -862,18 +862,18 @@ $(GNAME LeadingDecimal):
     $(B 0) $(GLINK DecimalDigitsNoSingleUS)
 )
 
-	$(P Floats can be in decimal or hexadecimal format.)
+        $(P Floats can be in decimal or hexadecimal format.)
 
-	$(P Hexadecimal floats are preceded by a $(B 0x) or $(B 0X) and the
-	exponent is a $(B p) or $(B P) followed by a decimal number serving as
-	the exponent of 2.
-	)
+        $(P Hexadecimal floats are preceded by a $(B 0x) or $(B 0X) and the
+        exponent is a $(B p) or $(B P) followed by a decimal number serving as
+        the exponent of 2.
+        )
 
-	$(P Floating literals can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters, which are ignored.
-	The embedded $(SINGLEQUOTE $(UNDERSCORE)) are useful for formatting long literals to
-	make them more readable, such
-	as using them as a thousands separator:
-	)
+        $(P Floating literals can have embedded $(SINGLEQUOTE $(UNDERSCORE)) characters, which are ignored.
+        The embedded $(SINGLEQUOTE $(UNDERSCORE)) are useful for formatting long literals to
+        make them more readable, such
+        as using them as a thousands separator:
+        )
 
 ---------
 123_456.567_8         // 123456.5678
@@ -881,18 +881,18 @@ $(GNAME LeadingDecimal):
 1_2_3_4_5_6_.5e-6_    // 123456.5e-6
 ---------
 
-	$(P Floating literals with no suffix are of type double.
-	Floats can be followed by one $(B f), $(B F),
-	or $(B L) suffix.
-	The $(B f) or $(B F) suffix means it is a
-	float, and $(B L) means it is a real.
-	)
+        $(P Floating literals with no suffix are of type double.
+        Floats can be followed by one $(B f), $(B F),
+        or $(B L) suffix.
+        The $(B f) or $(B F) suffix means it is a
+        float, and $(B L) means it is a real.
+        )
 
-	$(P If a floating literal is followed by $(B i), then it is an
-	$(I ireal) (imaginary) type.
-	)
+        $(P If a floating literal is followed by $(B i), then it is an
+        $(I ireal) (imaginary) type.
+        )
 
-	$(P Examples:)
+        $(P Examples:)
 
 ---------
 0x1.FFFFFFFFFFFFFp1023 // double.max
@@ -903,12 +903,12 @@ $(GNAME LeadingDecimal):
 6.3Li                  // ireal 6.3
 ---------
 
-	$(P It is an error if the literal exceeds the range of the type.
-	It is not an error if the literal is rounded to fit into
-	the significant digits of the type.
-	)
-	$(P If a floating literal has a $(B .) and a type suffix, at least one
-	    digit must be in-between:)
+        $(P It is an error if the literal exceeds the range of the type.
+        It is not an error if the literal is rounded to fit into
+        the significant digits of the type.
+        )
+        $(P If a floating literal has a $(B .) and a type suffix, at least one
+            digit must be in-between:)
 
 ---------
 1f; // OK
@@ -916,9 +916,9 @@ $(GNAME LeadingDecimal):
 1.; // OK, double
 ---------
 
-	$(P Complex literals are not tokens, but are assembled from
-	real and imaginary expressions during semantic analysis:
-	)
+        $(P Complex literals are not tokens, but are assembled from
+        real and imaginary expressions during semantic analysis:
+        )
 
 ---------
 4.5 + 6.2i  // complex number (phased out)
@@ -926,9 +926,9 @@ $(GNAME LeadingDecimal):
 
 $(H2 $(LNAME2 keywords, Keywords))
 
-	Keywords are reserved identifiers.
+        Keywords are reserved identifiers.
 
-	See Also: Globally Defined $(GLINK Symbols).
+        See Also: Globally Defined $(GLINK Symbols).
 
 $(GRAMMAR
 $(GNAME Keyword):
@@ -1069,7 +1069,7 @@ $(MULTICOLS 4,
 
 $(H2 $(LNAME2 global_symbols, Globally Defined Symbols))
 
-	These are defined in object$(UNDERSCORE).d, which is automatically imported by the default implementation.
+        These are defined in object$(UNDERSCORE).d, which is automatically imported by the default implementation.
 
 $(GRAMMAR
 $(GNAME Symbols):
@@ -1084,22 +1084,22 @@ $(MULTICOLS 4,
 
 $(H2 $(LNAME2 specialtokens, Special Tokens))
 
-	$(P
-	These tokens are replaced with other tokens according to the following
-	table:
-	)
+        $(P
+        These tokens are replaced with other tokens according to the following
+        table:
+        )
 
-	$(TABLE_2COLS Special Tokens,
-	$(THEAD Special Token, Replaced with)
+        $(TABLE_2COLS Special Tokens,
+        $(THEAD Special Token, Replaced with)
 
-	$(TROW $(D __DATE__), string literal of the date of compilation "$(I mmm dd yyyy)")
-	$(TROW $(D __EOF__), sets the scanner to the end of the file)
+        $(TROW $(D __DATE__), string literal of the date of compilation "$(I mmm dd yyyy)")
+        $(TROW $(D __EOF__), sets the scanner to the end of the file)
 
-	$(TROW $(D __TIME__), string literal of the time of compilation "$(I hh:mm:ss)")
-	$(TROW $(D __TIMESTAMP__), string literal of the date and time of compilation "$(I www mmm dd hh:mm:ss yyyy)")
-	$(TROW $(D __VENDOR__), $(ARGS Compiler vendor string, such as "Digital Mars D"))
-	$(TROW $(D __VERSION__), $(ARGS Compiler version as an integer, such as 2001))
-	)
+        $(TROW $(D __TIME__), string literal of the time of compilation "$(I hh:mm:ss)")
+        $(TROW $(D __TIMESTAMP__), string literal of the date and time of compilation "$(I www mmm dd hh:mm:ss yyyy)")
+        $(TROW $(D __VENDOR__), $(ARGS Compiler vendor string, such as "Digital Mars D"))
+        $(TROW $(D __VERSION__), $(ARGS Compiler version as an integer, such as 2001))
+        )
 
 $(H2 $(LEGACY_LNAME2 Special Token Sequence, special-token-sequence, Special Token Sequences))
 
@@ -1112,33 +1112,33 @@ $(GNAME Filespec):
     $(B ") $(GLINK Characters) $(B ")
 )
 
-	$(P Special token sequences are processed by the lexical analyzer, may
-	appear between any other tokens, and do not affect the syntax
-	parsing.
-	)
+        $(P Special token sequences are processed by the lexical analyzer, may
+        appear between any other tokens, and do not affect the syntax
+        parsing.
+        )
 
-	$(P There is currently only one special token sequence, $(D #line).
-	)
+        $(P There is currently only one special token sequence, $(D #line).
+        )
 
-	$(P This sets the source line number to $(GLINK IntegerLiteral),
-	and optionally the source file 	name to $(GLINK Filespec),
-	beginning with the next line of source text.
-	The source file and line number is used for printing error messages
-	and for mapping generated code back to the source for the symbolic
-	debugging output.
-	)
+        $(P This sets the source line number to $(GLINK IntegerLiteral),
+        and optionally the source file  name to $(GLINK Filespec),
+        beginning with the next line of source text.
+        The source file and line number is used for printing error messages
+        and for mapping generated code back to the source for the symbolic
+        debugging output.
+        )
 
-	$(P For example:
-	)
+        $(P For example:
+        )
 
 -----------------
 int #line 6 "foo\bar"
 x;  // this is now line 6 of file foo\bar
 -----------------
 
-	$(P Note that the backslash character is not treated specially inside
-	$(GLINK Filespec) strings.
-	)
+        $(P Note that the backslash character is not treated specially inside
+        $(GLINK Filespec) strings.
+        )
 $(SPEC_SUBNAV_PREV_NEXT intro, Introduction, grammar, Grammar)
 )
 

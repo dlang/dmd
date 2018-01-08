@@ -1,11 +1,11 @@
 Ddoc
 
 $(TOC Table of Contents,
-	$(P This is the specification for the D Programming Language.
-	For more information see $(AHTTP dlang.org, dlang.org).)
+        $(P This is the specification for the D Programming Language.
+        For more information see $(AHTTP dlang.org, dlang.org).)
 
-	$(NOT_EBOOK $(P This is also available as a
-	$(LINK2 $(ROOT_DIR)dlangspec.pdf, PDF document) or as a
+        $(NOT_EBOOK $(P This is also available as a
+        $(LINK2 $(ROOT_DIR)dlangspec.pdf, PDF document) or as a
         $(LINK2 $(ROOT_DIR)dlangspec.mobi, Mobi ebook).
         $(COMMENT uncomment this once the Kindle ebook has been updated
             or as a
@@ -13,50 +13,50 @@ $(TOC Table of Contents,
         )
     ))
 
-	$(TOC_LISTING $(ITEMIZE
-		$(A intro.html, Introduction),
-		$(A lex.html, Lexical),
-		$(A grammar.html, Grammar),
-		$(A module.html, Modules),
-		$(A declaration.html, Declarations),
-		$(A type.html, Types),
-		$(A property.html, Properties),
-		$(A attribute.html, Attributes),
-		$(A pragma.html, Pragmas),
-		$(A expression.html, Expressions),
-		$(A statement.html, Statements),
-		$(A arrays.html, Arrays),
-		$(A hash-map.html, Associative Arrays),
-		$(A struct.html, Structs and Unions),
-		$(A class.html, Classes),
-		$(A interface.html, Interfaces),
-		$(A enum.html, Enums),
-		$(A const3.html, Type Qualifiers),
-		$(A function.html, Functions),
-		$(A operatoroverloading.html, Operator Overloading),
-		$(A template.html, Templates),
-		$(A template-mixin.html, Template Mixins),
-		$(A contracts.html, Contract Programming),
-		$(A version.html, Conditional Compilation),
-		$(A traits.html, Traits),
-		$(A errors.html, Error Handling),
-		$(A unittest.html, Unit Tests),
-		$(A garbage.html, Garbage Collection),
-		$(A float.html, Floating Point),
-		$(A iasm.html, D x86 Inline Assembler),
-		$(A ddoc.html, Embedded Documentation),
-		$(A interfaceToC.html, Interfacing to C),
-		$(A cpp_interface.html, Interfacing to C++),
-		$(A objc_interface.html, Interfacing to Objective-C),
-		$(A portability.html, Portability Guide),
-		$(A entity.html, Named Character Entities),
-		$(A memory-safe-d.html, Memory Safety),
-		$(A abi.html, Application Binary Interface),
-		$(A simd.html, Vector Extensions),
-		$(A betterc.html, Better C)
-	))
+        $(TOC_LISTING $(ITEMIZE
+                $(A intro.html, Introduction),
+                $(A lex.html, Lexical),
+                $(A grammar.html, Grammar),
+                $(A module.html, Modules),
+                $(A declaration.html, Declarations),
+                $(A type.html, Types),
+                $(A property.html, Properties),
+                $(A attribute.html, Attributes),
+                $(A pragma.html, Pragmas),
+                $(A expression.html, Expressions),
+                $(A statement.html, Statements),
+                $(A arrays.html, Arrays),
+                $(A hash-map.html, Associative Arrays),
+                $(A struct.html, Structs and Unions),
+                $(A class.html, Classes),
+                $(A interface.html, Interfaces),
+                $(A enum.html, Enums),
+                $(A const3.html, Type Qualifiers),
+                $(A function.html, Functions),
+                $(A operatoroverloading.html, Operator Overloading),
+                $(A template.html, Templates),
+                $(A template-mixin.html, Template Mixins),
+                $(A contracts.html, Contract Programming),
+                $(A version.html, Conditional Compilation),
+                $(A traits.html, Traits),
+                $(A errors.html, Error Handling),
+                $(A unittest.html, Unit Tests),
+                $(A garbage.html, Garbage Collection),
+                $(A float.html, Floating Point),
+                $(A iasm.html, D x86 Inline Assembler),
+                $(A ddoc.html, Embedded Documentation),
+                $(A interfaceToC.html, Interfacing to C),
+                $(A cpp_interface.html, Interfacing to C++),
+                $(A objc_interface.html, Interfacing to Objective-C),
+                $(A portability.html, Portability Guide),
+                $(A entity.html, Named Character Entities),
+                $(A memory-safe-d.html, Memory Safety),
+                $(A abi.html, Application Binary Interface),
+                $(A simd.html, Vector Extensions),
+                $(A betterc.html, Better C)
+        ))
 )
 
 Macros:
         TITLE=Table of Contents
-		BODY_PREFIX=$(COMMENT Suppress numbering in this page)
+                BODY_PREFIX=$(COMMENT Suppress numbering in this page)

@@ -4,14 +4,14 @@ $(SPEC_S Traits,
 
 $(SPEC_HEADERNAV_TOC)
 
-	$(P Traits are extensions to the language to enable
-	programs, at compile time, to get at information
-	internal to the compiler. This is also known as
-	compile time reflection.
-	It is done as a special, easily extended syntax (similar
-	to Pragmas) so that new capabilities can be added
-	as required.
-	)
+        $(P Traits are extensions to the language to enable
+        programs, at compile time, to get at information
+        internal to the compiler. This is also known as
+        compile time reflection.
+        It is done as a special, easily extended syntax (similar
+        to Pragmas) so that new capabilities can be added
+        as required.
+        )
 
 $(GRAMMAR
 $(GNAME TraitsExpression):
@@ -86,11 +86,11 @@ $(GNAME SpecialKeyword):
 
 $(H2 $(GNAME isArithmetic))
 
-	$(P If the arguments are all either types that are arithmetic types,
-	or expressions that are typed as arithmetic types, then $(D true)
-	is returned.
-	Otherwise, $(D false) is returned.
-	If there are no arguments, $(D false) is returned.)
+        $(P If the arguments are all either types that are arithmetic types,
+        or expressions that are typed as arithmetic types, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
 
 ---
 import std.stdio;
@@ -105,7 +105,7 @@ void main()
 }
 ---
 
-	Prints:
+        Prints:
 
 $(CONSOLE
 true
@@ -116,41 +116,41 @@ false
 
 $(H2 $(GNAME isFloating))
 
-	$(P Works like $(D isArithmetic), except it's for floating
-	point types (including imaginary and complex types).)
+        $(P Works like $(D isArithmetic), except it's for floating
+        point types (including imaginary and complex types).)
 
 $(H2 $(GNAME isIntegral))
 
-	$(P Works like $(D isArithmetic), except it's for integral
-	types (including character types).)
+        $(P Works like $(D isArithmetic), except it's for integral
+        types (including character types).)
 
 $(H2 $(GNAME isScalar))
 
-	$(P Works like $(D isArithmetic), except it's for scalar
-	types.)
+        $(P Works like $(D isArithmetic), except it's for scalar
+        types.)
 
 $(H2 $(GNAME isUnsigned))
 
-	$(P Works like $(D isArithmetic), except it's for unsigned
-	types.)
+        $(P Works like $(D isArithmetic), except it's for unsigned
+        types.)
 
 $(H2 $(GNAME isStaticArray))
 
-	$(P Works like $(D isArithmetic), except it's for static array
-	types.)
+        $(P Works like $(D isArithmetic), except it's for static array
+        types.)
 
 $(H2 $(GNAME isAssociativeArray))
 
-	$(P Works like $(D isArithmetic), except it's for associative array
-	types.)
+        $(P Works like $(D isArithmetic), except it's for associative array
+        types.)
 
 $(H2 $(GNAME isAbstractClass))
 
-	$(P If the arguments are all either types that are abstract classes,
-	or expressions that are typed as abstract classes, then $(D true)
-	is returned.
-	Otherwise, $(D false) is returned.
-	If there are no arguments, $(D false) is returned.)
+        $(P If the arguments are all either types that are abstract classes,
+        or expressions that are typed as abstract classes, then $(D true)
+        is returned.
+        Otherwise, $(D false) is returned.
+        If there are no arguments, $(D false) is returned.)
 
 ---
 import std.stdio;
@@ -167,7 +167,7 @@ void main()
 }
 ---
 
-	Prints:
+        Prints:
 
 $(CONSOLE
 true
@@ -178,13 +178,13 @@ false
 
 $(H2 $(GNAME isFinalClass))
 
-	$(P Works like $(D isAbstractClass), except it's for final
-	classes.)
+        $(P Works like $(D isAbstractClass), except it's for final
+        classes.)
 
 $(H2 $(GNAME isPOD))
 
-	$(P Takes one argument, which must be a type. It returns
-	$(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
+        $(P Takes one argument, which must be a type. It returns
+        $(D true) if the type is a $(DDSUBLINK glossary, pod, POD) type, otherwise $(D false).)
 
 $(H2 $(GNAME isNested))
 
@@ -203,16 +203,16 @@ $(H2 $(GNAME isFuture))
 
 $(H2 $(GNAME isVirtualFunction))
 
-	$(P The same as $(GLINK isVirtualMethod), except
-	that final functions that don't override anything return true.
-	)
+        $(P The same as $(GLINK isVirtualMethod), except
+        that final functions that don't override anything return true.
+        )
 
 $(H2 $(GNAME isVirtualMethod))
 
-	$(P Takes one argument. If that argument is a virtual function,
-	$(D true) is returned, otherwise $(D false).
-	Final functions that don't override anything return false.
-	)
+        $(P Takes one argument. If that argument is a virtual function,
+        $(D true) is returned, otherwise $(D false).
+        Final functions that don't override anything return false.
+        )
 
 ---
 import std.stdio;
@@ -236,9 +236,9 @@ void main()
 
 $(H2 $(GNAME isAbstractFunction))
 
-	$(P Takes one argument. If that argument is an abstract function,
-	$(D true) is returned, otherwise $(D false).
-	)
+        $(P Takes one argument. If that argument is an abstract function,
+        $(D true) is returned, otherwise $(D false).
+        )
 
 ---
 import std.stdio;
@@ -268,9 +268,9 @@ void main()
 
 $(H2 $(GNAME isFinalFunction))
 
-	$(P Takes one argument. If that argument is a final function,
-	$(D true) is returned, otherwise $(D false).
-	)
+        $(P Takes one argument. If that argument is a final function,
+        $(D true) is returned, otherwise $(D false).
+        )
 
 ---
 import std.stdio;
@@ -302,9 +302,9 @@ void main()
 
 $(H2 $(GNAME isOverrideFunction))
 
-	$(P Takes one argument. If that argument is a function marked with
-	$(D_KEYWORD override), $(D true) is returned, otherwise $(D false).
-	)
+        $(P Takes one argument. If that argument is a function marked with
+        $(D_KEYWORD override), $(D true) is returned, otherwise $(D false).
+        )
 
 ---
 import std.stdio;
@@ -330,18 +330,18 @@ void main()
 
 $(H2 $(GNAME isStaticFunction))
 
-	$(P Takes one argument. If that argument is a static function,
-	meaning it has no context pointer,
-	$(D true) is returned, otherwise $(D false).
-	)
+        $(P Takes one argument. If that argument is a static function,
+        meaning it has no context pointer,
+        $(D true) is returned, otherwise $(D false).
+        )
 
 
 $(H2 $(GNAME isRef), $(GNAME isOut), $(GNAME isLazy))
 
-	$(P Takes one argument. If that argument is a declaration,
-	$(D true) is returned if it is $(D_KEYWORD ref), $(D_KEYWORD out),
-	or $(D_KEYWORD lazy), otherwise $(D false).
-	)
+        $(P Takes one argument. If that argument is a declaration,
+        $(D true) is returned if it is $(D_KEYWORD ref), $(D_KEYWORD out),
+        or $(D_KEYWORD lazy), otherwise $(D false).
+        )
 
 ---
 void fooref(ref int x)
@@ -368,9 +368,9 @@ void foolazy(lazy int x)
 
 $(H2 $(GNAME isTemplate))
 
-	$(P Takes one argument. If that argument is a template then $(D true) is returned,
-	otherwise $(D false).
-	)
+        $(P Takes one argument. If that argument is a template then $(D true) is returned,
+        otherwise $(D false).
+        )
 
 ---
 void foo(T)(){}
@@ -381,12 +381,12 @@ static assert(!__traits(isTemplate,"string"));
 
 $(H2 $(GNAME hasMember))
 
-	$(P The first argument is a type that has members, or
-	is an expression of a type that has members.
-	The second argument is a string.
-	If the string is a valid property of the type,
-	$(D true) is returned, otherwise $(D false).
-	)
+        $(P The first argument is a type that has members, or
+        is an expression of a type that has members.
+        The second argument is a string.
+        If the string is a valid property of the type,
+        $(D true) is returned, otherwise $(D false).
+        )
 
 ---
 import std.stdio;
@@ -409,9 +409,9 @@ void main()
 
 $(H2 $(GNAME identifier))
 
-	$(P Takes one argument, a symbol. Returns the identifier
-	for that symbol as a string literal.
-	)
+        $(P Takes one argument, a symbol. Returns the identifier
+        for that symbol as a string literal.
+        )
 ---
 import std.stdio;
 
@@ -464,17 +464,17 @@ tuple((Foo))
 $(SECTION2 $(GNAME getFunctionVariadicStyle),
     $(P
         Takes one argument which must either be a function symbol, or a type
-	that is a function, delegate or a function pointer.
+        that is a function, delegate or a function pointer.
         It returns a string identifying the kind of
         $(LINK2 function.html#variadic, variadic arguments) that are supported.
     )
 
     $(TABLE2 getFunctionVariadicStyle,
-	$(THEAD result, kind, access, example)
-	$(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
-	$(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
-	$(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
-	$(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
+        $(THEAD result, kind, access, example)
+        $(TROW $(D "none"), not a variadic function, $(NBSP), $(D void foo();))
+        $(TROW $(D "argptr"), D style variadic function, $(D _argptr) and $(D _arguments), $(D void bar(...)))
+        $(TROW $(D "stdarg"), C style variadic function, $(LINK2 $(ROOT_DIR)phobos/core_stdc_stdarg.html, $(D core.stdc.stdarg)), $(D extern (C) void abc(int, ...)))
+        $(TROW $(D "typesafe"), typesafe variadic function, array on stack, $(D void def(int[] ...)))
     )
 
 ---
@@ -546,22 +546,22 @@ pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }))
 
 $(H2 $(GNAME getLinkage))
 
-	$(P Takes one argument, which is a declaration symbol, or the type of a function,
-	delegate, or pointer to function.
-	Returns a string representing the $(LINK2 attribute.html#LinkageAttribute, LinkageAttribute)
-	of the declaration.
-	The string is one of:
-	)
+        $(P Takes one argument, which is a declaration symbol, or the type of a function,
+        delegate, or pointer to function.
+        Returns a string representing the $(LINK2 attribute.html#LinkageAttribute, LinkageAttribute)
+        of the declaration.
+        The string is one of:
+        )
 
-	$(UL
-	$(LI $(D "D"))
-	$(LI $(D "C"))
-	$(LI $(D "C++"))
-	$(LI $(D "Windows"))
-	$(LI $(D "Pascal"))
-	$(LI $(D "Objective-C"))
-	$(LI $(D "System"))
-	)
+        $(UL
+        $(LI $(D "D"))
+        $(LI $(D "C"))
+        $(LI $(D "C++"))
+        $(LI $(D "Windows"))
+        $(LI $(D "Pascal"))
+        $(LI $(D "Objective-C"))
+        $(LI $(D "System"))
+        )
 
 ---
 extern (C) int fooc();
@@ -573,11 +573,11 @@ static assert(__traits(getLinkage, aliasc) == "C");
 
 $(H2 $(GNAME getMember))
 
-	$(P Takes two arguments, the second must be a string.
-	The result is an expression formed from the first
-	argument, followed by a $(SINGLEQUOTE .), followed by the second
-	argument as an identifier.
-	)
+        $(P Takes two arguments, the second must be a string.
+        The result is an expression formed from the first
+        argument, followed by a $(SINGLEQUOTE .), followed by the second
+        argument as an identifier.
+        )
 
 ---
 import std.stdio;
@@ -602,11 +602,11 @@ void main()
 
 $(H2 $(GNAME getOverloads))
 
-	$(P The first argument is an aggregate (e.g. struct/class/module).
-	The second argument is a string that matches the name of
-	one of the functions in that aggregate.
-	The result is a tuple of all the overloads of that function.
-	)
+        $(P The first argument is an aggregate (e.g. struct/class/module).
+        The second argument is a string that matches the name of
+        one of the functions in that aggregate.
+        The result is a tuple of all the overloads of that function.
+        )
 
 ---
 import std.stdio;
@@ -635,7 +635,7 @@ void main()
 }
 ---
 
-	Prints:
+        Prints:
 
 $(CONSOLE
 void()
@@ -650,10 +650,10 @@ $(H2 $(GNAME getParameterStorageClasses))
     $(P
         Takes two arguments.
         The first must either be a function symbol, or a type
-	that is a function, delegate or a function pointer.
-	The second is an integer identifying which parameter, where the first parameter is
-	0.
-	It returns a tuple of strings representing the storage classes of that parameter.
+        that is a function, delegate or a function pointer.
+        The second is an integer identifying which parameter, where the first parameter is
+        0.
+        It returns a tuple of strings representing the storage classes of that parameter.
     )
 
 ---
@@ -706,9 +706,9 @@ static assert (__traits(getPointerBitmap, S) == [7*size_t.sizeof, 0b0110110]);
 
 $(H2 $(GNAME getProtection))
 
-	$(P The argument is a symbol.
-	The result is a string giving its protection level: "public", "private", "protected", "export", or "package".
-	)
+        $(P The argument is a symbol.
+        The result is a string giving its protection level: "public", "private", "protected", "export", or "package".
+        )
 
 ---
 import std.stdio;
@@ -731,7 +731,7 @@ void main()
 }
 ---
 
-	Prints:
+        Prints:
 
 $(CONSOLE
 export
@@ -741,19 +741,19 @@ public
 
 $(H2 $(GNAME getVirtualFunctions))
 
-	$(P The same as $(GLINK getVirtualMethods), except that
-	final functions that do not override anything are included.
-	)
+        $(P The same as $(GLINK getVirtualMethods), except that
+        final functions that do not override anything are included.
+        )
 
 $(H2 $(GNAME getVirtualMethods))
 
-	$(P The first argument is a class type or an expression of
-	class type.
-	The second argument is a string that matches the name of
-	one of the functions of that class.
-	The result is a tuple of the virtual overloads of that function.
-	It does not include final functions that do not override anything.
-	)
+        $(P The first argument is a class type or an expression of
+        class type.
+        The second argument is a string that matches the name of
+        one of the functions of that class.
+        The result is a tuple of the virtual overloads of that function.
+        It does not include final functions that do not override anything.
+        )
 
 ---
 import std.stdio;
@@ -782,7 +782,7 @@ void main()
 }
 ---
 
-	Prints:
+        Prints:
 
 $(CONSOLE
 void()
@@ -794,21 +794,21 @@ int()
 
 $(H2 $(GNAME getUnitTests))
 
-	$(P
-		Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
-		The result is a tuple of all the unit test functions of that aggregate.
-		The functions returned are like normal nested static functions,
-		$(DDSUBLINK glossary, ctfe, CTFE) will work and
-		$(DDSUBLINK spec/attribute, uda, UDA's) will be accessible.
-	)
+        $(P
+                Takes one argument, a symbol of an aggregate (e.g. struct/class/module).
+                The result is a tuple of all the unit test functions of that aggregate.
+                The functions returned are like normal nested static functions,
+                $(DDSUBLINK glossary, ctfe, CTFE) will work and
+                $(DDSUBLINK spec/attribute, uda, UDA's) will be accessible.
+        )
 
-	$(H3 Note:)
+        $(H3 Note:)
 
-	$(P
-		The -unittest flag needs to be passed to the compiler. If the flag
-		is not passed $(CODE __traits(getUnitTests)) will always return an
-		empty tuple.
-	)
+        $(P
+                The -unittest flag needs to be passed to the compiler. If the flag
+                is not passed $(CODE __traits(getUnitTests)) will always return an
+                empty tuple.
+        )
 
 ---
 module foo;
@@ -861,7 +861,7 @@ void main()
 }
 ---
 
-	$(P By default, the above will print:)
+        $(P By default, the above will print:)
 
 $(CONSOLE
 start main
@@ -871,20 +871,20 @@ foo.Foo.unittest
 
 $(H2 $(GNAME parent))
 
-	$(P Takes a single argument which must evaluate to a symbol.
-	The result is the symbol that is the parent of it.
-	)
+        $(P Takes a single argument which must evaluate to a symbol.
+        The result is the symbol that is the parent of it.
+        )
 
 $(H2 $(GNAME classInstanceSize))
 
-	$(P Takes a single argument, which must evaluate to either
-	a class type or an expression of class type.
-	The result
-	is of type $(CODE size_t), and the value is the number of
-	bytes in the runtime instance of the class type.
-	It is based on the static type of a class, not the
-	polymorphic type.
-	)
+        $(P Takes a single argument, which must evaluate to either
+        a class type or an expression of class type.
+        The result
+        is of type $(CODE size_t), and the value is the number of
+        bytes in the runtime instance of the class type.
+        It is based on the static type of a class, not the
+        polymorphic type.
+        )
 
 $(H2 $(GNAME getVirtualIndex))
 
@@ -897,14 +897,14 @@ $(H2 $(GNAME getVirtualIndex))
 
 $(H2 $(GNAME allMembers))
 
-	$(P Takes a single argument, which must evaluate to either
-	a type or an expression of type.
-	A tuple of string literals is returned, each of which
-	is the name of a member of that type combined with all
-	of the members of the base classes (if the type is a class).
-	No name is repeated.
-	Builtin properties are not included.
-	)
+        $(P Takes a single argument, which must evaluate to either
+        a type or an expression of type.
+        A tuple of string literals is returned, each of which
+        is the name of a member of that type combined with all
+        of the members of the base classes (if the type is a class).
+        No name is repeated.
+        Builtin properties are not included.
+        )
 
 ---
 import std.stdio;
@@ -926,19 +926,19 @@ void main()
 }
 ---
 
-	$(P The order in which the strings appear in the result
-	is not defined.)
+        $(P The order in which the strings appear in the result
+        is not defined.)
 
 $(H2 $(GNAME derivedMembers))
 
-	$(P Takes a single argument, which must evaluate to either
-	a type or an expression of type.
-	A tuple of string literals is returned, each of which
-	is the name of a member of that type.
-	No name is repeated.
-	Base class member names are not included.
-	Builtin properties are not included.
-	)
+        $(P Takes a single argument, which must evaluate to either
+        a type or an expression of type.
+        A tuple of string literals is returned, each of which
+        is the name of a member of that type.
+        No name is repeated.
+        Base class member names are not included.
+        Builtin properties are not included.
+        )
 
 ---
 import std.stdio;
@@ -958,13 +958,13 @@ void main()
 }
 ---
 
-	$(P The order in which the strings appear in the result
-	is not defined.)
+        $(P The order in which the strings appear in the result
+        is not defined.)
 
 $(H2 $(GNAME isSame))
 
-	$(P Takes two arguments and returns bool $(D true) if they
-	are the same symbol, $(D false) if not.)
+        $(P Takes two arguments and returns bool $(D true) if they
+        are the same symbol, $(D false) if not.)
 
 ---
 import std.stdio;
@@ -985,19 +985,19 @@ void main()
 }
 ---
 
-	$(P If the two arguments are expressions made up of literals
-	or enums that evaluate to the same value, true is returned.)
+        $(P If the two arguments are expressions made up of literals
+        or enums that evaluate to the same value, true is returned.)
 
 $(H2 $(GNAME compiles))
 
-	$(P Returns a bool $(D true) if all of the arguments
-	compile (are semantically correct).
-	The arguments can be symbols, types, or expressions that
-	are syntactically correct.
-	The arguments cannot be statements or declarations.
-	)
+        $(P Returns a bool $(D true) if all of the arguments
+        compile (are semantically correct).
+        The arguments can be symbols, types, or expressions that
+        are syntactically correct.
+        The arguments cannot be statements or declarations.
+        )
 
-	$(P If there are no arguments, the result is $(D false).)
+        $(P If there are no arguments, the result is $(D false).)
 
 ---
 import std.stdio;
@@ -1026,14 +1026,14 @@ void main()
 }
 ---
 
-	$(P This is useful for:)
+        $(P This is useful for:)
 
-	$(UL
-	$(LI Giving better error messages inside generic code than
-	the sometimes hard to follow compiler ones.)
-	$(LI Doing a finer grained specialization than template
-	partial specialization allows for.)
-	)
+        $(UL
+        $(LI Giving better error messages inside generic code than
+        the sometimes hard to follow compiler ones.)
+        $(LI Doing a finer grained specialization than template
+        partial specialization allows for.)
+        )
 
 
 $(H2 $(LNAME2 specialkeywords, Special Keywords))
@@ -1078,7 +1078,7 @@ int main(string[] args)
 }
 -----
 
-	$(P Assuming the file was at /example/test.d, this will output:)
+        $(P Assuming the file was at /example/test.d, this will output:)
 
 $(CONSOLE
 file: 'test.d', line: '13', module: 'test',
@@ -1090,6 +1090,6 @@ $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling
 )
 
 Macros:
-	CHAPTER=25
-	TITLE=Traits
-	GBLINK=$(RELATIVE_LINK2 $0, $(D $0))
+        CHAPTER=25
+        TITLE=Traits
+        GBLINK=$(RELATIVE_LINK2 $0, $(D $0))

@@ -4,33 +4,33 @@ $(SPEC_S Interfacing to C,
 
 $(SPEC_HEADERNAV_TOC)
 
-	$(P D is designed to fit comfortably with a C compiler for the target
-	system. D makes up for not having its own VM by relying on the
-	target environment's C runtime library. It would be senseless to
-	attempt to port to D or write D wrappers for the vast array of C APIs
-	available. How much easier it is to just call them directly.
-	)
+        $(P D is designed to fit comfortably with a C compiler for the target
+        system. D makes up for not having its own VM by relying on the
+        target environment's C runtime library. It would be senseless to
+        attempt to port to D or write D wrappers for the vast array of C APIs
+        available. How much easier it is to just call them directly.
+        )
 
-	$(P This is done by matching the C compiler's data types, layouts,
-	and function call/return sequences.
-	)
+        $(P This is done by matching the C compiler's data types, layouts,
+        and function call/return sequences.
+        )
 
 $(H2 $(LNAME2 calling_c_functions, Calling C Functions))
 
-	$(P C functions can be called directly from D. There is no need for
-	wrapper functions, argument swizzling, and the C functions do not
-	need to be put into a separate DLL.
-	)
+        $(P C functions can be called directly from D. There is no need for
+        wrapper functions, argument swizzling, and the C functions do not
+        need to be put into a separate DLL.
+        )
 
-	$(P The C function must be declared and given a calling convention,
-	most likely the "C" calling convention, for example:
-	)
+        $(P The C function must be declared and given a calling convention,
+        most likely the "C" calling convention, for example:
+        )
 
 ------
 extern (C) int strcmp(const char* string1, const char* string2);
 ------
 
-	and then it can be called within D code in the obvious way:
+        and then it can be called within D code in the obvious way:
 
 ------
 import std.string;
@@ -40,37 +40,37 @@ int myDfunction(char[] s)
 }
 ------
 
-	$(P There are several things going on here:)
+        $(P There are several things going on here:)
 
-	$(UL
-	$(LI D understands how C function names are "mangled" and the
-	correct C function call/return sequence.)
+        $(UL
+        $(LI D understands how C function names are "mangled" and the
+        correct C function call/return sequence.)
 
-	$(LI C functions cannot be overloaded with another C function
-	with the same name.)
+        $(LI C functions cannot be overloaded with another C function
+        with the same name.)
 
-	$(LI There are no $(D __cdecl), $(D __far), $(D __stdcall),
-	$(LINK2
-	http://www.digitalmars.com/ctg/ctgLanguageImplementation.html#declspec,
-	$(D __declspec)),
-	or other such C
-	$(LINK2 http://www.digitalmars.com/ctg/ctgLanguageImplementation.html#extended, extended type modifiers)
-	in D. These are handled by
-	$(DPLLINK attribute.html#linkage, linkage attributes),
-	such as $(D extern (C)).)
+        $(LI There are no $(D __cdecl), $(D __far), $(D __stdcall),
+        $(LINK2
+        http://www.digitalmars.com/ctg/ctgLanguageImplementation.html#declspec,
+        $(D __declspec)),
+        or other such C
+        $(LINK2 http://www.digitalmars.com/ctg/ctgLanguageImplementation.html#extended, extended type modifiers)
+        in D. These are handled by
+        $(DPLLINK attribute.html#linkage, linkage attributes),
+        such as $(D extern (C)).)
 
-	$(LI There is no volatile type modifier in D. To declare a C function that uses
-	volatile, just drop the keyword from the declaration.)
+        $(LI There is no volatile type modifier in D. To declare a C function that uses
+        volatile, just drop the keyword from the declaration.)
 
-	$(LI Strings are not 0 terminated in D. See "Data Type Compatibility"
-	for more information about this. However, string literals in D are
-	0 terminated.)
+        $(LI Strings are not 0 terminated in D. See "Data Type Compatibility"
+        for more information about this. However, string literals in D are
+        0 terminated.)
 
-	)
+        )
 
-	$(P C code can correspondingly call D functions, if the D functions
-	use an attribute that is compatible with the C compiler, most likely
-	the extern (C):)
+        $(P C code can correspondingly call D functions, if the D functions
+        use an attribute that is compatible with the C compiler, most likely
+        the extern (C):)
 
 ------
 // myfunc() can be called from any C function
@@ -85,119 +85,119 @@ extern (C)
 
 $(H2 $(LNAME2 storage_allocation, Storage Allocation))
 
-	$(P C code explicitly manages memory with calls to
-	$(LINK2 http://www.digitalmars.com/rtl/stdlib.html#malloc, malloc()) and
-	$(LINK2 http://www.digitalmars.com/rtl/stdlib.html#free, free()).
-	D allocates memory using the D garbage collector,
-	so no explicit free's are necessary.
-	)
+        $(P C code explicitly manages memory with calls to
+        $(LINK2 http://www.digitalmars.com/rtl/stdlib.html#malloc, malloc()) and
+        $(LINK2 http://www.digitalmars.com/rtl/stdlib.html#free, free()).
+        D allocates memory using the D garbage collector,
+        so no explicit free's are necessary.
+        )
 
-	$(P D can still explicitly allocate memory using core.stdc.stdlib.malloc()
-	and core.stdc.stdlib.free(), these are useful for connecting to C
-	functions that expect malloc'd buffers, etc.
-	)
+        $(P D can still explicitly allocate memory using core.stdc.stdlib.malloc()
+        and core.stdc.stdlib.free(), these are useful for connecting to C
+        functions that expect malloc'd buffers, etc.
+        )
 
-	$(P If pointers to D garbage collector allocated memory are passed to
-	C functions, it's critical to ensure that that memory will not
-	be collected by the garbage collector before the C function is
-	done with it. This is accomplished by:
-	)
+        $(P If pointers to D garbage collector allocated memory are passed to
+        C functions, it's critical to ensure that that memory will not
+        be collected by the garbage collector before the C function is
+        done with it. This is accomplished by:
+        )
 
-	$(UL
+        $(UL
 
-	$(LI Making a copy of the data using core.stdc.stdlib.malloc() and passing
-	the copy instead.)
+        $(LI Making a copy of the data using core.stdc.stdlib.malloc() and passing
+        the copy instead.)
 
-	$(LI Leaving a pointer to it on the stack (as a parameter or
-	automatic variable), as the garbage collector will scan the stack.)
+        $(LI Leaving a pointer to it on the stack (as a parameter or
+        automatic variable), as the garbage collector will scan the stack.)
 
-	$(LI Leaving a pointer to it in the static data segment, as the
-	garbage collector will scan the static data segment.)
+        $(LI Leaving a pointer to it in the static data segment, as the
+        garbage collector will scan the static data segment.)
 
-	$(LI Registering the pointer with the garbage collector with the
+        $(LI Registering the pointer with the garbage collector with the
 
-	$(DPLLINK $(ROOT_DIR)phobos/core_memory.html#addRoot, std.gc.addRoot())
-	or
+        $(DPLLINK $(ROOT_DIR)phobos/core_memory.html#addRoot, std.gc.addRoot())
+        or
 
-	$(DPLLINK $(ROOT_DIR)phobos/core_memory.html#addRange, std.gc.addRange())
-	calls.)
+        $(DPLLINK $(ROOT_DIR)phobos/core_memory.html#addRange, std.gc.addRange())
+        calls.)
 
-	)
+        )
 
-	$(P An interior pointer to the allocated memory block is sufficient
-	to let the GC
-	know the object is in use; i.e. it is not necessary to maintain
-	a pointer to the beginning of the allocated memory.
-	)
+        $(P An interior pointer to the allocated memory block is sufficient
+        to let the GC
+        know the object is in use; i.e. it is not necessary to maintain
+        a pointer to the beginning of the allocated memory.
+        )
 
-	$(P The garbage collector does not scan the stacks of threads not
-	created by the D Thread interface. Nor does it scan the data
-	segments of other DLL's, etc.
-	)
+        $(P The garbage collector does not scan the stacks of threads not
+        created by the D Thread interface. Nor does it scan the data
+        segments of other DLL's, etc.
+        )
 
 $(H2 $(LNAME2 data_type_compat, Data Type Compatibility))
 
-	$(TABLE2 D And C Type Equivalence,
+        $(TABLE2 D And C Type Equivalence,
     $(ELABORATE_HEADER)
-	$(TROW2 void, void)
-	$(TROW2 byte, signed char)
-	$(TROW2 ubyte, unsigned char)
-	$(TROW2 char, char, (chars are unsigned in D))
-	$(TROW2 wchar, wchar_t, (when $(D sizeof(wchar_t)) is 2))
-	$(TROW2 dchar, wchar_t, (when $(D sizeof(wchar_t)) is 4))
-	$(TROW2 short, short)
-	$(TROW2 ushort, unsigned short)
-	$(TROW2 int, int)
-	$(TROW2 uint, unsigned)
+        $(TROW2 void, void)
+        $(TROW2 byte, signed char)
+        $(TROW2 ubyte, unsigned char)
+        $(TROW2 char, char, (chars are unsigned in D))
+        $(TROW2 wchar, wchar_t, (when $(D sizeof(wchar_t)) is 2))
+        $(TROW2 dchar, wchar_t, (when $(D sizeof(wchar_t)) is 4))
+        $(TROW2 short, short)
+        $(TROW2 ushort, unsigned short)
+        $(TROW2 int, int)
+        $(TROW2 uint, unsigned)
 
-	$(TROW3 ulong, unsigned long long, unsigned long)
-	$(TROW3 core.stdc.config.c_long, long, long)
-
-
-	$(TROW3 core.stdc.config.c_ulong, unsigned long, unsigned long)
-	$(TROW3PLUS long, long long, long, (or $(D long long)))
-	$(TROW3PLUS ulong, unsigned long long, unsigned long, (or $(D unsigned long long)))
-
-	$(TROW2 float, float)
-	$(TROW2 double, double)
-	$(TROW2 real, long double)
+        $(TROW3 ulong, unsigned long long, unsigned long)
+        $(TROW3 core.stdc.config.c_long, long, long)
 
 
+        $(TROW3 core.stdc.config.c_ulong, unsigned long, unsigned long)
+        $(TROW3PLUS long, long long, long, (or $(D long long)))
+        $(TROW3PLUS ulong, unsigned long long, unsigned long, (or $(D unsigned long long)))
 
-	$(TROW2 cdouble, double _Complex)
-	$(TROW2 creal, long double _Complex)
-	$(TROW2 struct, struct)
-	$(TROW2 union, union)
-	$(TROW2 enum, enum)
-	$(TROW2 class, ,no equivalent)
-	$(TROW2 type *, type *)
-	$(TROW2 type[dim], type[dim])
-	$(TROW2 type[dim]*, type(*)[dim])
-	$(TROW2 type[], ,no equivalent)
-	$(TROW2 type1[type2], , no equivalent)
-	$(TROW2 type function(params), type(*)(params))
-	$(TROW2 type delegate(params), , no equivalent)
-	$(TROW2 size_t, size_t)
-	$(TROW2 ptrdiff_t, ptrdiff_t)
-	)
+        $(TROW2 float, float)
+        $(TROW2 double, double)
+        $(TROW2 real, long double)
 
-	$(P These equivalents hold for most C compilers. The C standard
-	does not pin down the sizes of the types, so some care is needed.
-	)
+
+
+        $(TROW2 cdouble, double _Complex)
+        $(TROW2 creal, long double _Complex)
+        $(TROW2 struct, struct)
+        $(TROW2 union, union)
+        $(TROW2 enum, enum)
+        $(TROW2 class, ,no equivalent)
+        $(TROW2 type *, type *)
+        $(TROW2 type[dim], type[dim])
+        $(TROW2 type[dim]*, type(*)[dim])
+        $(TROW2 type[], ,no equivalent)
+        $(TROW2 type1[type2], , no equivalent)
+        $(TROW2 type function(params), type(*)(params))
+        $(TROW2 type delegate(params), , no equivalent)
+        $(TROW2 size_t, size_t)
+        $(TROW2 ptrdiff_t, ptrdiff_t)
+        )
+
+        $(P These equivalents hold for most C compilers. The C standard
+        does not pin down the sizes of the types, so some care is needed.
+        )
 
 $(H2 $(LNAME2 passing_d_array, Passing D Array Arguments to C Functions))
 
-	$(P In C, arrays are passed to functions as pointers even if the function
-	prototype says its an array. In D, static arrays are passed by value,
-	not by reference. Thus, the function prototype must be adjusted to match
-	what C expects.)
+        $(P In C, arrays are passed to functions as pointers even if the function
+        prototype says its an array. In D, static arrays are passed by value,
+        not by reference. Thus, the function prototype must be adjusted to match
+        what C expects.)
 
-	$(TABLE2 D And C Function Prototype Equivalence,
-	$(THEAD D type, C type)
-	$(TROW $(I T)$(B *) , $(I T)$(B []))
-	$(TROW $(B ref) $(I T)$(B [)$(I dim)$(B ]) , $(I T)$(B [)$(I dim)$(B ])))
+        $(TABLE2 D And C Function Prototype Equivalence,
+        $(THEAD D type, C type)
+        $(TROW $(I T)$(B *) , $(I T)$(B []))
+        $(TROW $(B ref) $(I T)$(B [)$(I dim)$(B ]) , $(I T)$(B [)$(I dim)$(B ])))
 
-	$(P For example:)
+        $(P For example:)
 
 $(CCODE void foo(int a[3]) { ... } // C code)
 ---
@@ -210,14 +210,14 @@ extern (C)
 
 $(H2 $(LNAME2 calling_printf, Calling printf()))
 
-	$(P This mostly means checking that the
-	$(LINK2 http://www.digitalmars.com/rtl/stdio.html#printf, printf format specifier)
-	matches the corresponding D data type.
-	Although printf is designed to handle 0 terminated strings,
-	not D dynamic arrays of chars, it turns out that since D
-	dynamic arrays are a length followed by a pointer to the data,
-	the $(D %.*s) format works:
-	)
+        $(P This mostly means checking that the
+        $(LINK2 http://www.digitalmars.com/rtl/stdio.html#printf, printf format specifier)
+        matches the corresponding D data type.
+        Although printf is designed to handle 0 terminated strings,
+        not D dynamic arrays of chars, it turns out that since D
+        dynamic arrays are a length followed by a pointer to the data,
+        the $(D %.*s) format works:
+        )
 
 ------
 void foo(char[] string)
@@ -226,37 +226,37 @@ void foo(char[] string)
 }
 ------
 
-	$(P The $(CODE printf) format string literal
-	in the example doesn't end with $(CODE '\0').
-	This is because string literals,
-	when they are not part of an initializer to a larger data structure,
-	have a $(CODE '\0') character helpfully stored after the end of them.
-	)
+        $(P The $(CODE printf) format string literal
+        in the example doesn't end with $(CODE '\0').
+        This is because string literals,
+        when they are not part of an initializer to a larger data structure,
+        have a $(CODE '\0') character helpfully stored after the end of them.
+        )
 
-	$(P An improved D function for formatted output is
-	$(CODE std.stdio.writef()).
-	)
+        $(P An improved D function for formatted output is
+        $(CODE std.stdio.writef()).
+        )
 
 $(H2 $(LNAME2 structs_and_unions, Structs and Unions))
 
-	$(P D structs and unions are analogous to C's.
-	)
+        $(P D structs and unions are analogous to C's.
+        )
 
-	$(P C code often adjusts the alignment and packing of struct members
-	with a command line switch or with various implementation specific
-	$(HASH)pragma's. D supports explicit alignment attributes that correspond
-	to the C compiler's rules. Check what alignment the C code is using,
-	and explicitly set it for the D struct declaration.
-	)
+        $(P C code often adjusts the alignment and packing of struct members
+        with a command line switch or with various implementation specific
+        $(HASH)pragma's. D supports explicit alignment attributes that correspond
+        to the C compiler's rules. Check what alignment the C code is using,
+        and explicitly set it for the D struct declaration.
+        )
 
-	$(P D does not support bit fields. If needed, they can be emulated
-	with shift and mask operations,
-	or use the $(LINK2 $(ROOT_DIR)phobos/std_bitmanip.html#bitfields, std.bitmanip.bitfields)
-	library type.
-	$(DPLLINK $(ROOT_DIR)htod.html, htod) will convert bit fields to inline
-	functions that
-	do the right shift and masks.
-	)
+        $(P D does not support bit fields. If needed, they can be emulated
+        with shift and mask operations,
+        or use the $(LINK2 $(ROOT_DIR)phobos/std_bitmanip.html#bitfields, std.bitmanip.bitfields)
+        library type.
+        $(DPLLINK $(ROOT_DIR)htod.html, htod) will convert bit fields to inline
+        functions that
+        do the right shift and masks.
+        )
 
     $(P D does not support declaring variables of anonymous struct types. In such a case you can define a named struct in D and make it private:)
 
@@ -330,28 +330,28 @@ void main()
 
 $(H2 $(LEGACY_LNAME2 Using C Libraries, using-c-libraries, Using Existing C Libraries))
 
-	$(P Since D can call C code directly, it can also call any C library
-	functions, giving D access to the smorgasbord of existing C libraries.
-	To do so, however, one needs to write a D interface (.di) file, which
-	is a translation of the C .h header file for the C library into D.
-	)
+        $(P Since D can call C code directly, it can also call any C library
+        functions, giving D access to the smorgasbord of existing C libraries.
+        To do so, however, one needs to write a D interface (.di) file, which
+        is a translation of the C .h header file for the C library into D.
+        )
 
-	$(P For popular C libraries, the first place to look for the corresponding
-	D interface file is the $(LINK2 https://github.com/D-Programming-Deimos/, Deimos Project).
-	If it isn't there already, and you write one, please contribute it
-	to the Deimos Project.
-	)
+        $(P For popular C libraries, the first place to look for the corresponding
+        D interface file is the $(LINK2 https://github.com/D-Programming-Deimos/, Deimos Project).
+        If it isn't there already, and you write one, please contribute it
+        to the Deimos Project.
+        )
 
 $(H2 $(LEGACY_LNAME2 C Globals, c-globals, Accessing C Globals))
 
-	$(P C globals can be accessed directly from D. C globals have the C naming
-	convention, and so must be in an $(D extern (C)) block.
-	Use the $(D extern) storage class to indicate that the global is allocated
-	in the C code, not the D code.
-	C globals default to being in global, not thread local, storage.
-	To reference global storage
-	from D, use the $(D __gshared) storage class.
-	)
+        $(P C globals can be accessed directly from D. C globals have the C naming
+        convention, and so must be in an $(D extern (C)) block.
+        Use the $(D extern) storage class to indicate that the global is allocated
+        in the C code, not the D code.
+        C globals default to being in global, not thread local, storage.
+        To reference global storage
+        from D, use the $(D __gshared) storage class.
+        )
 
 ---
 extern (C) extern __gshared int x;
@@ -361,9 +361,9 @@ $(SPEC_SUBNAV_PREV_NEXT ddoc, Embedded Documentation, cpp_interface, Interfacing
 )
 
 Macros:
-	CHAPTER=32
+        CHAPTER=32
     TROW2=$(TR2 $(TD $(D $1)), $(TD2 $(D $2) $(TAIL $+)))
     TROW3=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3)))
     TROW3PLUS=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3) $4))
-	TD2=$(MULTICOL_CELL 2, $0)
-	TITLE=Interfacing to C
+        TD2=$(MULTICOL_CELL 2, $0)
+        TITLE=Interfacing to C

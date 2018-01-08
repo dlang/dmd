@@ -47,19 +47,19 @@ $(P Modules automatically provide a namespace scope for their contents. Modules
 superficially resemble classes, but differ in that:)
 
 $(UL
-	$(LI There's only one instance of each module, and it is
-	statically allocated.)
+        $(LI There's only one instance of each module, and it is
+        statically allocated.)
 
-	$(LI There is no virtual table.)
+        $(LI There is no virtual table.)
 
-	$(LI Modules do not inherit, they have no super modules, etc.)
+        $(LI Modules do not inherit, they have no super modules, etc.)
 
-	$(LI Only one module per file.)
+        $(LI Only one module per file.)
 
-	$(LI Module symbols can be imported.)
+        $(LI Module symbols can be imported.)
 
-	$(LI Modules are always compiled at global scope, and are unaffected
-	by surrounding attributes or other modifiers.)
+        $(LI Modules are always compiled at global scope, and are unaffected
+        by surrounding attributes or other modifiers.)
 )
 
 $(P Modules can be grouped together in hierarchies called $(I packages).)
@@ -68,14 +68,14 @@ $(P Modules offer several guarantees:)
 
 $(UL
 
-	$(LI The order in which modules are imported does not affect the
-	semantics.)
+        $(LI The order in which modules are imported does not affect the
+        semantics.)
 
-	$(LI The semantics of a module are not affected by what imports
-	it.)
+        $(LI The semantics of a module are not affected by what imports
+        it.)
 
-	$(LI If a module C imports modules A and B, any modifications to B
-	will not silently change code in C that is dependent on A.)
+        $(LI If a module C imports modules A and B, any modifications to B
+        will not silently change code in C that is dependent on A.)
 
 )
 
@@ -340,8 +340,8 @@ bar();  // calls X.bar()
 module Z;
 import Y;
 ...
-foo();	 // error, foo() is undefined
-bar();	 // ok, calls X.bar()
+foo();   // error, foo() is undefined
+bar();   // ok, calls X.bar()
 X.bar(); // ditto
 Y.bar(); // ok, Y.bar() is an alias to X.bar()
 ---
@@ -656,5 +656,5 @@ $(SPEC_SUBNAV_PREV_NEXT grammar, Grammar, declaration, Declarations)
 
 Macros:
     CHAPTER=4
-	TITLE=Modules
-	_=
+        TITLE=Modules
+        _=

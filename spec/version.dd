@@ -4,11 +4,11 @@ $(SPEC_S Conditional Compilation,
 
 $(SPEC_HEADERNAV_TOC)
 
-	$(P $(I Conditional compilation) is the process of selecting which
-	code to compile and which code to not compile.
-	(In C and C++, conditional compilation is done with the preprocessor
-	directives $(CODE #if) / $(CODE #else) / $(CODE #endif).)
-	)
+        $(P $(I Conditional compilation) is the process of selecting which
+        code to compile and which code to not compile.
+        (In C and C++, conditional compilation is done with the preprocessor
+        directives $(CODE #if) / $(CODE #else) / $(CODE #endif).)
+        )
 
 $(GRAMMAR
 $(GNAME ConditionalDeclaration):
@@ -22,32 +22,32 @@ $(GNAME ConditionalStatement):
     $(GLINK Condition) $(GLINK2 statement, NoScopeNonEmptyStatement) $(D else) $(GLINK2 statement, NoScopeNonEmptyStatement)
 )
 
-	$(P If the $(GLINK Condition) is satisfied, then the following
-	$(I DeclarationBlock) or $(I Statement) is compiled in.
-	If it is not satisfied, the $(I DeclarationBlock) or $(I Statement)
-	after the optional $(CODE else) is compiled in.
-	)
+        $(P If the $(GLINK Condition) is satisfied, then the following
+        $(I DeclarationBlock) or $(I Statement) is compiled in.
+        If it is not satisfied, the $(I DeclarationBlock) or $(I Statement)
+        after the optional $(CODE else) is compiled in.
+        )
 
-	$(P Any $(I DeclarationBlock) or $(I Statement) that is not
-	compiled in still must be syntactically correct.
-	)
+        $(P Any $(I DeclarationBlock) or $(I Statement) that is not
+        compiled in still must be syntactically correct.
+        )
 
-	$(P No new scope is introduced, even if the
-	$(I DeclarationBlock) or $(I Statement)
-	is enclosed by $(CODE { }).
-	)
+        $(P No new scope is introduced, even if the
+        $(I DeclarationBlock) or $(I Statement)
+        is enclosed by $(CODE { }).
+        )
 
-	$(P $(I ConditionalDeclaration)s and $(I ConditionalStatement)s
-	can be nested.
-	)
+        $(P $(I ConditionalDeclaration)s and $(I ConditionalStatement)s
+        can be nested.
+        )
 
-	$(P The $(GLINK StaticAssert) can be used
-	to issue errors at compilation time for branches of the conditional
-	compilation that are errors.
-	)
+        $(P The $(GLINK StaticAssert) can be used
+        to issue errors at compilation time for branches of the conditional
+        compilation that are errors.
+        )
 
-	$(P $(I Condition) comes in the following forms:
-	)
+        $(P $(I Condition) comes in the following forms:
+        )
 
 $(GRAMMAR
 $(GNAME Condition):
@@ -66,26 +66,26 @@ $(GNAME VersionCondition):
     $(D version $(LPAREN)) $(D assert) $(D $(RPAREN))
 )
 
-	$(P Versions enable multiple versions of a module to be implemented
-	with a single source file.
-	)
+        $(P Versions enable multiple versions of a module to be implemented
+        with a single source file.
+        )
 
-	$(P The $(I VersionCondition) is satisfied if the $(I IntegerLiteral)
-	is greater than or equal to the current $(I version level),
-	or if $(I Identifier) matches a $(I version identifier).
-	)
+        $(P The $(I VersionCondition) is satisfied if the $(I IntegerLiteral)
+        is greater than or equal to the current $(I version level),
+        or if $(I Identifier) matches a $(I version identifier).
+        )
 
-	$(P The $(I version level) and $(I version identifier) can
-	be set on the command line by the $(D -version) switch
-	or in the module itself with a $(GLINK VersionSpecification),
-	or they can be predefined by the compiler.
-	)
+        $(P The $(I version level) and $(I version identifier) can
+        be set on the command line by the $(D -version) switch
+        or in the module itself with a $(GLINK VersionSpecification),
+        or they can be predefined by the compiler.
+        )
 
-	$(P Version identifiers are in their own unique name space, they do
-	not conflict with debug identifiers or other symbols in the module.
-	Version identifiers defined in one module have no influence
-	over other imported modules.
-	)
+        $(P Version identifiers are in their own unique name space, they do
+        not conflict with debug identifiers or other symbols in the module.
+        Version identifiers defined in one module have no influence
+        over other imported modules.
+        )
 
 ------
 int k;
@@ -110,9 +110,9 @@ else
 }
 ------
 
-	$(P The $(D version(unittest)) is satisfied if and only if the code is
-	compiled with unit tests enabled (the $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)) option on $(TT dmd)).
-	)
+        $(P The $(D version(unittest)) is satisfied if and only if the code is
+        compiled with unit tests enabled (the $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)) option on $(TT dmd)).
+        )
 
 
 $(H2 $(LEGACY_LNAME2 VersionSpecification, version-specification, Version Specification))
@@ -123,9 +123,9 @@ $(GNAME VersionSpecification):
     $(D version =) $(GLINK2 lex, IntegerLiteral) $(D ;)
 )
 
-	$(P The version specification makes it straightforward to group
-	a set of features under one major version, for example:
-	)
+        $(P The version specification makes it straightforward to group
+        a set of features under one major version, for example:
+        )
 
 ------
 version (ProfessionalEdition)
@@ -145,8 +145,8 @@ version (FeatureB)
 }
 ------
 
-	$(P Version identifiers or levels may not be forward referenced:
-	)
+        $(P Version identifiers or levels may not be forward referenced:
+        )
 
 ------
 version (Foo)
@@ -155,18 +155,18 @@ version (Foo)
 }
 version = Foo;  // error, Foo already used
 ------
-	$(P $(I VersionSpecification)s may only appear at module scope.)
+        $(P $(I VersionSpecification)s may only appear at module scope.)
 
-	$(P While the debug and version conditions superficially behave the
-	same,
-	they are intended for very different purposes. Debug statements
-	are for adding debug code that is removed for the release version.
-	Version statements are to aid in portability and multiple release
-	versions.
-	)
+        $(P While the debug and version conditions superficially behave the
+        same,
+        they are intended for very different purposes. Debug statements
+        are for adding debug code that is removed for the release version.
+        Version statements are to aid in portability and multiple release
+        versions.
+        )
 
-	$(P Here's an example of a $(I full) version as opposed to
-	a $(I demo) version:)
+        $(P Here's an example of a $(I full) version as opposed to
+        a $(I demo) version:)
 
 ------
 class Foo
@@ -191,9 +191,9 @@ class Foo
 }
 ------
 
-	$(P Various different version builds can be built with a parameter
-	to version:
-	)
+        $(P Various different version builds can be built with a parameter
+        to version:
+        )
 
 ------
 version($(CODE_HIGHLIGHT n)) // add in version code if version level is >= n
@@ -208,165 +208,165 @@ version($(CODE_HIGHLIGHT identifier)) // add in version code if version
 }
 ------
 
-	$(P These are presumably set by the command line as
-	$(D -version=n) and $(D -version=identifier).
-	)
+        $(P These are presumably set by the command line as
+        $(D -version=n) and $(D -version=identifier).
+        )
 
 
 $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Versions))
 
-	$(P Several environmental version identifiers and identifier
-	name spaces are predefined for consistent usage.
-	Version identifiers do not conflict
-	with other identifiers in the code, they are in a separate name space.
-	Predefined version identifiers are global, i.e. they apply to
-	all modules being compiled and imported.
-	)
+        $(P Several environmental version identifiers and identifier
+        name spaces are predefined for consistent usage.
+        Version identifiers do not conflict
+        with other identifiers in the code, they are in a separate name space.
+        Predefined version identifiers are global, i.e. they apply to
+        all modules being compiled and imported.
+        )
 
-	$(LONGTABLE_2COLS 0.6, Predefined Version Identifiers,
-	$(THEAD Version Identifier, Description),
-	$(TROW $(ARGS $(D DigitalMars)) , $(ARGS DMD (Digital Mars D) is the compiler))
-	$(TROW $(ARGS $(D GNU)) , $(ARGS GDC (GNU D Compiler) is the compiler))
-	$(TROW $(ARGS $(D LDC)) , $(ARGS LDC (LLVM D Compiler) is the compiler))
-	$(TROW $(ARGS $(D SDC)) , $(ARGS SDC (Stupid D Compiler) is the compiler))
-	$(TROW $(ARGS $(D Windows)) , $(ARGS Microsoft Windows systems))
-	$(TROW $(ARGS $(D Win32)) , $(ARGS Microsoft 32-bit Windows systems))
-	$(TROW $(ARGS $(D Win64)) , $(ARGS Microsoft 64-bit Windows systems))
-	$(TROW $(ARGS $(D linux)) , $(ARGS All Linux systems))
-	$(TROW $(ARGS $(D OSX)) , $(ARGS Mac OS X))
-	$(TROW $(ARGS $(D FreeBSD)) , $(ARGS FreeBSD))
-	$(TROW $(ARGS $(D OpenBSD)) , $(ARGS OpenBSD))
-	$(TROW $(ARGS $(D NetBSD)) , $(ARGS NetBSD))
-	$(TROW $(ARGS $(D DragonFlyBSD)) , $(ARGS DragonFlyBSD))
-	$(TROW $(ARGS $(D BSD)) , $(ARGS All other BSDs))
-	$(TROW $(ARGS $(D Solaris)) , $(ARGS Solaris))
-	$(TROW $(ARGS $(D Posix)) , $(ARGS All POSIX systems (includes Linux, FreeBSD, OS X, Solaris, etc.)))
-	$(TROW $(ARGS $(D AIX)) , $(ARGS IBM Advanced Interactive eXecutive OS))
-	$(TROW $(ARGS $(D Haiku)) , $(ARGS The Haiku operating system))
-	$(TROW $(ARGS $(D SkyOS)) , $(ARGS The SkyOS operating system))
-	$(TROW $(ARGS $(D SysV3)) , $(ARGS System V Release 3))
-	$(TROW $(ARGS $(D SysV4)) , $(ARGS System V Release 4))
-	$(TROW $(ARGS $(D Hurd)) , $(ARGS GNU Hurd))
-	$(TROW $(ARGS $(D Android)) , $(ARGS The Android platform))
-	$(TROW $(ARGS $(D Emscripten)) , $(ARGS The Emscripten platform))
-	$(TROW $(ARGS $(D PlayStation)) , $(ARGS The PlayStation platform))
-	$(TROW $(ARGS $(D PlayStation4)) , $(ARGS The PlayStation 4 platform))
-	$(TROW $(ARGS $(D Cygwin)) , $(ARGS The Cygwin environment))
-	$(TROW $(ARGS $(D MinGW)) , $(ARGS The MinGW environment))
-	$(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
-	$(TROW $(ARGS $(D CRuntime_Bionic)) , $(ARGS Bionic C runtime))
-	$(TROW $(ARGS $(D CRuntime_DigitalMars)) , $(ARGS DigitalMars C runtime))
-	$(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
-	$(TROW $(ARGS $(D CRuntime_Microsoft)) , $(ARGS Microsoft C runtime))
-	$(TROW $(ARGS $(D CRuntime_Musl)) , $(ARGS musl C runtime))
-	$(TROW $(ARGS $(D CRuntime_UClibc)) , $(ARGS uClibc C runtime))
-	$(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
-	$(TROW $(ARGS $(D X86_64)) , $(ARGS Intel and AMD 64-bit processors))
-	$(TROW $(ARGS $(D ARM)) , $(ARGS The ARM architecture (32-bit) (AArch32 et al)))
-	$(TROW $(ARGS $(D ARM_Thumb)) , $(ARGS ARM in any Thumb mode))
-	$(TROW $(ARGS $(D ARM_SoftFloat)) , $(ARGS The ARM $(D soft) floating point ABI))
-	$(TROW $(ARGS $(D ARM_SoftFP)) , $(ARGS The ARM $(D softfp) floating point ABI))
-	$(TROW $(ARGS $(D ARM_HardFloat)) , $(ARGS The ARM $(D hardfp) floating point ABI))
-	$(TROW $(ARGS $(D AArch64)) , $(ARGS The Advanced RISC Machine architecture (64-bit)))
-	$(TROW $(ARGS $(D AsmJS)) , $(ARGS The asm.js intermediate programming language))
-	$(TROW $(ARGS $(D Epiphany)) , $(ARGS The Epiphany architecture))
-	$(TROW $(ARGS $(D PPC)) , $(ARGS The PowerPC architecture, 32-bit))
-	$(TROW $(ARGS $(D PPC_SoftFloat)) , $(ARGS The PowerPC soft float ABI))
-	$(TROW $(ARGS $(D PPC_HardFloat)) , $(ARGS The PowerPC hard float ABI))
-	$(TROW $(ARGS $(D PPC64)) , $(ARGS The PowerPC architecture, 64-bit))
-	$(TROW $(ARGS $(D IA64)) , $(ARGS The Itanium architecture (64-bit)))
-	$(TROW $(ARGS $(D MIPS32)) , $(ARGS The MIPS architecture, 32-bit))
-	$(TROW $(ARGS $(D MIPS64)) , $(ARGS The MIPS architecture, 64-bit))
-	$(TROW $(ARGS $(D MIPS_O32)) , $(ARGS The MIPS O32 ABI))
-	$(TROW $(ARGS $(D MIPS_N32)) , $(ARGS The MIPS N32 ABI))
-	$(TROW $(ARGS $(D MIPS_O64)) , $(ARGS The MIPS O64 ABI))
-	$(TROW $(ARGS $(D MIPS_N64)) , $(ARGS The MIPS N64 ABI))
-	$(TROW $(ARGS $(D MIPS_EABI)) , $(ARGS The MIPS EABI))
-	$(TROW $(ARGS $(D MIPS_SoftFloat)) , $(ARGS The MIPS $(D soft-float) ABI))
-	$(TROW $(ARGS $(D MIPS_HardFloat)) , $(ARGS The MIPS $(D hard-float) ABI))
-	$(TROW $(ARGS $(D NVPTX)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 32-bit))
-	$(TROW $(ARGS $(D NVPTX64)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 64-bit))
-	$(TROW $(ARGS $(D RISCV32)) , $(ARGS The RISC-V architecture, 32-bit))
-	$(TROW $(ARGS $(D RISCV64)) , $(ARGS The RISC-V architecture, 64-bit))
-	$(TROW $(ARGS $(D SPARC)) , $(ARGS The SPARC architecture, 32-bit))
-	$(TROW $(ARGS $(D SPARC_V8Plus)) , $(ARGS The SPARC v8+ ABI))
-	$(TROW $(ARGS $(D SPARC_SoftFloat)) , $(ARGS The SPARC soft float ABI))
-	$(TROW $(ARGS $(D SPARC_HardFloat)) , $(ARGS The SPARC hard float ABI))
-	$(TROW $(ARGS $(D SPARC64)) , $(ARGS The SPARC architecture, 64-bit))
-	$(TROW $(ARGS $(D S390)) , $(ARGS The System/390 architecture, 32-bit))
-	$(TROW $(ARGS $(D SystemZ)) , $(ARGS The System Z architecture, 64-bit))
-	$(TROW $(ARGS $(D HPPA)) , $(ARGS The HP PA-RISC architecture, 32-bit))
-	$(TROW $(ARGS $(D HPPA64)) , $(ARGS The HP PA-RISC architecture, 64-bit))
-	$(TROW $(ARGS $(D SH)) , $(ARGS The SuperH architecture, 32-bit))
-	$(TROW $(ARGS $(D WebAssembly)) , $(ARGS The WebAssembly virtual ISA $(LPAREN)instruction set architecture$(RPAREN), 32-bit))
-	$(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
-	$(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
-	$(TROW $(ARGS $(D Alpha_HardFloat)) , $(ARGS The Alpha hard float ABI))
-	$(TROW $(ARGS $(D LittleEndian)) , $(ARGS Byte order, least significant first))
-	$(TROW $(ARGS $(D BigEndian)) , $(ARGS Byte order, most significant first))
-	$(TROW $(ARGS $(D ELFv1)) , $(ARGS The Executable and Linkable Format v1))
-	$(TROW $(ARGS $(D ELFv2)) , $(ARGS The Executable and Linkable Format v2))
-	$(TROW $(ARGS $(D D_BetterC)) , $(ARGS $(DDLINK spec/betterc, D as Better C, D as Better C) code
-		(command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))) is being generated))
-	$(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
-		(command line switch $(DDSUBLINK dmd, switch-cov, $(TT -cov))) is being generated))
-	$(TROW $(ARGS $(D D_Ddoc)) , $(ARGS $(DDLINK spec/ddoc, Embedded Documentation, Ddoc) documentation
-		(command line switch $(DDSUBLINK dmd, switch-D, $(TT -D))) is being generated))
-	$(TROW $(ARGS $(D D_InlineAsm_X86)) , $(ARGS $(DDLINK spec/iasm, Inline Assembler, Inline assembler) for X86 is implemented))
-	$(TROW $(ARGS $(D D_InlineAsm_X86_64)) , $(ARGS $(DDLINK spec/iasm, Inline Assembler, Inline assembler) for X86-64 is implemented))
-	$(TROW $(ARGS $(D D_LP64)) , $(ARGS $(B Pointers) are 64 bits
-		(command line switch $(DDSUBLINK dmd, switch-m64, $(TT -m64))). (Do not confuse this with C's LP64 model)))
-	$(TROW $(ARGS $(D D_X32)) , $(ARGS Pointers are 32 bits, but words are still 64 bits (x32 ABI) (This can be defined in parallel to $(D X86_64))))
-	$(TROW $(ARGS $(D D_HardFloat)) , $(ARGS The target hardware has a floating point unit))
-	$(TROW $(ARGS $(D D_SoftFloat)) , $(ARGS The target hardware does not have a floating point unit))
-	$(TROW $(ARGS $(D D_PIC)) , $(ARGS Position Independent Code
-		(command line switch $(DDSUBLINK dmd-linux, switch-fPIC, $(TT -fPIC))) is being generated))
-	$(TROW $(ARGS $(D D_SIMD)) , $(ARGS $(DDLINK spec/simd, simd, Vector extensions) (via $(D __simd)) are supported))
-	$(TROW $(ARGS $(D D_AVX)) , $(ARGS AVX Vector instructions are supported))
-	$(TROW $(ARGS $(D D_AVX2)) , $(ARGS AVX2 Vector instructions are supported))
-	$(TROW $(ARGS $(D D_Version2)) , $(ARGS This is a D version 2 compiler))
-	$(TROW $(ARGS $(D D_NoBoundsChecks)) , $(ARGS Array bounds checks are disabled
-		(command line switch $(DDSUBLINK dmd, switch-boundscheck, $(TT -boundscheck=off)))))
-	$(TROW $(ARGS $(D D_ObjectiveC)) , $(ARGS The target supports interfacing with Objective-C))
-	$(TROW $(ARGS $(D Std)) , $(ARGS Define when building the standard library))
-	$(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
-		(command line switch $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)))))
-	$(TROW $(ARGS $(D assert)) , $(ARGS Checks are being emitted for $(GLINK2 expression, AssertExpression)s))
-	$(TROW $(ARGS $(D none)) , $(ARGS Never defined; used to just disable a section of code))
-	$(TROW $(ARGS $(D all)) , $(ARGS Always defined; used as the opposite of $(D none)))
-	)
+        $(LONGTABLE_2COLS 0.6, Predefined Version Identifiers,
+        $(THEAD Version Identifier, Description),
+        $(TROW $(ARGS $(D DigitalMars)) , $(ARGS DMD (Digital Mars D) is the compiler))
+        $(TROW $(ARGS $(D GNU)) , $(ARGS GDC (GNU D Compiler) is the compiler))
+        $(TROW $(ARGS $(D LDC)) , $(ARGS LDC (LLVM D Compiler) is the compiler))
+        $(TROW $(ARGS $(D SDC)) , $(ARGS SDC (Stupid D Compiler) is the compiler))
+        $(TROW $(ARGS $(D Windows)) , $(ARGS Microsoft Windows systems))
+        $(TROW $(ARGS $(D Win32)) , $(ARGS Microsoft 32-bit Windows systems))
+        $(TROW $(ARGS $(D Win64)) , $(ARGS Microsoft 64-bit Windows systems))
+        $(TROW $(ARGS $(D linux)) , $(ARGS All Linux systems))
+        $(TROW $(ARGS $(D OSX)) , $(ARGS Mac OS X))
+        $(TROW $(ARGS $(D FreeBSD)) , $(ARGS FreeBSD))
+        $(TROW $(ARGS $(D OpenBSD)) , $(ARGS OpenBSD))
+        $(TROW $(ARGS $(D NetBSD)) , $(ARGS NetBSD))
+        $(TROW $(ARGS $(D DragonFlyBSD)) , $(ARGS DragonFlyBSD))
+        $(TROW $(ARGS $(D BSD)) , $(ARGS All other BSDs))
+        $(TROW $(ARGS $(D Solaris)) , $(ARGS Solaris))
+        $(TROW $(ARGS $(D Posix)) , $(ARGS All POSIX systems (includes Linux, FreeBSD, OS X, Solaris, etc.)))
+        $(TROW $(ARGS $(D AIX)) , $(ARGS IBM Advanced Interactive eXecutive OS))
+        $(TROW $(ARGS $(D Haiku)) , $(ARGS The Haiku operating system))
+        $(TROW $(ARGS $(D SkyOS)) , $(ARGS The SkyOS operating system))
+        $(TROW $(ARGS $(D SysV3)) , $(ARGS System V Release 3))
+        $(TROW $(ARGS $(D SysV4)) , $(ARGS System V Release 4))
+        $(TROW $(ARGS $(D Hurd)) , $(ARGS GNU Hurd))
+        $(TROW $(ARGS $(D Android)) , $(ARGS The Android platform))
+        $(TROW $(ARGS $(D Emscripten)) , $(ARGS The Emscripten platform))
+        $(TROW $(ARGS $(D PlayStation)) , $(ARGS The PlayStation platform))
+        $(TROW $(ARGS $(D PlayStation4)) , $(ARGS The PlayStation 4 platform))
+        $(TROW $(ARGS $(D Cygwin)) , $(ARGS The Cygwin environment))
+        $(TROW $(ARGS $(D MinGW)) , $(ARGS The MinGW environment))
+        $(TROW $(ARGS $(D FreeStanding)) , $(ARGS An environment without an operating system (such as Bare-metal targets)))
+        $(TROW $(ARGS $(D CRuntime_Bionic)) , $(ARGS Bionic C runtime))
+        $(TROW $(ARGS $(D CRuntime_DigitalMars)) , $(ARGS DigitalMars C runtime))
+        $(TROW $(ARGS $(D CRuntime_Glibc)) , $(ARGS Glibc C runtime))
+        $(TROW $(ARGS $(D CRuntime_Microsoft)) , $(ARGS Microsoft C runtime))
+        $(TROW $(ARGS $(D CRuntime_Musl)) , $(ARGS musl C runtime))
+        $(TROW $(ARGS $(D CRuntime_UClibc)) , $(ARGS uClibc C runtime))
+        $(TROW $(ARGS $(D X86)) , $(ARGS Intel and AMD 32-bit processors))
+        $(TROW $(ARGS $(D X86_64)) , $(ARGS Intel and AMD 64-bit processors))
+        $(TROW $(ARGS $(D ARM)) , $(ARGS The ARM architecture (32-bit) (AArch32 et al)))
+        $(TROW $(ARGS $(D ARM_Thumb)) , $(ARGS ARM in any Thumb mode))
+        $(TROW $(ARGS $(D ARM_SoftFloat)) , $(ARGS The ARM $(D soft) floating point ABI))
+        $(TROW $(ARGS $(D ARM_SoftFP)) , $(ARGS The ARM $(D softfp) floating point ABI))
+        $(TROW $(ARGS $(D ARM_HardFloat)) , $(ARGS The ARM $(D hardfp) floating point ABI))
+        $(TROW $(ARGS $(D AArch64)) , $(ARGS The Advanced RISC Machine architecture (64-bit)))
+        $(TROW $(ARGS $(D AsmJS)) , $(ARGS The asm.js intermediate programming language))
+        $(TROW $(ARGS $(D Epiphany)) , $(ARGS The Epiphany architecture))
+        $(TROW $(ARGS $(D PPC)) , $(ARGS The PowerPC architecture, 32-bit))
+        $(TROW $(ARGS $(D PPC_SoftFloat)) , $(ARGS The PowerPC soft float ABI))
+        $(TROW $(ARGS $(D PPC_HardFloat)) , $(ARGS The PowerPC hard float ABI))
+        $(TROW $(ARGS $(D PPC64)) , $(ARGS The PowerPC architecture, 64-bit))
+        $(TROW $(ARGS $(D IA64)) , $(ARGS The Itanium architecture (64-bit)))
+        $(TROW $(ARGS $(D MIPS32)) , $(ARGS The MIPS architecture, 32-bit))
+        $(TROW $(ARGS $(D MIPS64)) , $(ARGS The MIPS architecture, 64-bit))
+        $(TROW $(ARGS $(D MIPS_O32)) , $(ARGS The MIPS O32 ABI))
+        $(TROW $(ARGS $(D MIPS_N32)) , $(ARGS The MIPS N32 ABI))
+        $(TROW $(ARGS $(D MIPS_O64)) , $(ARGS The MIPS O64 ABI))
+        $(TROW $(ARGS $(D MIPS_N64)) , $(ARGS The MIPS N64 ABI))
+        $(TROW $(ARGS $(D MIPS_EABI)) , $(ARGS The MIPS EABI))
+        $(TROW $(ARGS $(D MIPS_SoftFloat)) , $(ARGS The MIPS $(D soft-float) ABI))
+        $(TROW $(ARGS $(D MIPS_HardFloat)) , $(ARGS The MIPS $(D hard-float) ABI))
+        $(TROW $(ARGS $(D NVPTX)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 32-bit))
+        $(TROW $(ARGS $(D NVPTX64)) , $(ARGS The Nvidia Parallel Thread Execution (PTX) architecture, 64-bit))
+        $(TROW $(ARGS $(D RISCV32)) , $(ARGS The RISC-V architecture, 32-bit))
+        $(TROW $(ARGS $(D RISCV64)) , $(ARGS The RISC-V architecture, 64-bit))
+        $(TROW $(ARGS $(D SPARC)) , $(ARGS The SPARC architecture, 32-bit))
+        $(TROW $(ARGS $(D SPARC_V8Plus)) , $(ARGS The SPARC v8+ ABI))
+        $(TROW $(ARGS $(D SPARC_SoftFloat)) , $(ARGS The SPARC soft float ABI))
+        $(TROW $(ARGS $(D SPARC_HardFloat)) , $(ARGS The SPARC hard float ABI))
+        $(TROW $(ARGS $(D SPARC64)) , $(ARGS The SPARC architecture, 64-bit))
+        $(TROW $(ARGS $(D S390)) , $(ARGS The System/390 architecture, 32-bit))
+        $(TROW $(ARGS $(D SystemZ)) , $(ARGS The System Z architecture, 64-bit))
+        $(TROW $(ARGS $(D HPPA)) , $(ARGS The HP PA-RISC architecture, 32-bit))
+        $(TROW $(ARGS $(D HPPA64)) , $(ARGS The HP PA-RISC architecture, 64-bit))
+        $(TROW $(ARGS $(D SH)) , $(ARGS The SuperH architecture, 32-bit))
+        $(TROW $(ARGS $(D WebAssembly)) , $(ARGS The WebAssembly virtual ISA $(LPAREN)instruction set architecture$(RPAREN), 32-bit))
+        $(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
+        $(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
+        $(TROW $(ARGS $(D Alpha_HardFloat)) , $(ARGS The Alpha hard float ABI))
+        $(TROW $(ARGS $(D LittleEndian)) , $(ARGS Byte order, least significant first))
+        $(TROW $(ARGS $(D BigEndian)) , $(ARGS Byte order, most significant first))
+        $(TROW $(ARGS $(D ELFv1)) , $(ARGS The Executable and Linkable Format v1))
+        $(TROW $(ARGS $(D ELFv2)) , $(ARGS The Executable and Linkable Format v2))
+        $(TROW $(ARGS $(D D_BetterC)) , $(ARGS $(DDLINK spec/betterc, D as Better C, D as Better C) code
+                (command line switch $(DDSUBLINK dmd, switch-betterC, $(TT -betterC))) is being generated))
+        $(TROW $(ARGS $(D D_Coverage)) , $(ARGS $(DDLINK code_coverage, Code coverage analysis, Code coverage analysis) instrumentation
+                (command line switch $(DDSUBLINK dmd, switch-cov, $(TT -cov))) is being generated))
+        $(TROW $(ARGS $(D D_Ddoc)) , $(ARGS $(DDLINK spec/ddoc, Embedded Documentation, Ddoc) documentation
+                (command line switch $(DDSUBLINK dmd, switch-D, $(TT -D))) is being generated))
+        $(TROW $(ARGS $(D D_InlineAsm_X86)) , $(ARGS $(DDLINK spec/iasm, Inline Assembler, Inline assembler) for X86 is implemented))
+        $(TROW $(ARGS $(D D_InlineAsm_X86_64)) , $(ARGS $(DDLINK spec/iasm, Inline Assembler, Inline assembler) for X86-64 is implemented))
+        $(TROW $(ARGS $(D D_LP64)) , $(ARGS $(B Pointers) are 64 bits
+                (command line switch $(DDSUBLINK dmd, switch-m64, $(TT -m64))). (Do not confuse this with C's LP64 model)))
+        $(TROW $(ARGS $(D D_X32)) , $(ARGS Pointers are 32 bits, but words are still 64 bits (x32 ABI) (This can be defined in parallel to $(D X86_64))))
+        $(TROW $(ARGS $(D D_HardFloat)) , $(ARGS The target hardware has a floating point unit))
+        $(TROW $(ARGS $(D D_SoftFloat)) , $(ARGS The target hardware does not have a floating point unit))
+        $(TROW $(ARGS $(D D_PIC)) , $(ARGS Position Independent Code
+                (command line switch $(DDSUBLINK dmd-linux, switch-fPIC, $(TT -fPIC))) is being generated))
+        $(TROW $(ARGS $(D D_SIMD)) , $(ARGS $(DDLINK spec/simd, simd, Vector extensions) (via $(D __simd)) are supported))
+        $(TROW $(ARGS $(D D_AVX)) , $(ARGS AVX Vector instructions are supported))
+        $(TROW $(ARGS $(D D_AVX2)) , $(ARGS AVX2 Vector instructions are supported))
+        $(TROW $(ARGS $(D D_Version2)) , $(ARGS This is a D version 2 compiler))
+        $(TROW $(ARGS $(D D_NoBoundsChecks)) , $(ARGS Array bounds checks are disabled
+                (command line switch $(DDSUBLINK dmd, switch-boundscheck, $(TT -boundscheck=off)))))
+        $(TROW $(ARGS $(D D_ObjectiveC)) , $(ARGS The target supports interfacing with Objective-C))
+        $(TROW $(ARGS $(D Std)) , $(ARGS Define when building the standard library))
+        $(TROW $(ARGS $(D unittest)) , $(ARGS $(DDLINK spec/unittest, Unit Tests, Unit tests) are enabled
+                (command line switch $(DDSUBLINK dmd, switch-unittest, $(TT -unittest)))))
+        $(TROW $(ARGS $(D assert)) , $(ARGS Checks are being emitted for $(GLINK2 expression, AssertExpression)s))
+        $(TROW $(ARGS $(D none)) , $(ARGS Never defined; used to just disable a section of code))
+        $(TROW $(ARGS $(D all)) , $(ARGS Always defined; used as the opposite of $(D none)))
+        )
 
-	$(P The following identifiers are defined, but are deprecated:
-	)
+        $(P The following identifiers are defined, but are deprecated:
+        )
 
-	$(TABLE2 Predefined Version Identifiers (deprecated),
-	$(THEAD Version Identifier, Description)
-	$(TROW $(D darwin), The Darwin operating system; use $(D OSX) instead)
-	$(TROW $(D Thumb), ARM in Thumb mode; use $(D ARM_Thumb) instead)
-	$(TROW $(D S390X), The System/390X architecture, 64-bit; use $(D SystemZ) instead)
-	)
+        $(TABLE2 Predefined Version Identifiers (deprecated),
+        $(THEAD Version Identifier, Description)
+        $(TROW $(D darwin), The Darwin operating system; use $(D OSX) instead)
+        $(TROW $(D Thumb), ARM in Thumb mode; use $(D ARM_Thumb) instead)
+        $(TROW $(D S390X), The System/390X architecture, 64-bit; use $(D SystemZ) instead)
+        )
 
-	$(P Others will be added as they make sense and new implementations appear.
-	)
+        $(P Others will be added as they make sense and new implementations appear.
+        )
 
-	$(P It is inevitable that the D language will evolve over time.
-	Therefore, the version identifier namespace beginning with "D$(UNDERSCORE)"
-	is reserved for identifiers indicating D language specification
-	or new feature conformance. Further, all identifiers derived from
-	the ones listed above by appending any character(s) are reserved. This
-	means that e.g. $(D ARM_foo) and $(D Windows_bar) are reserved while
-	$(D foo_ARM) and $(D bar_Windows) are not.
-	)
+        $(P It is inevitable that the D language will evolve over time.
+        Therefore, the version identifier namespace beginning with "D$(UNDERSCORE)"
+        is reserved for identifiers indicating D language specification
+        or new feature conformance. Further, all identifiers derived from
+        the ones listed above by appending any character(s) are reserved. This
+        means that e.g. $(D ARM_foo) and $(D Windows_bar) are reserved while
+        $(D foo_ARM) and $(D bar_Windows) are not.
+        )
 
-	$(P Furthermore, predefined version identifiers from this list cannot
-	be set from the command line or from version statements.
-	(This prevents things like both $(D Windows) and $(D linux)
-	being simultaneously set.)
-	)
+        $(P Furthermore, predefined version identifiers from this list cannot
+        be set from the command line or from version statements.
+        (This prevents things like both $(D Windows) and $(D linux)
+        being simultaneously set.)
+        )
 
-	$(P Compiler vendor specific versions can be predefined if the
-	trademarked vendor identifier prefixes it, as in:
-	)
+        $(P Compiler vendor specific versions can be predefined if the
+        trademarked vendor identifier prefixes it, as in:
+        )
 
 ------
 version(DigitalMars_funky_extension)
@@ -375,11 +375,11 @@ version(DigitalMars_funky_extension)
 }
 ------
 
-	$(P It is important to use the right version identifier for the right
-	purpose. For example, use the vendor identifier when using a vendor
-	specific feature. Use the operating system identifier when using
-	an operating system specific feature, etc.
-	)
+        $(P It is important to use the right version identifier for the right
+        purpose. For example, use the vendor identifier when using a vendor
+        specific feature. Use the operating system identifier when using
+        an operating system specific feature, etc.
+        )
 
 
 $(H2 $(LNAME2 debug, Debug Condition))
@@ -391,28 +391,28 @@ $(GNAME DebugCondition):
     $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN))
 )
 
-	$(P Two versions of programs are commonly built,
-	a release build and a debug build.
-	The debug build includes extra error checking code,
-	test harnesses, pretty-printing code, etc.
-	The debug statement conditionally compiles in its
-	statement body.
-	It is D's way of what in C is done
-	with $(CODE #ifdef DEBUG) / $(CODE #endif) pairs.
-	)
+        $(P Two versions of programs are commonly built,
+        a release build and a debug build.
+        The debug build includes extra error checking code,
+        test harnesses, pretty-printing code, etc.
+        The debug statement conditionally compiles in its
+        statement body.
+        It is D's way of what in C is done
+        with $(CODE #ifdef DEBUG) / $(CODE #endif) pairs.
+        )
 
-	$(P The $(D debug) condition is satisfied when the $(D -debug) switch is
-	passed to the compiler or when the debug level is >= 1.
-	)
+        $(P The $(D debug) condition is satisfied when the $(D -debug) switch is
+        passed to the compiler or when the debug level is >= 1.
+        )
 
-	$(P The $(D debug $(LPAREN)) $(I IntegerLiteral) $(D $(RPAREN)) condition is satisfied
-	when the debug
-	level is $(D >=) $(I IntegerLiteral).
-	)
+        $(P The $(D debug $(LPAREN)) $(I IntegerLiteral) $(D $(RPAREN)) condition is satisfied
+        when the debug
+        level is $(D >=) $(I IntegerLiteral).
+        )
 
-	$(P The $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN)) condition is satisfied
-	when the debug identifier matches $(I Identifier).
-	)
+        $(P The $(D debug $(LPAREN)) $(I Identifier) $(D $(RPAREN)) condition is satisfied
+        when the debug identifier matches $(I Identifier).
+        )
 
 ------
 class Foo
@@ -432,38 +432,38 @@ $(GNAME DebugSpecification):
     $(D debug =) $(GLINK2 lex, IntegerLiteral) $(D ;)
 )
 
-	$(P Debug identifiers and levels are set either by the command line switch
-	$(D -debug) or by a $(I DebugSpecification).
-	)
+        $(P Debug identifiers and levels are set either by the command line switch
+        $(D -debug) or by a $(I DebugSpecification).
+        )
 
-	$(P Debug specifications only affect the module they appear in, they
-	do not affect any imported modules. Debug identifiers are in their
-	own namespace, independent from version identifiers and other
-	symbols.
-	)
+        $(P Debug specifications only affect the module they appear in, they
+        do not affect any imported modules. Debug identifiers are in their
+        own namespace, independent from version identifiers and other
+        symbols.
+        )
 
-	$(P It is illegal to forward reference a debug specification:
-	)
+        $(P It is illegal to forward reference a debug specification:
+        )
 
 ------
 debug(foo) writeln("Foo");
 debug = foo;    // error, foo used before set
 ------
 
-	$(P $(I DebugSpecification)s may only appear at module scope.)
+        $(P $(I DebugSpecification)s may only appear at module scope.)
 
-	$(P Various different debug builds can be built with a parameter to
-	debug:
-	)
+        $(P Various different debug builds can be built with a parameter to
+        debug:
+        )
 
 ------
 debug(IntegerLiteral) { } // add in debug code if debug level is >= IntegerLiteral
 debug(identifier) { } // add in debug code if debug keyword is identifier
 ------
 
-	$(P These are presumably set by the command line as
-	$(D -debug=)$(I n) and $(D -debug=)$(I identifier).
-	)
+        $(P These are presumably set by the command line as
+        $(D -debug=)$(I n) and $(D -debug=)$(I identifier).
+        )
 
 $(H2 $(LNAME2 staticif, Static If Condition))
 
@@ -472,22 +472,22 @@ $(GNAME StaticIfCondition):
     $(D static if $(LPAREN)) $(ASSIGNEXPRESSION) $(D $(RPAREN))
 )
 
-	$(P $(ASSIGNEXPRESSION) is implicitly converted to a boolean type,
-	and is evaluated at compile time.
-	The condition is satisfied if it evaluates to $(D true).
-	It is not satisfied if it evaluates to $(D false).
-	)
+        $(P $(ASSIGNEXPRESSION) is implicitly converted to a boolean type,
+        and is evaluated at compile time.
+        The condition is satisfied if it evaluates to $(D true).
+        It is not satisfied if it evaluates to $(D false).
+        )
 
-	$(P It is an error if $(ASSIGNEXPRESSION) cannot be implicitly converted
-	to a boolean type or if it cannot be evaluated at compile time.
-	)
+        $(P It is an error if $(ASSIGNEXPRESSION) cannot be implicitly converted
+        to a boolean type or if it cannot be evaluated at compile time.
+        )
 
-	$(P $(I StaticIfCondition)s
-	can appear in module, class, template, struct, union, or function scope.
-	In function scope, the symbols referred to in the
-	$(ASSIGNEXPRESSION) can be any that can normally be referenced
-	by an expression at that point.
-	)
+        $(P $(I StaticIfCondition)s
+        can appear in module, class, template, struct, union, or function scope.
+        In function scope, the symbols referred to in the
+        $(ASSIGNEXPRESSION) can be any that can normally be referenced
+        by an expression at that point.
+        )
 
 ------
 const int i = 3;
@@ -527,24 +527,24 @@ INT!(16) b;  // b is a short
 INT!(17) c;  // error, static assert trips
 ------
 
-	$(P A $(I StaticIfConditional) condition differs from an
-	$(I IfStatement) in the following ways:
-	)
+        $(P A $(I StaticIfConditional) condition differs from an
+        $(I IfStatement) in the following ways:
+        )
 
-	$(OL
-	$(LI It can be used to conditionally compile declarations,
-	not just statements.
-	)
-	$(LI It does not introduce a new scope even if $(D { })
-	are used for conditionally compiled statements.
-	)
-	$(LI For unsatisfied conditions, the conditionally compiled code
-	need only be syntactically correct. It does not have to be
-	semantically correct.
-	)
-	$(LI It must be evaluatable at compile time.
-	)
-	)
+        $(OL
+        $(LI It can be used to conditionally compile declarations,
+        not just statements.
+        )
+        $(LI It does not introduce a new scope even if $(D { })
+        are used for conditionally compiled statements.
+        )
+        $(LI For unsatisfied conditions, the conditionally compiled code
+        need only be syntactically correct. It does not have to be
+        semantically correct.
+        )
+        $(LI It must be evaluatable at compile time.
+        )
+        )
 
 $(H2 $(LNAME2 staticforeach, Static Foreach))
 
@@ -561,17 +561,17 @@ $(GNAME StaticForeachStatement):
     $(GLINK StaticForeach) $(GLINK2 statement, NoScopeNonEmptyStatement)
 )
 
-	$(P The aggregate/range bounds are evaluated at compile time and
-	turned into a sequence of compile-time entities by evaluating
-	corresponding code with a $(GLINK2 statement, ForeachStatement)/$(GLINK2 statement, ForeachRangeStatement)
-	at compile time. The body of the $(D static foreach) is then copied a
-	number of times that corresponds to the number of elements of the
-	sequence. Within the i-th copy, the name of the $(D static foreach)
-	variable is bound to the i-th entry of the sequence, either as an $(D enum)
-	variable declaration (for constants) or an $(D alias)
-	declaration (for symbols). (In particular, $(D static foreach)
-	variables are never runtime variables.)
-	)
+        $(P The aggregate/range bounds are evaluated at compile time and
+        turned into a sequence of compile-time entities by evaluating
+        corresponding code with a $(GLINK2 statement, ForeachStatement)/$(GLINK2 statement, ForeachRangeStatement)
+        at compile time. The body of the $(D static foreach) is then copied a
+        number of times that corresponds to the number of elements of the
+        sequence. Within the i-th copy, the name of the $(D static foreach)
+        variable is bound to the i-th entry of the sequence, either as an $(D enum)
+        variable declaration (for constants) or an $(D alias)
+        declaration (for symbols). (In particular, $(D static foreach)
+        variables are never runtime variables.)
+        )
 
 ------
 static foreach(i; [0, 1, 2, 3])
@@ -580,11 +580,11 @@ static foreach(i; [0, 1, 2, 3])
 }
 ------
 
-	$(P $(D static foreach) supports multiple variables in cases where the
-	corresponding $(D foreach) statement supports them. (In this case,
-	$(D static foreach) generates a compile-time sequence of tuples, and the
-	tuples are subsequently unpacked during iteration.)
-	)
+        $(P $(D static foreach) supports multiple variables in cases where the
+        corresponding $(D foreach) statement supports them. (In this case,
+        $(D static foreach) generates a compile-time sequence of tuples, and the
+        tuples are subsequently unpacked during iteration.)
+        )
 
 ------
 static foreach(i, v; ['a', 'b', 'c', 'd'])
@@ -593,10 +593,10 @@ static foreach(i, v; ['a', 'b', 'c', 'd'])
 }
 ------
 
-	$(P Like bodies of $(GLINK ConditionalDeclaration)s, a $(D static foreach)
-	body does not introduce a new scope. Therefore, it can be
-	used to generate declarations:
-	)
+        $(P Like bodies of $(GLINK ConditionalDeclaration)s, a $(D static foreach)
+        body does not introduce a new scope. Therefore, it can be
+        used to generate declarations:
+        )
 
 ------
 import std.range : iota;
@@ -610,12 +610,12 @@ static foreach(i; iota(0, 3).map!text)
 pragma(msg, x0, " ", x1," ", x2); // 0 1 2
 ------
 
-	$(P As $(D static foreach) is a code generation construct and not a
-	loop, $(D break) and $(D continue) cannot be used to change control
-	flow within it. Instead of breaking or continuing a suitable enclosing
-	statement, such an usage yields an error (this is to prevent
-	misunderstandings).
-	)
+        $(P As $(D static foreach) is a code generation construct and not a
+        loop, $(D break) and $(D continue) cannot be used to change control
+        flow within it. Instead of breaking or continuing a suitable enclosing
+        statement, such an usage yields an error (this is to prevent
+        misunderstandings).
+        )
 
 -------
 int test(int x)
@@ -640,11 +640,11 @@ static foreach(i; 0 .. 200)
 }
 -------
 
-	$(P An explicit $(D break)/$(D continue) label can be used to
-	avoid this limitation. (Note that $(D static foreach) itself
-	cannot be broken nor continued even if it is explicitly
-	labeled.)
-	)
+        $(P An explicit $(D break)/$(D continue) label can be used to
+        avoid this limitation. (Note that $(D static foreach) itself
+        cannot be broken nor continued even if it is explicitly
+        labeled.)
+        )
 
 -------
 int test(int x)
@@ -678,16 +678,16 @@ $(GNAME StaticAssert):
     $(D static assert $(LPAREN)) $(ASSIGNEXPRESSION) $(D ,) $(ASSIGNEXPRESSION) $(D ,)$(OPT) $(D $(RPAREN);)
 )
 
-	$(P $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
-	to a boolean value. If the value is true, the static assert
-	is ignored. If the value is false, an error diagnostic is issued
-	and the compile fails.
-	)
+        $(P $(ASSIGNEXPRESSION) is evaluated at compile time, and converted
+        to a boolean value. If the value is true, the static assert
+        is ignored. If the value is false, an error diagnostic is issued
+        and the compile fails.
+        )
 
-	$(P Unlike $(GLINK2 expression, AssertExpression)s, $(I StaticAssert)s are always
-	checked and evaluted by the compiler unless they appear in an
-	unsatisfied conditional.
-	)
+        $(P Unlike $(GLINK2 expression, AssertExpression)s, $(I StaticAssert)s are always
+        checked and evaluted by the compiler unless they appear in an
+        unsatisfied conditional.
+        )
 
 ------
 void foo()
@@ -707,17 +707,17 @@ void foo()
 }
 ------
 
-	$(P $(I StaticAssert) is useful tool for drawing attention to conditional
-	configurations not supported in the code.
-	)
+        $(P $(I StaticAssert) is useful tool for drawing attention to conditional
+        configurations not supported in the code.
+        )
 
-	$(P The optional second $(ASSIGNEXPRESSION) can be used to supply
-	additional information, such as a text string, that will be
-	printed out along with the error diagnostic.
-	)
+        $(P The optional second $(ASSIGNEXPRESSION) can be used to supply
+        additional information, such as a text string, that will be
+        printed out along with the error diagnostic.
+        )
 $(SPEC_SUBNAV_PREV_NEXT contracts, Contract Programming, traits, Traits)
 )
 
 Macros:
-	CHAPTER=24
-	TITLE=Conditional Compilation
+        CHAPTER=24
+        TITLE=Conditional Compilation

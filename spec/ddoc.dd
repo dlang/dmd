@@ -306,9 +306,9 @@ $(DD Revision history.)
 ------------------------------------
 /**
  * History:
- *	V1 is initial version
+ *      V1 is initial version
  *
- *	V2 added feature X
+ *      V2 added feature X
  */
 ------------------------------------
 
@@ -401,9 +401,9 @@ $(DD Function parameters can be documented by listing them in a params
 /***********************************
  * foo does this.
  * Params:
- *	x =	is for this
- *		and not for that
- *	y =	is for that
+ *      x =     is for this
+ *              and not for that
+ *      y =     is for that
  */
 
 void foo(int x, int y)
@@ -419,10 +419,10 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
 ------------------------------------
 /**
  * Macros:
- *	FOO =	now is the time for
- *		all good men
- *	BAR =	bar
- *	MAGENTA =   <font color="magenta">$0</font>
+ *      FOO =   now is the time for
+ *              all good men
+ *      BAR =   bar
+ *      MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
 

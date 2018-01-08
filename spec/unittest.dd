@@ -9,12 +9,12 @@ $(GNAME UnitTest):
     $(D unittest) $(GLINK2 statement, BlockStatement)
 )
 
-	$(P Unit tests are a series of test cases applied to a module to determine
-	if it is working properly. Ideally, unit tests should be run every
-	time a program is compiled.
-	)
+        $(P Unit tests are a series of test cases applied to a module to determine
+        if it is working properly. Ideally, unit tests should be run every
+        time a program is compiled.
+        )
 
-	$(P Unit tests are a special function defined like:)
+        $(P Unit tests are a special function defined like:)
 
 ------
 unittest
@@ -199,15 +199,15 @@ code sample generated, even if it is empty or only includes comments
 
 $(H2 $(LNAME2 versioning, Versioning))
 
-	$(P The $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
-	$(D unittest) is predefined if the compilation
-	is done with unit tests enabled.
-	)
+        $(P The $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
+        $(D unittest) is predefined if the compilation
+        is done with unit tests enabled.
+        )
 
 $(SPEC_SUBNAV_PREV_NEXT errors, Error Handling, garbage, Garbage Collection)
 )
 
 Macros:
     CHAPTER=27
-	TITLE=Unit Tests
-	_=
+        TITLE=Unit Tests
+        _=

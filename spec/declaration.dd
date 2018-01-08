@@ -599,7 +599,7 @@ $(GNAME VoidInitializer):
         type of the variable. If the $(I Initializer) is $(D void),
         however, the variable is not initialized. If its value is
         used before it is set, undefined program behavior will result.
-	)
+        )
 
 -------------------------
 void foo()
@@ -611,27 +611,27 @@ void foo()
 
         $(P Therefore, one should only use $(D void) initializers as a
         last resort when optimizing critical code.
-	)
+        )
 
 $(H2 $(LNAME2 global_static_init, Global and Static Initializers))
 
-	$(P The $(GLINK Initializer) for a global or static variable must be
-	evaluatable at compile time.
-	Whether some pointers can be initialized with the addresses of other
-	functions or data is implementation defined.
-	Runtime initialization can be done with static constructors.
-	)
+        $(P The $(GLINK Initializer) for a global or static variable must be
+        evaluatable at compile time.
+        Whether some pointers can be initialized with the addresses of other
+        functions or data is implementation defined.
+        Runtime initialization can be done with static constructors.
+        )
 
 $(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
-	$(P D draws a distinction between a type qualifer and a storage class.)
+        $(P D draws a distinction between a type qualifer and a storage class.)
 
-	$(P A $(I type qualifier) creates a derived type from an existing base
-	type, and the resulting type may be used to create multiple instances
-	of that type.)
+        $(P A $(I type qualifier) creates a derived type from an existing base
+        type, and the resulting type may be used to create multiple instances
+        of that type.)
 
-	$(P For example, the $(D immutable) type qualifier can be used to
-	create variables of immutable type, such as:)
+        $(P For example, the $(D immutable) type qualifier can be used to
+        create variables of immutable type, such as:)
 
 --------
 immutable(int)   x; // typeof(x) == immutable(int)
@@ -643,11 +643,11 @@ alias ImmutableInt = immutable(int);
 ImmutableInt z;     // typeof(z) == immutable(int)
 --------
 
-	$(P A $(I storage class), on the other hand, does not create a new
-	type, but describes only the type of storage used by the variable or
-	function being declared. For example, a member function can be declared
-	with the $(D const) storage class to indicate that it does not modify
-	its implicit $(D this) argument:)
+        $(P A $(I storage class), on the other hand, does not create a new
+        type, but describes only the type of storage used by the variable or
+        function being declared. For example, a member function can be declared
+        with the $(D const) storage class to indicate that it does not modify
+        its implicit $(D this) argument:)
 
 --------
 struct S
@@ -655,15 +655,15 @@ struct S
     int x;
     int method() const
     {
-	//x++;    // Error: this method is const and cannot modify this.x
+        //x++;    // Error: this method is const and cannot modify this.x
         return x; // OK: we can still read this.x
     }
 }
 --------
 
-	$(P Although some keywords can be used both as a type qualifier and a
-	storage class, there are some storage classes that cannot be used to
-	construct new types. One example is $(D ref):)
+        $(P Although some keywords can be used both as a type qualifier and a
+        storage class, there are some storage classes that cannot be used to
+        construct new types. One example is $(D ref):)
 
 --------
 // ref declares the parameter x to be passed by reference
@@ -710,9 +710,9 @@ void main()
 }
 --------
 
-	$(P Due to the fact that some keywords, such as $(D const), can be used
-	both as a type qualifier and a storage class, it may sometimes result
-	in ambiguous-looking code:)
+        $(P Due to the fact that some keywords, such as $(D const), can be used
+        both as a type qualifier and a storage class, it may sometimes result
+        in ambiguous-looking code:)
 
 --------
 struct S
@@ -724,11 +724,11 @@ struct S
 }
 --------
 
-	$(P To avoid such confusion, it is recommended that type qualifier
-	syntax with parentheses always be used for return types, and that
-	function storage classes be written on the right-hand side of the
-	declaration instead of the left-hand side where it may be visually
-	confused with the return type:)
+        $(P To avoid such confusion, it is recommended that type qualifier
+        syntax with parentheses always be used for return types, and that
+        function storage classes be written on the right-hand side of the
+        declaration instead of the left-hand side where it may be visually
+        confused with the return type:)
 
 --------
 struct S

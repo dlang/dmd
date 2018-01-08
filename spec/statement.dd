@@ -784,7 +784,7 @@ $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
         many different named looping strategies to coexist in the same
         class or struct.)
 
-	$(P For example:)
+        $(P For example:)
 
 --------------
 void main()
@@ -814,11 +814,11 @@ void main()
 }
 --------------
 
-	$(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
-	does not try to implement reverse traversal of the results returned by
-	the delegate when $(D foreach_reverse) is used. This may result in code
-	that is confusing to read. Therefore, using $(D foreach_reverse) with a
-	delegate is now deprecated, and will be rejected in the future.)
+        $(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
+        does not try to implement reverse traversal of the results returned by
+        the delegate when $(D foreach_reverse) is used. This may result in code
+        that is confusing to read. Therefore, using $(D foreach_reverse) with a
+        delegate is now deprecated, and will be rejected in the future.)
 
 $(H3 $(LNAME2 foreach_over_tuples, Foreach over Tuples))
 
