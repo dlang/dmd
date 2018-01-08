@@ -1718,6 +1718,31 @@ class Throwable : Object
      */
     @system @nogc final pure nothrow ref uint refcount() return scope { return _refcount; }
 
+    /**
+     * Append `e2` to chain of exceptions that starts with `e1`.
+     * Params:
+     *  e1 = start of chain (can be null)
+     *  e2 = second part of chain (can be null)
+     * Returns:
+     *  Throwable that is at the start of the chain; null if both `e1` and `e2` are null
+     */
+    static @__future @system @nogc pure nothrow Throwable chainTogether(return scope Throwable e1, return scope Throwable e2)
+    {
+        if (!e1)
+            return e2;
+        if (!e2)
+            return e1;
+        for (auto e = e1; 1; e = e.next)
+        {
+            if (!e.next)
+            {
+                e.next = e2;
+                break;
+            }
+        }
+        return e1;
+    }
+
     @nogc @safe pure nothrow this(string msg, Throwable next = null)
     {
         this.msg = msg;
