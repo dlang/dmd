@@ -25,6 +25,7 @@ $(GNAME TraitsKeyword):
     $(GBLINK isPOD)
     $(GBLINK isNested)
     $(GBLINK isFuture)
+    $(GBLINK isDeprecated)
     $(GBLINK isFloating)
     $(GBLINK isIntegral)
     $(GBLINK isScalar)
@@ -200,6 +201,11 @@ $(H2 $(GNAME isFuture))
     $(P Takes one argument. It returns `true` if the argument is a symbol
     marked with the `@future` keyword, otherwise `false`. Currently, only
     functions and variable declarations have support for the `@future` keyword.)
+
+$(H2 $(GNAME isDeprecated))
+
+    $(P Takes one argument. It returns `true` if the argument is a symbol
+    marked with the `deprecated` keyword, otherwise `false`.)
 
 $(H2 $(GNAME isVirtualFunction))
 
