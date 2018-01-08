@@ -467,6 +467,7 @@
    <File path="..\dmd\boostlicense.txt" />
    <File path="..\dmd\builtin.d" />
    <File path="..\dmd\canthrow.d" />
+   <File path="..\dmd\cli.d" />
    <File path="..\dmd\clone.d" />
    <File path="..\dmd\complex.d" />
    <File path="..\dmd\cond.d" />
