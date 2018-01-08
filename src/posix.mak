@@ -25,6 +25,20 @@
 # ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
 # ENABLE_COVERAGE       Build dmd with coverage counting
 # ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
+#
+# Targets
+# -------
+#
+# all					Build dmd
+# unittest              Run all unittest blocks
+# cxx-unittest          Check conformance of the C++ headers
+# build-examples        Build DMD as library examples
+# clean                 Remove all generated files
+# man                   Generate the man pages
+# checkwhitespace       Checks for trailing whitespace and tabs
+# zip                   Packs all sources into a ZIP archive
+# gitzip                Packs all sources into a ZIP archive
+# install               Installs dmd into $(INSTALL_DIR)
 ################################################################################
 
 # get OS and MODEL
