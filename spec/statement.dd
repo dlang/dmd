@@ -1540,12 +1540,8 @@ $(GNAME TryStatement):
     $(D try) $(PSSCOPE) $(GLINK FinallyStatement)
 
 $(GNAME Catches):
-    $(GLINK LastCatch)
     $(GLINK Catch)
     $(GLINK Catch) $(I Catches)
-
-$(GNAME LastCatch):
-    $(D catch) $(PS0)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
@@ -1570,9 +1566,6 @@ $(GNAME FinallyStatement):
         $(P It is an error if any $(I CatchParameter) type T1 hides
         a subsequent $(I Catch) with type T2, i.e. it is an error if
         T1 is the same type as or a base class of T2.
-        )
-
-        $(P $(I LastCatch) catches all exceptions.
         )
 
         $(P The $(I FinallyStatement) is always executed, whether
