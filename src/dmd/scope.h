@@ -158,6 +158,8 @@ struct Scope
     void setNoFree();
 
     structalign_t alignment();
+
+    bool isDeprecated();
 };
 
 #endif /* DMD_SCOPE_H */

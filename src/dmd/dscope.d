@@ -807,4 +807,28 @@ struct Scope
         else
             return STRUCTALIGN_DEFAULT;
     }
+
+    /**********************************
+    * Checks whether the current scope (or any of its parents) is deprecated.
+    *
+    * Returns: `true` if this or any parent scope is deprecated, `false` otherwise`
+    */
+    extern(C++) bool isDeprecated()
+    {
+        for (Dsymbol sp = this.parent; sp; sp = sp.parent)
+        {
+            if (sp.isDeprecated())
+                return true;
+        }
+        for (Scope* sc2 = &this; sc2; sc2 = sc2.enclosing)
+        {
+            if (sc2.scopesym && sc2.scopesym.isDeprecated())
+                return true;
+
+            // If inside a StorageClassDeclaration that is deprecated
+            if (sc2.stc & STC.deprecated_)
+                return true;
+        }
+        return false;
+    }
 }
