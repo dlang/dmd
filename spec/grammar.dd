@@ -470,6 +470,8 @@ $(GNAME TraitsKeyword):
     $(TRAITS_LINK2 isArithmetic)
     $(TRAITS_LINK2 isAssociativeArray)
     $(TRAITS_LINK2 isFinalClass)
+    $(TRAITS_LINK2 isFuture)
+    $(TRAITS_LINK2 isDeprecated)
     $(TRAITS_LINK2 isPOD)
     $(TRAITS_LINK2 isNested)
     $(TRAITS_LINK2 isFloating)
