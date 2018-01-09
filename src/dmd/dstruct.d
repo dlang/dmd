@@ -342,7 +342,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
 
@@ -464,13 +464,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
                 }
-                .error(loc, "more initializers than fields (%d) of %s", nfields, toChars());
+                .error(loc, "more initializers than fields (%d) of `%s`", nfields, toChars());
                 return false;
             }
             VarDeclaration v = fields[i];
             if (v.offset < offset)
             {
-                .error(loc, "overlapping initialization for %s", v.toChars());
+                .error(loc, "overlapping initialization for `%s`", v.toChars());
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());
