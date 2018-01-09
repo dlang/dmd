@@ -6035,7 +6035,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return;
 
         const(uint) max_shown = 6;
-        const(char)* format = "instantiated from here: %s";
+        const(char)* format = "instantiated from here: `%s`";
 
         // determine instantiation depth and number of recursive instantiations
         int n_instantiations = 1;
@@ -6076,7 +6076,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     if (recursionDepth)
-                        errorSupplemental(cur.loc, "%d recursive instantiations from here: %s", recursionDepth + 2, cur.toChars());
+                        errorSupplemental(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, cur.toChars());
                     else
                         errorSupplemental(cur.loc, format, cur.toChars());
                     recursionDepth = 0;
@@ -7001,7 +7001,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             auto tdecl = tempdecl.isTemplateDeclaration();
 
             if (errs != global.errors)
-                errorSupplemental(loc, "while looking for match for %s", toChars());
+                errorSupplemental(loc, "while looking for match for `%s`", toChars());
             else if (tdecl && !tdecl.overnext)
             {
                 // Only one template, so we can give better error message
@@ -7142,7 +7142,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (!global.gag)
             {
-                errorSupplemental(loc, "while looking for match for %s", toChars());
+                errorSupplemental(loc, "while looking for match for `%s`", toChars());
                 semanticRun = PASSsemanticdone;
                 inst = this;
             }

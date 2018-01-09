@@ -3,7 +3,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/ice13356.d(32): Error: template instance Algebraic!(Tuple!(List)) recursive template expansion
 fail_compilation/ice13356.d(15): Error: template instance ice13356.isPrintable!(List) error instantiating
-fail_compilation/ice13356.d(33):        instantiated from here: Tuple!(List)
+fail_compilation/ice13356.d(33):        instantiated from here: `Tuple!(List)`
 ---
 */
 
