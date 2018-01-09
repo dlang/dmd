@@ -14,7 +14,7 @@ export DMD=${DMD:-dmd}         # can be {dmd,ldc,gdc}
 # See also: https://semaphoreci.com/docs/available-environment-variables.html
 ################################################################################
 
-export N=4
+export N=8
 export OS_NAME=linux
 export BRANCH=$BRANCH_NAME
 export FULL_BUILD="${PULL_REQUEST_NUMBER+false}"
