@@ -101,18 +101,18 @@ Foo var;
 
 $(H2 $(LNAME2 access_control, Access Control))
 
-	$(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
-	The default protection attribute is $(D public).
-	Access control does not affect visibility.
-	)
+        $(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
+        The default protection attribute is $(D public).
+        Access control does not affect visibility.
+        )
 
 $(H2 $(LNAME2 fields, Fields))
 
         $(P Class members are always accessed with the . operator.
         )
 
-	$(P Members of a base class can be accessed by prepending the name of
-	the base class followed by a dot:)
+        $(P Members of a base class can be accessed by prepending the name of
+        the base class followed by a dot:)
 
 ---
 class A { int a; int a2;}
@@ -201,11 +201,11 @@ $(H2 $(LNAME2 member-functions, Member Functions))
         can be accessed.
         )
 
-	$(P Non-static member functions can have, in addition to the usual
-	$(GLINK2 function, FunctionAttribute)s, the attributes
-	$(D const), $(D immutable), $(D shared), or $(D inout).
-	These attributes apply to the hidden $(I this) parameter.
-	)
+        $(P Non-static member functions can have, in addition to the usual
+        $(GLINK2 function, FunctionAttribute)s, the attributes
+        $(D const), $(D immutable), $(D shared), or $(D inout).
+        These attributes apply to the hidden $(I this) parameter.
+        )
 ---
 class C
 {
@@ -667,19 +667,19 @@ $(GNAME StaticConstructor):
     $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-	$(P A static constructor is a function that performs initializations of
-	thread local data before the $(D main()) function gets control for the main
-	thread, and upon thread startup.)
+        $(P A static constructor is a function that performs initializations of
+        thread local data before the $(D main()) function gets control for the main
+        thread, and upon thread startup.)
 
-	$(P Static constructors are used to initialize static class members with
-	values that cannot be computed at compile time.)
+        $(P Static constructors are used to initialize static class members with
+        values that cannot be computed at compile time.)
 
         $(P Static constructors in other languages are built implicitly by using
         member
         initializers that can't be computed at compile time. The trouble with
         this stems from not
         having good control over exactly when the code is executed, for example:
-	)
+        )
 
 ------
 class Foo
@@ -727,7 +727,7 @@ on thread termination.)
 
 $(P Static constructors have empty parameter lists.)
 
-	$(P
+        $(P
         Static constructors within a module are executed in the lexical
         order in which they appear.
         All the static constructors for modules that are directly or
@@ -735,10 +735,10 @@ $(P Static constructors have empty parameter lists.)
         are executed before the static constructors for the importer.
         )
 
-	$(P
+        $(P
         The $(D static) in the static constructor declaration is not
         an attribute, it must appear immediately before the $(D this):
-	)
+        )
 
 ------
 class Foo
@@ -774,19 +774,19 @@ class Foo
 }
 ------
 
-	$(P
+        $(P
         A static destructor gets called on thread termination,
-	but only if the static constructor
+        but only if the static constructor
         completed successfully.
         Static destructors have empty parameter lists.
         Static destructors get called in the reverse order that the static
         constructors were called in.
         )
 
-	$(P
+        $(P
         The $(D static) in the static destructor declaration is not
         an attribute, it must appear immediately before the $(D ~this):
-	)
+        )
 
 ------
 class Foo

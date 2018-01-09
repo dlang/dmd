@@ -15,12 +15,12 @@ are not part of the normal operation of a program. Examples of common errors
 are:
 
 $(UL
-	$(LI Out of memory.)
-	$(LI Out of disk space.)
-	$(LI Invalid file name.)
-	$(LI Attempting to write to a read-only file.)
-	$(LI Attempting to read a non-existent file.)
-	$(LI Requesting a system service that is not supported.)
+        $(LI Out of memory.)
+        $(LI Out of disk space.)
+        $(LI Invalid file name.)
+        $(LI Attempting to write to a read-only file.)
+        $(LI Attempting to read a non-existent file.)
+        $(LI Requesting a system service that is not supported.)
 )
 
 $(H2 $(LNAME2 the_error_handling_problem, The Error Handling Problem))
@@ -29,12 +29,12 @@ The traditional C way of detecting and reporting errors is not traditional,
 it is ad-hoc and varies from function to function, including:
 
 $(UL
-	$(LI Returning a NULL pointer.)
-	$(LI Returning a 0 value.)
-	$(LI Returning a non-zero error code.)
-	$(LI Requiring errno to be checked.)
-	$(LI Requiring that a function be called to check if the previous
-		function failed.)
+        $(LI Returning a NULL pointer.)
+        $(LI Returning a 0 value.)
+        $(LI Returning a non-zero error code.)
+        $(LI Requiring errno to be checked.)
+        $(LI Requiring that a function be called to check if the previous
+                function failed.)
 )
 
 $(P To deal with these possible errors, tedious error handling code must be added
@@ -63,15 +63,15 @@ blade guards.)
 What's needed is an error handling philosophy and methodology such that:
 
 $(UL
-	$(LI It is standardized - consistent usage makes it more useful.)
-	$(LI The result is reasonable even if the programmer fails
-	to check for errors.)
-	$(LI Old code can be reused with new code without having
-	to modify the old code to be compatible with new error types.)
-	$(LI No errors get inadvertently ignored.)
-	$(LI $(SINGLEQUOTE Quick and dirty) utilities can be written that still
-	correctly handle errors.)
-	$(LI It is easy to make the error handling source code look good.)
+        $(LI It is standardized - consistent usage makes it more useful.)
+        $(LI The result is reasonable even if the programmer fails
+        to check for errors.)
+        $(LI Old code can be reused with new code without having
+        to modify the old code to be compatible with new error types.)
+        $(LI No errors get inadvertently ignored.)
+        $(LI $(SINGLEQUOTE Quick and dirty) utilities can be written that still
+        correctly handle errors.)
+        $(LI It is easy to make the error handling source code look good.)
 )
 
 $(H2 $(LNAME2 the_d_error_handling_solution, The D Error Handling Solution))
@@ -79,16 +79,16 @@ $(H2 $(LNAME2 the_d_error_handling_solution, The D Error Handling Solution))
 Let's first make some observations and assumptions about errors:
 
 $(UL
-	$(LI Errors are not part of the normal flow of a program. Errors
-	are exceptional, unusual, and unexpected.)
-	$(LI Because errors are unusual, execution of error handling code
-	is not performance critical.)
-	$(LI The normal flow of program logic is performance critical.)
-	$(LI All errors must be dealt with in some way, either by
-	code explicitly written to handle them, or by some system default
-	handling.)
-	$(LI The code that detects an error knows more about the error
-	than the code that must recover from the error.)
+        $(LI Errors are not part of the normal flow of a program. Errors
+        are exceptional, unusual, and unexpected.)
+        $(LI Because errors are unusual, execution of error handling code
+        is not performance critical.)
+        $(LI The normal flow of program logic is performance critical.)
+        $(LI All errors must be dealt with in some way, either by
+        code explicitly written to handle them, or by some system default
+        handling.)
+        $(LI The code that detects an error knows more about the error
+        than the code that must recover from the error.)
 )
 
 $(P The solution is to use exception handling to report errors. All
@@ -108,109 +108,109 @@ terminates the program.)
 $(P How does this meet our criteria?)
 
 $(DL
-	$(DT It is standardized - consistent usage makes it more useful.)
-	$(DD This is the D way, and is used consistently in the D
-	    runtime library and examples.)
+        $(DT It is standardized - consistent usage makes it more useful.)
+        $(DD This is the D way, and is used consistently in the D
+            runtime library and examples.)
 
-	$(DT The result is reasonable result even if the programmer fails
-	to check for errors.)
-	$(DD If no catch handlers are there for the errors, then the
-	program gracefully exits through the default error handler
-	with an appropriate message.)
+        $(DT The result is reasonable result even if the programmer fails
+        to check for errors.)
+        $(DD If no catch handlers are there for the errors, then the
+        program gracefully exits through the default error handler
+        with an appropriate message.)
 
-	$(DT Old code can be reused with new code without having
-	to modify the old code to be compatible with new error types.)
-	$(DD Old code can decide to catch all errors, or only specific ones,
-	propagating the rest upwards. In any case, there is no more
-	need to correlate error numbers with messages, the correct message
-	is always supplied.)
+        $(DT Old code can be reused with new code without having
+        to modify the old code to be compatible with new error types.)
+        $(DD Old code can decide to catch all errors, or only specific ones,
+        propagating the rest upwards. In any case, there is no more
+        need to correlate error numbers with messages, the correct message
+        is always supplied.)
 
-	$(DT No errors get inadvertently ignored.)
-	$(DD Error exceptions get handled one way or another. There is nothing
-	like a NULL pointer return indicating an error, followed by trying to
-	use that NULL pointer.)
+        $(DT No errors get inadvertently ignored.)
+        $(DD Error exceptions get handled one way or another. There is nothing
+        like a NULL pointer return indicating an error, followed by trying to
+        use that NULL pointer.)
 
-	$(DT 'Quick and dirty' utilities can be written that still
-	correctly handle errors.)
-	$(DD Quick and dirty code need not write any error handling code at
-	all, and don't need to check for errors. The errors will be caught,
-	an appropriate message displayed, and the program gracefully shut down
-	all by default.)
+        $(DT 'Quick and dirty' utilities can be written that still
+        correctly handle errors.)
+        $(DD Quick and dirty code need not write any error handling code at
+        all, and don't need to check for errors. The errors will be caught,
+        an appropriate message displayed, and the program gracefully shut down
+        all by default.)
 
-	$(DT It is easy to make the error handling source code look good.)
-	$(DD The try/catch/finally statements look a lot nicer than endless
-	if (error) goto errorhandler; statements.)
+        $(DT It is easy to make the error handling source code look good.)
+        $(DD The try/catch/finally statements look a lot nicer than endless
+        if (error) goto errorhandler; statements.)
 )
 
 How does this meet our assumptions about errors?
 
 $(DL
-	$(DT Errors are not part of the normal flow of a program. Errors
-	are exceptional, unusual, and unexpected.)
-	$(DD D exception handling fits right in with that.)
+        $(DT Errors are not part of the normal flow of a program. Errors
+        are exceptional, unusual, and unexpected.)
+        $(DD D exception handling fits right in with that.)
 
-	$(DT Because errors are unusual, execution of error handling code
-	is not performance critical.)
-	$(DD Exception handling stack unwinding is a relatively slow process.)
+        $(DT Because errors are unusual, execution of error handling code
+        is not performance critical.)
+        $(DD Exception handling stack unwinding is a relatively slow process.)
 
-	$(DT The normal flow of program logic is performance critical.)
-	$(DD Since the normal flow code does not have to check every
-	function call for error returns, it can be realistically faster
-	to use exception handling for the errors.)
+        $(DT The normal flow of program logic is performance critical.)
+        $(DD Since the normal flow code does not have to check every
+        function call for error returns, it can be realistically faster
+        to use exception handling for the errors.)
 
-	$(DT All errors must be dealt with in some way, either by
-	code explicitly written to handle them, or by some system default
-	handling.)
-	$(DD If there's no handler for a particular error, it is handled
-	by the runtime library default handler. If an error is ignored,
-	it is because the programmer specifically added code to ignore
-	an error, which presumably means it was intentional.)
+        $(DT All errors must be dealt with in some way, either by
+        code explicitly written to handle them, or by some system default
+        handling.)
+        $(DD If there's no handler for a particular error, it is handled
+        by the runtime library default handler. If an error is ignored,
+        it is because the programmer specifically added code to ignore
+        an error, which presumably means it was intentional.)
 
-	$(DT The code that detects an error knows more about the error
-	than the code that must recover from the error.)
-	$(DD There is no more need to translate error codes into human
-	readable strings, the correct string is generated by the error
-	detection code, not the error recovery code. This also leads to
-	consistent error messages for the same error between applications.)
+        $(DT The code that detects an error knows more about the error
+        than the code that must recover from the error.)
+        $(DD There is no more need to translate error codes into human
+        readable strings, the correct string is generated by the error
+        detection code, not the error recovery code. This also leads to
+        consistent error messages for the same error between applications.)
 )
 
 Using exceptions to handle errors leads to another issue - how to write
 exception safe programs. $(DPLLINK $(ROOT_DIR)exception-safe.html, Here's how).
 
 $(COMMENT
-	$(OL
+        $(OL
 
-	$(LI Programmers, especially inexperienced ones, tend to neglect
-	to test for the special error return value.
-	Their code just assumed the function completed successfully.
-	This leads to erratic and unpredictable
-	behavior if the function did fail.)
+        $(LI Programmers, especially inexperienced ones, tend to neglect
+        to test for the special error return value.
+        Their code just assumed the function completed successfully.
+        This leads to erratic and unpredictable
+        behavior if the function did fail.)
 
-	$(LI How each function deals with errors tends to be unique and
-	inconsistent, leading to more unintended
-	programmatic errors.)
+        $(LI How each function deals with errors tends to be unique and
+        inconsistent, leading to more unintended
+        programmatic errors.)
 
-	$(LI How the error gets reported to the user tends to vary
-	arbitrarily from one program to the next and one
-	error case to the next.)
+        $(LI How the error gets reported to the user tends to vary
+        arbitrarily from one program to the next and one
+        error case to the next.)
 
-	$(LI Dealing with error cases causes tedious and error-prone code
-	to be written, and so can consume much
-	programming effort.)
+        $(LI Dealing with error cases causes tedious and error-prone code
+        to be written, and so can consume much
+        programming effort.)
 
-	$(LI Error handling logic tends to be buggy because it rarely
-	gets tested by the test team.)
+        $(LI Error handling logic tends to be buggy because it rarely
+        gets tested by the test team.)
 
-	$(LI Functions that should have clean interfaces wind up
-	cluttering them with error return parameters and
-	cases.)
+        $(LI Functions that should have clean interfaces wind up
+        cluttering them with error return parameters and
+        cases.)
 
-	)
+        )
 )
 
 $(SPEC_SUBNAV_PREV_NEXT traits, Traits, unittest, Unit Tests)
 )
 
 Macros:
-	CHAPTER=26
-	TITLE=Errors
+        CHAPTER=26
+        TITLE=Errors

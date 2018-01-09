@@ -4,64 +4,64 @@ $(SPEC_S Contract Programming,
 
 $(SPEC_HEADERNAV_TOC)
 
-	$(P Contracts are a breakthrough technique to reduce the programming effort
-	for large projects. Contracts are the concept of preconditions, postconditions,
-	errors, and invariants.
-	Contracts can be done in C++ without modification to the language,
-	but the result is
-	clumsy and inconsistent.)
+        $(P Contracts are a breakthrough technique to reduce the programming effort
+        for large projects. Contracts are the concept of preconditions, postconditions,
+        errors, and invariants.
+        Contracts can be done in C++ without modification to the language,
+        but the result is
+        clumsy and inconsistent.)
 
-	$(P Building contract support into the language makes for:)
+        $(P Building contract support into the language makes for:)
 
-	$(OL
-	$(LI a consistent look and feel for the contracts)
-	$(LI tool support)
-	$(LI it's possible the compiler can generate better code using information gathered
-	from the contracts)
-	$(LI easier management and enforcement of contracts)
-	$(LI handling of contract inheritance)
-	)
+        $(OL
+        $(LI a consistent look and feel for the contracts)
+        $(LI tool support)
+        $(LI it's possible the compiler can generate better code using information gathered
+        from the contracts)
+        $(LI easier management and enforcement of contracts)
+        $(LI handling of contract inheritance)
+        )
 
 $(HTMLTAG3V img, src="../images/d4.gif" style="max-width:100%" alt="Contracts make D bug resistant" border="0")
 
-	$(P The idea of a contract is simple - it's just an expression that must evaluate to true.
-	If it does not, the contract is broken, and by definition, the program has a bug in it.
-	Contracts form part of the specification for a program, moving it from the documentation
-	to the code itself. And as every programmer knows, documentation tends to be incomplete,
-	out of date, wrong, or non-existent. Moving the contracts into the code makes them
-	verifiable against the program.)
+        $(P The idea of a contract is simple - it's just an expression that must evaluate to true.
+        If it does not, the contract is broken, and by definition, the program has a bug in it.
+        Contracts form part of the specification for a program, moving it from the documentation
+        to the code itself. And as every programmer knows, documentation tends to be incomplete,
+        out of date, wrong, or non-existent. Moving the contracts into the code makes them
+        verifiable against the program.)
 
 $(H2 $(LNAME2 assert_contracts, Assert Contract))
 
-	$(P The most basic contract is the
-	$(GLINK2 expression, AssertExpression).
-	An $(B assert) declares an expression that must evaluate to true:)
+        $(P The most basic contract is the
+        $(GLINK2 expression, AssertExpression).
+        An $(B assert) declares an expression that must evaluate to true:)
 ------
 assert(expression);
 ------
-	$(P As a contract, an $(D assert) represents a guarantee that the code
-	$(I must) uphold. Any failure of this expression represents a logic
-	error in the code that must be fixed in the source code.  A program for
-	which the assert contract is false is, by definition, invalid, and
-	therefore has undefined behaviour.)
+        $(P As a contract, an $(D assert) represents a guarantee that the code
+        $(I must) uphold. Any failure of this expression represents a logic
+        error in the code that must be fixed in the source code.  A program for
+        which the assert contract is false is, by definition, invalid, and
+        therefore has undefined behaviour.)
 
-	$(P As a debugging aid, the compiler may insert a runtime check to
-	verify that the expression is indeed true.  If it is false, an
-	`AssertError` is thrown.  When compiling for release, this check is not
-	generated.  The special $(D assert(0)) expression, however, is
-	generated even in release mode. See the $(GLINK2 expression,
-	AssertExpression) documentation for more information.)
+        $(P As a debugging aid, the compiler may insert a runtime check to
+        verify that the expression is indeed true.  If it is false, an
+        `AssertError` is thrown.  When compiling for release, this check is not
+        generated.  The special $(D assert(0)) expression, however, is
+        generated even in release mode. See the $(GLINK2 expression,
+        AssertExpression) documentation for more information.)
 
-	$(P The compiler is free to assume the assert expression is true and
-	optimize subsequent code accordingly.)
+        $(P The compiler is free to assume the assert expression is true and
+        optimize subsequent code accordingly.)
 
 $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
 
-	$(P The pre contracts specify the preconditions before a statement is executed. The most
-	typical use of this would be in validating the parameters to a function. The post
-	contracts validate the result of the statement. The most typical use of this
-	would be in validating the return value of a function and of any side effects it has.
-	The syntax is:)
+        $(P The pre contracts specify the preconditions before a statement is executed. The most
+        typical use of this would be in validating the parameters to a function. The post
+        contracts validate the result of the statement. The most typical use of this
+        would be in validating the return value of a function and of any side effects it has.
+        The syntax is:)
 
 ------
 in
@@ -85,14 +85,14 @@ do
     as a keyword in this context and as an identifier in the function body,
     although $(D do) is preferred.)
 
-	$(P By definition, if a pre contract fails, then the function received bad
-	parameters. An `AssertError` is thrown. If a post contract fails,
-	then there is a bug in the function. An `AssertError` is thrown.)
+        $(P By definition, if a pre contract fails, then the function received bad
+        parameters. An `AssertError` is thrown. If a post contract fails,
+        then there is a bug in the function. An `AssertError` is thrown.)
 
-	$(P Either the `in` or the `out` clause can be omitted.
-	If the `out` contract is for a function
-	body, the given `result` variable is declared and assigned the return
-	value of the function. For example, let's implement a square root function:)
+        $(P Either the `in` or the `out` clause can be omitted.
+        If the `out` contract is for a function
+        body, the given `result` variable is declared and assigned the return
+        value of the function. For example, let's implement a square root function:)
 
 ------
 long square_root(long x)
@@ -109,22 +109,22 @@ do
     return cast(long)std.math.sqrt(cast(real)x);
 }
 ------
-	$(P The `assert`s in the `in` and `out` bodies are called $(I contracts).
-	Any other D
-	statement or expression is allowed in the bodies, but it is important
-	to ensure that the
-	code has no side effects, and that the release version of the code
-	will not depend on any 	effects of the code.
-	For a release build of the code, the `in` and `out` code is not
-	inserted.)
+        $(P The `assert`s in the `in` and `out` bodies are called $(I contracts).
+        Any other D
+        statement or expression is allowed in the bodies, but it is important
+        to ensure that the
+        code has no side effects, and that the release version of the code
+        will not depend on any  effects of the code.
+        For a release build of the code, the `in` and `out` code is not
+        inserted.)
 
 $(H3 $(LNAME2 out_without_result, Post Contracts Without a Result Variable))
 
-	$(P If the function returns `void`, there is no result, and so there can be no
-	result variable in the `out` clause. An `out` contract can still be useful,
-	(e.g. to check a global variable or a `ref` parameter was set correctly).)
+        $(P If the function returns `void`, there is no result, and so there can be no
+        result variable in the `out` clause. An `out` contract can still be useful,
+        (e.g. to check a global variable or a `ref` parameter was set correctly).)
 
-	$(P Regardless of return type, `out` contracts don't require a result variable:)
+        $(P Regardless of return type, `out` contracts don't require a result variable:)
 ------
 void func()
 out
@@ -139,35 +139,35 @@ do
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
-	$(P If a function in a derived class overrides a function from its
-	super class, then only one of
-	the $(D in) contracts of the function and its base functions
-	must be satisfied.
-	Overriding
-	functions then becomes a process of $(I loosening) the $(D in)
-	contracts.
-	)
+        $(P If a function in a derived class overrides a function from its
+        super class, then only one of
+        the $(D in) contracts of the function and its base functions
+        must be satisfied.
+        Overriding
+        functions then becomes a process of $(I loosening) the $(D in)
+        contracts.
+        )
 
-	$(P A function without an $(D in) contract means that any values
-	of the function parameters are allowed. This implies that if any
-	function in an inheritance hierarchy has no $(D in) contract,
-	then any $(D in) contracts on functions overriding it have no useful
-	effect.
-	)
+        $(P A function without an $(D in) contract means that any values
+        of the function parameters are allowed. This implies that if any
+        function in an inheritance hierarchy has no $(D in) contract,
+        then any $(D in) contracts on functions overriding it have no useful
+        effect.
+        )
 
-	$(P Conversely, all of the $(D out) contracts need to be satisfied,
-	so overriding functions becomes a processes of $(I tightening) the
-	$(D out)
-	contracts.
-	)
+        $(P Conversely, all of the $(D out) contracts need to be satisfied,
+        so overriding functions becomes a processes of $(I tightening) the
+        $(D out)
+        contracts.
+        )
 
 $(H2 $(LNAME2 Invariants, Invariants))
 
-	$(P Invariants are used to specify characteristics of a class or struct that
-	must always be true (except while executing a member function).
-	For example, a class representing a date might have an invariant that the
-	day must be 1..31 and the hour must be 0..23:
-	)
+        $(P Invariants are used to specify characteristics of a class or struct that
+        must always be true (except while executing a member function).
+        For example, a class representing a date might have an invariant that the
+        day must be 1..31 and the hour must be 0..23:
+        )
 
 ------
 class Date
@@ -189,36 +189,36 @@ class Date
 }
 ------
 
-	$(P The invariant is a contract saying that the `assert`s must hold true.
-	The invariant is checked when a class or struct constructor completes,
-	and at the start of the class or struct destructor. For public or exported
-	functions, the order of execution is:
-	)
+        $(P The invariant is a contract saying that the `assert`s must hold true.
+        The invariant is checked when a class or struct constructor completes,
+        and at the start of the class or struct destructor. For public or exported
+        functions, the order of execution is:
+        )
 
-	$(OL
-	$(LI preconditions)
-	$(LI invariant)
-	$(LI function body)
-	$(LI invariant)
-	$(LI postconditions)
-	)
+        $(OL
+        $(LI preconditions)
+        $(LI invariant)
+        $(LI function body)
+        $(LI invariant)
+        $(LI postconditions)
+        )
 
-	$(P The invariant is not checked if the class or struct is implicitly constructed using
+        $(P The invariant is not checked if the class or struct is implicitly constructed using
         the default $(CODE .init) value.
         )
 
-	$(P The code in the invariant may not call any public non-static members
-	of the class or struct, either directly or indirectly.
-	Doing so will result in a stack overflow, as the invariant will wind
-	up being called in an infinitely recursive manner.
-	)
+        $(P The code in the invariant may not call any public non-static members
+        of the class or struct, either directly or indirectly.
+        Doing so will result in a stack overflow, as the invariant will wind
+        up being called in an infinitely recursive manner.
+        )
 
-	$(P Invariants are implicitly `const`.)
+        $(P Invariants are implicitly `const`.)
 
-	$(P Since the invariant is called at the start of public or
-	exported members, such members should not be called from
-	constructors.
-	)
+        $(P Since the invariant is called at the start of public or
+        exported members, such members should not be called from
+        constructors.
+        )
 
 ------
 class Foo
@@ -234,12 +234,12 @@ class Foo
 }
 ------
 
-	$(P The invariant can be checked with an $(CODE assert()) expression:)
+        $(P The invariant can be checked with an $(CODE assert()) expression:)
 
-	$(OL
-	$(LI classes need to pass a class object)
-	$(LI structs need to pass the address of an instance)
-	)
+        $(OL
+        $(LI classes need to pass a class object)
+        $(LI structs need to pass the address of an instance)
+        )
 
 ------
 auto mydate = new Date(); //class
@@ -249,28 +249,28 @@ assert(mydate);           // check that class Date invariant holds
 assert(&s);               // check that struct S invariant holds
 ------
 
-	$(P Invariants contain assert expressions, and so when they fail,
-	they throw $(D AssertError)s.
-	Class invariants are inherited, that is,
-	any class invariant is implicitly in addition to the invariants of its base
-	classes.)
+        $(P Invariants contain assert expressions, and so when they fail,
+        they throw $(D AssertError)s.
+        Class invariants are inherited, that is,
+        any class invariant is implicitly in addition to the invariants of its base
+        classes.)
 
-	$(P There can be more than one invariant declared per class or struct.)
+        $(P There can be more than one invariant declared per class or struct.)
 
-	$(P When compiling for release, the invariant code is not generated, and the compiled program runs at maximum speed.
-	The compiler is free to assume the invariant holds true, regardless of whether code is generated for it or not, and
-	may optimize code accordingly.)
+        $(P When compiling for release, the invariant code is not generated, and the compiled program runs at maximum speed.
+        The compiler is free to assume the invariant holds true, regardless of whether code is generated for it or not, and
+        may optimize code accordingly.)
 
 $(H2 $(LNAME2 references, References))
 
-	$(LIST
-	$(LINK2 https://web.archive.org/web/20080919174640/http://people.cs.uchicago.edu/~robby/contract-reading-list/, Contracts Reading List),
-	$(LINK2 http://jan.newmarch.name/java/contracts/paper-long.html, Adding Contracts to Java)
-	)
+        $(LIST
+        $(LINK2 https://web.archive.org/web/20080919174640/http://people.cs.uchicago.edu/~robby/contract-reading-list/, Contracts Reading List),
+        $(LINK2 http://jan.newmarch.name/java/contracts/paper-long.html, Adding Contracts to Java)
+        )
 
 $(SPEC_SUBNAV_PREV_NEXT template-mixin, Template Mixins, version, Conditional Compilation)
 )
 
 Macros:
-	CHAPTER=23
-	TITLE=Contract Programming
+        CHAPTER=23
+        TITLE=Contract Programming

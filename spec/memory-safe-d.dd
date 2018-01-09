@@ -6,48 +6,48 @@ $(SPEC_HEADERNAV_TOC)
 
     $(HTMLTAG3 img, src="$(ROOT_DIR)images/dman-rain.jpg" align="right" alt="D-Man in rain" height="200")
 
-	$(P $(I Memory Safety) for a program is defined as it being
-	impossible for the program to corrupt memory.
-	Therefore, the safe subset of D consists only of programming
-	language features that are guaranteed to never result in memory
-	corruption. See $(LINK2 $(ROOT_DIR)safed.html, this article) for a
-	rationale.
-	)
+        $(P $(I Memory Safety) for a program is defined as it being
+        impossible for the program to corrupt memory.
+        Therefore, the safe subset of D consists only of programming
+        language features that are guaranteed to never result in memory
+        corruption. See $(LINK2 $(ROOT_DIR)safed.html, this article) for a
+        rationale.
+        )
 
-	$(P Memory-safe code $(DDSUBLINK spec/function, function-safety, cannot
-	use certain language features), such as:)
-		$(UL
-			$(LI Casts that break the type system.)
-			$(LI Modification of pointer values.)
-			$(LI Taking the address of a local variable or function parameter.)
-		)
+        $(P Memory-safe code $(DDSUBLINK spec/function, function-safety, cannot
+        use certain language features), such as:)
+                $(UL
+                        $(LI Casts that break the type system.)
+                        $(LI Modification of pointer values.)
+                        $(LI Taking the address of a local variable or function parameter.)
+                )
 
 $(H2 $(LNAME2 usage, Usage))
 
-	$(P Memory safety can be enabled on a per-function basis using
-	the $(DDSUBLINK spec/function, safe-functions, $(D @safe) attribute).
-	This can be inferred when the compiler has the function body
-	available. The $(DDSUBLINK spec/function, trusted-functions, `@trusted` attribute) can be used when a function has a safe
-	interface, but uses unsafe code internally. These functions can
-	be called from $(D @safe) code.
-	)
+        $(P Memory safety can be enabled on a per-function basis using
+        the $(DDSUBLINK spec/function, safe-functions, $(D @safe) attribute).
+        This can be inferred when the compiler has the function body
+        available. The $(DDSUBLINK spec/function, trusted-functions, `@trusted` attribute) can be used when a function has a safe
+        interface, but uses unsafe code internally. These functions can
+        be called from $(D @safe) code.
+        )
 
-	$(P Array bounds checks are necessary to enforce memory safety, so
-	these are enabled (by default) for $(D @safe) code even in $(B
-	-release) mode.
-	)
+        $(P Array bounds checks are necessary to enforce memory safety, so
+        these are enabled (by default) for $(D @safe) code even in $(B
+        -release) mode.
+        )
 
 $(H2 $(LNAME2 limitations, Limitations))
 
-	$(P Memory safety does not imply that code is portable, uses only
-	sound programming practices, is free of byte order dependencies,
-	or other bugs. It is focussed only on eliminating memory corruption
-	possibilities.
-	)
+        $(P Memory safety does not imply that code is portable, uses only
+        sound programming practices, is free of byte order dependencies,
+        or other bugs. It is focussed only on eliminating memory corruption
+        possibilities.
+        )
 
 $(SPEC_SUBNAV_PREV_NEXT entity, Named Character Entities, abi, Application Binary Interface)
 )
 
 Macros:
     CHAPTER=37
-	TITLE=Memory-Safe-D-Spec
+        TITLE=Memory-Safe-D-Spec
