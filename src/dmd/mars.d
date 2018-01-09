@@ -1696,53 +1696,46 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         if (num == uint.max)
                             goto Lerror;
 
+                        string generateTransitionsNumbers()
+                        {
+                            import dmd.cli : Usage;
+                            string buf;
+                            foreach (t; Usage.transitions)
+                            {
+                                if (t.bugzillaNumber !is null)
+                                    buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                            }
+                            return buf;
+                        }
+
                         // Bugzilla issue number
                         switch (num)
                         {
-                        case 3449:
-                            params.vfield = true;
-                            break;
-                        case 10378:
-                            params.bug10378 = true;
-                            break;
-                        case 14488:
-                            params.vcomplex = true;
-                            break;
-                        case 16997:
-                            params.fix16997 = true;
-                            break;
+                        mixin(generateTransitionsNumbers());
                         default:
                             goto Lerror;
                         }
                     }
                     else if (Identifier.isValidIdentifier(p + 12))
                     {
+                        string generateTransitionsText()
+                        {
+                            import dmd.cli : Usage;
+                            string buf = `case "all":`;
+                            foreach (t; Usage.transitions)
+                                buf ~= `params.`~t.paramName~` = true;`;
+                            buf ~= "break;";
+
+                            foreach (t; Usage.transitions)
+                            {
+                                buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                            }
+                            return buf;
+                        }
                         const ident = p + 12;
                         switch (ident[0 .. strlen(ident)])
                         {
-                        case "all":
-                            params.vtls = true;
-                            params.vfield = true;
-                            params.vcomplex = true;
-                            break;
-                        case "checkimports":
-                            params.check10378 = true;
-                            break;
-                        case "complex":
-                            params.vcomplex = true;
-                            break;
-                        case "field":
-                            params.vfield = true;
-                            break;
-                        case "import":
-                            params.bug10378 = true;
-                            break;
-                        case "intpromote":
-                            params.fix16997 = true;
-                            break;
-                        case "tls":
-                            params.vtls = true;
-                            break;
+                        mixin(generateTransitionsText());
                         default:
                             goto Lerror;
                         }
