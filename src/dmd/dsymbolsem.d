@@ -383,7 +383,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("storage_class = x%x\n", storage_class);
 
         if (global.params.vcomplex)
-            dsym.type.checkComplexTransition(dsym.loc);
+            dsym.type.checkComplexTransition(dsym.loc, sc);
 
         // Calculate type size + safety checks
         if (sc.func && !sc.intypeof)

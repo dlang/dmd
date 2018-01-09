@@ -310,20 +310,9 @@ extern (C++) class Dsymbol : RootObject
         if (global.params.useDeprecated != 1 && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
-            for (Dsymbol sp = sc.parent; sp; sp = sp.parent)
-            {
-                if (sp.isDeprecated())
-                    return false;
-            }
-            for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
-            {
-                if (sc2.scopesym && sc2.scopesym.isDeprecated())
-                    return false;
+            if (sc.isDeprecated())
+                return false;
 
-                // If inside a StorageClassDeclaration that is deprecated
-                if (sc2.stc & STC.deprecated_)
-                    return false;
-            }
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
             {

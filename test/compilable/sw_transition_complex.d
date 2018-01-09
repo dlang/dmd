@@ -141,3 +141,16 @@ struct S;
 void test14488c(E *e, S *s)
 {
 }
+
+// Issue 18212 - Usage of cfloat,cdouble,cfloat,ifloat,idouble,ireal shouldn't trigger an error in deprecated code
+deprecated void test18212(creal c){}
+deprecated unittest
+{
+    ireal = 2i;
+    creal = 2 + 3i;
+}
+deprecated struct Foo
+{
+    ifloat a = 2i;
+    cfloat b = 2f + 2i;
+}

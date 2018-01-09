@@ -3009,16 +3009,20 @@ extern (C++) abstract class Type : RootObject
      * Should only give alerts when set to emit transitional messages.
      * Params:
      *  loc = The source location.
+     *  sc = scope of the type
      */
-    final void checkComplexTransition(Loc loc)
+    final bool checkComplexTransition(Loc loc, Scope* sc)
     {
+        if (sc.isDeprecated())
+            return false;
+
         Type t = baseElemOf();
         while (t.ty == Tpointer || t.ty == Tarray)
             t = t.nextOf().baseElemOf();
 
         // Basetype is an opaque enum, nothing to check.
         if (t.ty == Tenum && !(cast(TypeEnum)t).sym.memtype)
-            return;
+            return false;
 
         if (t.isimaginary() || t.iscomplex())
         {
@@ -3047,13 +3051,16 @@ extern (C++) abstract class Type : RootObject
             {
                 deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
                     toChars(), rt.toChars());
+                return true;
             }
             else
             {
                 deprecation(loc, "use of imaginary type `%s` is deprecated, use `%s` instead",
                     toChars(), rt.toChars());
+                return true;
             }
         }
+        return false;
     }
 
     static void error(Loc loc, const(char)* format, ...)
