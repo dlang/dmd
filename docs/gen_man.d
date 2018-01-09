@@ -79,9 +79,14 @@ string bold(string w)
 void main()
 {
     import std.algorithm, std.array, std.conv, std.datetime, std.range, std.stdio, std.uni;
+    import std.process : environment;
     import dmd.cli;
 
     auto now = Clock.currTime;
+    auto diffable = environment.get("DIFFABLE", "0");
+    if (diffable == "1")
+        now = SysTime(DateTime(2018, 01, 01));
+
     writefln(header, now.toISOExtString.take(10));
 
     foreach (option; Usage.options)

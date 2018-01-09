@@ -13,6 +13,9 @@ include ../src/osmodel.mak
 BUILD=release
 G_BIN=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 
+# Removes inclusion of all dynamic content and timestamps
+export DIFFABLE
+
 ################################################################################
 # Main targets
 ################################################################################
