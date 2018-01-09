@@ -2498,7 +2498,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
     }
     if (inCode)
-        error(s ? s.loc : Loc(), "unmatched --- in DDoc comment");
+        error(s ? s.loc : Loc(), "unmatched `---` in DDoc comment");
 }
 
 /**************************************************
