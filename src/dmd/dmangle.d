@@ -827,7 +827,7 @@ public:
                     }
                     if (!d.type || !d.type.deco)
                     {
-                        ti.error("forward reference of %s %s", d.kind(), d.toChars());
+                        ti.error("forward reference of %s `%s`", d.kind(), d.toChars());
                         continue;
                     }
                 }
@@ -866,7 +866,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Expression e)
     {
-        e.error("expression %s is not a valid template value argument", e.toChars());
+        e.error("expression `%s` is not a valid template value argument", e.toChars());
     }
 
     override void visit(IntegerExp e)
