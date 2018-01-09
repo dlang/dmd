@@ -2221,11 +2221,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!f || f.errors)
                     return setError();
 
-                exp.checkDeprecated(sc, f);
-                exp.checkDisabled(sc, f);
-                exp.checkPurity(sc, f);
-                exp.checkSafety(sc, f);
-                exp.checkNogc(sc, f);
+                checkFunctionAttributes(exp, sc, f);
                 checkAccess(cd, exp.loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -2251,11 +2247,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!f || f.errors)
                     return setError();
 
-                exp.checkDeprecated(sc, f);
-                exp.checkDisabled(sc, f);
-                exp.checkPurity(sc, f);
-                exp.checkSafety(sc, f);
-                exp.checkNogc(sc, f);
+                checkFunctionAttributes(exp, sc, f);
                 checkAccess(cd, exp.loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -2303,11 +2295,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!f || f.errors)
                     return setError();
 
-                exp.checkDeprecated(sc, f);
-                exp.checkDisabled(sc, f);
-                exp.checkPurity(sc, f);
-                exp.checkSafety(sc, f);
-                exp.checkNogc(sc, f);
+                checkFunctionAttributes(exp, sc, f);
                 checkAccess(sd, exp.loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -2333,11 +2321,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!f || f.errors)
                     return setError();
 
-                exp.checkDeprecated(sc, f);
-                exp.checkDisabled(sc, f);
-                exp.checkPurity(sc, f);
-                exp.checkSafety(sc, f);
-                exp.checkNogc(sc, f);
+                checkFunctionAttributes(exp, sc, f);
                 checkAccess(sd, exp.loc, sc, f);
 
                 TypeFunction tf = cast(TypeFunction)f.type;
@@ -3196,11 +3180,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            exp.checkDeprecated(sc, exp.f);
-            exp.checkDisabled(sc, exp.f);
-            exp.checkPurity(sc, exp.f);
-            exp.checkSafety(sc, exp.f);
-            exp.checkNogc(sc, exp.f);
+            checkFunctionAttributes(exp, sc, exp.f);
             checkAccess(exp.loc, sc, ue.e1, exp.f);
             if (!exp.f.needThis())
             {
@@ -3300,11 +3280,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!exp.f || exp.f.errors)
                 return setError();
 
-            exp.checkDeprecated(sc, exp.f);
-            exp.checkDisabled(sc, exp.f);
-            exp.checkPurity(sc, exp.f);
-            exp.checkSafety(sc, exp.f);
-            exp.checkNogc(sc, exp.f);
+            checkFunctionAttributes(exp, sc, exp.f);
             checkAccess(exp.loc, sc, null, exp.f);
 
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
@@ -3341,11 +3317,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!exp.f || exp.f.errors)
                 return setError();
 
-            exp.checkDeprecated(sc, exp.f);
-            exp.checkDisabled(sc, exp.f);
-            exp.checkPurity(sc, exp.f);
-            exp.checkSafety(sc, exp.f);
-            exp.checkNogc(sc, exp.f);
+            checkFunctionAttributes(exp, sc, exp.f);
             //checkAccess(loc, sc, NULL, f);    // necessary?
 
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
@@ -3569,11 +3541,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
 
-            exp.checkDeprecated(sc, exp.f);
-            exp.checkDisabled(sc, exp.f);
-            exp.checkPurity(sc, exp.f);
-            exp.checkSafety(sc, exp.f);
-            exp.checkNogc(sc, exp.f);
+            checkFunctionAttributes(exp, sc, exp.f);
             checkAccess(exp.loc, sc, null, exp.f);
             if (exp.f.checkNestedReference(sc, exp.loc))
                 return setError();
@@ -10058,4 +10026,28 @@ private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
         }
     }
     return true;
+}
+
+/*******************************
+ * Checks the attributes of a function.
+ * Purity (`pure`), safety (`@safe`), no GC allocations(`@nogc`)
+ * and usage of `deprecated` and `@disabled`-ed symbols are checked.
+ *
+ * Params:
+ *  exp = expression to check attributes for
+ *  sc  = scope of the function
+ *  f   = function to be checked
+ * Returns: `true` if error occur.
+ */
+private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration f)
+{
+    with(exp)
+    {
+        bool error = checkDisabled(sc, f);
+        error |= checkDeprecated(sc, f);
+        error |= checkPurity(sc, f);
+        error |= checkSafety(sc, f);
+        error |= checkNogc(sc, f);
+        return error;
+    }
 }
