@@ -570,9 +570,12 @@ int tryMain(string[] args)
 
     auto f = File(output_file, "a");
 
-    foreach (i, c; combinations(testArgs.permuteArgs))
+    enum Result { continue_, return0, return1 }
+
+    // Runs the test with a specific combination of arguments
+    Result testCombination(size_t permuteIndex, string permutedArgs)
     {
-        string test_app_dmd = test_app_dmd_base ~ to!string(i) ~ envData.exe;
+        string test_app_dmd = test_app_dmd_base ~ to!string(permuteIndex) ~ envData.exe;
 
         try
         {
@@ -601,11 +604,11 @@ int tryMain(string[] args)
             string compile_output;
             if (!testArgs.compileSeparately)
             {
-                string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
+                string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(permuteIndex) ~ envData.obj;
                 toCleanup ~= objfile;
 
                 string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
-                        reqArgs, c, output_dir,
+                        reqArgs, permutedArgs, output_dir,
                         (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
                         (testArgs.mode == TestMode.RUN ? "" : "-c "),
                         join(testArgs.sources, " "));
@@ -621,7 +624,7 @@ int tryMain(string[] args)
                     toCleanup ~= newo;
 
                     string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, c, output_dir, filename);
+                        reqArgs, permutedArgs, output_dir, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
@@ -655,8 +658,8 @@ int tryMain(string[] args)
                 version(Windows)
                     if (msc)
                     {
-                        toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".ilk";
-                        toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".pdb";
+                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
+                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
                     }
 
                 if (testArgs.gdbScript is null)
@@ -668,7 +671,7 @@ int tryMain(string[] args)
                 }
                 else version (linux)
                 {
-                    auto script = test_app_dmd_base ~ to!string(i) ~ ".gdb";
+                    auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
                     toCleanup ~= script;
                     with (File(script, "w"))
                     {
@@ -696,12 +699,13 @@ int tryMain(string[] args)
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
+            return Result.continue_;
         }
         catch(Exception e)
         {
             // it failed but it was disabled, exit as if it was successful
             if (testArgs.disabled)
-                return 0;
+                return Result.return0;
 
             f.writeln();
             f.writeln("==============================");
@@ -711,7 +715,16 @@ int tryMain(string[] args)
             writeln("Test failed.  The logged output:");
             writeln(cast(string)std.file.read(output_file));
             std.file.remove(output_file);
-            return 1;
+            return Result.return1;
+        }
+    }
+    foreach (i, c; combinations(testArgs.permuteArgs))
+    {
+        final switch(testCombination(i, c))
+        {
+            case Result.continue_: break;
+            case Result.return0: return 0;
+            case Result.return1: return 1;
         }
     }
 
