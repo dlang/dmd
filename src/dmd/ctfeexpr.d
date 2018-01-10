@@ -259,11 +259,11 @@ extern (C++) bool needToCopyLiteral(Expression expr)
         switch (expr.op)
         {
         case TOKarrayliteral:
-            return (cast(ArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            return (cast(ArrayLiteralExp)expr).ownedByCtfe == OwnedBy.code;
         case TOKassocarrayliteral:
-            return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            return (cast(AssocArrayLiteralExp)expr).ownedByCtfe == OwnedBy.code;
         case TOKstructliteral:
-            return (cast(StructLiteralExp)expr).ownedByCtfe == OWNEDcode;
+            return (cast(StructLiteralExp)expr).ownedByCtfe == OwnedBy.code;
         case TOKstring:
         case TOKthis:
         case TOKvar:
@@ -322,7 +322,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
         se2.postfix = se.postfix;
         se2.type = se.type;
         se2.sz = se.sz;
-        se2.ownedByCtfe = OWNEDctfe;
+        se2.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
     if (e.op == TOKarrayliteral)
@@ -335,7 +335,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
 
         ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
         r.type = e.type;
-        r.ownedByCtfe = OWNEDctfe;
+        r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
     if (e.op == TOKassocarrayliteral)
@@ -344,7 +344,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
         emplaceExp!(AssocArrayLiteralExp)(&ue, e.loc, copyLiteralArray(aae.keys), copyLiteralArray(aae.values));
         AssocArrayLiteralExp r = cast(AssocArrayLiteralExp)ue.exp();
         r.type = e.type;
-        r.ownedByCtfe = OWNEDctfe;
+        r.ownedByCtfe = OwnedBy.ctfe;
         return ue;
     }
     if (e.op == TOKstructliteral)
@@ -389,7 +389,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
         emplaceExp!(StructLiteralExp)(&ue, e.loc, sle.sd, newelems, sle.stype);
         auto r = cast(StructLiteralExp)ue.exp();
         r.type = e.type;
-        r.ownedByCtfe = OWNEDctfe;
+        r.ownedByCtfe = OwnedBy.ctfe;
         r.origin = (cast(StructLiteralExp)e).origin;
         return ue;
     }
@@ -417,7 +417,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             assert(ue.exp().op == TOKarrayliteral);
             ArrayLiteralExp r = cast(ArrayLiteralExp)ue.exp();
             r.elements = copyLiteralArray(r.elements);
-            r.ownedByCtfe = OWNEDctfe;
+            r.ownedByCtfe = OwnedBy.ctfe;
             return ue;
         }
         else
@@ -607,7 +607,7 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type typ
     }
     auto ale = new ArrayLiteralExp(loc, elements);
     ale.type = type;
-    ale.ownedByCtfe = OWNEDctfe;
+    ale.ownedByCtfe = OwnedBy.ctfe;
     return ale;
 }
 
@@ -639,7 +639,7 @@ extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, dc
     se.type = type;
     se.sz = sz;
     se.committed = true;
-    se.ownedByCtfe = OWNEDctfe;
+    se.ownedByCtfe = OwnedBy.ctfe;
     return se;
 }
 
@@ -1592,9 +1592,9 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
     if (CTFEExp.isCantExp(r))
         error(loc, "cannot cast `%s` to `%s` at compile time", e.toChars(), to.toChars());
     if (e.op == TOKarrayliteral)
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDctfe;
+        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.ctfe;
     if (e.op == TOKstring)
-        (cast(StringExp)e).ownedByCtfe = OWNEDctfe;
+        (cast(StringExp)e).ownedByCtfe = OwnedBy.ctfe;
     return r;
 }
 
@@ -1736,7 +1736,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
         se.type = arrayType;
         se.sz = oldse.sz;
         se.committed = oldse.committed;
-        se.ownedByCtfe = OWNEDctfe;
+        se.ownedByCtfe = OwnedBy.ctfe;
     }
     else
     {
@@ -1763,7 +1763,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
         emplaceExp!(ArrayLiteralExp)(&ue, loc, elements);
         ArrayLiteralExp aae = cast(ArrayLiteralExp)ue.exp();
         aae.type = arrayType;
-        aae.ownedByCtfe = OWNEDctfe;
+        aae.ownedByCtfe = OwnedBy.ctfe;
     }
     return ue;
 }
@@ -1990,7 +1990,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         emplaceExp!(ArrayLiteralExp)(&ue, var.loc, elements);
         ArrayLiteralExp ae = cast(ArrayLiteralExp)ue.exp();
         ae.type = tsa;
-        ae.ownedByCtfe = OWNEDctfe;
+        ae.ownedByCtfe = OwnedBy.ctfe;
     }
     else if (t.ty == Tstruct)
     {
@@ -2004,7 +2004,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         emplaceExp!(StructLiteralExp)(&ue, var.loc, ts.sym, exps);
         StructLiteralExp se = cast(StructLiteralExp)ue.exp();
         se.type = ts;
-        se.ownedByCtfe = OWNEDctfe;
+        se.ownedByCtfe = OwnedBy.ctfe;
     }
     else
         emplaceExp!(VoidInitExp)(&ue, var, t);

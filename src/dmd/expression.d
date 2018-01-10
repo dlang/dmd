@@ -1520,14 +1520,10 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
 
 enum OwnedBy : int
 {
-    OWNEDcode,          // normal code expression in AST
-    OWNEDctfe,          // value expression for CTFE
-    OWNEDcache,         // constant value cached for CTFE
+    code,          // normal code expression in AST
+    ctfe,          // value expression for CTFE
+    cache,         // constant value cached for CTFE
 }
-
-alias OWNEDcode = OwnedBy.OWNEDcode;
-alias OWNEDctfe = OwnedBy.OWNEDctfe;
-alias OWNEDcache = OwnedBy.OWNEDcache;
 
 enum WANTvalue  = 0;    // default
 enum WANTexpand = 1;    // expand const/immutable variables if possible
@@ -2990,12 +2986,12 @@ extern (C++) final class StringExp : Expression
         char* string;   // if sz == 1
         wchar* wstring; // if sz == 2
         dchar* dstring; // if sz == 4
-    }                   // (const if ownedByCtfe == OWNEDcode)
+    }                   // (const if ownedByCtfe == OwnedBy.code)
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
     ubyte committed;    // !=0 if type is committed
     char postfix = 0;   // 'c', 'w', 'd'
-    OwnedBy ownedByCtfe = OWNEDcode;
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(Loc loc, char* string)
     {
@@ -3460,7 +3456,7 @@ extern (C++) final class ArrayLiteralExp : Expression
     Expression basis;
 
     Expressions* elements;
-    OwnedBy ownedByCtfe = OWNEDcode;
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(Loc loc, Expressions* elements)
     {
@@ -3649,7 +3645,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     Expressions* keys;
     Expressions* values;
 
-    OwnedBy ownedByCtfe = OWNEDcode;
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(Loc loc, Expressions* keys, Expressions* values)
     {
@@ -3722,7 +3718,7 @@ extern (C++) final class StructLiteralExp : Expression
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     Symbol* sym;            /// back end symbol to initialize with literal
 
-    OwnedBy ownedByCtfe = OWNEDcode;
+    OwnedBy ownedByCtfe = OwnedBy.code;
 
     /** pointer to the origin instance of the expression.
      * once a new expression is created, origin is set to 'this'.
