@@ -38,7 +38,7 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt MS-Coff object module %s %d", module_name, reason);
+        error(loc, "corrupt MS-Coff object module `%s` %d", module_name, reason);
     }
 
     const buf = base.ptr;
@@ -73,16 +73,16 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) pAddSymb
         break;
     default:
         if (buf[0] == 0x80)
-            error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+            error(loc, "Object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
         else
-            error(loc, "MS-Coff object module %s has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+            error(loc, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
         return;
     }
     // Get string table:  string_table[0..string_len]
     size_t off = header.PointerToSymbolTable;
     if (off == 0)
     {
-        error(loc, "MS-Coff object module %s has no string table", module_name);
+        error(loc, "MS-Coff object module `%s` has no string table", module_name);
         return;
     }
     off += header.NumberOfSymbols * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
