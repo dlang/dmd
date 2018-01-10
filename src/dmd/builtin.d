@@ -340,10 +340,10 @@ public extern (C++) void builtin_init()
  */
 public extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
 {
-    if (fd.builtin == BUILTINunknown)
+    if (fd.builtin == BUILTIN.unknown)
     {
         builtin_fp fp = builtin_lookup(mangleExact(fd));
-        fd.builtin = fp ? BUILTINyes : BUILTINno;
+        fd.builtin = fp ? BUILTIN.yes : BUILTIN.no;
     }
     return fd.builtin;
 }
@@ -354,7 +354,7 @@ public extern (C++) BUILTIN isBuiltin(FuncDeclaration fd)
  */
 public extern (C++) Expression eval_builtin(Loc loc, FuncDeclaration fd, Expressions* arguments)
 {
-    if (fd.builtin == BUILTINyes)
+    if (fd.builtin == BUILTIN.yes)
     {
         builtin_fp fp = builtin_lookup(mangleExact(fd));
         assert(fp);

@@ -62,14 +62,10 @@ alias ILSyes = ILS.ILSyes;
 
 enum BUILTIN : int
 {
-    BUILTINunknown = -1,    /// not known if this is a builtin
-    BUILTINno,              /// this is not a builtin
-    BUILTINyes,             /// this is a builtin
+    unknown = -1,    /// not known if this is a builtin
+    no,              /// this is not a builtin
+    yes,             /// this is a builtin
 }
-
-alias BUILTINunknown = BUILTIN.BUILTINunknown;
-alias BUILTINno = BUILTIN.BUILTINno;
-alias BUILTINyes = BUILTIN.BUILTINyes;
 
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
@@ -236,7 +232,7 @@ extern (C++) class FuncDeclaration : Declaration
     GotoStatements* gotos;              /// Gotos with forward references
 
     /// set if this is a known, builtin function we can evaluate at compile time
-    BUILTIN builtin = BUILTINunknown;
+    BUILTIN builtin = BUILTIN.unknown;
 
     /// set if someone took the address of this function
     int tookAddressOf;
