@@ -45,24 +45,16 @@ struct ASTBase
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
 
-    enum PROTKIND : int
+    enum Protection : int
     {
-        PROTundefined,
-        PROTnone,
-        PROTprivate,
-        PROTpackage,
-        PROTprotected,
-        PROTpublic,
-        PROTexport,
+        undefined,
+        none,
+        private_,
+        package_,
+        protected_,
+        public_,
+        export_,
     }
-
-    alias PROTprivate       = PROTKIND.PROTprivate;
-    alias PROTpackage       = PROTKIND.PROTpackage;
-    alias PROTprotected     = PROTKIND.PROTprotected;
-    alias PROTpublic        = PROTKIND.PROTpublic;
-    alias PROTexport        = PROTKIND.PROTexport;
-    alias PROTundefined     = PROTKIND.PROTundefined;
-    alias PROTnone          = PROTKIND.PROTnone;
 
     enum Sizeok : int
     {
@@ -528,7 +520,7 @@ struct ASTBase
         {
             super(id);
             storage_class = STC.undefined_;
-            protection = Prot(PROTundefined);
+            protection = Prot(Protection.undefined);
             linkage = LINKdefault;
         }
 
@@ -577,7 +569,7 @@ struct ASTBase
             this.id = id;
             this.aliasId = aliasId;
             this.isstatic = isstatic;
-            this.protection = Prot(PROTprivate);
+            this.protection = Prot(Protection.private_);
 
             if (aliasId)
             {
@@ -1040,7 +1032,7 @@ struct ASTBase
             this.loc = loc;
             type = new TypeEnum(this);
             this.memtype = memtype;
-            protection = Prot(PROTundefined);
+            protection = Prot(Protection.undefined);
         }
 
         override void accept(Visitor v)
@@ -1059,7 +1051,7 @@ struct ASTBase
         {
             super(id);
             this.loc = loc;
-            protection = Prot(PROTpublic);
+            protection = Prot(Protection.public_);
             sizeok = Sizeok.none;
         }
 
@@ -1095,7 +1087,7 @@ struct ASTBase
             this.literal = literal;
             this.ismixin = ismixin;
             this.isstatic = true;
-            this.protection = Prot(PROTundefined);
+            this.protection = Prot(Protection.undefined);
 
             if (members && ident)
             {
@@ -1343,7 +1335,7 @@ struct ASTBase
         {
             super(decl);
             this.loc = loc;
-            this.protection.kind = PROTpackage;
+            this.protection.kind = Protection.package_;
             this.protection.pkg = null;
             this.pkg_identifiers = pkg_identifiers;
         }
@@ -6164,7 +6156,7 @@ struct ASTBase
 
     struct Prot
     {
-        PROTKIND kind;
+        Protection kind;
         Package pkg;
     }
 
@@ -6197,26 +6189,24 @@ struct ASTBase
 
 
 
-    extern (C++) static const(char)* protectionToChars(PROTKIND kind)
+    extern (C++) static const(char)* protectionToChars(Protection kind)
     {
-        switch (kind)
+        final switch (kind)
         {
-        case PROTundefined:
+        case Protection.undefined:
             return null;
-        case PROTnone:
+        case Protection.none:
             return "none";
-        case PROTprivate:
+        case Protection.private_:
             return "private";
-        case PROTpackage:
+        case Protection.package_:
             return "package";
-        case PROTprotected:
+        case Protection.protected_:
             return "protected";
-        case PROTpublic:
+        case Protection.public_:
             return "public";
-        case PROTexport:
+        case Protection.export_:
             return "export";
-        default:
-            assert(0);
         }
     }
 
