@@ -291,14 +291,10 @@ struct ASTBase
 
     enum StructPOD : int
     {
-        ISPODno,    // struct is not POD
-        ISPODyes,   // struct is POD
-        ISPODfwd,   // POD not yet computed
+        no,    // struct is not POD
+        yes,   // struct is POD
+        fwd,   // POD not yet computed
     }
-
-    alias ISPODno = StructPOD.ISPODno;
-    alias ISPODyes = StructPOD.ISPODyes;
-    alias ISPODfwd = StructPOD.ISPODfwd;
 
     enum TRUST : int
     {
@@ -1515,7 +1511,7 @@ struct ASTBase
         {
             super(loc, id);
             zeroInit = 0;
-            ispod = ISPODfwd;
+            ispod = StructPOD.fwd;
             type = new TypeStruct(this);
             if (inObject)
             {

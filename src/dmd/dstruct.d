@@ -216,14 +216,10 @@ struct StructFlags
 
 enum StructPOD : int
 {
-    ISPODno,    // struct is not POD
-    ISPODyes,   // struct is POD
-    ISPODfwd,   // POD not yet computed
+    no,    // struct is not POD
+    yes,   // struct is POD
+    fwd,   // POD not yet computed
 }
-
-alias ISPODno = StructPOD.ISPODno;
-alias ISPODyes = StructPOD.ISPODyes;
-alias ISPODfwd = StructPOD.ISPODfwd;
 
 /***********************************************************
  * All `struct` declarations are an instance of this.
@@ -258,7 +254,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         super(loc, id);
         zeroInit = 0; // assume false until we do semantic processing
-        ispod = ISPODfwd;
+        ispod = StructPOD.fwd;
         // For forward references
         type = new TypeStruct(this);
 
@@ -540,13 +536,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final bool isPOD()
     {
         // If we've already determined whether this struct is POD.
-        if (ispod != ISPODfwd)
-            return (ispod == ISPODyes);
+        if (ispod != StructPOD.fwd)
+            return (ispod == StructPOD.yes);
 
-        ispod = ISPODyes;
+        ispod = StructPOD.yes;
 
         if (enclosing || postblit || dtor)
-            ispod = ISPODno;
+            ispod = StructPOD.no;
 
         // Recursively check all fields are POD.
         for (size_t i = 0; i < fields.dim; i++)
@@ -554,7 +550,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             VarDeclaration v = fields[i];
             if (v.storage_class & STC.ref_)
             {
-                ispod = ISPODno;
+                ispod = StructPOD.no;
                 break;
             }
 
@@ -565,13 +561,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 StructDeclaration sd = ts.sym;
                 if (!sd.isPOD())
                 {
-                    ispod = ISPODno;
+                    ispod = StructPOD.no;
                     break;
                 }
             }
         }
 
-        return (ispod == ISPODyes);
+        return (ispod == StructPOD.yes);
     }
 
     override final inout(StructDeclaration) isStructDeclaration() inout
