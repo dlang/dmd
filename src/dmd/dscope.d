@@ -92,24 +92,27 @@ enum CSXany_ctor        = 0x40;     /// either this() or super() was called
 enum CSXhalt            = 0x80;     /// assert(0)
 
 // Flags that would not be inherited beyond scope nesting
-enum SCOPEctor          = 0x0001;   /// constructor type
-enum SCOPEcondition     = 0x0004;   /// inside static if/assert condition
-enum SCOPEdebug         = 0x0008;   /// inside debug conditional
+enum SCOPE
+{
+    ctor          = 0x0001,   /// constructor type
+    condition     = 0x0004,   /// inside static if/assert condition
+    debug_        = 0x0008,   /// inside debug conditional
 
-// Flags that would be inherited beyond scope nesting
-enum SCOPEnoaccesscheck = 0x0002;   /// don't do access checks
-enum SCOPEconstraint    = 0x0010;   /// inside template constraint
-enum SCOPEinvariant     = 0x0020;   /// inside invariant code
-enum SCOPErequire       = 0x0040;   /// inside in contract code
-enum SCOPEensure        = 0x0060;   /// inside out contract code
-enum SCOPEcontract      = 0x0060;   /// [mask] we're inside contract code
-enum SCOPEctfe          = 0x0080;   /// inside a ctfe-only expression
-enum SCOPEcompile       = 0x0100;   /// inside __traits(compile)
-enum SCOPEignoresymbolvisibility    = 0x0200;   /// ignore symbol visibility
-                                                /// https://issues.dlang.org/show_bug.cgi?id=15907
-enum SCOPEfree          = 0x8000;   /// is on free list
+    // Flags that would be inherited beyond scope nesting
+    noaccesscheck = 0x0002,   /// don't do access checks
+    constraint    = 0x0010,   /// inside template constraint
+    invariant_    = 0x0020,   /// inside invariant code
+    require       = 0x0040,   /// inside in contract code
+    ensure        = 0x0060,   /// inside out contract code
+    contract      = 0x0060,   /// [mask] we're inside contract code
+    ctfe          = 0x0080,   /// inside a ctfe-only expression
+    compile       = 0x0100,   /// inside __traits(compile)
+    ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
+                                          /// https://issues.dlang.org/show_bug.cgi?id=15907
+    free          = 0x8000,   /// is on free list
 
-enum SCOPEfullinst      = 0x10000;  /// fully instantiate templates
+    fullinst      = 0x10000,  /// fully instantiate templates
+}
 
 struct Scope
 {
