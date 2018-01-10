@@ -317,7 +317,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.fes = funcdecl.fes;
             sc2.linkage = LINKd;
             sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
-            sc2.protection = Prot(PROTpublic);
+            sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
             if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)

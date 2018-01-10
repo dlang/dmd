@@ -816,7 +816,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
              */
             Scope* argsc = sc.push();
             argsc.stc = 0; // don't inherit storage class
-            argsc.protection = Prot(PROTpublic);
+            argsc.protection = Prot(Prot.Kind.public_);
             argsc.func = null;
 
             size_t dim = Parameter.dim(tf.parameters);

@@ -502,10 +502,10 @@ private:
             {
                 switch (d.protection.kind)
                 {
-                case PROTprivate:
+                case Prot.Kind.private_:
                     buf.writeByte('E');
                     break;
-                case PROTprotected:
+                case Prot.Kind.protected_:
                     buf.writeByte('M');
                     break;
                 default:
@@ -517,10 +517,10 @@ private:
             {
                 switch (d.protection.kind)
                 {
-                case PROTprivate:
+                case Prot.Kind.private_:
                     buf.writeByte('A');
                     break;
-                case PROTprotected:
+                case Prot.Kind.protected_:
                     buf.writeByte('I');
                     break;
                 default:
@@ -544,10 +544,10 @@ private:
             // <flags> ::= <virtual/protection flag> <calling convention flag>
             switch (d.protection.kind)
             {
-            case PROTprivate:
+            case Prot.Kind.private_:
                 buf.writeByte('C');
                 break;
-            case PROTprotected:
+            case Prot.Kind.protected_:
                 buf.writeByte('K');
                 break;
             default:
@@ -590,10 +590,10 @@ private:
         {
             switch (d.protection.kind)
             {
-            case PROTprivate:
+            case Prot.Kind.private_:
                 buf.writeByte('0');
                 break;
-            case PROTprotected:
+            case Prot.Kind.protected_:
                 buf.writeByte('1');
                 break;
             default:
