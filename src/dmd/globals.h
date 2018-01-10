@@ -134,8 +134,6 @@ struct Param
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
     bool logo;              // print logo;
-    bool includeImports;    // include imported modules that have not been passed in
-    Array<const char *> includeMatchStrings; // array of 'match strings' used to include or exclude imports from the compilation
 
     CPU cpu;                // CPU instruction set to target
 

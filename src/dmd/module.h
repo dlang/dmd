@@ -63,6 +63,7 @@ public:
     static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
+    static void* onImport;
     static void _init();
 
     static AggregateDeclaration *moduleinfo;
@@ -101,10 +102,6 @@ public:
     // i.e. a module that will be taken all the
     // way to an object file
     Module *importedFrom;
-
-    // indicates this module should be compiled even though
-    // it wasn't given on the command line
-    bool isCompiledImport;
 
     Dsymbols *decldefs;         // top level declarations for this Module
 
@@ -148,7 +145,7 @@ public:
     static void clearCache();
     int imports(Module *m);
 
-    bool isRoot() { return this->importedFrom == this || isCompiledImport; }
+    bool isRoot() { return this->importedFrom == this; }
     // true if the module source file is directly
     // listed in command line.
     bool isCoreModule(Identifier *ident);

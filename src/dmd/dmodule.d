@@ -31,7 +31,6 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.parse;
-import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
@@ -302,6 +301,12 @@ extern (C++) final class Module : Package
     extern (C++) static __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
+    /**
+     * A callback function that is called once an imported module is
+     * parsed. If the callback returns true, then it tells the
+     * frontend that the driver intends on compiling the import.
+     */
+    extern (C++) static __gshared bool function(Module mod) onImport;
 
     static void _init()
     {
@@ -380,14 +385,14 @@ extern (C++) final class Module : Package
     Dsymbol searchCacheSymbol;  // cached value of search
     int searchCacheFlags;       // cached flags
 
-    // module from command line we're imported from,
-    // i.e. a module that will be taken all the
-    // way to an object file
+    /**
+     * A root module is one that will be compiled all the way to
+     * object code.  This field holds the root module that caused
+     * this module to be loaded.  If this module is a root module,
+     * then it will be set to $(D this).  This is used to determine
+     * ownership of template instantiation.
+     */
     Module importedFrom;
-
-    // indicates this module should be compiled even though
-    // it wasn't given on the command line
-    bool isCompiledImport;
 
     Dsymbols* decldefs;         // top level declarations for this Module
 
@@ -535,24 +540,10 @@ extern (C++) final class Module : Package
         }
         m = m.parse();
 
-        // Determine whether an import should be compiled. Note that this needs
-        // to be determined early because it affects the analysis. It's been put
-        // directly after parsing so the full module name can be use from whatever
-        // was declared in the file.  Note that if this needs to be moved to before
-        // parse() then the module name could be derived from the import statement.
-        if (!m.isRoot && global.params.includeImports && global.params.link)
+        if (!m.isRoot() && onImport && onImport(m))
         {
-            Identifiers empty;
-            if (includeImportedModuleCheck(ModuleComponentRange(
-                m.md.packages ? m.md.packages : &empty, m.ident, m.isPackageFile)))
-            {
-                if (global.params.verbose)
-                {
-                    fprintf(global.stdmsg, "compileimport (%s)\n", m.srcfile.toChars);
-                }
-                assert(!m.isCompiledImport); // sanity check
-                m.isCompiledImport = true;
-            }
+            m.importedFrom = m;
+            assert(m.isRoot());
         }
 
         Target.loadModule(m);
@@ -1315,7 +1306,7 @@ extern (C++) final class Module : Package
 
     bool isRoot()
     {
-        return this.importedFrom == this || isCompiledImport;
+        return this.importedFrom == this;
     }
 
     // true if the module source file is directly
@@ -1381,254 +1372,5 @@ struct ModuleDeclaration
         }
         buf.writestring(id.toChars());
         return buf.extractString();
-    }
-}
-
-// A range of component identifiers for a module
-private struct ModuleComponentRange
-{
-    Identifiers* packages;
-    Identifier name;
-    bool isPackageFile;
-    size_t index;
-    @property auto totalLength() const { return packages.dim + 1 + (isPackageFile ? 1 : 0); }
-
-    @property auto empty() { return index >= totalLength(); }
-    @property auto front() const
-    {
-        if (index < packages.dim)
-            return (*packages)[index];
-        if (index == packages.dim)
-            return name;
-        else
-            return Identifier.idPool("package");
-    }
-    void popFront() { index++; }
-}
-
-/**
- * Determines if the given module should be included in the compilation.
- * Returns:
- *  True if the given module should be included in the compilation.
- */
-private bool includeImportedModuleCheck(ModuleComponentRange components)
-{
-    assert(global.params.includeImports);
-
-    createMatchNodes();
-    size_t nodeIndex = 0;
-    while (nodeIndex < matchNodes.dim)
-    {
-        //printf("matcher ");printMatcher(nodeIndex);printf("\n");
-        auto info = matchNodes[nodeIndex++];
-        if (info.depth <= components.totalLength())
-        {
-            size_t nodeOffset = 0;
-            for (auto range = components;;range.popFront())
-            {
-                if (range.empty || nodeOffset >= info.depth)
-                {
-                    // MATCH
-                    //printf("matcher ");printMatcher(nodeIndex - 1);
-                    //printf(" MATCHES module '");components.print();printf("'\n");
-                    return !info.isExclude;
-                }
-                if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
-                {
-                    break;
-                }
-                nodeOffset++;
-            }
-        }
-        //printf("matcher ");printMatcher(nodeIndex-1);
-        //printf(" does not match module '");components.print();printf("'\n");
-        nodeIndex += info.depth;
-    }
-    assert(nodeIndex == matchNodes.dim, "code bug");
-    return includeByDefault;
-}
-
-// Matching module names is done with an array of matcher nodes.
-// The nodes are sorted by "component depth" from largest to smallest
-// so that the first match is always the longest (best) match.
-private struct MatcherNode
-{
-    union
-    {
-        struct
-        {
-            ushort depth;
-            bool isExclude;
-        }
-        Identifier id;
-    }
-    this(Identifier id) { this.id = id; }
-    this(bool isExclude, ushort depth)
-    {
-        this.depth = depth;
-        this.isExclude = isExclude;
-    }
-}
-
-/**
- * $(D includeByDefault) determines whether to include/exclude modules when they don't
- * match any pattern. This setting changes depending on if the user provided any "include patterns".
- * When a user provides at least one "include pattern" it likely means they only want to include modules
- * that they've explicitly declared, however, if they provide no patterns or only provide
- * "exclude patterns", then it is likely they want to include everything except modules
- * that match one of their exclusions.
- *
- * Note that a user can always override this default behavior using the special '.' pattern.
-*/
-private __gshared bool includeByDefault = true;
-private __gshared Array!MatcherNode matchNodes;
-
-/**
- * Creates the global list of match nodes used to match module names
- * given strings provided by the -i commmand line option.
- */
-private void createMatchNodes()
-{
-    static size_t findSortedIndexToAddForDepth(size_t depth)
-    {
-        size_t index = 0;
-        while (index < matchNodes.dim)
-        {
-            auto info = matchNodes[index];
-            if (depth > info.depth)
-                break;
-            index += 1 + info.depth;
-        }
-        return index;
-    }
-
-    if (matchNodes.dim == 0)
-    {
-        foreach (packageIndex; 0 .. global.params.includeMatchStrings.dim)
-        {
-            auto matchString = global.params.includeMatchStrings[packageIndex];
-            auto depth = parseMatchStringDepth(matchString);
-            auto entryIndex = findSortedIndexToAddForDepth(depth);
-            matchNodes.split(entryIndex, depth + 1);
-            parseMatchString(matchString, &matchNodes[entryIndex], depth);
-            // if at least 1 "include pattern" is given, then it is assumed the
-            // user only wants to include modules that were explicitly given, which
-            // changes the default behavior from inclusion to exclusion.
-            if (includeByDefault && !matchNodes[entryIndex].isExclude)
-            {
-                //fprintf(global.stdmsg, "Matcher: found 'include pattern', switching default behavior to exclusion\n");
-                includeByDefault = false;
-            }
-        }
-
-        // Add the default 1 depth matchers
-        MatcherNode[8] defaultDepth1MatchNodes = [
-            MatcherNode(true, 1), MatcherNode(Id.std),
-            MatcherNode(true, 1), MatcherNode(Id.core),
-            MatcherNode(true, 1), MatcherNode(Id.etc),
-            MatcherNode(true, 1), MatcherNode(Id.object),
-        ];
-        {
-            auto index = findSortedIndexToAddForDepth(1);
-            matchNodes.split(index, defaultDepth1MatchNodes.length);
-            matchNodes.data[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
-        }
-    }
-}
-
-/**
- * Pattern strings are taken directly from the -i command line option,
- * so they can either end with the traditional terminating null, or they
- * can end with a comma.  This function returns true if the given character
- * matches either of these.
- * Returns:
- *  True if the given character is '\0' or ','.
- */
-bool endOfPattern(char c) { return c == ',' || c == '\0'; }
-
-/**
- * Determines the depth of the given match string.
- * Params:
- *  matchString = The match string to determine the depth of.
- * Returns:
- *  The component depth of the given match string.
- */
-private ushort parseMatchStringDepth(const(char)* matchString)
-{
-    if (matchString[0] == '-')
-        matchString++;
-
-    // handle special case
-    if (matchString[0] == '.' && endOfPattern(matchString[1]))
-        return 0;
-
-    ushort depth = 1;
-    for (;; matchString++)
-    {
-        auto c = *matchString;
-        if (c == '.')
-            depth++;
-        if (endOfPattern(c))
-            return depth;
-    }
-}
-unittest
-{
-    assert(".".parseMatchStringDepth == 0);
-    assert("-.".parseMatchStringDepth == 0);
-    assert("abc".parseMatchStringDepth == 1);
-    assert("-abc".parseMatchStringDepth == 1);
-    assert("abc.foo".parseMatchStringDepth == 2);
-    assert("-abc.foo".parseMatchStringDepth == 2);
-}
-
-/**
- * Parses a 'match string', which is the "include import" components
- * given on the command line, i.e. "-i=<match_string>,<match_string>,...".
- * Params:
- *  matchString = The match string to parse.
- *  dst = the data structure to save the parsed match string to.
- *  depth = the depth of the match string previously retrieved from $(D parseMatchStringDepth).
- */
-private void parseMatchString(const(char)* matchString, MatcherNode* dst, ushort depth)
-{
-    bool isExclude = false;
-    if (matchString[0] == '-')
-    {
-        isExclude = true;
-        matchString++;
-    }
-
-    *dst = MatcherNode(isExclude, depth);
-    dst++;
-
-    // Create and add identifiers for each component in the matchString
-    if (depth > 0)
-    {
-        auto idStart = matchString;
-        auto lastNode = dst + depth - 1;
-        for (; dst < lastNode; dst++)
-        {
-            for (;; matchString++)
-            {
-                if (*matchString == '.')
-                {
-                    assert(matchString > idStart, "empty match string");
-                    *dst = MatcherNode(Identifier.idPool(idStart, matchString - idStart));
-                    matchString++;
-                    idStart = matchString;
-                    break;
-                }
-            }
-        }
-        for (;; matchString++)
-        {
-            if (endOfPattern(*matchString))
-            {
-                assert(matchString > idStart, "empty match string");
-                *lastNode = MatcherNode(Identifier.idPool(idStart, matchString - idStart));
-                break;
-            }
-        }
     }
 }
