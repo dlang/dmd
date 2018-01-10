@@ -3345,7 +3345,7 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
 
 extern (C++) const(char)* protectionToChars(Prot.Kind kind)
 {
-    switch (kind)
+    final switch (kind)
     {
     case Prot.Kind.undefined:
         return null;
@@ -3361,8 +3361,6 @@ extern (C++) const(char)* protectionToChars(Prot.Kind kind)
         return "public";
     case Prot.Kind.export_:
         return "export";
-    default:
-        assert(0);
     }
 }
 

@@ -70,7 +70,7 @@ uint PROTtoATTR(Prot.Kind prot)
 {
     uint attribute;
 
-    switch (prot)
+    final switch (prot)
     {
         case Prot.Kind.private_:       attribute = 1;  break;
         case Prot.Kind.package_:       attribute = 2;  break;
@@ -80,7 +80,6 @@ uint PROTtoATTR(Prot.Kind prot)
 
         case Prot.Kind.undefined:
         case Prot.Kind.none:
-        default:
             //printf("prot = %d\n", prot);
             assert(0);
     }

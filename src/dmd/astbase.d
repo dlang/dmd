@@ -6195,7 +6195,7 @@ struct ASTBase
 
     extern (C++) static const(char)* protectionToChars(Prot.Kind kind)
     {
-        switch (kind)
+        final switch (kind)
         {
         case Prot.Kind.undefined:
             return null;
@@ -6211,8 +6211,6 @@ struct ASTBase
             return "public";
         case Prot.Kind.export_:
             return "export";
-        default:
-            assert(0);
         }
     }
 
