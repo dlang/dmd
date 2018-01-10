@@ -323,13 +323,13 @@ extern (C++) class FuncDeclaration : Declaration
             ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident))
         {
             AggregateDeclaration ad = isMember2();
-            if (ad && ad.sizeok != SIZEOKdone)
+            if (ad && ad.sizeok != Sizeok.done)
             {
                 /* Currently dmd cannot resolve forward references per methods,
                  * then setting SIZOKfwd is too conservative and would break existing code.
                  * So, just stop method attributes inference until ad.dsymbolSemantic() done.
                  */
-                //ad.sizeok = SIZEOKfwd;
+                //ad.sizeok = Sizeok.fwd;
             }
             else
                 return functionSemantic3() || !errors;

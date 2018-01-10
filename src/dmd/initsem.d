@@ -131,7 +131,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 return;
             }
             sd.size(i.loc);
-            if (sd.sizeok != SIZEOKdone)
+            if (sd.sizeok != Sizeok.done)
             {
                 result = new ErrorInitializer();
                 return;

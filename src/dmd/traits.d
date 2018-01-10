@@ -906,11 +906,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             e.error("first argument is not a class");
             return new ErrorExp();
         }
-        if (cd.sizeok != SIZEOKdone)
+        if (cd.sizeok != Sizeok.done)
         {
             cd.size(e.loc);
         }
-        if (cd.sizeok != SIZEOKdone)
+        if (cd.sizeok != Sizeok.done)
         {
             e.error("%s `%s` is forward referenced", cd.kind(), cd.toChars());
             return new ErrorExp();

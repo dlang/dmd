@@ -604,7 +604,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
             {
-                import dmd.aggregate : SIZEOKdone;
+                import dmd.aggregate : Sizeok;
 
                 // See if we can remove an unnecessary cast
                 ClassDeclaration cdfrom = e.e1.type.isClassHandle();
@@ -614,8 +614,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 // Need to determine correct offset before optimizing away the cast.
                 // https://issues.dlang.org/show_bug.cgi?id=16980
                 cdfrom.size(e.loc);
-                assert(cdfrom.sizeok == SIZEOKdone);
-                assert(cdto.sizeok == SIZEOKdone || !cdto.isBaseOf(cdfrom, null));
+                assert(cdfrom.sizeok == Sizeok.done);
+                assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
                 int offset;
                 if (cdto.isBaseOf(cdfrom, &offset) && offset == 0)
                 {

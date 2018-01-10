@@ -2618,7 +2618,7 @@ extern (C++) abstract class Type : RootObject
                 {
                     auto ad = v.toParent().isAggregateDeclaration();
                     ad.size(e.loc);
-                    if (ad.sizeok != SIZEOKdone)
+                    if (ad.sizeok != Sizeok.done)
                         return new ErrorExp();
                     e = new IntegerExp(e.loc, v.offset, Type.tsize_t);
                     return e;
@@ -7512,7 +7512,7 @@ extern (C++) final class TypeStruct : Type
             printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
         }
         sym.size(loc);
-        if (sym.sizeok != SIZEOKdone)
+        if (sym.sizeok != Sizeok.done)
             return new ErrorExp();
 
         auto structelems = new Expressions();

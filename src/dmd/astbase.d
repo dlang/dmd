@@ -66,14 +66,10 @@ struct ASTBase
 
     enum Sizeok : int
     {
-        SIZEOKnone,             // size of aggregate is not yet able to compute
-        SIZEOKfwd,              // size of aggregate is ready to compute
-        SIZEOKdone,             // size of aggregate is set correctly
+        none,               // size of aggregate is not yet able to compute
+        fwd,                // size of aggregate is ready to compute
+        done,               // size of aggregate is set correctly
     }
-
-    alias SIZEOKnone = Sizeok.SIZEOKnone;
-    alias SIZEOKdone = Sizeok.SIZEOKdone;
-    alias SIZEOKfwd = Sizeok.SIZEOKfwd;
 
     enum Baseok : int
     {
@@ -1069,7 +1065,7 @@ struct ASTBase
             super(id);
             this.loc = loc;
             protection = Prot(PROTpublic);
-            sizeok = SIZEOKnone;
+            sizeok = Sizeok.none;
         }
 
         override final inout(AggregateDeclaration) isAggregateDeclaration() inout

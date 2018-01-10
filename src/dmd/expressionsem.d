@@ -1792,7 +1792,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         e.sd.size(e.loc);
-        if (e.sd.sizeok != SIZEOKdone)
+        if (e.sd.sizeok != Sizeok.done)
             return setError();
 
         // run semantic() on each element
@@ -2103,7 +2103,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             auto cd = (cast(TypeClass)tb).sym;
             cd.size(exp.loc);
-            if (cd.sizeok != SIZEOKdone)
+            if (cd.sizeok != Sizeok.done)
                 return setError();
             if (!cd.ctor)
                 cd.ctor = cd.searchCtor();
@@ -2272,7 +2272,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             auto sd = (cast(TypeStruct)tb).sym;
             sd.size(exp.loc);
-            if (sd.sizeok != SIZEOKdone)
+            if (sd.sizeok != Sizeok.done)
                 return setError();
             if (!sd.ctor)
                 sd.ctor = sd.searchCtor();
@@ -2960,7 +2960,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 auto sd = (cast(TypeStruct)t1).sym;
                 sd.size(exp.loc); // Resolve forward references to construct object
-                if (sd.sizeok != SIZEOKdone)
+                if (sd.sizeok != Sizeok.done)
                     return setError();
                 if (!sd.ctor)
                     sd.ctor = sd.searchCtor();
@@ -6628,7 +6628,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (t2.ty == Tstruct && sd == (cast(TypeStruct)t2).sym)
                 {
                     sd.size(exp.loc);
-                    if (sd.sizeok != SIZEOKdone)
+                    if (sd.sizeok != Sizeok.done)
                         return setError();
                     if (!sd.ctor)
                         sd.ctor = sd.searchCtor();
@@ -6748,7 +6748,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else if (!e2x.implicitConvTo(t1))
                 {
                     sd.size(exp.loc);
-                    if (sd.sizeok != SIZEOKdone)
+                    if (sd.sizeok != Sizeok.done)
                         return setError();
                     if (!sd.ctor)
                         sd.ctor = sd.searchCtor();
