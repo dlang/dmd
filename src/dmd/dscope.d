@@ -82,14 +82,17 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
     return true;
 }
 
-enum CSXthis_ctor       = 0x01;     /// called this()
-enum CSXsuper_ctor      = 0x02;     /// called super()
-enum CSXthis            = 0x04;     /// referenced this
-enum CSXsuper           = 0x08;     /// referenced super
-enum CSXlabel           = 0x10;     /// seen a label
-enum CSXreturn          = 0x20;     /// seen a return statement
-enum CSXany_ctor        = 0x40;     /// either this() or super() was called
-enum CSXhalt            = 0x80;     /// assert(0)
+enum CSX
+{
+    this_ctor       = 0x01,     /// called this()
+    super_ctor      = 0x02,     /// called super()
+    this_           = 0x04,     /// referenced this
+    super_          = 0x08,     /// referenced super
+    label           = 0x10,     /// seen a label
+    return_         = 0x20,     /// seen a return statement
+    any_ctor        = 0x40,     /// either this() or super() was called
+    halt            = 0x80,     /// assert(0)
+}
 
 // Flags that would not be inherited beyond scope nesting
 enum SCOPEctor          = 0x0001;   /// constructor type
