@@ -1335,7 +1335,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.ident == Id.ctfe)
         {
-            if (sc.flags & SCOPEctfe)
+            if (sc.flags & SCOPE.ctfe)
             {
                 exp.error("variable `__ctfe` cannot be read at compile time");
                 return setError();
@@ -2459,7 +2459,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression d = new DeclarationExp(e.loc, e.cd);
         sc = sc.push(); // just create new scope
-        sc.flags &= ~SCOPEctfe; // temporary stop CTFE
+        sc.flags &= ~SCOPE.ctfe; // temporary stop CTFE
         d = d.expressionSemantic(sc);
         sc = sc.pop();
 
@@ -2568,7 +2568,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         uint olderrors;
 
         sc = sc.push(); // just create new scope
-        sc.flags &= ~SCOPEctfe; // temporary stop CTFE
+        sc.flags &= ~SCOPE.ctfe; // temporary stop CTFE
         sc.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=12506
 
         /* fd.treq might be incomplete type,
@@ -3483,10 +3483,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.f.checkNestedReference(sc, exp.loc))
                     return setError();
             }
-            else if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPEctfe))
+            else if (sc.func && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe))
             {
                 bool err = false;
-                if (!tf.purity && !(sc.flags & SCOPEdebug) && sc.func.setImpure())
+                if (!tf.purity && !(sc.flags & SCOPE.debug_) && sc.func.setImpure())
                 {
                     exp.error("pure %s '%s' cannot call impure %s '%s'",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
@@ -3829,7 +3829,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
 
         //printf("IsExp::semantic(%s)\n", toChars());
-        if (e.id && !(sc.flags & SCOPEcondition))
+        if (e.id && !(sc.flags & SCOPE.condition))
         {
             e.error("can only declare type aliases within static if conditionals or static asserts");
             return setError();
@@ -3839,7 +3839,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Scope* sc2 = sc.copy(); // keep sc.flags
         sc2.tinst = null;
         sc2.minst = null;
-        sc2.flags |= SCOPEfullinst;
+        sc2.flags |= SCOPE.fullinst;
         Type t = e.targ.trySemantic(e.loc, sc2);
         sc2.pop();
         if (!t)
@@ -8641,7 +8641,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e1x = e1x.toBoolean(sc);
         uint cs1 = sc.callSuper;
 
-        if (sc.flags & SCOPEcondition)
+        if (sc.flags & SCOPE.condition)
         {
             /* If in static if, don't evaluate e2 if we don't have to.
              */
@@ -9608,13 +9608,13 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
          */
         if (ie.sds.isModule() && ie.sds != sc._module)
             flags |= IgnorePrivateImports;
-        if (sc.flags & SCOPEignoresymbolvisibility)
+        if (sc.flags & SCOPE.ignoresymbolvisibility)
             flags |= IgnoreSymbolVisibility;
         Dsymbol s = ie.sds.search(exp.loc, exp.ident, flags);
         /* Check for visibility before resolving aliases because public
          * aliases to private symbols are public.
          */
-        if (s && !(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc._module, s))
+        if (s && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc._module, s))
         {
             if (s.isDeclaration())
                 error(exp.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toChars());

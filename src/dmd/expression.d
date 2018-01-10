@@ -639,7 +639,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     int flags = 0;
     Dsymbol s;
 
-    if (sc.flags & SCOPEignoresymbolvisibility)
+    if (sc.flags & SCOPE.ignoresymbolvisibility)
         flags |= IgnoreSymbolVisibility;
 
     Dsymbol sold = void;
@@ -1952,7 +1952,7 @@ extern (C++) abstract class Expression : RootObject
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & (SCOPEctfe | SCOPEdebug))
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false;
 
         /* Given:
@@ -2020,7 +2020,7 @@ extern (C++) abstract class Expression : RootObject
         if (!f.isPure() && calledparent != outerfunc)
         {
             FuncDeclaration ff = outerfunc;
-            if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
+            if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
             {
                 error("pure %s '%s' cannot call impure %s '%s'",
                     ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -2045,7 +2045,7 @@ extern (C++) abstract class Expression : RootObject
             return false;
         if (sc.intypeof == 1)
             return false; // allow violations inside typeof(expression)
-        if (sc.flags & (SCOPEctfe | SCOPEdebug))
+        if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
             return false; // allow violations inside compile-time evaluated expressions and debug conditionals
         if (v.ident == Id.ctfe)
             return false; // magic variable never violates pure and safe
@@ -2084,7 +2084,7 @@ extern (C++) abstract class Expression : RootObject
                 FuncDeclaration ff = s.isFuncDeclaration();
                 if (!ff)
                     break;
-                if (sc.flags & SCOPEcompile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
+                if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
                 {
                     error("pure %s '%s' cannot access mutable static data '%s'",
                         ff.kind(), ff.toPrettyChars(), v.toChars());
@@ -2181,12 +2181,12 @@ extern (C++) abstract class Expression : RootObject
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPEctfe)
+        if (sc.flags & SCOPE.ctfe)
             return false;
 
         if (!f.isSafe() && !f.isTrusted())
         {
-            if (sc.flags & SCOPEcompile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
+            if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
@@ -2212,12 +2212,12 @@ extern (C++) abstract class Expression : RootObject
             return false;
         if (sc.intypeof == 1)
             return false;
-        if (sc.flags & SCOPEctfe)
+        if (sc.flags & SCOPE.ctfe)
             return false;
 
         if (!f.isNogc())
         {
-            if (sc.flags & SCOPEcompile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
+            if (sc.flags & SCOPE.compile ? sc.func.isNogcBypassingInference() : sc.func.setGC())
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;

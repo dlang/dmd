@@ -189,8 +189,8 @@ struct Scope
             Scope* s = freelist;
             freelist = s.enclosing;
             //printf("freelist %p\n", s);
-            assert(s.flags & SCOPEfree);
-            s.flags &= ~SCOPEfree;
+            assert(s.flags & SCOPE.free);
+            s.flags &= ~SCOPE.free;
             return s;
         }
         return new Scope();
@@ -231,13 +231,13 @@ struct Scope
     {
         Scope* s = copy();
         //printf("Scope::push(this = %p) new = %p\n", this, s);
-        assert(!(flags & SCOPEfree));
+        assert(!(flags & SCOPE.free));
         s.scopesym = null;
         s.enclosing = &this;
         debug
         {
             if (enclosing)
-                assert(!(enclosing.flags & SCOPEfree));
+                assert(!(enclosing.flags & SCOPE.free));
             if (s == enclosing)
             {
                 printf("this = %p, enclosing = %p, enclosing.enclosing = %p\n", s, &this, enclosing);
@@ -247,8 +247,8 @@ struct Scope
         s.slabel = null;
         s.nofree = 0;
         s.fieldinit = saveFieldInit();
-        s.flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint |
-                            SCOPEnoaccesscheck | SCOPEignoresymbolvisibility));
+        s.flags = (flags & (SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
+                            SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility));
         s.lastdc = null;
         assert(&this != s);
         return s;
@@ -284,7 +284,7 @@ struct Scope
         {
             enclosing = freelist;
             freelist = &this;
-            flags |= SCOPEfree;
+            flags |= SCOPE.free;
         }
         return enc;
     }
@@ -306,7 +306,7 @@ struct Scope
     extern (C++) Scope* startCTFE()
     {
         Scope* sc = this.push();
-        sc.flags = this.flags | SCOPEctfe;
+        sc.flags = this.flags | SCOPE.ctfe;
         version (none)
         {
             /* TODO: Currently this is not possible, because we need to
@@ -332,7 +332,7 @@ struct Scope
 
     extern (C++) Scope* endCTFE()
     {
-        assert(flags & SCOPEctfe);
+        assert(flags & SCOPE.ctfe);
         return pop();
     }
 
@@ -522,7 +522,7 @@ struct Scope
             return null;
         }
 
-        if (this.flags & SCOPEignoresymbolvisibility)
+        if (this.flags & SCOPE.ignoresymbolvisibility)
             flags |= IgnoreSymbolVisibility;
 
         Dsymbol sold = void;
@@ -755,7 +755,7 @@ struct Scope
         {
             //printf("\tsc = %p\n", sc);
             sc.nofree = 1;
-            assert(!(flags & SCOPEfree));
+            assert(!(flags & SCOPE.free));
             //assert(sc != sc.enclosing);
             //assert(!sc.enclosing || sc != sc.enclosing.enclosing);
             //if (++i == 10)

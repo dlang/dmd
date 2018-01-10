@@ -6560,7 +6560,7 @@ extern (C++) abstract class TypeQualified : Type
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
                 Dsymbol sm = s.searchX(loc, sc, id);
-                if (sm && !(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, sm))
+                if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
                 {
                     .deprecation(loc, "%s is not visible from module %s", sm.toPrettyChars(), sc._module.toChars());
                     // sm = null;
@@ -7281,7 +7281,7 @@ extern (C++) final class TypeStruct : Type
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags = sc.flags | SCOPEnoaccesscheck;
+            sc2.flags = sc.flags | SCOPE.noaccesscheck;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
@@ -7289,7 +7289,7 @@ extern (C++) final class TypeStruct : Type
 
         Dsymbol searchSym()
         {
-            int flags = sc.flags & SCOPEignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
@@ -7316,7 +7316,7 @@ extern (C++) final class TypeStruct : Type
         {
             return noMember(sc, e, ident, flag);
         }
-        if (!(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
+        if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
             .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);
@@ -8091,7 +8091,7 @@ extern (C++) final class TypeClass : Type
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags = sc.flags | SCOPEnoaccesscheck;
+            sc2.flags = sc.flags | SCOPE.noaccesscheck;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
@@ -8099,7 +8099,7 @@ extern (C++) final class TypeClass : Type
 
         Dsymbol searchSym()
         {
-            int flags = sc.flags & SCOPEignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+            int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
@@ -8268,7 +8268,7 @@ extern (C++) final class TypeClass : Type
 
             return noMember(sc, e, ident, flag & 1);
         }
-        if (!(sc.flags & SCOPEignoresymbolvisibility) && !symbolIsVisible(sc, s))
+        if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
             .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);

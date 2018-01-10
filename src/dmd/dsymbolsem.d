@@ -2655,7 +2655,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             if (funcdecl.isCtorDeclaration())
             {
-                sc.flags |= SCOPEctor;
+                sc.flags |= SCOPE.ctor;
                 Type tret = ad.handleType();
                 assert(tret);
                 tret = tret.addStorageClass(funcdecl.storage_class | sc.stc);
@@ -3279,7 +3279,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static constructor
-        sc.flags |= SCOPEctor;
+        sc.flags |= SCOPE.ctor;
 
         funcDeclarationSemantic(ctd);
 
@@ -3577,7 +3577,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static invariant
         sc.stc |= STC.const_; // invariant() is always const
-        sc.flags = (sc.flags & ~SCOPEcontract) | SCOPEinvariant;
+        sc.flags = (sc.flags & ~SCOPE.contract) | SCOPE.invariant_;
         sc.linkage = LINKd;
 
         funcDeclarationSemantic(invd);
@@ -5244,7 +5244,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if ((sc.func || (sc.flags & SCOPEfullinst)) && !tempinst.tinst)
+    if ((sc.func || (sc.flags & SCOPE.fullinst)) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of

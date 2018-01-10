@@ -770,7 +770,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
-        scx.flags |= SCOPEconstraint;
+        scx.flags |= SCOPE.constraint;
         bool errors;
         bool result = evalStaticCondition(scx, constraint, e, errors);
         ti.inst = null;
@@ -2139,7 +2139,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             // For constructors, emitting return type is necessary for
             // isReturnIsolated() in functionResolve.
-            scx.flags |= SCOPEctor;
+            scx.flags |= SCOPE.ctor;
 
             Dsymbol parent = toParent2();
             Type tret;

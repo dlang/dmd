@@ -795,7 +795,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             tf.next = tf.next.typeSemantic(loc, sc);
             sc = sc.pop();
             errors |= tf.checkRetType(loc);
-            if (tf.next.isscope() && !(sc.flags & SCOPEctor))
+            if (tf.next.isscope() && !(sc.flags & SCOPE.ctor))
             {
                 mtype.error(loc, "functions cannot return scope `%s`", tf.next.toChars());
                 errors = true;
