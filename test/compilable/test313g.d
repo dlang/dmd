@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -de
-// EXTRA_SOURCES: imports/g313.d
+// COMPILED_IMPORTS: imports/g313.d
 import imports.g313;
 
 void test15900()

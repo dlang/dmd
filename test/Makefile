@@ -28,6 +28,14 @@
 #   EXECUTE_ARGS:        parameters to add to the execution of the test
 #                        default: (none)
 #
+#   COMPILED_IMPORTS:    list of modules files that are imported by the main source file that
+#                        should be included in compilation; this differs from the EXTRA_SOURCES
+#                        variable in that these files could be compiled by either explicitly
+#                        passing them to the compiler or by using the "-i" option. Using this
+#                        option will cause the test to be compiled twice, once using "-i" and
+#                        once by explicitly passing the modules to the compiler.
+#                        default: (none)
+#
 #   EXTRA_SOURCES:       list of extra files to build and link along with the test
 #                        default: (none)
 #
@@ -38,6 +46,12 @@
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations.
 #                        An empty set means only one permutation with no arguments.
 #                        default: the make variable ARGS (see below)
+#
+#   ARG_SETS:            sets off extra arguments to invoke $(DMD) with (seperated by ';').
+#                        default: (none)
+#
+#   LINK:                enables linking (used for the compilable and fail_compilable tests).
+#                        default: (none)
 #
 #   TEST_OUTPUT:         the output is expected from the compilation (if the
 #                        output of the compilation doesn't match, the test

@@ -782,6 +782,22 @@ private int tryMain(size_t argc, const(char)** argv)
             fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
         m.semantic3(null);
     }
+    if (global.params.includeImports && global.params.link)
+    {
+        // Note: DO NOT USE foreach here because Module.amodules.dim can
+        //       change on each iteration of the loop
+        for (size_t i = 0; i < Module.amodules.dim; i++)
+        {
+            auto m = Module.amodules[i];
+            if (m.isCompiledImport)
+            {
+                if (global.params.verbose)
+                    fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+                m.semantic3(null);
+                modules.push(m);
+            }
+        }
+    }
     Module.runDeferredSemantic3();
     if (global.errors)
         fatal();
@@ -1865,6 +1881,34 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 params.useInline = true;
                 params.hdrStripPlainFunctions = false;
+            }
+            else if (p[1] == 'i')
+            {
+                params.includeImports = true;
+                if (p[2] != '\0')
+                {
+                    size_t start = 2 + (p[2] == '=');
+                    for (size_t nameIndex = start;; nameIndex++)
+                    {
+                        if (endOfPattern(p[nameIndex]))
+                        {
+                            auto pattern = p + start;
+                            // NOTE: we could check that the pattern only contains valid package characters
+                            //       if they aren't valid it's not a problem but would give the user a nice error message
+                            if (start == nameIndex)
+                            {
+                                error("invalid option '%s', import package patterns cannot be empty", p);
+                                break;
+                            }
+                            params.includeMatchStrings.push(pattern);
+                            if (p[nameIndex] == '\0')
+                            {
+                                break;
+                            }
+                            start = nameIndex + 1;
+                        }
+                    }
+                }
             }
             else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
                 params.useDIP25 = true;

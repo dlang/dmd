@@ -54,11 +54,14 @@ struct TestArgs
     TestMode mode;
 
     bool     compileSeparately;
+    bool     link;
     string   executeArgs;
     string[] sources;
+    string[] compiledImports;
     string[] cppSources;
     string[] objcSources;
     string   permuteArgs;
+    string[] argSets;
     string   compileOutput;
     string   gdbScript;
     string   gdbMatch;
@@ -88,7 +91,7 @@ struct EnvData
     bool coverage_build;
 }
 
-bool findTestParameter(const ref EnvData envData, string file, string token, ref string result)
+bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
 {
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
@@ -123,8 +126,10 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2))
-        result ~= " " ~ result2;
+    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter)) {
+        if(result2.length > 0)
+            result ~= multiLineDelimiter ~ result2;
+    }
 
     return true;
 }
@@ -198,6 +203,13 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
 
+    {
+        string argSetsStr;
+        findTestParameter(envData, file, "ARG_SETS", argSetsStr, ";");
+        foreach(s; split(argSetsStr, ";"))
+            testArgs.argSets ~= s;
+    }
+
     // win(32|64) doesn't support pic
     if (envData.os == "win32" || envData.os == "win64")
     {
@@ -218,6 +230,13 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // prepend input_dir to each extra source file
     foreach(s; split(extraSourcesStr))
         testArgs.sources ~= input_dir ~ "/" ~ s;
+
+    {
+        string compiledImports;
+        findTestParameter(envData, file, "COMPILED_IMPORTS", compiledImports);
+        foreach(s; split(compiledImports))
+            testArgs.compiledImports ~= input_dir ~ "/" ~ s;
+    }
 
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
@@ -242,6 +261,11 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         foreach (ref s; testArgs.sources)
             s = replace(s, "/", to!string(envData.sep));
     //writeln ("sources: ", testArgs.sources);
+
+    {
+        string throwAway;
+        testArgs.link = findTestParameter(envData, file, "LINK", throwAway);
+    }
 
     // COMPILE_SEPARATELY can take optional compiler switches when link .o files
     testArgs.compileSeparately = findTestParameter(envData, file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
@@ -573,7 +597,7 @@ int tryMain(string[] args)
     enum Result { continue_, return0, return1 }
 
     // Runs the test with a specific combination of arguments
-    Result testCombination(size_t permuteIndex, string permutedArgs)
+    Result testCombination(bool autoCompileImports, string argSet, size_t permuteIndex, string permutedArgs)
     {
         string test_app_dmd = test_app_dmd_base ~ to!string(permuteIndex) ~ envData.exe;
 
@@ -607,32 +631,36 @@ int tryMain(string[] args)
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(permuteIndex) ~ envData.obj;
                 toCleanup ~= objfile;
 
-                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
+                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
                         reqArgs, permutedArgs, output_dir,
-                        (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
-                        (testArgs.mode == TestMode.RUN ? "" : "-c "),
-                        join(testArgs.sources, " "));
+                        (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
+                        argSet,
+                        (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
+                        join(testArgs.sources, " "),
+                        (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
                 version(Windows) command ~= " -map nul.map";
 
                 compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
             }
             else
             {
-                foreach (filename; testArgs.sources)
+                foreach (filename; testArgs.sources ~ (autoCompileImports ? null : testArgs.compiledImports))
                 {
                     string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, permutedArgs, output_dir, filename);
+                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
+                        reqArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
-                if (testArgs.mode == TestMode.RUN)
+                if (testArgs.mode == TestMode.RUN || testArgs.link)
                 {
                     // link .o's into an executable
-                    string command = format("%s -conf= -m%s %s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args,
-                            testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
+                    string command = format("%s -conf= -m%s%s%s %s %s -od%s -of%s %s", envData.dmd, envData.model,
+                        autoCompileImports ? " -i" : "",
+                        autoCompileImports ? "extraSourceIncludePaths" : "",
+                        envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
                     execute(fThisRun, command, true, result_path);
@@ -718,14 +746,24 @@ int tryMain(string[] args)
             return Result.return1;
         }
     }
-    foreach (i, c; combinations(testArgs.permuteArgs))
+
+    auto argSets = (testArgs.argSets.length == 0) ? [""] : testArgs.argSets;
+    for(auto autoCompileImports = false;; autoCompileImports = true)
     {
-        final switch(testCombination(i, c))
+        foreach(argSet; argSets)
         {
-            case Result.continue_: break;
-            case Result.return0: return 0;
-            case Result.return1: return 1;
+            foreach (i, c; combinations(testArgs.permuteArgs))
+            {
+                final switch(testCombination(autoCompileImports, argSet, i, c))
+                {
+                    case Result.continue_: break;
+                    case Result.return0: return 0;
+                    case Result.return1: return 1;
+                }
+            }
         }
+        if(autoCompileImports || testArgs.compiledImports.length == 0)
+            break;
     }
 
     // it was disabled but it passed! print an informational message

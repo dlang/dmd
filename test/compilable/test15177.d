@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -o-
 // PERMUTE_ARGS:
-// EXTRA_SOURCES: imports/test15117a.d
+// COMPILED_IMPORTS: imports/test15117a.d
 
 import users = imports.test15117a;
 
