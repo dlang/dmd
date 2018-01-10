@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Structs and Unions,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
          $(P Whereas classes are reference types, structs are value types.
              Any C struct can be exactly represented as a D struct, except non-static

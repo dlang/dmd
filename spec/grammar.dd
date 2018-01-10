@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Grammar,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(H2 Lexical Syntax)
 

@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Embedded Documentation,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(P
 The D programming language enables embedding both contracts and test

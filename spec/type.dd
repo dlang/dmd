@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Types,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 

@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Template Mixins,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P A $(I TemplateMixin) takes an arbitrary set of declarations from
         the body of a $(I TemplateDeclaration) and inserts them

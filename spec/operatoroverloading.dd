@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Operator Overloading,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P Operator overloading is accomplished by rewriting operators whose
         operands are class or struct objects into calls to specially named

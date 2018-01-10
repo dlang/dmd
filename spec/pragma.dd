@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Pragmas,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME Pragma):

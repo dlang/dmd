@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Lexical,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(P The lexical analysis is independent of the syntax parsing and the semantic
 analysis. The lexical analyzer splits the source text up into tokens. The

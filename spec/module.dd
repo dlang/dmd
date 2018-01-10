@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Modules,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME Module):

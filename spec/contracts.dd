@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Contract Programming,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P Contracts are a breakthrough technique to reduce the programming effort
         for large projects. Contracts are the concept of preconditions, postconditions,

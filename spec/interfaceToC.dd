@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Interfacing to C,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P D is designed to fit comfortably with a C compiler for the target
         system. D makes up for not having its own VM by relying on the

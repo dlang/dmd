@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Garbage Collection,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P D is a systems programming language with support for garbage collection.
         Usually it is not necessary

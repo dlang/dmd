@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Memory Safety,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
     $(HTMLTAG3 img, src="$(ROOT_DIR)images/dman-rain.jpg" align="right" alt="D-Man in rain" height="200")
 

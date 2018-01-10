@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Enums,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME EnumDeclaration):
