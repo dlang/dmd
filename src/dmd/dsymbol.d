@@ -669,7 +669,7 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *      symbol found, NULL if not
      */
-    final Dsymbol searchX(Loc loc, Scope* sc, RootObject id)
+    final Dsymbol searchX(Loc loc, Scope* sc, RootObject id, int flags)
     {
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         Dsymbol s = toAlias();
@@ -685,7 +685,7 @@ extern (C++) class Dsymbol : RootObject
         switch (id.dyncast())
         {
         case DYNCAST.identifier:
-            sm = s.search(loc, cast(Identifier)id);
+            sm = s.search(loc, cast(Identifier)id, flags);
             break;
         case DYNCAST.dsymbol:
             {

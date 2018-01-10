@@ -2558,7 +2558,7 @@ extern (C++) abstract class Type : RootObject
             if (this != Type.terror)
             {
                 if (s)
-                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toChars());
+                    error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident.toChars(), toChars(), s.toPrettyChars());
                 else
                     error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
             }
@@ -6545,7 +6545,9 @@ extern (C++) abstract class TypeQualified : Type
 
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
-                Dsymbol sm = s.searchX(loc, sc, id);
+                int flags = t is null ? SearchLocalsOnly : IgnorePrivateImports;
+
+                Dsymbol sm = s.searchX(loc, sc, id, flags);
                 if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
                 {
                     .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
@@ -6591,7 +6593,7 @@ extern (C++) abstract class TypeQualified : Type
                         sm = t.toDsymbol(sc);
                         if (sm && id.dyncast() == DYNCAST.identifier)
                         {
-                            sm = sm.search(loc, cast(Identifier)id);
+                            sm = sm.search(loc, cast(Identifier)id, IgnorePrivateImports);
                             if (sm)
                                 goto L2;
                         }
