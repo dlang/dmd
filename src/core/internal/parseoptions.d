@@ -110,6 +110,28 @@ bool parseOptions(CFG)(ref CFG cfg, string opt)
     return true;
 }
 
+/**
+Parses an individual option `optname` value from a provided string `str`.
+The option type is given by the type `T` of the field `res` to which the parsed
+value will be written too.
+In case of an error, `errName` will be used to display an error message and
+the failure of the parsing will be indicated by a falsy return value.
+
+For boolean values, '0/n/N' (false) or '1/y/Y' (true) are accepted.
+
+Params:
+    optname = name of the option to parse
+    str = raw string to parse the option value from
+    res = reference to the resulting data field that the option should be parsed too
+    errName = full-text name of the option which should be displayed in case of errors
+
+Returns: `false` if a parsing error happened.
+*/
+bool rt_parseOption(T)(const(char)[] optname, ref inout(char)[] str, ref T res, const(char)[] errName)
+{
+    return parse(optname, str, res, errName);
+}
+
 private:
 
 bool optError(in char[] msg, in char[] name, const(char)[] errName)
