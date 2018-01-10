@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11169.d(16): Error: error evaluating static if expression
+fail_compilation/fail11169.d(16): Error: error evaluating `static if` expression
 ---
 */
 
