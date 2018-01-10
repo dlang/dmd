@@ -1399,7 +1399,7 @@ extern (C++) void sliceAssignArrayLiteralFromString(ArrayLiteralExp existingAE, 
  */
 extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayLiteralExp newae, size_t firstIndex)
 {
-    assert(existingSE.ownedByCtfe != OWNEDcode);
+    assert(existingSE.ownedByCtfe != OwnedBy.code);
     foreach (j; 0 .. newae.elements.dim)
     {
         existingSE.setCodeUnit(firstIndex + j, cast(dchar)newae.getElement(j).toInteger());
@@ -1411,7 +1411,7 @@ extern (C++) void sliceAssignStringFromArrayLiteral(StringExp existingSE, ArrayL
  */
 extern (C++) void sliceAssignStringFromString(StringExp existingSE, const StringExp newstr, size_t firstIndex)
 {
-    assert(existingSE.ownedByCtfe != OWNEDcode);
+    assert(existingSE.ownedByCtfe != OwnedBy.code);
     size_t sz = existingSE.sz;
     assert(sz == newstr.sz);
     memcpy(existingSE.string + firstIndex * sz, newstr.string, sz * newstr.len);

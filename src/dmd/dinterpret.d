@@ -2639,7 +2639,7 @@ public:
         {
             printf("%s ArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.ownedByCtfe >= OWNEDctfe) // We've already interpreted all the elements
+        if (e.ownedByCtfe >= OwnedBy.ctfe) // We've already interpreted all the elements
         {
             result = e;
             return;
@@ -2700,7 +2700,7 @@ public:
             }
             auto ale = new ArrayLiteralExp(e.loc, basis, expsx);
             ale.type = e.type;
-            ale.ownedByCtfe = OWNEDctfe;
+            ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
         }
         else if ((cast(TypeNext)e.type).next.mod & (MODconst | MODimmutable))
@@ -2718,7 +2718,7 @@ public:
         {
             printf("%s AssocArrayLiteralExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.ownedByCtfe >= OWNEDctfe) // We've already interpreted all the elements
+        if (e.ownedByCtfe >= OwnedBy.ctfe) // We've already interpreted all the elements
         {
             result = e;
             return;
@@ -2789,7 +2789,7 @@ public:
                    valuesx !is e.values);
             auto aae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
             aae.type = e.type;
-            aae.ownedByCtfe = OWNEDctfe;
+            aae.ownedByCtfe = OwnedBy.ctfe;
             result = aae;
         }
         else
@@ -2802,7 +2802,7 @@ public:
         {
             printf("%s StructLiteralExp::interpret() %s ownedByCtfe = %d\n", e.loc.toChars(), e.toChars(), e.ownedByCtfe);
         }
-        if (e.ownedByCtfe >= OWNEDctfe)
+        if (e.ownedByCtfe >= OwnedBy.ctfe)
         {
             result = e;
             return;
@@ -2871,7 +2871,7 @@ public:
             }
             auto sle = new StructLiteralExp(e.loc, e.sd, expsx);
             sle.type = e.type;
-            sle.ownedByCtfe = OWNEDctfe;
+            sle.ownedByCtfe = OwnedBy.ctfe;
             result = sle;
         }
         else
@@ -2899,7 +2899,7 @@ public:
                 (*elements)[i] = copyLiteral(elem).copy();
             auto ae = new ArrayLiteralExp(loc, elements);
             ae.type = newtype;
-            ae.ownedByCtfe = OWNEDctfe;
+            ae.ownedByCtfe = OwnedBy.ctfe;
             return ae;
         }
         assert(argnum == arguments.dim - 1);
@@ -2972,7 +2972,7 @@ public:
 
                 auto se = new StructLiteralExp(e.loc, sd, exps, e.newtype);
                 se.type = e.newtype;
-                se.ownedByCtfe = OWNEDctfe;
+                se.ownedByCtfe = OwnedBy.ctfe;
                 result = interpret(se, istate);
             }
             if (exceptionOrCant(result))
@@ -3020,7 +3020,7 @@ public:
             // Hack: we store a ClassDeclaration instead of a StructDeclaration.
             // We probably won't get away with this.
             auto se = new StructLiteralExp(e.loc, cast(StructDeclaration)cd, elems, e.newtype);
-            se.ownedByCtfe = OWNEDctfe;
+            se.ownedByCtfe = OwnedBy.ctfe;
             Expression eref = new ClassReferenceExp(e.loc, se, e.type);
             if (e.member)
             {
@@ -3070,7 +3070,7 @@ public:
             (*elements)[0] = newval;
             auto ae = new ArrayLiteralExp(e.loc, elements);
             ae.type = e.newtype.arrayOf();
-            ae.ownedByCtfe = OWNEDctfe;
+            ae.ownedByCtfe = OwnedBy.ctfe;
 
             result = new IndexExp(e.loc, ae, new IntegerExp(Loc(), 0, Type.tsize_t));
             result.type = e.newtype;
@@ -3517,7 +3517,7 @@ public:
                         auto valuesx = new Expressions();
                         newAA = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
                         newAA.type = xe.type;
-                        newAA.ownedByCtfe = OWNEDctfe;
+                        newAA.ownedByCtfe = OwnedBy.ctfe;
                         //... and insert it into the existing AA.
                         existingAA.keys.push(ekey);
                         existingAA.values.push(newAA);
@@ -3560,7 +3560,7 @@ public:
 
                     auto aae = new AssocArrayLiteralExp(e.loc, keysx, valuesx);
                     aae.type = (cast(IndexExp)e1).e1.type;
-                    aae.ownedByCtfe = OWNEDctfe;
+                    aae.ownedByCtfe = OwnedBy.ctfe;
                     if (!existingAA)
                     {
                         existingAA = aae;
@@ -3713,7 +3713,7 @@ public:
 
         if (existingAA)
         {
-            if (existingAA.ownedByCtfe != OWNEDctfe)
+            if (existingAA.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only constant `%s`", existingAA.toChars());
                 result = CTFEExp.cantexp;
@@ -3881,7 +3881,7 @@ public:
                 e.error("CTFE internal error: dotvar assignment");
                 return CTFEExp.cantexp;
             }
-            if (sle.ownedByCtfe != OWNEDctfe)
+            if (sle.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only constant `%s`", sle.toChars());
                 return CTFEExp.cantexp;
@@ -3918,7 +3918,7 @@ public:
             if (aggregate.op == TOKstring)
             {
                 StringExp existingSE = cast(StringExp)aggregate;
-                if (existingSE.ownedByCtfe != OWNEDctfe)
+                if (existingSE.ownedByCtfe != OwnedBy.ctfe)
                 {
                     e.error("cannot modify read-only string literal `%s`", ie.e1.toChars());
                     return CTFEExp.cantexp;
@@ -3933,7 +3933,7 @@ public:
             }
 
             ArrayLiteralExp existingAE = cast(ArrayLiteralExp)aggregate;
-            if (existingAE.ownedByCtfe != OWNEDctfe)
+            if (existingAE.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only constant `%s`", existingAE.toChars());
                 return CTFEExp.cantexp;
@@ -4152,7 +4152,7 @@ public:
         if (aggregate.op == TOKstring)
         {
             StringExp existingSE = cast(StringExp)aggregate;
-            if (existingSE.ownedByCtfe != OWNEDctfe)
+            if (existingSE.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only string literal `%s`", existingSE.toChars());
                 return CTFEExp.cantexp;
@@ -4213,7 +4213,7 @@ public:
         if (aggregate.op == TOKarrayliteral)
         {
             ArrayLiteralExp existingAE = cast(ArrayLiteralExp)aggregate;
-            if (existingAE.ownedByCtfe != OWNEDctfe)
+            if (existingAE.ownedByCtfe != OwnedBy.ctfe)
             {
                 e.error("cannot modify read-only constant `%s`", existingAE.toChars());
                 return CTFEExp.cantexp;
@@ -5569,7 +5569,7 @@ public:
         if (result.op == TOKarrayliteral)
         {
             ArrayLiteralExp ale = cast(ArrayLiteralExp)result;
-            ale.ownedByCtfe = OWNEDctfe;
+            ale.ownedByCtfe = OwnedBy.ctfe;
 
             // https://issues.dlang.org/show_bug.cgi?id=14686
             for (size_t i = 0; i < ale.elements.dim; i++)
@@ -5580,7 +5580,7 @@ public:
             }
         }
         if (result.op == TOKstring)
-            (cast(StringExp)result).ownedByCtfe = OWNEDctfe;
+            (cast(StringExp)result).ownedByCtfe = OwnedBy.ctfe;
     }
 
     override void visit(DeleteExp e)
@@ -6255,7 +6255,7 @@ private Expression scrubReturnValue(Loc loc, Expression e)
     if (e.op == TOKclassreference)
     {
         StructLiteralExp se = (cast(ClassReferenceExp)e).value;
-        se.ownedByCtfe = OWNEDcode;
+        se.ownedByCtfe = OwnedBy.code;
         if (!(se.stageflags & stageScrub))
         {
             int old = se.stageflags;
@@ -6274,7 +6274,7 @@ private Expression scrubReturnValue(Loc loc, Expression e)
     if (e.op == TOKstructliteral)
     {
         StructLiteralExp se = cast(StructLiteralExp)e;
-        se.ownedByCtfe = OWNEDcode;
+        se.ownedByCtfe = OwnedBy.code;
         if (!(se.stageflags & stageScrub))
         {
             int old = se.stageflags;
@@ -6286,18 +6286,18 @@ private Expression scrubReturnValue(Loc loc, Expression e)
     }
     if (e.op == TOKstring)
     {
-        (cast(StringExp)e).ownedByCtfe = OWNEDcode;
+        (cast(StringExp)e).ownedByCtfe = OwnedBy.code;
     }
     if (e.op == TOKarrayliteral)
     {
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDcode;
+        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.code;
         if (Expression ex = scrubArray(loc, (cast(ArrayLiteralExp)e).elements))
             return ex;
     }
     if (e.op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
-        aae.ownedByCtfe = OWNEDcode;
+        aae.ownedByCtfe = OwnedBy.code;
         if (Expression ex = scrubArray(loc, aae.keys))
             return ex;
         if (Expression ex = scrubArray(loc, aae.values))
@@ -6360,7 +6360,7 @@ private Expression scrubCacheValue(Loc loc, Expression e)
     if (e.op == TOKclassreference)
     {
         StructLiteralExp sle = (cast(ClassReferenceExp)e).value;
-        sle.ownedByCtfe = OWNEDcache;
+        sle.ownedByCtfe = OwnedBy.cache;
         if (!(sle.stageflags & stageScrub))
         {
             int old = sle.stageflags;
@@ -6373,7 +6373,7 @@ private Expression scrubCacheValue(Loc loc, Expression e)
     if (e.op == TOKstructliteral)
     {
         StructLiteralExp sle = cast(StructLiteralExp)e;
-        sle.ownedByCtfe = OWNEDcache;
+        sle.ownedByCtfe = OwnedBy.cache;
         if (!(sle.stageflags & stageScrub))
         {
             int old = sle.stageflags;
@@ -6385,18 +6385,18 @@ private Expression scrubCacheValue(Loc loc, Expression e)
     }
     if (e.op == TOKstring)
     {
-        (cast(StringExp)e).ownedByCtfe = OWNEDcache;
+        (cast(StringExp)e).ownedByCtfe = OwnedBy.cache;
     }
     if (e.op == TOKarrayliteral)
     {
-        (cast(ArrayLiteralExp)e).ownedByCtfe = OWNEDcache;
+        (cast(ArrayLiteralExp)e).ownedByCtfe = OwnedBy.cache;
         if (Expression ex = scrubArrayCache(loc, (cast(ArrayLiteralExp)e).elements))
             return ex;
     }
     if (e.op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)e;
-        aae.ownedByCtfe = OWNEDcache;
+        aae.ownedByCtfe = OwnedBy.cache;
         if (Expression ex = scrubArrayCache(loc, aae.keys))
             return ex;
         if (Expression ex = scrubArrayCache(loc, aae.values))

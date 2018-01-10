@@ -4525,7 +4525,7 @@ struct ASTBase
             char* string;   // if sz == 1
             wchar* wstring; // if sz == 2
             dchar* dstring; // if sz == 4
-        }                   // (const if ownedByCtfe == OWNEDcode)
+        }                   // (const if ownedByCtfe == OwnedBy.code)
         size_t len;         // number of code units
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
