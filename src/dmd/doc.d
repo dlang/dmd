@@ -2738,7 +2738,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         goto case '-';
                 }
 
-                if (inCode)
+                if (inCode || i >= buf.offset || buf.data[i+1] == '`')
                     break;
                 inCode = c;
                 inBacktick = 1;
