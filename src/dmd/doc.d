@@ -2171,11 +2171,10 @@ bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStar
     }
     if (repeat >= 3)
     {
-        size_t iAfterNewline = skipchars(buf, j, "\r\n");
-        if (iAfterNewline > j || iAfterNewline >= buf.offset)
+        if (j >= buf.offset || buf.data[j] == '\n' || buf.data[j] == '\r')
         {
-            buf.remove(iLineStart, iAfterNewline - iLineStart);
-            i = buf.insert(iLineStart, "$(HR)");
+            buf.remove(iLineStart, j - iLineStart);
+            i = buf.insert(iLineStart, "$(HR)") - 1;
             return true;
         }
     }
