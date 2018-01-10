@@ -52,12 +52,6 @@ struct ASTCodegen
     alias STC                       = dmd.declaration.STC;
     alias Dsymbol                   = dmd.dsymbol.Dsymbol;
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;
-    alias PROTprivate               = dmd.dsymbol.PROTprivate;
-    alias PROTpackage               = dmd.dsymbol.PROTpackage;
-    alias PROTprotected             = dmd.dsymbol.PROTprotected;
-    alias PROTpublic                = dmd.dsymbol.PROTpublic;
-    alias PROTexport                = dmd.dsymbol.PROTexport;
-    alias PROTundefined             = dmd.dsymbol.PROTundefined;
     alias Prot                      = dmd.dsymbol.Prot;
 
     alias stcToBuffer               = dmd.hdrgen.stcToBuffer;

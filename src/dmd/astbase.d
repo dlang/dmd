@@ -45,25 +45,6 @@ struct ASTBase
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
 
-    enum PROTKIND : int
-    {
-        PROTundefined,
-        PROTnone,
-        PROTprivate,
-        PROTpackage,
-        PROTprotected,
-        PROTpublic,
-        PROTexport,
-    }
-
-    alias PROTprivate       = PROTKIND.PROTprivate;
-    alias PROTpackage       = PROTKIND.PROTpackage;
-    alias PROTprotected     = PROTKIND.PROTprotected;
-    alias PROTpublic        = PROTKIND.PROTpublic;
-    alias PROTexport        = PROTKIND.PROTexport;
-    alias PROTundefined     = PROTKIND.PROTundefined;
-    alias PROTnone          = PROTKIND.PROTnone;
-
     enum Sizeok : int
     {
         none,               // size of aggregate is not yet able to compute
@@ -6169,7 +6150,17 @@ struct ASTBase
 
     struct Prot
     {
-        PROTKIND kind;
+        enum Kind : int
+        {
+            undefined,
+            none,
+            private_,
+            package_,
+            protected_,
+            public_,
+            export_,
+        }
+        Kind kind;
         Package pkg;
     }
 
