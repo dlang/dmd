@@ -53,9 +53,10 @@ private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
         {
             BaseClass* b = (*cd.baseclasses)[i];
             Prot access = getAccess(b.sym, smember);
-            switch (access.kind)
+            final switch (access.kind)
             {
             case Protection.none:
+            case Protection.undefined:
                 break;
             case Protection.private_:
                 access_ret = Prot(Protection.none); // private members of base class not accessible
@@ -71,8 +72,6 @@ private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
                 if (access_ret.isMoreRestrictiveThan(access))
                     access_ret = access;
                 break;
-            default:
-                assert(0);
             }
         }
     }

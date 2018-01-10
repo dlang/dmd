@@ -70,7 +70,7 @@ uint PROTtoATTR(Protection prot)
 {
     uint attribute;
 
-    switch (prot)
+    final switch (prot)
     {
         case Protection.private_:       attribute = 1;  break;
         case Protection.package_:       attribute = 2;  break;
@@ -80,7 +80,6 @@ uint PROTtoATTR(Protection prot)
 
         case Protection.undefined:
         case Protection.none:
-        default:
             //printf("prot = %d\n", prot);
             assert(0);
     }
