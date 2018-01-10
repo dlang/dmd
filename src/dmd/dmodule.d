@@ -301,6 +301,12 @@ extern (C++) final class Module : Package
     extern (C++) static __gshared Dsymbols deferred2;   // deferred Dsymbol's needing semantic2() run on them
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
+    /**
+     * A callback function that is called once an imported module is
+     * parsed. If the callback returns true, then it tells the
+     * frontend that the driver intends on compiling the import.
+     */
+    extern (C++) static __gshared bool function(Module mod) onImport;
 
     static void _init()
     {
@@ -379,9 +385,13 @@ extern (C++) final class Module : Package
     Dsymbol searchCacheSymbol;  // cached value of search
     int searchCacheFlags;       // cached flags
 
-    // module from command line we're imported from,
-    // i.e. a module that will be taken all the
-    // way to an object file
+    /**
+     * A root module is one that will be compiled all the way to
+     * object code.  This field holds the root module that caused
+     * this module to be loaded.  If this module is a root module,
+     * then it will be set to $(D this).  This is used to determine
+     * ownership of template instantiation.
+     */
     Module importedFrom;
 
     Dsymbols* decldefs;         // top level declarations for this Module
@@ -529,6 +539,13 @@ extern (C++) final class Module : Package
             fprintf(global.stdmsg, "%s\t(%s)\n", ident.toChars(), m.srcfile.toChars());
         }
         m = m.parse();
+
+        if (!m.isRoot() && onImport && onImport(m))
+        {
+            m.importedFrom = m;
+            assert(m.isRoot());
+        }
+
         Target.loadModule(m);
         return m;
     }
@@ -982,6 +999,7 @@ extern (C++) final class Module : Package
                     pkg.isPkgMod = PKGmodule;
                     pkg.mod = this;
                     pkg.tag = this.tag; // reuse the same package tag
+                    amodules.push(this); // Add to global array of all modules
                 }
                 else
                     error(md ? md.loc : loc, "from file %s conflicts with package name %s", srcname, pkg.toChars());

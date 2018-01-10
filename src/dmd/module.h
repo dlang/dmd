@@ -63,6 +63,7 @@ public:
     static Dsymbols deferred2;  // deferred Dsymbol's needing semantic2() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
+    static void* onImport;
     static void _init();
 
     static AggregateDeclaration *moduleinfo;
