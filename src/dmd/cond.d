@@ -844,12 +844,12 @@ extern (C++) final class StaticIfCondition : Condition
         {
             if (exp.op == TOKerror || nest > 100)
             {
-                error(loc, (nest > 1000) ? "unresolvable circular static if expression" : "error evaluating static if expression");
+                error(loc, (nest > 1000) ? "unresolvable circular `static if` expression" : "error evaluating `static if` expression");
                 return errorReturn();
             }
             if (!sc)
             {
-                error(loc, "static if conditional cannot be at global scope");
+                error(loc, "`static if` conditional cannot be at global scope");
                 inc = 2;
                 return 0;
             }
