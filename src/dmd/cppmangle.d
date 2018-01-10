@@ -542,7 +542,7 @@ private final class CppMangleVisitor : Visitor
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
+            d.error("Internal Compiler Error: C++ static non-`__gshared` non-`extern` variables not supported");
             fatal();
         }
         Dsymbol p = d.toParent();
@@ -715,9 +715,9 @@ public:
     {
         const(char)* p;
         if (t.isImmutable())
-            p = "immutable ";
+            p = "`immutable` ";
         else if (t.isShared())
-            p = "shared ";
+            p = "`shared` ";
         else
             p = "";
         t.error(loc, "Internal Compiler Error: %stype `%s` can not be mapped to C++\n", p, t.toChars());
