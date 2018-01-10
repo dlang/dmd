@@ -2825,7 +2825,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
 
             if (funcdecl.storage_class & STC.abstract_)
-                cd.isabstract = ABSyes;
+                cd.isabstract = Abstract.yes;
 
             // if static function, do not put in vtbl[]
             if (!funcdecl.isVirtual())
@@ -4003,7 +4003,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (cldec.storage_class & STC.scope_)
                 cldec.stack = true;
             if (cldec.storage_class & STC.abstract_)
-                cldec.isabstract = ABSyes;
+                cldec.isabstract = Abstract.yes;
 
             cldec.userAttribDecl = sc.userAttribDecl;
 
@@ -4494,10 +4494,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         /* isAbstract() is undecidable in some cases because of circular dependencies.
          * Now that semantic is finished, get a definitive result, and error if it is not the same.
          */
-        if (cldec.isabstract != ABSfwdref)    // if evaluated it before completion
+        if (cldec.isabstract != Abstract.fwdref)    // if evaluated it before completion
         {
             const isabstractsave = cldec.isabstract;
-            cldec.isabstract = ABSfwdref;
+            cldec.isabstract = Abstract.fwdref;
             cldec.isAbstract();               // recalculate
             if (cldec.isabstract != isabstractsave)
             {
