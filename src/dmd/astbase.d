@@ -45,24 +45,16 @@ struct ASTBase
     alias Identifiers           = Array!(Identifier);
     alias Initializers          = Array!(Initializer);
 
-    enum PROTKIND : int
+    enum Protection : int
     {
-        PROTundefined,
-        PROTnone,
-        PROTprivate,
-        PROTpackage,
-        PROTprotected,
-        PROTpublic,
-        PROTexport,
+        undefined,
+        none,
+        private_,
+        package_,
+        protected_,
+        public_,
+        export_,
     }
-
-    alias PROTprivate       = PROTKIND.PROTprivate;
-    alias PROTpackage       = PROTKIND.PROTpackage;
-    alias PROTprotected     = PROTKIND.PROTprotected;
-    alias PROTpublic        = PROTKIND.PROTpublic;
-    alias PROTexport        = PROTKIND.PROTexport;
-    alias PROTundefined     = PROTKIND.PROTundefined;
-    alias PROTnone          = PROTKIND.PROTnone;
 
     enum Sizeok : int
     {

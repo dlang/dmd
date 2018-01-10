@@ -66,24 +66,16 @@ struct Ungag
     }
 }
 
-enum PROTKIND : int
+enum Protection : int
 {
-    PROTundefined,
-    PROTnone,           // no access
-    PROTprivate,
-    PROTpackage,
-    PROTprotected,
-    PROTpublic,
-    PROTexport,
+    undefined,
+    none,           // no access
+    private_,
+    package_,
+    protected_,
+    public_,
+    export_,
 }
-
-alias PROTundefined = PROTKIND.PROTundefined;
-alias PROTnone = PROTKIND.PROTnone;
-alias PROTprivate = PROTKIND.PROTprivate;
-alias PROTpackage = PROTKIND.PROTpackage;
-alias PROTprotected = PROTKIND.PROTprotected;
-alias PROTpublic = PROTKIND.PROTpublic;
-alias PROTexport = PROTKIND.PROTexport;
 
 struct Prot
 {
