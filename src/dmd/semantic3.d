@@ -631,7 +631,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     ClassDeclaration cd = ad2.isClassDeclaration();
 
                     // Verify that all the ctorinit fields got initialized
-                    if (!(sc2.callSuper & CSXthis_ctor))
+                    if (!(sc2.callSuper & CSX.this_ctor))
                     {
                         foreach (i, v; ad2.fields)
                         {
@@ -655,7 +655,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.fieldinit[i] & CSXthis_ctor))
+                                if (mustInit && !(sc2.fieldinit[i] & CSX.this_ctor))
                                 {
                                     funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
                                 }
@@ -664,7 +664,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                     sc2.freeFieldinit();
 
-                    if (cd && !(sc2.callSuper & CSXany_ctor) && cd.baseClass && cd.baseClass.ctor)
+                    if (cd && !(sc2.callSuper & CSX.any_ctor) && cd.baseClass && cd.baseClass.ctor)
                     {
                         sc2.callSuper = 0;
 

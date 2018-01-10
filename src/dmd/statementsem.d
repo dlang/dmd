@@ -3153,12 +3153,12 @@ else
         }
 
         // If any branches have called a ctor, but this branch hasn't, it's an error
-        if (sc.callSuper & CSXany_ctor && !(sc.callSuper & (CSXthis_ctor | CSXsuper_ctor)))
+        if (sc.callSuper & CSX.any_ctor && !(sc.callSuper & (CSX.this_ctor | CSX.super_ctor)))
         {
             rs.error("return without calling constructor");
             errors = true;
         }
-        sc.callSuper |= CSXreturn;
+        sc.callSuper |= CSX.return_;
         if (sc.fieldinit)
         {
             auto ad = fd.isMember2();
@@ -3168,12 +3168,12 @@ else
             {
                 VarDeclaration v = ad.fields[i];
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (mustInit && !(sc.fieldinit[i] & CSXthis_ctor))
+                if (mustInit && !(sc.fieldinit[i] & CSX.this_ctor))
                 {
                     rs.error("an earlier return statement skips field `%s` initialization", v.toChars());
                     errors = true;
                 }
-                sc.fieldinit[i] |= CSXreturn;
+                sc.fieldinit[i] |= CSX.return_;
             }
         }
 
@@ -3899,12 +3899,12 @@ else
 
         sc = sc.push();
         sc.scopesym = sc.enclosing.scopesym;
-        sc.callSuper |= CSXlabel;
+        sc.callSuper |= CSX.label;
         if (sc.fieldinit)
         {
             size_t dim = sc.fieldinit_dim;
             foreach (i; 0 .. dim)
-                sc.fieldinit[i] |= CSXlabel;
+                sc.fieldinit[i] |= CSX.label;
         }
         sc.slabel = ls;
         if (ls.statement)
