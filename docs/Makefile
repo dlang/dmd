@@ -1,23 +1,42 @@
-MAN_PAGE=man/man1/dmd.1
 DMD=dmd
 DMD_ROOT=..
-G=$(DMD_ROOT)/generated
+GENERATED=$(DMD_ROOT)/generated
+G=$(DMD_ROOT)/generated/docs
+DMD_MAN_PAGE=man/man1/dmd.1
+OTHER_MAN_PAGES=$(addprefix man/, \
+	$(addprefix man1/, dumpobj.1 obj2asm.1) \
+	man5/dmd.conf.5 \
+)
+
+include ../src/osmodel.mak
+
+BUILD=release
+G_BIN=$(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
+
+# Removes inclusion of all dynamic content and timestamps
+export DIFFABLE
 
 ################################################################################
 # Main targets
 ################################################################################
 
-build: $(MAN_PAGE)
+build: $(addprefix $G/, $(DMD_MAN_PAGE) $(OTHER_MAN_PAGES))
 
 preview:
-	man -l $(MAN_PAGE)
+	man -l $G/$(DMD_MAN_PAGE)
 
 ################################################################################
 # Actual compilation commands
 ################################################################################
 
-$(MAN_PAGE): $G/gen_man
+$G/$(DMD_MAN_PAGE): $(G_BIN)/gen_man
+	@mkdir -p $(dir $@)
 	$< > $@
 
-$G/gen_man: gen_man.d $(DMD_ROOT)/src/dmd/cli.d
+$(G_BIN)/gen_man: gen_man.d $(DMD_ROOT)/src/dmd/cli.d
+	@mkdir -p $(dir $@)
 	$(DMD) -I$(DMD_ROOT)/src -of$@ $^
+
+$G/%: %
+	@mkdir -p $(dir $@)
+	cp $< $@

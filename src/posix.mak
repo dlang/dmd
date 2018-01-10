@@ -25,6 +25,20 @@
 # ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
 # ENABLE_COVERAGE       Build dmd with coverage counting
 # ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
+#
+# Targets
+# -------
+#
+# all					Build dmd
+# unittest              Run all unittest blocks
+# cxx-unittest          Check conformance of the C++ headers
+# build-examples        Build DMD as library examples
+# clean                 Remove all generated files
+# man                   Generate the man pages
+# checkwhitespace       Checks for trailing whitespace and tabs
+# zip                   Packs all sources into a ZIP archive
+# gitzip                Packs all sources into a ZIP archive
+# install               Installs dmd into $(INSTALL_DIR)
 ################################################################################
 
 # get OS and MODEL
@@ -534,9 +548,20 @@ $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
+################################################################################
+# Generate the man pages
+################################################################################
+
+DMD_MAN_PAGE = $(GENERATED)/docs/man1/dmd.1
+
+$(DMD_MAN_PAGE): dmd/cli.d
+	${MAKE} -C ../docs DMD=$(HOST_DMD_PATH) build
+
+man: $(DMD_MAN_PAGE)
+
 ######################################################
 
-install: all
+install: all $(DMD_MAN_PAGE)
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
 	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
