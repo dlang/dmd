@@ -1182,7 +1182,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
                 version (all)
                 {
                     // currently rejects
-                    ad.error(ad.invs[i].loc, "mixing invariants with shared/synchronized differene is not supported");
+                    ad.error(ad.invs[i].loc, "mixing invariants with different `shared`/`synchronized` qualifiers is not supported");
                     e = null;
                     break;
                 }
