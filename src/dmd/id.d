@@ -327,6 +327,7 @@ immutable Msgtable[] msgtable =
     // Builtin functions
     { "std" },
     { "core" },
+    { "etc" },
     { "attribute" },
     { "math" },
     { "sin" },
