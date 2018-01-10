@@ -4019,7 +4019,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         cldec.semanticRun = PASSsemantic;
 
-        if (cldec.baseok < BASEOKdone)
+        if (cldec.baseok < Baseok.done)
         {
             /* https://issues.dlang.org/show_bug.cgi?id=12078
              * https://issues.dlang.org/show_bug.cgi?id=12143
@@ -4052,7 +4052,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
 
-            cldec.baseok = BASEOKin;
+            cldec.baseok = Baseok.start;
 
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < cldec.baseclasses.dim;)
@@ -4077,7 +4077,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     i++;
             }
 
-            if (cldec.baseok >= BASEOKdone)
+            if (cldec.baseok >= Baseok.done)
             {
                 //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
                 if (cldec.semanticRun >= PASSsemanticdone)
@@ -4129,14 +4129,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 cldec.baseClass = tc.sym;
                 b.sym = cldec.baseClass;
 
-                if (tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < Baseok.done)
                     resolveBase(tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
-                if (tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < Baseok.done)
                 {
                     //printf("\ttry later, forward reference of base class %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                    cldec.baseok = BASEOKnone;
+                    cldec.baseok = Baseok.none;
                 }
             L7:
             }
@@ -4179,18 +4179,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 b.sym = tc.sym;
 
-                if (tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < Baseok.done)
                     resolveBase(tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
-                if (tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < Baseok.done)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                    cldec.baseok = BASEOKnone;
+                    cldec.baseok = Baseok.none;
                 }
                 i++;
             }
-            if (cldec.baseok == BASEOKnone)
+            if (cldec.baseok == Baseok.none)
             {
                 // Forward referencee of one or more bases, try again later
                 cldec._scope = scx ? scx : sc.copy();
@@ -4199,7 +4199,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 //printf("\tL%d semantic('%s') failed due to forward references\n", __LINE__, toChars());
                 return;
             }
-            cldec.baseok = BASEOKdone;
+            cldec.baseok = Baseok.done;
 
             // If no base class, and this is not an Object, use Object as base class
             if (!cldec.baseClass && cldec.ident != Id.Object && !cldec.classKind == ClassKind.cpp)
@@ -4317,9 +4317,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (cldec.baseok == BASEOKdone)
+        if (cldec.baseok == Baseok.done)
         {
-            cldec.baseok = BASEOKsemanticdone;
+            cldec.baseok = Baseok.semanticdone;
 
             // initialize vtbl
             if (cldec.baseClass)
@@ -4605,7 +4605,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         idec.semanticRun = PASSsemantic;
 
-        if (idec.baseok < BASEOKdone)
+        if (idec.baseok < Baseok.done)
         {
             T resolveBase(T)(lazy T exp)
             {
@@ -4629,7 +4629,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
             }
 
-            idec.baseok = BASEOKin;
+            idec.baseok = Baseok.start;
 
             // Expand any tuples in baseclasses[]
             for (size_t i = 0; i < idec.baseclasses.dim;)
@@ -4654,7 +4654,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     i++;
             }
 
-            if (idec.baseok >= BASEOKdone)
+            if (idec.baseok >= Baseok.done)
             {
                 //printf("%s already semantic analyzed, semanticRun = %d\n", toChars(), semanticRun);
                 if (idec.semanticRun >= PASSsemanticdone)
@@ -4711,18 +4711,18 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 b.sym = tc.sym;
 
-                if (tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < Baseok.done)
                     resolveBase(tc.sym.dsymbolSemantic(null)); // Try to resolve forward reference
-                if (tc.sym.baseok < BASEOKdone)
+                if (tc.sym.baseok < Baseok.done)
                 {
                     //printf("\ttry later, forward reference of base %s\n", tc.sym.toChars());
                     if (tc.sym._scope)
                         tc.sym._scope._module.addDeferredSemantic(tc.sym);
-                    idec.baseok = BASEOKnone;
+                    idec.baseok = Baseok.none;
                 }
                 i++;
             }
-            if (idec.baseok == BASEOKnone)
+            if (idec.baseok == Baseok.none)
             {
                 // Forward referencee of one or more bases, try again later
                 idec._scope = scx ? scx : sc.copy();
@@ -4730,7 +4730,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 idec._scope._module.addDeferredSemantic(idec);
                 return;
             }
-            idec.baseok = BASEOKdone;
+            idec.baseok = Baseok.done;
 
             idec.interfaces = idec.baseclasses.tdata()[0 .. idec.baseclasses.dim];
             foreach (b; idec.interfaces)
@@ -4773,9 +4773,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (idec.baseok == BASEOKdone)
+        if (idec.baseok == Baseok.done)
         {
-            idec.baseok = BASEOKsemanticdone;
+            idec.baseok = Baseok.semanticdone;
 
             // initialize vtbl
             if (idec.vtblOffset())
