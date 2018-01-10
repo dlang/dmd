@@ -1495,24 +1495,22 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         assert(fd.semanticRun >= PASSsemantic3done);
     }
 
-    switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
+    final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
     {
-    case ILSyes:
+    case ILS.yes:
         static if (CANINLINE_LOG)
         {
             printf("\t1: yes %s\n", fd.toChars());
         }
         return true;
-    case ILSno:
+    case ILS.no:
         static if (CANINLINE_LOG)
         {
             printf("\t1: no %s\n", fd.toChars());
         }
         return false;
-    case ILSuninitialized:
+    case ILS.uninitialized:
         break;
-    default:
-        assert(0);
     }
 
     switch (fd.inlining)
@@ -1636,14 +1634,14 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     {
         // Don't modify inlineStatus for header content scan
         if (statementsToo)
-            fd.inlineStatusStmt = ILSyes;
+            fd.inlineStatusStmt = ILS.yes;
         else
-            fd.inlineStatusExp = ILSyes;
+            fd.inlineStatusExp = ILS.yes;
 
         scope InlineScanVisitor v = new InlineScanVisitor();
         fd.accept(v); // Don't scan recursively for header content scan
 
-        if (fd.inlineStatusExp == ILSuninitialized)
+        if (fd.inlineStatusExp == ILS.uninitialized)
         {
             // Need to redo cost computation, as some statements or expressions have been inlined
             cost = inlineCostFunction(fd, hasthis, hdrscan);
@@ -1658,9 +1656,9 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
                 goto Lno;
 
             if (statementsToo)
-                fd.inlineStatusStmt = ILSyes;
+                fd.inlineStatusStmt = ILS.yes;
             else
-                fd.inlineStatusExp = ILSyes;
+                fd.inlineStatusExp = ILS.yes;
         }
     }
     static if (CANINLINE_LOG)
@@ -1676,9 +1674,9 @@ Lno:
     if (!hdrscan) // Don't modify inlineStatus for header content scan
     {
         if (statementsToo)
-            fd.inlineStatusStmt = ILSno;
+            fd.inlineStatusStmt = ILS.no;
         else
-            fd.inlineStatusExp = ILSno;
+            fd.inlineStatusExp = ILS.no;
     }
     static if (CANINLINE_LOG)
     {
@@ -2030,7 +2028,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
     // Need to reevaluate whether parent can now be inlined
     // in expressions, as we might have inlined statements
-    parent.inlineStatusExp = ILSuninitialized;
+    parent.inlineStatusExp = ILS.uninitialized;
 }
 
 /****************************************************
