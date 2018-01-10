@@ -664,8 +664,15 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /***************************************
-     * Search for identifier id as a member of 'this'.
-     * id may be a template instance.
+     * Search for identifier id as a member of `this`.
+     * `id` may be a template instance.
+     *
+     * Params:
+     *  loc = location to print the error messages
+     *  sc = the scope where the symbol is located
+     *  id = the id of the symbol
+     *  flags = the search flags which can be `SearchLocalsOnly` or `IgnorePrivateImports`
+     *
      * Returns:
      *      symbol found, NULL if not
      */
