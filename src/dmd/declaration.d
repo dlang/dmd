@@ -279,7 +279,7 @@ extern (C++) abstract class Declaration : Dsymbol
     {
         super(id);
         storage_class = STC.undefined_;
-        protection = Prot(PROTundefined);
+        protection = Prot(Protection.undefined);
         linkage = LINKdefault;
     }
 
@@ -1222,12 +1222,12 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isExport()
     {
-        return protection.kind == PROTexport;
+        return protection.kind == Protection.export_;
     }
 
     override final bool isImportedSymbol()
     {
-        if (protection.kind == PROTexport && !_init && (storage_class & STC.static_ || parent.isModule()))
+        if (protection.kind == Protection.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
         return false;
     }
@@ -1652,7 +1652,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         super(Loc(), Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
         this.tinfo = tinfo;
         storage_class = STC.static_ | STC.gshared;
-        protection = Prot(PROTpublic);
+        protection = Prot(Protection.public_);
         linkage = LINKc;
         alignment = Target.ptrsize;
     }

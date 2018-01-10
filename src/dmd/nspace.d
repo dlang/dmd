@@ -57,7 +57,7 @@ extern (C++) final class Nspace : ScopeDsymbol
                 ScopeDsymbol sds2 = sce.scopesym;
                 if (sds2)
                 {
-                    sds2.importScope(this, Prot(PROTpublic));
+                    sds2.importScope(this, Prot(Protection.public_));
                     break;
                 }
             }

@@ -1095,14 +1095,14 @@ extern (C++) class FuncDeclaration : Declaration
 
     override final bool isExport()
     {
-        return protection.kind == PROTexport;
+        return protection.kind == Protection.export_;
     }
 
     override final bool isImportedSymbol()
     {
         //printf("isImportedSymbol()\n");
         //printf("protection = %d\n", protection);
-        return (protection.kind == PROTexport) && !fbody;
+        return (protection.kind == Protection.export_) && !fbody;
     }
 
     override final bool isCodeseg()
@@ -1559,10 +1559,10 @@ extern (C++) class FuncDeclaration : Declaration
         version (none)
         {
             printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
-            printf("result is %d\n", isMember() && !(isStatic() || protection == PROTprivate || protection == PROTpackage) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
+            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == Protection.private_, isCtorDeclaration(), linkage != LINKd);
+            printf("result is %d\n", isMember() && !(isStatic() || protection == Protection.private_ || protection == Protection.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
         }
-        return isMember() && !(isStatic() || protection.kind == PROTprivate || protection.kind == PROTpackage) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
+        return isMember() && !(isStatic() || protection.kind == Protection.private_ || protection.kind == Protection.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
     }
 
     bool isFinalFunc()
@@ -1586,14 +1586,14 @@ extern (C++) class FuncDeclaration : Declaration
     {
         AggregateDeclaration ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == Protection.protected_ || protection.kind == Protection.public_ || protection.kind == Protection.export_) && !naked);
     }
 
     bool addPostInvariant()
     {
         AggregateDeclaration ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
-        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == PROTprotected || protection.kind == PROTpublic || protection.kind == PROTexport) && !naked);
+        return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == Protection.protected_ || protection.kind == Protection.public_ || protection.kind == Protection.export_) && !naked);
     }
 
     override const(char)* kind() const
@@ -2222,7 +2222,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             tf = new TypeFunction(fparams, treturn, 0, LINKc, stc);
             fd = new FuncDeclaration(Loc(), Loc(), id, STC.static_, tf);
-            fd.protection = Prot(PROTpublic);
+            fd.protection = Prot(Protection.public_);
             fd.linkage = LINKc;
 
             st.insert(fd);

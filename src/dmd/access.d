@@ -33,7 +33,7 @@ private enum LOG = false;
  */
 private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
 {
-    Prot access_ret = Prot(PROTnone);
+    Prot access_ret = Prot(Protection.none);
     static if (LOG)
     {
         printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n", ad.toChars(), smember.toChars());
@@ -55,18 +55,18 @@ private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
             Prot access = getAccess(b.sym, smember);
             switch (access.kind)
             {
-            case PROTnone:
+            case Protection.none:
                 break;
-            case PROTprivate:
-                access_ret = Prot(PROTnone); // private members of base class not accessible
+            case Protection.private_:
+                access_ret = Prot(Protection.none); // private members of base class not accessible
                 break;
-            case PROTpackage:
-            case PROTprotected:
-            case PROTpublic:
-            case PROTexport:
+            case Protection.package_:
+            case Protection.protected_:
+            case Protection.public_:
+            case Protection.export_:
                 // If access is to be tightened
-                if (PROTpublic < access.kind)
-                    access = Prot(PROTpublic);
+                if (Protection.public_ < access.kind)
+                    access = Prot(Protection.public_);
                 // Pick path with loosest access
                 if (access_ret.isMoreRestrictiveThan(access))
                     access_ret = access;
@@ -106,7 +106,7 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
             {
                 BaseClass* b = (*cdthis.baseclasses)[i];
                 Prot access = getAccess(b.sym, smember);
-                if (access.kind >= PROTprotected || isAccessible(smember, sfunc, b.sym, cdscope))
+                if (access.kind >= Protection.protected_ || isAccessible(smember, sfunc, b.sym, cdscope))
                 {
                     return true;
                 }
@@ -160,13 +160,13 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     if (smemberparent == ad)
     {
         access = smember.prot();
-        result = access.kind >= PROTpublic || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == PROTpackage && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
+        result = access.kind >= Protection.public_ || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == Protection.package_ && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
         static if (LOG)
         {
             printf("result1 = %d\n", result);
         }
     }
-    else if ((access = getAccess(ad, smember)).kind >= PROTpublic)
+    else if ((access = getAccess(ad, smember)).kind >= Protection.public_)
     {
         result = true;
         static if (LOG)
@@ -174,7 +174,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
             printf("result2 = %d\n", result);
         }
     }
-    else if (access.kind == PROTpackage && hasPackageAccess(sc, ad))
+    else if (access.kind == Protection.package_ && hasPackageAccess(sc, ad))
     {
         result = true;
         static if (LOG)
@@ -412,7 +412,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     if (!e)
     {
-        if (d.prot().kind == PROTprivate && d.getAccessModule() != sc._module || d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
+        if (d.prot().kind == Protection.private_ && d.getAccessModule() != sc._module || d.prot().kind == Protection.package_ && !hasPackageAccess(sc, d))
         {
             error(loc, "%s `%s` is not accessible from module `%s`", d.kind(), d.toPrettyChars(), sc._module.toChars());
             return true;
@@ -459,7 +459,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
         return false;
     for (; sc; sc = sc.enclosing)
     {
-        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(PROTprivate)))
+        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(Protection.private_)))
             return false;
     }
     auto name = p.toPrettyChars();
@@ -484,12 +484,12 @@ extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
     s = mostVisibleOverload(s);
     final switch (s.prot().kind)
     {
-    case PROTundefined: return true;
-    case PROTnone: return false; // no access
-    case PROTprivate: return s.getAccessModule() == mod;
-    case PROTpackage: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
-    case PROTprotected: return s.getAccessModule() == mod;
-    case PROTpublic, PROTexport: return true;
+    case Protection.undefined: return true;
+    case Protection.none: return false; // no access
+    case Protection.private_: return s.getAccessModule() == mod;
+    case Protection.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
+    case Protection.protected_: return s.getAccessModule() == mod;
+    case Protection.public_, Protection.export_: return true;
     }
 }
 
@@ -515,12 +515,12 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
     s = mostVisibleOverload(s);
     final switch (s.prot().kind)
     {
-    case PROTundefined: return true;
-    case PROTnone: return false; // no access
-    case PROTprivate: return sc._module == s.getAccessModule();
-    case PROTpackage: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
-    case PROTprotected: return hasProtectedAccess(sc, s);
-    case PROTpublic, PROTexport: return true;
+    case Protection.undefined: return true;
+    case Protection.none: return false; // no access
+    case Protection.private_: return sc._module == s.getAccessModule();
+    case Protection.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
+    case Protection.protected_: return hasProtectedAccess(sc, s);
+    case Protection.public_, Protection.export_: return true;
     }
 }
 

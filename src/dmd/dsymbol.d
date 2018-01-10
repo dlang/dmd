@@ -79,10 +79,10 @@ enum Protection : int
 
 struct Prot
 {
-    PROTKIND kind;
+    Protection kind;
     Package pkg;
 
-    extern (D) this(PROTKIND kind)
+    extern (D) this(Protection kind)
     {
         this.kind = kind;
     }
@@ -105,7 +105,7 @@ struct Prot
     {
         if (this.kind == other.kind)
         {
-            if (this.kind == PROTpackage)
+            if (this.kind == Protection.package_)
                 return this.pkg == other.pkg;
             return true;
         }
@@ -126,7 +126,7 @@ struct Prot
     {
         if (this.kind != parent.kind)
             return false;
-        if (this.kind == PROTpackage)
+        if (this.kind == Protection.package_)
         {
             if (!this.pkg)
                 return true;
@@ -831,7 +831,7 @@ extern (C++) class Dsymbol : RootObject
      */
     Prot prot()
     {
-        return Prot(PROTpublic);
+        return Prot(Protection.public_);
     }
 
     /**************************************
@@ -1232,7 +1232,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
 private:
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
-    PROTKIND* prots;            // array of PROTKIND, one for each import
+    Protection* prots;            // array of Protection, one for each import
 
     import dmd.root.array : BitArray;
     BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
@@ -1288,7 +1288,7 @@ public:
             for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
-                if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
+                if ((flags & IgnorePrivateImports) && prots[i] == Protection.private_)
                     continue;
                 int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
@@ -1330,7 +1330,7 @@ public:
                          * alias is deprecated or less accessible, prefer
                          * the other.
                          */
-                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != Protection.none)
                             s = s2;
                     }
                     else
@@ -1377,7 +1377,7 @@ public:
                     s = a;
                 }
                 // TODO: remove once private symbol visibility has been deprecated
-                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate &&
+                if (!(flags & IgnoreErrors) && s.prot().kind == Protection.private_ &&
                     !s.isOverloadable() && !s.parent.isTemplateMixin() && !s.parent.isNspace())
                 {
                     AliasDeclaration ad = void;
@@ -1429,7 +1429,7 @@ public:
                 Dsymbol s2 = os.a[j];
                 if (s.toAlias() == s2.toAlias())
                 {
-                    if (s2.isDeprecated() || (s2.prot().isMoreRestrictiveThan(s.prot()) && s.prot().kind != PROTnone))
+                    if (s2.isDeprecated() || (s2.prot().isMoreRestrictiveThan(s.prot()) && s.prot().kind != Protection.none))
                     {
                         os.a[j] = s;
                     }
@@ -1464,14 +1464,14 @@ public:
                 }
             }
             importedScopes.push(s);
-            prots = cast(PROTKIND*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
+            prots = cast(Protection*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
             prots[importedScopes.dim - 1] = protection.kind;
         }
     }
 
     final void addAccessiblePackage(Package p, Prot protection)
     {
-        auto pary = protection.kind == PROTprivate ? &privateAccessiblePackages : &accessiblePackages;
+        auto pary = protection.kind == Protection.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
             pary.length = p.tag + 1;
         (*pary)[p.tag] = true;
@@ -1480,7 +1480,7 @@ public:
     bool isPackageAccessible(Package p, Prot protection, int flags = 0)
     {
         if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
-            protection.kind == PROTprivate && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
+            protection.kind == Protection.private_ && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
             return true;
         foreach (i, ss; importedScopes ? (*importedScopes)[] : null)
         {

@@ -428,7 +428,7 @@ final class Parser(AST) : Lexer
                 pAttrs = &attrs;
                 pAttrs.comment = token.blockComment;
             }
-            AST.PROTKIND prot;
+            AST.Protection prot;
             StorageClass stc;
             AST.Condition condition;
 
@@ -924,27 +924,27 @@ final class Parser(AST) : Lexer
                 }
 
             case TOKprivate:
-                prot = AST.PROTprivate;
+                prot = AST.Protection.private_;
                 goto Lprot;
 
             case TOKpackage:
-                prot = AST.PROTpackage;
+                prot = AST.Protection.package_;
                 goto Lprot;
 
             case TOKprotected:
-                prot = AST.PROTprotected;
+                prot = AST.Protection.protected_;
                 goto Lprot;
 
             case TOKpublic:
-                prot = AST.PROTpublic;
+                prot = AST.Protection.public_;
                 goto Lprot;
 
             case TOKexport:
-                prot = AST.PROTexport;
+                prot = AST.Protection.export_;
                 goto Lprot;
             Lprot:
                 {
-                    if (pAttrs.protection.kind != AST.PROTundefined)
+                    if (pAttrs.protection.kind != AST.Protection.undefined)
                     {
                         if (pAttrs.protection.kind != prot)
                             error("conflicting protection attribute `%s` and `%s`", AST.protectionToChars(pAttrs.protection.kind), AST.protectionToChars(prot));
@@ -958,7 +958,7 @@ final class Parser(AST) : Lexer
                     // optional qualified package identifier to bind
                     // protection to
                     AST.Identifiers* pkg_prot_idents = null;
-                    if (pAttrs.protection.kind == AST.PROTpackage && token.value == TOKlparen)
+                    if (pAttrs.protection.kind == AST.Protection.package_ && token.value == TOKlparen)
                     {
                         pkg_prot_idents = parseQualifiedIdentifier("protection package");
                         if (pkg_prot_idents)
@@ -974,14 +974,14 @@ final class Parser(AST) : Lexer
 
                     const attrloc = token.loc;
                     a = parseBlock(pLastDecl, pAttrs);
-                    if (pAttrs.protection.kind != AST.PROTundefined)
+                    if (pAttrs.protection.kind != AST.Protection.undefined)
                     {
-                        if (pAttrs.protection.kind == AST.PROTpackage && pkg_prot_idents)
+                        if (pAttrs.protection.kind == AST.Protection.package_ && pkg_prot_idents)
                             s = new AST.ProtDeclaration(attrloc, pkg_prot_idents, a);
                         else
                             s = new AST.ProtDeclaration(attrloc, pAttrs.protection, a);
 
-                        pAttrs.protection = AST.Prot(AST.PROTundefined);
+                        pAttrs.protection = AST.Prot(AST.Protection.undefined);
                     }
                     break;
                 }

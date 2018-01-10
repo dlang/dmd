@@ -1119,7 +1119,7 @@ extern (C++) final class Module : Package
         scope (exit)
             insearch = false;
         if (flags & IgnorePrivateImports)
-            protection = Prot(PROTpublic); // only consider public imports
+            protection = Prot(Protection.public_); // only consider public imports
         return super.isPackageAccessible(p, protection);
     }
 

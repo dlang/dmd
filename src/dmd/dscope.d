@@ -167,7 +167,7 @@ struct Scope
     PINLINE inlining = PINLINEdefault;
 
     /// protection for class members
-    Prot protection = Prot(PROTpublic);
+    Prot protection = Prot(Protection.public_);
     int explicitProtection;         /// set if in an explicit protection attribute
 
     StorageClass stc;               /// storage class
@@ -644,7 +644,7 @@ struct Scope
                 if (scopesym != s.parent)
                 {
                     ++cost; // got to the symbol through an import
-                    if (s.prot().kind == PROTprivate)
+                    if (s.prot().kind == Protection.private_)
                         return null;
                 }
             }
