@@ -1,31 +1,12 @@
 language: d
-d:
-  - dmd
-  - ldc
-
 script:
   - DMD_BIN="$DMD"
   - deactivate # deactivate d compiler
   - export DMD="$DMD_BIN"
   - ./travis.sh
 
-sudo: false
-addons:
-  apt:
-    packages:
-    - g++-multilib
-    - gdb
-    - libcurl3-gnutls:i386
-
-env:
-  - MODEL=32
-
 matrix:
   include:
     - os: osx
       d: dmd
       env: MODEL=64
-  exclude:
-    # gdc doesn't neither comes w/ multilib support nor picks up system-wide -lstdc++ lgcc_s
-    - d: gdc
-      env: MODEL=32
