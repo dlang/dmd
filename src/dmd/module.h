@@ -102,10 +102,6 @@ public:
     // way to an object file
     Module *importedFrom;
 
-    // indicates this module should be compiled even though
-    // it wasn't given on the command line
-    bool isCompiledImport;
-
     Dsymbols *decldefs;         // top level declarations for this Module
 
     Modules aimports;             // all imported modules
@@ -148,7 +144,7 @@ public:
     static void clearCache();
     int imports(Module *m);
 
-    bool isRoot() { return this->importedFrom == this || isCompiledImport; }
+    bool isRoot() { return this->importedFrom == this; }
     // true if the module source file is directly
     // listed in command line.
     bool isCoreModule(Identifier *ident);

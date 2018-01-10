@@ -786,11 +786,19 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         // Note: DO NOT USE foreach here because Module.amodules.dim can
         //       change on each iteration of the loop
+      MODULE_LOOP:
         for (size_t i = 0; i < Module.amodules.dim; i++)
         {
             auto m = Module.amodules[i];
-            if (m.isCompiledImport)
+            if (m.isRoot)
             {
+                foreach (rootModule; modules)
+                {
+                    if (m is rootModule)
+                    {
+                        continue MODULE_LOOP;
+                    }
+                }
                 if (global.params.verbose)
                     fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
                 m.semantic3(null);

@@ -385,10 +385,6 @@ extern (C++) final class Module : Package
     // way to an object file
     Module importedFrom;
 
-    // indicates this module should be compiled even though
-    // it wasn't given on the command line
-    bool isCompiledImport;
-
     Dsymbols* decldefs;         // top level declarations for this Module
 
     Modules aimports;           // all imported modules
@@ -550,8 +546,8 @@ extern (C++) final class Module : Package
                 {
                     fprintf(global.stdmsg, "compileimport (%s)\n", m.srcfile.toChars);
                 }
-                assert(!m.isCompiledImport); // sanity check
-                m.isCompiledImport = true;
+                m.importedFrom = m;
+                assert(m.isRoot);
             }
         }
 
@@ -1315,7 +1311,7 @@ extern (C++) final class Module : Package
 
     bool isRoot()
     {
-        return this.importedFrom == this || isCompiledImport;
+        return this.importedFrom == this;
     }
 
     // true if the module source file is directly
