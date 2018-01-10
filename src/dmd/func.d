@@ -1036,7 +1036,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     Lerr:
         // Don't give error if in template constraint
-        if (!(sc.flags & SCOPEconstraint))
+        if (!(sc.flags & SCOPE.constraint))
         {
             const(char)* xstatic = isStatic() ? "static " : "";
             // better diagnostics for static functions
@@ -1695,7 +1695,7 @@ extern (C++) class FuncDeclaration : Declaration
                 if (!found)
                 {
                     //printf("\tadding sibling %s\n", fdthis.toPrettyChars());
-                    if (!sc.intypeof && !(sc.flags & SCOPEcompile))
+                    if (!sc.intypeof && !(sc.flags & SCOPE.compile))
                         siblingCallers.push(fdthis);
                 }
             }

@@ -67,13 +67,13 @@ import dmd.visitor;
  */
 private Identifier fixupLabelName(Scope* sc, Identifier ident)
 {
-    uint flags = (sc.flags & SCOPEcontract);
+    uint flags = (sc.flags & SCOPE.contract);
     const id = ident.toString();
-    if (flags && flags != SCOPEinvariant &&
+    if (flags && flags != SCOPE.invariant_ &&
         !(id.length >= 2 && id[0] == '_' && id[1] == '_'))  // does not start with "__"
     {
         OutBuffer buf;
-        buf.writestring(flags == SCOPErequire ? "__in_" : "__out_");
+        buf.writestring(flags == SCOPE.require ? "__in_" : "__out_");
         buf.writestring(ident.toString());
 
         ident = Identifier.idPool(buf.peekSlice());
@@ -2172,7 +2172,7 @@ else
             if (dc)
             {
                 sc = sc.push();
-                sc.flags |= SCOPEdebug;
+                sc.flags |= SCOPE.debug_;
                 cs.ifbody = cs.ifbody.statementSemantic(sc);
                 sc.pop();
             }
@@ -2937,7 +2937,7 @@ else
         Expression e0 = null;
 
         bool errors = false;
-        if (sc.flags & SCOPEcontract)
+        if (sc.flags & SCOPE.contract)
         {
             rs.error("return statements cannot be in contracts");
             errors = true;
@@ -3833,7 +3833,7 @@ else
         if (ds.statement)
         {
             sc = sc.push();
-            sc.flags |= SCOPEdebug;
+            sc.flags |= SCOPE.debug_;
             ds.statement = ds.statement.statementSemantic(sc);
             sc.pop();
         }

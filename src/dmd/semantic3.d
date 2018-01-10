@@ -251,7 +251,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
-        //printf(" sc.incontract = %d\n", (sc.flags & SCOPEcontract));
+        //printf(" sc.incontract = %d\n", (sc.flags & SCOPE.contract));
         if (funcdecl.semanticRun >= PASSsemantic3)
             return;
         funcdecl.semanticRun = PASSsemantic3;
@@ -321,8 +321,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.explicitProtection = 0;
             sc2.aligndecl = null;
             if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
-                sc2.flags = sc.flags & ~SCOPEcontract;
-            sc2.flags &= ~SCOPEcompile;
+                sc2.flags = sc.flags & ~SCOPE.contract;
+            sc2.flags &= ~SCOPE.compile;
             sc2.tf = null;
             sc2.os = null;
             sc2.noctor = 0;
@@ -882,7 +882,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sym.loc = funcdecl.loc;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
-                sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPErequire;
+                sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
 
                 // BUG: need to error if accessing out parameters
                 // BUG: need to disallow returns and throws
@@ -905,7 +905,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     funcdecl.error("void functions have no result");
 
                 sc2 = scout; //push
-                sc2.flags = (sc2.flags & ~SCOPEcontract) | SCOPEensure;
+                sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.ensure;
 
                 // BUG: need to disallow returns and throws
 
@@ -1183,7 +1183,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             sc = sc.push();
             if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
-                sc.flags |= SCOPEctor;
+                sc.flags |= SCOPE.ctor;
             sc.stc = 0;
             sc.linkage = funcdecl.linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);

@@ -77,7 +77,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
     uint nerrors = global.errors;
 
     sc = sc.startCTFE();
-    sc.flags |= SCOPEcondition;
+    sc.flags |= SCOPE.condition;
 
     e = e.expressionSemantic(sc);
     e = resolveProperties(sc, e);

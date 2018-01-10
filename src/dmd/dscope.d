@@ -92,24 +92,27 @@ enum CSXany_ctor        = 0x40;     /// either this() or super() was called
 enum CSXhalt            = 0x80;     /// assert(0)
 
 // Flags that would not be inherited beyond scope nesting
-enum SCOPEctor          = 0x0001;   /// constructor type
-enum SCOPEcondition     = 0x0004;   /// inside static if/assert condition
-enum SCOPEdebug         = 0x0008;   /// inside debug conditional
+enum SCOPE
+{
+    ctor          = 0x0001,   /// constructor type
+    condition     = 0x0004,   /// inside static if/assert condition
+    debug_        = 0x0008,   /// inside debug conditional
 
-// Flags that would be inherited beyond scope nesting
-enum SCOPEnoaccesscheck = 0x0002;   /// don't do access checks
-enum SCOPEconstraint    = 0x0010;   /// inside template constraint
-enum SCOPEinvariant     = 0x0020;   /// inside invariant code
-enum SCOPErequire       = 0x0040;   /// inside in contract code
-enum SCOPEensure        = 0x0060;   /// inside out contract code
-enum SCOPEcontract      = 0x0060;   /// [mask] we're inside contract code
-enum SCOPEctfe          = 0x0080;   /// inside a ctfe-only expression
-enum SCOPEcompile       = 0x0100;   /// inside __traits(compile)
-enum SCOPEignoresymbolvisibility    = 0x0200;   /// ignore symbol visibility
-                                                /// https://issues.dlang.org/show_bug.cgi?id=15907
-enum SCOPEfree          = 0x8000;   /// is on free list
+    // Flags that would be inherited beyond scope nesting
+    noaccesscheck = 0x0002,   /// don't do access checks
+    constraint    = 0x0010,   /// inside template constraint
+    invariant_    = 0x0020,   /// inside invariant code
+    require       = 0x0040,   /// inside in contract code
+    ensure        = 0x0060,   /// inside out contract code
+    contract      = 0x0060,   /// [mask] we're inside contract code
+    ctfe          = 0x0080,   /// inside a ctfe-only expression
+    compile       = 0x0100,   /// inside __traits(compile)
+    ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
+                                          /// https://issues.dlang.org/show_bug.cgi?id=15907
+    free          = 0x8000,   /// is on free list
 
-enum SCOPEfullinst      = 0x10000;  /// fully instantiate templates
+    fullinst      = 0x10000,  /// fully instantiate templates
+}
 
 struct Scope
 {
@@ -186,8 +189,8 @@ struct Scope
             Scope* s = freelist;
             freelist = s.enclosing;
             //printf("freelist %p\n", s);
-            assert(s.flags & SCOPEfree);
-            s.flags &= ~SCOPEfree;
+            assert(s.flags & SCOPE.free);
+            s.flags &= ~SCOPE.free;
             return s;
         }
         return new Scope();
@@ -228,13 +231,13 @@ struct Scope
     {
         Scope* s = copy();
         //printf("Scope::push(this = %p) new = %p\n", this, s);
-        assert(!(flags & SCOPEfree));
+        assert(!(flags & SCOPE.free));
         s.scopesym = null;
         s.enclosing = &this;
         debug
         {
             if (enclosing)
-                assert(!(enclosing.flags & SCOPEfree));
+                assert(!(enclosing.flags & SCOPE.free));
             if (s == enclosing)
             {
                 printf("this = %p, enclosing = %p, enclosing.enclosing = %p\n", s, &this, enclosing);
@@ -244,8 +247,8 @@ struct Scope
         s.slabel = null;
         s.nofree = 0;
         s.fieldinit = saveFieldInit();
-        s.flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint |
-                            SCOPEnoaccesscheck | SCOPEignoresymbolvisibility));
+        s.flags = (flags & (SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
+                            SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility));
         s.lastdc = null;
         assert(&this != s);
         return s;
@@ -281,7 +284,7 @@ struct Scope
         {
             enclosing = freelist;
             freelist = &this;
-            flags |= SCOPEfree;
+            flags |= SCOPE.free;
         }
         return enc;
     }
@@ -303,7 +306,7 @@ struct Scope
     extern (C++) Scope* startCTFE()
     {
         Scope* sc = this.push();
-        sc.flags = this.flags | SCOPEctfe;
+        sc.flags = this.flags | SCOPE.ctfe;
         version (none)
         {
             /* TODO: Currently this is not possible, because we need to
@@ -329,7 +332,7 @@ struct Scope
 
     extern (C++) Scope* endCTFE()
     {
-        assert(flags & SCOPEctfe);
+        assert(flags & SCOPE.ctfe);
         return pop();
     }
 
@@ -519,7 +522,7 @@ struct Scope
             return null;
         }
 
-        if (this.flags & SCOPEignoresymbolvisibility)
+        if (this.flags & SCOPE.ignoresymbolvisibility)
             flags |= IgnoreSymbolVisibility;
 
         Dsymbol sold = void;
@@ -752,7 +755,7 @@ struct Scope
         {
             //printf("\tsc = %p\n", sc);
             sc.nofree = 1;
-            assert(!(flags & SCOPEfree));
+            assert(!(flags & SCOPE.free));
             //assert(sc != sc.enclosing);
             //assert(!sc.enclosing || sc != sc.enclosing.enclosing);
             //if (++i == 10)

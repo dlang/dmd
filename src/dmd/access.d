@@ -391,7 +391,7 @@ private bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
  */
 extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
 {
-    if (sc.flags & SCOPEnoaccesscheck)
+    if (sc.flags & SCOPE.noaccesscheck)
         return false;
     static if (LOG)
     {

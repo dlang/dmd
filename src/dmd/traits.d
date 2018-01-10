@@ -680,7 +680,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
 
         Scope* sc2 = sc.push();
-        sc2.flags = sc.flags | SCOPEnoaccesscheck;
+        sc2.flags = sc.flags | SCOPE.noaccesscheck;
         bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
         sc2.pop();
         if (!ok)
@@ -818,7 +818,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         // ignore symbol visibility for these traits, should disable access checks as well
         Scope* scx = sc.push();
-        scx.flags |= SCOPEignoresymbolvisibility;
+        scx.flags |= SCOPE.ignoresymbolvisibility;
         scope (exit) scx.pop();
 
         if (e.ident == Id.hasMember)
@@ -1347,7 +1347,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             Scope* sc2 = sc.push();
             sc2.tinst = null;
             sc2.minst = null;
-            sc2.flags = (sc.flags & ~(SCOPEctfe | SCOPEcondition)) | SCOPEcompile | SCOPEfullinst;
+            sc2.flags = (sc.flags & ~(SCOPE.ctfe | SCOPE.condition)) | SCOPE.compile | SCOPE.fullinst;
 
             bool err = false;
 
