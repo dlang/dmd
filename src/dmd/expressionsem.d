@@ -1454,7 +1454,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         if (!sc.intypeof)
-            sc.callSuper |= CSXthis;
+            sc.callSuper |= CSX.this_;
         result = e;
         return;
 
@@ -1538,7 +1538,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         if (!sc.intypeof)
-            sc.callSuper |= CSXsuper;
+            sc.callSuper |= CSX.super_;
         result = e;
         return;
 
@@ -3260,15 +3260,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (!sc.intypeof && !(sc.callSuper & CSXhalt))
+            if (!sc.intypeof && !(sc.callSuper & CSX.halt))
             {
-                if (sc.noctor || sc.callSuper & CSXlabel)
+                if (sc.noctor || sc.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
-                if (sc.callSuper & (CSXsuper_ctor | CSXthis_ctor))
+                if (sc.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");
-                if ((sc.callSuper & CSXreturn) && !(sc.callSuper & CSXany_ctor))
+                if ((sc.callSuper & CSX.return_) && !(sc.callSuper & CSX.any_ctor))
                     exp.error("an earlier return statement skips constructor");
-                sc.callSuper |= CSXany_ctor | CSXsuper_ctor;
+                sc.callSuper |= CSX.any_ctor | CSX.super_ctor;
             }
 
             tthis = cd.type.addMod(sc.func.type.mod);
@@ -3297,15 +3297,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (!sc.intypeof && !(sc.callSuper & CSXhalt))
+            if (!sc.intypeof && !(sc.callSuper & CSX.halt))
             {
-                if (sc.noctor || sc.callSuper & CSXlabel)
+                if (sc.noctor || sc.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
-                if (sc.callSuper & (CSXsuper_ctor | CSXthis_ctor))
+                if (sc.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");
-                if ((sc.callSuper & CSXreturn) && !(sc.callSuper & CSXany_ctor))
+                if ((sc.callSuper & CSX.return_) && !(sc.callSuper & CSX.any_ctor))
                     exp.error("an earlier return statement skips constructor");
-                sc.callSuper |= CSXany_ctor | CSXthis_ctor;
+                sc.callSuper |= CSX.any_ctor | CSX.this_ctor;
             }
 
             tthis = ad.type.addMod(sc.func.type.mod);
@@ -4354,11 +4354,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             FuncDeclaration fd = sc.parent.isFuncDeclaration();
             if (fd)
                 fd.hasReturnExp |= 4;
-            sc.callSuper |= CSXhalt;
+            sc.callSuper |= CSX.halt;
             if (sc.fieldinit)
             {
                 for (size_t i = 0; i < sc.fieldinit_dim; i++)
-                    sc.fieldinit[i] |= CSXhalt;
+                    sc.fieldinit[i] |= CSX.halt;
             }
 
             if (global.params.useAssert == CHECKENABLE.off)

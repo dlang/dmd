@@ -41,40 +41,40 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
     if (fi != fieldInit)
     {
         // Have any branches returned?
-        bool aRet = (fi & CSXreturn) != 0;
-        bool bRet = (fieldInit & CSXreturn) != 0;
+        bool aRet = (fi & CSX.return_) != 0;
+        bool bRet = (fieldInit & CSX.return_) != 0;
         // Have any branches halted?
-        bool aHalt = (fi & CSXhalt) != 0;
-        bool bHalt = (fieldInit & CSXhalt) != 0;
+        bool aHalt = (fi & CSX.halt) != 0;
+        bool bHalt = (fieldInit & CSX.halt) != 0;
         bool ok;
         if (aHalt && bHalt)
         {
             ok = true;
-            fieldInit = CSXhalt;
+            fieldInit = CSX.halt;
         }
         else if (!aHalt && aRet)
         {
-            ok = !mustInit || (fi & CSXthis_ctor);
+            ok = !mustInit || (fi & CSX.this_ctor);
             fieldInit = fieldInit;
         }
         else if (!bHalt && bRet)
         {
-            ok = !mustInit || (fieldInit & CSXthis_ctor);
+            ok = !mustInit || (fieldInit & CSX.this_ctor);
             fieldInit = fi;
         }
         else if (aHalt)
         {
-            ok = !mustInit || (fieldInit & CSXthis_ctor);
+            ok = !mustInit || (fieldInit & CSX.this_ctor);
             fieldInit = fieldInit;
         }
         else if (bHalt)
         {
-            ok = !mustInit || (fi & CSXthis_ctor);
+            ok = !mustInit || (fi & CSX.this_ctor);
             fieldInit = fi;
         }
         else
         {
-            ok = !mustInit || !((fieldInit ^ fi) & CSXthis_ctor);
+            ok = !mustInit || !((fieldInit ^ fi) & CSX.this_ctor);
             fieldInit |= fi;
         }
         return ok;
@@ -82,14 +82,17 @@ extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool must
     return true;
 }
 
-enum CSXthis_ctor       = 0x01;     /// called this()
-enum CSXsuper_ctor      = 0x02;     /// called super()
-enum CSXthis            = 0x04;     /// referenced this
-enum CSXsuper           = 0x08;     /// referenced super
-enum CSXlabel           = 0x10;     /// seen a label
-enum CSXreturn          = 0x20;     /// seen a return statement
-enum CSXany_ctor        = 0x40;     /// either this() or super() was called
-enum CSXhalt            = 0x80;     /// assert(0)
+enum CSX
+{
+    this_ctor       = 0x01,     /// called this()
+    super_ctor      = 0x02,     /// called super()
+    this_           = 0x04,     /// referenced this
+    super_          = 0x08,     /// referenced super
+    label           = 0x10,     /// seen a label
+    return_         = 0x20,     /// seen a return statement
+    any_ctor        = 0x40,     /// either this() or super() was called
+    halt            = 0x80,     /// assert(0)
+}
 
 // Flags that would not be inherited beyond scope nesting
 enum SCOPE
@@ -345,21 +348,21 @@ struct Scope
         if (cs != callSuper)
         {
             // Have ALL branches called a constructor?
-            int aAll = (cs & (CSXthis_ctor | CSXsuper_ctor)) != 0;
-            int bAll = (callSuper & (CSXthis_ctor | CSXsuper_ctor)) != 0;
+            int aAll = (cs & (CSX.this_ctor | CSX.super_ctor)) != 0;
+            int bAll = (callSuper & (CSX.this_ctor | CSX.super_ctor)) != 0;
             // Have ANY branches called a constructor?
-            bool aAny = (cs & CSXany_ctor) != 0;
-            bool bAny = (callSuper & CSXany_ctor) != 0;
+            bool aAny = (cs & CSX.any_ctor) != 0;
+            bool bAny = (callSuper & CSX.any_ctor) != 0;
             // Have any branches returned?
-            bool aRet = (cs & CSXreturn) != 0;
-            bool bRet = (callSuper & CSXreturn) != 0;
+            bool aRet = (cs & CSX.return_) != 0;
+            bool bRet = (callSuper & CSX.return_) != 0;
             // Have any branches halted?
-            bool aHalt = (cs & CSXhalt) != 0;
-            bool bHalt = (callSuper & CSXhalt) != 0;
+            bool aHalt = (cs & CSX.halt) != 0;
+            bool bHalt = (callSuper & CSX.halt) != 0;
             bool ok = true;
             if (aHalt && bHalt)
             {
-                callSuper = CSXhalt;
+                callSuper = CSX.halt;
             }
             else if ((!aHalt && aRet && !aAny && bAny) || (!bHalt && bRet && !bAny && aAny))
             {
@@ -372,11 +375,11 @@ struct Scope
                 // If one branch has called a ctor and then exited, anything the
                 // other branch has done is OK (except returning without a
                 // ctor call, but we already checked that).
-                callSuper |= cs & (CSXany_ctor | CSXlabel);
+                callSuper |= cs & (CSX.any_ctor | CSX.label);
             }
             else if (bHalt || bRet && bAll)
             {
-                callSuper = cs | (callSuper & (CSXany_ctor | CSXlabel));
+                callSuper = cs | (callSuper & (CSX.any_ctor | CSX.label));
             }
             else
             {
@@ -385,8 +388,8 @@ struct Scope
                 // If one returned without a ctor, we must remember that
                 // (Don't bother if we've already found an error)
                 if (ok && aRet && !aAny)
-                    callSuper |= CSXreturn;
-                callSuper |= cs & (CSXany_ctor | CSXlabel);
+                    callSuper |= CSX.return_;
+                callSuper |= cs & (CSX.any_ctor | CSX.label);
             }
             if (!ok)
                 error(loc, "one path skips constructor");

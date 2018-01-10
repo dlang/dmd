@@ -113,7 +113,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                 assert(i < dim);
                 uint fi = sc.fieldinit[i];
 
-                if (fi & CSXthis_ctor)
+                if (fi & CSX.this_ctor)
                 {
                     if (var.type.isMutable() && e1.type.isMutable())
                         result = false;
@@ -123,7 +123,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
                     }
                 }
-                else if (sc.noctor || (fi & CSXlabel))
+                else if (sc.noctor || (fi & CSX.label))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
@@ -134,7 +134,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     }
                 }
 
-                sc.fieldinit[i] |= CSXthis_ctor;
+                sc.fieldinit[i] |= CSX.this_ctor;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -142,7 +142,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.fieldinit[j] = CSXthis_ctor;
+                        sc.fieldinit[j] = CSX.this_ctor;
                     }
                 }
             }
