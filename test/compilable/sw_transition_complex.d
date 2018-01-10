@@ -154,3 +154,11 @@ deprecated struct Foo
     ifloat a = 2i;
     cfloat b = 2f + 2i;
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=18218
+static assert(__traits(isDeprecated, cfloat));
+static assert(__traits(isDeprecated, cdouble));
+static assert(__traits(isDeprecated, creal));
+static assert(__traits(isDeprecated, ifloat));
+static assert(__traits(isDeprecated, idouble));
+static assert(__traits(isDeprecated, ireal));
