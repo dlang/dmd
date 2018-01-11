@@ -232,9 +232,9 @@ $(D object.TypeInfo_Class)).)
 $(P $(CODE .classinfo) applied to an interface gives the information for the
 interface, not the class it might be an instance of.)
 
-$(H2 $(LNAME2 classproperties, User Defined Properties))
+$(H2 $(LNAME2 classproperties, User-Defined Properties))
 
-        $(P User defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
+        $(P User-defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
 
 $(SPEC_SUBNAV_PREV_NEXT type, Types, attribute, Attributes)
 )

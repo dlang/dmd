@@ -47,7 +47,7 @@ $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types)
 
     $(P $(DDSUBLINK spec/arrays, strings, $(I Strings)) are a special case of arrays.)
 
-$(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined Types))
+$(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
 
     $(UL
     $(LI alias)

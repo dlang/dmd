@@ -438,12 +438,12 @@ $(H2 $(GNAME getAliasThis))
 
 $(SECTION2 $(GNAME getAttributes),
     $(P
-        Takes one argument, a symbol. Returns a tuple of all attached user defined attributes.
+        Takes one argument, a symbol. Returns a tuple of all attached user-defined attributes.
         If no UDA's exist it will return an empty tuple.
     )
 
     $(P
-        For more information, see: $(DDSUBLINK spec/attribute, uda, User Defined Attributes)
+        For more information, see: $(DDSUBLINK spec/attribute, uda, User-Defined Attributes)
     )
 
 ---
@@ -507,7 +507,7 @@ $(SECTION2 $(GNAME getFunctionAttributes),
     $(P
         Takes one argument which must either be a function symbol, function literal,
         or a function pointer. It returns a string tuple of all the attributes of
-        that function $(B excluding) any user defined attributes (UDAs can be
+        that function $(B excluding) any user-defined attributes (UDAs can be
         retrieved with the $(RELATIVE_LINK2 get-attributes, getAttributes) trait).
         If no attributes exist it will return an empty tuple.
     )

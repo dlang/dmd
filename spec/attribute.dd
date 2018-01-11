@@ -676,7 +676,7 @@ $(P
         Note that the class is still abstract and cannot be instantiated directly.
 )
 
-$(H2 $(LNAME2 uda, User Defined Attributes))
+$(H2 $(LNAME2 uda, User-Defined Attributes))
 
 $(GRAMMAR
 $(GNAME UserDefinedAttribute):
@@ -688,7 +688,7 @@ $(GNAME UserDefinedAttribute):
 )
 
     $(P
-        User Defined Attributes (UDA) are compile-time expressions that can be attached
+        User-Defined Attributes (UDA) are compile-time expressions that can be attached
         to a declaration. These attributes can then be queried, extracted, and manipulated
         at compile time. There is no runtime component to them.
     )
@@ -734,7 +734,7 @@ pragma(msg, __traits(getAttributes, s)); // prints tuple('c')
 ---
 
         $(P
-            If there are no user defined attributes for the symbol, an empty tuple is returned.
+            If there are no user-defined attributes for the symbol, an empty tuple is returned.
             The expression tuple can be turned into a manipulatable tuple:
         )
 
@@ -771,7 +771,7 @@ pragma(msg, __traits(getAttributes, typeof(a))); // prints tuple("hello")
 ---
 
         $(P
-            Of course, the real value of UDA's is to be able to create user defined types with
+            Of course, the real value of UDA's is to be able to create user-defined types with
             specific values. Having attribute values of basic types does not scale.
             The attribute tuples can be manipulated like any other tuple, and can be passed as
             the argument list to a template.
