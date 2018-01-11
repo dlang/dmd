@@ -2990,12 +2990,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (leadingBlank && !inCode)
             {
                 leadingBlank = false;
-                size_t iAfterUnderline = skipchars(buf, i, "= \t\r");
-                if (iAfterUnderline >= buf.offset)
+                size_t iAfterUnderline = skipchars(buf, i, "=");
+                iAfterUnderline = skipchars(buf, iAfterUnderline, " \t\r");
+                if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] != '\n')
                     break;
-                if (buf.data[iAfterUnderline] != '\n')
-                    break;
-                buf.remove(i, iAfterUnderline - i);
+                buf.remove(iLineStart, iAfterUnderline - iLineStart + 1);
+                i = iLineStart - 1;
                 headingLevel = 1;
             }
             break;
@@ -3013,7 +3013,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
                 {
-                    if (newParagraph)
+                    // see if there was whitespace within the ** line
+                    size_t iStrictAfterUnderline = skipchars(buf, i, "*");
+                    iStrictAfterUnderline = skipchars(buf, iStrictAfterUnderline, " \t\r");
+
+                    if (newParagraph || iStrictAfterUnderline != iAfterUnderline)
                     {
                         // if in a new paragraph then treat it as a thematic break
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
@@ -3021,7 +3025,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     else
                     {
                         // otherwise treat it as a 2nd-level heading
-                        buf.remove(i, iAfterUnderline - i);
+                        buf.remove(iLineStart, iAfterUnderline - iLineStart + 1);
+                        i = iLineStart - 1;
                         headingLevel = 2;
                     }
                     break;
