@@ -2379,6 +2379,14 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
 }
 
 /****************************************************
+* A delimiter for Markdown block quotes.
+*/
+struct MarkdownQuote
+{
+    int macroLevel;
+}
+
+/****************************************************
 * A delimiter for Markdown inline content like emphasis and links.
 */
 struct MarkdownDelimiter
@@ -2386,6 +2394,7 @@ struct MarkdownDelimiter
     size_t iStart;
     char type;
     int count;
+    int macroLevel;
     bool leftFlanking;
     bool rightFlanking;
 }
@@ -2398,6 +2407,7 @@ struct MarkdownList
     size_t iStart;
     size_t iContentStart;
     size_t indent;
+    int macroLevel;
     char type;
     string orderedStart;
 
@@ -2406,33 +2416,37 @@ struct MarkdownList
     */
     bool atSameListItem(OutBuffer *buf, size_t iLineStart, size_t i)
     {
-        MarkdownList item = (type == '.' || type == ')') ? parseOrderedListItem(buf, iLineStart, i) : parseUnorderedListItem(buf, iLineStart, i);
-        return item.type == type;
+        MarkdownList item = (type == '.' || type == ')') ? parseOrderedListItem(buf, iLineStart, i, 0) : parseUnorderedListItem(buf, iLineStart, i, 0);
+        if (item.type == type)
+            return getIndent(buf, iLineStart, i) < indent;
+        return false;
     }
 
     /****************************************************
     * Start a Markdown list item by creating/deleting nested lists and starting the item.
     */
-    static bool startItem(OutBuffer *buf, size_t iLineStart, ref size_t i, ref MarkdownList[] nestedLists)
+    static bool startItem(OutBuffer *buf, ref size_t iLineStart, ref size_t i, ref MarkdownList[] nestedLists, int macroLevel)
     {
         MarkdownList list;
         if (buf.data[i] == '+' || buf.data[i] == '-' || buf.data[i] == '*')
-            list = parseUnorderedListItem(buf, iLineStart, i);
+            list = parseUnorderedListItem(buf, iLineStart, i, macroLevel);
         else
-            list = parseOrderedListItem(buf, iLineStart, i);
+            list = parseOrderedListItem(buf, iLineStart, i, macroLevel);
 
         if (!list.type)
             return false;
 
+        size_t itemIndent = getIndent(buf, iLineStart, i);
+
         buf.remove(list.iStart, list.iContentStart - list.iStart);
 
-        if (!nestedLists.length || getIndent(buf, iLineStart, i) >= nestedLists[$-1].indent)
+        if (!nestedLists.length || itemIndent >= nestedLists[$-1].indent)
         {
             // start a list macro
             nestedLists ~= list;
             if (list.type == '.' || list.type == ')')
             {
-                if (list.orderedStart.length && list.orderedStart == "1")
+                if (list.orderedStart.length && list.orderedStart != "1")
                 {
                     list.iStart = buf.insert(list.iStart, "$(OL_START ");
                     list.iStart = buf.insert(list.iStart, list.orderedStart);
@@ -2449,33 +2463,35 @@ struct MarkdownList
             nestedLists[$-1].indent = list.indent;
         }
 
-        i = list.iStart = buf.insert(list.iStart, "$(LI\n");
+        list.iStart = buf.insert(list.iStart, "$(LI\n");
+        i = list.iStart - 1;
+        iLineStart = i;
 
         return true;
     }
 
-    private static MarkdownList parseUnorderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
+    private static MarkdownList parseUnorderedListItem(OutBuffer *buf, size_t iLineStart, size_t i, int macroLevel)
     {
         if (i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
         {
             size_t iContentStart = skipchars(buf, i + 1, " \t");
             size_t indent = getIndent(buf, iLineStart, iContentStart);
-            auto list = MarkdownList(iLineStart, iContentStart, indent, buf.data[i]);
+            auto list = MarkdownList(iLineStart, iContentStart, indent, macroLevel, buf.data[i]);
             return list;
         }
-        return MarkdownList(0, 0, 0, 0);
+        return MarkdownList(0, 0, 0, 0, 0);
     }
 
-    private static MarkdownList parseOrderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
+    private static MarkdownList parseOrderedListItem(OutBuffer *buf, size_t iLineStart, size_t i, int macroLevel)
     {
         size_t iAfterNumbers = skipchars(buf, i, "0123456789");
         if (iAfterNumbers - i <= 10 && iAfterNumbers < buf.offset && (buf.data[iAfterNumbers] == '.' || buf.data[iAfterNumbers] == ')'))
         {
             size_t iContentStart = skipchars(buf, iAfterNumbers + 1, " \t");
             size_t indent = getIndent(buf, iLineStart, iContentStart);
-            return MarkdownList(iLineStart, iContentStart, indent, buf.data[iAfterNumbers], cast(string) buf.data[i..iAfterNumbers].idup);
+            return MarkdownList(iLineStart, iContentStart, indent, macroLevel, buf.data[iAfterNumbers], cast(string) buf.data[i..iAfterNumbers].idup);
         }
-        return MarkdownList(0, 0, 0, 0);
+        return MarkdownList(0, 0, 0, 0, 0);
     }
 }
 
@@ -2486,11 +2502,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
-    int leadingBlank = 1;
+    bool leadingBlank = true;
+    bool newParagraph = true;
     int headingLevel = 0;
     size_t iHeadingStart = 0;
     int quoteLevel = 0;
-    int previousQuoteLevel = 0;
+    MarkdownQuote[] nestedQuotes;
     MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
     int inCode = 0;
@@ -2510,6 +2527,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '\t':
             break;
         case '\n':
+            newParagraph = leadingBlank;
             if (inBacktick)
             {
                 // `inline code` is only valid if contained on a single line
@@ -2532,6 +2550,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 i = buf.insert(i, ")");
                 iHeadingStart = 0;
                 headingLevel = 0;
+                newParagraph = true;
             }
             if (!inCode && nestedLists.length)
             {
@@ -2545,6 +2564,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // end a sibling list item
                     buf.insert(iBeforeNewline, ")");
                     ++i;
+                    newParagraph = true;
                 }
                 else
                 {
@@ -2557,28 +2577,30 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             buf.insert(iBeforeNewline, ")\n)");
                             i += 3;
                             --nestedLists.length;
+                            newParagraph = true;
                         }
                     }
                 }
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
+                newParagraph = true;
+
                 if (inlineDelimiters.length)
                     inlineDelimiters.length = 0;
 
-                for (; previousQuoteLevel > 0; --previousQuoteLevel)
+                for (; nestedQuotes.length; --nestedQuotes.length)
                     i = buf.insert(i, ")");
                 quoteLevel = 0;
 
                 i = buf.insert(i, "$(DDOC_BLANKLINE)");
 // TODO: markdowny paragraphy things
             }
-            leadingBlank = 1;
+            leadingBlank = true;
             iHeadingStart = iLineStart;
             iLineStart = i + 1;
 
-            previousQuoteLevel = previousQuoteLevel > quoteLevel ? previousQuoteLevel : quoteLevel;
-            if (previousQuoteLevel)
+            if (nestedQuotes.length)
             {
                 // peek ahead and end quotes as needed
                 quoteLevel = 0;
@@ -2590,19 +2612,20 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     else if (slice[j] != ' ' && slice[j] != '\t')
                         break;
                 }
+                newParagraph = quoteLevel != nestedQuotes.length;
                 if (quoteLevel)
                 {
-                    for (; quoteLevel < previousQuoteLevel; --previousQuoteLevel)
+                    for (; quoteLevel < nestedQuotes.length; --nestedQuotes.length)
                         i = buf.insert(i, ")");
                     quoteLevel = 0;
                 }
                 else
-                    quoteLevel = previousQuoteLevel;
+                    quoteLevel = cast(int) nestedQuotes.length;
             }
             break;
         case '<':
             {
-                leadingBlank = 0;
+                leadingBlank = false;
                 if (inCode)
                     break;
                 const slice = buf.peekSlice();
@@ -2663,21 +2686,22 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
         case '>':
             {
-                if (leadingBlank && (!inCode || previousQuoteLevel > quoteLevel))
+                if (leadingBlank && (!inCode || nestedQuotes.length > quoteLevel))
                 {
                     ++quoteLevel;
                     size_t iQuotedStart = skipchars(buf, i + 1, " \t");
                     buf.remove(i, iQuotedStart - i);
-                    if (quoteLevel > previousQuoteLevel)
+                    if (quoteLevel > nestedQuotes.length)
                     {
                         i = buf.insert(i, "$(QUOTE\n");
                         iLineStart = i;
+                        nestedQuotes ~= MarkdownQuote(inMacro);
                     }
                     --i;
                     break;
                 }
 
-                leadingBlank = 0;
+                leadingBlank = false;
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
@@ -2693,7 +2717,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
         case '&':
             {
-                leadingBlank = 0;
+                leadingBlank = false;
                 if (inCode)
                     break;
                 char* p = cast(char*)&buf.data[i];
@@ -2767,15 +2791,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
              */
             if (leadingBlank)
             {
-                if (!inCode && MarkdownList.startItem(buf, iLineStart, i, nestedLists))
-                {
-                    leadingBlank = 1;
+                if (!inCode && MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
                     break;
-                }
 
                 size_t istart = i;
                 size_t eollen = 0;
-                leadingBlank = 0;
+                leadingBlank = false;
                 char c0 = c; // if we jumped here from case '`' or case '~'
                 while (1)
                 {
@@ -2819,8 +2840,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 i = iLineStart;
                 if (eollen)
                 {
-                    leadingBlank = 1;
-                    previousQuoteLevel = quoteLevel;
+                    leadingBlank = true;
+                    // previousQuoteLevel = quoteLevel;
                     quoteLevel = 0;
                 }
                 if (inCode && (i <= iCodeStart))
@@ -2883,7 +2904,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (leadingBlank && !inCode)
             {
                 iHeadingStart = i;
-                leadingBlank = 0;
+                leadingBlank = false;
                 size_t iSkipped = skipchars(buf, i, "#");
                 headingLevel = cast(int) (iSkipped - iHeadingStart);
                 if (headingLevel > 6)
@@ -2953,20 +2974,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
 
         case '+':
-        {
-            if (leadingBlank && !inCode)
-                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists))
-                    leadingBlank = 0;
-            break;
-        }
-
         case '0':
         ..
         case '9':
         {
             if (leadingBlank && !inCode)
-                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists))
-                    leadingBlank = 0;
+                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
+                    leadingBlank = false;
             break;
         }
 
@@ -2975,7 +2989,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             /* A line consisting solely of == indicates a Markdown heading on the previous line. */
             if (leadingBlank && !inCode)
             {
-                leadingBlank = 0;
+                leadingBlank = false;
                 size_t iAfterUnderline = skipchars(buf, i, "= \t\r");
                 if (iAfterUnderline >= buf.offset)
                     break;
@@ -2995,15 +3009,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (leadingBlank)
             {
                 /* A line consisting solely of ** indicates a Markdown heading on the previous line, or a thematic break after an empty line. */
-                leadingBlank = 0;
+                leadingBlank = false;
                 size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
                 {
-                    if (iLineStart == offset
-                        || (iLineStart > 1 && buf.data[iLineStart - 2] == '\n')
-                        || (iLineStart > 2 && buf.data[iLineStart - 2] == '\r' && buf.data[iLineStart - 3] == '\n'))
+                    if (newParagraph)
                     {
-                        // if after an empty line then treat it as a thematic break
+                        // if in a new paragraph then treat it as a thematic break
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
                     }
                     else
@@ -3012,68 +3024,71 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         buf.remove(i, iAfterUnderline - i);
                         headingLevel = 2;
                     }
+                    break;
                 }
-                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists))
+                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
                 {
-                    leadingBlank = 1;
                     break;
                 }
             }
-            else
+
+            // Markdown emphasis
+            char leftC = i > offset ? buf.data[i-1] : '\0';
+            size_t iAfterEmphasis = skipchars(buf, i+1, "*");
+            char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
+            int count = cast(int) (iAfterEmphasis - i);
+            bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
+            bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
+            auto emphasis = MarkdownDelimiter(i, c, count, inMacro, leftFlanking, rightFlanking);
+
+            if (!emphasis.leftFlanking && !emphasis.rightFlanking)
             {
-                // Markdown emphasis
-                char leftC = i > offset ? buf.data[i-1] : '\0';
-                size_t iAfterEmphasis = skipchars(buf, i+1, "*");
-                char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
-                int count = cast(int) (iAfterEmphasis - i);
-                bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
-                bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
-                auto emphasis = MarkdownDelimiter(i, c, count, leftFlanking, rightFlanking);
+                i = iAfterEmphasis - 1;
+                break;
+            }
 
-                if (!emphasis.leftFlanking && !emphasis.rightFlanking)
+            if (emphasis.rightFlanking && inlineDelimiters.length)
+            {
+                auto start = inlineDelimiters[$-1];
+                if (emphasis.type == start.type && (emphasis.count + start.count) % 3 != 0)
                 {
-                    i = iAfterEmphasis - 1;
-                    break;
-                }
-
-                if (emphasis.rightFlanking && inlineDelimiters.length)
-                {
-                    auto start = inlineDelimiters[$-1];
-                    if (emphasis.type == start.type && (emphasis.count + start.count) % 3 != 0)
+                    size_t iStart = start.iStart;
+                    if (start.count <= emphasis.count)
                     {
-                        size_t iStart = start.iStart;
-                        if (start.count <= emphasis.count)
-                        {
-                            count = start.count;
-                            emphasis.count -= start.count;
-                            emphasis.iStart += start.count;
+                        count = start.count;
+                        emphasis.count -= start.count;
+                        emphasis.iStart += start.count;
 
-                            --inlineDelimiters.length;
-                        }
-                        else
-                        {
-                            count = emphasis.count;
-                            start.count -= emphasis.count;
-                            iStart += start.count;
-                        }
+                        --inlineDelimiters.length;
+                    }
+                    else
+                    {
+                        count = emphasis.count;
+                        start.count -= emphasis.count;
+                        iStart += start.count;
+                        emphasis.count = 0;
+                    }
 
-                        buf.remove(iStart, count);
-                        while (count)
-                        {
-                            buf.insert(i, ")");
-                            string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
-                            count -= count >= 2 ? 2 : 1;
-                            iStart = buf.insert(iStart, macroName);
-                            i += macroName.length;
-                        }
+                    buf.remove(iStart, count);
+                    i -= count;
+                    buf.remove(i, count);
+
+                    while (count)
+                    {
+                        buf.insert(i, ")");
+                        string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
+                        count -= count >= 2 ? 2 : 1;
+                        iStart = buf.insert(iStart, macroName);
+                        i += macroName.length;
                     }
                 }
-
-                if (emphasis.count && emphasis.leftFlanking)
-                {
-                    inlineDelimiters ~= emphasis;
-                }
             }
+
+            if (emphasis.count && emphasis.leftFlanking)
+            {
+                inlineDelimiters ~= emphasis;
+            }
+
             break;
         }
 
@@ -3081,7 +3096,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         {
             if (i < buf.offset-1 && buf.data[i+1] == '[')
             {
-                auto imageStart = MarkdownDelimiter(i, c, 2, false, false);
+                auto imageStart = MarkdownDelimiter(i, c, 2, inMacro, false, false);
                 inlineDelimiters ~= imageStart;
                 ++i;
             }
@@ -3092,7 +3107,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            auto linkStart = MarkdownDelimiter(i, c, 1, false, false);
+            auto linkStart = MarkdownDelimiter(i, c, 1, inMacro, false, false);
             inlineDelimiters ~= linkStart;
             break;
         }
@@ -3148,7 +3163,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 buf.remove(i, 1);
             }
-            leadingBlank = 0;
+            leadingBlank = false;
             break;
         }
 
@@ -3156,7 +3171,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         {
             /* Look for the start of a macro, '$(Identifier'
              */
-            leadingBlank = 0;
+            leadingBlank = false;
             if (inCode || inBacktick)
                 break;
             const slice = buf.peekSlice();
@@ -3169,16 +3184,31 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case ')':
         {   /* End of macro
              */
-            leadingBlank = 0;
+            leadingBlank = false;
             if (inCode || inBacktick)
                 break;
             if (inMacro)
+            {
+                while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= inMacro)
+                {
+                    i = buf.insert(i, ")");
+                    --nestedQuotes.length;
+                }
+                while (nestedLists.length && nestedLists[$-1].macroLevel >= inMacro)
+                {
+                    i = buf.insert(i, ")\n)");
+                    --nestedLists.length;
+                }
+                while (inlineDelimiters.length && inlineDelimiters[$-1].macroLevel >= inMacro)
+                    --inlineDelimiters.length;
+
                 --inMacro;
+            }
             break;
         }
 
         default:
-            leadingBlank = 0;
+            leadingBlank = false;
             if (sc._module.isDocFile || inCode)
                 break;
             const start = cast(char*)buf.data + i;
@@ -3236,16 +3266,16 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             break;
         }
     }
-// TODO: remove the restriction that code blocks must be closed?
-    if (inCode)
-        error(s ? s.loc : Loc.initial, "unmatched --- in DDoc comment");
 
-    while (nestedLists.length)
-    {
+    if (inCode == '-')
+        error(s ? s.loc : Loc.initial, "unmatched --- in DDoc comment");
+    else if (inCode)
+        buf.insert(buf.offset, ")");
+
+    for (; nestedQuotes.length; --nestedQuotes.length)
+        buf.insert(buf.offset, ")");
+    for (; nestedLists.length; --nestedLists.length)
         buf.insert(buf.offset, ")\n)");
-        --nestedLists.length;
-    }
-// TODO: end quote section?
 }
 
 /**************************************************
