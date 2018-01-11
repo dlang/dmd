@@ -131,7 +131,7 @@ extern (C++) Expression eval_bsf(Loc loc, FuncDeclaration fd, Expressions* argum
     assert(arg0.op == TOKint64);
     uinteger_t n = arg0.toInteger();
     if (n == 0)
-        error(loc, "bsf(0) is undefined");
+        error(loc, "`bsf(0)` is undefined");
     n = (n ^ (n - 1)) >> 1; // convert trailing 0s to 1, and zero rest
     int k = 0;
     while (n)
@@ -148,7 +148,7 @@ extern (C++) Expression eval_bsr(Loc loc, FuncDeclaration fd, Expressions* argum
     assert(arg0.op == TOKint64);
     uinteger_t n = arg0.toInteger();
     if (n == 0)
-        error(loc, "bsr(0) is undefined");
+        error(loc, "`bsr(0)` is undefined");
     int k = 0;
     while (n >>= 1)
     {
