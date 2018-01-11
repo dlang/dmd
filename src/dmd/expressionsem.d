@@ -18,6 +18,7 @@ import core.stdc.string;
 import dmd.access;
 import dmd.aggregate;
 import dmd.aliasthis;
+import dmd.apply;
 import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.attrib;
@@ -1162,6 +1163,38 @@ private Module loadStdMath()
         impStdMath = s;
     }
     return impStdMath.mod;
+}
+
+/****************************************
+ * Check expression for use of __dollar variable.
+ * Input:
+ *      e       expression to walk over
+ * Returns:
+ *      true    if '$' variable was detected
+ */
+private bool containsDollarVar(Expression e)
+{
+    extern (C++) final class DollarVisitor : StoppableVisitor
+    {
+        alias visit = StoppableVisitor.visit;
+
+        bool seenDollar = false;
+
+        override void visit(Expression e)
+        {
+            //printf("(e = %s)\n", e.toChars());
+        }
+
+        override void visit(VarExp ve)
+        {
+            if (ve.var.ident == Id.dollar)
+                seenDollar = true;
+        }
+    }
+
+    scope DollarVisitor v = new DollarVisitor();
+    walkPostorder(e, v);
+    return v.seenDollar;
 }
 
 private extern (C++) final class ExpressionSemanticVisitor : Visitor
@@ -5707,9 +5740,27 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 el = el.optimize(WANTvalue);
                 if (el.op == TOKint64)
                 {
+                    // Array length is known at compile-time. Upper is in bounds if it fits length.
                     dinteger_t length = el.toInteger();
                     auto bounds = IntRange(SignExtendedNumber(0), SignExtendedNumber(length));
                     exp.upperIsInBounds = bounds.contains(uprRange);
+                }
+                else if (exp.upr.op == TOKint64 && exp.upr.toInteger() == 0)
+                {
+                    // Upper slice expression is '0'. Value is always in bounds.
+                    exp.upperIsInBounds = true;
+                }
+                else if (exp.upr.op == TOKvar && (cast(VarExp)exp.upr).var.ident == Id.dollar)
+                {
+                    // Upper slice expression is '$'. Value is always in bounds.
+                    exp.upperIsInBounds = true;
+                }
+                else if (exp.upr.containsDollarVar())
+                {
+                    // Upper slice expression contains a '$', result is in bounds if the highest possible
+                    // value inferred from the expression is less than inferred max array length.
+                    auto maxlength = getIntRange(el);
+                    exp.upperIsInBounds = (uprRange.imax < maxlength.imax);
                 }
             }
             else if (t1b.ty == Tpointer)
@@ -5719,7 +5770,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else
                 assert(0);
 
-            exp.lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
+            if (lwrRange.imax <= uprRange.imin)
+                exp.lowerIsLessThanUpper = true;
+            else if (exp.lwr.containsDollarVar() && exp.upr.containsDollarVar())
+            {
+                // Lower and upper slice expressions contain a '$'. Lower is less than upper
+                // if the highest possible value inferred for lower is less than upper.
+                exp.lowerIsLessThanUpper = (lwrRange.imax < uprRange.imax);
+            }
 
             //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
         }
