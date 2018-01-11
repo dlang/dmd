@@ -241,7 +241,7 @@ unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
 	@echo done
 else
 unittest : unittest-debug unittest-release
-unittest-%:
+unittest-%: target
 	$(MAKE) -f $(MAKEFILE) unittest OS=$(OS) MODEL=$(MODEL) DMD=$(DMD) BUILD=$*
 endif
 
