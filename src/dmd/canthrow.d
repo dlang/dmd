@@ -79,7 +79,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             {
                 if (ce.f)
                 {
-                    ce.error("%s `%s` is not nothrow",
+                    ce.error("%s `%s` is not `nothrow`",
                         ce.f.kind(), ce.f.toPrettyChars());
                 }
                 else
@@ -87,7 +87,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     auto e1 = ce.e1;
                     if (e1.op == TOKstar)   // print 'fp' if e1 is (*fp)
                         e1 = (cast(PtrExp)e1).e1;
-                    ce.error("`%s` is not nothrow", e1.toChars());
+                    ce.error("`%s` is not `nothrow`", e1.toChars());
                 }
             }
             stop = true;
@@ -105,7 +105,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     {
                         if (mustNotThrow)
                         {
-                            ne.error("%s `%s` is not nothrow",
+                            ne.error("%s `%s` is not `nothrow`",
                                 ne.allocator.kind(), ne.allocator.toPrettyChars());
                         }
                         stop = true;
@@ -117,7 +117,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     if (mustNotThrow)
                     {
-                        ne.error("%s `%s` is not nothrow",
+                        ne.error("%s `%s` is not `nothrow`",
                             ne.member.kind(), ne.member.toPrettyChars());
                     }
                     stop = true;
@@ -161,7 +161,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     if (mustNotThrow)
                     {
-                        de.error("%s `%s` is not nothrow",
+                        de.error("%s `%s` is not `nothrow`",
                             ad.dtor.kind(), ad.dtor.toPrettyChars());
                     }
                     stop = true;
@@ -174,7 +174,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     if (mustNotThrow)
                     {
-                        de.error("%s `%s` is not nothrow",
+                        de.error("%s `%s` is not `nothrow`",
                             ad.aggDelete.kind(), ad.aggDelete.toPrettyChars());
                     }
                     stop = true;
@@ -213,7 +213,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             {
                 if (mustNotThrow)
                 {
-                    ae.error("%s `%s` is not nothrow",
+                    ae.error("%s `%s` is not `nothrow`",
                         sd.postblit.kind(), sd.postblit.toPrettyChars());
                 }
                 stop = true;

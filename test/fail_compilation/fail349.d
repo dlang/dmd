@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail349.d(15): Error: function `fail349.bug6109throwing` is not nothrow
+fail_compilation/fail349.d(15): Error: function `fail349.bug6109throwing` is not `nothrow`
 fail_compilation/fail349.d(13): Error: nothrow function `fail349.bug6109noThrow` may throw
 ---
 */
