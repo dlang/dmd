@@ -5888,7 +5888,7 @@ extern (C++) final class TypeFunction : TypeNext
     // arguments get specially formatted
     private const(char)* getParamError(const(char)* format, Expression arg, Parameter par)
     {
-        // disambiguate when toChars() is the same
+        // show qualification when toChars() is the same but types are different
         auto at = arg.type.toChars();
         bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
         if (qual)
@@ -6169,8 +6169,7 @@ extern (C++) final class TypeFunction : TypeNext
                         goto Ldone;
 
                     default:
-                        if (pMessage) *pMessage = getParamError("cannot pass argument %s to parameter %s", (*args)[u], p);
-                        goto Nomatch;
+                        break;
                     }
                 }
                 if (pMessage && u < nargs)
