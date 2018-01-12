@@ -1547,26 +1547,30 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         attribSemantic(sfd);
     }
 
-    void compileIt(CompileDeclaration cd, Scope* sc)
+    private Dsymbols* compileIt(CompileDeclaration cd)
     {
-        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp.toChars());
+        //printf("CompileDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
         auto se = semanticString(sc, cd.exp, "argument to mixin");
         if (!se)
-            return;
+            return null;
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
         scope p = new Parser!ASTCodegen(cd.loc, sc._module, se.toStringz(), false);
         p.nextToken();
 
-        cd.decl = p.parseDeclDefs(0);
-        if (p.token.value != TOKeof)
-            cd.exp.error("incomplete mixin declaration `%s`", se.toChars());
+        auto d = p.parseDeclDefs(0);
         if (p.errors)
         {
-            assert(global.errors != errors);
-            cd.decl = null;
+            assert(global.errors != errors);    // should have caught all these cases
+            return null;
         }
+        if (p.token.value != TOKeof)
+        {
+            cd.exp.error("incomplete mixin declaration `%s`", se.toChars());
+            return null;
+        }
+        return d;
     }
 
     override void visit(CompileDeclaration cd)
@@ -1574,7 +1578,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("CompileDeclaration::semantic()\n");
         if (!cd.compiled)
         {
-            compileIt(cd, sc);
+            cd.decl = compileIt(cd);
             cd.AttribDeclaration.addMember(sc, cd.scopesym);
             cd.compiled = true;
 
