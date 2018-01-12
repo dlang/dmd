@@ -231,7 +231,7 @@ UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
 	ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
-	    test/thread test/unittest
+	    test/thread test/unittest test/imports
 	ADDITIONAL_TESTS+=$(if $(SHARED),test/shared,)
 endif
 
@@ -241,7 +241,7 @@ unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
 	@echo done
 else
 unittest : unittest-debug unittest-release
-unittest-%:
+unittest-%: target
 	$(MAKE) -f $(MAKEFILE) unittest OS=$(OS) MODEL=$(MODEL) DMD=$(DMD) BUILD=$*
 endif
 
