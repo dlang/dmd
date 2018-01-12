@@ -2553,7 +2553,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         sc = sc.push(); // just create new scope
         sc.flags &= ~SCOPE.ctfe; // temporary stop CTFE
-        sc.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=12506
+        sc.protection = Prot(Prot.Kind.public_); // https://issues.dlang.org/show_bug.cgi?id=12506
 
         /* fd.treq might be incomplete type,
             * so should not semantic it.

@@ -3335,7 +3335,7 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     const(char)* p = protectionToChars(prot.kind);
     if (p)
         buf.writestring(p);
-    if (prot.kind == PROTpackage && prot.pkg)
+    if (prot.kind == Prot.Kind.package_ && prot.pkg)
     {
         buf.writeByte('(');
         buf.writestring(prot.pkg.toPrettyChars(true));
@@ -3343,26 +3343,24 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     }
 }
 
-extern (C++) const(char)* protectionToChars(PROTKIND kind)
+extern (C++) const(char)* protectionToChars(Prot.Kind kind)
 {
-    switch (kind)
+    final switch (kind)
     {
-    case PROTundefined:
+    case Prot.Kind.undefined:
         return null;
-    case PROTnone:
+    case Prot.Kind.none:
         return "none";
-    case PROTprivate:
+    case Prot.Kind.private_:
         return "private";
-    case PROTpackage:
+    case Prot.Kind.package_:
         return "package";
-    case PROTprotected:
+    case Prot.Kind.protected_:
         return "protected";
-    case PROTpublic:
+    case Prot.Kind.public_:
         return "public";
-    case PROTexport:
+    case Prot.Kind.export_:
         return "export";
-    default:
-        assert(0);
     }
 }
 

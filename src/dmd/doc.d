@@ -809,7 +809,7 @@ private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
 
 extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
 {
-    if (prot.kind != PROTundefined && prot.kind != PROTpublic)
+    if (prot.kind != Prot.Kind.undefined && prot.kind != Prot.Kind.public_)
     {
         protectionToBuffer(buf, prot);
         buf.writeByte(' ');
@@ -953,7 +953,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         return;
                     }
                 }
-                if (d.protection.kind == PROTprivate || sc.protection.kind == PROTprivate)
+                if (d.protection.kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                     return;
             }
             if (!com)
@@ -974,7 +974,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             else
             {
-                if (ad.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+                if (ad.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                     return;
                 if (!ad.comment)
                     return;
@@ -987,7 +987,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         override void visit(TemplateDeclaration td)
         {
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td.toChars(), td.kind());
-            if (td.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+            if (td.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                 return;
             if (!td.comment)
                 return;
@@ -1001,7 +1001,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(EnumDeclaration ed)
         {
-            if (ed.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+            if (ed.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                 return;
             if (ed.isAnonymous() && ed.members)
             {
@@ -1022,7 +1022,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         override void visit(EnumMember em)
         {
             //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em.toChars(), em.comment);
-            if (em.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+            if (em.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                 return;
             if (!em.comment)
                 return;
@@ -1355,7 +1355,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring(": ");
                     any = 1;
                 }
-                emitProtection(buf, Prot(PROTpublic));
+                emitProtection(buf, Prot(Prot.Kind.public_));
                 if (bc.sym)
                 {
                     buf.printf("$(DDOC_PSUPER_SYMBOL %s)", bc.sym.toPrettyChars());
@@ -1755,7 +1755,7 @@ struct DocComment
                 s = td;
             for (UnitTestDeclaration utd = s.ddocUnittest; utd; utd = utd.ddocUnittest)
             {
-                if (utd.protection.kind == PROTprivate || !utd.comment || !utd.fbody)
+                if (utd.protection.kind == Prot.Kind.private_ || !utd.comment || !utd.fbody)
                     continue;
                 // Strip whitespaces to avoid showing empty summary
                 const(char)* c = utd.comment;

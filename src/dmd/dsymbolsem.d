@@ -1873,7 +1873,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         em.semanticRun = PASSsemantic;
 
-        em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(PROTpublic);
+        em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(Prot.Kind.public_);
         em.linkage = LINKd;
         em.storage_class = STC.manifest;
         em.userAttribDecl = em.ed.isAnonymous() ? em.ed.userAttribDecl : null;
@@ -2351,7 +2351,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             ScopeDsymbol sds = sce.scopesym;
             if (sds)
             {
-                sds.importScope(tm, Prot(PROTpublic));
+                sds.importScope(tm, Prot(Prot.Kind.public_));
                 break;
             }
         }
@@ -2758,7 +2758,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const(char)* sfunc;
             if (funcdecl.isStatic())
                 sfunc = "static";
-            else if (funcdecl.protection.kind == PROTprivate || funcdecl.protection.kind == PROTpackage)
+            else if (funcdecl.protection.kind == Prot.Kind.private_ || funcdecl.protection.kind == Prot.Kind.package_)
                 sfunc = protectionToChars(funcdecl.protection.kind);
             else
                 sfunc = "non-virtual";
@@ -2767,8 +2767,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (funcdecl.isOverride() && !funcdecl.isVirtual())
         {
-            PROTKIND kind = funcdecl.prot().kind;
-            if ((kind == PROTprivate || kind == PROTpackage) && funcdecl.isMember())
+            Prot.Kind kind = funcdecl.prot().kind;
+            if ((kind == Prot.Kind.private_ || kind == Prot.Kind.package_) && funcdecl.isMember())
                 funcdecl.error("%s method is not virtual and cannot override", protectionToChars(kind));
             else
                 funcdecl.error("cannot override a non-virtual function");
@@ -2890,7 +2890,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (f2)
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
-                            if (f2 && f2.isFinalFunc() && f2.prot().kind != PROTprivate)
+                            if (f2 && f2.isFinalFunc() && f2.prot().kind != Prot.Kind.private_)
                                 funcdecl.error("cannot override final function `%s`", f2.toPrettyChars());
                         }
                     }
@@ -3155,7 +3155,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (f2)
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
-                            if (f2 && f2.isFinalFunc() && f2.prot().kind != PROTprivate)
+                            if (f2 && f2.isFinalFunc() && f2.prot().kind != Prot.Kind.private_)
                                 funcdecl.error("cannot override final function `%s.%s`", b.sym.toChars(), f2.toPrettyChars());
                         }
                     }
@@ -4532,7 +4532,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             foreach (vd; cldec.fields)
             {
                 if (!vd.isThisDeclaration() &&
-                    !vd.prot().isMoreRestrictiveThan(Prot(PROTpublic)))
+                    !vd.prot().isMoreRestrictiveThan(Prot(Prot.Kind.public_)))
                 {
                     vd.error("Field members of a synchronized class cannot be `%s`",
                         protectionToChars(vd.prot().kind));
@@ -5112,7 +5112,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     // Declare each template parameter as an alias for the argument type
     Scope* paramscope = _scope.push();
     paramscope.stc = 0;
-    paramscope.protection = Prot(PROTpublic); // https://issues.dlang.org/show_bug.cgi?id=14169
+    paramscope.protection = Prot(Prot.Kind.public_); // https://issues.dlang.org/show_bug.cgi?id=14169
                                               // template parameters should be public
     tempinst.declareParameters(paramscope);
     paramscope.pop();

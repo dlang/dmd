@@ -69,7 +69,7 @@ extern (C++) final class Import : Dsymbol
         this.id = id;
         this.aliasId = aliasId;
         this.isstatic = isstatic;
-        this.protection = PROTprivate; // default to private
+        this.protection = Prot.Kind.private_; // default to private
         // Set symbol name (bracketed)
         if (aliasId)
         {

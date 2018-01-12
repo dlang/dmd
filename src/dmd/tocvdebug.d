@@ -66,21 +66,20 @@ extern (C++):
  * Convert D protection attribute to cv attribute.
  */
 
-uint PROTtoATTR(PROTKIND prot)
+uint PROTtoATTR(Prot.Kind prot)
 {
     uint attribute;
 
-    switch (prot)
+    final switch (prot)
     {
-        case PROTprivate:       attribute = 1;  break;
-        case PROTpackage:       attribute = 2;  break;
-        case PROTprotected:     attribute = 2;  break;
-        case PROTpublic:        attribute = 3;  break;
-        case PROTexport:        attribute = 3;  break;
+        case Prot.Kind.private_:       attribute = 1;  break;
+        case Prot.Kind.package_:       attribute = 2;  break;
+        case Prot.Kind.protected_:     attribute = 2;  break;
+        case Prot.Kind.public_:        attribute = 3;  break;
+        case Prot.Kind.export_:        attribute = 3;  break;
 
-        case PROTundefined:
-        case PROTnone:
-        default:
+        case Prot.Kind.undefined:
+        case Prot.Kind.none:
             //printf("prot = %d\n", prot);
             assert(0);
     }
@@ -691,7 +690,7 @@ void toDebug(ClassDeclaration cd)
             {
                 BaseClass *bc = (*cd.baseclasses)[i];
                 idx_t typidx2 = cv4_typidx(Type_toCtype(bc.sym.type).Tnext);
-                uint attribute = PROTtoATTR(PROTpublic);
+                uint attribute = PROTtoATTR(Prot.Kind.public_);
 
                 uint elementlen;
                 final switch (config.fulltypes)

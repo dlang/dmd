@@ -537,7 +537,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
     {
         super(decl);
         this.loc = loc;
-        this.protection.kind = PROTpackage;
+        this.protection.kind = Prot.Kind.package_;
         this.protection.pkg = null;
         this.pkg_identifiers = pkg_identifiers;
     }
@@ -545,7 +545,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        if (protection.kind == PROTpackage)
+        if (protection.kind == Prot.Kind.package_)
             return new ProtDeclaration(this.loc, pkg_identifiers, Dsymbol.arraySyntaxCopy(decl));
         else
             return new ProtDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
@@ -567,7 +567,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
             protection.pkg = tmp ? tmp.isPackage() : null;
             pkg_identifiers = null;
         }
-        if (protection.kind == PROTpackage && protection.pkg && sc._module)
+        if (protection.kind == Prot.Kind.package_ && protection.pkg && sc._module)
         {
             Module m = sc._module;
             Package pkg = m.parent ? m.parent.isPackage() : null;
@@ -584,7 +584,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 
     override const(char)* toPrettyChars(bool)
     {
-        assert(protection.kind > PROTundefined);
+        assert(protection.kind > Prot.Kind.undefined);
         OutBuffer buf;
         buf.writeByte('\'');
         protectionToBuffer(&buf, protection);

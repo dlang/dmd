@@ -100,7 +100,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         super(id);
         this.loc = loc;
-        protection = Prot(PROTpublic);
+        protection = Prot(Prot.Kind.public_);
         sizeok = Sizeok.none; // size not determined yet
     }
 
@@ -115,7 +115,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         sc2.parent = this;
         if (isUnionDeclaration())
             sc2.inunion = 1;
-        sc2.protection = Prot(PROTpublic);
+        sc2.protection = Prot(Prot.Kind.public_);
         sc2.explicitProtection = 0;
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
@@ -655,7 +655,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             // Emulate vthis.dsymbolSemantic()
             vthis.storage_class |= STC.field;
             vthis.parent = this;
-            vthis.protection = Prot(PROTpublic);
+            vthis.protection = Prot(Prot.Kind.public_);
             vthis.alignment = t.alignment();
             vthis.semanticRun = PASSsemanticdone;
 
@@ -666,7 +666,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     override final bool isExport()
     {
-        return protection.kind == PROTexport;
+        return protection.kind == Prot.Kind.export_;
     }
 
     /*******************************************

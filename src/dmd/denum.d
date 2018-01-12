@@ -57,7 +57,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         this.loc = loc;
         type = new TypeEnum(this);
         this.memtype = memtype;
-        protection = Prot(PROTundefined);
+        protection = Prot(Prot.Kind.undefined);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
