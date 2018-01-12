@@ -3,7 +3,7 @@
 TEST_OUTPUT:
 ---
 X: tuple("x")
-fail_compilation/fail7815.d(47): Error: no property 'flags' for type 'Move'
+fail_compilation/fail7815.d(47): Error: no property `flags` for type `Move`
 ---
 */
 

@@ -7,10 +7,10 @@ fail_compilation/fail10528.d(24): Error: a10528.a is not visible from module fai
 fail_compilation/fail10528.d(26): Error: module fail10528 enum member `a10528.b` is private
 fail_compilation/fail10528.d(26): Deprecation: a10528.b is not visible from module fail10528
 fail_compilation/fail10528.d(27): Error: a10528.b is not visible from module fail10528
-fail_compilation/fail10528.d(29): Deprecation: a10528.S.c is not visible from module fail10528
+fail_compilation/fail10528.d(29): Deprecation: `a10528.S.c` is not visible from module `fail10528`
 fail_compilation/fail10528.d(29): Error: variable `a10528.S.c` is not accessible from module `fail10528`
 fail_compilation/fail10528.d(30): Error: variable `a10528.S.c` is not accessible from module `fail10528`
-fail_compilation/fail10528.d(32): Deprecation: a10528.C.d is not visible from module fail10528
+fail_compilation/fail10528.d(32): Deprecation: `a10528.C.d` is not visible from module `fail10528`
 fail_compilation/fail10528.d(32): Error: variable `a10528.C.d` is not accessible from module `fail10528`
 fail_compilation/fail10528.d(33): Error: variable `a10528.C.d` is not accessible from module `fail10528`
 ---

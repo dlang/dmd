@@ -1015,7 +1015,7 @@ extern (C++) abstract class Type : RootObject
 
     d_uns64 size(Loc loc)
     {
-        error(loc, "no size for type %s", toChars());
+        error(loc, "no size for type `%s`", toChars());
         return SIZE_INVALID;
     }
 
@@ -2531,7 +2531,7 @@ extern (C++) abstract class Type : RootObject
         {
             if (!deco)
             {
-                error(loc, "forward reference of type %s.mangleof", toChars());
+                error(loc, "forward reference of type `%s.mangleof`", toChars());
                 e = new ErrorExp();
             }
             else
@@ -2562,9 +2562,9 @@ extern (C++) abstract class Type : RootObject
             if (this != Type.terror)
             {
                 if (s)
-                    error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident.toChars(), toChars(), s.toChars());
+                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toChars());
                 else
-                    error(loc, "no property '%s' for type '%s'", ident.toChars(), toChars());
+                    error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
             }
             e = new ErrorExp();
         }
@@ -2728,7 +2728,7 @@ extern (C++) abstract class Type : RootObject
                 TemplateDeclaration td = fd.isTemplateDeclaration();
                 if (!td)
                 {
-                    fd.error("must be a template opDispatch(string s), not a %s", fd.kind());
+                    fd.error("must be a template `opDispatch(string s)`, not a %s", fd.kind());
                     return returnExp(new ErrorExp());
                 }
                 auto se = new StringExp(e.loc, cast(char*)ident.toChars());
@@ -4574,7 +4574,7 @@ extern (C++) final class TypeSArray : TypeArray
         return sz;
 
     Loverflow:
-        error(loc, "static array %s size overflowed to %lld", toChars(), cast(long)sz);
+        error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
         return SIZE_INVALID;
     }
 
@@ -4611,7 +4611,7 @@ extern (C++) final class TypeSArray : TypeArray
                 uinteger_t d = dim.toUInteger();
                 if (d >= tup.objects.dim)
                 {
-                    error(loc, "tuple index %llu exceeds length %u", d, tup.objects.dim);
+                    error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
                     *ps = null;
                     *pt = Type.terror;
                     return;
@@ -4683,13 +4683,13 @@ extern (C++) final class TypeSArray : TypeArray
         {
             if (e.op == TOKtype)
             {
-                e.error("%s is not an expression", e.toChars());
+                e.error("`%s` is not an expression", e.toChars());
                 return new ErrorExp();
             }
             else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
                 // MAINTENANCE: turn into error in 2.073
-                e.deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                e.deprecation("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                 // return new ErrorExp();
             }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
@@ -4928,7 +4928,7 @@ extern (C++) final class TypeDArray : TypeArray
         }
         if (e.op == TOKtype && (ident == Id.length || ident == Id.ptr))
         {
-            e.error("%s is not an expression", e.toChars());
+            e.error("`%s` is not an expression", e.toChars());
             return new ErrorExp();
         }
         if (ident == Id.length)
@@ -4951,7 +4951,7 @@ extern (C++) final class TypeDArray : TypeArray
             if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
                 // MAINTENANCE: turn into error in 2.073
-                e.deprecation("%s.ptr cannot be used in @safe code, use &%s[0] instead", e.toChars(), e.toChars());
+                e.deprecation("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
                 // return new ErrorExp();
             }
             e = e.castTo(sc, next.pointerTo());
@@ -6194,7 +6194,7 @@ extern (C++) final class TypeFunction : TypeNext
             Type tb2 = tb.baseElemOf();
             if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members)
             {
-                error(loc, "functions cannot return opaque type %s by value", tb.toChars());
+                error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
                 next = Type.terror;
             }
         }
@@ -6350,7 +6350,7 @@ extern (C++) final class TypeDelegate : TypeNext
         {
             if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                e.error("%s.funcptr cannot be used in @safe code", e.toChars());
+                e.error("`%s.funcptr` cannot be used in `@safe` code", e.toChars());
                 return new ErrorExp();
             }
             e = new DelegateFuncptrExp(e.loc, e);
@@ -6436,7 +6436,7 @@ extern (C++) abstract class TypeQualified : Type
 
     override d_uns64 size(Loc loc)
     {
-        error(this.loc, "size of type %s is not known", toChars());
+        error(this.loc, "size of type `%s` is not known", toChars());
         return SIZE_INVALID;
     }
 
@@ -6475,7 +6475,7 @@ extern (C++) abstract class TypeQualified : Type
             eindex = .resolve(loc, sc, sindex, false);
         if (!eindex)
         {
-            .error(loc, "index is %s not an expression", oindex.toChars());
+            .error(loc, "index `%s` is not an expression", oindex.toChars());
             *pt = Type.terror;
             return;
         }
@@ -6490,7 +6490,7 @@ extern (C++) abstract class TypeQualified : Type
         const(uinteger_t) d = eindex.toUInteger();
         if (d >= tup.objects.dim)
         {
-            .error(loc, "tuple index %llu exceeds length %u", d, tup.objects.dim);
+            .error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
             *pt = Type.terror;
             return;
         }
@@ -6569,7 +6569,7 @@ extern (C++) abstract class TypeQualified : Type
                 Dsymbol sm = s.searchX(loc, sc, id);
                 if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
                 {
-                    .deprecation(loc, "%s is not visible from module %s", sm.toPrettyChars(), sc._module.toChars());
+                    .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
                     // sm = null;
                 }
                 if (global.errors != errorsave)
@@ -6642,9 +6642,9 @@ extern (C++) abstract class TypeQualified : Type
                             assert(id.dyncast() == DYNCAST.identifier);
                             sm = s.search_correct(cast(Identifier)id);
                             if (sm)
-                                error(loc, "identifier '%s' of '%s' is not defined, did you mean %s '%s'?", id.toChars(), toChars(), sm.kind(), sm.toChars());
+                                error(loc, "identifier `%s` of `%s` is not defined, did you mean %s `%s`?", id.toChars(), toChars(), sm.kind(), sm.toChars());
                             else
-                                error(loc, "identifier '%s' of '%s' is not defined", id.toChars(), toChars());
+                                error(loc, "identifier `%s` of `%s` is not defined", id.toChars(), toChars());
                         }
                         *pe = new ErrorExp();
                     }
@@ -6678,7 +6678,7 @@ extern (C++) abstract class TypeQualified : Type
                     if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                         error(loc, "circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                     else
-                        error(loc, "forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+                        error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                     *pt = Type.terror;
                     return;
                 }
@@ -6722,7 +6722,7 @@ extern (C++) abstract class TypeQualified : Type
             if (t.ty == Tinstance && t != this && !t.deco)
             {
                 if (!(cast(TypeInstance)t).tempinst.errors)
-                    error(loc, "forward reference to '%s'", t.toChars());
+                    error(loc, "forward reference to `%s`", t.toChars());
                 *pt = Type.terror;
                 return;
             }
@@ -6818,7 +6818,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         }
         if (ident == Id.ctfe)
         {
-            error(loc, "variable __ctfe cannot be read at compile time");
+            error(loc, "variable `__ctfe` cannot be read at compile time");
             *pe = null;
             *ps = null;
             *pt = Type.terror;
@@ -6993,7 +6993,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         if (inuse)
         {
             inuse = 2;
-            error(loc, "circular typeof definition");
+            error(loc, "circular `typeof` definition");
         Lerr:
             *pt = Type.terror;
             inuse--;
@@ -7059,7 +7059,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         }
         if (t.ty == Ttypeof)
         {
-            error(loc, "forward reference to %s", toChars());
+            error(loc, "forward reference to `%s`", toChars());
             goto Lerr;
         }
         if (idents.dim == 0)
@@ -7138,7 +7138,7 @@ extern (C++) final class TypeReturn : TypeQualified
             FuncDeclaration func = sc.func;
             if (!func)
             {
-                error(loc, "typeof(return) must be inside function");
+                error(loc, "`typeof(return)` must be inside function");
                 goto Lerr;
             }
             if (func.fes)
@@ -7146,7 +7146,7 @@ extern (C++) final class TypeReturn : TypeQualified
             t = func.type.nextOf();
             if (!t)
             {
-                error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc.func.toChars());
+                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toChars());
                 goto Lerr;
             }
         }
@@ -7325,7 +7325,7 @@ extern (C++) final class TypeStruct : Type
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
+            .deprecation(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
@@ -7348,7 +7348,7 @@ extern (C++) final class TypeStruct : Type
                 if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                     e.error("circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                 else
-                    e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    e.error("forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
             if (v.type.ty == Terror)
@@ -7358,7 +7358,7 @@ extern (C++) final class TypeStruct : Type
             {
                 if (v.inuse)
                 {
-                    e.error("circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                    e.error("circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
                 checkAccess(e.loc, sc, null, v);
@@ -7429,7 +7429,7 @@ extern (C++) final class TypeStruct : Type
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
+            e.error("`%s.%s` is not a declaration", e.toChars(), ident.toChars());
             return new ErrorExp();
         }
 
@@ -7820,7 +7820,7 @@ extern (C++) final class TypeEnum : Type
         {
             if (!(flag & 1))
             {
-                sym.error("is forward referenced when looking for '%s'", ident.toChars());
+                sym.error("is forward referenced when looking for `%s`", ident.toChars());
                 e = new ErrorExp();
             }
             else
@@ -7840,10 +7840,10 @@ extern (C++) final class TypeEnum : Type
             if (!(flag & 1) && !res)
             {
                 if (auto ns = sym.search_correct(ident))
-                    e.error("no property '%s' for type '%s'. Did you mean '%s.%s' ?", ident.toChars(), toChars(), toChars(),
+                    e.error("no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), toChars(), toChars(),
                         ns.toChars());
                 else
-                    e.error("no property '%s' for type '%s'", ident.toChars(),
+                    e.error("no property `%s` for type `%s`", ident.toChars(),
                         toChars());
 
                 return new ErrorExp();
@@ -8120,7 +8120,7 @@ extern (C++) final class TypeClass : Type
             {
                 s = sym.search(e.loc, ident, flags | SearchLocalsOnly | IgnoreSymbolVisibility);
                 if (s && !(flags & IgnoreErrors))
-                    .deprecation(e.loc, "%s is not visible from class %s", s.toPrettyChars(), sym.toChars());
+                    .deprecation(e.loc, "`%s` is not visible from class `%s`", s.toPrettyChars(), sym.toChars());
             }
             if (global.params.check10378)
             {
@@ -8189,7 +8189,7 @@ extern (C++) final class TypeClass : Type
                              * function, not classinfo.
                              * We can't get a .classinfo for it.
                              */
-                            error(e.loc, "no .classinfo for C++ interface objects");
+                            error(e.loc, "no `.classinfo` for C++ interface objects");
                         }
                         /* For an interface, the first entry in the vtbl[]
                          * is actually a pointer to an instance of struct Interface.
@@ -8277,7 +8277,7 @@ extern (C++) final class TypeClass : Type
         }
         if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
         {
-            .deprecation(e.loc, "%s is not visible from module %s", s.toPrettyChars(), sc._module.toPrettyChars());
+            .deprecation(e.loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), sc._module.toPrettyChars());
             // return noMember(sc, e, ident, flag);
         }
         if (!s.isFuncDeclaration()) // because of overloading
@@ -8300,7 +8300,7 @@ extern (C++) final class TypeClass : Type
                 if (v.inuse) // https://issues.dlang.org/show_bug.cgi?id=9494
                     e.error("circular reference to %s `%s`", v.kind(), v.toPrettyChars());
                 else
-                    e.error("forward reference to %s '%s'", v.kind(), v.toPrettyChars());
+                    e.error("forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
             if (v.type.ty == Terror)
@@ -8310,7 +8310,7 @@ extern (C++) final class TypeClass : Type
             {
                 if (v.inuse)
                 {
-                    e.error("circular initialization of %s '%s'", v.kind(), v.toPrettyChars());
+                    e.error("circular initialization of %s `%s`", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
                 checkAccess(e.loc, sc, null, v);
@@ -8381,7 +8381,7 @@ extern (C++) final class TypeClass : Type
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            e.error("%s.%s is not a declaration", e.toChars(), ident.toChars());
+            e.error("`%s.%s` is not a declaration", e.toChars(), ident.toChars());
             return new ErrorExp();
         }
 
@@ -8756,7 +8756,7 @@ extern (C++) final class TypeTuple : Type
         }
         else
         {
-            error(loc, "no property '%s' for tuple '%s'", ident.toChars(), toChars());
+            error(loc, "no property `%s` for tuple `%s`", ident.toChars(), toChars());
             e = new ErrorExp();
         }
         return e;
@@ -8845,7 +8845,7 @@ extern (C++) final class TypeSlice : TypeNext
                 uinteger_t i2 = upr.toUInteger();
                 if (!(i1 <= i2 && i2 <= td.objects.dim))
                 {
-                    error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td.objects.dim);
+                    error(loc, "slice `[%llu..%llu]` is out of range of [0..%u]", i1, i2, td.objects.dim);
                     *ps = null;
                     *pt = Type.terror;
                     return;
