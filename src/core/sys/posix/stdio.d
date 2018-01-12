@@ -285,6 +285,10 @@ version( CRuntime_Glibc )
 {
     enum P_tmpdir  = "/tmp";
 }
+version( CRuntime_Musl )
+{
+    enum P_tmpdir  = "/tmp";
+}
 version( Darwin )
 {
     enum P_tmpdir  = "/var/tmp";
