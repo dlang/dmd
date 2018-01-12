@@ -22,6 +22,14 @@ export FULL_BUILD="${PULL_REQUEST_NUMBER+false}"
 source ci.sh
 
 ################################################################################
+# Cache the compiler installation on Semaphore
+# See also: https://semaphoreci.com/docs/caching-between-builds.html#additional-dir-caching
+################################################################################
+
+mkdir -p "$SEMAPHORE_CACHE_DIR/dlang"
+ln -s "$SEMAPHORE_CACHE_DIR/dlang" "$HOME/dlang"
+
+################################################################################
 # Always source a DMD instance
 ################################################################################
 
