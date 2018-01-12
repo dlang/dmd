@@ -124,69 +124,68 @@ public:
     override void visit(CompoundStatement s)
     {
         //printf("CompoundStatement.doInlineAs!%s() %d\n", Result.stringof.ptr, s.statements.dim);
+        visitCompoundStatement(s);
+    }
+
+    /**
+     * Perform inlining on a list of statements
+     * Params:
+     *  s = the statement list
+     *  pos = the position in the compound list to start inlining from
+     */
+    private void visitCompoundStatement(CompoundStatement s, size_t pos = 0)
+    {
         static if (asStatements)
         {
             auto as = new Statements();
             as.reserve(s.statements.dim);
         }
 
-        foreach (i, sx; *s.statements)
+        foreach (i; pos .. s.statements.dim)
         {
+            auto sx = (*s.statements)[i];
             if (!sx)
                 continue;
+
             static if (asStatements)
             {
                 as.push(doInlineAs!Statement(sx, ids));
+                if (ids.foundReturn)
+                    break;
             }
             else
             {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = sx.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.dim &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
-                   )
+                if (auto ifs = sx.isIfStatement())
                 {
-                    /* Rewrite as ?:
+                    scope DoInlineAs!Result isv = new DoInlineAs!Result(ids);
+                    bool subseqIsVisited = false;
+
+                    /* Inline if statement. A delegate is passed that continues inlining the
+                     * rest of this compound statement if needed.
                      */
-                    auto econd = doInlineAs!Expression(ifs.condition, ids);
-                    assert(econd);
-                    auto e1 = doInlineAs!Expression(ifs.ifbody, ids);
-                    assert(ids.foundReturn);
-                    auto e2 = doInlineAs!Expression(s3, ids);
-
-                    Expression e = new CondExp(econd.loc, econd, e1, e2);
-                    e.type = e1.type;
-                    if (e.type.ty == Ttuple)
+                    isv.visitIfStatement(ifs, (v)
                     {
-                        e1.type = Type.tvoid;
-                        e2.type = Type.tvoid;
-                        e.type = Type.tvoid;
-                    }
-                    result = Expression.combine(result, e);
-                }
-                else
-                {
-                    auto e = doInlineAs!Expression(sx, ids);
-                    result = Expression.combine(result, e);
-                }
-            }
+                        subseqIsVisited = true;
+                        v.visitCompoundStatement(s, i + 1);
+                    });
+                    result = Expression.combine(result, isv.result);
 
-            if (ids.foundReturn)
-                break;
+                    if (subseqIsVisited || ids.foundReturn)
+                        break;  // no need to visit statements[i+1 .. $].
+                    continue;
+                }
+
+                auto e = doInlineAs!Expression(sx, ids);
+                result = Expression.combine(result, e);
+                if (ids.foundReturn)
+                    break;
+            }
         }
 
         static if (asStatements)
+        {
             result = new CompoundStatement(s.loc, as);
+        }
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -228,24 +227,69 @@ public:
 
     override void visit(IfStatement s)
     {
+        visitIfStatement(s);
+    }
+
+    /**
+     * Perform inlining on an if condition statement
+     * Params:
+     *  s = the if statement
+     *  visitSubseq = callback for inlining subsequent statements
+     */
+    extern (D) private void visitIfStatement(IfStatement s, void delegate(DoInlineAs!Result) visitSubseq = null)
+    {
         assert(!s.prm);
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
         auto ifbody = doInlineAs!Result(s.ifbody, ids);
-        bool bodyReturn = ids.foundReturn;
-
+        bool thenReturn = ids.foundReturn;
         ids.foundReturn = false;
+
         auto elsebody = doInlineAs!Result(s.elsebody, ids);
+        bool elseReturn = ids.foundReturn;
+        ids.foundReturn = false;
 
         static if (asStatements)
         {
+            ids.foundReturn = thenReturn && elseReturn;
             result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody, s.endloc);
         }
         else
         {
             alias e1 = ifbody;
             alias e2 = elsebody;
+
+            if (thenReturn != elseReturn && visitSubseq)
+            {
+                /* If only one of the branches returns, and there are more
+                 * statements that follow this one, then inline all subsequent
+                 * statements into the branch that doesn't return.
+                 * For example:
+                 *  if (condition) { ...; return exp1; } else { ...; }
+                 *  ...; return exp2;
+                 *
+                 * is rewritten as:
+                 *  if (condition) { ...; return exp1; } else { ...; return exp2; }
+                 */
+                scope DoInlineAs!Result v = new DoInlineAs!Result(ids);
+                visitSubseq(v);
+                if (!thenReturn)
+                {
+                    e1 = Expression.combine(e1, v.result);
+                    thenReturn = v.ids.foundReturn;
+                }
+                else
+                {
+                    e2 = Expression.combine(e2, v.result);
+                    elseReturn = v.ids.foundReturn;
+                }
+                assert(thenReturn == elseReturn);
+            }
+            ids.foundReturn = thenReturn && elseReturn;
+
+            /* Rewrite as ?:
+             */
             if (e1 && e2)
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
@@ -272,7 +316,6 @@ public:
                 result = econd;
             }
         }
-        ids.foundReturn = ids.foundReturn && bodyReturn;
     }
 
     override void visit(ReturnStatement s)

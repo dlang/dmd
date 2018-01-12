@@ -100,12 +100,12 @@ extern (C++) final class InlineCostVisitor : Visitor
 {
     alias visit = Visitor.visit;
 public:
-    int nested;
     bool hasthis;
     bool hdrscan;       // if inline scan for 'header' content
     bool allowAlloca;
     FuncDeclaration fd;
     int cost;           // zero start for subsequent AST
+    bool foundReturn;
 
     extern (D) this()
     {
@@ -121,7 +121,6 @@ public:
 
     extern (D) this(InlineCostVisitor icv)
     {
-        nested = icv.nested;
         hasthis = icv.hasthis;
         hdrscan = icv.hdrscan;
         allowAlloca = icv.allowAlloca;
@@ -144,43 +143,51 @@ public:
     override void visit(CompoundStatement s)
     {
         scope InlineCostVisitor icv = new InlineCostVisitor(this);
-        foreach (i; 0 .. s.statements.dim)
-        {
-            Statement s2 = (*s.statements)[i];
-            if (s2)
-            {
-                /* Specifically allow:
-                 *  if (condition)
-                 *      return exp1;
-                 *  return exp2;
-                 */
-                IfStatement ifs;
-                Statement s3;
-                if ((ifs = s2.isIfStatement()) !is null &&
-                    ifs.ifbody &&
-                    ifs.ifbody.isReturnStatement() &&
-                    !ifs.elsebody &&
-                    i + 1 < s.statements.dim &&
-                    (s3 = (*s.statements)[i + 1]) !is null &&
-                    s3.isReturnStatement()
-                   )
-                {
-                    if (ifs.prm)       // if variables are declared
-                    {
-                        cost = COST_MAX;
-                        return;
-                    }
-                    expressionInlineCost(ifs.condition);
-                    ifs.ifbody.accept(this);
-                    s3.accept(this);
-                }
-                else
-                    s2.accept(icv);
-                if (tooCostly(icv.cost))
-                    break;
-            }
-        }
+        icv.visitCompoundStatement(s);
+
         cost += icv.cost;
+        foundReturn = icv.foundReturn;
+    }
+
+    /**
+     * Compute cost of inlining a list of statements
+     * Params:
+     *  s = the statement list
+     *  pos = the position in the compound list to start scan from
+     */
+    private void visitCompoundStatement(CompoundStatement s, size_t pos = 0)
+    {
+        foreach (i; pos .. s.statements.dim)
+        {
+            Statement sx = (*s.statements)[i];
+            if (!sx)
+                continue;
+
+            if (auto ifs = sx.isIfStatement())
+            {
+                scope InlineCostVisitor icv = new InlineCostVisitor(this);
+                bool subseqIsVisited = false;
+
+                /* Scan if statement. A delegate is passed that continues scanning the
+                 * rest of this compound statement if needed.
+                 */
+                icv.visitIfStatement(ifs, (v)
+                {
+                    subseqIsVisited = true;
+                    v.visitCompoundStatement(s, i + 1);
+                });
+                cost += icv.cost;
+                foundReturn = icv.foundReturn;
+
+                if (subseqIsVisited || icv.foundReturn)
+                    break;  // no need to visit statements[i+1 .. $].
+                continue;
+            }
+
+            sx.accept(this);
+            if (tooCostly(cost) || foundReturn)
+                break;
+        }
     }
 
     override void visit(UnrolledLoopStatement s)
@@ -207,6 +214,17 @@ public:
 
     override void visit(IfStatement s)
     {
+        visitIfStatement(s);
+    }
+
+    /**
+     * Compute cost of inlining an if condition statement
+     * Params:
+     *  s = the if statement
+     *  visitSubseq = callback for scanning subsequent statements
+     */
+    extern (D) private void visitIfStatement(IfStatement s, void delegate(InlineCostVisitor) visitSubseq = null)
+    {
         /* Can't declare variables inside ?: expressions, so
          * we cannot inline if a variable is declared.
          */
@@ -216,42 +234,49 @@ public:
             return;
         }
         expressionInlineCost(s.condition);
-        /* Specifically allow:
-         *  if (condition)
-         *      return exp1;
-         *  else
-         *      return exp2;
-         * Otherwise, we can't handle return statements nested in if's.
-         */
-        if (s.elsebody && s.ifbody && s.ifbody.isReturnStatement() && s.elsebody.isReturnStatement())
-        {
+
+        if (s.ifbody)
             s.ifbody.accept(this);
+        bool thenReturn = foundReturn;
+        foundReturn = false;
+
+        if (s.elsebody)
             s.elsebody.accept(this);
-            //printf("cost = %d\n", cost);
-        }
-        else
+        bool elseReturn = foundReturn;
+        foundReturn = false;
+
+        if (thenReturn != elseReturn && visitSubseq)
         {
-            nested += 1;
-            if (s.ifbody)
-                s.ifbody.accept(this);
-            if (s.elsebody)
-                s.elsebody.accept(this);
-            nested -= 1;
+            /* Recognize:
+             *  if (condition) { ...; } else { ...; return exp2; }
+             *  ...; return exp1;   // subsequent of 'then'.
+             *
+             * and:
+             *  if (condition) { ...; return exp1; } else { ...; }
+             *  ...; return exp2;   // subsequent of 'else'.
+             */
+            scope InlineCostVisitor v = new InlineCostVisitor();
+            visitSubseq(v);
+            cost += v.cost;
+            if (!thenReturn)
+                thenReturn = v.foundReturn;
+            else
+                elseReturn = v.foundReturn;
         }
-        //printf("IfStatement.inlineCost = %d\n", cost);
+        foundReturn = thenReturn && elseReturn;
+
+        if (thenReturn != elseReturn)
+        {
+            // If ReturnStatement exists in one or other branch,
+            // ifs cannot be inlined as Expression.
+            cost = COST_MAX;
+        }
     }
 
     override void visit(ReturnStatement s)
     {
-        // Can't handle return statements nested in if's
-        if (nested)
-        {
-            cost = COST_MAX;
-        }
-        else
-        {
-            expressionInlineCost(s.exp);
-        }
+        foundReturn = true;
+        expressionInlineCost(s.exp);
     }
 
     override void visit(ImportStatement s)
