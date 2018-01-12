@@ -44,7 +44,7 @@ subPackage {
     "src/dmd/astbase.d" \
     "src/dmd/parse.d" \
     "src/dmd/visitor/package.d" \
-    "src/dmd/visitor/parsetime.d" \
+    "src/dmd/visitor/parse_time.d" \
     "src/dmd/visitor/permissive.d" \
     "src/dmd/visitor/strict.d" \
     "src/dmd/visitor/transitive.d"

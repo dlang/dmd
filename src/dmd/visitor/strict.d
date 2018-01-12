@@ -5,7 +5,7 @@
 
 module dmd.visitor.strict;
 
-import dmd.visitor.parsetime;
+import dmd.visitor.parse_time;
 
 /** The StrictVisitor asserts 0 an all visiting functions in order to
   * make sure that all the nodes are visited.

@@ -300,7 +300,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	sideeffect statement staticassert target typesem traits \
 	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
 	semantic2 semantic3 \
-	$(addprefix visitor/, package parsetime permissive transitive)))
+	$(addprefix visitor/, package parse_time permissive transitive)))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
@@ -467,7 +467,7 @@ unittest: $G/dmd-unittest
 ######## DMD as a library examples
 
 EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase $(addprefix visitor/, parsetime transitive permissive strict)))
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase $(addprefix visitor/, parse_time transitive permissive strict)))
 
 $G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
 	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)

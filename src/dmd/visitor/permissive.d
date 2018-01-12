@@ -5,7 +5,7 @@
 
 module dmd.visitor.permissive;
 
-import dmd.visitor.parsetime;
+import dmd.visitor.parse_time;
 
 /** PermissiveVisitor overrides all the visit methods in  the parent class
   * that assert(0) in order to facilitate the traversal of subsets of the AST.

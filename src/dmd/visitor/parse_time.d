@@ -1,9 +1,9 @@
 /**
- * Documentation:  https://dlang.org/phobos/dmd_visitor_parsetime.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/parsetime.d
+ * Documentation:  https://dlang.org/phobos/dmd_visitor_parse_time.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor/parse_time.d
  */
 
-module dmd.visitor.parsetime;
+module dmd.visitor.parse_time;
 
 /** Basic and dumm visitor which implements a visit method for each AST node
   * implemented in AST. This visitor is the parent of strict, transitive
