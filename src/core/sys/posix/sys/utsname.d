@@ -14,6 +14,8 @@ else version (WatchOS)
 
 version (Posix):
 extern(C):
+nothrow:
+@nogc:
 
 version(CRuntime_Glibc)
 {
