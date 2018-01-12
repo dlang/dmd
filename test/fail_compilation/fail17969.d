@@ -1,6 +1,6 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fail17969.d(9): Error: no property 'sum' for type 'MapResult2!((b) => b)'
+fail_compilation/fail17969.d(9): Error: no property `sum` for type `MapResult2!((b) => b)`
 ---
  * https://issues.dlang.org/show_bug.cgi?id=17969
  */

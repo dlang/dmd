@@ -21,8 +21,8 @@ TupleType test2();
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12436.d(28): Error: functions cannot return opaque type Opaque by value
-fail_compilation/fail12436.d(29): Error: functions cannot return opaque type Opaque[1] by value
+fail_compilation/fail12436.d(28): Error: functions cannot return opaque type `Opaque` by value
+fail_compilation/fail12436.d(29): Error: functions cannot return opaque type `Opaque[1]` by value
 ---
 */
 Opaque    ret12436a();  // error
