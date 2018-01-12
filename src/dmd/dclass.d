@@ -81,8 +81,11 @@ struct BaseClass
         // first entry is ClassInfo reference
         for (size_t j = sym.vtblOffset(); j < sym.vtbl.dim; j++)
         {
+            // The interface function that needs to be implemented
             FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
+            // The function found in the class that implements the interface
             FuncDeclaration fd;
+            // The type of the function
             TypeFunction tf;
 
             //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
@@ -98,10 +101,23 @@ struct BaseClass
                 if (fd.linkage != ifd.linkage)
                     fd.error("linkage doesn't match interface function");
 
-                // Check that it is current
-                //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
-                    //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
+                /* Check that the function found is implemented and not inherited
+                 * from the base class. See: https://issues.dlang.org/show_bug.cgi?id=17462
+                 *
+                 * newinstance -> this function is called multiple times. The error is
+                 *                issued just once.
+                 *
+                 * fd.toParent() != cd -> the parent of the found function needs to
+                 *                     be the same as the function that implements it
+                 *
+                 * ifdParent.isBaseOf2(sym) -> if an interface inherits another interface
+                 *                          then the function found might be declared in the
+                 *                          parent of the implemented interface
+                 */
+                //printf("newinstance = %d\n fd.toParent() = %s\n ifd.toParent() = %s\n cd.toChars = %s\n sym=%s\n",
+                //    newinstance, fd.toParent().toChars(), ifd.toParent().toChars(), cd.toChars(), sym.toChars());
+                ClassDeclaration ifdParent = cast(ClassDeclaration)(ifd.toParent);
+                if (newinstance && fd.toParent() != cd  && ifdParent.isBaseOf2(sym))
                     cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
 
                 if (fd.toParent() == cd)
