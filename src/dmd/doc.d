@@ -2182,6 +2182,27 @@ bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStar
 }
 
 /****************************************************
+ * End a Markdown heading, if inside one.
+ */
+bool endMarkdownHeading(OutBuffer *buf, ref size_t i, ref int headingLevel, size_t iHeadingStart)
+{
+    if (headingLevel)
+    {
+        char* heading = cast(char*) "$(H0 ".dup;
+        heading[3] = cast(char) ('0' + headingLevel);
+        buf.insert(iHeadingStart, heading, 5);
+        i += 5;
+        size_t iBeforeNewline = i;
+        while (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n')
+            --iBeforeNewline;
+        buf.insert(iBeforeNewline, ")");
+        headingLevel = 0;
+        return true;
+    }
+    return false;
+}
+
+/****************************************************
  */
 extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 {
@@ -2506,6 +2527,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     bool newParagraph = true;
     int headingLevel = 0;
     size_t iHeadingStart = 0;
+    int headingMacroLevel = 0;
     int quoteLevel = 0;
     MarkdownQuote[] nestedQuotes;
     MarkdownList[] nestedLists;
@@ -2541,15 +2563,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (headingLevel)
+            if (endMarkdownHeading(buf, i, headingLevel, iHeadingStart))
             {
-                char* heading = cast(char*) "$(H0 ".dup;
-                heading[3] = cast(char) ('0' + headingLevel);
-                buf.insert(iHeadingStart, heading, 5);
-                i += 5;
-                i = buf.insert(i, ")");
-                iHeadingStart = 0;
-                headingLevel = 0;
+                ++i;
                 newParagraph = true;
             }
             if (!inCode && nestedLists.length)
@@ -2586,8 +2602,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 newParagraph = true;
 
-                if (inlineDelimiters.length)
-                    inlineDelimiters.length = 0;
+                inlineDelimiters.length = 0;
 
                 for (; nestedQuotes.length; --nestedQuotes.length)
                     i = buf.insert(i, ")");
@@ -2695,6 +2710,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     {
                         i = buf.insert(i, "$(QUOTE\n");
                         iLineStart = i;
+                        newParagraph = true;
                         nestedQuotes ~= MarkdownQuote(inMacro);
                     }
                     --i;
@@ -2927,6 +2943,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 buf.remove(iLineStart, i - iLineStart);
                 i = iHeadingStart = iLineStart;
 
+                headingMacroLevel = inMacro;
+
                 if (emptyHeading)
                 {
                     --i;
@@ -2994,9 +3012,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 iAfterUnderline = skipchars(buf, iAfterUnderline, " \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] != '\n')
                     break;
-                buf.remove(iLineStart, iAfterUnderline - iLineStart + 1);
-                i = iLineStart - 1;
-                headingLevel = 1;
+                size_t iBeforeNewline = iLineStart;
+                while (iBeforeNewline > offset && (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n'))
+                    --iBeforeNewline;
+                buf.remove(iBeforeNewline, iAfterUnderline - iBeforeNewline);
+                i = iLineStart = iBeforeNewline;
+                headingLevel = c == '=' ? 1 : 2;
+                endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
             }
             break;
         }
@@ -3025,9 +3047,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     else
                     {
                         // otherwise treat it as a 2nd-level heading
-                        buf.remove(iLineStart, iAfterUnderline - iLineStart + 1);
-                        i = iLineStart - 1;
-                        headingLevel = 2;
+                        leadingBlank = true;
+                        i = iAfterUnderline;
+                        goto case '=';
                     }
                     break;
                 }
@@ -3185,6 +3207,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 buf.remove(i, 1);
             }
+            else if (!headingLevel && (c1 == '\r' || c1 == '\n'))
+            {
+// TODO: nor if preceeding a setext header
+                buf.remove(i, 1);
+                i = buf.insert(i, "$(BR)");
+            }
             leadingBlank = false;
             break;
         }
@@ -3211,6 +3239,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 break;
             if (inMacro)
             {
+                if (headingMacroLevel >= inMacro)
+                    endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
                 while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= inMacro)
                 {
                     i = buf.insert(i, ")");
@@ -3294,6 +3324,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     else if (inCode)
         buf.insert(buf.offset, ")");
 
+    endMarkdownHeading(buf, buf.offset, headingLevel, iHeadingStart);
     for (; nestedQuotes.length; --nestedQuotes.length)
         buf.insert(buf.offset, ")");
     for (; nestedLists.length; --nestedLists.length)
