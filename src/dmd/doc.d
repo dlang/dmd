@@ -2807,7 +2807,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
              */
             if (leadingBlank)
             {
-                if (!inCode && MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
+                if (!inCode && c == '-' && MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
                     break;
 
                 size_t istart = i;
@@ -2839,7 +2839,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // BUG: handle UTF PS and LS too
                     if (c != c0)
                     {
-                        if (replaceMarkdownThematicBreak(buf, istart, iLineStart))
+                        if (c == '-' && replaceMarkdownThematicBreak(buf, istart, iLineStart))
                         {
                             i = istart;
                             break;
