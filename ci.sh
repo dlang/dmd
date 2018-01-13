@@ -140,7 +140,7 @@ download_install_sh() {
   fi
   for i in {0..4}; do
     for mirror in "${mirrors[@]}" ; do
-        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -O ; then
+        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -o "$location" ; then
             break 2
         fi
     done
@@ -148,7 +148,28 @@ download_install_sh() {
   done
 }
 
+install_dub() {
+  local url="https://github.com/dlang/dub/releases/download/v${DUB_VERSION}/dub-${DUB_VERSION}-${OS_NAME}-x86_64.tar.gz"
+  local root_dir="$HOME/dlang"
+  local dub="$root_dir/dub"
+  local location="${dub}.tgz"
+  if [ -f "${dub}" ] ; then
+      return
+  fi
+  for i in {0..4}; do
+    if curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 10 --speed-time 30 --speed-limit 1024 "$url" -o "$location" ; then
+        break
+    fi
+    sleep $((1 << i))
+  done
+  tar -C "$root_dir" -zxf "$location"
+}
+
 activate_d() {
   download_install_sh "$@"
+  if [ "${DMD:-dmd}" == "gdc" ] ; then
+    export DUB_VERSION="1.6.0"
+    install_dub
+  fi
   CURL_USER_AGENT="$CURL_USER_AGENT" bash install.sh "$1" --activate
 }
