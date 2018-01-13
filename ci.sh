@@ -140,7 +140,7 @@ download_install_sh() {
   fi
   for i in {0..4}; do
     for mirror in "${mirrors[@]}" ; do
-        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -O ; then
+        if curl -fsS -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 "$mirror" -o "$location" ; then
             break 2
         fi
     done
@@ -149,6 +149,14 @@ download_install_sh() {
 }
 
 activate_d() {
-  download_install_sh "$@"
-  CURL_USER_AGENT="$CURL_USER_AGENT" bash install.sh "$1" --activate
+  local install_sh="install.sh"
+  download_install_sh "$install_sh"
+  # DUB isn't needed for gdc
+  if [ "${DMD:-dmd}" == "gdc" ] ; then
+      touch "$HOME/dlang/dub"
+      # Remove the check of the lastest DUB version
+      # shellcheck disable=2016
+      sed 's/dub="dub-$(fetch $url)"/dub=dub' -i "$install_sh"
+  fi
+  CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1" --activate
 }
