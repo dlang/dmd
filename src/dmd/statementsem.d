@@ -796,6 +796,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             auto fe = cast(FuncExp)e;
                             ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
                         }
+                        else if (e.op == TOK.overloadSet)
+                            ds = (cast(OverExp)e).vars;
                     }
                     else if (storageClass & STC.alias_)
                     {
