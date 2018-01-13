@@ -1251,19 +1251,10 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     {
         return e1.toInteger() != e2.toInteger();
     }
-    real_t r1 = 0;
-    real_t r2 = 0;
-    if (e1.type.isreal())
+    if (e1.type.isreal() || e1.type.isimaginary())
     {
-        r1 = e1.toReal();
-        r2 = e2.toReal();
-        goto L1;
-    }
-    else if (e1.type.isimaginary())
-    {
-        r1 = e1.toImaginary();
-        r2 = e2.toImaginary();
-    L1:
+        real_t r1 = e1.type.isreal() ? e1.toReal() : e1.toImaginary();
+        real_t r2 = e1.type.isreal() ? e2.toReal() : e2.toImaginary();
         if (CTFloat.isNaN(r1) || CTFloat.isNaN(r2)) // if unordered
         {
             return 1;
