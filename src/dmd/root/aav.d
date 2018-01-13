@@ -15,15 +15,31 @@ module dmd.root.aav;
 import core.stdc.string;
 import dmd.root.rmem;
 
+/****************************************************
+ * Apply supplemental hash function to key in the same manner Java hashes references.
+ * http://hg.openjdk.java.net/jdk8/jdk8/jdk/file/37a05a11f281/src/share/classes/java/util/HashMap.java#l264
+ *
+ * This function ensures that keys that differ only by constant multiples at each bit position
+ * have a bounded number of collisions (approximately 8 at default load factor).
+ *
+ * Two assumptions are made about the rationale for this method.
+ *  1. Only pointers are hashed, meaning the least significant bits are always zero.
+ *  2. Hash tables are small, and so the upper and lower bits are mixed.
+ */
 extern (C++) size_t hash(size_t a)
 {
     a ^= (a >> 20) ^ (a >> 12);
     return a ^ (a >> 7) ^ (a >> 4);
 }
 
+/****************************************************/
+
+///
 alias Key = void*;
+///
 alias Value = void*;
 
+///
 struct aaA
 {
     aaA* next;
@@ -31,13 +47,14 @@ struct aaA
     Value value;
 }
 
+///
 struct AA
 {
     aaA** b;
     size_t b_length;
-    size_t nodes; // total number of aaA nodes
-    aaA*[4] binit; // initial value of b[]
-    aaA aafirst; // a lot of these AA's have only one entry
+    size_t nodes;   // total number of aaA nodes
+    aaA*[4] binit;  // initial value of b[]
+    aaA aafirst;    // a lot of these AA's have only one entry
 }
 
 /****************************************************
