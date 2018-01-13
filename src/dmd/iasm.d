@@ -3361,16 +3361,16 @@ code *asm_db_parse(OP *pop)
         switch (asmstate.tokValue)
         {
             case TOKint32v:
-                dt.ul = cast(d_int32)asmstate.tok.int64value;
+                dt.ul = cast(d_int32)asmstate.tok.intvalue;
                 goto L1;
             case TOKuns32v:
-                dt.ul = cast(d_uns32)asmstate.tok.uns64value;
+                dt.ul = cast(d_uns32)asmstate.tok.unsvalue;
                 goto L1;
             case TOKint64v:
-                dt.ul = asmstate.tok.int64value;
+                dt.ul = asmstate.tok.intvalue;
                 goto L1;
             case TOKuns64v:
-                dt.ul = asmstate.tok.uns64value;
+                dt.ul = asmstate.tok.unsvalue;
                 goto L1;
             L1:
                 switch (op)
@@ -3542,11 +3542,11 @@ int asm_getnum()
     switch (asmstate.tokValue)
     {
         case TOKint32v:
-            v = cast(d_int32)asmstate.tok.int64value;
+            v = cast(d_int32)asmstate.tok.intvalue;
             break;
 
         case TOKuns32v:
-            v = cast(d_uns32)asmstate.tok.uns64value;
+            v = cast(d_uns32)asmstate.tok.unsvalue;
             break;
 
         case TOKidentifier:
@@ -4178,7 +4178,7 @@ void asm_primary_exp(out OPND o1)
                     asm_token();
                     if (asmstate.tokValue == TOKint32v)
                     {
-                        uint n = cast(uint)asmstate.tok.uns64value;
+                        uint n = cast(uint)asmstate.tok.unsvalue;
                         if (n > 7)
                             asmerr("bad operand");
                         else
@@ -4287,18 +4287,18 @@ void asm_primary_exp(out OPND o1)
             break;
 
         case TOKint32v:
-            o1.disp = cast(d_int32)asmstate.tok.int64value;
+            o1.disp = cast(d_int32)asmstate.tok.intvalue;
             asm_token();
             break;
 
         case TOKuns32v:
-            o1.disp = cast(d_uns32)asmstate.tok.uns64value;
+            o1.disp = cast(d_uns32)asmstate.tok.unsvalue;
             asm_token();
             break;
 
         case TOKint64v:
         case TOKuns64v:
-            o1.disp = asmstate.tok.int64value;
+            o1.disp = asmstate.tok.intvalue;
             asm_token();
             break;
 

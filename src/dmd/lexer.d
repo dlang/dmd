@@ -340,7 +340,7 @@ class Lexer
                 if (!isZeroSecond(p[1]))        // if numeric literal does not continue
                 {
                     ++p;
-                    t.uns64value = 0;
+                    t.unsvalue = 0;
                     t.value = TOKint32v;
                     return;
                 }
@@ -349,7 +349,7 @@ class Lexer
             case '1': .. case '9':
                 if (!isDigitSecond(p[1]))       // if numeric literal does not continue
                 {
-                    t.uns64value = *p - '0';
+                    t.unsvalue = *p - '0';
                     ++p;
                     t.value = TOKint32v;
                     return;
@@ -361,7 +361,7 @@ class Lexer
             case '\'':
                 if (issinglechar(p[1]) && p[2] == '\'')
                 {
-                    t.uns64value = p[1];        // simple one character literal
+                    t.unsvalue = p[1];        // simple one character literal
                     t.value = TOKcharv;
                     p += 3;
                 }
@@ -536,7 +536,7 @@ class Lexer
                                     break;
                             }
                             t.value = TOKint64v;
-                            t.uns64value = major * 1000 + minor;
+                            t.unsvalue = major * 1000 + minor;
                         }
                         else if (id == Id.EOFX)
                         {
@@ -1697,16 +1697,16 @@ class Lexer
             switch (*p)
             {
             case 'u':
-                t.uns64value = escapeSequence();
+                t.unsvalue = escapeSequence();
                 tk = TOKwcharv;
                 break;
             case 'U':
             case '&':
-                t.uns64value = escapeSequence();
+                t.unsvalue = escapeSequence();
                 tk = TOKdcharv;
                 break;
             default:
-                t.uns64value = escapeSequence();
+                t.unsvalue = escapeSequence();
                 break;
             }
             break;
@@ -1723,7 +1723,7 @@ class Lexer
             goto case;
         case '\'':
             error("unterminated character constant");
-            t.uns64value = '?';
+            t.unsvalue = '?';
             return tk;
         default:
             if (c & 0x80)
@@ -1738,13 +1738,13 @@ class Lexer
                 else
                     tk = TOKdcharv;
             }
-            t.uns64value = c;
+            t.unsvalue = c;
             break;
         }
         if (*p != '\'')
         {
             error("unterminated character constant");
-            t.uns64value = '?';
+            t.unsvalue = '?';
             return tk;
         }
         p++;
@@ -2059,7 +2059,7 @@ class Lexer
             }
             assert(0);
         }
-        t.uns64value = n;
+        t.unsvalue = n;
         return result;
     }
 
@@ -2276,9 +2276,9 @@ class Lexer
         scan(&tok);
         if (tok.value == TOKint32v || tok.value == TOKint64v)
         {
-            const lin = cast(int)(tok.uns64value - 1);
-            if (lin != tok.uns64value - 1)
-                error("line number `%lld` out of range", cast(ulong)tok.uns64value);
+            const lin = cast(int)(tok.unsvalue - 1);
+            if (lin != tok.unsvalue - 1)
+                error("line number `%lld` out of range", cast(ulong)tok.unsvalue);
             else
                 linnum = lin;
         }
