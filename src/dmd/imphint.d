@@ -23,33 +23,24 @@ import core.stdc.string;
  */
 extern (C++) const(char)* importHint(const(char)* s)
 {
-    static __gshared const(char)** modules = ["core.stdc.stdio", "std.stdio", "std.math", null];
-    static __gshared const(char)** names =
-    [
-        "printf",
-        null,
-        "writeln",
-        null,
-        "sin",
-        "cos",
-        "sqrt",
-        "fabs",
-        null
+    return hints.get(cast(string) s[0..strlen(s)], null).ptr;
+}
+
+private immutable string[string] hints;
+
+shared static this()
+{
+    // in alphabetic order
+    hints = [
+        "cos": "std.math",
+        "fabs": "std.math",
+        "printf": "core.stdc.stdio",
+        "sin": "std.math",
+        "sqrt": "std.math",
+        "writefln": "std.stdio",
+        "writeln": "std.stdio",
+        "__va_argsave_t": "core.vararg",
     ];
-    int m = 0;
-    for (int n = 0; modules[m]; n++)
-    {
-        const(char)* p = names[n];
-        if (p is null)
-        {
-            m++;
-            continue;
-        }
-        assert(modules[m]);
-        if (strcmp(s, p) == 0)
-            return modules[m];
-    }
-    return null; // didn't find it
 }
 
 unittest
