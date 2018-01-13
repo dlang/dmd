@@ -44,8 +44,6 @@ build_script:
 
   # build via VS projects (needs dmd downloaded in appveyor.sh)
   - cd c:\projects\dmd\src
-  # upgrade used compiler version to VS2015
-  - sed -i s/v120/v140/ vcbuild\dmd_backend.vcxproj
   - devenv /Build "Release|Win32" /Project dmd vcbuild\dmd.sln
 
   # sanity check: build druntime unittests
