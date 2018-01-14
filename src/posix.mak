@@ -313,7 +313,7 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 GLUE_OBJS =
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 
-GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
+GLUE_SRCS=$(addsuffix .d, $(addprefix $D/ir/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm objc_glue))
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)

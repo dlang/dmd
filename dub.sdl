@@ -61,5 +61,5 @@ subPackage {
   versions "NoMain"
   sourcePaths "src/dmd"
   excludedSourceFiles "src/dmd/backend/*"
-  excludedSourceFiles "src/dmd/{e2ir,eh,glue,iasm,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
+  excludedSourceFiles "src/dmd/ir/{e2ir,eh,glue,iasm,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
 }
