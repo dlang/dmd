@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/gluelayer.d
  */
 
-module dmd.gluelayer;
+module dmd.ir.gluelayer;
 
 import dmd.dmodule;
 import dmd.dscope;

@@ -10,7 +10,7 @@
  * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/dmd/s2ir.d)
  */
 
-module dmd.s2ir;
+module dmd.ir.s2ir;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -30,21 +30,21 @@ import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dstruct;
 import dmd.dtemplate;
-import dmd.e2ir;
+import dmd.ir.e2ir;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.glue;
+import dmd.ir.glue;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
+import dmd.ir.irstate;
 import dmd.mtype;
 import dmd.statement;
 import dmd.target;
-import dmd.toctype;
-import dmd.tocsym;
-import dmd.toir;
+import dmd.ir.toctype;
+import dmd.ir.tocsym;
+import dmd.ir.toir;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -67,8 +67,8 @@ import dmd.backend.type;
 
 extern (C++):
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
+alias toSymbol = dmd.ir.tocsym.toSymbol;
+alias toSymbol = dmd.ir.glue.toSymbol;
 
 
 void elem_setLoc(elem *e, const ref Loc loc) pure nothrow

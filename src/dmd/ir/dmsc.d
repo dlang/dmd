@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmsc.d
  */
 
-module dmd.dmsc;
+module dmd.ir.dmsc;
 
 import core.stdc.stdio;
 import core.stdc.string;

@@ -19,7 +19,7 @@ import dmd.dclass;
 import dmd.dstruct;
 import dmd.errors;
 import dmd.globals;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.mtype;
 import dmd.visitor;
 

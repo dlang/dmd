@@ -172,8 +172,8 @@ LEXER_ROOT=$(ROOT)/array.d $(ROOT)/ctfloat.d $(ROOT)/file.d $(ROOT)/filename.d \
 
 PARSER_SRCS=$D/astbase.d $D/parsetimevisitor.d $D/parse.d $D/transitivevisitor.d $D/permissivevisitor.d $D/strictvisitor.d
 
-GLUE_SRCS=$D/irstate.d $D/toctype.d $D/glue.d $D/gluelayer.d $D/todt.d $D/tocsym.d $D/toir.d $D/dmsc.d \
-	$D/tocvdebug.d $D/s2ir.d $D/toobj.d $D/e2ir.d $D/objc_glue.d $D/eh.d $D/iasm.d
+GLUE_SRCS=$D/ir/irstate.d $D/ir/toctype.d $D/ir/glue.d $D/ir/gluelayer.d $D/ir/todt.d $D/ir/tocsym.d $D/ir/toir.d $D/ir/dmsc.d \
+	$D/ir/tocvdebug.d $D/ir/s2ir.d $D/ir/toobj.d $D/ir/e2ir.d $D/ir/objc_glue.d $D/ir/eh.d $D/ir/iasm.d
 
 BACK_HDRS=$C/bcomplex.d $C/cc.d $C/cdef.d $C/cgcv.d $C/code.d $C/cv4.d $C/dt.d $C/el.d $C/global.d \
 	$C/obj.d $C/oper.d $C/outbuf.d $C/rtlsym.d $C/code_x86.d $C/iasm.d \

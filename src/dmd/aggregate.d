@@ -16,7 +16,7 @@ import core.stdc.stdio;
 import core.checkedint;
 
 import dmd.arraytypes;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;

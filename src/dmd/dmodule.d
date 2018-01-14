@@ -18,7 +18,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astcodegen;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.dimport;
 import dmd.dmacro;
 import dmd.doc;

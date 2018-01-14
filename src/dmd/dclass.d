@@ -17,7 +17,7 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;

@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/irstate.d
  */
 
-module dmd.irstate;
+module dmd.ir.irstate;
 
 import dmd.root.array;
 

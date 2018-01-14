@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/tocsym.d
  */
 
-module dmd.tocsym;
+module dmd.ir.tocsym;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -33,18 +33,18 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.glue;
+import dmd.ir.glue;
 import dmd.identifier;
 import dmd.id;
 import dmd.init;
 import dmd.mtype;
 import dmd.target;
-import dmd.toctype;
-import dmd.todt;
+import dmd.ir.toctype;
+import dmd.ir.todt;
 import dmd.tokens;
 import dmd.typinf;
 import dmd.visitor;
-import dmd.irstate;
+import dmd.ir.irstate;
 import dmd.dmangle;
 
 import dmd.backend.cdef;

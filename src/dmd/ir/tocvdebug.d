@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/tocvdebug.d
  */
 
-module dmd.tocvdebug;
+module dmd.ir.tocvdebug;
 
 version (Windows)
 {
@@ -37,7 +37,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.mtype;
 import dmd.target;
-import dmd.toctype;
+import dmd.ir.toctype;
 import dmd.visitor;
 
 import dmd.backend.cc;

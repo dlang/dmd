@@ -21,7 +21,7 @@ import dmd.aliasthis;
 import dmd.apply;
 import dmd.arrayop;
 import dmd.arraytypes;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.canthrow;
 import dmd.complex;
 import dmd.constfold;

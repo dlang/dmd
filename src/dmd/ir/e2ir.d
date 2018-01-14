@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/e2ir.d
  */
 
-module dmd.e2ir;
+module dmd.ir.e2ir;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -40,21 +40,21 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.glue;
+import dmd.ir.glue;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
+import dmd.ir.irstate;
 import dmd.mtype;
-import dmd.objc_glue;
-import dmd.s2ir;
+import dmd.ir.objc_glue;
+import dmd.ir.s2ir;
 import dmd.sideeffect;
 import dmd.statement;
 import dmd.target;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.toir;
+import dmd.ir.tocsym;
+import dmd.ir.toctype;
+import dmd.ir.toir;
 import dmd.tokens;
-import dmd.toobj;
+import dmd.ir.toobj;
 import dmd.typinf;
 import dmd.visitor;
 
@@ -77,8 +77,8 @@ extern (C++):
 
 alias Elems = Array!(elem *);
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
+alias toSymbol = dmd.ir.tocsym.toSymbol;
+alias toSymbol = dmd.ir.glue.toSymbol;
 
 void* mem_malloc2(uint);
 
