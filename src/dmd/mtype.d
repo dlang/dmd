@@ -3681,7 +3681,7 @@ extern (C++) final class TypeBasic : Type
     {
         Expression e;
         dinteger_t ivalue;
-        real_t fvalue = 0;
+        real_t fvalue;
         //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
         if (ident == Id.max)
         {

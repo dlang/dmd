@@ -135,11 +135,11 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
         auto c1 = complex_t(CTFloat.zero);
-        real_t r1 = 0;
-        real_t i1 = 0;
+        real_t r1 = CTFloat.zero;
+        real_t i1 = CTFloat.zero;
         auto c2 = complex_t(CTFloat.zero);
-        real_t r2 = 0;
-        real_t i2 = 0;
+        real_t r2 = CTFloat.zero;
+        real_t i2 = CTFloat.zero;
         auto v = complex_t(CTFloat.zero);
         int x;
         if (e1.type.isreal())
@@ -238,11 +238,11 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
         // This rigamarole is necessary so that -0.0 doesn't get
         // converted to +0.0 by doing an extraneous add with +0.0
         auto c1 = complex_t(CTFloat.zero);
-        real_t r1 = 0;
-        real_t i1 = 0;
+        real_t r1 = CTFloat.zero;
+        real_t i1 = CTFloat.zero;
         auto c2 = complex_t(CTFloat.zero);
-        real_t r2 = 0;
-        real_t i2 = 0;
+        real_t r2 = CTFloat.zero;
+        real_t i2 = CTFloat.zero;
         auto v = complex_t(CTFloat.zero);
         int x;
         if (e1.type.isreal())
@@ -327,7 +327,7 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
     if (type.isfloating())
     {
         auto c = complex_t(CTFloat.zero);
-        real_t r = 0;
+        real_t r = CTFloat.zero;
         if (e1.type.isreal())
         {
             r = e1.toReal();
@@ -726,8 +726,8 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
 {
     UnionExp ue;
     int cmp = 0;
-    real_t r1 = 0;
-    real_t r2 = 0;
+    real_t r1 = CTFloat.zero;
+    real_t r2 = CTFloat.zero;
     //printf("Equal(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     assert(op == TOKequal || op == TOKnotequal);
     if (e1.op == TOKnull)
@@ -972,8 +972,8 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
 {
     UnionExp ue;
     dinteger_t n;
-    real_t r1 = 0;
-    real_t r2 = 0;
+    real_t r1 = CTFloat.zero;
+    real_t r2 = CTFloat.zero;
     //printf("Cmp(e1 = %s, e2 = %s)\n", e1.toChars(), e2.toChars());
     if (e1.op == TOKstring && e2.op == TOKstring)
     {
