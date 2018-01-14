@@ -110,9 +110,9 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
     auto tfromb = tfrom.toBasetype();
     auto ttob = tto.toBasetype();
 
-    if (ttob.ty == Tclass && tfrom.ty == Tclass)
+    if (ttob.ty == Tclass && tfromb.ty == Tclass)
     {
-        ClassDeclaration cdfrom = tfrom.isClassHandle();
+        ClassDeclaration cdfrom = tfromb.isClassHandle();
         ClassDeclaration cdto = ttob.isClassHandle();
 
         int offset;
@@ -122,19 +122,19 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
         if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
             return false;
 
-        if (!MODimplicitConv(tfrom.mod, ttob.mod))
+        if (!MODimplicitConv(tfromb.mod, ttob.mod))
             return false;
         return true;
     }
 
-    if (ttob.ty == Tarray && tfrom.ty == Tsarray) // https://issues.dlang.org/show_bug.cgi?id=12502
-        tfrom = tfrom.nextOf().arrayOf();
+    if (ttob.ty == Tarray && tfromb.ty == Tsarray) // https://issues.dlang.org/show_bug.cgi?id=12502
+        tfromb = tfromb.nextOf().arrayOf();
 
-    if (ttob.ty == Tarray   && tfrom.ty == Tarray ||
-        ttob.ty == Tpointer && tfrom.ty == Tpointer)
+    if (ttob.ty == Tarray   && tfromb.ty == Tarray ||
+        ttob.ty == Tpointer && tfromb.ty == Tpointer)
     {
         Type ttobn = ttob.nextOf().toBasetype();
-        Type tfromn = tfrom.nextOf().toBasetype();
+        Type tfromn = tfromb.nextOf().toBasetype();
 
         /* From void[] to anything mutable is unsafe because:
          *  int*[] api;

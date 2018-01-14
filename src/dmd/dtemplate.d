@@ -714,8 +714,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         pr.dedargs = dedargs;
         previous = &pr; // add this to threaded list
 
-        uint nerrors = global.errors;
-
         Scope* scx = paramscope.push(ti);
         scx.parent = ti;
         scx.tinst = null;

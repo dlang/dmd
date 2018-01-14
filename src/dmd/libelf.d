@@ -92,7 +92,6 @@ final class LibElf : Library
             file._ref = 1;
             fromfile = 1;
         }
-        int reason = 0;
         if (buflen < 16)
         {
             static if (LOG)

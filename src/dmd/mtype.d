@@ -4509,7 +4509,6 @@ extern (C++) class TypeArray : TypeNext
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
-        Type n = this.next.toBasetype(); // uncover any typedef's
         static if (LOGDOTEXP)
         {
             printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());

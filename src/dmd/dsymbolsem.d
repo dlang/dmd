@@ -2265,7 +2265,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              */
             const(char)* s = "__mixin";
 
-            DsymbolTable symtab;
             if (FuncDeclaration func = sc.parent.isFuncDeclaration())
             {
                 tm.symtab = func.localsymtab;
@@ -2733,7 +2732,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         f = cast(TypeFunction)funcdecl.type;
-        size_t nparams = Parameter.dim(f.parameters);
 
         if ((funcdecl.storage_class & STC.auto_) && !f.isref && !funcdecl.inferRetType)
             funcdecl.error("storage class `auto` has no effect if return type is not inferred");

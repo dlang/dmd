@@ -1720,8 +1720,6 @@ elem *toElem(Expression e, IRState *irs)
                 }
                 else
                 {
-                    d_uns64 elemsize = sd.size(ne.loc);
-
                     // call _d_newitemT(ti)
                     e = getTypeInfo(ne.newtype, irs);
 
@@ -1816,7 +1814,6 @@ elem *toElem(Expression e, IRState *irs)
             else if (t.ty == Tpointer)
             {
                 TypePointer tp = cast(TypePointer)t;
-                Expression di = tp.next.defaultInit();
                 elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
 
                 // call _d_newitemT(ti)
@@ -2145,7 +2142,6 @@ elem *toElem(Expression e, IRState *irs)
 
                 ev = el_una(OPind, tym, ev);
 
-                CastExp ce = cast(CastExp)e1;
                 for (size_t d = depth; d > 0; d--)
                 {
                     e1 = be.e1;
@@ -2627,7 +2623,6 @@ elem *toElem(Expression e, IRState *irs)
             {
                 SliceExp are = cast(SliceExp)ae.e1;
                 Type t1 = t1b;
-                Type t2 = ae.e2.type.toBasetype();
                 Type ta = are.e1.type.toBasetype();
 
                 // which we do if the 'next' types match
@@ -5280,7 +5275,6 @@ elem *toElem(Expression e, IRState *irs)
             assert(dim);
 
             Type telem = ((*exps)[0] ? (*exps)[0] : basis).type;
-            Type tsarray = telem.sarrayOf(dim);
             targ_size_t szelem = telem.size();
             .type *te = Type_toCtype(telem);   // stmp[] element type
 

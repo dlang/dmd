@@ -920,7 +920,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto field = Identifier.idPool(StaticForeach.tupleFieldName.ptr,StaticForeach.tupleFieldName.length);
                 Expression access = new DotIdExp(loc, e, field);
                 access = expressionSemantic(access, sc);
-                auto types = access.type.isTuple();
                 if (!tuple) return returnEarly();
                 //printf("%s\n",tuple.toChars());
                 foreach (l; 0 .. dim)
@@ -2577,7 +2576,6 @@ else
             compileTimeArgs.push(new TypeExp(ss.loc, ss.condition.type.nextOf()));
 
             // The switch labels
-            auto caseLabels = new Expressions();
             foreach (caseString; *csCopy)
             {
                 compileTimeArgs.push(caseString.exp);
