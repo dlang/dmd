@@ -18,9 +18,11 @@ $(H2 $(LNAME2 array-kinds, Kinds))
 
 $(H3 $(LNAME2 pointers, Pointers))
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int* p;
 ---------
+)
 
         $(P These are simple pointers to data, analogous to C pointers.
         Pointers are provided for interfacing with C and for
@@ -35,9 +37,11 @@ int* p;
 
 $(H3 $(LNAME2 static-arrays, Static Arrays))
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[3] s;
 ---------
+)
 
         $(P These are analogous to C arrays. Static arrays are distinguished
         by having a length fixed at compile time.
@@ -62,9 +66,11 @@ int[3] s;
 
 $(H3 $(LNAME2 dynamic-arrays, Dynamic Arrays))
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] a;
 ---------
+)
 
         $(P Dynamic arrays consist of a length and a pointer to the array data.
         Multiple dynamic arrays can share all or parts of the array data.
@@ -76,6 +82,7 @@ $(H2 $(LNAME2 declarations, Array Declarations))
         declared and read right to left, so:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] a;      // dynamic array of ints
 int[4][3] b;  // array of 3 arrays of 4 ints each
@@ -83,6 +90,7 @@ int[][5] c;   // array of 5 dynamic arrays of ints.
 int*[]*[3] d; // array of 3 pointers to dynamic arrays of pointers to ints
 int[]* e;     // pointer to dynamic array of ints
 ---------
+)
 
 $(H2 $(LNAME2 usage, Array Usage))
 
@@ -98,6 +106,7 @@ $(H2 $(LNAME2 usage, Array Usage))
         in p, s or a:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 int* p;
 int[3] s;
@@ -113,6 +122,7 @@ a = p;     // error, since the length of the array pointed
 a = s;     // a is initialized to point to the s array
 a = b;     // a points to the same array as b does
 ---------
+)
 
 $(H2 $(LNAME2 indexing, Indexing))
 
@@ -126,7 +136,10 @@ $(H2 $(LNAME2 slicing, Slicing))
         For example:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
+void foo(int);
+
 int[10] a;   // declare array of 10 ints
 int[] b;
 
@@ -136,11 +149,13 @@ foo(b[1]);   // equivalent to foo(0)
 a[2] = 3;
 foo(b[1]);   // equivalent to foo(3)
 ---------
+)
 
         $(P The [] is shorthand for a slice of the entire array.
         For example, the assignments to b:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[10] a;
 int[] b;
@@ -149,6 +164,7 @@ b = a;
 b = a[];
 b = a[0 .. a.length];
 ---------
+)
 
         $(P are all semantically equivalent.
         )
@@ -158,10 +174,12 @@ b = a[0 .. a.length];
         but for converting pointers into bounds-checked arrays:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int* p;
 int[] b = p[0..8];
 ---------
+)
 
     $(P See also $(GLINK2 expression, SliceExpression).)
 
@@ -175,6 +193,7 @@ $(H2 $(LNAME2 array-copying, Array Copying))
         right-hand side is an array of or pointer to the same type.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 int[3] s;
 int[3] t;
@@ -187,15 +206,18 @@ s[0..2] = t[1..3]; // same as s[0] = t[1], s[1] = t[2]
 s[0..4] = t[0..4]; // error, only 3 elements in s
 s[0..2] = t;       // error, operands have different lengths
 ---------
+)
 
 $(H3 $(LNAME2 overlapping-copying, Overlapping Copying))
 
         $(P Overlapping copies are an error:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 s[0..2] = s[1..3]; // error, overlapping copy
 s[1..3] = s[0..2]; // error, overlapping copy
 ---------
+)
 
         $(P Disallowing overlapping makes it possible for more aggressive
         parallel code optimizations than possible with the serial
@@ -206,6 +228,7 @@ s[1..3] = s[0..2]; // error, overlapping copy
         $(REF copy, std,algorithm,mutation):
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 import std.algorithm;
 int[] s = [1, 2, 3, 4];
@@ -213,6 +236,7 @@ int[] s = [1, 2, 3, 4];
 copy(s[1..3], s[0..2]);
 assert(s == [2, 3, 3, 4]);
 ---------
+)
 
 
 $(H2 $(LNAME2 array-setting, Array Setting))
@@ -223,6 +247,7 @@ $(H2 $(LNAME2 array-setting, Array Setting))
         left-hand side are set to the right-hand side.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[3] s;
 int* p;
@@ -230,6 +255,7 @@ int* p;
 s[] = 3;     // same as s[0] = 3, s[1] = 3, s[2] = 3
 p[0..2] = 3; // same as p[0] = 3, p[1] = 3
 ---------
+)
 
 $(H2 $(LNAME2 array-concatenation, Array Concatenation))
 
@@ -237,6 +263,7 @@ $(H2 $(LNAME2 array-concatenation, Array Concatenation))
         to concatenate arrays:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] a;
 int[] b;
@@ -245,6 +272,7 @@ int[] c;
 a = b ~ c; // Create an array from the concatenation
            // of the b and c arrays
 ---------
+)
 
         $(P Many languages overload the + operator to mean concatenation.
         This confusingly leads to, does:
@@ -337,6 +365,7 @@ a[] -= (b[] + 4) * c[];
 
 $(H2 $(LNAME2 pointer-arithmetic, Pointer Arithmetic))
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 int[3] abc;              // static array of 3 ints
 int[] def = [ 1, 2, 3 ]; // dynamic array of 3 ints
@@ -359,6 +388,7 @@ void ditt(int[3] array)
     *(array + 2); // error, array is not a pointer
 }
 ---------
+)
 
 $(H2 $(LNAME2 rectangular-arrays, Rectangular Arrays))
 
@@ -368,9 +398,11 @@ $(H2 $(LNAME2 rectangular-arrays, Rectangular Arrays))
         For example, the D syntax:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 double[][] matrix;
 ---------
+)
 
         $(P declares matrix as an array of pointers to arrays. (Dynamic arrays are implemented as
         pointers to the array data.) Since the arrays can have varying sizes (being dynamically
@@ -379,13 +411,16 @@ double[][] matrix;
         the same syntax, are implemented as a fixed rectangular layout:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 double[3][3] matrix;
 ---------
+)
 
         $(P declares a rectangular matrix with 3 rows and 3 columns, all contiguously in memory. In
         other languages, this would be called a multidimensional array and be declared as:
         )
+
 ---------
 double matrix[3,3];
 ---------
@@ -399,6 +434,7 @@ $(H2 $(LNAME2 array-length, Array Length))
         )
 
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 int[4] foo;
 int[]  bar = foo;
@@ -416,6 +452,7 @@ bar[0]+$            // '$' is not defined, out of scope of [ ]
 
 bar[$-1] // retrieves last element of the array
 ---------
+)
 
 $(H2 $(LNAME2 array-properties, Array Properties))
 
@@ -450,6 +487,7 @@ Returns an array literal with each element of the literal being the $(D .init) p
 
     $(P Examples:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 int* p;
 int[3] s;
@@ -465,6 +503,7 @@ s.dup;    // creates an array of 3 elements, copies
 a.dup;    // creates an array of a.length elements, copies
           // elements of a into it
 ---------
+)
 
 $(H3 $(LNAME2 resize, Setting Dynamic Array Length))
 
@@ -494,6 +533,7 @@ array = array[0..7];
         size is larger and the array was not allocated via the new operator or
         resizing in place would overwrite valid data in the array. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 char[] a = new char[20];
 char[] b = a[0..10];
@@ -519,6 +559,7 @@ a.length = 25; // This always reallocates because if c extended in place,
                // which will still be true for a.
 a[15] = 'z';   // does not affect c, because either a or c has reallocated.
 ---------
+)
 
 
         $(P To guarantee copying behavior, use the .dup property to ensure
@@ -536,27 +577,33 @@ a[15] = 'z';   // does not affect c, because either a or c has reallocated.
         So, while the following method of filling an array:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] array;
 while (1)
 {
-    c = getinput();
+    import core.stdc.stdio : getchar;
+    auto c = getchar;
     if (!c)
         break;
     ++array.length;
     array[array.length - 1] = c;
 }
 ---------
+)
 
         will work, it will be inefficient. A more practical
         approach would be to minimize the number of resizes:
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] array;
 array.length = 100;        // guess
+int i;
 for (i = 0; ; i++)
 {
-    c = getinput();
+    import core.stdc.stdio : getchar;
+    auto c = getchar;
     if (!c)
         break;
     if (i == array.length)
@@ -565,6 +612,7 @@ for (i = 0; ; i++)
 }
 array.length = i;
 ---------
+)
 
         $(P Picking a good initial guess is an art, but you usually can
         pick a value covering 99% of the cases.
@@ -575,6 +623,7 @@ array.length = i;
         $(P Also, you may wish to utilize the $(D reserve)
         function to pre-allocate array data to use with the append operator.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[] array;
 size_t cap = array.reserve(10); // request
@@ -582,6 +631,7 @@ array ~= [1, 2, 3, 4, 5];
 assert(cap >= 10); // allocated may be more than request
 assert(cap == array.capacity);
 ---------
+)
 
 $(H3 $(LNAME2 func-as-property, Functions as Array Properties))
 
@@ -597,10 +647,13 @@ $(H2 $(LNAME2 bounds, Array Bounds Checking))
         example, the following program is incorrect:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
+import core.exception;
 try
 {
-    for (i = 0; ; i++)
+    auto array = [1, 2];
+    for (auto i = 0; ; i++)
     {
         array[i] = 5;
     }
@@ -610,24 +663,30 @@ catch (RangeError)
     // terminate loop
 }
 ---------
+)
 
         The loop is correctly written:
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
-for (i = 0; i < array.length; i++)
+auto array = [1, 2];
+for (auto i = 0; i < array.length; i++)
 {
     array[i] = 5;
 }
 ---------
+)
 
         $(P $(D Implementation Note:) Compilers should attempt to detect
         array bounds errors at compile time, for example:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 int[3] foo;
 int x = foo[3]; // error, out of bounds
 ---------
+)
 
         $(P Insertion of array bounds checking code at runtime should be
         turned on and off
@@ -687,12 +746,15 @@ $(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated 
         plus 1, or 0 if it is the first value.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 int[3] a = [ 1:2, 3 ]; // a[0] = 0, a[1] = 2, a[2] = 3
 ---------
+)
 
         $(P This is most handy when the array indices are given by enums:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 enum Color { red, blue, green };
 
@@ -701,6 +763,7 @@ int value[Color.max + 1] =
     Color.green:2,
     Color.red  :5 ];
 ---------
+)
 
         $(P These arrays are statically allocated when they appear in global scope.
         Otherwise, they need to be marked with $(D const) or $(D static)
@@ -717,7 +780,7 @@ $(H3 $(LNAME2 strings, Strings))
         String literals are immutable (read only).
         )
 
-
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 char[] str1 = "abc";                // error, "abc" is not mutable
 char[] str2 = "abc".dup;            // ok, make mutable copy
@@ -725,10 +788,13 @@ immutable(char)[] str3 = "abc";     // ok
 immutable(char)[] str4 = str1;      // error, str4 is not mutable
 immutable(char)[] str5 = str1.idup; // ok, make immutable copy
 ---------
+)
 
         $(P The name $(CODE string) is aliased to $(CODE immutable(char)[]),
         so the above declarations could be equivalently written as:
         )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---------
 char[] str1 = "abc";     // error, "abc" is not mutable
 char[] str2 = "abc".dup; // ok, make mutable copy
@@ -736,6 +802,7 @@ string str3 = "abc";     // ok
 string str4 = str1;      // error, str4 is not mutable
 string str5 = str1.idup; // ok, make immutable copy
 ---------
+)
 
         $(P $(CODE char[]) strings are in UTF-8 format.
         $(CODE wchar[]) strings are in UTF-16 format.
@@ -796,6 +863,7 @@ cast(immutable(wchar) [])"abc" // this is an array of wchar characters
         string, wstring, and dstring as necessary.
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 char c;
 wchar w;
@@ -808,6 +876,7 @@ w = "b"[0];  // w is assigned the wchar character 'b'
 w = "\r"[0]; // w is assigned the carriage return wchar character
 d = 'd';     // d is assigned the character 'd'
 ---------
+)
 
 $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
         $(P Note that built-in comparison operators operate on a
@@ -898,6 +967,7 @@ $(H3 $(LNAME2 void_arrays, Void Arrays))
     and it is an error to convert to an array type whose element size does not
     evenly divide the length of the void array.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 void main()
 {
@@ -916,10 +986,12 @@ void main()
                                    // bytes.
 }
 ---------
+)
 
     $(P Void arrays can also be static if their length is known at
     compile-time. The length is specified in bytes:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---------
 void main()
 {
@@ -930,6 +1002,7 @@ void main()
     void[2] b = y; // Error: int[2] is 8 bytes long, doesn't fit in 2 bytes.
 }
 ---------
+)
 
     $(P While it may seem that void arrays are just fancy syntax for
     $(D ubyte[]), there is a subtle distinction. The garbage collector
