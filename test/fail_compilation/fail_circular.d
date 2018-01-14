@@ -10,7 +10,7 @@ fail_compilation/fail_circular.d(23): Error: circular reference to variable `fai
 fail_compilation/fail_circular.d(25): Error: circular initialization of variable `fail_circular.d1`
 fail_compilation/fail_circular.d(26): Error: circular initialization of variable `fail_circular.d2`
 fail_compilation/fail_circular.d(28): Error: circular initialization of variable 'fail_circular.e1'
-fail_compilation/fail_circular.d(29): Error: circular initialization of variable 'fail_circular.e2'
+fail_compilation/fail_circular.d(29): Error: circular initialization of variable `fail_circular.e2`
 ---
 */
 auto a1 =  a1;          // semantic error (cannot determine expression type)
@@ -40,7 +40,7 @@ fail_compilation/fail_circular.d(59): Error: circular reference to variable `fai
 fail_compilation/fail_circular.d(62): Error: circular initialization of variable `fail_circular.d1a`
 fail_compilation/fail_circular.d(64): Error: circular initialization of variable `fail_circular.d2a`
 fail_compilation/fail_circular.d(67): Error: circular initialization of variable 'fail_circular.e1a'
-fail_compilation/fail_circular.d(69): Error: circular initialization of variable 'fail_circular.e2a'
+fail_compilation/fail_circular.d(69): Error: circular initialization of variable `fail_circular.e2a`
 ---
 */
 auto a1a =  a1b;
