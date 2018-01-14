@@ -560,7 +560,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final bool isZeroInit()
     {
         if (zeroInit == -1)
-            if (semanticRun < PASSsemanticdone)
+            if (semanticRun < PASS.semanticdone && _scope)
                 dsymbolSemantic(this, null);
         if (zeroInit == -1)
             zeroInit = calcZeroInit();

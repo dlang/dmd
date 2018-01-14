@@ -3112,7 +3112,7 @@ extern (C++) final class ArrayLiteralExp : Expression
 void verifyTypeInfo(ArrayLiteralExp ae, Scope* sc)
 {
     if (ae.elements && !ae.type.vtinfo)
-        if (!sc || !(sc.flags & SCOPEctfe))
+        if (!sc || !(sc.flags & SCOPE.ctfe))
             semanticTypeInfo(sc ? sc : Module.rootModule._scope, ae.type);
 }
 
