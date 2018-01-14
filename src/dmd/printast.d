@@ -32,9 +32,9 @@ void printAST(Expression e, int indent = 0)
 
 private:
 
-extern (C++) final class PrintASTVisitor : Visitor
+extern (C++) final class PrintASTVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     int indent;
 

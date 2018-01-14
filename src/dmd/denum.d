@@ -319,7 +319,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     Symbol* sinit;
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -377,7 +377,7 @@ extern (C++) final class EnumMember : VarDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

@@ -63,7 +63,7 @@ extern (C++) abstract class Condition : RootObject
         return null;
     }
 
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -441,7 +441,7 @@ extern (C++) class DVCondition : Condition
         return this; // don't need to copy
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -535,7 +535,7 @@ extern (C++) final class DebugCondition : DVCondition
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -800,7 +800,7 @@ extern (C++) final class VersionCondition : DVCondition
         return (inc == 1);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -876,7 +876,7 @@ extern (C++) final class StaticIfCondition : Condition
         return (inc == 1);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

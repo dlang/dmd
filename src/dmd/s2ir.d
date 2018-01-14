@@ -164,7 +164,7 @@ private void incUsage(IRState *irs, const ref Loc loc)
 }
 
 
-private extern (C++) class S2irVisitor : Visitor
+private extern (C++) class S2irVisitor : SemanticVisitor
 {
     IRState *irs;
 
@@ -173,7 +173,7 @@ private extern (C++) class S2irVisitor : Visitor
         this.irs = irs;
     }
 
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     /****************************************
      * This should be overridden by each statement class.

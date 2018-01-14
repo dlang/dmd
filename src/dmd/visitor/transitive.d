@@ -14,7 +14,7 @@ import dmd.visitor.semantic;
 
 import core.stdc.stdio;
 
-/** Visitor that implements the AST traversal logic. The nodes just accept their children.
+/** SemanticVisitor that implements the AST traversal logic. The nodes just accept their children.
   */
 extern(C++) class ParseTimeTransitiveVisitor(AST) : PermissiveVisitor!AST
 {

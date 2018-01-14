@@ -559,7 +559,7 @@ public:
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
 };
 
-class Visitor : public ParseTimeVisitor
+class SemanticVisitor : public ParseTimeVisitor
 {
 public:
     using ParseTimeVisitor::visit;
@@ -623,7 +623,7 @@ public:
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
 };
 
-class StoppableVisitor : public Visitor
+class StoppableVisitor : public SemanticVisitor
 {
 public:
     bool stop;

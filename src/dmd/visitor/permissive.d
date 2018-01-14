@@ -31,9 +31,9 @@ extern(C++) class PermissiveVisitor(AST): ParseTimeVisitor!AST
  * The PermissiveVisitor overrides the root AST nodes with
  * empty visiting methods.
  */
-extern (C++) class SemanticTimePermissiveVisitor : Visitor
+extern (C++) class SemanticTimePermissiveVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     override void visit(ASTCodegen.Dsymbol){}
     override void visit(ASTCodegen.Parameter){}

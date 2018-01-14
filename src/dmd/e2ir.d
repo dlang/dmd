@@ -1040,7 +1040,7 @@ void clearStringTab()
 
 elem *toElem(Expression e, IRState *irs)
 {
-    extern (C++) class ToElemVisitor : Visitor
+    extern (C++) class ToElemVisitor : SemanticVisitor
     {
         IRState *irs;
         elem *result;
@@ -1051,7 +1051,7 @@ elem *toElem(Expression e, IRState *irs)
             result = null;
         }
 
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         /***************************************
          */

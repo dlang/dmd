@@ -404,11 +404,11 @@ extern (C++) abstract class Statement : RootObject
     }
 
     /**************************
-     * Support Visitor Pattern
+     * Support SemanticVisitor Pattern
      * Params:
      *  v = visitor;
      */
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -436,7 +436,7 @@ extern (C++) final class ErrorStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -454,7 +454,7 @@ extern (C++) final class PeelStatement : Statement
         this.s = s;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -465,9 +465,9 @@ extern (C++) final class PeelStatement : Statement
  */
 extern (C++) Statement toStatement(Dsymbol s)
 {
-    extern (C++) final class ToStmt : Visitor
+    extern (C++) final class ToStmt : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Statement result;
 
@@ -711,7 +711,7 @@ extern (C++) class ExpStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -735,7 +735,7 @@ extern (C++) final class DtorExpStatement : ExpStatement
         return new DtorExpStatement(loc, exp ? exp.syntaxCopy() : null, var);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -803,7 +803,7 @@ extern (C++) final class CompileStatement : Statement
         return compileIt(sc);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -903,7 +903,7 @@ extern (C++) class CompoundStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -930,7 +930,7 @@ extern (C++) final class CompoundDeclarationStatement : CompoundStatement
         return new CompoundDeclarationStatement(loc, a);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -971,7 +971,7 @@ extern (C++) final class UnrolledLoopStatement : Statement
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1018,7 +1018,7 @@ extern (C++) class ScopeStatement : Statement
         return statement ? statement.hasContinue() : false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1097,7 +1097,7 @@ extern (C++) final class ForwardingStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1138,7 +1138,7 @@ extern (C++) final class WhileStatement : Statement
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1178,7 +1178,7 @@ extern (C++) final class DoStatement : Statement
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1242,7 +1242,7 @@ extern (C++) final class ForStatement : Statement
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1310,7 +1310,7 @@ extern (C++) final class ForeachStatement : Statement
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1355,7 +1355,7 @@ extern (C++) final class ForeachRangeStatement : Statement
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1397,7 +1397,7 @@ extern (C++) final class IfStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1445,7 +1445,7 @@ extern (C++) final class ConditionalStatement : Statement
         return a;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1500,7 +1500,7 @@ extern (C++) final class StaticForeachStatement : Statement
         }
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1527,7 +1527,7 @@ extern (C++) final class PragmaStatement : Statement
         return new PragmaStatement(loc, ident, Expression.arraySyntaxCopy(args), _body ? _body.syntaxCopy() : null);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1550,7 +1550,7 @@ extern (C++) final class StaticAssertStatement : Statement
         return new StaticAssertStatement(cast(StaticAssert)sa.syntaxCopy(null));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1638,7 +1638,7 @@ extern (C++) final class SwitchStatement : Statement
         return !error;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1677,7 +1677,7 @@ extern (C++) final class CaseStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1704,7 +1704,7 @@ extern (C++) final class CaseRangeStatement : Statement
         return new CaseRangeStatement(loc, first.syntaxCopy(), last.syntaxCopy(), statement.syntaxCopy());
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1733,7 +1733,7 @@ extern (C++) final class DefaultStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1760,7 +1760,7 @@ extern (C++) final class GotoDefaultStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1789,7 +1789,7 @@ extern (C++) final class GotoCaseStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1812,7 +1812,7 @@ extern (C++) final class SwitchErrorStatement : Statement
         this.exp = exp;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1841,7 +1841,7 @@ extern (C++) final class ReturnStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1869,7 +1869,7 @@ extern (C++) final class BreakStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1892,7 +1892,7 @@ extern (C++) final class ContinueStatement : Statement
         return new ContinueStatement(loc, ident);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1927,7 +1927,7 @@ extern (C++) final class SynchronizedStatement : Statement
         return false; //true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1955,7 +1955,7 @@ extern (C++) final class WithStatement : Statement
         return new WithStatement(loc, exp.syntaxCopy(), _body ? _body.syntaxCopy() : null, endloc);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1991,7 +1991,7 @@ extern (C++) final class TryCatchStatement : Statement
         return false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2063,7 +2063,7 @@ extern (C++) final class TryFinallyStatement : Statement
         return false; //true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2135,7 +2135,7 @@ extern (C++) final class OnScopeStatement : Statement
         return null;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2163,7 +2163,7 @@ extern (C++) final class ThrowStatement : Statement
         return s;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2199,7 +2199,7 @@ extern (C++) final class DebugStatement : Statement
         return a;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2285,7 +2285,7 @@ extern (C++) final class GotoStatement : Statement
         return false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2355,7 +2355,7 @@ extern (C++) final class LabelStatement : Statement
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2383,7 +2383,7 @@ extern (C++) final class LabelDsymbol : Dsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2411,7 +2411,7 @@ extern (C++) final class AsmStatement : Statement
         return new AsmStatement(loc, tokens);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2446,7 +2446,7 @@ extern (C++) final class CompoundAsmStatement : CompoundStatement
         return null;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2475,7 +2475,7 @@ extern (C++) final class ImportStatement : Statement
         return new ImportStatement(loc, m);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

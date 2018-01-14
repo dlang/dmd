@@ -2272,7 +2272,7 @@ extern (C++) class FuncDeclaration : Declaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2939,7 +2939,7 @@ extern (C++) final class FuncAliasDeclaration : FuncDeclaration
         return funcalias.toAliasFunc();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3080,7 +3080,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return Dsymbol.toPrettyChars(QualifyTypes);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3133,7 +3133,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3180,7 +3180,7 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3243,7 +3243,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3300,7 +3300,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3327,7 +3327,7 @@ extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3386,7 +3386,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3413,7 +3413,7 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3456,7 +3456,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3521,7 +3521,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3573,7 +3573,7 @@ extern (C++) final class NewDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3628,7 +3628,7 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

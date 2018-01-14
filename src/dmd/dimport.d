@@ -304,7 +304,7 @@ extern (C++) final class Import : Dsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

@@ -29,7 +29,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind() const;
     AliasThis *isAliasThis() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif

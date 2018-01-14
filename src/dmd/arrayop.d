@@ -175,9 +175,9 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
  */
 private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
 {
-    extern (C++) final class BuildArrayOpVisitor : Visitor
+    extern (C++) final class BuildArrayOpVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
         Scope* sc;
         Objects* tiargs;
         Expressions* args;

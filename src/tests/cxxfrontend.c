@@ -90,7 +90,7 @@ static void frontend_term()
 
 /**********************************/
 
-class TestVisitor : public Visitor
+class TestVisitor : public SemanticVisitor
 {
   public:
     bool expr;

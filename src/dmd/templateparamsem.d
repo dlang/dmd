@@ -44,9 +44,9 @@ extern(C++) bool tpsemantic(TemplateParameter tp, Scope* sc, TemplateParameters*
 }
 
 
-private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
+private extern (C++) final class TemplateParameterSemanticVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Scope* sc;
     TemplateParameters* parameters;

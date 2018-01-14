@@ -49,9 +49,9 @@ enum LOG = false;
  */
 extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
 {
-    extern (C++) final class ImplicitCastTo : Visitor
+    extern (C++) final class ImplicitCastTo : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Type t;
         Scope* sc;
@@ -178,9 +178,9 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
  */
 extern (C++) MATCH implicitConvTo(Expression e, Type t)
 {
-    extern (C++) final class ImplicitConvTo : Visitor
+    extern (C++) final class ImplicitConvTo : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Type t;
         MATCH result;
@@ -1400,9 +1400,9 @@ extern (C++) Type toStaticArrayType(SliceExp e)
  */
 extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 {
-    extern (C++) final class CastTo : Visitor
+    extern (C++) final class CastTo : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Type t;
         Scope* sc;
@@ -2463,9 +2463,9 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
  */
 extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
 {
-    extern (C++) final class InferType : Visitor
+    extern (C++) final class InferType : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Type t;
         int flag;
@@ -3470,9 +3470,9 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
  */
 extern (C++) IntRange getIntRange(Expression e)
 {
-    extern (C++) final class IntRangeVisitor : Visitor
+    extern (C++) final class IntRangeVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
     public:
         IntRange range;

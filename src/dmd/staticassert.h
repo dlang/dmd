@@ -29,7 +29,7 @@ public:
     void addMember(Scope *sc, ScopeDsymbol *sds);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif

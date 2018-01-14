@@ -113,7 +113,7 @@ extern (C++) final class ClassReferenceExp : Expression
         return -1;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -138,7 +138,7 @@ extern (C++) final class VoidInitExp : Expression
         return "void";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -190,7 +190,7 @@ extern (C++) final class ThrownExceptionExp : Expression
             errorSupplemental(loc, "thrown from here");
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

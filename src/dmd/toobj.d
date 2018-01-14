@@ -281,9 +281,9 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s)\n", ds.toChars());
-    extern (C++) final class ToObjFile : Visitor
+    extern (C++) final class ToObjFile : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         bool multiobj;
 

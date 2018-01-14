@@ -81,9 +81,9 @@ extern (C++) void genhdrfile(Module m)
     writeFile(m.loc, m.hdrfile);
 }
 
-extern (C++) final class PrettyPrintVisitor : Visitor
+extern (C++) final class PrettyPrintVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     OutBuffer* buf;
     HdrGenState* hgs;

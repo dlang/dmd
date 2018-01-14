@@ -59,7 +59,7 @@ extern (C++) final class StaticAssert : Dsymbol
         return "static assert";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

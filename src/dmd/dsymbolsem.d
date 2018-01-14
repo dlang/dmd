@@ -174,9 +174,9 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     return true;
 }
 
-private extern(C++) final class DsymbolSemanticVisitor : Visitor
+private extern(C++) final class DsymbolSemanticVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Scope* sc;
     this(Scope* sc)

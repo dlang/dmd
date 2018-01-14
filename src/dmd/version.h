@@ -27,7 +27,7 @@ public:
     const char *toChars();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class VersionSymbol : public Dsymbol
@@ -40,7 +40,7 @@ public:
     const char *toChars();
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_VERSION_H */

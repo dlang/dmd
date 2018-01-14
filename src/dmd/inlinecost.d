@@ -97,9 +97,9 @@ private:
  * Walk trees to determine if inlining can be done, and if so,
  * if it is too complex to be worth inlining or not.
  */
-extern (C++) final class InlineCostVisitor : Visitor
+extern (C++) final class InlineCostVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     int nested;
     bool hasthis;

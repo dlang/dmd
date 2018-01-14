@@ -100,7 +100,7 @@ extern (C++) class Initializer : RootObject
         return null;
     }
 
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -127,7 +127,7 @@ extern (C++) final class VoidInitializer : Initializer
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -152,7 +152,7 @@ extern (C++) final class ErrorInitializer : Initializer
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -196,7 +196,7 @@ extern (C++) final class StructInitializer : Initializer
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -288,7 +288,7 @@ extern (C++) final class ArrayInitializer : Initializer
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -317,7 +317,7 @@ extern (C++) final class ExpInitializer : Initializer
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

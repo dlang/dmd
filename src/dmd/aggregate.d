@@ -737,7 +737,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

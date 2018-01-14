@@ -169,7 +169,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

@@ -110,9 +110,9 @@ __gshared Symbol *scc;
 
 Symbol *toSymbol(Dsymbol s)
 {
-    extern (C++) static final class ToSymbol : Visitor
+    extern (C++) static final class ToSymbol : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         Symbol *result;
 

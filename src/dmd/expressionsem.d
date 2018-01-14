@@ -1161,9 +1161,9 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-private extern (C++) final class ExpressionSemanticVisitor : Visitor
+private extern (C++) final class ExpressionSemanticVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Scope* sc;
     Expression result;

@@ -45,7 +45,7 @@ public:
     virtual StructInitializer  *isStructInitializer()  { return NULL; }
     virtual ArrayInitializer   *isArrayInitializer()  { return NULL; }
     virtual ExpInitializer     *isExpInitializer()  { return NULL; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class VoidInitializer : public Initializer
@@ -56,7 +56,7 @@ public:
     Initializer *syntaxCopy();
 
     virtual VoidInitializer *isVoidInitializer() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ErrorInitializer : public Initializer
@@ -65,7 +65,7 @@ public:
     Initializer *syntaxCopy();
 
     virtual ErrorInitializer *isErrorInitializer() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StructInitializer : public Initializer
@@ -78,7 +78,7 @@ public:
     void addInit(Identifier *field, Initializer *value);
 
     StructInitializer *isStructInitializer() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ArrayInitializer : public Initializer
@@ -96,7 +96,7 @@ public:
     Expression *toAssocArrayLiteral();
 
     ArrayInitializer *isArrayInitializer() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ExpInitializer : public Initializer
@@ -108,7 +108,7 @@ public:
     Initializer *syntaxCopy();
 
     ExpInitializer *isExpInitializer() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif

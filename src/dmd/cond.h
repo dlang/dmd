@@ -38,7 +38,7 @@ public:
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc) = 0;
     virtual DebugCondition *isDebugCondition() { return NULL; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticForeach
@@ -62,7 +62,7 @@ public:
     Module *mod;
 
     Condition *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DebugCondition : public DVCondition
@@ -73,7 +73,7 @@ public:
 
     int include(Scope *sc);
     DebugCondition *isDebugCondition() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class VersionCondition : public DVCondition
@@ -84,7 +84,7 @@ public:
     static void addPredefinedGlobalIdent(const char *ident);
 
     int include(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticIfCondition : public Condition
@@ -95,7 +95,7 @@ public:
 
     Condition *syntaxCopy();
     int include(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif

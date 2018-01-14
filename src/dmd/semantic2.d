@@ -81,9 +81,9 @@ extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
-private extern(C++) final class Semantic2Visitor : Visitor
+private extern(C++) final class Semantic2Visitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
     Scope* sc;
     this(Scope* sc)
     {

@@ -1224,7 +1224,7 @@ extern (C++) class Dsymbol : RootObject
 
     /************
      */
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1687,7 +1687,7 @@ public:
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1744,7 +1744,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1956,7 +1956,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1994,7 +1994,7 @@ extern (C++) final class OverloadSet : Dsymbol
         return "overloadset";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

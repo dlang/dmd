@@ -35,9 +35,9 @@ import dmd.visitor.semantic;
  */
 TypeTuple toArgTypes(Type t)
 {
-    extern (C++) final class ToArgTypes : Visitor
+    extern (C++) final class ToArgTypes : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         TypeTuple result;
 

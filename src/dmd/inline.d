@@ -82,10 +82,10 @@ final class InlineDoState
  *  - Copying the trees of the function to be inlined
  *  - Renaming the variables
  */
-private extern (C++) final class DoInlineAs(Result) : Visitor
+private extern (C++) final class DoInlineAs(Result) : SemanticVisitor
 if (is(Result == Statement) || is(Result == Expression))
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     InlineDoState ids;
     Result result;
@@ -803,9 +803,9 @@ Result doInlineAs(Result)(Expression e, InlineDoState ids)
  * Walk the trees, looking for functions to inline.
  * Inline any that can be.
  */
-private extern (C++) final class InlineScanVisitor : Visitor
+private extern (C++) final class InlineScanVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     FuncDeclaration parent;     // function being scanned
     // As the visit method cannot return a value, these variables

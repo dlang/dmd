@@ -63,7 +63,7 @@ alias Dts = Array!(dt_t*);
 
 extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
 {
-    extern (C++) class InitToDt : Visitor
+    extern (C++) class InitToDt : SemanticVisitor
     {
         DtBuilder dtb;
 
@@ -72,7 +72,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
             this.dtb = dtb;
         }
 
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         override void visit(Initializer)
         {
@@ -223,7 +223,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
 
 extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
 {
-    extern (C++) class ExpToDt : Visitor
+    extern (C++) class ExpToDt : SemanticVisitor
     {
         DtBuilder dtb;
 
@@ -232,7 +232,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             this.dtb = dtb;
         }
 
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         override void visit(Expression e)
         {
@@ -846,7 +846,7 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
 
 extern (C++) void Type_toDt(Type t, DtBuilder dtb)
 {
-    extern (C++) class TypeToDt : Visitor
+    extern (C++) class TypeToDt : SemanticVisitor
     {
     public:
         DtBuilder dtb;
@@ -856,7 +856,7 @@ extern (C++) void Type_toDt(Type t, DtBuilder dtb)
             this.dtb = dtb;
         }
 
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         override void visit(Type t)
         {
@@ -953,7 +953,7 @@ extern (C++) void ClassReferenceExp_toInstanceDt(ClassReferenceExp ce, DtBuilder
 
 /****************************************************
  */
-private extern (C++) class TypeInfoDtVisitor : Visitor
+private extern (C++) class TypeInfoDtVisitor : SemanticVisitor
 {
     DtBuilder dtb;
 
@@ -980,7 +980,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         this.dtb = dtb;
     }
 
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     override void visit(TypeInfoDeclaration d)
     {

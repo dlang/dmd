@@ -47,7 +47,7 @@ public:
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // The various functions are used only to detect compiler CTFE bugs
@@ -66,7 +66,7 @@ public:
     VarDeclaration *var;
 
     const char *toChars();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Create an appropriate void initializer
@@ -82,7 +82,7 @@ public:
     const char *toChars();
     /// Generate an error message when this exception is not caught
     void generateUncaughtError();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/

@@ -16,12 +16,12 @@ import dmd.astcodegen;
 import dmd.visitor.parse_time;
 
 /**
- * Classic Visitor class which implements visit methods for all the AST
+ * Classic SemanticVisitor class which implements visit methods for all the AST
  * nodes present in the compiler. The visit methods for AST nodes
  * created at parse time are inherited while the visiting methods
  * for AST nodes created at semantic time are implemented.
  */
-extern (C++) class Visitor : ParseTimeVisitor!ASTCodegen
+extern (C++) class SemanticVisitor : ParseTimeVisitor!ASTCodegen
 {
     alias visit = ParseTimeVisitor!ASTCodegen.visit;
 public:

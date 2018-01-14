@@ -6,9 +6,9 @@ module dmd.visitor.stoppable;
 
 import dmd.visitor.semantic;
 
-extern (C++) class StoppableVisitor : Visitor
+extern (C++) class StoppableVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     bool stop;
 

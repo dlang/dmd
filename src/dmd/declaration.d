@@ -530,7 +530,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -661,7 +661,7 @@ extern (C++) final class TupleDeclaration : Declaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -923,7 +923,7 @@ extern (C++) final class AliasDeclaration : Declaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1038,7 +1038,7 @@ extern (C++) final class OverDeclaration : Declaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1606,7 +1606,7 @@ extern (C++) class VarDeclaration : Declaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1646,7 +1646,7 @@ extern (C++) final class SymbolDeclaration : Declaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1693,7 +1693,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1718,7 +1718,7 @@ extern (C++) final class TypeInfoStructDeclaration : TypeInfoDeclaration
         return new TypeInfoStructDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1743,7 +1743,7 @@ extern (C++) final class TypeInfoClassDeclaration : TypeInfoDeclaration
         return new TypeInfoClassDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1768,7 +1768,7 @@ extern (C++) final class TypeInfoInterfaceDeclaration : TypeInfoDeclaration
         return new TypeInfoInterfaceDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1793,7 +1793,7 @@ extern (C++) final class TypeInfoPointerDeclaration : TypeInfoDeclaration
         return new TypeInfoPointerDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1818,7 +1818,7 @@ extern (C++) final class TypeInfoArrayDeclaration : TypeInfoDeclaration
         return new TypeInfoArrayDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1843,7 +1843,7 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
         return new TypeInfoStaticArrayDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1868,7 +1868,7 @@ extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclarati
         return new TypeInfoAssociativeArrayDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1893,7 +1893,7 @@ extern (C++) final class TypeInfoEnumDeclaration : TypeInfoDeclaration
         return new TypeInfoEnumDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1918,7 +1918,7 @@ extern (C++) final class TypeInfoFunctionDeclaration : TypeInfoDeclaration
         return new TypeInfoFunctionDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1943,7 +1943,7 @@ extern (C++) final class TypeInfoDelegateDeclaration : TypeInfoDeclaration
         return new TypeInfoDelegateDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1968,7 +1968,7 @@ extern (C++) final class TypeInfoTupleDeclaration : TypeInfoDeclaration
         return new TypeInfoTupleDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1993,7 +1993,7 @@ extern (C++) final class TypeInfoConstDeclaration : TypeInfoDeclaration
         return new TypeInfoConstDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2018,7 +2018,7 @@ extern (C++) final class TypeInfoInvariantDeclaration : TypeInfoDeclaration
         return new TypeInfoInvariantDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2043,7 +2043,7 @@ extern (C++) final class TypeInfoSharedDeclaration : TypeInfoDeclaration
         return new TypeInfoSharedDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2068,7 +2068,7 @@ extern (C++) final class TypeInfoWildDeclaration : TypeInfoDeclaration
         return new TypeInfoWildDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2093,7 +2093,7 @@ extern (C++) final class TypeInfoVectorDeclaration : TypeInfoDeclaration
         return new TypeInfoVectorDeclaration(tinfo);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2120,7 +2120,7 @@ extern (C++) final class ThisDeclaration : VarDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

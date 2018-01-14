@@ -51,7 +51,7 @@ public:
     void addLocalClass(ClassDeclarations *);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StorageClassDeclaration : public AttribDeclaration
@@ -65,7 +65,7 @@ public:
     void addMember(Scope *sc, ScopeDsymbol *sds);
     StorageClassDeclaration *isStorageClassDeclaration() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DeprecatedDeclaration : public StorageClassDeclaration
@@ -78,7 +78,7 @@ public:
     Scope *newScope(Scope *sc);
     void setScope(Scope *sc);
     const char *getMessage();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class LinkDeclaration : public AttribDeclaration
@@ -90,7 +90,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     const char *toChars();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CPPMangleDeclaration : public AttribDeclaration
@@ -101,7 +101,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     const char *toChars();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ProtDeclaration : public AttribDeclaration
@@ -116,7 +116,7 @@ public:
     const char *kind() const;
     const char *toPrettyChars(bool unused);
     ProtDeclaration *isProtDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AlignDeclaration : public AttribDeclaration
@@ -128,7 +128,7 @@ public:
     AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AnonDeclaration : public AttribDeclaration
@@ -145,7 +145,7 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     const char *kind() const;
     AnonDeclaration *isAnonDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PragmaDeclaration : public AttribDeclaration
@@ -156,7 +156,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ConditionalDeclaration : public AttribDeclaration
@@ -170,7 +170,7 @@ public:
     Dsymbols *include(Scope *sc);
     void addComment(const utf8_t *comment);
     void setScope(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticIfDeclaration : public ConditionalDeclaration
@@ -185,7 +185,7 @@ public:
     void setScope(Scope *sc);
     void importAll(Scope *sc);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticForeachDeclaration : public ConditionalDeclaration
@@ -204,7 +204,7 @@ public:
     void setScope(Scope *sc);
     void importAll(Scope *sc);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ForwardingAttribDeclaration : AttribDeclaration
@@ -231,7 +231,7 @@ public:
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**
@@ -249,7 +249,7 @@ public:
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     Expressions *getAttributes();
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_ATTRIB_H */

@@ -62,9 +62,9 @@ enum BE : int
  */
 int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 {
-    extern (C++) final class BlockExit : Visitor
+    extern (C++) final class BlockExit : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         FuncDeclaration func;
         bool mustNotThrow;

@@ -140,9 +140,9 @@ extern(C++) Type typeSemantic(Type t, Loc loc, Scope* sc)
     return  v.result;
 }
 
-private extern (C++) final class TypeToExpressionVisitor : Visitor
+private extern (C++) final class TypeToExpressionVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Expression result;
     Type itype;
@@ -246,9 +246,9 @@ extern (C++) Expression typeToExpressionHelper(TypeQualified t, Expression e, si
     return e;
 }
 
-private extern (C++) final class TypeSemanticVisitor : Visitor
+private extern (C++) final class TypeSemanticVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
     Loc loc;
     Scope* sc;
     Type result;

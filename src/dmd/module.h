@@ -48,7 +48,7 @@ public:
     bool isAncestorPackageOf(const Package * const pkg) const;
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 
     Module *isPackageMod();
 };
@@ -165,7 +165,7 @@ public:
     Symbol *sfilename;          // symbol for filename
 
     Module *isModule() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 

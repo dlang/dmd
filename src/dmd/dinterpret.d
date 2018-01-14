@@ -984,9 +984,9 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
     return e;
 }
 
-private extern (C++) final class Interpreter : Visitor
+private extern (C++) final class Interpreter : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     InterState* istate;
     CtfeGoal goal;

@@ -68,9 +68,9 @@ extern (C++) bool isCommutative(TOK op)
  */
 private Identifier opId(Expression e)
 {
-    extern (C++) final class OpIdVisitor : Visitor
+    extern (C++) final class OpIdVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Identifier id;
 
@@ -276,9 +276,9 @@ private Identifier opId(Expression e)
  */
 private Identifier opId_r(Expression e)
 {
-    extern (C++) final class OpIdRVisitor : Visitor
+    extern (C++) final class OpIdRVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Identifier id;
 
@@ -447,9 +447,9 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
  */
 extern (C++) Expression op_overload(Expression e, Scope* sc)
 {
-    extern (C++) final class OpOverload : Visitor
+    extern (C++) final class OpOverload : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Scope* sc;
         Expression result;
