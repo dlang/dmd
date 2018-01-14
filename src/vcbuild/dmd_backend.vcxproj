@@ -50,7 +50,7 @@
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir>..\..\generated\Windows\$(Configuration)\$(PlatformName)\</OutDir>
-    <IntDir>$(OutDir)</IntDir>
+    <IntDir>$(OutDir)\backend\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <ItemDefinitionGroup>
