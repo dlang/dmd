@@ -4688,9 +4688,8 @@ extern (C++) final class TypeSArray : TypeArray
             }
             else if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                // MAINTENANCE: turn into error in 2.073
-                e.deprecation("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
-                // return new ErrorExp();
+                e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
+                return new ErrorExp();
             }
             e = e.castTo(sc, e.type.nextOf().pointerTo());
         }
@@ -4950,9 +4949,8 @@ extern (C++) final class TypeDArray : TypeArray
         {
             if (!(flag & DotExpFlag.noDeref) && sc.func && !sc.intypeof && sc.func.setUnsafe())
             {
-                // MAINTENANCE: turn into error in 2.073
-                e.deprecation("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
-                // return new ErrorExp();
+                e.error("`%s.ptr` cannot be used in `@safe` code, use `&%s[0]` instead", e.toChars(), e.toChars());
+                    return new ErrorExp();
             }
             e = e.castTo(sc, next.pointerTo());
             return e;
