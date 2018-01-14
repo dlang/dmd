@@ -205,8 +205,6 @@ public:
     Expression *specValue;
     Expression *defaultValue;
 
-    static AA *edummies;
-
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
     bool declareParameter(Scope *sc);

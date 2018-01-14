@@ -40,7 +40,6 @@ import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
-import dmd.root.aav;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
 import dmd.semantic2;
@@ -5303,7 +5302,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     Expression specValue;
     Expression defaultValue;
 
-    extern (C++) static __gshared AA* edummies = null;
+    extern (D) static __gshared Expression[void*] edummies;
 
     extern (D) this(Loc loc, Identifier ident, Type valType,
         Expression specValue, Expression defaultValue)
@@ -5444,7 +5443,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
 
         if (specValue)
         {
-            if (!ei || cast(Expression)dmd_aaGetRvalue(edummies, cast(void*)ei.type) == ei)
+            if (ei is null || (cast(void*)ei.type in edummies && edummies[cast(void*)ei.type] == ei))
                 goto Lnomatch;
 
             Expression e = specValue;
@@ -5501,10 +5500,14 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (!e)
         {
             // Create a dummy value
-            Expression* pe = cast(Expression*)dmd_aaGet(&edummies, cast(void*)valType);
-            if (!*pe)
-                *pe = valType.defaultInit();
-            e = *pe;
+            auto pe = cast(void*)valType in edummies;
+            if (!pe)
+            {
+                e = valType.defaultInit();
+                edummies[cast(void*)valType] = e;
+            }
+            else
+                e = *pe;
         }
         return cast(void*)e;
     }
