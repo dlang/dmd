@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail195.d(22): Error: struct Foo does not overload ()
+fail_compilation/fail195.d(22): Error: struct `Foo` does not overload ()
 ---
 */
 

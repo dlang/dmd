@@ -1,7 +1,7 @@
 /*
  * TEST_OUTPUT:
 ---
-fail_compilation/test16195.d(13): Error: delete p is not @safe but is used in @safe function test
+fail_compilation/test16195.d(13): Error: `delete p` is not `@safe` but is used in `@safe` function `test`
 ---
  */
 

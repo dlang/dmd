@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail314.d(11): Error: declaration T is already defined
+fail_compilation/fail314.d(11): Error: declaration `T` is already defined
 ---
 */
 

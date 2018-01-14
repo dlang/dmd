@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/faildeleteaa.d(11): Error: cannot delete type int
+fail_compilation/faildeleteaa.d(11): Error: cannot delete type `int`
 ---
 */
 

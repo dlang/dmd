@@ -207,7 +207,7 @@ fail_compilation/fail_arrayop2.d(267): Error: array operation `[1] * 6` without 
 fail_compilation/fail_arrayop2.d(268): Error: array operation `"abc"[] + '\x01'` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(271): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(274): Error: ([1] * 6)[0..2] is not an lvalue
-fail_compilation/fail_arrayop2.d(277): Error: can only * a pointer, not a 'int[]'
+fail_compilation/fail_arrayop2.d(277): Error: can only `*` a pointer, not a `int[]`
 fail_compilation/fail_arrayop2.d(280): Error: [1] * 6 is not an lvalue
 fail_compilation/fail_arrayop2.d(283): Error: array operation `da[] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(286): Error: array operation `da[] * 6` without destination memory not allowed
