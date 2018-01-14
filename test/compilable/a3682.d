@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/b3682.d
+// COMPILED_IMPORTS: imports/b3682.d
 // PERMUTE_ARGS:
 
 // 3682

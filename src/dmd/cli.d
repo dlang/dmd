@@ -190,6 +190,12 @@ struct Usage
         Option("I=<directory>",
             "look for imports also in directory"
         ),
+        Option("i",
+            "same as -i=-std,-core,-etc,-object"
+        ),
+        Option("i=[-]<pkg>,...",
+            "include/exclude imported modules whose name matches one of <pkg>"
+        ),
         Option("ignore",
             "ignore unsupported pragmas"
         ),

@@ -466,6 +466,7 @@ private int tryMain(size_t argc, const(char)** argv)
     Type._init();
     Id.initialize();
     Module._init();
+    Module.onImport = &marsOnImport;
     Target._init();
     Expression._init();
     Objc._init();
@@ -781,6 +782,20 @@ private int tryMain(size_t argc, const(char)** argv)
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
         m.semantic3(null);
+    }
+    if (includeImports)
+    {
+        // Note: DO NOT USE foreach here because Module.amodules.dim can
+        //       change on each iteration of the loop
+        for (size_t i = 0; i < compiledImports.dim; i++)
+        {
+            auto m = compiledImports[i];
+            assert(m.isRoot);
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+            m.semantic3(null);
+            modules.push(m);
+        }
     }
     Module.runDeferredSemantic3();
     if (global.errors)
@@ -1866,6 +1881,34 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.useInline = true;
                 params.hdrStripPlainFunctions = false;
             }
+            else if (p[1] == 'i')
+            {
+                includeImports = true;
+                if (p[2] != '\0')
+                {
+                    size_t start = 2 + (p[2] == '=');
+                    for (size_t nameIndex = start;; nameIndex++)
+                    {
+                        if (endOfModulePattern(p[nameIndex]))
+                        {
+                            auto pattern = p + start;
+                            // NOTE: we could check that the pattern only contains valid package characters
+                            //       if they aren't valid it's not a problem but would give the user a nice error message
+                            if (start == nameIndex)
+                            {
+                                error("invalid option '%s', module patterns cannot be empty", p);
+                                break;
+                            }
+                            includeModulePatterns.push(pattern);
+                            if (p[nameIndex] == '\0')
+                            {
+                                break;
+                            }
+                            start = nameIndex + 1;
+                        }
+                    }
+                }
+            }
             else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
                 params.useDIP25 = true;
             else if (arg == "-dip1000")
@@ -2125,3 +2168,278 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
     return errors;
 }
 
+
+private __gshared bool includeImports = false;
+// array of module patterns used to include/exclude imported modules
+private __gshared Array!(const(char)*) includeModulePatterns;
+private __gshared Modules compiledImports;
+private extern(C++) bool marsOnImport(Module m)
+{
+    if (includeImports)
+    {
+        Identifiers empty;
+        if (includeImportedModuleCheck(ModuleComponentRange(
+            (m.md && m.md.packages) ? m.md.packages : &empty, m.ident, m.isPackageFile)))
+        {
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "compileimport (%s)\n", m.srcfile.toChars);
+            compiledImports.push(m);
+            return true; // this import will be compiled
+        }
+    }
+    return false; // this import will not be compiled
+}
+
+// A range of component identifiers for a module
+private struct ModuleComponentRange
+{
+    Identifiers* packages;
+    Identifier name;
+    bool isPackageFile;
+    size_t index;
+    @property auto totalLength() const { return packages.dim + 1 + (isPackageFile ? 1 : 0); }
+
+    @property auto empty() { return index >= totalLength(); }
+    @property auto front() const
+    {
+        if (index < packages.dim)
+            return (*packages)[index];
+        if (index == packages.dim)
+            return name;
+        else
+            return Identifier.idPool("package");
+    }
+    void popFront() { index++; }
+}
+
+/*
+ * Determines if the given module should be included in the compilation.
+ * Returns:
+ *  True if the given module should be included in the compilation.
+ */
+private bool includeImportedModuleCheck(ModuleComponentRange components)
+    in { assert(includeImports); } body
+{
+    createMatchNodes();
+    size_t nodeIndex = 0;
+    while (nodeIndex < matchNodes.dim)
+    {
+        //printf("matcher ");printMatcher(nodeIndex);printf("\n");
+        auto info = matchNodes[nodeIndex++];
+        if (info.depth <= components.totalLength())
+        {
+            size_t nodeOffset = 0;
+            for (auto range = components;;range.popFront())
+            {
+                if (range.empty || nodeOffset >= info.depth)
+                {
+                    // MATCH
+                    //printf("matcher ");printMatcher(nodeIndex - 1);
+                    //printf(" MATCHES module '");components.print();printf("'\n");
+                    return !info.isExclude;
+                }
+                if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
+                {
+                    break;
+                }
+                nodeOffset++;
+            }
+        }
+        //printf("matcher ");printMatcher(nodeIndex-1);
+        //printf(" does not match module '");components.print();printf("'\n");
+        nodeIndex += info.depth;
+    }
+    assert(nodeIndex == matchNodes.dim, "code bug");
+    return includeByDefault;
+}
+
+// Matching module names is done with an array of matcher nodes.
+// The nodes are sorted by "component depth" from largest to smallest
+// so that the first match is always the longest (best) match.
+private struct MatcherNode
+{
+    union
+    {
+        struct
+        {
+            ushort depth;
+            bool isExclude;
+        }
+        Identifier id;
+    }
+    this(Identifier id) { this.id = id; }
+    this(bool isExclude, ushort depth)
+    {
+        this.depth = depth;
+        this.isExclude = isExclude;
+    }
+}
+
+/*
+ * $(D includeByDefault) determines whether to include/exclude modules when they don't
+ * match any pattern. This setting changes depending on if the user provided any "inclusive" module
+ * patterns. When a single "inclusive" module pattern is given, it likely means the user only
+ * intends to include modules they've "included", however, if no module patterns are given or they
+ * are all "exclusive", then it is likely they intend to include everything except modules
+ * that have been excluded. i.e.
+ * ---
+ * -i=-foo // include everything except modules that match "foo*"
+ * -i=foo  // only include modules that match "foo*" (exclude everything else)
+ * ---
+ * Note that this default behavior can be overriden using the '.' module pattern. i.e.
+ * ---
+ * -i=-foo,-.  // this excludes everything
+ * -i=foo,.    // this includes everything except the default exclusions (-std,-core,-etc.-object)
+ * ---
+*/
+private __gshared bool includeByDefault = true;
+private __gshared Array!MatcherNode matchNodes;
+
+/*
+ * Creates the global list of match nodes used to match module names
+ * given strings provided by the -i commmand line option.
+ */
+private void createMatchNodes()
+{
+    static size_t findSortedIndexToAddForDepth(size_t depth)
+    {
+        size_t index = 0;
+        while (index < matchNodes.dim)
+        {
+            auto info = matchNodes[index];
+            if (depth > info.depth)
+                break;
+            index += 1 + info.depth;
+        }
+        return index;
+    }
+
+    if (matchNodes.dim == 0)
+    {
+        foreach (modulePattern; includeModulePatterns)
+        {
+            auto depth = parseModulePatternDepth(modulePattern);
+            auto entryIndex = findSortedIndexToAddForDepth(depth);
+            matchNodes.split(entryIndex, depth + 1);
+            parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
+            // if at least 1 "include pattern" is given, then it is assumed the
+            // user only wants to include modules that were explicitly given, which
+            // changes the default behavior from inclusion to exclusion.
+            if (includeByDefault && !matchNodes[entryIndex].isExclude)
+            {
+                //fprintf(global.stdmsg, "Matcher: found 'include pattern', switching default behavior to exclusion\n");
+                includeByDefault = false;
+            }
+        }
+
+        // Add the default 1 depth matchers
+        MatcherNode[8] defaultDepth1MatchNodes = [
+            MatcherNode(true, 1), MatcherNode(Id.std),
+            MatcherNode(true, 1), MatcherNode(Id.core),
+            MatcherNode(true, 1), MatcherNode(Id.etc),
+            MatcherNode(true, 1), MatcherNode(Id.object),
+        ];
+        {
+            auto index = findSortedIndexToAddForDepth(1);
+            matchNodes.split(index, defaultDepth1MatchNodes.length);
+            matchNodes.data[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
+        }
+    }
+}
+
+/*
+ * Module patterns are taken directly from the -i command line option,
+ * so they can either end with the traditional terminating null, or they
+ * can end with a comma.  This function returns true if the given character
+ * matches either of these.
+ * Returns:
+ *  True if the given character is '\0' or ','.
+ */
+private bool endOfModulePattern(char c) { return c == ',' || c == '\0'; }
+
+/*
+ * Determines the depth of the given module pattern.
+ * Params:
+ *  modulePattern = The module pattern to determine the depth of.
+ * Returns:
+ *  The component depth of the given module pattern.
+ */
+private ushort parseModulePatternDepth(const(char)* modulePattern)
+{
+    if (modulePattern[0] == '-')
+        modulePattern++;
+
+    // handle special case
+    if (modulePattern[0] == '.' && endOfModulePattern(modulePattern[1]))
+        return 0;
+
+    ushort depth = 1;
+    for (;; modulePattern++)
+    {
+        auto c = *modulePattern;
+        if (c == '.')
+            depth++;
+        if (endOfModulePattern(c))
+            return depth;
+    }
+}
+unittest
+{
+    assert(".".parseModulePatternDepth == 0);
+    assert("-.".parseModulePatternDepth == 0);
+    assert("abc".parseModulePatternDepth == 1);
+    assert("-abc".parseModulePatternDepth == 1);
+    assert("abc.foo".parseModulePatternDepth == 2);
+    assert("-abc.foo".parseModulePatternDepth == 2);
+}
+
+/*
+ * Parses a 'module pattern', which is the "include import" components
+ * given on the command line, i.e. "-i=<module_pattern>,<module_pattern>,...".
+ * Params:
+ *  modulePattern = The module pattern to parse.
+ *  dst = the data structure to save the parsed module pattern to.
+ *  depth = the depth of the module pattern previously retrieved from $(D parseModulePatternDepth).
+ */
+private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, ushort depth)
+{
+    bool isExclude = false;
+    if (modulePattern[0] == '-')
+    {
+        isExclude = true;
+        modulePattern++;
+    }
+
+    *dst = MatcherNode(isExclude, depth);
+    dst++;
+
+    // Create and add identifiers for each component in the modulePattern
+    if (depth > 0)
+    {
+        auto idStart = modulePattern;
+        auto lastNode = dst + depth - 1;
+        for (; dst < lastNode; dst++)
+        {
+            for (;; modulePattern++)
+            {
+                if (*modulePattern == '.')
+                {
+                    assert(modulePattern > idStart, "empty module pattern");
+                    *dst = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
+                    modulePattern++;
+                    idStart = modulePattern;
+                    break;
+                }
+            }
+        }
+        for (;; modulePattern++)
+        {
+            if (endOfModulePattern(*modulePattern))
+            {
+                assert(modulePattern > idStart, "empty module pattern");
+                *lastNode = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
+                break;
+            }
+        }
+    }
+}
