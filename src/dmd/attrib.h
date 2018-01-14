@@ -229,7 +229,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void addMember(Scope *sc, ScopeDsymbol *sds);
     void setScope(Scope *sc);
-    void compileIt(Scope *sc);
     const char *kind() const;
     void accept(Visitor *v) { v->visit(this); }
 };

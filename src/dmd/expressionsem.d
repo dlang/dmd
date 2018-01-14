@@ -4207,16 +4207,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = (cast(BinExp)e).reorderSettingAAElem(sc);
     }
 
-    override void visit(CompileExp exp)
+    private Expression compileIt(CompileExp exp)
     {
-        static if (LOGSEMANTIC)
-        {
-            printf("CompileExp::semantic('%s')\n", exp.toChars());
-        }
-
+        //printf("CompileExp::compileIt('%s')\n", exp.toChars());
         auto se = semanticString(sc, exp.e1, "argument to mixin");
         if (!se)
-            return setError();
+            return null;
         se = se.toUTF8(sc);
 
         uint errors = global.errors;
@@ -4228,14 +4224,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (p.errors)
         {
             assert(global.errors != errors); // should have caught all these cases
-            return setError();
+            return null;
         }
         if (p.token.value != TOKeof)
         {
             exp.error("incomplete mixin expression `%s`", se.toChars());
-            return setError();
+            return null;
+        }
+        return e;
+    }
+
+    override void visit(CompileExp exp)
+    {
+        static if (LOGSEMANTIC)
+        {
+            printf("CompileExp::semantic('%s')\n", exp.toChars());
         }
 
+        auto e = compileIt(exp);
+        if (!e)
+            return setError();
         result = e.expressionSemantic(sc);
     }
 
