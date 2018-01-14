@@ -11,7 +11,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/eh.d
  */
 
-module dmd.eh;
+module dmd.ir.eh;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;

@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toctype.d
  */
 
-module dmd.toctype;
+module dmd.ir.toctype;
 
 import core.stdc.stdlib;
 
@@ -21,10 +21,10 @@ import dmd.backend.type;
 import dmd.declaration;
 import dmd.dstruct;
 import dmd.globals;
-import dmd.glue;
+import dmd.ir.glue;
 import dmd.id;
 import dmd.mtype;
-import dmd.tocvdebug;
+import dmd.ir.tocvdebug;
 import dmd.visitor;
 
 private extern (C++) final class ToCtypeVisitor : Visitor

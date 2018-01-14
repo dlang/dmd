@@ -12,7 +12,7 @@
 
 module dmd.denum;
 
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;

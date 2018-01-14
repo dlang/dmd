@@ -40,7 +40,7 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;

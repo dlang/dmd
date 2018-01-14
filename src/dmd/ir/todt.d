@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/todt.d
  */
 
-module dmd.todt;
+module dmd.ir.todt;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -37,8 +37,8 @@ import dmd.init;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
-import dmd.tocsym;
-import dmd.toobj;
+import dmd.ir.tocsym;
+import dmd.ir.toobj;
 import dmd.typesem;
 import dmd.typinf;
 import dmd.visitor;
@@ -46,8 +46,8 @@ import dmd.visitor;
 import dmd.backend.cc;
 import dmd.backend.dt;
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
+alias toSymbol = dmd.ir.tocsym.toSymbol;
+alias toSymbol = dmd.ir.glue.toSymbol;
 
 /* A dt_t is a simple structure representing data to be added
  * to the data segment of the output object file. As such,
@@ -406,8 +406,8 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 case Tpointer:
                     if (e.sz == 1)
                     {
-                        import dmd.e2ir : toStringSymbol;
-                        import dmd.glue : totym;
+                        import dmd.ir.e2ir : toStringSymbol;
+                        import dmd.ir.glue : totym;
                         Symbol* s = toStringSymbol(p, n, e.sz);
                         dtb.xoff(s, 0);
                     }

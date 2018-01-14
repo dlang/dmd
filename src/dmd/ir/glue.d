@@ -10,7 +10,7 @@
  * Coverage:    $(LINK https://codecov.io/gh/dlang/dmd/src/master/src/dmd/glue.d)
  */
 
-module dmd.glue;
+module dmd.ir.glue;
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -45,31 +45,31 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.e2ir;
+import dmd.ir.e2ir;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.identifier;
 import dmd.id;
-import dmd.irstate;
+import dmd.ir.irstate;
 import dmd.lib;
 import dmd.mtype;
-import dmd.objc_glue;
-import dmd.s2ir;
+import dmd.ir.objc_glue;
+import dmd.ir.s2ir;
 import dmd.statement;
 import dmd.target;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.toir;
-import dmd.toobj;
+import dmd.ir.tocsym;
+import dmd.ir.toctype;
+import dmd.ir.toir;
+import dmd.ir.toobj;
 import dmd.typesem;
 import dmd.utils;
 
 extern (C++):
 
 alias symbols = Array!(Symbol*);
-alias toSymbol = dmd.tocsym.toSymbol;
+alias toSymbol = dmd.ir.tocsym.toSymbol;
 
 //extern
 __gshared

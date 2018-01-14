@@ -19,7 +19,7 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.canthrow;
 import dmd.cond;
 import dmd.dclass;

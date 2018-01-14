@@ -21,7 +21,7 @@ import dmd.aggregate;
 import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;

@@ -14,7 +14,7 @@
 /* Inline assembler for the D programming language compiler
  */
 
-module dmd.iasm;
+module dmd.ir.iasm;
 
 import core.stdc.stdio;
 import core.stdc.stdarg;

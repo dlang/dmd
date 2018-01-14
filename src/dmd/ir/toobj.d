@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toobj.d
  */
 
-module dmd.toobj;
+module dmd.ir.toobj;
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -37,21 +37,21 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
-import dmd.glue;
+import dmd.ir.glue;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.init;
-import dmd.irstate;
+import dmd.ir.irstate;
 import dmd.mtype;
 import dmd.nspace;
-import dmd.objc_glue;
+import dmd.ir.objc_glue;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
-import dmd.tocsym;
-import dmd.toctype;
-import dmd.tocvdebug;
-import dmd.todt;
+import dmd.ir.tocsym;
+import dmd.ir.toctype;
+import dmd.ir.tocvdebug;
+import dmd.ir.todt;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
@@ -73,8 +73,8 @@ import dmd.backend.type;
 
 extern (C++):
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
+alias toSymbol = dmd.ir.tocsym.toSymbol;
+alias toSymbol = dmd.ir.glue.toSymbol;
 
 
 /* ================================================================== */

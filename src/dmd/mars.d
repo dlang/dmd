@@ -24,7 +24,7 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import dmd.arraytypes;
 import dmd.astcodegen;
-import dmd.gluelayer;
+import dmd.ir.gluelayer;
 import dmd.builtin;
 import dmd.cond;
 import dmd.console;

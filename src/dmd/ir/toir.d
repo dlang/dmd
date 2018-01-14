@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toir.d
  */
 
-module dmd.toir;
+module dmd.ir.toir;
 
 import core.checkedint;
 import core.stdc.stdio;
@@ -40,20 +40,20 @@ import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.toctype;
-import dmd.e2ir;
+import dmd.ir.toctype;
+import dmd.ir.e2ir;
 import dmd.func;
 import dmd.globals;
-import dmd.glue;
+import dmd.ir.glue;
 import dmd.identifier;
 import dmd.id;
-import dmd.irstate;
+import dmd.ir.irstate;
 import dmd.mtype;
 import dmd.target;
-import dmd.tocsym;
+import dmd.ir.tocsym;
 
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
+alias toSymbol = dmd.ir.tocsym.toSymbol;
+alias toSymbol = dmd.ir.glue.toSymbol;
 
 
 extern (C++):

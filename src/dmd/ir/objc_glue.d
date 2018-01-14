@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc_glue.d
  */
 
-module dmd.objc_glue;
+module dmd.ir.objc_glue;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
