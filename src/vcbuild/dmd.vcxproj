@@ -100,6 +100,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
@@ -122,6 +123,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
@@ -148,6 +150,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
@@ -175,6 +178,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <StackReserveSize>8388608</StackReserveSize>
     </Link>
     <DCompile>
       <VersionIdentifiers>MARS</VersionIdentifiers>
