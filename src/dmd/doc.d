@@ -2537,7 +2537,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     //int inComment = 0;                  // in <!-- ... --> comment
     int inMacro = 0;
     size_t iCodeStart = 0; // start of code section
+    size_t codeFenceLength = 0;
     size_t codeIndent = 0;
+    string codeLanguage;
     size_t iLineStart = offset;
     for (size_t i = offset; i < buf.offset; i++)
     {
@@ -2814,6 +2816,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 size_t eollen = 0;
                 leadingBlank = false;
                 char c0 = c; // if we jumped here from case '`' or case '~'
+                size_t iInfoString = 0;
+                if (!inCode)
+                    codeLanguage.length = 0;
                 while (1)
                 {
                     ++i;
@@ -2837,19 +2842,41 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         }
                     }
                     // BUG: handle UTF PS and LS too
-                    if (c != c0)
+                    if (c != c0 || iInfoString)
                     {
-                        if (c == '-' && replaceMarkdownThematicBreak(buf, istart, iLineStart))
+                        if (c0 == '-' && !iInfoString && replaceMarkdownThematicBreak(buf, istart, iLineStart))
                         {
                             i = istart;
                             break;
                         }
+                        else if (!iInfoString && !inCode && c0 != '-' && i - istart >= 3)
+                        {
+                            // Start a Markdown info string, like ```ruby
+                            codeFenceLength = i - istart;
+                            i = iInfoString = skipchars(buf, i, " \t");
+                        }
+                        else if (iInfoString && c != '`')
+                        {
+                            if (!codeLanguage.length && (c == ' ' || c == '\t'))
+                                codeLanguage = cast(string) buf.data[iInfoString..i].idup;
+                        }
                         else
+                        {
+                            iInfoString = 0;
                             goto Lcont;
+                        }
                     }
                 }
-                if (i - istart < 3 || (inCode && inCode != c0))
+                if (i - istart < 3 || (inCode && (inCode != c0 || i - istart < codeFenceLength)))
                     goto Lcont;
+                if (iInfoString)
+                {
+                    if (!codeLanguage.length)
+                        codeLanguage = cast(string) buf.data[iInfoString..i].idup;
+                }
+                else
+                    codeFenceLength = i - istart;
+
                 // We have the start/end of a code section
                 // Remove the entire --- line, including blanks and \n
                 buf.remove(iLineStart, i - iLineStart + eollen);
@@ -2895,7 +2922,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             lineStart = true;
                         ++p;
                     }
-                    highlightCode2(sc, a, &codebuf, 0);
+                    if (!codeLanguage.length || codeLanguage == "dlang")
+                        highlightCode2(sc, a, &codebuf, 0);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
                     i = buf.insert(i, ")\n");
@@ -2903,10 +2931,16 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 else
                 {
-                    static __gshared const(char)* d_code = "$(D_CODE ";
                     inCode = c0;
                     codeIndent = istart - iLineStart; // save indent count
-                    i = buf.insert(i, d_code, strlen(d_code));
+                    if (codeLanguage.length && codeLanguage != "dlang")
+                    {
+                        i = buf.insert(i, "$(OTHER_CODE ");
+                        i = buf.insert(i, codeLanguage);
+                        i = buf.insert(i, ",");
+                    }
+                    else
+                        i = buf.insert(i, "$(D_CODE ");
                     iCodeStart = i;
                     i--; // place i on >
                     leadingBlank = true;
