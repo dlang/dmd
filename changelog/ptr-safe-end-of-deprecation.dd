@@ -12,7 +12,7 @@ The following now triggers an error instead of a deprecation:
 Use `&arr[0]` instead:
 
 ---
-@safe ubyte oops(ubyte[] arr) {
+@safe ubyte* oops(ubyte[] arr) {
     return &arr[0];
 }
 ---
