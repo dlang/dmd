@@ -161,8 +161,20 @@ $(DOCDIR)/core_stdcpp_%.html : src/core/stdcpp/%.d $(DMD)
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-changelog.html: changelog.dd $(DMD)
-	$(DMD) -Df$@ $<
+$(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_backtrace_%.html : src/rt/backtrace/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_typeinfo_%.html : src/rt/typeinfo/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_util_container_%.html : src/rt/util/container/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_util_%.html : src/rt/util/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
