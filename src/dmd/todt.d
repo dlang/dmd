@@ -543,11 +543,6 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                 e.fd.vthis = null;
             }
             Symbol *s = toSymbol(e.fd);
-            if (e.fd.isNested())
-            {
-                e.error("non-constant nested delegate literal expression `%s`", e.toChars());
-                return;
-            }
             toObjFile(e.fd, false);
             dtb.xoff(s, 0);
         }
