@@ -7987,6 +7987,24 @@ struct S17915(T)
     T owner;
 }
 
+void test18232()
+{
+    static struct Canary
+    {
+        int x = 0x900D_900D;
+    }
+    union U
+    {
+        Canary method()
+        {
+            Canary c;
+            return c;
+        }
+    }
+    U u;
+    assert(u.method() == Canary.init);
+}
+
 /***************************************************/
 
 int main()
@@ -8308,6 +8326,7 @@ int main()
     test16408();
     test17349();
     test17915();
+    test18232();
 
     printf("Success\n");
     return 0;

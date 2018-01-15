@@ -785,7 +785,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         bool isBlit = false;
         d_uns64 sz;
         if (!dsym._init &&
-            !sc.inunion &&
             !(dsym.storage_class & (STC.static_ | STC.gshared | STC.extern_)) &&
             fd &&
             (!(dsym.storage_class & (STC.field | STC.in_ | STC.foreach_ | STC.parameter | STC.result)) ||
