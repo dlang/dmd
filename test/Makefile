@@ -178,6 +178,7 @@ else
     endif
     export DFLAGS
 endif
+REQUIRED_ARGS+=$(PIC_FLAG)
 
 ifeq ($(OS),osx)
     ifeq ($(MODEL),64)
