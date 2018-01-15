@@ -69,6 +69,16 @@ version( CRuntime_Glibc )
     enum SCHED_RR       = 2;
     //SCHED_SPORADIC (SS|TSP)
 }
+else version( CRuntime_Musl )
+{
+    struct sched_param {
+        int sched_priority;
+        int sched_ss_low_priority;
+        timespec sched_ss_repl_period;
+        timespec sched_ss_init_budget;
+        int sched_ss_max_repl;
+    }
+}
 else version( Darwin )
 {
     enum SCHED_OTHER    = 1;
@@ -206,6 +216,10 @@ else version (CRuntime_Bionic)
 {
     int sched_yield();
 }
+else version (CRuntime_Musl)
+{
+    int sched_yield();
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -263,6 +277,12 @@ else version (Solaris)
     int sched_rr_get_interval(pid_t, timespec*);
 }
 else version (CRuntime_Bionic)
+{
+    int sched_get_priority_max(int);
+    int sched_get_priority_min(int);
+    int sched_rr_get_interval(pid_t, timespec*);
+}
+else version (CRuntime_Musl)
 {
     int sched_get_priority_max(int);
     int sched_get_priority_min(int);
