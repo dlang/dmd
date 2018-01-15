@@ -7,32 +7,33 @@ module dmd.astcodegen;
 
 struct ASTCodegen
 {
-    import dmd.aggregate;
-    import dmd.aliasthis;
-    import dmd.arraytypes;
-    import dmd.attrib;
-    import dmd.cond;
-    import dmd.dclass;
-    import dmd.declaration;
-    import dmd.denum;
-    import dmd.dimport;
-    import dmd.dmodule;
-    import dmd.dstruct;
-    import dmd.dsymbol;
-    import dmd.dtemplate;
-    import dmd.dversion;
-    import dmd.expression;
-    import dmd.func;
-    import dmd.hdrgen;
-    import dmd.init;
-    import dmd.initsem;
-    import dmd.mtype;
-    import dmd.nspace;
-    import dmd.statement;
-    import dmd.staticassert;
-    import dmd.typesem;
-    import dmd.ctfeexpr;
+    public import dmd.aggregate;
+    public import dmd.aliasthis;
+    public import dmd.arraytypes;
+    public import dmd.attrib;
+    public import dmd.cond;
+    public import dmd.dclass;
+    public import dmd.declaration;
+    public import dmd.denum;
+    public import dmd.dimport;
+    public import dmd.dmodule;
+    public import dmd.dstruct;
+    public import dmd.dsymbol;
+    public import dmd.dtemplate;
+    public import dmd.dversion;
+    public import dmd.expression;
+    public import dmd.func;
+    public import dmd.hdrgen;
+    public import dmd.init;
+    public import dmd.initsem;
+    public import dmd.mtype;
+    public import dmd.nspace;
+    public import dmd.statement;
+    public import dmd.staticassert;
+    public import dmd.typesem;
+    public import dmd.ctfeexpr;
 
+/*
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
@@ -58,4 +59,5 @@ struct ASTCodegen
     alias isType                    = dmd.dtemplate.isType;
     alias isExpression              = dmd.dtemplate.isExpression;
     alias isTuple                   = dmd.dtemplate.isTuple;
+*/
 }

@@ -7271,6 +7271,7 @@ extern (C++) final class TypeStruct : Type
         Dsymbol searchSym()
         {
             int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
@@ -7279,7 +7280,7 @@ extern (C++) final class TypeStruct : Type
                     return sold;
             }
 
-            auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
+            auto s = sym.search(e.loc, ident, flags | IgnorePrivateImports);
             if (global.params.check10378)
             {
                 alias snew = s;

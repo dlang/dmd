@@ -9523,7 +9523,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
 // If flag == 1, stop "not a property" error and return NULL.
 Expression semanticY(DotIdExp exp, Scope* sc, int flag)
 {
-    //printf("DotIdExp::semanticY(this = %p, '%s')\n", this, toChars());
+    //printf("DotIdExp::semanticY(this = %p, '%s')\n", exp, exp.toChars());
 
     //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
 
