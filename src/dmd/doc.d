@@ -3111,14 +3111,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (emphasis.rightFlanking && inlineDelimiters.length)
             {
                 auto start = inlineDelimiters[$-1];
-                if (emphasis.type == start.type && (emphasis.count + start.count) % 3 != 0)
+                if (emphasis.type == start.type)
                 {
                     size_t iStart = start.iStart;
                     if (start.count <= emphasis.count)
                     {
                         count = start.count;
                         emphasis.count -= start.count;
-                        emphasis.iStart += start.count;
 
                         --inlineDelimiters.length;
                     }
@@ -3136,7 +3135,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                     while (count)
                     {
-                        buf.insert(i, ")");
+                        i = buf.insert(i, ")");
                         string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
                         count -= count >= 2 ? 2 : 1;
                         iStart = buf.insert(iStart, macroName);
@@ -3146,10 +3145,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
 
             if (emphasis.count && emphasis.leftFlanking)
-            {
                 inlineDelimiters ~= emphasis;
-            }
 
+            i += emphasis.count;
+            --i;
             break;
         }
 
