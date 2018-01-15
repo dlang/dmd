@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -O
+// REQUIRED_ARGS: -O -fPIC
 // PERMUTE_ARGS:
 // only testing on SYSV-ABI, but backend code is identical across platforms
 // DISABLED: win32 win64 osx linux32 freebsd32
@@ -6,7 +6,7 @@ debug = PRINTF;
 debug (PRINTF) import core.stdc.stdio;
 
 // Run this after codegen changes:
-// env DMD=generated/linux/release/64/dmd rdmd -version=update test/runnable/test_cdstrpar.d
+// env DMD=generated/linux/release/64/dmd rdmd -fPIC -version=update test/runnable/test_cdstrpar.d
 version (update)
 {
     import std.algorithm : canFind, find, splitter, until;
@@ -76,8 +76,8 @@ version (update)
             auto content = src.readText;
             auto f = File(src, "w");
             auto orng = f.lockingTextWriter;
-            immutable string start = "// begin";
-            immutable string end = "// end";
+            immutable string start = "// dfmt off";
+            immutable string end = "// dfmt on";
             replaceFirstInto!((_, orng) => formattedWrite(orng, start ~ "\n%s" ~ end, sink.data))(orng,
                     content, ctRegex!(`^` ~ start ~ `[^$]*` ~ end ~ `$`, "m"));
         }
@@ -118,7 +118,6 @@ struct Code(T_, int N_)
 alias AliasSeq(Args...) = Args;
 
 // dfmt off
-// begin
 alias baselineCases = AliasSeq!(
     Code!(ubyte, 4)([
         /* push   rbp                     */ 0x55,
@@ -209,7 +208,6 @@ alias baselineCases = AliasSeq!(
     ]),
 );
 
-// end
 // dfmt on
 
 bool matches(const(ubyte)[] code, const(ubyte)[] exp)
