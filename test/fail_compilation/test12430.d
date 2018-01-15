@@ -3,7 +3,7 @@ REQUIRED_ARGS: -m64
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/test12430.d(18): Error: simd operator must be an integer constant, not 'op'
+fail_compilation/test12430.d(18): Error: simd operator must be an integer constant, not `op`
 ---
 */
 
