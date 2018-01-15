@@ -386,13 +386,10 @@ void genObjFile(Module m, bool multiobj)
     if (global.params.cov)
     {
         /* Create coverage identifier:
-         *  private uint[numlines] __coverage;
+         *  uint[numlines] __coverage;
          */
-        m.cov = symbol_calloc("__coverage");
-        m.cov.Stype = type_fake(TYint);
-        m.cov.Stype.Tmangle = mTYman_c;
-        m.cov.Stype.Tcount++;
-        m.cov.Sclass = SCstatic;
+        m.cov = toSymbolX(m, "__coverage", SCglobal, type_fake(TYint), "Z");
+        m.cov.Stype.Tmangle = mTYman_d;
         m.cov.Sfl = FLdata;
 
         scope dtb = new DtBuilder();
@@ -1575,4 +1572,3 @@ elem *toEfilenamePtr(Module m)
     Symbol* s = toStringSymbol(id, len, 1);
     return el_ptr(s);
 }
-
