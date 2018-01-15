@@ -182,7 +182,7 @@ private elem *callfunc(Loc loc,
         {
             Expression arg = (*arguments)[0];
             if (arg.op != TOKint64)
-                arg.error("simd operator must be an integer constant, not '%s'", arg.toChars());
+                arg.error("simd operator must be an integer constant, not `%s`", arg.toChars());
         }
 
         /* Convert arguments[] to elems[] in left-to-right order
@@ -1075,7 +1075,7 @@ elem *toElem(Expression e, IRState *irs)
             //printf("\tparent = '%s'\n", se.var.parent ? se.var.parent.toChars() : "null");
             if (se.op == TOKvar && se.var.needThis())
             {
-                se.error("need 'this' to access member %s", se.toChars());
+                se.error("need `this` to access member `%s`", se.toChars());
                 result = el_long(TYsize_t, 0);
                 return;
             }
@@ -1659,7 +1659,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     if (!cd.vthis)
                     {
-                        ne.error("forward reference to %s", cd.toChars());
+                        ne.error("forward reference to `%s`", cd.toChars());
                     }
                     else
                     {
@@ -1846,7 +1846,7 @@ elem *toElem(Expression e, IRState *irs)
             }
             else
             {
-                ne.error("Internal Compiler Error: cannot new type %s\n", t.toChars());
+                ne.error("Internal Compiler Error: cannot new type `%s`\n", t.toChars());
                 assert(0);
             }
 
@@ -3360,7 +3360,7 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = e.e1.type.toBasetype();
             assert(tb1.ty != Tarray && tb1.ty != Tsarray);
 
-            e.error("^^ operator is not supported");
+            e.error("`^^` operator is not supported");
             result = el_long(totym(e.type), 0);  // error recovery
         }
 
@@ -3398,7 +3398,7 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = e.e1.type.toBasetype();
             assert(tb1.ty != Tarray && tb1.ty != Tsarray);
 
-            e.error("^^ operator is not supported");
+            e.error("`^^` operator is not supported");
             result = el_long(totym(e.type), 0);  // error recovery
         }
 
@@ -3490,13 +3490,13 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(TypeExp e)
         {
             //printf("TypeExp.toElem()\n");
-            e.error("type %s is not an expression", e.toChars());
+            e.error("type `%s` is not an expression", e.toChars());
             result = el_long(TYint, 0);
         }
 
         override void visit(ScopeExp e)
         {
-            e.error("%s is not an expression", e.sds.toChars());
+            e.error("`%s` is not an expression", e.sds.toChars());
             result = el_long(TYint, 0);
         }
 
@@ -3509,7 +3509,7 @@ elem *toElem(Expression e, IRState *irs)
             VarDeclaration v = dve.var.isVarDeclaration();
             if (!v)
             {
-                dve.error("%s is not a field, but a %s", dve.var.toChars(), dve.var.kind());
+                dve.error("`%s` is not a field, but a %s", dve.var.toChars(), dve.var.kind());
                 result = el_long(TYint, 0);
                 return;
             }
@@ -4717,7 +4717,7 @@ elem *toElem(Expression e, IRState *irs)
                     //dump(0);
                     //printf("fty = %d, tty = %d, %d\n", fty, tty, t.ty);
                     // This error should really be pushed to the front end
-                    ce.error("e2ir: cannot cast %s of type %s to type %s", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
+                    ce.error("e2ir: cannot cast `%s` of type `%s` to type `%s`", ce.e1.toChars(), ce.e1.type.toChars(), t.toChars());
                     e = el_long(TYint, 0);
                     return e;
 
