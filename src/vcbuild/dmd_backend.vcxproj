@@ -115,7 +115,6 @@
     <ClCompile Include="..\dmd\backend\cod5.c" />
     <ClCompile Include="..\dmd\backend\code.c" />
     <ClCompile Include="..\dmd\backend\debug.c" />
-    <ClCompile Include="..\dmd\backend\divcoeff.c" />
     <ClCompile Include="..\dmd\backend\dt.c" />
     <ClCompile Include="..\dmd\backend\dwarf.c" />
     <ClCompile Include="..\dmd\backend\ee.c" />
