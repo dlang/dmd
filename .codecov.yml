@@ -42,7 +42,7 @@ coverage:
         threshold: 0.1
     patch:
       default:
-        informational: true
+        informational: false
     changes:
       default:
         informational: true
