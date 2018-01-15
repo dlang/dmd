@@ -47,9 +47,4 @@ coverage:
       default:
         informational: true
 
-  # https://docs.codecov.io/docs/fixing-paths
-  fixes:
-    - "test/.*/::src/"
-    - "fail_compilation/::src/"
-
 comment: false
