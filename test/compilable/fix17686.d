@@ -24,14 +24,30 @@ class DOMImplementation(T)
 
         @property bool readonly() { return true; }
     }
-    abstract class NodeWithChildren: Node {}
+    abstract class NodeWithChildren: Node
+    {
+        override
+        {
+            @property Node parentNode() { return null; }
+            @property Document ownerDocument() { return null; }
+        }
+    }
 
-    class Document: NodeWithChildren, IDocument {}
+    class Document: NodeWithChildren, IDocument
+    {
+        override
+        {
+            @property Node parentNode() { return null; }
+            @property Document ownerDocument() { return null; }
+        }
+    }
 
     class EntityReference: NodeWithChildren, IEntityReference
     {
         override
         {
+            @property Node parentNode() { return null; }
+            @property Document ownerDocument() { return null; }
             @property bool readonly() { return true; }
         }
     }
