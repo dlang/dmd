@@ -3234,6 +3234,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 || (c1 == '~'))
             {
                 buf.remove(i, 1);
+
+                if (c1 == '<' || c1 == '>')
+                {
+                    const se = sc._module.escapetable.escapeChar(c1);
+                    const len = strlen(se);
+                    buf.remove(i, 1);
+                    i = buf.insert(i, se, len) - 1;
+                }
             }
             else if (!headingLevel && (c1 == '\r' || c1 == '\n'))
             {
