@@ -37,10 +37,7 @@ struct ASTCodegen
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
 
-    alias MODconst                  = dmd.mtype.MODconst;
-    alias MODimmutable              = dmd.mtype.MODimmutable;
-    alias MODshared                 = dmd.mtype.MODshared;
-    alias MODwild                   = dmd.mtype.MODwild;
+    alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
     alias Tident                    = dmd.mtype.Tident;
     alias Tfunction                 = dmd.mtype.Tfunction;

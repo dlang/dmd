@@ -464,20 +464,13 @@ alias TY = ubyte;
 
 enum MODFlags : int
 {
-    MODconst        = 1,    // type is const
-    MODimmutable    = 4,    // type is immutable
-    MODshared       = 2,    // type is shared
-    MODwild         = 8,    // type is wild
-    MODwildconst    = (MODwild | MODconst), // type is wild const
-    MODmutable      = 0x10, // type is mutable (only used in wildcard matching)
+    const_       = 1,    // type is const
+    immutable_   = 4,    // type is immutable
+    shared_      = 2,    // type is shared
+    wild         = 8,    // type is wild
+    wildconst    = (MODFlags.wild | MODFlags.const_), // type is wild const
+    mutable      = 0x10, // type is mutable (only used in wildcard matching)
 }
-
-alias MODconst = MODFlags.MODconst;
-alias MODimmutable = MODFlags.MODimmutable;
-alias MODshared = MODFlags.MODshared;
-alias MODwild = MODFlags.MODwild;
-alias MODwildconst = MODFlags.MODwildconst;
-alias MODmutable = MODFlags.MODmutable;
 
 alias MOD = ubyte;
 
