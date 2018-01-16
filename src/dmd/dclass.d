@@ -1044,7 +1044,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
         assert(!baseClass);
-        foreach (j, b; cd.interfaces)
+        foreach (b; cd.interfaces)
         {
             //printf("\tX base %s\n", b.sym.toChars());
             if (this == b.sym)

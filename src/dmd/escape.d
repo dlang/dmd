@@ -487,8 +487,6 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         if (v.isDataseg())
             continue;
 
-        Dsymbol p = v.toParent2();
-
         if (v.isScope() && !v.iscatchvar)       // special case: allow catch var to be rethrown
                                                 // despite being `scope`
         {

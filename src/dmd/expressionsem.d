@@ -122,7 +122,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                         return new ErrorExp();
                     fd = f;
                     assert(fd.type.ty == Tfunction);
-                    TypeFunction tf = cast(TypeFunction)fd.type;
                 }
             }
             if (fd)
@@ -234,7 +233,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 if (fd.errors)
                     return new ErrorExp();
                 assert(fd.type.ty == Tfunction);
-                TypeFunction tf = cast(TypeFunction)fd.type;
                 Expression e = new CallExp(loc, e1, e2);
                 return e.expressionSemantic(sc);
             }
@@ -260,7 +258,6 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         {
             // Keep better diagnostic message for invalid property usage of functions
             assert(fd.type.ty == Tfunction);
-            TypeFunction tf = cast(TypeFunction)fd.type;
             Expression e = new CallExp(loc, e1, e2);
             return e.expressionSemantic(sc);
         }
@@ -9048,9 +9045,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (t1.ty == Tarray && t2.ty == Tarray)
         {
-            Type telement  = t1.nextOf().toBasetype();
-            Type telement2 = t2.nextOf().toBasetype();
-
             //printf("Lowering to __equals %s %s\n", e1.toChars(), e2.toChars());
 
             // For e1 and e2 of struct type, lowers e1 == e2 to object.__equals(e1, e2)

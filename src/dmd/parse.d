@@ -3284,7 +3284,6 @@ final class Parser(AST) : Lexer
                     if (token.value != TOKcomma)
                         break;
                     // recognize import pkg.mod1 : a, b, pkg.mod2;
-                    immutable afterIdent = peekNext2;
                     if (peekNext2 == TOKdot ||      // pkg . mod2
                         peekNext2 == TOKcolon)      // mod2 : c
                         break;  // parse another import
@@ -4964,10 +4963,6 @@ final class Parser(AST) : Lexer
         check(TOKsemicolon);
 
         AST.Expression aggr = parseExpression();
-        static if(isStatic)
-        {
-            bool isRange = false;
-        }
         if (token.value == TOKslice && parameters.dim == 1)
         {
             AST.Parameter p = (*parameters)[0];

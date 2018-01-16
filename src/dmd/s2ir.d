@@ -494,7 +494,6 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(SwitchStatement s)
 //    { .visit(irs, s); }
     {
-        int string;
         Blockx *blx = irs.blx;
 
         //printf("SwitchStatement.toIR()\n");

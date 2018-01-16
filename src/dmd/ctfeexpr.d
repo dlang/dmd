@@ -328,7 +328,6 @@ extern (C++) UnionExp copyLiteral(Expression e)
     if (e.op == TOKarrayliteral)
     {
         auto ale = cast(ArrayLiteralExp)e;
-        auto basis = ale.basis ? copyLiteral(ale.basis).copy() : null;
         auto elements = copyLiteralArray(ale.elements, ale.basis);
 
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, elements);

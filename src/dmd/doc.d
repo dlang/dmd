@@ -877,7 +877,6 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                     "documentation comment");
 
                 auto symbol = dc.a[0];
-                auto symbolName = symbol.ident.toString;
 
                 buf.writestring("$(DDOC_MEMBER");
                 buf.writestring("$(DDOC_MEMBER_HEADER");
