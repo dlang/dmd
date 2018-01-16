@@ -4,7 +4,7 @@ jobs:
     working_directory: ~/dmd
     docker:
       - image: circleci/node:4.8.2
-    parallelism: 1
+    parallelism: 2
     branches:
       ignore:
         - dmd-1.x
