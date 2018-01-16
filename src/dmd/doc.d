@@ -3109,39 +3109,33 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 break;
             }
 
-            if (emphasis.rightFlanking && inlineDelimiters.length)
+            if (emphasis.rightFlanking)
             {
-                auto start = inlineDelimiters[$-1];
-                if (emphasis.type == start.type)
+                count = emphasis.count == 1 ? 1 : 2;
+                while (count && inlineDelimiters.length && emphasis.type == inlineDelimiters[$-1].type)
                 {
-                    size_t iStart = start.iStart;
-                    if (start.count <= emphasis.count)
-                    {
+                    auto start = &inlineDelimiters[$-1];
+                    if (start.count < count)
                         count = start.count;
-                        emphasis.count -= start.count;
 
+                    size_t iStart = start.iStart;
+                    emphasis.count -= count;
+                    start.count -= count;
+                    iStart += start.count;
+
+                    if (!start.count)
                         --inlineDelimiters.length;
-                    }
-                    else
-                    {
-                        count = emphasis.count;
-                        start.count -= emphasis.count;
-                        iStart += start.count;
-                        emphasis.count = 0;
-                    }
 
                     buf.remove(iStart, count);
                     i -= count;
                     buf.remove(i, count);
 
-                    while (count)
-                    {
-                        i = buf.insert(i, ")");
-                        string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
-                        count -= count >= 2 ? 2 : 1;
-                        iStart = buf.insert(iStart, macroName);
-                        i += macroName.length;
-                    }
+                    i = buf.insert(i, ")");
+                    string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
+                    iStart = buf.insert(iStart, macroName);
+                    i += macroName.length;
+
+                    count = emphasis.count > 2 ? 2 : emphasis.count;
                 }
             }
 
