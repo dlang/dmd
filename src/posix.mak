@@ -548,7 +548,7 @@ $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
-$(G_DOBJS): $G/%.o: $C/%.d posix.mak
+$(G_DOBJS): $G/%.o: $C/%.d posix.mak $(HOST_DMD_PATH)
 	@echo "  (CC)  BACK_DOBJS  $<"
 	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
 
