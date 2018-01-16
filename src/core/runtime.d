@@ -650,13 +650,18 @@ extern (C) UnitTestResult runModuleUnitTests()
             }
         }
     }
-    import rt.config : rt_configOption;
+
+    import core.internal.traits : externDFunc;
+    alias rt_configCallBack = string delegate(string) @nogc nothrow;
+    alias fn_configOption = string function(string opt, scope rt_configCallBack dg, bool reverse) @nogc nothrow;
+    alias rt_configOption = externDFunc!("rt.config.rt_configOption", fn_configOption);
+
     if (results.passed != results.executed)
     {
         // by default, we always print a summary if there are failures.
         results.summarize = true;
     }
-    else switch (rt_configOption("testmode"))
+    else switch (rt_configOption("testmode", null, false))
     {
     case "":
         // By default, run main. Switch to only doing unit tests in 2.080
@@ -674,7 +679,7 @@ extern (C) UnitTestResult runModuleUnitTests()
         results.summarize = !results.runMain;
         break;
     default:
-        throw new Error("Unknown --DRT-testmode option: " ~ rt_configOption("testmode"));
+        throw new Error("Unknown --DRT-testmode option: " ~ rt_configOption("testmode", null, false));
     }
 
     return results;
