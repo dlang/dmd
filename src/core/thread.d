@@ -304,7 +304,6 @@ else version( Posix )
         {
             version (Shared)
             {
-                import rt.sections;
                 Thread obj = cast(Thread)(cast(void**)arg)[0];
                 auto loadedLibraries = (cast(void**)arg)[1];
                 .free(arg);
@@ -317,7 +316,11 @@ else version( Posix )
 
             // loadedLibraries need to be inherited from parent thread
             // before initilizing GC for TLS (rt_tlsgc_init)
-            version (Shared) inheritLoadedLibraries(loadedLibraries);
+            version (Shared)
+            {
+                externDFunc!("rt.sections_elf_shared.inheritLoadedLibraries",
+                             void function(void*) @nogc nothrow)(loadedLibraries);
+            }
 
             assert( obj.m_curr is &obj.m_main );
             obj.m_main.bstack = getStackBottom();
@@ -404,7 +407,11 @@ else version( Posix )
                     append( t );
                 }
                 rt_moduleTlsDtor();
-                version (Shared) cleanupLoadedLibraries();
+                version (Shared)
+                {
+                    externDFunc!("rt.sections_elf_shared.cleanupLoadedLibraries",
+                                 void function() @nogc nothrow)();
+                }
             }
             catch( Throwable t )
             {
@@ -712,15 +719,17 @@ class Thread
 
                 version (Shared)
                 {
-                    import rt.sections;
-                    auto libs = pinLoadedLibraries();
+                    auto libs = externDFunc!("rt.sections_elf_shared.pinLoadedLibraries",
+                                             void* function() @nogc nothrow)();
+
                     auto ps = cast(void**).malloc(2 * size_t.sizeof);
                     if (ps is null) onOutOfMemoryError();
                     ps[0] = cast(void*)this;
                     ps[1] = cast(void*)libs;
                     if( pthread_create( &m_addr, &attr, &thread_entryPoint, ps ) != 0 )
                     {
-                        unpinLoadedLibraries(libs);
+                        externDFunc!("rt.sections_elf_shared.unpinLoadedLibraries",
+                                     void function(void*) @nogc nothrow)(libs);
                         .free(ps);
                         onThreadError( "Error creating thread" );
                     }
