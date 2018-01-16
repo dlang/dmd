@@ -1123,7 +1123,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.flags &= ~FUNCFLAG.safetyInprocess;
             if (funcdecl.type == f)
                 f = cast(TypeFunction)f.copy();
-            f.trust = TRUSTsafe;
+            f.trust = TRUST.safe;
         }
 
         if (funcdecl.flags & FUNCFLAG.nogcInprocess)

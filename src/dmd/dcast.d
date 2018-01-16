@@ -2816,10 +2816,10 @@ Lagain:
 
             if (tf1.trust == tf2.trust)
                 d.trust = tf1.trust;
-            else if (tf1.trust <= TRUSTsystem || tf2.trust <= TRUSTsystem)
-                d.trust = TRUSTsystem;
+            else if (tf1.trust <= TRUST.system || tf2.trust <= TRUST.system)
+                d.trust = TRUST.system;
             else
-                d.trust = TRUSTtrusted;
+                d.trust = TRUST.trusted;
 
             Type tx = null;
             if (t1.ty == Tdelegate)

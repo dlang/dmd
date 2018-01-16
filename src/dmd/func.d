@@ -1178,7 +1178,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (tf.purity == PURE.impure) // purity not specified
             flags |= FUNCFLAG.purityInprocess;
 
-        if (tf.trust == TRUSTdefault)
+        if (tf.trust == TRUST.default_)
             flags |= FUNCFLAG.safetyInprocess;
 
         if (!tf.isnothrow)
@@ -1253,7 +1253,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         if (flags & FUNCFLAG.safetyInprocess)
             setUnsafe();
-        return type.toTypeFunction().trust == TRUSTsafe;
+        return type.toTypeFunction().trust == TRUST.safe;
     }
 
     final bool isSafeBypassingInference()
@@ -1265,7 +1265,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         if (flags & FUNCFLAG.safetyInprocess)
             setUnsafe();
-        return type.toTypeFunction().trust == TRUSTtrusted;
+        return type.toTypeFunction().trust == TRUST.trusted;
     }
 
     /**************************************
@@ -1278,7 +1278,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (flags & FUNCFLAG.safetyInprocess)
         {
             flags &= ~FUNCFLAG.safetyInprocess;
-            type.toTypeFunction().trust = TRUSTsystem;
+            type.toTypeFunction().trust = TRUST.system;
             if (fes)
                 fes.func.setUnsafe();
         }

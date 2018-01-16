@@ -231,7 +231,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
     if (va && sc.func && sc.func.type && sc.func.type.ty == Tfunction)
-        inferScope = (cast(TypeFunction)sc.func.type).trust != TRUSTsystem;
+        inferScope = (cast(TypeFunction)sc.func.type).trust != TRUST.system;
 
     bool result = false;
     foreach (VarDeclaration v; er.byvalue)

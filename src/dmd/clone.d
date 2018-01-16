@@ -44,11 +44,11 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         return s1;
     StorageClass s2 = (f.storage_class & STC.disable);
     TypeFunction tf = cast(TypeFunction)f.type;
-    if (tf.trust == TRUSTsafe)
+    if (tf.trust == TRUST.safe)
         s2 |= STC.safe;
-    else if (tf.trust == TRUSTsystem)
+    else if (tf.trust == TRUST.system)
         s2 |= STC.system;
-    else if (tf.trust == TRUSTtrusted)
+    else if (tf.trust == TRUST.trusted)
         s2 |= STC.trusted;
     if (tf.purity != PURE.impure)
         s2 |= STC.pure_;

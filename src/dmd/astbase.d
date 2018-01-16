@@ -3859,13 +3859,13 @@ struct ASTBase
             if (stc & STC.scope_)
                 this.isscope = true;
 
-            this.trust = TRUSTdefault;
+            this.trust = TRUST.default_;
             if (stc & STC.safe)
-                this.trust = TRUSTsafe;
+                this.trust = TRUST.safe;
             if (stc & STC.system)
-                this.trust = TRUSTsystem;
+                this.trust = TRUST.system;
             if (stc & STC.trusted)
-                this.trust = TRUSTtrusted;
+                this.trust = TRUST.trusted;
         }
 
         override Type syntaxCopy()
