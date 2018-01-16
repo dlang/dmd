@@ -5408,12 +5408,9 @@ extern (C++) final class TypeReference : TypeNext
 
 enum RET : int
 {
-    RETregs         = 1,    // returned in registers
-    RETstack        = 2,    // returned on stack
+    regs         = 1,    // returned in registers
+    stack        = 2,    // returned on stack
 }
-
-alias RETregs = RET.RETregs;
-alias RETstack = RET.RETstack;
 
 enum TRUST : int
 {

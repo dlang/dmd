@@ -720,7 +720,7 @@ private extern (C++) class S2irVisitor : Visitor
             TypeFunction tf = cast(TypeFunction)(func.type);
 
             RET retmethod = retStyle(tf);
-            if (retmethod == RETstack)
+            if (retmethod == RET.stack)
             {
                 elem *es;
                 bool writetohp;

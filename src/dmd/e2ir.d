@@ -268,7 +268,7 @@ private elem *callfunc(Loc loc,
     objc.setupEp(esel, &ep, left_to_right);
 
     const retmethod = retStyle(tf);
-    if (retmethod == RETstack)
+    if (retmethod == RET.stack)
     {
         if (!ehidden)
         {
@@ -461,7 +461,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
          */
         int ns = ((fd ? callSideEffectLevel(fd)
                       : callSideEffectLevel(t)) == 2 &&
-                  retmethod != RETstack &&
+                  retmethod != RET.stack &&
                   global.params.useAssert == CHECKENABLE.off && global.params.optimize);
         if (ep)
             e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
@@ -472,7 +472,7 @@ if (!global.params.is64bit) assert(tysize(TYnptr) == 4);
             e.Eflags |= EFLAGS_variadic;
     }
 
-    if (retmethod == RETstack)
+    if (retmethod == RET.stack)
     {
         if (global.params.isOSX && eresult)
             /* ABI quirk: hidden pointer is not returned in registers
@@ -2885,7 +2885,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 CallExp ce = cast(CallExp)ae.e2;
                 TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-                if (tf.ty == Tfunction && retStyle(tf) == RETstack)
+                if (tf.ty == Tfunction && retStyle(tf) == RET.stack)
                 {
                     elem *ehidden = e1;
                     ehidden = el_una(OPaddr, TYnptr, ehidden);

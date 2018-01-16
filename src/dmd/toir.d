@@ -961,8 +961,8 @@ RET retStyle(TypeFunction tf)
     //printf("TypeFunction.retStyle() %s\n", toChars());
     if (tf.isref)
     {
-        //printf("  ref RETregs\n");
-        return RETregs;                 // returns a pointer
+        //printf("  ref RET.regs\n");
+        return RET.regs;                 // returns a pointer
     }
 
     Type tn = tf.next.toBasetype();
@@ -974,24 +974,24 @@ RET retStyle(TypeFunction tf)
     {
         // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
         if (tns.ty == Tcomplex32)
-            return RETstack;
+            return RET.stack;
         if (tns.isscalar())
-            return RETregs;
+            return RET.regs;
 
         tns = tns.baseElemOf();
         if (tns.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tns).sym;
             if (sd.ident == Id.__c_long_double)
-                return RETregs;
+                return RET.regs;
             if (!sd.isPOD() || sz > 8)
-                return RETstack;
+                return RET.stack;
             if (sd.fields.dim == 0)
-                return RETstack;
+                return RET.stack;
         }
         if (sz <= 16 && !(sz & (sz - 1)))
-            return RETregs;
-        return RETstack;
+            return RET.regs;
+        return RET.stack;
     }
     else if (global.params.isWindows && global.params.mscoff)
     {
@@ -1000,7 +1000,7 @@ RET retStyle(TypeFunction tf)
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ident == Id.__c_long_double)
-                return RETregs;
+                return RET.regs;
         }
     }
 
@@ -1023,15 +1023,15 @@ L2:
                     case 2:
                     case 4:
                     case 8:
-                        //printf("  sarray RETregs\n");
-                        return RETregs; // return small structs in regs
+                        //printf("  sarray RET.regs\n");
+                        return RET.regs; // return small structs in regs
                                             // (not 3 byte structs!)
                     default:
                         break;
                 }
             }
-            //printf("  sarray RETstack\n");
-            return RETstack;
+            //printf("  sarray RET.stack\n");
+            return RET.stack;
         }
     }
 
@@ -1041,10 +1041,10 @@ L2:
         if (global.params.isLinux && tf.linkage != LINKd && !global.params.is64bit)
         {
             if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                return RETregs;
+                return RET.regs;
 
-            //printf("  2 RETstack\n");
-            return RETstack;            // 32 bit C/C++ structs always on stack
+            //printf("  2 RET.stack\n");
+            return RET.stack;            // 32 bit C/C++ structs always on stack
         }
         if (global.params.isWindows && tf.linkage == LINKcpp && !global.params.is64bit &&
                  sd.isPOD() && sd.ctor)
@@ -1052,8 +1052,8 @@ L2:
             // win32 returns otherwise POD structs with ctors via memory
             // unless it's not really a struct
             if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                return RETregs;
-            return RETstack;
+                return RET.regs;
+            return RET.stack;
         }
         if (sd.arg1type && !sd.arg2type)
         {
@@ -1063,7 +1063,7 @@ L2:
             goto Lagain;
         }
         else if (global.params.is64bit && !sd.arg1type && !sd.arg2type)
-            return RETstack;
+            return RET.stack;
         else if (sd.isPOD())
         {
             switch (sz)
@@ -1072,34 +1072,34 @@ L2:
                 case 2:
                 case 4:
                 case 8:
-                    //printf("  3 RETregs\n");
-                    return RETregs;     // return small structs in regs
+                    //printf("  3 RET.regs\n");
+                    return RET.regs;     // return small structs in regs
                                         // (not 3 byte structs!)
                 case 16:
                     if (!global.params.isWindows && global.params.is64bit)
-                       return RETregs;
+                       return RET.regs;
                     break;
 
                 default:
                     break;
             }
         }
-        //printf("  3 RETstack\n");
-        return RETstack;
+        //printf("  3 RET.stack\n");
+        return RET.stack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
              tf.linkage == LINKc &&
              tns.iscomplex())
     {
         if (tns.ty == Tcomplex32)
-            return RETregs;     // in EDX:EAX, not ST1:ST0
+            return RET.regs;     // in EDX:EAX, not ST1:ST0
         else
-            return RETstack;
+            return RET.stack;
     }
     else
     {
         //assert(sz <= 16);
-        //printf("  4 RETregs\n");
-        return RETregs;
+        //printf("  4 RET.regs\n");
+        return RET.regs;
     }
 }
