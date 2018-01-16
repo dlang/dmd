@@ -4,7 +4,7 @@ set -uexo pipefail
 
 HOST_DMD_VER=2.072.2 # same as in dmd/src/posix.mak
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
-N=2
+N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
 BUILD="debug"
@@ -51,7 +51,7 @@ download() {
 install_deps() {
     if [ $MODEL -eq 32 ]; then
         sudo apt-get update --quiet=2
-        sudo aptitude install g++-multilib --assume-yes --quiet=2
+        sudo apt-get install g++-multilib --assume-yes --quiet=2
     fi
 
     download "https://dlang.org/install.sh" "https://nightlies.dlang.org/install.sh" "install.sh"
