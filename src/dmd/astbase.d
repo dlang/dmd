@@ -2820,9 +2820,9 @@ struct ASTBase
             //t.vtinfo = null; these aren't used in parsing
             //t.ctype = null;
             if (t.ty == Tstruct)
-                (cast(TypeStruct)t).att = RECfwdref;
+                (cast(TypeStruct)t).att = AliasThisRec.fwdref;
             if (t.ty == Tclass)
-                (cast(TypeClass)t).att = RECfwdref;
+                (cast(TypeClass)t).att = AliasThisRec.fwdref;
             return t;
         }
 
@@ -3654,7 +3654,7 @@ struct ASTBase
     extern (C++) final class TypeClass : Type
     {
         ClassDeclaration sym;
-        AliasThisRec att = RECfwdref;
+        AliasThisRec att = AliasThisRec.fwdref;
 
         extern (D) this (ClassDeclaration sym)
         {
@@ -3676,7 +3676,7 @@ struct ASTBase
     extern (C++) final class TypeStruct : Type
     {
         StructDeclaration sym;
-        AliasThisRec att = RECfwdref;
+        AliasThisRec att = AliasThisRec.fwdref;
 
         extern (D) this(StructDeclaration sym)
         {

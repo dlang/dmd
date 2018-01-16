@@ -1249,9 +1249,9 @@ extern (C++) abstract class Type : RootObject
         t.vtinfo = null;
         t.ctype = null;
         if (t.ty == Tstruct)
-            (cast(TypeStruct)t).att = RECfwdref;
+            (cast(TypeStruct)t).att = AliasThisRec.fwdref;
         if (t.ty == Tclass)
-            (cast(TypeClass)t).att = RECfwdref;
+            (cast(TypeClass)t).att = AliasThisRec.fwdref;
         return t;
     }
 
@@ -2190,14 +2190,14 @@ extern (C++) abstract class Type : RootObject
         else
             return false;
 
-        AliasThisRec flag = cast(AliasThisRec)(*pflag & RECtypeMask);
-        if (flag == RECfwdref)
+        AliasThisRec flag = cast(AliasThisRec)(*pflag & AliasThisRec.typeMask);
+        if (flag == AliasThisRec.fwdref)
         {
             Type att = aliasthisOf();
-            flag = att && att.implicitConvTo(this) ? RECyes : RECno;
+            flag = att && att.implicitConvTo(this) ? AliasThisRec.yes : AliasThisRec.no;
         }
-        *pflag = cast(AliasThisRec)(flag | (*pflag & ~RECtypeMask));
-        return flag == RECyes;
+        *pflag = cast(AliasThisRec)(flag | (*pflag & ~AliasThisRec.typeMask));
+        return flag == AliasThisRec.yes;
     }
 
     Type makeConst()
@@ -7192,7 +7192,7 @@ enum AliasThisRec : int
 extern (C++) final class TypeStruct : Type
 {
     StructDeclaration sym;
-    AliasThisRec att = RECfwdref;
+    AliasThisRec att = AliasThisRec.fwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
     extern (D) this(StructDeclaration sym)
@@ -7699,13 +7699,13 @@ extern (C++) final class TypeStruct : Type
                 }
             }
         }
-        else if (sym.aliasthis && !(att & RECtracing))
+        else if (sym.aliasthis && !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf())
             {
-                att = cast(AliasThisRec)(att | RECtracing);
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~RECtracing);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
             else
                 m = MATCH.nomatch; // no match
@@ -7731,13 +7731,13 @@ extern (C++) final class TypeStruct : Type
 
         ubyte wm = 0;
 
-        if (t.hasWild() && sym.aliasthis && !(att & RECtracing))
+        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf())
             {
-                att = cast(AliasThisRec)(att | RECtracing);
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~RECtracing);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
         }
 
@@ -8009,7 +8009,7 @@ extern (C++) final class TypeEnum : Type
 extern (C++) final class TypeClass : Type
 {
     ClassDeclaration sym;
-    AliasThisRec att = RECfwdref;
+    AliasThisRec att = AliasThisRec.fwdref;
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
     extern (D) this(ClassDeclaration sym)
@@ -8515,13 +8515,13 @@ extern (C++) final class TypeClass : Type
         }
 
         m = MATCH.nomatch;
-        if (sym.aliasthis && !(att & RECtracing))
+        if (sym.aliasthis && !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf())
             {
-                att = cast(AliasThisRec)(att | RECtracing);
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~RECtracing);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
         }
 
@@ -8558,13 +8558,13 @@ extern (C++) final class TypeClass : Type
 
         ubyte wm = 0;
 
-        if (t.hasWild() && sym.aliasthis && !(att & RECtracing))
+        if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf())
             {
-                att = cast(AliasThisRec)(att | RECtracing);
+                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 wm = ato.deduceWild(t, isRef);
-                att = cast(AliasThisRec)(att & ~RECtracing);
+                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
             }
         }
 

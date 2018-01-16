@@ -3414,26 +3414,26 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (t.ty == Tclass)
                     {
                         TypeClass tc = cast(TypeClass)t;
-                        if (tc.sym.aliasthis && !(tc.att & RECtracingDT))
+                        if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
                         {
                             if (auto ato = t.aliasthisOf())
                             {
-                                tc.att = cast(AliasThisRec)(tc.att | RECtracingDT);
+                                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracingDT);
                                 m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
-                                tc.att = cast(AliasThisRec)(tc.att & ~RECtracingDT);
+                                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracingDT);
                             }
                         }
                     }
                     else if (t.ty == Tstruct)
                     {
                         TypeStruct ts = cast(TypeStruct)t;
-                        if (ts.sym.aliasthis && !(ts.att & RECtracingDT))
+                        if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
                         {
                             if (auto ato = t.aliasthisOf())
                             {
-                                ts.att = cast(AliasThisRec)(ts.att | RECtracingDT);
+                                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracingDT);
                                 m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
-                                ts.att = cast(AliasThisRec)(ts.att & ~RECtracingDT);
+                                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracingDT);
                             }
                         }
                     }
