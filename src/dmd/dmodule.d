@@ -1370,6 +1370,22 @@ extern (C++) final class Module : Package
     {
         v.visit(this);
     }
+
+    /***********************************************
+     * Writes this module's fully-qualified name to buf
+     * Params:
+     *    buf = The buffer to write to
+     */
+    void fullyQualifiedName(ref OutBuffer buf)
+    {
+        buf.writestring(ident.toString());
+
+        for (auto package_ = parent; package_ !is null; package_ = package_.parent)
+        {
+            buf.prependstring(".");
+            buf.prependstring(package_.ident.toChars());
+        }
+    }
 }
 
 /***********************************************************
