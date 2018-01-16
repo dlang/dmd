@@ -7179,20 +7179,13 @@ extern (C++) final class TypeReturn : TypeQualified
 // Whether alias this dependency is recursive or not.
 enum AliasThisRec : int
 {
-    RECno           = 0,    // no alias this recursion
-    RECyes          = 1,    // alias this has recursive dependency
-    RECfwdref       = 2,    // not yet known
-    RECtypeMask     = 3,    // mask to read no/yes/fwdref
-    RECtracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
-    RECtracingDT    = 0x8,  // mark in progress of deduceType
+    no           = 0,    // no alias this recursion
+    yes          = 1,    // alias this has recursive dependency
+    fwdref       = 2,    // not yet known
+    typeMask     = 3,    // mask to read no/yes/fwdref
+    tracing      = 0x4,  // mark in progress of implicitConvTo/deduceWild
+    tracingDT    = 0x8,  // mark in progress of deduceType
 }
-
-alias RECno = AliasThisRec.RECno;
-alias RECyes = AliasThisRec.RECyes;
-alias RECfwdref = AliasThisRec.RECfwdref;
-alias RECtypeMask = AliasThisRec.RECtypeMask;
-alias RECtracing = AliasThisRec.RECtracing;
-alias RECtracingDT = AliasThisRec.RECtracingDT;
 
 /***********************************************************
  */
