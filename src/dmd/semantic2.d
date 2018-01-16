@@ -138,9 +138,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(TemplateInstance tempinst)
     {
-        if (tempinst.semanticRun >= PASSsemantic2)
+        if (tempinst.semanticRun >= PASS.semantic2)
             return;
-        tempinst.semanticRun = PASSsemantic2;
+        tempinst.semanticRun = PASS.semantic2;
         static if (LOG)
         {
             printf("+TemplateInstance.semantic2('%s')\n", tempinst.toChars());
@@ -200,9 +200,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(TemplateMixin tmix)
     {
-        if (tmix.semanticRun >= PASSsemantic2)
+        if (tmix.semanticRun >= PASS.semantic2)
             return;
-        tmix.semanticRun = PASSsemantic2;
+        tmix.semanticRun = PASS.semantic2;
         static if (LOG)
         {
             printf("+TemplateMixin.semantic2('%s')\n", tmix.toChars());
@@ -232,7 +232,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(VarDeclaration vd)
     {
-        if (vd.semanticRun < PASSsemanticdone && vd.inuse)
+        if (vd.semanticRun < PASS.semanticdone && vd.inuse)
             return;
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
@@ -311,15 +311,15 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     vd.error("is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
         }
-        vd.semanticRun = PASSsemantic2done;
+        vd.semanticRun = PASS.semantic2done;
     }
 
     override void visit(Module mod)
     {
         //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-        if (mod.semanticRun != PASSsemanticdone) // semantic() not completed yet - could be recursive call
+        if (mod.semanticRun != PASS.semanticdone) // semantic() not completed yet - could be recursive call
             return;
-        mod.semanticRun = PASSsemantic2;
+        mod.semanticRun = PASS.semantic2;
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
@@ -337,17 +337,17 @@ private extern(C++) final class Semantic2Visitor : Visitor
         }
         sc = sc.pop();
         sc.pop();
-        mod.semanticRun = PASSsemantic2done;
+        mod.semanticRun = PASS.semantic2done;
         //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
     }
 
     override void visit(FuncDeclaration fd)
     {
-        if (fd.semanticRun >= PASSsemantic2done)
+        if (fd.semanticRun >= PASS.semantic2done)
             return;
-        assert(fd.semanticRun <= PASSsemantic2);
+        assert(fd.semanticRun <= PASS.semantic2);
 
-        fd.semanticRun = PASSsemantic2;
+        fd.semanticRun = PASS.semantic2;
 
         objc.setSelector(fd, sc);
         objc.validateSelector(fd);
@@ -374,9 +374,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(Nspace ns)
     {
-        if (ns.semanticRun >= PASSsemantic2)
+        if (ns.semanticRun >= PASS.semantic2)
             return;
-        ns.semanticRun = PASSsemantic2;
+        ns.semanticRun = PASS.semantic2;
         static if (LOG)
         {
             printf("+Nspace::semantic2('%s')\n", ns.toChars());

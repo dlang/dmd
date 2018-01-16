@@ -128,7 +128,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // semanticRun prevents unnecessary setting of _scope during deferred
         // setScope phases for aggregates which already finished semantic().
         // See https://issues.dlang.org/show_bug.cgi?id=16607
-        if (semanticRun < PASSsemanticdone)
+        if (semanticRun < PASS.semanticdone)
             ScopeDsymbol.setScope(sc);
     }
 
@@ -162,7 +162,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             auto ad = cast(AggregateDeclaration)param;
 
-            if (v.semanticRun < PASSsemanticdone)
+            if (v.semanticRun < PASS.semanticdone)
                 v.dsymbolSemantic(null);
             // Return in case a recursive determineFields triggered by v.semantic already finished
             if (ad.sizeok != Sizeok.none)
@@ -173,7 +173,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
                 return 0;
-            if (!v.isField() || v.semanticRun < PASSsemanticdone)
+            if (!v.isField() || v.semanticRun < PASS.semanticdone)
                 return 1;   // unresolvable forward reference
 
             ad.fields.push(v);
@@ -663,7 +663,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             vthis.parent = this;
             vthis.protection = Prot(Prot.Kind.public_);
             vthis.alignment = t.alignment();
-            vthis.semanticRun = PASSsemanticdone;
+            vthis.semanticRun = PASS.semanticdone;
 
             if (sizeok == Sizeok.fwd)
                 fields.push(vthis);
@@ -702,7 +702,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 extern (C++) static int fp(Dsymbol s, void* ctxt)
                 {
                     auto f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASSinit)
+                    if (f && f.semanticRun == PASS.init)
                         f.dsymbolSemantic(null);
                     return 0;
                 }

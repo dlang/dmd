@@ -654,7 +654,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
         {
             ScopeExp se = cast(ScopeExp)init.exp;
             TemplateInstance ti = se.sds.isTemplateInstance();
-            if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
+            if (ti && ti.semanticRun == PASS.semantic && !ti.aliasdecl)
                 se.error("cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toChars());
             else
                 se.error("cannot infer type from %s `%s`", se.sds.kind(), se.toChars());

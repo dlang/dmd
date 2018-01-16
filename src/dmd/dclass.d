@@ -493,10 +493,10 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             /* cd.baseClass might not be set if cd is forward referenced.
              */
-            if (!cd.baseClass && cd.semanticRun < PASSsemanticdone && !cd.isInterfaceDeclaration())
+            if (!cd.baseClass && cd.semanticRun < PASS.semanticdone && !cd.isInterfaceDeclaration())
             {
                 cd.dsymbolSemantic(null);
-                if (!cd.baseClass && cd.semanticRun < PASSsemanticdone)
+                if (!cd.baseClass && cd.semanticRun < PASS.semanticdone)
                     cd.error("base class is forward referenced by `%s`", toChars());
             }
 
@@ -915,9 +915,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         this.dsymbolSemantic(null);
 
         /* The next line should work, but does not because when ClassDeclaration.dsymbolSemantic()
-         * is called recursively it can set PASSsemanticdone without finishing it.
+         * is called recursively it can set PASS.semanticdone without finishing it.
          */
-        //if (semanticRun < PASSsemanticdone)
+        //if (semanticRun < PASS.semanticdone)
         {
             /* Could not complete semantic(). Try running semantic() on
              * each of the virtual functions,

@@ -197,14 +197,14 @@ extern (C++) class Dsymbol : RootObject
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.semanticRun = PASSinit;
+        this.semanticRun = PASS.init;
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.ident = ident;
-        this.semanticRun = PASSinit;
+        this.semanticRun = PASS.init;
     }
 
     static Dsymbol create(Identifier ident)

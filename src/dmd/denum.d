@@ -105,7 +105,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     override void setScope(Scope* sc)
     {
-        if (semanticRun > PASSinit)
+        if (semanticRun > PASS.init)
             return;
         ScopeDsymbol.setScope(sc);
     }
@@ -193,7 +193,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             return errorReturn();
-        if (semanticRun == PASSinit || !members)
+        if (semanticRun == PASS.init || !members)
         {
             error("is forward referenced looking for `.%s`", id.toChars());
             return errorReturn();
@@ -259,7 +259,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
             dsymbolSemantic(this, _scope);
         if (errors)
             goto Lerrors;
-        if (semanticRun == PASSinit || !members)
+        if (semanticRun == PASS.init || !members)
         {
             error(loc, "forward reference of `%s.init`", toChars());
             goto Lerrors;

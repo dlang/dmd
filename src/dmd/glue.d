@@ -708,7 +708,7 @@ UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
         if (!fdp)
             break;
         if (UnitTestDeclaration udp = fdp.isUnitTestDeclaration())
-            return udp.semanticRun < PASSobj ? udp : null;
+            return udp.semanticRun < PASS.obj ? udp : null;
         fd = fdp;
     }
     return null;
@@ -735,7 +735,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
-    if (fd.semanticRun >= PASSobj) // if toObjFile() already run
+    if (fd.semanticRun >= PASS.obj) // if toObjFile() already run
         return;
 
     if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next is null)
@@ -764,7 +764,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    if (fd.semanticRun == PASSsemanticdone)
+    if (fd.semanticRun == PASS.semanticdone)
     {
         /* What happened is this function failed semantic3() with errors,
          * but the errors were gagged.
@@ -773,7 +773,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         fd.error("errors compiling the function");
         return;
     }
-    assert(fd.semanticRun == PASSsemantic3done);
+    assert(fd.semanticRun == PASS.semantic3done);
     assert(fd.ident != Id.empty);
 
     for (FuncDeclaration fd2 = fd; fd2; )
@@ -804,7 +804,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     // start code generation
-    fd.semanticRun = PASSobj;
+    fd.semanticRun = PASS.obj;
 
     if (global.params.verbose)
         fprintf(global.stdmsg, "function  %s\n", fd.toPrettyChars());
@@ -859,7 +859,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             FuncDeclaration fdc = (*fd.inlinedNestedCallees)[i];
             FuncDeclaration fp = fdc.toParent2().isFuncDeclaration();
-            if (fp && fp.semanticRun < PASSobj)
+            if (fp && fp.semanticRun < PASS.obj)
             {
                 toObjFile(fp, multiobj);
             }
@@ -876,7 +876,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * in order to calculate correct frame pointer offset.
          */
         FuncDeclaration fdp = fd.toParent2().isFuncDeclaration();
-        if (fdp && fdp.semanticRun < PASSobj)
+        if (fdp && fdp.semanticRun < PASS.obj)
         {
             toObjFile(fdp, multiobj);
         }

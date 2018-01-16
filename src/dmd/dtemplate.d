@@ -2367,12 +2367,12 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (tiargs && tiargs.dim > 0)
             return 0;
 
-        if (fd.semanticRun < PASSsemanticdone)
+        if (fd.semanticRun < PASS.semanticdone)
         {
             Ungag ungag = fd.ungagSpeculative();
             fd.dsymbolSemantic(null);
         }
-        if (fd.semanticRun == PASSinit)
+        if (fd.semanticRun == PASS.init)
         {
             .error(loc, "forward reference to template `%s`", fd.toChars());
             return 1;
@@ -2504,13 +2504,13 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (!sc)
             sc = td._scope; // workaround for Type.aliasthisOf
 
-        if (td.semanticRun == PASSinit && td._scope)
+        if (td.semanticRun == PASS.init && td._scope)
         {
             // Try to fix forward reference. Ungag errors while doing so.
             Ungag ungag = td.ungagSpeculative();
             td.dsymbolSemantic(td._scope);
         }
-        if (td.semanticRun == PASSinit)
+        if (td.semanticRun == PASS.init)
         {
             .error(loc, "forward reference to template `%s`", td.toChars());
         Lerror:
@@ -2529,7 +2529,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             auto ti = new TemplateInstance(loc, td, tiargs);
             Objects dedtypes;
             dedtypes.setDim(td.parameters.dim);
-            assert(td.semanticRun != PASSinit);
+            assert(td.semanticRun != PASS.init);
             MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta <= MATCH.nomatch || mta < ta_last)   // no match or less match
@@ -6447,7 +6447,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (!td)
                     return 0;
 
-                if (td.semanticRun == PASSinit)
+                if (td.semanticRun == PASS.init)
                 {
                     if (td._scope)
                     {
@@ -6455,7 +6455,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         Ungag ungag = td.ungagSpeculative();
                         td.dsymbolSemantic(td._scope);
                     }
-                    if (td.semanticRun == PASSinit)
+                    if (td.semanticRun == PASS.init)
                     {
                         error("`%s` forward references template declaration `%s`",
                             toChars(), td.toChars());
@@ -6785,7 +6785,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 (*tiargs)[j] = sa;
 
                 TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td && td.semanticRun == PASSinit && td.literal)
+                if (td && td.semanticRun == PASS.init && td.literal)
                 {
                     td.dsymbolSemantic(sc);
                 }
@@ -6897,7 +6897,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                 dedtypes.setDim(td.parameters.dim);
                 dedtypes.zero();
-                assert(td.semanticRun != PASSinit);
+                assert(td.semanticRun != PASS.init);
 
                 MATCH m = td.matchWithInstance(sc, this, &dedtypes, fargs, 0);
                 //printf("matchWithInstance = %d\n", m);
@@ -7035,7 +7035,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     final bool needsTypeInference(Scope* sc, int flag = 0)
     {
         //printf("TemplateInstance.needsTypeInference() %s\n", toChars());
-        if (semanticRun != PASSinit)
+        if (semanticRun != PASS.init)
             return false;
 
         uint olderrs = global.errors;
@@ -7111,7 +7111,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                      */
                     dedtypes.setDim(td.parameters.dim);
                     dedtypes.zero();
-                    if (td.semanticRun == PASSinit)
+                    if (td.semanticRun == PASS.init)
                     {
                         if (td._scope)
                         {
@@ -7119,7 +7119,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             Ungag ungag = td.ungagSpeculative();
                             td.dsymbolSemantic(td._scope);
                         }
-                        if (td.semanticRun == PASSinit)
+                        if (td.semanticRun == PASS.init)
                         {
                             error("`%s` forward references template declaration `%s`", toChars(), td.toChars());
                             return 1;
@@ -7144,7 +7144,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             if (!global.gag)
             {
                 errorSupplemental(loc, "while looking for match for `%s`", toChars());
-                semanticRun = PASSsemanticdone;
+                semanticRun = PASS.semanticdone;
                 inst = this;
             }
             errors = true;
@@ -7342,9 +7342,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         Dsymbols* a = mi.members;
         a.push(this);
         memberOf = mi;
-        if (mi.semanticRun >= PASSsemantic2done && mi.isRoot())
+        if (mi.semanticRun >= PASS.semantic2done && mi.isRoot())
             Module.addDeferredSemantic2(this);
-        if (mi.semanticRun >= PASSsemantic3done && mi.isRoot())
+        if (mi.semanticRun >= PASS.semantic3done && mi.isRoot())
             Module.addDeferredSemantic3(this);
         return a;
     }
@@ -7727,13 +7727,13 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 if (!td)
                     return 0;
 
-                if (td.semanticRun == PASSinit)
+                if (td.semanticRun == PASS.init)
                 {
                     if (td._scope)
                         td.dsymbolSemantic(td._scope);
                     else
                     {
-                        semanticRun = PASSinit;
+                        semanticRun = PASS.init;
                         return 1;
                     }
                 }

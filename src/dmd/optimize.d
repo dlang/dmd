@@ -50,7 +50,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
     Expression e = null;
     if (!v)
         return e;
-    if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
+    if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
         v.dsymbolSemantic(null);
     if (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest)
     {

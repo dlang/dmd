@@ -524,12 +524,12 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             /* AA's need typeid(index).equals() and getHash(). Issue error if not correctly set up.
              */
             StructDeclaration sd = (cast(TypeStruct)tbase).sym;
-            if (sd.semanticRun < PASSsemanticdone)
+            if (sd.semanticRun < PASS.semanticdone)
                 sd.dsymbolSemantic(null);
 
             // duplicate a part of StructDeclaration::semanticTypeInfoMembers
             //printf("AA = %s, key: xeq = %p, xerreq = %p xhash = %p\n", toChars(), sd.xeq, sd.xerreq, sd.xhash);
-            if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASSsemantic3done)
+            if (sd.xeq && sd.xeq._scope && sd.xeq.semanticRun < PASS.semantic3done)
             {
                 uint errors = global.startGagging();
                 sd.xeq.semantic3(sd.xeq._scope);
@@ -588,7 +588,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         else if (tbase.ty == Tclass && !(cast(TypeClass)tbase).sym.isInterfaceDeclaration())
         {
             ClassDeclaration cd = (cast(TypeClass)tbase).sym;
-            if (cd.semanticRun < PASSsemanticdone)
+            if (cd.semanticRun < PASS.semanticdone)
                 cd.dsymbolSemantic(null);
 
             if (!ClassDeclaration.object)

@@ -1341,7 +1341,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Create the magic __ctfe bool variable
             auto vd = new VarDeclaration(exp.loc, Type.tbool, Id.ctfe, null);
             vd.storage_class |= STC.temp;
-            vd.semanticRun = PASSsemanticdone;
+            vd.semanticRun = PASS.semanticdone;
             Expression e = new VarExp(exp.loc, vd);
             e = e.expressionSemantic(sc);
             result = e;
@@ -3880,7 +3880,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     ClassDeclaration cd = (cast(TypeClass)e.targ).sym;
                     auto args = new Parameters();
                     args.reserve(cd.baseclasses.dim);
-                    if (cd.semanticRun < PASSsemanticdone)
+                    if (cd.semanticRun < PASS.semanticdone)
                         cd.dsymbolSemantic(null);
                     for (size_t i = 0; i < cd.baseclasses.dim; i++)
                     {

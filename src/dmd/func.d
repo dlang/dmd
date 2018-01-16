@@ -343,7 +343,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool functionSemantic3()
     {
-        if (semanticRun < PASSsemantic3 && _scope)
+        if (semanticRun < PASS.semantic3 && _scope)
         {
             /* Forward reference - we need to run semantic3 on this function.
              * If errors are gagged, and it's not part of a template instance,
@@ -382,7 +382,7 @@ extern (C++) class FuncDeclaration : Declaration
          */
         if (!type.deco)
         {
-            bool inSemantic3 = (inferRetType && semanticRun >= PASSsemantic3);
+            bool inSemantic3 = (inferRetType && semanticRun >= PASS.semantic3);
             .error(loc, "forward reference to %s'%s'",
                 (inSemantic3 ? "inferred return type of function " : "").ptr,
                 toChars());
@@ -1119,7 +1119,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         if (storage_class & STC.abstract_)
             return true;
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASS.semanticdone)
             return false;
 
         if (_scope)
@@ -1309,7 +1309,7 @@ extern (C++) class FuncDeclaration : Declaration
     final bool setGC()
     {
         //printf("setGC() %s\n", toChars());
-        if (flags & FUNCFLAG.nogcInprocess && semanticRun < PASSsemantic3 && _scope)
+        if (flags & FUNCFLAG.nogcInprocess && semanticRun < PASS.semantic3 && _scope)
         {
             this.semantic2(_scope);
             this.semantic3(_scope);
@@ -1911,7 +1911,7 @@ extern (C++) class FuncDeclaration : Declaration
             vresult.parent = this;
         }
 
-        if (sc && vresult.semanticRun == PASSinit)
+        if (sc && vresult.semanticRun == PASS.init)
         {
             TypeFunction tf = type.toTypeFunction();
             if (tf.isref)
@@ -1970,7 +1970,7 @@ extern (C++) class FuncDeclaration : Declaration
              * be completed before code generation occurs.
              * https://issues.dlang.org/show_bug.cgi?id=3602
              */
-            if (fdv.frequire && fdv.semanticRun != PASSsemantic3done)
+            if (fdv.frequire && fdv.semanticRun != PASS.semantic3done)
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
@@ -2115,7 +2115,7 @@ extern (C++) class FuncDeclaration : Declaration
              * https://issues.dlang.org/show_bug.cgi?id=3602 and
              * https://issues.dlang.org/show_bug.cgi?id=5230
              */
-            if (needsFensure(fdv) && fdv.semanticRun != PASSsemantic3done)
+            if (needsFensure(fdv) && fdv.semanticRun != PASS.semantic3done)
             {
                 assert(fdv._scope);
                 Scope* sc = fdv._scope.push();
@@ -2996,7 +2996,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
             }
         }
 
-        if (semanticRun < PASSsemantic3done)
+        if (semanticRun < PASS.semantic3done)
             return;
 
         if (fes)

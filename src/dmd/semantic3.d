@@ -102,9 +102,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
             printf("TemplateInstance.semantic3('%s'), semanticRun = %d\n", tempinst.toChars(), tempinst.semanticRun);
         }
         //if (toChars()[0] == 'D') *(char*)0=0;
-        if (tempinst.semanticRun >= PASSsemantic3)
+        if (tempinst.semanticRun >= PASS.semantic3)
             return;
-        tempinst.semanticRun = PASSsemantic3;
+        tempinst.semanticRun = PASS.semantic3;
         if (!tempinst.errors && tempinst.members)
         {
             TemplateDeclaration tempdecl = tempinst.tempdecl.isTemplateDeclaration();
@@ -156,9 +156,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(TemplateMixin tmix)
     {
-        if (tmix.semanticRun >= PASSsemantic3)
+        if (tmix.semanticRun >= PASS.semantic3)
             return;
-        tmix.semanticRun = PASSsemantic3;
+        tmix.semanticRun = PASS.semantic3;
         static if (LOG)
         {
             printf("TemplateMixin.semantic3('%s')\n", tmix.toChars());
@@ -180,9 +180,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
     override void visit(Module mod)
     {
         //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-        if (mod.semanticRun != PASSsemantic2done)
+        if (mod.semanticRun != PASS.semantic2done)
             return;
-        mod.semanticRun = PASSsemantic3;
+        mod.semanticRun = PASS.semantic3;
         // Note that modules get their own scope, from scratch.
         // This is so regardless of where in the syntax a module
         // gets imported, it is unaffected by context.
@@ -203,7 +203,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         sc = sc.pop();
         sc.pop();
-        mod.semanticRun = PASSsemantic3done;
+        mod.semanticRun = PASS.semantic3done;
     }
 
     override void visit(FuncDeclaration funcdecl)
@@ -252,9 +252,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
 
         //printf(" sc.incontract = %d\n", (sc.flags & SCOPE.contract));
-        if (funcdecl.semanticRun >= PASSsemantic3)
+        if (funcdecl.semanticRun >= PASS.semantic3)
             return;
-        funcdecl.semanticRun = PASSsemantic3;
+        funcdecl.semanticRun = PASS.semantic3;
         funcdecl.semantic3Errors = false;
 
         if (!funcdecl.type || funcdecl.type.ty != Tfunction)
@@ -1194,7 +1194,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * done by TemplateInstance::semantic.
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
          */
-        funcdecl.semanticRun = PASSsemantic3done;
+        funcdecl.semanticRun = PASS.semantic3done;
         funcdecl.semantic3Errors = (global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement());
         if (funcdecl.type.ty == Terror)
             funcdecl.errors = true;
@@ -1204,9 +1204,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(Nspace ns)
     {
-        if (ns.semanticRun >= PASSsemantic3)
+        if (ns.semanticRun >= PASS.semantic3)
             return;
-        ns.semanticRun = PASSsemantic3;
+        ns.semanticRun = PASS.semantic3;
         static if (LOG)
         {
             printf("Nspace::semantic3('%s')\n", ns.toChars());
@@ -1290,6 +1290,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         }
         if (sd)
             sd.semanticTypeInfoMembers();
-        ad.semanticRun = PASSsemantic3done;
+        ad.semanticRun = PASS.semantic3done;
     }
 }
