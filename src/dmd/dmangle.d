@@ -31,6 +31,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
+import dmd.root.aav;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
@@ -169,8 +170,9 @@ private extern (C++) final class Mangler : Visitor
 {
     alias visit = Visitor.visit;
 public:
-    size_t[void*] types;
-    size_t[void*] idents;
+    static assert(Key.sizeof == size_t.sizeof);
+    AA* types;
+    AA* idents;
     OutBuffer* buf;
 
     extern (D) this(OutBuffer* buf)
@@ -223,13 +225,13 @@ public:
     {
         if (!t.isTypeBasic())
         {
-            auto p = cast(void*)t in types;
-            if (p && *p)
+            auto p = cast(size_t*)dmd_aaGet(&types, cast(Key)t);
+            if (*p)
             {
                 writeBackRef(buf.offset - *p);
                 return true;
             }
-            types[cast(void*)t] = buf.offset;
+            *p = buf.offset;
         }
         return false;
     }
@@ -249,13 +251,13 @@ public:
     */
     final bool backrefIdentifier(Identifier id)
     {
-        auto p = cast(void*)id in idents;
-        if (p && *p)
+        auto p = cast(size_t*)dmd_aaGet(&idents, cast(Key)id);
+        if (*p)
         {
             writeBackRef(buf.offset - *p);
             return true;
         }
-        idents[cast(void*)id] = buf.offset;
+        *p = buf.offset;
         return false;
     }
 
