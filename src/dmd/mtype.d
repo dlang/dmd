@@ -5414,16 +5414,11 @@ enum RET : int
 
 enum TRUST : int
 {
-    TRUSTdefault    = 0,
-    TRUSTsystem     = 1,    // @system (same as TRUSTdefault)
-    TRUSTtrusted    = 2,    // @trusted
-    TRUSTsafe       = 3,    // @safe
+    default_   = 0,
+    system     = 1,    // @system (same as TRUST.default)
+    trusted    = 2,    // @trusted
+    safe       = 3,    // @safe
 }
-
-alias TRUSTdefault = TRUST.TRUSTdefault;
-alias TRUSTsystem = TRUST.TRUSTsystem;
-alias TRUSTtrusted = TRUST.TRUSTtrusted;
-alias TRUSTsafe = TRUST.TRUSTsafe;
 
 enum TRUSTformat : int
 {
