@@ -3078,15 +3078,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     {
                         // if in a new paragraph then treat it as a thematic break
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
+                        break;
                     }
-                    else
+                    else if (skipchars(buf, i, "*") - i >= 2)
                     {
                         // otherwise treat it as a 2nd-level heading
                         leadingBlank = true;
                         i = iAfterUnderline;
                         goto case '=';
                     }
-                    break;
                 }
                 else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
                 {
