@@ -8,6 +8,7 @@ N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
 BUILD="debug"
+DMD=dmd
 
 case $CIRCLE_NODE_INDEX in
     0) MODEL=64 ;;
@@ -93,7 +94,9 @@ setup_repos() {
 coverage()
 {
     # load environment for bootstrap compiler
-    source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    if [ -f ~/dlang/install.sh ] ; then
+        source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
+    fi
 
     # build dmd, druntime, and phobos
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD ENABLE_WARNINGS=1 all
@@ -145,8 +148,14 @@ codecov()
 
 case $1 in
     install-deps) install_deps ;;
-    setup-repos) setup_repos ;;
-    coverage) coverage ;;
-    check-clean-git) check_clean_git;;
-    codecov) codecov ;;
+    setup-repos) echo "removed" ;;
+    coverage) echo "removed" ;;
+    check-clean-git) echo "removed" ;;
+    codecov) echo "removed" ;;
+    all)
+        setup_repos;
+        coverage;
+        check-clean-git;
+        codecov;
+    ;;
 esac
