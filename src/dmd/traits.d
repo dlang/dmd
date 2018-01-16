@@ -433,17 +433,17 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         return new ErrorExp();
     }
 
-    Expression True()
+    IntegerExp True()
     {
         return new IntegerExp(e.loc, true, Type.tbool);
     }
 
-    Expression False()
+    IntegerExp False()
     {
         return new IntegerExp(e.loc, false, Type.tbool);
     }
 
-    Expression isX(T)(bool function(T) fp)
+    IntegerExp isX(T)(bool function(T) fp)
     {
         if (!dim)
             return False();
@@ -504,7 +504,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         if (global.params.vcomplex)
         {
-            if (isTypeX(t => t.iscomplex() || t.isimaginary()))
+            if (isTypeX(t => t.iscomplex() || t.isimaginary()).value == 1)
                 return True();
         }
         return isDsymX(t => t.isDeprecated());
