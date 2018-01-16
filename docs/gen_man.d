@@ -76,6 +76,13 @@ string bold(string w)
     return `\fI` ~ w ~ `\fR`;
 }
 
+// capitalize the first letter
+auto capitalize(string w)
+{
+    import std.range, std.uni;
+    return w.take(1).asUpperCase.chain(w.dropOne);
+}
+
 void main()
 {
     import std.algorithm, std.array, std.conv, std.datetime, std.range, std.stdio, std.uni;
@@ -112,8 +119,19 @@ void main()
             }
             writefln(".IP -%s", flag);
             // Capitalize the first letter
-            writeln(help.take(1).asUpperCase.chain(help.dropOne));
+            writeln(help.capitalize);
         }
+    }
+
+    writeln(`.SH TRANSITIONS
+Language changes listed by \fB-transition=id\fR:`);
+    foreach (transition; Usage.transitions)
+    {
+        string additionalOptions;
+        if (transition.bugzillaNumber)
+            additionalOptions = "," ~ transition.bugzillaNumber;
+        writefln(".IP %s%s", transition.name.bold, additionalOptions);
+        writeln(transition.helpText.capitalize);
     }
 
     writefln(footer, now.year);

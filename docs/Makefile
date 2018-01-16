@@ -22,7 +22,7 @@ export DIFFABLE
 
 build: $(addprefix $G/, $(DMD_MAN_PAGE) $(OTHER_MAN_PAGES))
 
-preview:
+preview: $(MAN_PAGE)
 	man -l $G/$(DMD_MAN_PAGE)
 
 ################################################################################

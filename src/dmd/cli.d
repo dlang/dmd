@@ -67,14 +67,6 @@ bool isCurrentTargetOS(TargetOS os)
     return (os & targetOS) > 0;
 }
 
-/// Representation of a CLI `Option`
-struct Option
-{
-    string flag; /// The CLI flag without leading `-`, e.g. `color`
-    string helpText; /// A detailed description of the flag
-    TargetOS os = TargetOS.all; /// For which `TargetOS` the flags are applicable
-}
-
 /**
 Contains all available CLI $(LREF Option)s.
 
@@ -82,6 +74,14 @@ See_Also: $(LREF Option)
 */
 struct Usage
 {
+    /// Representation of a CLI `Option`
+    struct Option
+    {
+        string flag; /// The CLI flag without leading `-`, e.g. `color`
+        string helpText; /// A detailed description of the flag
+        TargetOS os = TargetOS.all; /// For which `TargetOS` the flags are applicable
+    }
+
     /// Returns all available CLI options
     static immutable options = [
         Option("allinst",
@@ -322,6 +322,31 @@ struct Usage
             "write JSON file to filename"
         ),
     ];
+
+    /// Representation of a CLI transition
+    struct Transition
+    {
+        string bugzillaNumber; /// bugzilla issue number (if existent)
+        string name; /// name of the transition
+        string paramName; // internal transition parameter name
+        string helpText; // detailed description of the transition
+    }
+
+    /// Returns all available transitions
+    static immutable transitions = [
+        Transition("3449", "field", "vfield",
+            "list all non-mutable fields which occupy an object instance"),
+        Transition("10378", "import", "bug10378",
+            "revert to single phase name lookup"),
+        Transition(null, "checkimports", "check10378",
+            "give deprecation messages about 10378 anomalies"),
+        Transition("14488", "complex", "vcomplex",
+            "give deprecation messages about all usages of complex or imaginary types"),
+        Transition("16997", "intpromote", "fix16997",
+            "fix integral promotions for unary + - ~ operators"),
+        Transition(null, "tls", "vtls",
+            "list all variables going into thread local storage"),
+    ];
 }
 
 /**
@@ -383,14 +408,29 @@ CPU architectures supported by -mcpu=id:
     /// Language changes listed by -transition=id
     static string transitionUsage()
     {
-        return "Language changes listed by -transition=id:
-  =all           list information on all language changes
-  =checkimports  give deprecation messages about 10378 anomalies
-  =complex,14488 give deprecation messages about all usages of complex or imaginary types
-  =field,3449    list all non-mutable fields which occupy an object instance
-  =import,10378  revert to single phase name lookup
-  =intpromote,16997 fix integral promotions for unary + - ~ operators
-  =tls           list all variables going into thread local storage
+        enum maxFlagLength = 20;
+        enum s = () {
+            auto buf = "Language changes listed by -transition=id:
 ";
+            auto allTransitions = [Usage.Transition(null, "all", null,
+                "list information on all language changes")] ~ Usage.transitions;
+            foreach (t; allTransitions)
+            {
+                buf ~= "  =";
+                buf ~= t.name;
+                auto lineLength = 3 + t.name.length;
+                if (t.bugzillaNumber !is null)
+                {
+                    buf ~= "," ~ t.bugzillaNumber;
+                    lineLength += t.bugzillaNumber.length + 1;
+                }
+                foreach (i; 0 .. maxFlagLength - lineLength)
+                    buf ~= " ";
+                buf ~= t.helpText;
+                buf ~= "\n";
+            }
+            return buf;
+        }();
+        return s;
     }
 }
