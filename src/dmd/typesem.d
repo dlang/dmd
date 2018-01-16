@@ -736,7 +736,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         }
 
         if (sc.stc & STC.pure_)
-            tf.purity = PUREfwdref;
+            tf.purity = PURE.fwdref;
         if (sc.stc & STC.nothrow_)
             tf.isnothrow = true;
         if (sc.stc & STC.nogc)

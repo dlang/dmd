@@ -1997,13 +1997,13 @@ extern (C++) abstract class Expression : RootObject
              *  }
              */
 
-            while (outerfunc.toParent2() && outerfunc.isPureBypassingInference() == PUREimpure && outerfunc.toParent2().isFuncDeclaration())
+            while (outerfunc.toParent2() && outerfunc.isPureBypassingInference() == PURE.impure && outerfunc.toParent2().isFuncDeclaration())
             {
                 outerfunc = outerfunc.toParent2().isFuncDeclaration();
                 if (outerfunc.type.ty == Terror)
                     return true;
             }
-            while (calledparent.toParent2() && calledparent.isPureBypassingInference() == PUREimpure && calledparent.toParent2().isFuncDeclaration())
+            while (calledparent.toParent2() && calledparent.isPureBypassingInference() == PURE.impure && calledparent.toParent2().isFuncDeclaration())
             {
                 calledparent = calledparent.toParent2().isFuncDeclaration();
                 if (calledparent.type.ty == Terror)
@@ -2016,7 +2016,7 @@ extern (C++) abstract class Expression : RootObject
         if (!f.isPure() && calledparent != outerfunc)
         {
             FuncDeclaration ff = outerfunc;
-            if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
+            if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PURE.weak : ff.setImpure())
             {
                 error("pure %s '%s' cannot call impure %s '%s'",
                     ff.kind(), ff.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -2080,7 +2080,7 @@ extern (C++) abstract class Expression : RootObject
                 FuncDeclaration ff = s.isFuncDeclaration();
                 if (!ff)
                     break;
-                if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PUREweak : ff.setImpure())
+                if (sc.flags & SCOPE.compile ? ff.isPureBypassingInference() >= PURE.weak : ff.setImpure())
                 {
                     error("pure %s '%s' cannot access mutable static data '%s'",
                         ff.kind(), ff.toPrettyChars(), v.toChars());

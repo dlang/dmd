@@ -569,7 +569,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     fpostinv = null;
                 }
 
-                assert(funcdecl.type == f || (funcdecl.type.ty == Tfunction && f.purity == PUREimpure && (cast(TypeFunction)funcdecl.type).purity >= PUREfwdref));
+                assert(funcdecl.type == f || (funcdecl.type.ty == Tfunction && f.purity == PURE.impure && (cast(TypeFunction)funcdecl.type).purity >= PURE.fwdref));
                 f = cast(TypeFunction)funcdecl.type;
 
                 if (funcdecl.inferRetType)
@@ -1115,7 +1115,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.flags &= ~FUNCFLAG.purityInprocess;
             if (funcdecl.type == f)
                 f = cast(TypeFunction)f.copy();
-            f.purity = PUREfwdref;
+            f.purity = PURE.fwdref;
         }
 
         if (funcdecl.flags & FUNCFLAG.safetyInprocess)

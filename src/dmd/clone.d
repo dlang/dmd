@@ -50,7 +50,7 @@ extern (C++) StorageClass mergeFuncAttrs(StorageClass s1, FuncDeclaration f)
         s2 |= STC.system;
     else if (tf.trust == TRUSTtrusted)
         s2 |= STC.trusted;
-    if (tf.purity != PUREimpure)
+    if (tf.purity != PURE.impure)
         s2 |= STC.pure_;
     if (tf.isnothrow)
         s2 |= STC.nothrow_;

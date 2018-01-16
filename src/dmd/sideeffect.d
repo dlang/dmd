@@ -104,9 +104,9 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
     if (tf.isnothrow)
     {
         PURE purity = f.isPure();
-        if (purity == PUREstrong)
+        if (purity == PURE.strong)
             return 2;
-        if (purity == PUREconst)
+        if (purity == PURE.const_)
             return 1;
     }
     return 0;
@@ -125,18 +125,18 @@ extern (C++) int callSideEffectLevel(Type t)
     }
     tf.purityLevel();
     PURE purity = tf.purity;
-    if (t.ty == Tdelegate && purity > PUREweak)
+    if (t.ty == Tdelegate && purity > PURE.weak)
     {
         if (tf.isMutable())
-            purity = PUREweak;
+            purity = PURE.weak;
         else if (!tf.isImmutable())
-            purity = PUREconst;
+            purity = PURE.const_;
     }
     if (tf.isnothrow)
     {
-        if (purity == PUREstrong)
+        if (purity == PURE.strong)
             return 2;
-        if (purity == PUREconst)
+        if (purity == PURE.const_)
             return 1;
     }
     return 0;

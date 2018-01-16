@@ -1175,7 +1175,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         //printf("initInferAttributes() for %s (%s)\n", toPrettyChars(), ident.toChars());
         TypeFunction tf = type.toTypeFunction();
-        if (tf.purity == PUREimpure) // purity not specified
+        if (tf.purity == PURE.impure) // purity not specified
             flags |= FUNCFLAG.purityInprocess;
 
         if (tf.trust == TRUSTdefault)
@@ -1201,21 +1201,21 @@ extern (C++) class FuncDeclaration : Declaration
         TypeFunction tf = type.toTypeFunction();
         if (flags & FUNCFLAG.purityInprocess)
             setImpure();
-        if (tf.purity == PUREfwdref)
+        if (tf.purity == PURE.fwdref)
             tf.purityLevel();
         PURE purity = tf.purity;
-        if (purity > PUREweak && isNested())
-            purity = PUREweak;
-        if (purity > PUREweak && needThis())
+        if (purity > PURE.weak && isNested())
+            purity = PURE.weak;
+        if (purity > PURE.weak && needThis())
         {
             // The attribute of the 'this' reference affects purity strength
             if (type.mod & MODimmutable)
             {
             }
-            else if (type.mod & (MODconst | MODwild) && purity >= PUREconst)
-                purity = PUREconst;
+            else if (type.mod & (MODconst | MODwild) && purity >= PURE.const_)
+                purity = PURE.const_;
             else
-                purity = PUREweak;
+                purity = PURE.weak;
         }
         tf.purity = purity;
         // ^ This rely on the current situation that every FuncDeclaration has a
@@ -1226,7 +1226,7 @@ extern (C++) class FuncDeclaration : Declaration
     final PURE isPureBypassingInference()
     {
         if (flags & FUNCFLAG.purityInprocess)
-            return PUREfwdref;
+            return PURE.fwdref;
         else
             return isPure();
     }

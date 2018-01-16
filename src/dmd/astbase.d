@@ -3835,7 +3835,7 @@ struct ASTBase
         bool isscope;               // true: 'this' is scope
         LINK linkage;               // calling convention
         TRUST trust;                // level of trust
-        PURE purity = PUREimpure;
+        PURE purity = PURE.impure;
 
         ubyte iswild;
         Expressions* fargs;
@@ -3849,7 +3849,7 @@ struct ASTBase
             this.linkage = linkage;
 
             if (stc & STC.pure_)
-                this.purity = PUREfwdref;
+                this.purity = PURE.fwdref;
             if (stc & STC.nothrow_)
                 this.isnothrow = true;
             if (stc & STC.nogc)

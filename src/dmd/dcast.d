@@ -840,7 +840,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 return;
             TypeFunction tf = cast(TypeFunction)tx;
 
-            if (tf.purity == PUREimpure)
+            if (tf.purity == PURE.impure)
                 return;
             if (e.f && e.f.isNested())
                 return;
@@ -1181,7 +1181,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 if (fd.errors || fd.type.ty != Tfunction)
                     return; // error
                 TypeFunction tf = cast(TypeFunction)fd.type;
-                if (tf.purity == PUREimpure)
+                if (tf.purity == PURE.impure)
                     return; // impure
 
                 if (fd == e.member)
@@ -2808,8 +2808,8 @@ Lagain:
             TypeFunction d = cast(TypeFunction)tf1.syntaxCopy();
 
             if (tf1.purity != tf2.purity)
-                d.purity = PUREimpure;
-            assert(d.purity != PUREfwdref);
+                d.purity = PURE.impure;
+            assert(d.purity != PURE.fwdref);
 
             d.isnothrow = (tf1.isnothrow && tf2.isnothrow);
             d.isnogc = (tf1.isnogc && tf2.isnogc);
