@@ -1382,6 +1382,13 @@ private:
 
 /****************************************************************/
 
+class ObjcClassReferenceExp : public Expression
+{
+    ClassDeclaration* classDeclaration;
+
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 /* Special values used by the interpreter
  */
 

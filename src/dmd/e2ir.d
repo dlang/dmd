@@ -5423,6 +5423,11 @@ elem *toElem(Expression e, IRState *irs)
             result = toElemStructLit(sle, irs, TOK.construct, sle.sym, true);
         }
 
+        override void visit(ObjcClassReferenceExp e)
+        {
+            result = objc.toElem(e);
+        }
+
         /*****************************************************/
         /*                   CTFE stuff                      */
         /*****************************************************/

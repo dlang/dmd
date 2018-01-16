@@ -4801,6 +4801,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (idec.baseok == Baseok.done)
         {
             idec.baseok = Baseok.semanticdone;
+            objc.setMetaclass(idec);
 
             // initialize vtbl
             if (idec.vtblOffset())

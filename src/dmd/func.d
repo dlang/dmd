@@ -1518,7 +1518,7 @@ extern (C++) class FuncDeclaration : Declaration
     override inout(AggregateDeclaration) isThis() inout
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        auto ad = (storage_class & STC.static_) ? null : isMember2();
+        auto ad = (storage_class & STC.static_) ? objc.isThis(this) : isMember2();
         //printf("-FuncDeclaration::isThis() %p\n", ad);
         return ad;
     }
