@@ -287,6 +287,11 @@ D_OBJC := 1
 endif
 endif
 
+ifneq (gdc, $(HOST_DMD_KIND))
+ ifeq (,$(findstring 2.068,$(HOST_DMD_VERSION)))
+  BACK_BETTERC = -betterC
+ endif
+endif
 
 ######## DMD frontend source files
 
@@ -545,7 +550,7 @@ $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 
 $(G_DOBJS): $G/%.o: $C/%.d posix.mak
 	@echo "  (CC)  BACK_DOBJS  $<"
-	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) -betterC $<
+	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
 
 $(G_GLUE_OBJS): $G/%.o: $D/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  GLUE_OBJS  $<"
