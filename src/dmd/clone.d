@@ -488,7 +488,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
                 tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINKd);
-                tfeqptr.mod = MODconst;
+                tfeqptr.mod = MODFlags.const_;
                 tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc(), &scx);
             }
             fd = fd.overloadExactMatch(tfeqptr);
@@ -558,7 +558,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
                 tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINKd);
-                tfcmpptr.mod = MODconst;
+                tfcmpptr.mod = MODFlags.const_;
                 tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc(), &scx);
             }
             fd = fd.overloadExactMatch(tfcmpptr);
@@ -722,7 +722,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         if (!tftohash)
         {
             tftohash = new TypeFunction(null, Type.thash_t, 0, LINKd);
-            tftohash.mod = MODconst;
+            tftohash.mod = MODFlags.const_;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
         if (FuncDeclaration fd = s.isFuncDeclaration())
@@ -1174,7 +1174,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             {
                 // What should do?
             }
-            StorageClass stcy = (ad.invs[i].storage_class & STC.synchronized_) | (ad.invs[i].type.mod & MODshared ? STC.shared_ : 0);
+            StorageClass stcy = (ad.invs[i].storage_class & STC.synchronized_) | (ad.invs[i].type.mod & MODFlags.shared_ ? STC.shared_ : 0);
             if (i == 0)
                 stcx = stcy;
             else if (stcx ^ stcy)

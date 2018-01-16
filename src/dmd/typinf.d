@@ -243,8 +243,8 @@ private bool builtinTypeInfo(Type t)
         // strings are so common, make them builtin
         return !t.mod &&
                (next.isTypeBasic() !is null && !next.mod ||
-                next.ty == Tchar && next.mod == MODimmutable ||
-                next.ty == Tchar && next.mod == MODconst);
+                next.ty == Tchar && next.mod == MODFlags.immutable_ ||
+                next.ty == Tchar && next.mod == MODFlags.const_);
     }
     return false;
 }

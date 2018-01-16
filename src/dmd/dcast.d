@@ -862,7 +862,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              *    int* mp = foo();            // should be disallowed
              *  }
              */
-            if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODshared).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODshared)) < MATCH.constant)
+            if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
             {
                 return;
             }
@@ -886,7 +886,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("mod = x%x\n", mod);
             }
-            if (mod & MODwild)
+            if (mod & MODFlags.wild)
                 return; // not sure what to do with this
 
             /* Apply mod bits to each function parameter,
@@ -1155,7 +1155,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("mod = x%x\n", mod);
             }
-            if (mod & MODwild)
+            if (mod & MODFlags.wild)
                 return; // not sure what to do with this
 
             /* Apply mod bits to each argument,
@@ -1186,7 +1186,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
                 if (fd == e.member)
                 {
-                    if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODshared).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODshared)) < MATCH.constant)
+                    if (e.type.immutableOf().implicitConvTo(t) < MATCH.constant && e.type.addMod(MODFlags.shared_).implicitConvTo(t) < MATCH.constant && e.type.implicitConvTo(t.addMod(MODFlags.shared_)) < MATCH.constant)
                     {
                         return;
                     }

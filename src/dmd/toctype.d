@@ -100,20 +100,20 @@ public:
         {
         case 0:
             assert(0);
-        case MODconst:
-        case MODwild:
-        case MODwildconst:
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
             t.ctype.Tty |= mTYconst;
             break;
-        case MODshared:
+        case MODFlags.shared_:
             t.ctype.Tty |= mTYshared;
             break;
-        case MODshared | MODconst:
-        case MODshared | MODwild:
-        case MODshared | MODwildconst:
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
             t.ctype.Tty |= mTYshared | mTYconst;
             break;
-        case MODimmutable:
+        case MODFlags.immutable_:
             t.ctype.Tty |= mTYimmutable;
             break;
         default:

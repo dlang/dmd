@@ -906,7 +906,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 }
                 else if (fparam.storageClass & STC.out_)
                 {
-                    if (ubyte m = fparam.type.mod & (MODimmutable | MODconst | MODwild))
+                    if (ubyte m = fparam.type.mod & (MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild))
                     {
                         mtype.error(loc, "cannot have %s out parameter of type `%s`", MODtoChars(m), t.toChars());
                         errors = true;

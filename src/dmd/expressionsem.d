@@ -562,15 +562,15 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
     {
         Type t = tthis;
         if (t.isImmutable())
-            wildmatch = MODimmutable;
+            wildmatch = MODFlags.immutable_;
         else if (t.isWildConst())
-            wildmatch = MODwildconst;
+            wildmatch = MODFlags.wildconst;
         else if (t.isWild())
-            wildmatch = MODwild;
+            wildmatch = MODFlags.wild;
         else if (t.isConst())
-            wildmatch = MODconst;
+            wildmatch = MODFlags.const_;
         else
-            wildmatch = MODmutable;
+            wildmatch = MODFlags.mutable;
     }
 
     int done = 0;
@@ -710,7 +710,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
         if (done)
             break;
     }
-    if ((wildmatch == MODmutable || wildmatch == MODimmutable) && tf.next.hasWild() && (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
+    if ((wildmatch == MODFlags.mutable || wildmatch == MODFlags.immutable_) && tf.next.hasWild() && (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
     {
         if (fd)
         {
@@ -749,7 +749,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
         else if (tf.isWild())
         {
         Linouterr:
-            const(char)* s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+            const(char)* s = wildmatch == MODFlags.mutable ? "mutable" : MODtoChars(wildmatch);
             error(loc, "modify `inout` to `%s` is not allowed inside `inout` function", s);
             return true;
         }
@@ -2905,7 +2905,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
-                    Type tc = ve.var.type.substWildTo(MODconst);
+                    Type tc = ve.var.type.substWildTo(MODFlags.const_);
                     auto tf = new TypeFunction(null, tc, 0, LINKd, STC.safe | STC.pure_);
                     (tf = cast(TypeFunction)tf.typeSemantic(exp.loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);

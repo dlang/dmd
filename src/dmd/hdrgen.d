@@ -742,27 +742,27 @@ public:
         else
         {
             ubyte m = t.mod & ~(t.mod & modMask);
-            if (m & MODshared)
+            if (m & MODFlags.shared_)
             {
-                MODtoBuffer(buf, MODshared);
+                MODtoBuffer(buf, MODFlags.shared_);
                 buf.writeByte('(');
             }
-            if (m & MODwild)
+            if (m & MODFlags.wild)
             {
-                MODtoBuffer(buf, MODwild);
+                MODtoBuffer(buf, MODFlags.wild);
                 buf.writeByte('(');
             }
-            if (m & (MODconst | MODimmutable))
+            if (m & (MODFlags.const_ | MODFlags.immutable_))
             {
-                MODtoBuffer(buf, m & (MODconst | MODimmutable));
+                MODtoBuffer(buf, m & (MODFlags.const_ | MODFlags.immutable_));
                 buf.writeByte('(');
             }
             t.accept(this);
-            if (m & (MODconst | MODimmutable))
+            if (m & (MODFlags.const_ | MODFlags.immutable_))
                 buf.writeByte(')');
-            if (m & MODwild)
+            if (m & MODFlags.wild)
                 buf.writeByte(')');
-            if (m & MODshared)
+            if (m & MODFlags.shared_)
                 buf.writeByte(')');
         }
     }
@@ -3064,7 +3064,7 @@ public:
         else if (p.storageClass & STC.alias_)
             buf.writestring("alias ");
         StorageClass stc = p.storageClass;
-        if (p.type && p.type.mod & MODshared)
+        if (p.type && p.type.mod & MODFlags.shared_)
             stc &= ~STC.shared_;
         if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
             buf.writeByte(' ');

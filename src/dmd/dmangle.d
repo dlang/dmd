@@ -136,28 +136,28 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     {
     case 0:
         break;
-    case MODconst:
+    case MODFlags.const_:
         buf.writeByte('x');
         break;
-    case MODimmutable:
+    case MODFlags.immutable_:
         buf.writeByte('y');
         break;
-    case MODshared:
+    case MODFlags.shared_:
         buf.writeByte('O');
         break;
-    case MODshared | MODconst:
+    case MODFlags.shared_ | MODFlags.const_:
         buf.writestring("Ox");
         break;
-    case MODwild:
+    case MODFlags.wild:
         buf.writestring("Ng");
         break;
-    case MODwildconst:
+    case MODFlags.wildconst:
         buf.writestring("Ngx");
         break;
-    case MODshared | MODwild:
+    case MODFlags.shared_ | MODFlags.wild:
         buf.writestring("ONg");
         break;
-    case MODshared | MODwildconst:
+    case MODFlags.shared_ | MODFlags.wildconst:
         buf.writestring("ONgx");
         break;
     default:
