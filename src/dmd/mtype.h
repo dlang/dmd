@@ -543,8 +543,8 @@ public:
 
 enum RET
 {
-    RETregs     = 1,    // returned in registers
-    RETstack    = 2,    // returned on stack
+    regs     = 1,    // returned in registers
+    stack    = 2,    // returned on stack
 };
 
 enum TRUST
