@@ -54,12 +54,12 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag10862.d(74): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(77): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d-mixin-80(80): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d-mixin-81(81): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d-mixin-82(82): Error: assignment cannot be used as a condition, perhaps == was meant?
+fail_compilation/diag10862.d-mixin-80(80): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-81(81): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-82(82): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d-mixin-83(83): Deprecation: Using the result of a comma expression is deprecated
-fail_compilation/diag10862.d-mixin-83(83): Error: assignment cannot be used as a condition, perhaps == was meant?
-fail_compilation/diag10862.d-mixin-86(86): Error: a + b is not an lvalue
+fail_compilation/diag10862.d-mixin-83(83): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-86(86): Error: `a + b` is not an lvalue
 fail_compilation/diag10862.d-mixin-87(87): Error: undefined identifier `c`
 fail_compilation/diag10862.d(89): Error: undefined identifier `semanticError`
 ---

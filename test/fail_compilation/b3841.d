@@ -4,21 +4,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/b3841.d-mixin-31(31): Warning: char += float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: int += float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: long += double is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: char -= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: int -= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: long -= double is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: char *= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: int *= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: long *= double is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: char /= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: int /= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: long /= double is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: char %= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: int %= float is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: long %= double is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `char += float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `int += float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `long += double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `char -= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `int -= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `long -= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `char *= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `int *= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `long *= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `char /= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `int /= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `long /= double` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `char %= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `int %= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-31(31): Warning: `long %= double` is performing truncating conversion
 ---
 */
 

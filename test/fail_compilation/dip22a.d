@@ -10,7 +10,7 @@ fail_compilation/dip22a.d(23): Error: `imports.dip22a.bar` is not visible from m
 fail_compilation/dip22a.d(23): Error: function `imports.dip22a.bar` is not accessible from module `dip22a`
 fail_compilation/dip22a.d(24): Error: `imports.dip22a.Template!int.bar` is not visible from module `dip22a`
 fail_compilation/dip22a.d(24): Error: function `imports.dip22a.Template!int.bar` is not accessible from module `dip22a`
-fail_compilation/dip22a.d(25): Deprecation: imports.dip22a.bar is not visible from module dip22a
+fail_compilation/dip22a.d(25): Deprecation: `imports.dip22a.bar` is not visible from module `dip22a`
 fail_compilation/dip22a.d(25): Error: function `imports.dip22a.bar` is not accessible from module `dip22a`
 ---
 */
