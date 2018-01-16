@@ -28,6 +28,38 @@ $(SPEC_HEADERNAV_TOC)
         $(D D_InlineAsm_X86_64) version identifiers, respectively.
     )
 
+$(H2 $(LNAME2 asmstatements, Asm statement))
+
+$(GRAMMAR
+$(GNAME AsmStatement):
+    $(D asm) $(GLINK FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
+
+    $(GNAME AsmInstructionList):
+        $(GLINK AsmInstruction) $(D ;)
+        $(GLINK AsmInstruction) $(D ;) $(I AsmInstructionList)
+    )
+
+    $(P Assembler instructions must be located inside an `asm` block.
+        Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
+        Asm statements attributes must be explicitly defined, they are not infered.
+    )
+
+---
+void func1() pure nothrow @safe @nogc
+{
+    asm pure nothrow @trusted @nogc
+    {}
+}
+
+void func2() @safe @nogc
+{
+    asm @nogc // Error: asm statement is assumed to be @system - mark it with '@trusted' if it is not
+    {}
+}
+---
+
+$(H2 $(LNAME2 asminstruction, Asm instruction))
+
 $(GRAMMAR
 $(GNAME AsmInstruction):
     $(I Identifier) $(D :) $(I AsmInstruction)
