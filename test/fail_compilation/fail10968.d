@@ -1,18 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10968.d(33): Error: pure function 'fail10968.bar' cannot call impure function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(33): Error: @safe function 'fail10968.bar' cannot call @system function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(34): Error: pure function 'fail10968.bar' cannot call impure function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(34): Error: @safe function 'fail10968.bar' cannot call @system function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(35): Error: pure function 'fail10968.bar' cannot call impure function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(35): Error: @safe function 'fail10968.bar' cannot call @system function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(38): Error: pure function 'fail10968.bar' cannot call impure function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(38): Error: @safe function 'fail10968.bar' cannot call @system function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(39): Error: pure function 'fail10968.bar' cannot call impure function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(39): Error: @safe function 'fail10968.bar' cannot call @system function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(40): Error: pure function 'fail10968.bar' cannot call impure function 'fail10968.SA.__postblit'
-fail_compilation/fail10968.d(40): Error: @safe function 'fail10968.bar' cannot call @system function 'fail10968.SA.__postblit'
+fail_compilation/fail10968.d(33): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(33): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(34): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(34): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(35): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(35): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(38): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(38): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(39): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(39): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(40): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+fail_compilation/fail10968.d(40): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
 ---
 */
 
