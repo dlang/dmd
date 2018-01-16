@@ -3463,8 +3463,10 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
     private static Identifier createIdentifier(Loc loc, Scope* sc)
     {
         OutBuffer buf;
-        auto index = sc ? sc._module.unitTestCounter++ : 0;
-        buf.printf("__unittest_%s_%u_%d", loc.filename, loc.linnum, index);
+        writeModuleNameOrFileName(buf, loc, sc);
+        buf.prependstring("__unittest_");
+        const index = sc ? sc._module.unitTestCounter++ : 0;
+        buf.printf("_%u_%d", loc.linnum, index);
 
         // replace characters that demangle can't handle
         auto str = buf.peekString;
@@ -3472,6 +3474,25 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
             if(str[i] == '/' || str[i] == '\\' || str[i] == '.') str[i] = '_';
 
         return Identifier.idPool(buf.peekSlice());
+    }
+
+    /*************************************************************************
+     * Writes a module name to name a unittest. Tries to use the fully
+     * qualified name if possible to avoid mismatches when compiling separately.
+     * Otherwise uses the file name.
+     * Params:
+     *    buf = The buffer to write to.
+     *    loc = The location of the unit test declaration.
+     *    scope = The scope of the unit test declaration.
+     */
+    private static void writeModuleNameOrFileName(ref OutBuffer buf, Loc loc, Scope* scope_)
+    {
+        if (scope_ is null || scope_._module is null || scope_._module.ident is null)
+        {
+            buf.writestring(loc.filename);
+            return;
+        }
+        scope_._module.fullyQualifiedName(buf);
     }
 
     override AggregateDeclaration isThis()
