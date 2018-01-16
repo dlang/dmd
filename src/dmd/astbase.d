@@ -283,18 +283,12 @@ struct ASTBase
 
     enum PURE : int
     {
-        PUREimpure      = 0,    // not pure at all
-        PUREfwdref      = 1,    // it's pure, but not known which level yet
-        PUREweak        = 2,    // no mutable globals are read or written
-        PUREconst       = 3,    // parameters are values or const
-        PUREstrong      = 4,    // parameters are values or immutable
+        impure      = 0,    // not pure at all
+        fwdref      = 1,    // it's pure, but not known which level yet
+        weak        = 2,    // no mutable globals are read or written
+        const_      = 3,    // parameters are values or const
+        strong      = 4,    // parameters are values or immutable
     }
-
-    alias PUREimpure = PURE.PUREimpure;
-    alias PUREfwdref = PURE.PUREfwdref;
-    alias PUREweak = PURE.PUREweak;
-    alias PUREconst = PURE.PUREconst;
-    alias PUREstrong = PURE.PUREstrong;
 
     enum AliasThisRec : int
     {
@@ -3841,7 +3835,7 @@ struct ASTBase
         bool isscope;               // true: 'this' is scope
         LINK linkage;               // calling convention
         TRUST trust;                // level of trust
-        PURE purity = PUREimpure;
+        PURE purity = PURE.impure;
 
         ubyte iswild;
         Expressions* fargs;
@@ -3855,7 +3849,7 @@ struct ASTBase
             this.linkage = linkage;
 
             if (stc & STC.pure_)
-                this.purity = PUREfwdref;
+                this.purity = PURE.fwdref;
             if (stc & STC.nothrow_)
                 this.isnothrow = true;
             if (stc & STC.nogc)

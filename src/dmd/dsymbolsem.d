@@ -2610,7 +2610,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  *    // See also Expression::checkPurity().
                  *  }
                  */
-                if (tf.purity == PUREimpure && (funcdecl.isNested() || funcdecl.isThis()))
+                if (tf.purity == PURE.impure && (funcdecl.isNested() || funcdecl.isThis()))
                 {
                     FuncDeclaration fd = null;
                     for (Dsymbol p = funcdecl.toParent2(); p; p = p.toParent2())
@@ -2628,9 +2628,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     /* If the parent's purity is inferred, then this function's purity needs
                      * to be inferred first.
                      */
-                    if (fd && fd.isPureBypassingInference() >= PUREweak && !funcdecl.isInstantiated())
+                    if (fd && fd.isPureBypassingInference() >= PURE.weak && !funcdecl.isInstantiated())
                     {
-                        tf.purity = PUREfwdref; // default to pure
+                        tf.purity = PURE.fwdref; // default to pure
                     }
                 }
             }
@@ -2645,7 +2645,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sc.stc |= STC.nogc;
             if (tf.isproperty)
                 sc.stc |= STC.property;
-            if (tf.purity == PUREfwdref)
+            if (tf.purity == PURE.fwdref)
                 sc.stc |= STC.pure_;
             if (tf.trust != TRUSTdefault)
                 sc.stc &= ~(STC.safe | STC.system | STC.trusted);

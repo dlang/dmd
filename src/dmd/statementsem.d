@@ -3929,7 +3929,7 @@ else
         assert(sc.func);
         // use setImpure/setGC when the deprecation cycle is over
         PURE purity;
-        if (!(cas.stc & STC.pure_) && (purity = sc.func.isPureBypassingInference()) != PUREimpure && purity != PUREfwdref)
+        if (!(cas.stc & STC.pure_) && (purity = sc.func.isPureBypassingInference()) != PURE.impure && purity != PURE.fwdref)
             cas.deprecation("asm statement is assumed to be impure - mark it with 'pure' if it is not");
         if (!(cas.stc & STC.nogc) && sc.func.isNogcBypassingInference())
             cas.deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");

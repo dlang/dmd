@@ -270,20 +270,20 @@ public:
     {
         switch (purity)
         {
-        case PUREimpure:
+        case PURE.impure:
             // Should not be printed
             //property(name, "impure");
             break;
-        case PUREweak:
+        case PURE.weak:
             property(name, "weak");
             break;
-        case PUREconst:
+        case PURE.const_:
             property(name, "const");
             break;
-        case PUREstrong:
+        case PURE.strong:
             property(name, "strong");
             break;
-        case PUREfwdref:
+        case PURE.fwdref:
             property(name, "fwdref");
             break;
         default:

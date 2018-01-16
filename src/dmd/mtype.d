@@ -5114,7 +5114,7 @@ extern (C++) final class TypeAArray : TypeArray
                 fparams.push(new Parameter(STC.in_, this, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
-                tf.purity = PUREconst;
+                tf.purity = PURE.const_;
                 tf.isnothrow = true;
                 tf.isnogc = false;
             }
@@ -5440,18 +5440,12 @@ alias TRUSTformatSystem = TRUSTformat.TRUSTformatSystem;
 
 enum PURE : int
 {
-    PUREimpure      = 0,    // not pure at all
-    PUREfwdref      = 1,    // it's pure, but not known which level yet
-    PUREweak        = 2,    // no mutable globals are read or written
-    PUREconst       = 3,    // parameters are values or const
-    PUREstrong      = 4,    // parameters are values or immutable
+    impure      = 0,    // not pure at all
+    fwdref      = 1,    // it's pure, but not known which level yet
+    weak        = 2,    // no mutable globals are read or written
+    const_      = 3,    // parameters are values or const
+    strong      = 4,    // parameters are values or immutable
 }
-
-alias PUREimpure = PURE.PUREimpure;
-alias PUREfwdref = PURE.PUREfwdref;
-alias PUREweak = PURE.PUREweak;
-alias PUREconst = PURE.PUREconst;
-alias PUREstrong = PURE.PUREstrong;
 
 /***********************************************************
  */
@@ -5471,7 +5465,7 @@ extern (C++) final class TypeFunction : TypeNext
     bool isscopeinferred;       // true: 'this' is scope from inference
     LINK linkage;               // calling convention
     TRUST trust;                // level of trust
-    PURE purity = PUREimpure;
+    PURE purity = PURE.impure;
     ubyte iswild;               // bit0: inout on params, bit1: inout on qualifier
     Expressions* fargs;         // function arguments
     int inuse;
@@ -5487,7 +5481,7 @@ extern (C++) final class TypeFunction : TypeNext
         this.linkage = linkage;
 
         if (stc & STC.pure_)
-            this.purity = PUREfwdref;
+            this.purity = PURE.fwdref;
         if (stc & STC.nothrow_)
             this.isnothrow = true;
         if (stc & STC.nogc)
@@ -5550,7 +5544,7 @@ extern (C++) final class TypeFunction : TypeNext
     void purityLevel()
     {
         TypeFunction tf = this;
-        if (tf.purity != PUREfwdref)
+        if (tf.purity != PURE.fwdref)
             return;
 
         /* Determine purity level based on mutability of t
@@ -5561,16 +5555,16 @@ extern (C++) final class TypeFunction : TypeNext
             if (isref)
             {
                 if (t.mod & MODimmutable)
-                    return PUREstrong;
+                    return PURE.strong;
                 if (t.mod & (MODconst | MODwild))
-                    return PUREconst;
-                return PUREweak;
+                    return PURE.const_;
+                return PURE.weak;
             }
 
             t = t.baseElemOf();
 
             if (!t.hasPointers() || t.mod & MODimmutable)
-                return PUREstrong;
+                return PURE.strong;
 
             /* Accept immutable(T)[] and immutable(T)* as being strongly pure
              */
@@ -5578,9 +5572,9 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 Type tn = t.nextOf().toBasetype();
                 if (tn.mod & MODimmutable)
-                    return PUREstrong;
+                    return PURE.strong;
                 if (tn.mod & (MODconst | MODwild))
-                    return PUREconst;
+                    return PURE.const_;
             }
 
             /* The rest of this is too strict; fix later.
@@ -5589,14 +5583,14 @@ extern (C++) final class TypeFunction : TypeNext
              * (Just like for dynamic arrays and pointers above.)
              */
             if (t.mod & (MODconst | MODwild))
-                return PUREconst;
+                return PURE.const_;
 
             /* Should catch delegates and function pointers, and fold in their purity
              */
-            return PUREweak;
+            return PURE.weak;
         }
 
-        purity = PUREstrong; // assume strong until something weakens it
+        purity = PURE.strong; // assume strong until something weakens it
 
         /* Evaluate what kind of purity based on the modifiers for the parameters
          */
@@ -5610,20 +5604,20 @@ extern (C++) final class TypeFunction : TypeNext
 
             if (fparam.storageClass & (STC.lazy_ | STC.out_))
             {
-                purity = PUREweak;
+                purity = PURE.weak;
                 break;
             }
             switch (purityOfType((fparam.storageClass & STC.ref_) != 0, t))
             {
-                case PUREweak:
-                    purity = PUREweak;
-                    break Lloop; // since PUREweak, no need to check further
+                case PURE.weak:
+                    purity = PURE.weak;
+                    break Lloop; // since PURE.weak, no need to check further
 
-                case PUREconst:
-                    purity = PUREconst;
+                case PURE.const_:
+                    purity = PURE.const_;
                     continue;
 
-                case PUREstrong:
+                case PURE.strong:
                     continue;
 
                 default:
@@ -5631,7 +5625,7 @@ extern (C++) final class TypeFunction : TypeNext
             }
         }
 
-        if (purity > PUREweak && tf.nextOf())
+        if (purity > PURE.weak && tf.nextOf())
         {
             /* Adjust purity based on mutability of return type.
              * https://issues.dlang.org/show_bug.cgi?id=15862
@@ -5698,7 +5692,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (!global.params.vsafe)
             return stc;
 
-        if (stc & (STC.scope_ | STC.return_ | STC.lazy_) || purity == PUREimpure)
+        if (stc & (STC.scope_ | STC.return_ | STC.lazy_) || purity == PURE.impure)
             return stc;
 
         /* If haven't inferred the return type yet, can't infer storage classes
@@ -5709,7 +5703,7 @@ extern (C++) final class TypeFunction : TypeNext
         purityLevel();
 
         // See if p can escape via any of the other parameters
-        if (purity == PUREweak)
+        if (purity == PURE.weak)
         {
             const dim = Parameter.dim(parameters);
             foreach (const i; 0 .. dim)
@@ -5785,7 +5779,7 @@ extern (C++) final class TypeFunction : TypeNext
             tf.iswild = t.iswild;
 
             if (stc & STC.pure_)
-                tf.purity = PUREfwdref;
+                tf.purity = PURE.fwdref;
             if (stc & STC.nothrow_)
                 tf.isnothrow = true;
             if (stc & STC.nogc)
