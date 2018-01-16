@@ -43,7 +43,6 @@ import dmd.lexer;
 import dmd.mtype;
 import dmd.nspace;
 import dmd.opover;
-import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.speller;
@@ -2078,33 +2077,30 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
  */
 extern (C++) final class DsymbolTable : RootObject
 {
-    AA* tab;
+    Dsymbol[void*] tab;
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol lookup(const Identifier ident)
     {
         //printf("DsymbolTable::lookup(%s)\n", (char*)ident.string);
-        return cast(Dsymbol)dmd_aaGetRvalue(tab, cast(void*)ident);
+        auto ps = cast(void*)ident in tab;
+        return ps ? *ps : null;
     }
 
     // Insert Dsymbol in table. Return NULL if already there.
     Dsymbol insert(Dsymbol s)
     {
         //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s.ident.toChars());
-        const ident = s.ident;
-        Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
-        if (*ps)
+        if (cast(void*)s.ident in tab)
             return null; // already in table
-        *ps = s;
+        tab[cast(void*)s.ident] = s;
         return s;
     }
 
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol update(Dsymbol s)
     {
-        const ident = s.ident;
-        Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
-        *ps = s;
+        tab[cast(void*)s.ident] = s;
         return s;
     }
 
@@ -2112,10 +2108,9 @@ extern (C++) final class DsymbolTable : RootObject
     Dsymbol insert(const Identifier ident, Dsymbol s)
     {
         //printf("DsymbolTable::insert()\n");
-        Dsymbol* ps = cast(Dsymbol*)dmd_aaGet(&tab, cast(void*)ident);
-        if (*ps)
+        if (cast(void*)ident in tab)
             return null; // already in table
-        *ps = s;
+        tab[cast(void*)ident] = s;
         return s;
     }
 
@@ -2125,6 +2120,6 @@ extern (C++) final class DsymbolTable : RootObject
      */
     uint len() const pure
     {
-        return cast(uint)dmd_aaLen(tab);
+        return cast(uint)tab.length;
     }
 }
