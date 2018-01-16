@@ -504,7 +504,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     {
         if (global.params.vcomplex)
         {
-            if (isTypeX(t => t.iscomplex() || t.isimaginary()).value == 1)
+            if (isTypeX(t => t.iscomplex() || t.isimaginary()).isBool(true))
                 return True();
         }
         return isDsymX(t => t.isDeprecated());
