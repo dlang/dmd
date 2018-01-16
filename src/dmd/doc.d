@@ -2535,7 +2535,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
-    int inMacro = 0;
+    int macroLevel = 0;
+    int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeFenceLength = 0;
     size_t codeIndent = 0;
@@ -2713,7 +2714,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         i = buf.insert(i, "$(QUOTE\n");
                         iLineStart = i;
                         newParagraph = true;
-                        nestedQuotes ~= MarkdownQuote(inMacro);
+                        nestedQuotes ~= MarkdownQuote(macroLevel);
                     }
                     --i;
                     break;
@@ -2809,7 +2810,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
              */
             if (leadingBlank)
             {
-                if (!inCode && c == '-' && MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
+                if (!inCode && c == '-' && MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
                     break;
 
                 size_t istart = i;
@@ -2977,7 +2978,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 buf.remove(iLineStart, i - iLineStart);
                 i = iHeadingStart = iLineStart;
 
-                headingMacroLevel = inMacro;
+                headingMacroLevel = macroLevel;
 
                 if (emptyHeading)
                 {
@@ -3031,7 +3032,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '9':
         {
             if (leadingBlank && !inCode)
-                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
+                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
                     leadingBlank = false;
             break;
         }
@@ -3087,7 +3088,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                     break;
                 }
-                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists, inMacro))
+                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
                 {
                     break;
                 }
@@ -3100,7 +3101,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             int count = cast(int) (iAfterEmphasis - i);
             bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
             bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
-            auto emphasis = MarkdownDelimiter(i, c, count, inMacro, leftFlanking, rightFlanking);
+            auto emphasis = MarkdownDelimiter(i, c, count, macroLevel, leftFlanking, rightFlanking);
 
             if (!emphasis.leftFlanking && !emphasis.rightFlanking)
             {
@@ -3156,7 +3157,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         {
             if (i < buf.offset-1 && buf.data[i+1] == '[')
             {
-                auto imageStart = MarkdownDelimiter(i, c, 2, inMacro, false, false);
+                auto imageStart = MarkdownDelimiter(i, c, 2, macroLevel, false, false);
                 inlineDelimiters ~= imageStart;
                 ++i;
             }
@@ -3167,7 +3168,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            auto linkStart = MarkdownDelimiter(i, c, 1, inMacro, false, false);
+            auto linkStart = MarkdownDelimiter(i, c, 1, macroLevel, false, false);
             inlineDelimiters ~= linkStart;
             break;
         }
@@ -3260,7 +3261,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             const slice = buf.peekSlice();
             auto p = &slice[i];
             if (p[1] == '(' && isIdStart(&p[2]))
-                ++inMacro;
+                ++macroLevel;
+            break;
+        }
+
+        case '(':
+        {
+            if (i > offset && buf.data[i-1] != '$')
+                ++parenLevel;
             break;
         }
 
@@ -3270,24 +3278,26 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             leadingBlank = false;
             if (inCode || inBacktick)
                 break;
-            if (inMacro)
+            if (parenLevel > 0)
+                --parenLevel;
+            else if (macroLevel)
             {
-                if (headingMacroLevel >= inMacro)
+                if (headingMacroLevel >= macroLevel)
                     endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
-                while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= inMacro)
+                while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")");
                     --nestedQuotes.length;
                 }
-                while (nestedLists.length && nestedLists[$-1].macroLevel >= inMacro)
+                while (nestedLists.length && nestedLists[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")\n)");
                     --nestedLists.length;
                 }
-                while (inlineDelimiters.length && inlineDelimiters[$-1].macroLevel >= inMacro)
+                while (inlineDelimiters.length && inlineDelimiters[$-1].macroLevel >= macroLevel)
                     --inlineDelimiters.length;
 
-                --inMacro;
+                --macroLevel;
             }
             break;
         }
@@ -3307,7 +3317,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     {
                         /* The URL is buf[i..k]
                          */
-                        if (inMacro)
+                        if (macroLevel)
                             /* Leave alone if already in a macro
                              */
                             i = k - 1;
