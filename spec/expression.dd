@@ -1623,44 +1623,54 @@ $(GNAME AssertExpression):
     $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
 )
 
-    $(P The assert expression is used to declare conditions that the
-        programmer asserts must hold at that point in the program if the
-        program logic has been correctly implemented. It can be used both as a
-        debugging tool and as a way of communicating to the compiler facts
-        about the code that it may employ to produce more efficient code.
+    $(P The first $(I AssignExpression) must evaluate to true. If it does not, an $(I Assert Failure)
+    has occurred and the program enters an $(I Invalid State).
     )
 
-    $(P Programs for which $(I AssignExpression) is false are invalid.
-        Subsequent to such a false result, the program is in an invalid,
-        non-recoverable state.
+    $(P If the first $(I AssignExpression) consists entirely of compile time constants,
+    and evaluates to false, it is a special case; it
+    signifies that it is unreachable code.
+    Compile Time Function Execution (CTFE) is not attempted.
     )
 
-    $(P As a debugging tool, the compiler may insert checks to verify that
-        the condition indeed holds by evaluating $(I AssignExpression) at
-        runtime.  If it evaluates to a non-null class reference, the class
-        invariant is run.  Otherwise, if it evaluates to a non-null pointer to
-        a struct, the struct invariant is run.  Otherwise, if the result is
-        false, an $(D AssertError) is thrown.  If the result is true, then no
-        exception is thrown. In this way, if a bug in the code causes the
-        assertion to fail, execution is aborted, prompting the programmer to
-        fix the problem.
-    )
-
-    $(P It is implementation defined whether the $(I AssignExpression) is
-        evaluated at run time or not. Programs that rely on side effects of $(I
-        AssignExpression) are invalid.
-    )
-
-    $(P The result type of an assert expression is $(D void).  Asserts are
-        a fundamental part of the $(DDLINK spec/contracts, Contract Programming,
-        Contract Programming) support in D.
+    $(P $(I AssertExpression) has different semantics if it is in a
+    $(DDLINK spec/unittest, Unit Tests, $(D unittest)) or
+    $(DDLINK spec/contracts, Contract Programming, $(D in) contract).
     )
 
     $(P The second $(I AssignExpression), if present, must be implicitly
         convertible to type $(D const(char)[]).
-        It is evaluated if the
-        result is false, and the string result is appended to the
-        $(D AssertError)'s message.)
+    )
+
+    $(P If the first $(I AssignExpression) is a reference to a class instance for
+    which a $(DDSUBLINK spec/class, invariants, Class Invariant) exists, the $(I Class Invariant) must hold.
+    )
+
+    $(P If the first $(I AssignExpression) is a pointer to a struct instance for
+    which a $(I Struct Invariant) exists, the $(I Struct Invariant) must hold.
+    )
+
+    $(P The type of an $(I AssertExpression) is $(D void).
+    )
+
+    $(UNDEFINED_BEHAVIOR Once in an $(I Invalid State) the behavior of the continuing execution
+    of the program is undefined.)
+
+    $(IMPLEMENTATION_DEFINED Whether the first $(I AssertExpression) is evaluated
+    or not at runtime is typically set with a compiler switch. If it is not evaluated,
+    any side effects specified by the $(I AssertExpression) may not occur.
+    The behavior if the first $(I AssertExpression) is evaluated and is false
+    is also typically set with a compiler switch and may include these options:
+    $(OL
+        $(LI continuing execution)
+        $(LI immediately halting via execution of a special CPU instruction)
+        $(LI aborting the program)
+        $(LI calling the assert failure function in the corresponding C
+        runtime library)
+        $(LI throwing the $(D AssertError) exception in the D runtime library)
+    )
+    If the optional second $(I AssignExpression) is provided, the implementation may
+    evaluate it and print the resulting message upon assert failure:
 
         ----
         void main()
@@ -1671,19 +1681,22 @@ $(GNAME AssertExpression):
 
     $(P When compiled and run, it will produce the message:)
 
-$(CONSOLE
-core.exception.AssertError@test.d(3) an error message
-)
+    $(CONSOLE core.exception.AssertError@test.d(3) an error message)
 
-    $(P The expression $(D assert(0)) is a special case; it
-        signifies that it is unreachable code.
-        Without optimizations, an $(D AssertError) is thrown at runtime.
-        In release mode ($(LINK2 $(ROOT_DIR)/dmd.html#switch-release, `-release`))
-        the execution is halted
-        (on the x86 processor, a $(D HLT) instruction can be used to halt
-        execution).
-        The optimization and code generation phases of compilation may
-        assume that it is unreachable code.
+    $(P The implementation may handle the case of the first $(I AssignExpression) evaluating at compile
+    time to false differently in that in release mode
+    it may simply generate a $(D HLT) instruction or equivalent.
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+        $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
+        depends on.)
+        $(LI $(I AssertExpressions) are intended to detect bugs in the program, do
+        not use for detecting input or environmental errors.)
+        $(LI Do not attempt to resume normal execution after an $(I Assert Failure).)
+    )
     )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
