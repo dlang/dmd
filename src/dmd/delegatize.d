@@ -46,7 +46,7 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
     Loc loc = e.loc;
     auto tf = new TypeFunction(null, t, 0, LINKd);
     if (t.hasWild())
-        tf.mod = MODwild;
+        tf.mod = MODFlags.wild;
     auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
     lambdaSetParent(e, fld);
 

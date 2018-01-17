@@ -62,20 +62,13 @@ struct ASTBase
 
     enum MODFlags : int
     {
-        MODconst        = 1,    // type is const
-        MODimmutable    = 4,    // type is immutable
-        MODshared       = 2,    // type is shared
-        MODwild         = 8,    // type is wild
-        MODwildconst    = (MODwild | MODconst), // type is wild const
-        MODmutable      = 0x10, // type is mutable (only used in wildcard matching)
+        const_       = 1,    // type is const
+        immutable_   = 4,    // type is immutable
+        shared_      = 2,    // type is shared
+        wild         = 8,    // type is wild
+        wildconst    = (MODFlags.wild | MODFlags.const_), // type is wild const
+        mutable      = 0x10, // type is mutable (only used in wildcard matching)
     }
-
-    alias MODconst = MODFlags.MODconst;
-    alias MODimmutable = MODFlags.MODimmutable;
-    alias MODshared = MODFlags.MODshared;
-    alias MODwild = MODFlags.MODwild;
-    alias MODwildconst = MODFlags.MODwildconst;
-    alias MODmutable = MODFlags.MODmutable;
 
     alias MOD = ubyte;
 
@@ -2785,7 +2778,7 @@ struct ASTBase
 
         final bool isImmutable() const
         {
-            return (mod & MODimmutable) != 0;
+            return (mod & MODFlags.immutable_) != 0;
         }
 
         final Type nullAttributes()
@@ -2820,7 +2813,7 @@ struct ASTBase
             if (cto)
                 return cto;
             Type t = this.nullAttributes();
-            t.mod = MODconst;
+            t.mod = MODFlags.const_;
             return t;
         }
 
@@ -2829,7 +2822,7 @@ struct ASTBase
             if (wcto)
                 return wcto;
             Type t = this.nullAttributes();
-            t.mod = MODwildconst;
+            t.mod = MODFlags.wildconst;
             return t;
         }
 
@@ -2838,7 +2831,7 @@ struct ASTBase
             if (sto)
                 return sto;
             Type t = this.nullAttributes();
-            t.mod = MODshared;
+            t.mod = MODFlags.shared_;
             return t;
         }
 
@@ -2847,7 +2840,7 @@ struct ASTBase
             if (scto)
                 return scto;
             Type t = this.nullAttributes();
-            t.mod = MODshared | MODconst;
+            t.mod = MODFlags.shared_ | MODFlags.const_;
             return t;
         }
 
@@ -2856,7 +2849,7 @@ struct ASTBase
             if (ito)
                 return ito;
             Type t = this.nullAttributes();
-            t.mod = MODimmutable;
+            t.mod = MODFlags.immutable_;
             return t;
         }
 
@@ -2865,7 +2858,7 @@ struct ASTBase
             if (wto)
                 return wto;
             Type t = this.nullAttributes();
-            t.mod = MODwild;
+            t.mod = MODFlags.wild;
             return t;
         }
 
@@ -2874,7 +2867,7 @@ struct ASTBase
             if (swcto)
                 return swcto;
             Type t = this.nullAttributes();
-            t.mod = MODshared | MODwildconst;
+            t.mod = MODFlags.shared_ | MODFlags.wildconst;
             return t;
         }
 
@@ -2883,7 +2876,7 @@ struct ASTBase
             if (swto)
                 return swto;
             Type t = this.nullAttributes();
-            t.mod = MODshared | MODwild;
+            t.mod = MODFlags.shared_ | MODFlags.wild;
             return t;
         }
 
@@ -2989,11 +2982,11 @@ struct ASTBase
 
         final Type sharedWildConstOf()
         {
-            if (mod == (MODshared | MODwildconst))
+            if (mod == (MODFlags.shared_ | MODFlags.wildconst))
                 return this;
             if (swcto)
             {
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
                 return swcto;
             }
             Type t = makeSharedWildConst();
@@ -3004,11 +2997,11 @@ struct ASTBase
 
         final Type sharedConstOf()
         {
-            if (mod == (MODshared | MODconst))
+            if (mod == (MODFlags.shared_ | MODFlags.const_))
                 return this;
             if (scto)
             {
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
                 return scto;
             }
             Type t = makeSharedConst();
@@ -3019,11 +3012,11 @@ struct ASTBase
 
         final Type wildConstOf()
         {
-            if (mod == MODwildconst)
+            if (mod == MODFlags.wildconst)
                 return this;
             if (wcto)
             {
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
                 return wcto;
             }
             Type t = makeWildConst();
@@ -3034,11 +3027,11 @@ struct ASTBase
 
         final Type constOf()
         {
-            if (mod == MODconst)
+            if (mod == MODFlags.const_)
                 return this;
             if (cto)
             {
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
                 return cto;
             }
             Type t = makeConst();
@@ -3049,11 +3042,11 @@ struct ASTBase
 
         final Type sharedWildOf()
         {
-            if (mod == (MODshared | MODwild))
+            if (mod == (MODFlags.shared_ | MODFlags.wild))
                 return this;
             if (swto)
             {
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
                 return swto;
             }
             Type t = makeSharedWild();
@@ -3064,11 +3057,11 @@ struct ASTBase
 
         final Type wildOf()
         {
-            if (mod == MODwild)
+            if (mod == MODFlags.wild)
                 return this;
             if (wto)
             {
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
                 return wto;
             }
             Type t = makeWild();
@@ -3079,11 +3072,11 @@ struct ASTBase
 
         final Type sharedOf()
         {
-            if (mod == MODshared)
+            if (mod == MODFlags.shared_)
                 return this;
             if (sto)
             {
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
                 return sto;
             }
             Type t = makeShared();
@@ -3119,35 +3112,35 @@ struct ASTBase
                     mto = t;
                     break;
 
-                case MODconst:
+                case MODFlags.const_:
                     cto = t;
                     break;
 
-                case MODwild:
+                case MODFlags.wild:
                     wto = t;
                     break;
 
-                case MODwildconst:
+                case MODFlags.wildconst:
                     wcto = t;
                     break;
 
-                case MODshared:
+                case MODFlags.shared_:
                     sto = t;
                     break;
 
-                case MODshared | MODconst:
+                case MODFlags.shared_ | MODFlags.const_:
                     scto = t;
                     break;
 
-                case MODshared | MODwild:
+                case MODFlags.shared_ | MODFlags.wild:
                     swto = t;
                     break;
 
-                case MODshared | MODwildconst:
+                case MODFlags.shared_ | MODFlags.wildconst:
                     swcto = t;
                     break;
 
-                case MODimmutable:
+                case MODFlags.immutable_:
                     ito = t;
                     break;
 
@@ -3167,42 +3160,42 @@ struct ASTBase
             case 0:
                 break;
 
-            case MODconst:
+            case MODFlags.const_:
                 cto = mto;
                 t.cto = this;
                 break;
 
-            case MODwild:
+            case MODFlags.wild:
                 wto = mto;
                 t.wto = this;
                 break;
 
-            case MODwildconst:
+            case MODFlags.wildconst:
                 wcto = mto;
                 t.wcto = this;
                 break;
 
-            case MODshared:
+            case MODFlags.shared_:
                 sto = mto;
                 t.sto = this;
                 break;
 
-            case MODshared | MODconst:
+            case MODFlags.shared_ | MODFlags.const_:
                 scto = mto;
                 t.scto = this;
                 break;
 
-            case MODshared | MODwild:
+            case MODFlags.shared_ | MODFlags.wild:
                 swto = mto;
                 t.swto = this;
                 break;
 
-            case MODshared | MODwildconst:
+            case MODFlags.shared_ | MODFlags.wildconst:
                 swcto = mto;
                 t.swcto = this;
                 break;
 
-            case MODimmutable:
+            case MODFlags.immutable_:
                 t.ito = this;
                 if (t.cto)
                     t.cto.ito = this;
@@ -3235,7 +3228,7 @@ struct ASTBase
                 case 0:
                     break;
 
-                case MODconst:
+                case MODFlags.const_:
                     if (isShared())
                     {
                         if (isWild())
@@ -3252,7 +3245,7 @@ struct ASTBase
                     }
                     break;
 
-                case MODwild:
+                case MODFlags.wild:
                     if (isShared())
                     {
                         if (isConst())
@@ -3269,14 +3262,14 @@ struct ASTBase
                     }
                     break;
 
-                case MODwildconst:
+                case MODFlags.wildconst:
                     if (isShared())
                         t = sharedWildConstOf();
                     else
                         t = wildConstOf();
                     break;
 
-                case MODshared:
+                case MODFlags.shared_:
                     if (isWild())
                     {
                         if (isConst())
@@ -3293,25 +3286,25 @@ struct ASTBase
                     }
                     break;
 
-                case MODshared | MODconst:
+                case MODFlags.shared_ | MODFlags.const_:
                     if (isWild())
                         t = sharedWildConstOf();
                     else
                         t = sharedConstOf();
                     break;
 
-                case MODshared | MODwild:
+                case MODFlags.shared_ | MODFlags.wild:
                     if (isConst())
                         t = sharedWildConstOf();
                     else
                         t = sharedWildOf();
                     break;
 
-                case MODshared | MODwildconst:
+                case MODFlags.shared_ | MODFlags.wildconst:
                     t = sharedWildConstOf();
                     break;
 
-                case MODimmutable:
+                case MODFlags.immutable_:
                     t = immutableOf();
                     break;
 
@@ -3336,17 +3329,17 @@ struct ASTBase
 
         final bool isConst() const
         {
-            return (mod & MODconst) != 0;
+            return (mod & MODFlags.const_) != 0;
         }
 
         final bool isWild() const
         {
-            return (mod & MODwild) != 0;
+            return (mod & MODFlags.wild) != 0;
         }
 
         final bool isShared() const
         {
-            return (mod & MODshared) != 0;
+            return (mod & MODFlags.shared_) != 0;
         }
 
         Type toBasetype()

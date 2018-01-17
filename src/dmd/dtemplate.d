@@ -1287,15 +1287,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                 ubyte mod = fd.type.mod;
                 if (stc & STC.immutable_)
-                    mod = MODimmutable;
+                    mod = MODFlags.immutable_;
                 else
                 {
                     if (stc & (STC.shared_ | STC.synchronized_))
-                        mod |= MODshared;
+                        mod |= MODFlags.shared_;
                     if (stc & STC.const_)
-                        mod |= MODconst;
+                        mod |= MODFlags.const_;
                     if (stc & STC.wild)
-                        mod |= MODwild;
+                        mod |= MODFlags.wild;
                 }
 
                 ubyte thismod = tthis.mod;
@@ -2298,7 +2298,7 @@ extern (C++) final class TypeDeduced : Type
             if (e == emptyArrayElement)
                 continue;
 
-            Type t = tt.addMod(tparams[j].mod).substWildTo(MODconst);
+            Type t = tt.addMod(tparams[j].mod).substWildTo(MODFlags.const_);
 
             MATCH m = e.implicitConvTo(t);
             if (match > m)
@@ -2860,7 +2860,7 @@ private size_t templateParameterLookup(Type tparam, TemplateParameters* paramete
 
 private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 {
-    if ((tparam.mod & MODwild) == 0)
+    if ((tparam.mod & MODFlags.wild) == 0)
         return 0;
 
     *at = null;
@@ -2872,45 +2872,45 @@ private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 
     switch (X(tparam.mod, t.mod))
     {
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODshared | MODwildconst, MODimmutable):
+    case X(MODFlags.wild, 0):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.wildconst, 0):
+    case X(MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.immutable_):
         {
-            ubyte wm = (t.mod & ~MODshared);
+            ubyte wm = (t.mod & ~MODFlags.shared_);
             if (wm == 0)
-                wm = MODmutable;
-            ubyte m = (t.mod & (MODconst | MODimmutable)) | (tparam.mod & t.mod & MODshared);
+                wm = MODFlags.mutable;
+            ubyte m = (t.mod & (MODFlags.const_ | MODFlags.immutable_)) | (tparam.mod & t.mod & MODFlags.shared_);
             *at = t.unqualify(m);
             return wm;
         }
-    case X(MODwild, MODwild):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
+    case X(MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
         {
             *at = t.unqualify(tparam.mod & t.mod);
-            return MODwild;
+            return MODFlags.wild;
         }
     default:
         return 0;
@@ -2953,14 +2953,14 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     switch (X(tparam.mod, t.mod))
     {
     case X(0, 0):
-    case X(0, MODconst):
-    case X(0, MODwild):
-    case X(0, MODwildconst):
-    case X(0, MODshared):
-    case X(0, MODshared | MODconst):
-    case X(0, MODshared | MODwild):
-    case X(0, MODshared | MODwildconst):
-    case X(0, MODimmutable):
+    case X(0, MODFlags.const_):
+    case X(0, MODFlags.wild):
+    case X(0, MODFlags.wildconst):
+    case X(0, MODFlags.shared_):
+    case X(0, MODFlags.shared_ | MODFlags.const_):
+    case X(0, MODFlags.shared_ | MODFlags.wild):
+    case X(0, MODFlags.shared_ | MODFlags.wildconst):
+    case X(0, MODFlags.immutable_):
         // foo(U)                       T                       => T
         // foo(U)                       const(T)                => const(T)
         // foo(U)                       inout(T)                => inout(T)
@@ -2974,14 +2974,14 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t;
             return MATCH.exact;
         }
-    case X(MODconst, MODconst):
-    case X(MODwild, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODshared, MODshared):
-    case X(MODshared | MODconst, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
-    case X(MODimmutable, MODimmutable):
+    case X(MODFlags.const_, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.shared_, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.immutable_, MODFlags.immutable_):
         // foo(const(U))                const(T)                => T
         // foo(inout(U))                inout(T)                => T
         // foo(inout(const(U)))         inout(const(T))         => T
@@ -2994,16 +2994,16 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf().unSharedOf();
             return MATCH.exact;
         }
-    case X(MODconst, 0):
-    case X(MODconst, MODwild):
-    case X(MODconst, MODwildconst):
-    case X(MODconst, MODshared | MODconst):
-    case X(MODconst, MODshared | MODwild):
-    case X(MODconst, MODshared | MODwildconst):
-    case X(MODconst, MODimmutable):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODimmutable):
+    case X(MODFlags.const_, 0):
+    case X(MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.wildconst):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.const_, MODFlags.immutable_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.immutable_):
         // foo(const(U))                T                       => T
         // foo(const(U))                inout(T)                => T
         // foo(const(U))                inout(const(T))         => T
@@ -3018,16 +3018,16 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf();
             return MATCH.constant;
         }
-    case X(MODconst, MODshared):
+    case X(MODFlags.const_, MODFlags.shared_):
         // foo(const(U))                shared(T)               => shared(T)
         {
             *at = t;
             return MATCH.constant;
         }
-    case X(MODshared, MODshared | MODconst):
-    case X(MODshared, MODshared | MODwild):
-    case X(MODshared, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODshared):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(U))               shared(const(T))        => const(T)
         // foo(shared(U))               shared(inout(T))        => inout(T)
         // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
@@ -3036,10 +3036,10 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.unSharedOf();
             return MATCH.constant;
         }
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODconst, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
+    case X(MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
         // foo(inout(const(U)))         immutable(T)            => T
         // foo(shared(const(U)))        shared(inout(const(T))) => T
         // foo(shared(inout(const(U)))) immutable(T)            => T
@@ -3048,56 +3048,56 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.unSharedOf().mutableOf();
             return MATCH.constant;
         }
-    case X(MODshared | MODconst, MODshared | MODwild):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
         // foo(shared(const(U)))        shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
             return MATCH.constant;
         }
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODshared, 0):
-    case X(MODshared, MODconst):
-    case X(MODshared, MODwild):
-    case X(MODshared, MODwildconst):
-    case X(MODshared, MODimmutable):
-    case X(MODshared | MODconst, 0):
-    case X(MODshared | MODconst, MODconst):
-    case X(MODshared | MODconst, MODwild):
-    case X(MODshared | MODconst, MODwildconst):
-    case X(MODshared | MODwild, 0):
-    case X(MODshared | MODwild, MODconst):
-    case X(MODshared | MODwild, MODwild):
-    case X(MODshared | MODwild, MODwildconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, 0):
-    case X(MODshared | MODwildconst, MODconst):
-    case X(MODshared | MODwildconst, MODwild):
-    case X(MODshared | MODwildconst, MODwildconst):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODimmutable, 0):
-    case X(MODimmutable, MODconst):
-    case X(MODimmutable, MODwild):
-    case X(MODimmutable, MODwildconst):
-    case X(MODimmutable, MODshared):
-    case X(MODimmutable, MODshared | MODconst):
-    case X(MODimmutable, MODshared | MODwild):
-    case X(MODimmutable, MODshared | MODwildconst):
+    case X(MODFlags.wild, 0):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.wildconst, 0):
+    case X(MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_, 0):
+    case X(MODFlags.shared_, MODFlags.const_):
+    case X(MODFlags.shared_, MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.wildconst):
+    case X(MODFlags.shared_, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, 0):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, 0):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, 0):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.immutable_, 0):
+    case X(MODFlags.immutable_, MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.wildconst):
+    case X(MODFlags.immutable_, MODFlags.shared_):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.wildconst):
         // foo(inout(U))                T                       => nomatch
         // foo(inout(U))                const(T)                => nomatch
         // foo(inout(U))                inout(const(T))         => nomatch
@@ -3334,13 +3334,13 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (tt.implicitConvTo(at.constOf()))
                     {
                         (*dedtypes)[i] = at.constOf().mutableOf();
-                        *wm |= MODconst;
+                        *wm |= MODFlags.const_;
                         goto Lconst;
                     }
                     if (at.implicitConvTo(tt.constOf()))
                     {
                         (*dedtypes)[i] = tt.constOf().mutableOf();
-                        *wm |= MODconst;
+                        *wm |= MODFlags.const_;
                         goto Lconst;
                     }
                     goto Lnomatch;
@@ -3453,7 +3453,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=12403
                     // In IFTI, stop inout matching on transitive part of AA types.
-                    tpn = tpn.substWildTo(MODmutable);
+                    tpn = tpn.substWildTo(MODFlags.mutable);
                 }
 
                 result = deduceType(t.nextOf(), sc, tpn, parameters, dedtypes, wm);

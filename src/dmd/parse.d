@@ -7792,28 +7792,28 @@ final class Parser(AST) : Lexer
                     case TOKconst:
                         if (peekNext() == TOKlparen)
                             break; // const as type constructor
-                        m |= AST.MODconst; // const as storage class
+                        m |= AST.MODFlags.const_; // const as storage class
                         nextToken();
                         continue;
 
                     case TOKimmutable:
                         if (peekNext() == TOKlparen)
                             break;
-                        m |= AST.MODimmutable;
+                        m |= AST.MODFlags.immutable_;
                         nextToken();
                         continue;
 
                     case TOKshared:
                         if (peekNext() == TOKlparen)
                             break;
-                        m |= AST.MODshared;
+                        m |= AST.MODFlags.shared_;
                         nextToken();
                         continue;
 
                     case TOKwild:
                         if (peekNext() == TOKlparen)
                             break;
-                        m |= AST.MODwild;
+                        m |= AST.MODFlags.wild;
                         nextToken();
                         continue;
 

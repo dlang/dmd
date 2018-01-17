@@ -2703,7 +2703,7 @@ public:
             ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
         }
-        else if ((cast(TypeNext)e.type).next.mod & (MODconst | MODimmutable))
+        else if ((cast(TypeNext)e.type).next.mod & (MODFlags.const_ | MODFlags.immutable_))
         {
             // If it's immutable, we don't need to dup it
             result = e;

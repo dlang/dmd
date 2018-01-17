@@ -1209,10 +1209,10 @@ extern (C++) class FuncDeclaration : Declaration
         if (purity > PURE.weak && needThis())
         {
             // The attribute of the 'this' reference affects purity strength
-            if (type.mod & MODimmutable)
+            if (type.mod & MODFlags.immutable_)
             {
             }
-            else if (type.mod & (MODconst | MODwild) && purity >= PURE.const_)
+            else if (type.mod & (MODFlags.const_ | MODFlags.wild) && purity >= PURE.const_)
                 purity = PURE.const_;
             else
                 purity = PURE.weak;
@@ -2406,22 +2406,22 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
 void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
 {
     bool bothMutable = ((lhsMod & rhsMod) == 0);
-    bool sharedMismatch = ((lhsMod ^ rhsMod) & MODshared) != 0;
-    bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODshared);
+    bool sharedMismatch = ((lhsMod ^ rhsMod) & MODFlags.shared_) != 0;
+    bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODFlags.shared_);
 
-    if (lhsMod & MODshared)
+    if (lhsMod & MODFlags.shared_)
         buf.writestring("shared ");
-    else if (sharedMismatch && !(lhsMod & MODimmutable))
+    else if (sharedMismatch && !(lhsMod & MODFlags.immutable_))
         buf.writestring("non-shared ");
 
     if (bothMutable && sharedMismatchOnly)
     {
     }
-    else if (lhsMod & MODimmutable)
+    else if (lhsMod & MODFlags.immutable_)
         buf.writestring("immutable ");
-    else if (lhsMod & MODconst)
+    else if (lhsMod & MODFlags.const_)
         buf.writestring("const ");
-    else if (lhsMod & MODwild)
+    else if (lhsMod & MODFlags.wild)
         buf.writestring("inout ");
     else
         buf.writestring("mutable ");

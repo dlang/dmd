@@ -1667,7 +1667,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     Type ta = p.type;
                     if (dim == 2)
                     {
-                        Type ti = (isRef ? taa.index.addMod(MODconst) : taa.index);
+                        Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
                         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
                         {
                             fs.error("foreach: index must be type `%s`, not `%s`",

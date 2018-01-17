@@ -1505,20 +1505,20 @@ uint totym(Type tx)
     {
         case 0:
             break;
-        case MODconst:
-        case MODwild:
-        case MODwildconst:
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
             t |= mTYconst;
             break;
-        case MODshared:
+        case MODFlags.shared_:
             t |= mTYshared;
             break;
-        case MODshared | MODconst:
-        case MODshared | MODwild:
-        case MODshared | MODwildconst:
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
             t |= mTYshared | mTYconst;
             break;
-        case MODimmutable:
+        case MODFlags.immutable_:
             t |= mTYimmutable;
             break;
         default:

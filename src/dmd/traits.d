@@ -1136,7 +1136,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         stc = p.storageClass;
 
         // This mirrors hdrgen.visit(Parameter p)
-        if (p.type && p.type.mod & MODshared)
+        if (p.type && p.type.mod & MODFlags.shared_)
             stc &= ~STC.shared_;
 
         auto exps = new Expressions;

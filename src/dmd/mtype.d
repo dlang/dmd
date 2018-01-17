@@ -81,16 +81,16 @@ bool MODimplicitConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
         return ((m << 4) | n);
     }
 
-    switch (X(modfrom & ~MODshared, modto & ~MODshared))
+    switch (X(modfrom & ~MODFlags.shared_, modto & ~MODFlags.shared_))
     {
-    case X(0, MODconst):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODwildconst):
-    case X(MODwildconst, MODconst):
-        return (modfrom & MODshared) == (modto & MODshared);
+    case X(0, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.const_):
+        return (modfrom & MODFlags.shared_) == (modto & MODFlags.shared_);
 
-    case X(MODimmutable, MODconst):
-    case X(MODimmutable, MODwildconst):
+    case X(MODFlags.immutable_, MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.wildconst):
         return true;
     default:
         return false;
@@ -114,14 +114,14 @@ MATCH MODmethodConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
 
     switch (X(modfrom, modto))
     {
-    case X(0, MODwild):
-    case X(MODimmutable, MODwild):
-    case X(MODconst, MODwild):
-    case X(MODwildconst, MODwild):
-    case X(MODshared, MODshared | MODwild):
-    case X(MODshared | MODimmutable, MODshared | MODwild):
-    case X(MODshared | MODconst, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
+    case X(0, MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.immutable_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
         return MATCH.constant;
 
     default:
@@ -139,25 +139,25 @@ MOD MODmerge(MOD mod1, MOD mod2) pure nothrow @nogc @safe
 
     //printf("MODmerge(1 = %x, 2 = %x)\n", mod1, mod2);
     MOD result = 0;
-    if ((mod1 | mod2) & MODshared)
+    if ((mod1 | mod2) & MODFlags.shared_)
     {
         // If either type is shared, the result will be shared
-        result |= MODshared;
-        mod1 &= ~MODshared;
-        mod2 &= ~MODshared;
+        result |= MODFlags.shared_;
+        mod1 &= ~MODFlags.shared_;
+        mod2 &= ~MODFlags.shared_;
     }
-    if (mod1 == 0 || mod1 == MODmutable || mod1 == MODconst || mod2 == 0 || mod2 == MODmutable || mod2 == MODconst)
+    if (mod1 == 0 || mod1 == MODFlags.mutable || mod1 == MODFlags.const_ || mod2 == 0 || mod2 == MODFlags.mutable || mod2 == MODFlags.const_)
     {
         // If either type is mutable or const, the result will be const.
-        result |= MODconst;
+        result |= MODFlags.const_;
     }
     else
     {
-        // MODimmutable vs MODwild
-        // MODimmutable vs MODwildconst
-        //      MODwild vs MODwildconst
-        assert(mod1 & MODwild || mod2 & MODwild);
-        result |= MODwildconst;
+        // MODFlags.immutable_ vs MODFlags.wild
+        // MODFlags.immutable_ vs MODFlags.wildconst
+        //      MODFlags.wild vs MODFlags.wildconst
+        assert(mod1 & MODFlags.wild || mod2 & MODFlags.wild);
+        result |= MODFlags.wildconst;
     }
     return result;
 }
@@ -172,35 +172,35 @@ void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
     case 0:
         break;
 
-    case MODimmutable:
+    case MODFlags.immutable_:
         buf.writestring(Token.toString(TOKimmutable));
         break;
 
-    case MODshared:
+    case MODFlags.shared_:
         buf.writestring(Token.toString(TOKshared));
         break;
 
-    case MODshared | MODconst:
+    case MODFlags.shared_ | MODFlags.const_:
         buf.writestring(Token.toString(TOKshared));
         buf.writeByte(' ');
         goto case; /+ fall through +/
-    case MODconst:
+    case MODFlags.const_:
         buf.writestring(Token.toString(TOKconst));
         break;
 
-    case MODshared | MODwild:
+    case MODFlags.shared_ | MODFlags.wild:
         buf.writestring(Token.toString(TOKshared));
         buf.writeByte(' ');
         goto case; /+ fall through +/
-    case MODwild:
+    case MODFlags.wild:
         buf.writestring(Token.toString(TOKwild));
         break;
 
-    case MODshared | MODwildconst:
+    case MODFlags.shared_ | MODFlags.wildconst:
         buf.writestring(Token.toString(TOKshared));
         buf.writeByte(' ');
         goto case; /+ fall through +/
-    case MODwildconst:
+    case MODFlags.wildconst:
         buf.writestring(Token.toString(TOKwild));
         buf.writeByte(' ');
         buf.writestring(Token.toString(TOKconst));
@@ -228,13 +228,13 @@ char* MODtoChars(MOD mod) nothrow
 StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
 {
     StorageClass stc = 0;
-    if (mod & MODimmutable)
+    if (mod & MODFlags.immutable_)
         stc |= STC.immutable_;
-    if (mod & MODconst)
+    if (mod & MODFlags.const_)
         stc |= STC.const_;
-    if (mod & MODwild)
+    if (mod & MODFlags.wild)
         stc |= STC.wild;
-    if (mod & MODshared)
+    if (mod & MODFlags.shared_)
         stc |= STC.shared_;
     return stc;
 }
@@ -464,20 +464,13 @@ alias TY = ubyte;
 
 enum MODFlags : int
 {
-    MODconst        = 1,    // type is const
-    MODimmutable    = 4,    // type is immutable
-    MODshared       = 2,    // type is shared
-    MODwild         = 8,    // type is wild
-    MODwildconst    = (MODwild | MODconst), // type is wild const
-    MODmutable      = 0x10, // type is mutable (only used in wildcard matching)
+    const_       = 1,    // type is const
+    immutable_   = 4,    // type is immutable
+    shared_      = 2,    // type is shared
+    wild         = 8,    // type is wild
+    wildconst    = (MODFlags.wild | MODFlags.const_), // type is wild const
+    mutable      = 0x10, // type is mutable (only used in wildcard matching)
 }
-
-alias MODconst = MODFlags.MODconst;
-alias MODimmutable = MODFlags.MODimmutable;
-alias MODshared = MODFlags.MODshared;
-alias MODwild = MODFlags.MODwild;
-alias MODwildconst = MODFlags.MODwildconst;
-alias MODmutable = MODFlags.MODmutable;
 
 alias MOD = ubyte;
 
@@ -495,14 +488,14 @@ extern (C++) abstract class Type : RootObject
      * Note that there is no "shared immutable", because that is just immutable
      * Naked == no MOD bits
      */
-    Type cto;       // MODconst                 ? naked version of this type : const version
-    Type ito;       // MODimmutable             ? naked version of this type : immutable version
-    Type sto;       // MODshared                ? naked version of this type : shared mutable version
-    Type scto;      // MODshared | MODconst     ? naked version of this type : shared const version
-    Type wto;       // MODwild                  ? naked version of this type : wild version
-    Type wcto;      // MODwildconst             ? naked version of this type : wild const version
-    Type swto;      // MODshared | MODwild      ? naked version of this type : shared wild version
-    Type swcto;     // MODshared | MODwildconst ? naked version of this type : shared wild const version
+    Type cto;       // MODFlags.const_                 ? naked version of this type : const version
+    Type ito;       // MODFlags.immutable_             ? naked version of this type : immutable version
+    Type sto;       // MODFlags.shared_                ? naked version of this type : shared mutable version
+    Type scto;      // MODFlags.shared_ | MODFlags.const_     ? naked version of this type : shared const version
+    Type wto;       // MODFlags.wild                  ? naked version of this type : wild version
+    Type wcto;      // MODFlags.wildconst             ? naked version of this type : wild const version
+    Type swto;      // MODFlags.shared_ | MODFlags.wild      ? naked version of this type : shared wild version
+    Type swcto;     // MODFlags.shared_ | MODFlags.wildconst ? naked version of this type : shared wild const version
 
     Type pto;       // merged pointer to this type
     Type rto;       // reference to this type
@@ -835,7 +828,7 @@ extern (C++) abstract class Type : RootObject
             {
                 //stop attribute inference with const
                 // If adding 'const' will make it covariant
-                if (MODimplicitConv(t2.mod, MODmerge(t1.mod, MODconst)))
+                if (MODimplicitConv(t2.mod, MODmerge(t1.mod, MODFlags.const_)))
                     stc |= STC.const_;
                 else
                     goto Lnotcovariant;
@@ -1083,11 +1076,11 @@ extern (C++) abstract class Type : RootObject
         return buf.extractString();
     }
 
-    /** For each active modifier (MODconst, MODimmutable, etc) call fp with a
+    /** For each active modifier (MODFlags.const_, MODFlags.immutable_, etc) call fp with a
      void* for the work param and a string representation of the attribute. */
     final int modifiersApply(void* param, int function(void*, const(char)*) fp)
     {
-        immutable ubyte[4] modsArr = [MODconst, MODimmutable, MODwild, MODshared];
+        immutable ubyte[4] modsArr = [MODFlags.const_, MODFlags.immutable_, MODFlags.wild, MODFlags.shared_];
 
         foreach (modsarr; modsArr)
         {
@@ -1181,42 +1174,42 @@ extern (C++) abstract class Type : RootObject
 
     final bool isConst() const nothrow pure @nogc @safe
     {
-        return (mod & MODconst) != 0;
+        return (mod & MODFlags.const_) != 0;
     }
 
     final bool isImmutable() const nothrow pure @nogc @safe
     {
-        return (mod & MODimmutable) != 0;
+        return (mod & MODFlags.immutable_) != 0;
     }
 
     final bool isMutable() const nothrow pure @nogc @safe
     {
-        return (mod & (MODconst | MODimmutable | MODwild)) == 0;
+        return (mod & (MODFlags.const_ | MODFlags.immutable_ | MODFlags.wild)) == 0;
     }
 
     final bool isShared() const nothrow pure @nogc @safe
     {
-        return (mod & MODshared) != 0;
+        return (mod & MODFlags.shared_) != 0;
     }
 
     final bool isSharedConst() const nothrow pure @nogc @safe
     {
-        return (mod & (MODshared | MODconst)) == (MODshared | MODconst);
+        return (mod & (MODFlags.shared_ | MODFlags.const_)) == (MODFlags.shared_ | MODFlags.const_);
     }
 
     final bool isWild() const nothrow pure @nogc @safe
     {
-        return (mod & MODwild) != 0;
+        return (mod & MODFlags.wild) != 0;
     }
 
     final bool isWildConst() const nothrow pure @nogc @safe
     {
-        return (mod & MODwildconst) == MODwildconst;
+        return (mod & MODFlags.wildconst) == MODFlags.wildconst;
     }
 
     final bool isSharedWild() const nothrow pure @nogc @safe
     {
-        return (mod & (MODshared | MODwild)) == (MODshared | MODwild);
+        return (mod & (MODFlags.shared_ | MODFlags.wild)) == (MODFlags.shared_ | MODFlags.wild);
     }
 
     final bool isNaked() const nothrow pure @nogc @safe
@@ -1261,11 +1254,11 @@ extern (C++) abstract class Type : RootObject
     final Type constOf()
     {
         //printf("Type::constOf() %p %s\n", this, toChars());
-        if (mod == MODconst)
+        if (mod == MODFlags.const_)
             return this;
         if (cto)
         {
-            assert(cto.mod == MODconst);
+            assert(cto.mod == MODFlags.const_);
             return cto;
         }
         Type t = makeConst();
@@ -1348,11 +1341,11 @@ extern (C++) abstract class Type : RootObject
     final Type sharedOf()
     {
         //printf("Type::sharedOf() %p, %s\n", this, toChars());
-        if (mod == MODshared)
+        if (mod == MODFlags.shared_)
             return this;
         if (sto)
         {
-            assert(sto.mod == MODshared);
+            assert(sto.mod == MODFlags.shared_);
             return sto;
         }
         Type t = makeShared();
@@ -1365,11 +1358,11 @@ extern (C++) abstract class Type : RootObject
     final Type sharedConstOf()
     {
         //printf("Type::sharedConstOf() %p, %s\n", this, toChars());
-        if (mod == (MODshared | MODconst))
+        if (mod == (MODFlags.shared_ | MODFlags.const_))
             return this;
         if (scto)
         {
-            assert(scto.mod == (MODshared | MODconst));
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             return scto;
         }
         Type t = makeSharedConst();
@@ -1418,7 +1411,7 @@ extern (C++) abstract class Type : RootObject
         if (!t)
         {
             t = this.nullAttributes();
-            t.mod = mod & ~MODshared;
+            t.mod = mod & ~MODFlags.shared_;
             t.ctype = ctype;
             t = t.merge();
             t.fixTo(this);
@@ -1435,11 +1428,11 @@ extern (C++) abstract class Type : RootObject
     final Type wildOf()
     {
         //printf("Type::wildOf() %p %s\n", this, toChars());
-        if (mod == MODwild)
+        if (mod == MODFlags.wild)
             return this;
         if (wto)
         {
-            assert(wto.mod == MODwild);
+            assert(wto.mod == MODFlags.wild);
             return wto;
         }
         Type t = makeWild();
@@ -1452,11 +1445,11 @@ extern (C++) abstract class Type : RootObject
     final Type wildConstOf()
     {
         //printf("Type::wildConstOf() %p %s\n", this, toChars());
-        if (mod == MODwildconst)
+        if (mod == MODFlags.wildconst)
             return this;
         if (wcto)
         {
-            assert(wcto.mod == MODwildconst);
+            assert(wcto.mod == MODFlags.wildconst);
             return wcto;
         }
         Type t = makeWildConst();
@@ -1469,11 +1462,11 @@ extern (C++) abstract class Type : RootObject
     final Type sharedWildOf()
     {
         //printf("Type::sharedWildOf() %p, %s\n", this, toChars());
-        if (mod == (MODshared | MODwild))
+        if (mod == (MODFlags.shared_ | MODFlags.wild))
             return this;
         if (swto)
         {
-            assert(swto.mod == (MODshared | MODwild));
+            assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             return swto;
         }
         Type t = makeSharedWild();
@@ -1486,11 +1479,11 @@ extern (C++) abstract class Type : RootObject
     final Type sharedWildConstOf()
     {
         //printf("Type::sharedWildConstOf() %p, %s\n", this, toChars());
-        if (mod == (MODshared | MODwildconst))
+        if (mod == (MODFlags.shared_ | MODFlags.wildconst))
             return this;
         if (swcto)
         {
-            assert(swcto.mod == (MODshared | MODwildconst));
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             return swcto;
         }
         Type t = makeSharedWildConst();
@@ -1518,35 +1511,35 @@ extern (C++) abstract class Type : RootObject
                 mto = t;
                 break;
 
-            case MODconst:
+            case MODFlags.const_:
                 cto = t;
                 break;
 
-            case MODwild:
+            case MODFlags.wild:
                 wto = t;
                 break;
 
-            case MODwildconst:
+            case MODFlags.wildconst:
                 wcto = t;
                 break;
 
-            case MODshared:
+            case MODFlags.shared_:
                 sto = t;
                 break;
 
-            case MODshared | MODconst:
+            case MODFlags.shared_ | MODFlags.const_:
                 scto = t;
                 break;
 
-            case MODshared | MODwild:
+            case MODFlags.shared_ | MODFlags.wild:
                 swto = t;
                 break;
 
-            case MODshared | MODwildconst:
+            case MODFlags.shared_ | MODFlags.wildconst:
                 swcto = t;
                 break;
 
-            case MODimmutable:
+            case MODFlags.immutable_:
                 ito = t;
                 break;
 
@@ -1566,42 +1559,42 @@ extern (C++) abstract class Type : RootObject
         case 0:
             break;
 
-        case MODconst:
+        case MODFlags.const_:
             cto = mto;
             t.cto = this;
             break;
 
-        case MODwild:
+        case MODFlags.wild:
             wto = mto;
             t.wto = this;
             break;
 
-        case MODwildconst:
+        case MODFlags.wildconst:
             wcto = mto;
             t.wcto = this;
             break;
 
-        case MODshared:
+        case MODFlags.shared_:
             sto = mto;
             t.sto = this;
             break;
 
-        case MODshared | MODconst:
+        case MODFlags.shared_ | MODFlags.const_:
             scto = mto;
             t.scto = this;
             break;
 
-        case MODshared | MODwild:
+        case MODFlags.shared_ | MODFlags.wild:
             swto = mto;
             t.swto = this;
             break;
 
-        case MODshared | MODwildconst:
+        case MODFlags.shared_ | MODFlags.wildconst:
             swcto = mto;
             t.swcto = this;
             break;
 
-        case MODimmutable:
+        case MODFlags.immutable_:
             t.ito = this;
             if (t.cto)
                 t.cto.ito = this;
@@ -1637,157 +1630,157 @@ extern (C++) abstract class Type : RootObject
         {
         case 0:
             if (cto)
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
             if (ito)
-                assert(ito.mod == MODimmutable);
+                assert(ito.mod == MODFlags.immutable_);
             if (sto)
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
             if (scto)
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             if (wto)
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODconst:
+        case MODFlags.const_:
             if (cto)
                 assert(cto.mod == 0);
             if (ito)
-                assert(ito.mod == MODimmutable);
+                assert(ito.mod == MODFlags.immutable_);
             if (sto)
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
             if (scto)
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             if (wto)
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODwild:
+        case MODFlags.wild:
             if (cto)
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
             if (ito)
-                assert(ito.mod == MODimmutable);
+                assert(ito.mod == MODFlags.immutable_);
             if (sto)
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
             if (scto)
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             if (wto)
                 assert(wto.mod == 0);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODwildconst:
-            assert(!cto || cto.mod == MODconst);
-            assert(!ito || ito.mod == MODimmutable);
-            assert(!sto || sto.mod == MODshared);
-            assert(!scto || scto.mod == (MODshared | MODconst));
-            assert(!wto || wto.mod == MODwild);
+        case MODFlags.wildconst:
+            assert(!cto || cto.mod == MODFlags.const_);
+            assert(!ito || ito.mod == MODFlags.immutable_);
+            assert(!sto || sto.mod == MODFlags.shared_);
+            assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+            assert(!wto || wto.mod == MODFlags.wild);
             assert(!wcto || wcto.mod == 0);
-            assert(!swto || swto.mod == (MODshared | MODwild));
-            assert(!swcto || swcto.mod == (MODshared | MODwildconst));
+            assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
+            assert(!swcto || swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODshared:
+        case MODFlags.shared_:
             if (cto)
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
             if (ito)
-                assert(ito.mod == MODimmutable);
+                assert(ito.mod == MODFlags.immutable_);
             if (sto)
                 assert(sto.mod == 0);
             if (scto)
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             if (wto)
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODshared | MODconst:
+        case MODFlags.shared_ | MODFlags.const_:
             if (cto)
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
             if (ito)
-                assert(ito.mod == MODimmutable);
+                assert(ito.mod == MODFlags.immutable_);
             if (sto)
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
             if (scto)
                 assert(scto.mod == 0);
             if (wto)
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODshared | MODwild:
+        case MODFlags.shared_ | MODFlags.wild:
             if (cto)
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
             if (ito)
-                assert(ito.mod == MODimmutable);
+                assert(ito.mod == MODFlags.immutable_);
             if (sto)
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
             if (scto)
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             if (wto)
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
                 assert(swto.mod == 0);
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
-        case MODshared | MODwildconst:
-            assert(!cto || cto.mod == MODconst);
-            assert(!ito || ito.mod == MODimmutable);
-            assert(!sto || sto.mod == MODshared);
-            assert(!scto || scto.mod == (MODshared | MODconst));
-            assert(!wto || wto.mod == MODwild);
-            assert(!wcto || wcto.mod == MODwildconst);
-            assert(!swto || swto.mod == (MODshared | MODwild));
+        case MODFlags.shared_ | MODFlags.wildconst:
+            assert(!cto || cto.mod == MODFlags.const_);
+            assert(!ito || ito.mod == MODFlags.immutable_);
+            assert(!sto || sto.mod == MODFlags.shared_);
+            assert(!scto || scto.mod == (MODFlags.shared_ | MODFlags.const_));
+            assert(!wto || wto.mod == MODFlags.wild);
+            assert(!wcto || wcto.mod == MODFlags.wildconst);
+            assert(!swto || swto.mod == (MODFlags.shared_ | MODFlags.wild));
             assert(!swcto || swcto.mod == 0);
             break;
 
-        case MODimmutable:
+        case MODFlags.immutable_:
             if (cto)
-                assert(cto.mod == MODconst);
+                assert(cto.mod == MODFlags.const_);
             if (ito)
                 assert(ito.mod == 0);
             if (sto)
-                assert(sto.mod == MODshared);
+                assert(sto.mod == MODFlags.shared_);
             if (scto)
-                assert(scto.mod == (MODshared | MODconst));
+                assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             if (wto)
-                assert(wto.mod == MODwild);
+                assert(wto.mod == MODFlags.wild);
             if (wcto)
-                assert(wcto.mod == MODwildconst);
+                assert(wcto.mod == MODFlags.wildconst);
             if (swto)
-                assert(swto.mod == (MODshared | MODwild));
+                assert(swto.mod == (MODFlags.shared_ | MODFlags.wild));
             if (swcto)
-                assert(swcto.mod == (MODshared | MODwildconst));
+                assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             break;
 
         default:
@@ -1801,15 +1794,15 @@ extern (C++) abstract class Type : RootObject
             switch (mod)
             {
             case 0:
-            case MODconst:
-            case MODwild:
-            case MODwildconst:
-            case MODshared:
-            case MODshared | MODconst:
-            case MODshared | MODwild:
-            case MODshared | MODwildconst:
-            case MODimmutable:
-                assert(tn.mod == MODimmutable || (tn.mod & mod) == mod);
+            case MODFlags.const_:
+            case MODFlags.wild:
+            case MODFlags.wildconst:
+            case MODFlags.shared_:
+            case MODFlags.shared_ | MODFlags.const_:
+            case MODFlags.shared_ | MODFlags.wild:
+            case MODFlags.shared_ | MODFlags.wildconst:
+            case MODFlags.immutable_:
+                assert(tn.mod == MODFlags.immutable_ || (tn.mod & mod) == mod);
                 break;
 
             default:
@@ -1902,35 +1895,35 @@ extern (C++) abstract class Type : RootObject
             t = unSharedOf().mutableOf();
             break;
 
-        case MODconst:
+        case MODFlags.const_:
             t = unSharedOf().constOf();
             break;
 
-        case MODwild:
+        case MODFlags.wild:
             t = unSharedOf().wildOf();
             break;
 
-        case MODwildconst:
+        case MODFlags.wildconst:
             t = unSharedOf().wildConstOf();
             break;
 
-        case MODshared:
+        case MODFlags.shared_:
             t = mutableOf().sharedOf();
             break;
 
-        case MODshared | MODconst:
+        case MODFlags.shared_ | MODFlags.const_:
             t = sharedConstOf();
             break;
 
-        case MODshared | MODwild:
+        case MODFlags.shared_ | MODFlags.wild:
             t = sharedWildOf();
             break;
 
-        case MODshared | MODwildconst:
+        case MODFlags.shared_ | MODFlags.wildconst:
             t = sharedWildConstOf();
             break;
 
-        case MODimmutable:
+        case MODFlags.immutable_:
             t = immutableOf();
             break;
 
@@ -1958,7 +1951,7 @@ extern (C++) abstract class Type : RootObject
             case 0:
                 break;
 
-            case MODconst:
+            case MODFlags.const_:
                 if (isShared())
                 {
                     if (isWild())
@@ -1975,7 +1968,7 @@ extern (C++) abstract class Type : RootObject
                 }
                 break;
 
-            case MODwild:
+            case MODFlags.wild:
                 if (isShared())
                 {
                     if (isConst())
@@ -1992,14 +1985,14 @@ extern (C++) abstract class Type : RootObject
                 }
                 break;
 
-            case MODwildconst:
+            case MODFlags.wildconst:
                 if (isShared())
                     t = sharedWildConstOf();
                 else
                     t = wildConstOf();
                 break;
 
-            case MODshared:
+            case MODFlags.shared_:
                 if (isWild())
                 {
                     if (isConst())
@@ -2016,25 +2009,25 @@ extern (C++) abstract class Type : RootObject
                 }
                 break;
 
-            case MODshared | MODconst:
+            case MODFlags.shared_ | MODFlags.const_:
                 if (isWild())
                     t = sharedWildConstOf();
                 else
                     t = sharedConstOf();
                 break;
 
-            case MODshared | MODwild:
+            case MODFlags.shared_ | MODFlags.wild:
                 if (isConst())
                     t = sharedWildConstOf();
                 else
                     t = sharedWildOf();
                 break;
 
-            case MODshared | MODwildconst:
+            case MODFlags.shared_ | MODFlags.wildconst:
                 t = sharedWildConstOf();
                 break;
 
-            case MODimmutable:
+            case MODFlags.immutable_:
                 t = immutableOf();
                 break;
 
@@ -2054,15 +2047,15 @@ extern (C++) abstract class Type : RootObject
          */
         MOD mod = 0;
         if (stc & STC.immutable_)
-            mod = MODimmutable;
+            mod = MODFlags.immutable_;
         else
         {
             if (stc & (STC.const_ | STC.in_))
-                mod |= MODconst;
+                mod |= MODFlags.const_;
             if (stc & STC.wild)
-                mod |= MODwild;
+                mod |= MODFlags.wild;
             if (stc & STC.shared_)
-                mod |= MODshared;
+                mod |= MODFlags.shared_;
         }
         return addMod(mod);
     }
@@ -2149,7 +2142,7 @@ extern (C++) abstract class Type : RootObject
             auto t = fd.type.nextOf();
             if (!t) // issue 14185
                 return Type.terror;
-            t = t.substWildTo(mod == 0 ? MODmutable : mod);
+            t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
             return t;
         }
         if (auto d = s.isDeclaration())
@@ -2171,7 +2164,7 @@ extern (C++) abstract class Type : RootObject
             auto t = fd.type.nextOf();
             if (!t)
                 return Type.terror;
-            t = t.substWildTo(mod == 0 ? MODmutable : mod);
+            t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
             return t;
         }
 
@@ -2206,7 +2199,7 @@ extern (C++) abstract class Type : RootObject
         if (cto)
             return cto;
         Type t = this.nullAttributes();
-        t.mod = MODconst;
+        t.mod = MODFlags.const_;
         //printf("-Type::makeConst() %p, %s\n", t, toChars());
         return t;
     }
@@ -2216,7 +2209,7 @@ extern (C++) abstract class Type : RootObject
         if (ito)
             return ito;
         Type t = this.nullAttributes();
-        t.mod = MODimmutable;
+        t.mod = MODFlags.immutable_;
         return t;
     }
 
@@ -2225,7 +2218,7 @@ extern (C++) abstract class Type : RootObject
         if (sto)
             return sto;
         Type t = this.nullAttributes();
-        t.mod = MODshared;
+        t.mod = MODFlags.shared_;
         return t;
     }
 
@@ -2234,7 +2227,7 @@ extern (C++) abstract class Type : RootObject
         if (scto)
             return scto;
         Type t = this.nullAttributes();
-        t.mod = MODshared | MODconst;
+        t.mod = MODFlags.shared_ | MODFlags.const_;
         return t;
     }
 
@@ -2243,7 +2236,7 @@ extern (C++) abstract class Type : RootObject
         if (wto)
             return wto;
         Type t = this.nullAttributes();
-        t.mod = MODwild;
+        t.mod = MODFlags.wild;
         return t;
     }
 
@@ -2252,7 +2245,7 @@ extern (C++) abstract class Type : RootObject
         if (wcto)
             return wcto;
         Type t = this.nullAttributes();
-        t.mod = MODwildconst;
+        t.mod = MODFlags.wildconst;
         return t;
     }
 
@@ -2261,7 +2254,7 @@ extern (C++) abstract class Type : RootObject
         if (swto)
             return swto;
         Type t = this.nullAttributes();
-        t.mod = MODshared | MODwild;
+        t.mod = MODFlags.shared_ | MODFlags.wild;
         return t;
     }
 
@@ -2270,14 +2263,14 @@ extern (C++) abstract class Type : RootObject
         if (swcto)
             return swcto;
         Type t = this.nullAttributes();
-        t.mod = MODshared | MODwildconst;
+        t.mod = MODFlags.shared_ | MODFlags.wildconst;
         return t;
     }
 
     Type makeMutable()
     {
         Type t = this.nullAttributes();
-        t.mod = mod & MODshared;
+        t.mod = mod & MODFlags.shared_;
         return t;
     }
 
@@ -2343,20 +2336,20 @@ extern (C++) abstract class Type : RootObject
         if (t.isWild())
         {
             if (isImmutable())
-                return MODimmutable;
+                return MODFlags.immutable_;
             else if (isWildConst())
             {
                 if (t.isWildConst())
-                    return MODwild;
+                    return MODFlags.wild;
                 else
-                    return MODwildconst;
+                    return MODFlags.wildconst;
             }
             else if (isWild())
-                return MODwild;
+                return MODFlags.wild;
             else if (isConst())
-                return MODconst;
+                return MODFlags.const_;
             else if (isMutable())
-                return MODmutable;
+                return MODFlags.mutable;
             else
                 assert(0);
         }
@@ -2409,22 +2402,22 @@ extern (C++) abstract class Type : RootObject
     L1:
         if (isWild())
         {
-            if (mod == MODimmutable)
+            if (mod == MODFlags.immutable_)
             {
                 t = t.immutableOf();
             }
-            else if (mod == MODwildconst)
+            else if (mod == MODFlags.wildconst)
             {
                 t = t.wildConstOf();
             }
-            else if (mod == MODwild)
+            else if (mod == MODFlags.wild)
             {
                 if (isWildConst())
                     t = t.wildConstOf();
                 else
                     t = t.wildOf();
             }
-            else if (mod == MODconst)
+            else if (mod == MODFlags.const_)
             {
                 t = t.constOf();
             }
@@ -2437,9 +2430,9 @@ extern (C++) abstract class Type : RootObject
             }
         }
         if (isConst())
-            t = t.addMod(MODconst);
+            t = t.addMod(MODFlags.const_);
         if (isShared())
-            t = t.addMod(MODshared);
+            t = t.addMod(MODFlags.shared_);
 
         //printf("-Type::substWildTo t = %s\n", t.toChars());
         return t;
@@ -2905,7 +2898,7 @@ extern (C++) abstract class Type : RootObject
      */
     int hasWild() const
     {
-        return mod & MODwild;
+        return mod & MODFlags.wild;
     }
 
     /***************************************
@@ -3169,7 +3162,7 @@ extern (C++) abstract class TypeNext : Type
             return 0;
         if (ty == Tdelegate)
             return Type.hasWild();
-        return mod & MODwild || (next && next.hasWild());
+        return mod & MODFlags.wild || (next && next.hasWild());
     }
 
     /*******************************
@@ -3187,7 +3180,7 @@ extern (C++) abstract class TypeNext : Type
         //printf("TypeNext::makeConst() %p, %s\n", this, toChars());
         if (cto)
         {
-            assert(cto.mod == MODconst);
+            assert(cto.mod == MODFlags.const_);
             return cto;
         }
         TypeNext t = cast(TypeNext)Type.makeConst();
@@ -3233,7 +3226,7 @@ extern (C++) abstract class TypeNext : Type
         //printf("TypeNext::makeShared() %s\n", toChars());
         if (sto)
         {
-            assert(sto.mod == MODshared);
+            assert(sto.mod == MODFlags.shared_);
             return sto;
         }
         TypeNext t = cast(TypeNext)Type.makeShared();
@@ -3263,7 +3256,7 @@ extern (C++) abstract class TypeNext : Type
         //printf("TypeNext::makeSharedConst() %s\n", toChars());
         if (scto)
         {
-            assert(scto.mod == (MODshared | MODconst));
+            assert(scto.mod == (MODFlags.shared_ | MODFlags.const_));
             return scto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedConst();
@@ -3283,7 +3276,7 @@ extern (C++) abstract class TypeNext : Type
         //printf("TypeNext::makeWild() %s\n", toChars());
         if (wto)
         {
-            assert(wto.mod == MODwild);
+            assert(wto.mod == MODFlags.wild);
             return wto;
         }
         TypeNext t = cast(TypeNext)Type.makeWild();
@@ -3313,7 +3306,7 @@ extern (C++) abstract class TypeNext : Type
         //printf("TypeNext::makeWildConst() %s\n", toChars());
         if (wcto)
         {
-            assert(wcto.mod == MODwildconst);
+            assert(wcto.mod == MODFlags.wildconst);
             return wcto;
         }
         TypeNext t = cast(TypeNext)Type.makeWildConst();
@@ -3353,7 +3346,7 @@ extern (C++) abstract class TypeNext : Type
         //printf("TypeNext::makeSharedWildConst() %s\n", toChars());
         if (swcto)
         {
-            assert(swcto.mod == (MODshared | MODwildconst));
+            assert(swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
             return swcto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedWildConst();
@@ -4192,7 +4185,7 @@ extern (C++) final class TypeBasic : Type
                 return MATCH.exact;
             else if (MODimplicitConv(mod, to.mod))
                 return MATCH.constant;
-            else if (!((mod ^ to.mod) & MODshared)) // for wild matching
+            else if (!((mod ^ to.mod) & MODFlags.shared_)) // for wild matching
                 return MATCH.constant;
             else
                 return MATCH.convert;
@@ -5545,16 +5538,16 @@ extern (C++) final class TypeFunction : TypeNext
         {
             if (isref)
             {
-                if (t.mod & MODimmutable)
+                if (t.mod & MODFlags.immutable_)
                     return PURE.strong;
-                if (t.mod & (MODconst | MODwild))
+                if (t.mod & (MODFlags.const_ | MODFlags.wild))
                     return PURE.const_;
                 return PURE.weak;
             }
 
             t = t.baseElemOf();
 
-            if (!t.hasPointers() || t.mod & MODimmutable)
+            if (!t.hasPointers() || t.mod & MODFlags.immutable_)
                 return PURE.strong;
 
             /* Accept immutable(T)[] and immutable(T)* as being strongly pure
@@ -5562,9 +5555,9 @@ extern (C++) final class TypeFunction : TypeNext
             if (t.ty == Tarray || t.ty == Tpointer)
             {
                 Type tn = t.nextOf().toBasetype();
-                if (tn.mod & MODimmutable)
+                if (tn.mod & MODFlags.immutable_)
                     return PURE.strong;
-                if (tn.mod & (MODconst | MODwild))
+                if (tn.mod & (MODFlags.const_ | MODFlags.wild))
                     return PURE.const_;
             }
 
@@ -5573,7 +5566,7 @@ extern (C++) final class TypeFunction : TypeNext
              * which would maintain strong purity.
              * (Just like for dynamic arrays and pointers above.)
              */
-            if (t.mod & (MODconst | MODwild))
+            if (t.mod & (MODFlags.const_ | MODFlags.wild))
                 return PURE.const_;
 
             /* Should catch delegates and function pointers, and fold in their purity
@@ -5846,18 +5839,18 @@ extern (C++) final class TypeFunction : TypeNext
 
     override Type substWildTo(uint)
     {
-        if (!iswild && !(mod & MODwild))
+        if (!iswild && !(mod & MODFlags.wild))
             return this;
 
         // Substitude inout qualifier of function type to mutable or immutable
         // would break type system. Instead substitude inout to the most weak
         // qualifer - const.
-        uint m = MODconst;
+        uint m = MODFlags.const_;
 
         assert(next);
         Type tret = next.substWildTo(m);
         Parameters* params = parameters;
-        if (mod & MODwild)
+        if (mod & MODFlags.wild)
             params = parameters.copy();
         for (size_t i = 0; i < params.dim; i++)
         {
@@ -5874,7 +5867,7 @@ extern (C++) final class TypeFunction : TypeNext
 
         // Similar to TypeFunction::syntaxCopy;
         auto t = new TypeFunction(params, tret, varargs, linkage);
-        t.mod = ((mod & MODwild) ? (mod & ~MODwild) | MODconst : mod);
+        t.mod = ((mod & MODFlags.wild) ? (mod & ~MODFlags.wild) | MODFlags.const_ : mod);
         t.isnothrow = isnothrow;
         t.isnogc = isnogc;
         t.purity = purity;
@@ -5912,7 +5905,7 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 if (MODimplicitConv(t.mod, mod))
                     match = MATCH.constant;
-                else if ((mod & MODwild) && MODimplicitConv(t.mod, (mod & ~MODwild) | MODconst))
+                else if ((mod & MODFlags.wild) && MODimplicitConv(t.mod, (mod & ~MODFlags.wild) | MODFlags.const_))
                 {
                     match = MATCH.constant;
                 }
@@ -5922,13 +5915,13 @@ extern (C++) final class TypeFunction : TypeNext
             if (isWild())
             {
                 if (t.isWild())
-                    wildmatch |= MODwild;
+                    wildmatch |= MODFlags.wild;
                 else if (t.isConst())
-                    wildmatch |= MODconst;
+                    wildmatch |= MODFlags.const_;
                 else if (t.isImmutable())
-                    wildmatch |= MODimmutable;
+                    wildmatch |= MODFlags.immutable_;
                 else
-                    wildmatch |= MODmutable;
+                    wildmatch |= MODFlags.mutable;
             }
         }
 
@@ -5965,16 +5958,16 @@ extern (C++) final class TypeFunction : TypeNext
         {
             /* Calculate wild matching modifier
              */
-            if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
-                wildmatch = MODconst;
-            else if (wildmatch & MODimmutable)
-                wildmatch = MODimmutable;
-            else if (wildmatch & MODwild)
-                wildmatch = MODwild;
+            if (wildmatch & MODFlags.const_ || wildmatch & (wildmatch - 1))
+                wildmatch = MODFlags.const_;
+            else if (wildmatch & MODFlags.immutable_)
+                wildmatch = MODFlags.immutable_;
+            else if (wildmatch & MODFlags.wild)
+                wildmatch = MODFlags.wild;
             else
             {
-                assert(wildmatch & MODmutable);
-                wildmatch = MODmutable;
+                assert(wildmatch & MODFlags.mutable);
+                wildmatch = MODFlags.mutable;
             }
         }
 
