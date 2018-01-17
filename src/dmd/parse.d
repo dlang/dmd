@@ -7596,6 +7596,7 @@ final class Parser(AST) : Lexer
             }
         case TOKassert:
             {
+                // https://dlang.org/spec/expression.html#assert_expressions
                 AST.Expression msg = null;
 
                 nextToken();

@@ -4315,6 +4315,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(AssertExp exp)
     {
+        // https://dlang.org/spec/expression.html#assert_expressions
         static if (LOGSEMANTIC)
         {
             printf("AssertExp::semantic('%s')\n", exp.toChars());

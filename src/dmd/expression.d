@@ -5149,6 +5149,7 @@ extern (C++) final class ImportExp : UnaExp
 }
 
 /***********************************************************
+ * https://dlang.org/spec/expression.html#assert_expressions
  */
 extern (C++) final class AssertExp : UnaExp
 {
