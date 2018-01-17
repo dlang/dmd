@@ -248,17 +248,17 @@ public:
     {
         switch (trust)
         {
-        case TRUSTdefault:
+        case TRUST.default_:
             // Should not be printed
             //property(name, "default");
             break;
-        case TRUSTsystem:
+        case TRUST.system:
             property(name, "system");
             break;
-        case TRUSTtrusted:
+        case TRUST.trusted:
             property(name, "trusted");
             break;
-        case TRUSTsafe:
+        case TRUST.safe:
             property(name, "safe");
             break;
         default:

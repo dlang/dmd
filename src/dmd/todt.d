@@ -1315,7 +1315,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
              * function with the name "toHash".
              * So I'm leaving this here as an experiment for the moment.
              */
-            if (!tf.isnothrow || tf.trust == TRUSTsystem /*|| tf.purity == PURE.impure*/)
+            if (!tf.isnothrow || tf.trust == TRUST.system /*|| tf.purity == PURE.impure*/)
                 warning(fd.loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf.toChars());
         }
         else

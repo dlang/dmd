@@ -859,7 +859,7 @@ extern (C++) abstract class Type : RootObject
 
         /* Can convert safe/trusted to system
          */
-        if (t1.trust <= TRUSTsystem && t2.trust >= TRUSTtrusted)
+        if (t1.trust <= TRUST.system && t2.trust >= TRUST.trusted)
         {
             // Should we infer trusted or safe? Go with safe.
             stc |= STC.safe;
@@ -5414,21 +5414,16 @@ enum RET : int
 
 enum TRUST : int
 {
-    TRUSTdefault    = 0,
-    TRUSTsystem     = 1,    // @system (same as TRUSTdefault)
-    TRUSTtrusted    = 2,    // @trusted
-    TRUSTsafe       = 3,    // @safe
+    default_   = 0,
+    system     = 1,    // @system (same as TRUST.default)
+    trusted    = 2,    // @trusted
+    safe       = 3,    // @safe
 }
-
-alias TRUSTdefault = TRUST.TRUSTdefault;
-alias TRUSTsystem = TRUST.TRUSTsystem;
-alias TRUSTtrusted = TRUST.TRUSTtrusted;
-alias TRUSTsafe = TRUST.TRUSTsafe;
 
 enum TRUSTformat : int
 {
-    TRUSTformatDefault,     // do not emit @system when trust == TRUSTdefault
-    TRUSTformatSystem,      // emit @system when trust == TRUSTdefault
+    TRUSTformatDefault,     // do not emit @system when trust == TRUST.default_
+    TRUSTformatSystem,      // emit @system when trust == TRUST.default_
 }
 
 alias TRUSTformatDefault = TRUSTformat.TRUSTformatDefault;
@@ -5494,13 +5489,13 @@ extern (C++) final class TypeFunction : TypeNext
         if (stc & STC.scopeinferred)
             this.isscopeinferred = true;
 
-        this.trust = TRUSTdefault;
+        this.trust = TRUST.default_;
         if (stc & STC.safe)
-            this.trust = TRUSTsafe;
+            this.trust = TRUST.safe;
         if (stc & STC.system)
-            this.trust = TRUSTsystem;
+            this.trust = TRUST.system;
         if (stc & STC.trusted)
-            this.trust = TRUSTtrusted;
+            this.trust = TRUST.trusted;
     }
 
     static TypeFunction create(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
@@ -5757,7 +5752,7 @@ extern (C++) final class TypeFunction : TypeNext
             (stc & STC.nothrow_ && !t.isnothrow) ||
             (stc & STC.nogc && !t.isnogc) ||
             (stc & STC.scope_ && !t.isscope) ||
-            (stc & STC.safe && t.trust < TRUSTtrusted))
+            (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
             auto tf = new TypeFunction(t.parameters, t.next, t.varargs, t.linkage, 0);
@@ -5781,7 +5776,7 @@ extern (C++) final class TypeFunction : TypeNext
             if (stc & STC.nogc)
                 tf.isnogc = true;
             if (stc & STC.safe)
-                tf.trust = TRUSTsafe;
+                tf.trust = TRUST.safe;
             if (stc & STC.scope_)
             {
                 tf.isscope = true;
@@ -5837,11 +5832,11 @@ extern (C++) final class TypeFunction : TypeNext
 
         TRUST trustAttrib = trust;
 
-        if (trustAttrib == TRUSTdefault)
+        if (trustAttrib == TRUST.default_)
         {
-            // Print out "@system" when trust equals TRUSTdefault (if desired).
+            // Print out "@system" when trust equals TRUST.default_ (if desired).
             if (trustFormat == TRUSTformatSystem)
-                trustAttrib = TRUSTsystem;
+                trustAttrib = TRUST.system;
             else
                 return res; // avoid calling with an empty string
         }

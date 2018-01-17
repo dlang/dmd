@@ -2646,13 +2646,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sc.stc |= STC.property;
             if (tf.purity == PURE.fwdref)
                 sc.stc |= STC.pure_;
-            if (tf.trust != TRUSTdefault)
+            if (tf.trust != TRUST.default_)
                 sc.stc &= ~(STC.safe | STC.system | STC.trusted);
-            if (tf.trust == TRUSTsafe)
+            if (tf.trust == TRUST.safe)
                 sc.stc |= STC.safe;
-            if (tf.trust == TRUSTsystem)
+            if (tf.trust == TRUST.system)
                 sc.stc |= STC.system;
-            if (tf.trust == TRUSTtrusted)
+            if (tf.trust == TRUST.trusted)
                 sc.stc |= STC.trusted;
 
             if (funcdecl.isCtorDeclaration())

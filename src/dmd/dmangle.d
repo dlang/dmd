@@ -393,10 +393,10 @@ public:
                 buf.writestring("Nl");
             switch (ta.trust)
             {
-            case TRUSTtrusted:
+            case TRUST.trusted:
                 buf.writestring("Ne");
                 break;
-            case TRUSTsafe:
+            case TRUST.safe:
                 buf.writestring("Nf");
                 break;
             default:

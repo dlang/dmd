@@ -753,14 +753,14 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 //        if (tf.isreturn && !tf.isref)
 //            tf.isscope = true;                                  // return by itself means 'return scope'
 
-        if (tf.trust == TRUSTdefault)
+        if (tf.trust == TRUST.default_)
         {
             if (sc.stc & STC.safe)
-                tf.trust = TRUSTsafe;
+                tf.trust = TRUST.safe;
             else if (sc.stc & STC.system)
-                tf.trust = TRUSTsystem;
+                tf.trust = TRUST.system;
             else if (sc.stc & STC.trusted)
-                tf.trust = TRUSTtrusted;
+                tf.trust = TRUST.trusted;
         }
 
         if (sc.stc & STC.property)
@@ -774,14 +774,14 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
              * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
              * to be inferred first.
              */
-            if (tf.trust == TRUSTdefault)
+            if (tf.trust == TRUST.default_)
                 for (Dsymbol p = sc.func; p; p = p.toParent2())
                 {
                     FuncDeclaration fd = p.isFuncDeclaration();
                     if (fd)
                     {
                         if (fd.isSafeBypassingInference())
-                            tf.trust = TRUSTsafe; // default to @safe
+                            tf.trust = TRUST.safe; // default to @safe
                         break;
                     }
                 }

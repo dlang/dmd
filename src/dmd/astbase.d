@@ -270,16 +270,11 @@ struct ASTBase
 
     enum TRUST : int
     {
-        TRUSTdefault    = 0,
-        TRUSTsystem     = 1,    // @system (same as TRUSTdefault)
-        TRUSTtrusted    = 2,    // @trusted
-        TRUSTsafe       = 3,    // @safe
+        default_   = 0,
+        system     = 1,    // @system (same as TRUST.default)
+        trusted    = 2,    // @trusted
+        safe       = 3,    // @safe
     }
-
-    alias TRUSTdefault = TRUST.TRUSTdefault;
-    alias TRUSTsystem = TRUST.TRUSTsystem;
-    alias TRUSTtrusted = TRUST.TRUSTtrusted;
-    alias TRUSTsafe = TRUST.TRUSTsafe;
 
     enum PURE : int
     {
@@ -3857,13 +3852,13 @@ struct ASTBase
             if (stc & STC.scope_)
                 this.isscope = true;
 
-            this.trust = TRUSTdefault;
+            this.trust = TRUST.default_;
             if (stc & STC.safe)
-                this.trust = TRUSTsafe;
+                this.trust = TRUST.safe;
             if (stc & STC.system)
-                this.trust = TRUSTsystem;
+                this.trust = TRUST.system;
             if (stc & STC.trusted)
-                this.trust = TRUSTtrusted;
+                this.trust = TRUST.trusted;
         }
 
         override Type syntaxCopy()

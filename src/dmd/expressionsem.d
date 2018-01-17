@@ -3467,7 +3467,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (tf.trust <= TRUSTsystem && sc.func.setUnsafe())
+                if (tf.trust <= TRUST.system && sc.func.setUnsafe())
                 {
                     exp.error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());

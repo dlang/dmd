@@ -3281,13 +3281,13 @@ extern (C++) const(char)* trustToChars(TRUST trust)
 {
     switch (trust)
     {
-    case TRUSTdefault:
+    case TRUST.default_:
         return null;
-    case TRUSTsystem:
+    case TRUST.system:
         return "@system";
-    case TRUSTtrusted:
+    case TRUST.trusted:
         return "@trusted";
-    case TRUSTsafe:
+    case TRUST.safe:
         return "@safe";
     default:
         assert(0);
