@@ -836,9 +836,99 @@ $(GNAME Invariant):
     $(D invariant) $(GLINK2 statement, BlockStatement)
 )
 
-$(P Class invariants are used to specify characteristics of a class that always
-must be true (except while executing a member function). They are described in
-$(GLINK2 contracts, Invariants).)
+    $(P $(I Class Invariants) specify the relationships among the members of a class instance.
+    Those relationships must hold for any interactions with the instance from its
+    public interface.
+    )
+
+    $(P The invariant is in the form of a $(D const) member function. The invariant is defined
+    to $(I hold) if all the $(GLINK2 expression, AssertExpression)s within the invariant that are executed
+    succeed.
+    )
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(P Any class invariants for base classes are applied before the class invariant for the derived class.)
+
+    $(P There may be multiple invariants in a class. They are applied in lexical order.)
+
+    $(P $(I Class Invariants) must hold at the exit of the class constructor (if any),
+    at the entry of the class destructor (if any).)
+
+    $(P $(I Class Invariants) must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+    )
+
+    $(P The invariant need not hold if the class instance is implicitly constructed using
+    the default $(D .init) value.)
+
+    ---
+    class Date
+    {
+        this(int d, int h)
+        {
+            day = d;    // days are 1..31
+            hour = h;   // hours are 0..23
+        }
+
+        invariant
+        {
+            assert(1 <= day && day <= 31);
+            assert(0 <= hour && hour < 24);
+        }
+
+      private:
+        int day;
+        int hour;
+    }
+    ---
+
+    $(P Public or exported non-static member functions cannot be called from within an invariant.)
+
+    ---
+    class Foo
+    {
+        public void f() { }
+        private void g() { }
+
+        invariant
+        {
+            f();  // error, cannot call public member function from invariant
+            g();  // ok, g() is not public
+        }
+    }
+    ---
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the $(I Class Invariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Do not indirectly call exported or public member functions within a class invariant,
+    as this can result in infinite recursion.)
+    $(LI Avoid reliance on side effects in the invariant. as the invariant may or may not
+    be executed.)
+    $(LI Avoid having mutable public fields of classes with invariants,
+    as then the invariant cannot verify the public interface.)
+    )
+    )
+
 
 $(H2 $(LNAME2 allocators, Class Allocators))
 $(B Note): Class allocators are deprecated in D2.
