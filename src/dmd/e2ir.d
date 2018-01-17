@@ -1953,6 +1953,7 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(AssertExp ae)
         {
+            // https://dlang.org/spec/expression.html#assert_expressions
             //printf("AssertExp.toElem() %s\n", toChars());
             elem *e;
             if (global.params.useAssert == CHECKENABLE.on)
