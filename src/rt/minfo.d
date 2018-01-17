@@ -544,7 +544,7 @@ struct ModuleGroup
      * behavior.
      *
      * Params:
-     *   edges - The module edges as found in the `importedModules` member of
+     *   edges = The module edges as found in the `importedModules` member of
      *          each ModuleInfo. Generated in sortCtors.
      * Returns:
      *   true if no cycle is found, false if one was.
