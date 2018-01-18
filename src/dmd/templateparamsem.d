@@ -90,8 +90,8 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, tvp.valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOKint64 || e.op == TOKfloat64 ||
-                    e.op == TOKcomplex80 || e.op == TOKnull || e.op == TOKstring)
+                if (e.op == TOK.int64 || e.op == TOK.float64 ||
+                    e.op == TOK.complex80 || e.op == TOK.null_ || e.op == TOK.string_)
                     tvp.specValue = e;
             }
 
@@ -103,7 +103,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, tvp.valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOKint64)
+                if (e.op == TOK.int64)
                     tvp.defaultValue = e;
             }
         }

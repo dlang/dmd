@@ -455,7 +455,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             e = resolveProperties(sc, e);
             if (i >= nfields)
             {
-                if (i == fields.dim - 1 && isNested() && e.op == TOKnull)
+                if (i == fields.dim - 1 && isNested() && e.op == TOK.null_)
                 {
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
@@ -483,7 +483,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
              * Allow this by doing an explicit cast, which will lengthen the string
              * literal.
              */
-            if (e.op == TOKstring && tb.ty == Tsarray)
+            if (e.op == TOK.string_ && tb.ty == Tsarray)
             {
                 StringExp se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
@@ -511,7 +511,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
             e = e.implicitCastTo(sc, t);
         L1:
-            if (e.op == TOKerror)
+            if (e.op == TOK.error)
                 return false;
 
             (*elements)[i] = doCopyOrMove(sc, e);

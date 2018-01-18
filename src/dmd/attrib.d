@@ -791,9 +791,9 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             else
             {
                 Expression e = (*args)[0];
-                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
+                if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
                 {
-                    if (e.op != TOKerror)
+                    if (e.op != TOK.error)
                     {
                         error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
                         (*args)[0] = new ErrorExp();

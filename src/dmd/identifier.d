@@ -45,7 +45,7 @@ public:
     extern (D) this(const(char)* string) nothrow
     {
         //printf("Identifier('%s', %d)\n", string, value);
-        this(string, strlen(string), TOKidentifier);
+        this(string, strlen(string), TOK.identifier);
     }
 
     static Identifier create(const(char)* string) nothrow
@@ -152,7 +152,7 @@ nothrow:
         Identifier id = cast(Identifier)sv.ptrvalue;
         if (!id)
         {
-            id = new Identifier(sv.toDchars(), len, TOKidentifier);
+            id = new Identifier(sv.toDchars(), len, TOK.identifier);
             sv.ptrvalue = cast(char*)id;
         }
         return id;

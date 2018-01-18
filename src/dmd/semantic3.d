@@ -352,15 +352,15 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     if (!sc.intypeof)
                     {
-                        if (fld.tok == TOKdelegate)
+                        if (fld.tok == TOK.delegate_)
                             funcdecl.error("cannot be %s members", ad.kind());
                         else
-                            fld.tok = TOKfunction;
+                            fld.tok = TOK.function_;
                     }
                     else
                     {
-                        if (fld.tok != TOKfunction)
-                            fld.tok = TOKdelegate;
+                        if (fld.tok != TOK.function_)
+                            fld.tok = TOK.delegate_;
                     }
                 }
             }
@@ -588,7 +588,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     for (size_t i = 0; i < funcdecl.returns.dim;)
                     {
                         Expression exp = (*funcdecl.returns)[i].exp;
-                        if (exp.op == TOKvar && (cast(VarExp)exp).var == funcdecl.vresult)
+                        if (exp.op == TOK.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
                             if (f.next.ty == Tvoid && funcdecl.isMain())
                                 exp.type = Type.tint32;
@@ -797,7 +797,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         ReturnStatement rs = (*funcdecl.returns)[i];
                         Expression exp = rs.exp;
-                        if (exp.op == TOKerror)
+                        if (exp.op == TOK.error)
                             continue;
                         if (tret.ty == Terror)
                         {
@@ -939,8 +939,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             assert(v._init);
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
-                            if (ie.exp.op == TOKconstruct)
-                                ie.exp.op = TOKassign; // construction occurred in parameter processing
+                            if (ie.exp.op == TOK.construct)
+                                ie.exp.op = TOK.assign; // construction occurred in parameter processing
                             a.push(new ExpStatement(Loc(), ie.exp));
                         }
                     }

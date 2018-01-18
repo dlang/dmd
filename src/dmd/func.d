@@ -1638,9 +1638,9 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (auto fld = this.isFuncLiteralDeclaration())
         {
-            if (fld.tok == TOKreserved)
+            if (fld.tok == TOK.reserved)
             {
-                fld.tok = TOKfunction;
+                fld.tok = TOK.function_;
                 fld.vthis = null;
             }
         }
@@ -2913,7 +2913,7 @@ extern (C++) final class FuncAliasDeclaration : FuncDeclaration
  */
 extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 {
-    TOK tok;        // TOKfunction or TOKdelegate
+    TOK tok;        // TOK.function_ or TOK.delegate_
     Type treq;      // target of return type inference
 
     // backend
@@ -2940,12 +2940,12 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     override bool isNested()
     {
         //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
-        return (tok != TOKfunction) && !isThis();
+        return (tok != TOK.function_) && !isThis();
     }
 
     override AggregateDeclaration isThis()
     {
-        return tok == TOKdelegate ? super.isThis() : null;
+        return tok == TOK.delegate_ ? super.isThis() : null;
     }
 
     override bool isVirtual()
@@ -3023,7 +3023,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     override const(char)* kind() const
     {
         // GCC requires the (char*) casts
-        return (tok != TOKfunction) ? "delegate" : "function";
+        return (tok != TOK.function_) ? "delegate" : "function";
     }
 
     override const(char)* toPrettyChars(bool QualifyTypes = false)

@@ -82,9 +82,9 @@ private Dsymbol getDsymbolWithoutExpCtx(RootObject oarg)
 {
     if (auto e = isExpression(oarg))
     {
-        if (e.op == TOKdotvar)
+        if (e.op == TOK.dotVariable)
             return (cast(DotVarExp)e).var;
-        if (e.op == TOKdottd)
+        if (e.op == TOK.dotTemplateDeclaration)
             return (cast(DotTemplateExp)e).td;
     }
     return getDsymbol(oarg);
@@ -843,7 +843,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else if (e.ident == Id.getMember)
         {
-            if (ex.op == TOKdotid)
+            if (ex.op == TOK.dotIdentifier)
                 // Prevent semantic() from replacing Symbol with its initializer
                 (cast(DotIdExp)ex).wantsym = true;
             ex = ex.expressionSemantic(scx);
@@ -864,17 +864,17 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
              */
             auto exps = new Expressions();
             FuncDeclaration f;
-            if (ex.op == TOKvar)
+            if (ex.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)ex;
                 f = ve.var.isFuncDeclaration();
                 ex = null;
             }
-            else if (ex.op == TOKdotvar)
+            else if (ex.op == TOK.dotVariable)
             {
                 DotVarExp dve = cast(DotVarExp)ex;
                 f = dve.var.isFuncDeclaration();
-                if (dve.e1.op == TOKdottype || dve.e1.op == TOKthis)
+                if (dve.e1.op == TOK.dotType || dve.e1.op == TOK.this_)
                     ex = null;
                 else
                     ex = dve.e1;
@@ -1390,7 +1390,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     err |= tf.isnothrow && canThrow(ex, sc2.func, false);
                 }
                 ex = checkGC(sc2, ex);
-                if (ex.op == TOKerror)
+                if (ex.op == TOK.error)
                     err = true;
             }
 

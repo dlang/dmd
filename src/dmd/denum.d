@@ -230,7 +230,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
                  *   if (e > maxval)
                  *      maxval = e;
                  */
-                Expression ec = new CmpExp(id == Id.max ? TOKgt : TOKlt, em.loc, e, *pval);
+                Expression ec = new CmpExp(id == Id.max ? TOK.greaterThan : TOK.lessThan, em.loc, e, *pval);
                 inuse++;
                 ec = ec.expressionSemantic(em._scope);
                 inuse--;
@@ -241,7 +241,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         }
     Ldone:
         Expression e = *pval;
-        if (e.op != TOKerror)
+        if (e.op != TOK.error)
         {
             e = e.copy();
             e.loc = loc;

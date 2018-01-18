@@ -141,7 +141,7 @@ extern (C++) void genCmain(Scope* sc)
     p.scanloc = Loc();
     p.nextToken();
     m.members = p.parseModule();
-    assert(p.token.value == TOKeof);
+    assert(p.token.value == TOK.endOfFile);
     assert(!p.errors); // shouldn't have failed to parse it
     bool v = global.params.verbose;
     global.params.verbose = false;

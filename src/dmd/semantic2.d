@@ -273,15 +273,15 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         return false;
                     }
 
-                    if (e.op == TOKclassreference)
+                    if (e.op == TOK.classReference)
                         return true;
-                    if (e.op == TOKaddress && (cast(AddrExp)e).e1.op == TOKstructliteral)
+                    if (e.op == TOK.address && (cast(AddrExp)e).e1.op == TOK.structLiteral)
                         return true;
-                    if (e.op == TOKarrayliteral)
+                    if (e.op == TOK.arrayLiteral)
                         return arrayHasInvalidEnumInitializer((cast(ArrayLiteralExp)e).elements);
-                    if (e.op == TOKstructliteral)
+                    if (e.op == TOK.structLiteral)
                         return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
-                    if (e.op == TOKassocarrayliteral)
+                    if (e.op == TOK.assocArrayLiteral)
                     {
                         AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
                         return arrayHasInvalidEnumInitializer(ae.values) ||
@@ -301,13 +301,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
             if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei && ei.exp.op == TOKclassreference)
+                if (ei && ei.exp.op == TOK.classReference)
                     vd.error("is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
             else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
-                if (ei && ei.exp.op == TOKaddress && (cast(AddrExp)ei.exp).e1.op == TOKstructliteral)
+                if (ei && ei.exp.op == TOK.address && (cast(AddrExp)ei.exp).e1.op == TOK.structLiteral)
                     vd.error("is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
         }
@@ -453,7 +453,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         e = e.expressionSemantic(sc);
                         if (definitelyValueParameter(e))
                             e = e.ctfeInterpret();
-                        if (e.op == TOKtuple)
+                        if (e.op == TOK.tuple)
                         {
                             TupleExp te = cast(TupleExp)e;
                             eval(sc, te.exps);

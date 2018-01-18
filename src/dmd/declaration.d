@@ -88,7 +88,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             ((fd.isCtorDeclaration() && var.isField()) ||
              (fd.isStaticCtorDeclaration() && !var.isField())) &&
             fd.toParent2() == var.toParent2() &&
-            (!e1 || e1.op == TOKthis))
+            (!e1 || e1.op == TOK.this_))
         {
             bool result = true;
 
@@ -364,7 +364,7 @@ extern (C++) abstract class Declaration : Dsymbol
             }
         }
 
-        if (e1 && e1.op == TOKthis && isField())
+        if (e1 && e1.op == TOK.this_ && isField())
         {
             VarDeclaration vthis = (cast(ThisExp)e1).var;
             for (Scope* scx = sc; scx; scx = scx.enclosing)
@@ -642,7 +642,7 @@ extern (C++) final class TupleDeclaration : Declaration
             if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == TOKdsymbol)
+                if (e.op == TOK.dSymbol)
                 {
                     DsymbolExp ve = cast(DsymbolExp)e;
                     Declaration d = ve.s.isDeclaration();
@@ -1124,7 +1124,7 @@ extern (C++) class VarDeclaration : Declaration
                 RootObject o = (*v2.objects)[i];
                 assert(o.dyncast() == DYNCAST.expression);
                 Expression e = cast(Expression)o;
-                assert(e.op == TOKdsymbol);
+                assert(e.op == TOK.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
                 se.s.setFieldOffset(ad, poffset, isunion);
             }
@@ -1575,7 +1575,7 @@ extern (C++) class VarDeclaration : Declaration
             ExpInitializer ez = _init.isExpInitializer();
             assert(ez);
             Expression e = ez.exp;
-            if (e.op == TOKconstruct || e.op == TOKblit)
+            if (e.op == TOK.construct || e.op == TOK.blit)
                 e = (cast(AssignExp)e).e2;
             return lambdaCheckForNestedRef(e, sc);
         }

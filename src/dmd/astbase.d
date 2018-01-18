@@ -2021,7 +2021,7 @@ struct ASTBase
 
     extern (C++) final class ForeachRangeStatement : Statement
     {
-        TOK op;                 // TOKforeach or TOKforeach_reverse
+        TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
         Parameter prm;          // loop index variable
         Expression lwr;
         Expression upr;
@@ -2048,7 +2048,7 @@ struct ASTBase
 
     extern (C++) final class ForeachStatement : Statement
     {
-        TOK op;                     // TOKforeach or TOKforeach_reverse
+        TOK op;                     // TOK.foreach_ or TOK.foreach_reverse_
         Parameters* parameters;     // array of Parameter*'s
         Expression aggr;
         Statement _body;
@@ -3373,101 +3373,101 @@ struct ASTBase
             switch (ty)
             {
             case Tvoid:
-                d = Token.toChars(TOKvoid);
+                d = Token.toChars(TOK.void_);
                 break;
 
             case Tint8:
-                d = Token.toChars(TOKint8);
+                d = Token.toChars(TOK.int8);
                 flags |= TFlags.integral;
                 break;
 
             case Tuns8:
-                d = Token.toChars(TOKuns8);
+                d = Token.toChars(TOK.uns8);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tint16:
-                d = Token.toChars(TOKint16);
+                d = Token.toChars(TOK.int16);
                 flags |= TFlags.integral;
                 break;
 
             case Tuns16:
-                d = Token.toChars(TOKuns16);
+                d = Token.toChars(TOK.uns16);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tint32:
-                d = Token.toChars(TOKint32);
+                d = Token.toChars(TOK.int32);
                 flags |= TFlags.integral;
                 break;
 
             case Tuns32:
-                d = Token.toChars(TOKuns32);
+                d = Token.toChars(TOK.uns32);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tfloat32:
-                d = Token.toChars(TOKfloat32);
+                d = Token.toChars(TOK.float32);
                 flags |= TFlags.floating | TFlags.real_;
                 break;
 
             case Tint64:
-                d = Token.toChars(TOKint64);
+                d = Token.toChars(TOK.int64);
                 flags |= TFlags.integral;
                 break;
 
             case Tuns64:
-                d = Token.toChars(TOKuns64);
+                d = Token.toChars(TOK.uns64);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tint128:
-                d = Token.toChars(TOKint128);
+                d = Token.toChars(TOK.int128);
                 flags |= TFlags.integral;
                 break;
 
             case Tuns128:
-                d = Token.toChars(TOKuns128);
+                d = Token.toChars(TOK.uns128);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tfloat64:
-                d = Token.toChars(TOKfloat64);
+                d = Token.toChars(TOK.float64);
                 flags |= TFlags.floating | TFlags.real_;
                 break;
 
             case Tfloat80:
-                d = Token.toChars(TOKfloat80);
+                d = Token.toChars(TOK.float80);
                 flags |= TFlags.floating | TFlags.real_;
                 break;
 
             case Timaginary32:
-                d = Token.toChars(TOKimaginary32);
+                d = Token.toChars(TOK.imaginary32);
                 flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
             case Timaginary64:
-                d = Token.toChars(TOKimaginary64);
+                d = Token.toChars(TOK.imaginary64);
                 flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
             case Timaginary80:
-                d = Token.toChars(TOKimaginary80);
+                d = Token.toChars(TOK.imaginary80);
                 flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
             case Tcomplex32:
-                d = Token.toChars(TOKcomplex32);
+                d = Token.toChars(TOK.complex32);
                 flags |= TFlags.floating | TFlags.complex;
                 break;
 
             case Tcomplex64:
-                d = Token.toChars(TOKcomplex64);
+                d = Token.toChars(TOK.complex64);
                 flags |= TFlags.floating | TFlags.complex;
                 break;
 
             case Tcomplex80:
-                d = Token.toChars(TOKcomplex80);
+                d = Token.toChars(TOK.complex80);
                 flags |= TFlags.floating | TFlags.complex;
                 break;
 
@@ -3477,17 +3477,17 @@ struct ASTBase
                 break;
 
             case Tchar:
-                d = Token.toChars(TOKchar);
+                d = Token.toChars(TOK.char_);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Twchar:
-                d = Token.toChars(TOKwchar);
+                d = Token.toChars(TOK.wchar_);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tdchar:
-                d = Token.toChars(TOKdchar);
+                d = Token.toChars(TOK.dchar_);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
@@ -4248,7 +4248,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Dsymbol declaration)
         {
-            super(loc, TOKdeclaration, __traits(classInstanceSize, DeclarationExp));
+            super(loc, TOK.declaration, __traits(classInstanceSize, DeclarationExp));
             this.declaration = declaration;
         }
 
@@ -4264,7 +4264,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, dinteger_t value, Type type)
         {
-            super(loc, TOKint64, __traits(classInstanceSize, IntegerExp));
+            super(loc, TOK.int64, __traits(classInstanceSize, IntegerExp));
             assert(type);
             if (!type.isscalar())
             {
@@ -4356,7 +4356,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression thisexp, Expressions* newargs, ClassDeclaration cd, Expressions* arguments)
         {
-            super(loc, TOKnewanonclass, __traits(classInstanceSize, NewAnonClassExp));
+            super(loc, TOK.newAnonymousClass, __traits(classInstanceSize, NewAnonClassExp));
             this.thisexp = thisexp;
             this.newargs = newargs;
             this.cd = cd;
@@ -4380,7 +4380,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Type targ, Identifier id, TOK tok, Type tspec, TOK tok2, TemplateParameters* parameters)
         {
-            super(loc, TOKis, __traits(classInstanceSize, IsExp));
+            super(loc, TOK.is_, __traits(classInstanceSize, IsExp));
             this.targ = targ;
             this.id = id;
             this.tok = tok;
@@ -4401,7 +4401,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, real_t value, Type type)
         {
-            super(loc, TOKfloat64, __traits(classInstanceSize, RealExp));
+            super(loc, TOK.float64, __traits(classInstanceSize, RealExp));
             this.value = value;
             this.type = type;
         }
@@ -4416,7 +4416,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Type type = null)
         {
-            super(loc, TOKnull, __traits(classInstanceSize, NullExp));
+            super(loc, TOK.null_, __traits(classInstanceSize, NullExp));
             this.type = type;
         }
 
@@ -4432,7 +4432,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, RootObject o)
         {
-            super(loc, TOKtypeid, __traits(classInstanceSize, TypeidExp));
+            super(loc, TOK.typeid_, __traits(classInstanceSize, TypeidExp));
             this.obj = o;
         }
 
@@ -4449,7 +4449,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Identifier ident, Objects* args)
         {
-            super(loc, TOKtraits, __traits(classInstanceSize, TraitsExp));
+            super(loc, TOK.traits, __traits(classInstanceSize, TraitsExp));
             this.ident = ident;
             this.args = args;
         }
@@ -4474,7 +4474,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, char* string)
         {
-            super(loc, TOKstring, __traits(classInstanceSize, StringExp));
+            super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
             this.string = string;
             this.len = strlen(string);
             this.sz = 1;                    // work around LDC bug #1286
@@ -4482,7 +4482,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, void* string, size_t len)
         {
-            super(loc, TOKstring, __traits(classInstanceSize, StringExp));
+            super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
             this.len = len;
             this.sz = 1;                    // work around LDC bug #1286
@@ -4490,7 +4490,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, void* string, size_t len, char postfix)
         {
-            super(loc, TOKstring, __traits(classInstanceSize, StringExp));
+            super(loc, TOK.string_, __traits(classInstanceSize, StringExp));
             this.string = cast(char*)string;
             this.len = len;
             this.postfix = postfix;
@@ -4512,7 +4512,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression thisexp, Expressions* newargs, Type newtype, Expressions* arguments)
         {
-            super(loc, TOKnew, __traits(classInstanceSize, NewExp));
+            super(loc, TOK.new_, __traits(classInstanceSize, NewExp));
             this.thisexp = thisexp;
             this.newargs = newargs;
             this.newtype = newtype;
@@ -4532,7 +4532,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expressions* keys, Expressions* values)
         {
-            super(loc, TOKassocarrayliteral, __traits(classInstanceSize, AssocArrayLiteralExp));
+            super(loc, TOK.assocArrayLiteral, __traits(classInstanceSize, AssocArrayLiteralExp));
             assert(keys.dim == values.dim);
             this.keys = keys;
             this.values = values;
@@ -4551,20 +4551,20 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expressions* elements)
         {
-            super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
+            super(loc, TOK.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
             this.elements = elements;
         }
 
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
+            super(loc, TOK.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
             elements = new Expressions();
             elements.push(e);
         }
 
         extern (D) this(Loc loc, Expression basis, Expressions* elements)
         {
-            super(loc, TOKarrayliteral, __traits(classInstanceSize, ArrayLiteralExp));
+            super(loc, TOK.arrayLiteral, __traits(classInstanceSize, ArrayLiteralExp));
             this.basis = basis;
             this.elements = elements;
         }
@@ -4583,7 +4583,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Dsymbol s)
         {
-            super(loc, TOKfunction, __traits(classInstanceSize, FuncExp));
+            super(loc, TOK.function_, __traits(classInstanceSize, FuncExp));
             this.td = s.isTemplateDeclaration();
             this.fd = s.isFuncLiteralDeclaration();
             if (td)
@@ -4609,7 +4609,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression lwr, Expression upr)
         {
-            super(loc, TOKinterval, __traits(classInstanceSize, IntervalExp));
+            super(loc, TOK.interval, __traits(classInstanceSize, IntervalExp));
             this.lwr = lwr;
             this.upr = upr;
         }
@@ -4624,7 +4624,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Type type)
         {
-            super(loc, TOKtype, __traits(classInstanceSize, TypeExp));
+            super(loc, TOK.type, __traits(classInstanceSize, TypeExp));
             this.type = type;
         }
 
@@ -4640,7 +4640,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, ScopeDsymbol sds)
         {
-            super(loc, TOKscope, __traits(classInstanceSize, ScopeExp));
+            super(loc, TOK.scope_, __traits(classInstanceSize, ScopeExp));
             this.sds = sds;
             assert(!sds.isTemplateDeclaration());
         }
@@ -4657,7 +4657,7 @@ struct ASTBase
 
         final extern (D) this(Loc loc, Identifier ident)
         {
-            super(loc, TOKidentifier, __traits(classInstanceSize, IdentifierExp));
+            super(loc, TOK.identifier, __traits(classInstanceSize, IdentifierExp));
             this.ident = ident;
         }
 
@@ -4689,7 +4689,7 @@ struct ASTBase
 
         final extern (D) this(Loc loc, TOK subop, int size)
         {
-            super(loc, TOKdefault, size);
+            super(loc, TOK.default_, size);
             this.subop = subop;
         }
 
@@ -4724,7 +4724,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Dsymbol s, bool hasOverloads = true)
         {
-            super(loc, TOKdsymbol, __traits(classInstanceSize, DsymbolExp));
+            super(loc, TOK.dSymbol, __traits(classInstanceSize, DsymbolExp));
             this.s = s;
             this.hasOverloads = hasOverloads;
         }
@@ -4742,7 +4742,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, TemplateDeclaration td, FuncDeclaration fd = null)
         {
-            super(loc, TOKtemplate, __traits(classInstanceSize, TemplateExp));
+            super(loc, TOK.template_, __traits(classInstanceSize, TemplateExp));
             //printf("TemplateExp(): %s\n", td.toChars());
             this.td = td;
             this.fd = fd;
@@ -4780,7 +4780,7 @@ struct ASTBase
             if (var.isVarDeclaration())
                 hasOverloads = false;
 
-            super(loc, TOKvar, __traits(classInstanceSize, VarExp), var, hasOverloads);
+            super(loc, TOK.variable, __traits(classInstanceSize, VarExp), var, hasOverloads);
             this.type = var.type;
         }
 
@@ -4797,7 +4797,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e0, Expressions* exps)
         {
-            super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
+            super(loc, TOK.tuple, __traits(classInstanceSize, TupleExp));
             //printf("TupleExp(this = %p)\n", this);
             this.e0 = e0;
             this.exps = exps;
@@ -4805,14 +4805,14 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expressions* exps)
         {
-            super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
+            super(loc, TOK.tuple, __traits(classInstanceSize, TupleExp));
             //printf("TupleExp(this = %p)\n", this);
             this.exps = exps;
         }
 
         extern (D) this(Loc loc, TupleDeclaration tup)
         {
-            super(loc, TOKtuple, __traits(classInstanceSize, TupleExp));
+            super(loc, TOK.tuple, __traits(classInstanceSize, TupleExp));
             this.exps = new Expressions();
 
             this.exps.reserve(tup.objects.dim);
@@ -4857,16 +4857,16 @@ struct ASTBase
             if (ea)
             {
                 // Try to convert Expression to symbol
-                if (ea.op == TOKvar)
+                if (ea.op == TOK.variable)
                     sa = (cast(VarExp)ea).var;
-                else if (ea.op == TOKfunction)
+                else if (ea.op == TOK.function_)
                 {
                     if ((cast(FuncExp)ea).td)
                         sa = (cast(FuncExp)ea).td;
                     else
                         sa = (cast(FuncExp)ea).fd;
                 }
-                else if (ea.op == TOKtemplate)
+                else if (ea.op == TOK.template_)
                     sa = (cast(TemplateExp)ea).td;
                 else
                     sa = null;
@@ -4906,7 +4906,7 @@ struct ASTBase
     {
         final extern (D) this(Loc loc)
         {
-            super(loc, TOKthis, __traits(classInstanceSize, ThisExp));
+            super(loc, TOK.this_, __traits(classInstanceSize, ThisExp));
         }
 
         override void accept(Visitor v)
@@ -4920,7 +4920,7 @@ struct ASTBase
         extern (D) this(Loc loc)
         {
             super(loc);
-            op = TOKsuper;
+            op = TOK.super_;
         }
 
         override void accept(Visitor v)
@@ -4933,7 +4933,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKaddress, __traits(classInstanceSize, AddrExp), e);
+            super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
         }
 
         override void accept(Visitor v)
@@ -4959,11 +4959,11 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKstar, __traits(classInstanceSize, PtrExp), e);
+            super(loc, TOK.star, __traits(classInstanceSize, PtrExp), e);
         }
         extern (D) this(Loc loc, Expression e, Type t)
         {
-            super(loc, TOKstar, __traits(classInstanceSize, PtrExp), e);
+            super(loc, TOK.star, __traits(classInstanceSize, PtrExp), e);
             type = t;
         }
 
@@ -4977,7 +4977,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKneg, __traits(classInstanceSize, NegExp), e);
+            super(loc, TOK.negate, __traits(classInstanceSize, NegExp), e);
         }
 
         override void accept(Visitor v)
@@ -4990,7 +4990,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKuadd, __traits(classInstanceSize, UAddExp), e);
+            super(loc, TOK.uadd, __traits(classInstanceSize, UAddExp), e);
         }
 
         override void accept(Visitor v)
@@ -5003,7 +5003,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKnot, __traits(classInstanceSize, NotExp), e);
+            super(loc, TOK.not, __traits(classInstanceSize, NotExp), e);
         }
 
         override void accept(Visitor v)
@@ -5016,7 +5016,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKtilde, __traits(classInstanceSize, ComExp), e);
+            super(loc, TOK.tilde, __traits(classInstanceSize, ComExp), e);
         }
 
         override void accept(Visitor v)
@@ -5031,7 +5031,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, bool isRAII)
         {
-            super(loc, TOKdelete, __traits(classInstanceSize, DeleteExp), e);
+            super(loc, TOK.delete_, __traits(classInstanceSize, DeleteExp), e);
             this.isRAII = isRAII;
         }
 
@@ -5048,12 +5048,12 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, Type t)
         {
-            super(loc, TOKcast, __traits(classInstanceSize, CastExp), e);
+            super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
             this.to = t;
         }
         extern (D) this(Loc loc, Expression e, ubyte mod)
         {
-            super(loc, TOKcast, __traits(classInstanceSize, CastExp), e);
+            super(loc, TOK.cast_, __traits(classInstanceSize, CastExp), e);
             this.mod = mod;
         }
 
@@ -5069,18 +5069,18 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, Expressions* exps)
         {
-            super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
+            super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
             this.arguments = exps;
         }
 
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
+            super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
         }
 
         extern (D) this(Loc loc, Expression e, Expression earg1)
         {
-            super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
+            super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
             auto arguments = new Expressions();
             if (earg1)
             {
@@ -5092,7 +5092,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, Expression earg1, Expression earg2)
         {
-            super(loc, TOKcall, __traits(classInstanceSize, CallExp), e);
+            super(loc, TOK.call, __traits(classInstanceSize, CallExp), e);
             auto arguments = new Expressions();
             arguments.setDim(2);
             (*arguments)[0] = earg1;
@@ -5112,7 +5112,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, Identifier ident)
         {
-            super(loc, TOKdotid, __traits(classInstanceSize, DotIdExp), e);
+            super(loc, TOK.dotIdentifier, __traits(classInstanceSize, DotIdExp), e);
             this.ident = ident;
         }
 
@@ -5128,7 +5128,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, Expression msg = null)
         {
-            super(loc, TOKassert, __traits(classInstanceSize, AssertExp), e);
+            super(loc, TOK.assert_, __traits(classInstanceSize, AssertExp), e);
             this.msg = msg;
         }
 
@@ -5142,7 +5142,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKmixin, __traits(classInstanceSize, CompileExp), e);
+            super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
         }
 
         override void accept(Visitor v)
@@ -5155,7 +5155,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e)
         {
-            super(loc, TOKimport, __traits(classInstanceSize, ImportExp), e);
+            super(loc, TOK.import_, __traits(classInstanceSize, ImportExp), e);
         }
 
         override void accept(Visitor v)
@@ -5170,12 +5170,12 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
         {
-            super(loc, TOKdotti, __traits(classInstanceSize, DotTemplateInstanceExp), e);
+            super(loc, TOK.dotTemplateInstance, __traits(classInstanceSize, DotTemplateInstanceExp), e);
             this.ti = new TemplateInstance(loc, name, tiargs);
         }
         extern (D) this(Loc loc, Expression e, TemplateInstance ti)
         {
-            super(loc, TOKdotti, __traits(classInstanceSize, DotTemplateInstanceExp), e);
+            super(loc, TOK.dotTemplateInstance, __traits(classInstanceSize, DotTemplateInstanceExp), e);
             this.ti = ti;
         }
 
@@ -5191,7 +5191,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e1, Expression index = null)
         {
-            super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
+            super(loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
             arguments = new Expressions();
             if (index)
                 arguments.push(index);
@@ -5199,7 +5199,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e1, Expressions* args)
         {
-            super(loc, TOKarray, __traits(classInstanceSize, ArrayExp), e1);
+            super(loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
             arguments = args;
         }
 
@@ -5213,7 +5213,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc)
         {
-            super(loc, TOKfuncstring, __traits(classInstanceSize, FuncInitExp));
+            super(loc, TOK.functionString, __traits(classInstanceSize, FuncInitExp));
         }
 
         override void accept(Visitor v)
@@ -5226,7 +5226,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc)
         {
-            super(loc, TOKprettyfunc, __traits(classInstanceSize, PrettyFuncInitExp));
+            super(loc, TOK.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
         }
 
         override void accept(Visitor v)
@@ -5252,7 +5252,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc)
         {
-            super(loc, TOKline, __traits(classInstanceSize, LineInitExp));
+            super(loc, TOK.line, __traits(classInstanceSize, LineInitExp));
         }
 
         override void accept(Visitor v)
@@ -5265,7 +5265,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc)
         {
-            super(loc, TOKmodulestring, __traits(classInstanceSize, ModuleInitExp));
+            super(loc, TOK.moduleString, __traits(classInstanceSize, ModuleInitExp));
         }
 
         override void accept(Visitor v)
@@ -5281,7 +5281,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression e1, Expression e2, bool generated = true)
         {
-            super(loc, TOKcomma, __traits(classInstanceSize, CommaExp), e1, e2);
+            super(loc, TOK.comma, __traits(classInstanceSize, CommaExp), e1, e2);
             allowCommaExp = isGenerated = generated;
         }
 
@@ -5308,7 +5308,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKpow, __traits(classInstanceSize, PowExp), e1, e2);
+            super(loc, TOK.pow, __traits(classInstanceSize, PowExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5321,7 +5321,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKmul, __traits(classInstanceSize, MulExp), e1, e2);
+            super(loc, TOK.mul, __traits(classInstanceSize, MulExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5334,7 +5334,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKdiv, __traits(classInstanceSize, DivExp), e1, e2);
+            super(loc, TOK.div, __traits(classInstanceSize, DivExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5347,7 +5347,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKmod, __traits(classInstanceSize, ModExp), e1, e2);
+            super(loc, TOK.mod, __traits(classInstanceSize, ModExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5360,7 +5360,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKadd, __traits(classInstanceSize, AddExp), e1, e2);
+            super(loc, TOK.add, __traits(classInstanceSize, AddExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5373,7 +5373,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKmin, __traits(classInstanceSize, MinExp), e1, e2);
+            super(loc, TOK.min, __traits(classInstanceSize, MinExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5386,7 +5386,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKcat, __traits(classInstanceSize, CatExp), e1, e2);
+            super(loc, TOK.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5399,7 +5399,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKshl, __traits(classInstanceSize, ShlExp), e1, e2);
+            super(loc, TOK.leftShift, __traits(classInstanceSize, ShlExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5412,7 +5412,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKshr, __traits(classInstanceSize, ShrExp), e1, e2);
+            super(loc, TOK.rightShift, __traits(classInstanceSize, ShrExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5425,7 +5425,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKushr, __traits(classInstanceSize, UshrExp), e1, e2);
+            super(loc, TOK.unsignedRightShift, __traits(classInstanceSize, UshrExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5439,7 +5439,7 @@ struct ASTBase
         extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
         {
             super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);
-            assert(op == TOKequal || op == TOKnotequal);
+            assert(op == TOK.equal || op == TOK.notEqual);
         }
 
         override void accept(Visitor v)
@@ -5452,7 +5452,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKin, __traits(classInstanceSize, InExp), e1, e2);
+            super(loc, TOK.in_, __traits(classInstanceSize, InExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5491,7 +5491,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKand, __traits(classInstanceSize, AndExp), e1, e2);
+            super(loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5504,7 +5504,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKxor, __traits(classInstanceSize, XorExp), e1, e2);
+            super(loc, TOK.xor, __traits(classInstanceSize, XorExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5517,7 +5517,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKor, __traits(classInstanceSize, OrExp), e1, e2);
+            super(loc, TOK.or, __traits(classInstanceSize, OrExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5545,7 +5545,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression econd, Expression e1, Expression e2)
         {
-            super(loc, TOKquestion, __traits(classInstanceSize, CondExp), e1, e2);
+            super(loc, TOK.question, __traits(classInstanceSize, CondExp), e1, e2);
             this.econd = econd;
         }
 
@@ -5559,7 +5559,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKassign, __traits(classInstanceSize, AssignExp), e1, e2);
+            super(loc, TOK.assign, __traits(classInstanceSize, AssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5585,7 +5585,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKaddass, __traits(classInstanceSize, AddAssignExp), e1, e2);
+            super(loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5598,7 +5598,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKminass, __traits(classInstanceSize, MinAssignExp), e1, e2);
+            super(loc, TOK.minAssign, __traits(classInstanceSize, MinAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5611,7 +5611,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKmulass, __traits(classInstanceSize, MulAssignExp), e1, e2);
+            super(loc, TOK.mulAssign, __traits(classInstanceSize, MulAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5624,7 +5624,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKdivass, __traits(classInstanceSize, DivAssignExp), e1, e2);
+            super(loc, TOK.divAssign, __traits(classInstanceSize, DivAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5637,7 +5637,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKmodass, __traits(classInstanceSize, ModAssignExp), e1, e2);
+            super(loc, TOK.modAssign, __traits(classInstanceSize, ModAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5650,7 +5650,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKpowass, __traits(classInstanceSize, PowAssignExp), e1, e2);
+            super(loc, TOK.powAssign, __traits(classInstanceSize, PowAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5663,7 +5663,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKandass, __traits(classInstanceSize, AndAssignExp), e1, e2);
+            super(loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5676,7 +5676,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKorass, __traits(classInstanceSize, OrAssignExp), e1, e2);
+            super(loc, TOK.orAssign, __traits(classInstanceSize, OrAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5689,7 +5689,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKxorass, __traits(classInstanceSize, XorAssignExp), e1, e2);
+            super(loc, TOK.xorAssign, __traits(classInstanceSize, XorAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5702,7 +5702,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKshlass, __traits(classInstanceSize, ShlAssignExp), e1, e2);
+            super(loc, TOK.leftShiftAssign, __traits(classInstanceSize, ShlAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5715,7 +5715,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKshrass, __traits(classInstanceSize, ShrAssignExp), e1, e2);
+            super(loc, TOK.rightShiftAssign, __traits(classInstanceSize, ShrAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5728,7 +5728,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKushrass, __traits(classInstanceSize, UshrAssignExp), e1, e2);
+            super(loc, TOK.unsignedRightShiftAssign, __traits(classInstanceSize, UshrAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5741,7 +5741,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOKcatass, __traits(classInstanceSize, CatAssignExp), e1, e2);
+            super(loc, TOK.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -6223,37 +6223,37 @@ struct ASTBase
 
         static __gshared SCstring* table =
         [
-            SCstring(STC.auto_, TOKauto),
-            SCstring(STC.scope_, TOKscope),
-            SCstring(STC.static_, TOKstatic),
-            SCstring(STC.extern_, TOKextern),
-            SCstring(STC.const_, TOKconst),
-            SCstring(STC.final_, TOKfinal),
-            SCstring(STC.abstract_, TOKabstract),
-            SCstring(STC.synchronized_, TOKsynchronized),
-            SCstring(STC.deprecated_, TOKdeprecated),
-            SCstring(STC.override_, TOKoverride),
-            SCstring(STC.lazy_, TOKlazy),
-            SCstring(STC.alias_, TOKalias),
-            SCstring(STC.out_, TOKout),
-            SCstring(STC.in_, TOKin),
-            SCstring(STC.manifest, TOKenum),
-            SCstring(STC.immutable_, TOKimmutable),
-            SCstring(STC.shared_, TOKshared),
-            SCstring(STC.nothrow_, TOKnothrow),
-            SCstring(STC.wild, TOKwild),
-            SCstring(STC.pure_, TOKpure),
-            SCstring(STC.ref_, TOKref),
+            SCstring(STC.auto_, TOK.auto_),
+            SCstring(STC.scope_, TOK.scope_),
+            SCstring(STC.static_, TOK.static_),
+            SCstring(STC.extern_, TOK.extern_),
+            SCstring(STC.const_, TOK.const_),
+            SCstring(STC.final_, TOK.final_),
+            SCstring(STC.abstract_, TOK.abstract_),
+            SCstring(STC.synchronized_, TOK.synchronized_),
+            SCstring(STC.deprecated_, TOK.deprecated_),
+            SCstring(STC.override_, TOK.override_),
+            SCstring(STC.lazy_, TOK.lazy_),
+            SCstring(STC.alias_, TOK.alias_),
+            SCstring(STC.out_, TOK.out_),
+            SCstring(STC.in_, TOK.in_),
+            SCstring(STC.manifest, TOK.enum_),
+            SCstring(STC.immutable_, TOK.immutable_),
+            SCstring(STC.shared_, TOK.shared_),
+            SCstring(STC.nothrow_, TOK.nothrow_),
+            SCstring(STC.wild, TOK.inout_),
+            SCstring(STC.pure_, TOK.pure_),
+            SCstring(STC.ref_, TOK.ref_),
             SCstring(STC.tls),
-            SCstring(STC.gshared, TOKgshared),
-            SCstring(STC.nogc, TOKat, "@nogc"),
-            SCstring(STC.property, TOKat, "@property"),
-            SCstring(STC.safe, TOKat, "@safe"),
-            SCstring(STC.trusted, TOKat, "@trusted"),
-            SCstring(STC.system, TOKat, "@system"),
-            SCstring(STC.disable, TOKat, "@disable"),
-            SCstring(STC.future, TOKat, "@__future"),
-            SCstring(0, TOKreserved)
+            SCstring(STC.gshared, TOK.gshared),
+            SCstring(STC.nogc, TOK.at, "@nogc"),
+            SCstring(STC.property, TOK.at, "@property"),
+            SCstring(STC.safe, TOK.at, "@safe"),
+            SCstring(STC.trusted, TOK.at, "@trusted"),
+            SCstring(STC.system, TOK.at, "@system"),
+            SCstring(STC.disable, TOK.at, "@disable"),
+            SCstring(STC.future, TOK.at, "@__future"),
+            SCstring(0, TOK.reserved)
         ];
         for (int i = 0; table[i].stc; i++)
         {
@@ -6265,7 +6265,7 @@ struct ASTBase
                 if (tbl == STC.tls) // TOKtls was removed
                     return "__thread";
                 TOK tok = table[i].tok;
-                if (tok == TOKat)
+                if (tok == TOK.at)
                     return table[i].id;
                 else
                     return Token.toChars(tok);

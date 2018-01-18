@@ -313,27 +313,27 @@ struct Target
         bool supported;
         switch (op)
         {
-        case TOKneg, TOKuadd:
+        case TOK.negate, TOK.uadd:
             supported = tvec.isscalar();
             break;
 
-        case TOKlt, TOKgt, TOKle, TOKge, TOKequal, TOKnotequal, TOKidentity, TOKnotidentity:
+        case TOK.lessThan, TOK.greaterThan, TOK.lessOrEqual, TOK.greaterOrEqual, TOK.equal, TOK.notEqual, TOK.identity, TOK.notIdentity:
             supported = false;
             break;
 
-        case TOKunord, TOKlg, TOKleg, TOKule, TOKul, TOKuge, TOKug, TOKue:
+        case TOK.unord, TOK.lg, TOK.leg, TOK.ule, TOK.ul, TOK.uge, TOK.ug, TOK.ue:
             supported = false;
             break;
 
-        case TOKshl, TOKshlass, TOKshr, TOKshrass, TOKushr, TOKushrass:
+        case TOK.leftShift, TOK.leftShiftAssign, TOK.rightShift, TOK.rightShiftAssign, TOK.unsignedRightShift, TOK.unsignedRightShiftAssign:
             supported = false;
             break;
 
-        case TOKadd, TOKaddass, TOKmin, TOKminass:
+        case TOK.add, TOK.addAssign, TOK.min, TOK.minAssign:
             supported = tvec.isscalar();
             break;
 
-        case TOKmul, TOKmulass:
+        case TOK.mul, TOK.mulAssign:
             // only floats and short[8]/ushort[8] (PMULLW)
             if (tvec.isfloating() || tvec.elementType().size(Loc()) == 2 ||
                 // int[4]/uint[4] with SSE4.1 (PMULLD)
@@ -343,27 +343,27 @@ struct Target
                 supported = false;
             break;
 
-        case TOKdiv, TOKdivass:
+        case TOK.div, TOK.divAssign:
             supported = tvec.isfloating();
             break;
 
-        case TOKmod, TOKmodass:
+        case TOK.mod, TOK.modAssign:
             supported = false;
             break;
 
-        case TOKand, TOKandass, TOKor, TOKorass, TOKxor, TOKxorass:
+        case TOK.and, TOK.andAssign, TOK.or, TOK.orAssign, TOK.xor, TOK.xorAssign:
             supported = tvec.isintegral();
             break;
 
-        case TOKnot:
+        case TOK.not:
             supported = false;
             break;
 
-        case TOKtilde:
+        case TOK.tilde:
             supported = tvec.isintegral();
             break;
 
-        case TOKpow, TOKpowass:
+        case TOK.pow, TOK.powAssign:
             supported = false;
             break;
 

@@ -501,7 +501,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         foreach (e; *elements)
         {
-            if (e && e.op == TOKerror)
+            if (e && e.op == TOK.error)
                 return false;
         }
 

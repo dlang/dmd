@@ -34,9 +34,9 @@ import dmd.visitor;
  */
 extern (C++) bool isArrayOpValid(Expression e)
 {
-    if (e.op == TOKslice)
+    if (e.op == TOK.slice)
         return true;
-    if (e.op == TOKarrayliteral)
+    if (e.op == TOK.arrayLiteral)
     {
         Type t = e.type.toBasetype();
         while (t.ty == Tarray || t.ty == Tsarray)
@@ -50,17 +50,17 @@ extern (C++) bool isArrayOpValid(Expression e)
         {
             return isArrayOpValid((cast(UnaExp)e).e1);
         }
-        if (isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign)
+        if (isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOK.assign)
         {
             BinExp be = cast(BinExp)e;
             return isArrayOpValid(be.e1) && isArrayOpValid(be.e2);
         }
-        if (e.op == TOKconstruct)
+        if (e.op == TOK.construct)
         {
             BinExp be = cast(BinExp)e;
-            return be.e1.op == TOKslice && isArrayOpValid(be.e2);
+            return be.e1.op == TOK.slice && isArrayOpValid(be.e2);
         }
-        if (e.op == TOKcall)
+        if (e.op == TOK.call)
         {
             return false; // TODO: Decide if [] is required after arrayop calls.
         }
@@ -74,7 +74,7 @@ extern (C++) bool isArrayOpValid(Expression e)
 
 extern (C++) bool isNonAssignmentArrayOp(Expression e)
 {
-    if (e.op == TOKslice)
+    if (e.op == TOK.slice)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);
 
     Type tb = e.type.toBasetype();
@@ -135,7 +135,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         id = new DotIdExp(e.loc, id, Id.object);
         id = new DotIdExp(e.loc, id, Identifier.idPool("_arrayOp"));
         id = id.expressionSemantic(sc);
-        if (id.op != TOKtemplate)
+        if (id.op != TOK.template_)
             ObjectNotFound(Identifier.idPool("_arrayOp"));
         arrayOp = (cast(TemplateExp)id).td;
     }
@@ -160,7 +160,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
         e.error("slice `%s` is not mutable", e.e1.toChars());
         return new ErrorExp();
     }
-    if (e.e1.op == TOKarrayliteral)
+    if (e.e1.op == TOK.arrayLiteral)
     {
         return e.e1.modifiableLvalue(sc, e.e1);
     }
@@ -252,8 +252,8 @@ extern (C++) bool isUnaArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKneg:
-    case TOKtilde:
+    case TOK.negate:
+    case TOK.tilde:
         return true;
     default:
         break;
@@ -268,15 +268,15 @@ extern (C++) bool isBinArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKadd:
-    case TOKmin:
-    case TOKmul:
-    case TOKdiv:
-    case TOKmod:
-    case TOKxor:
-    case TOKand:
-    case TOKor:
-    case TOKpow:
+    case TOK.add:
+    case TOK.min:
+    case TOK.mul:
+    case TOK.div:
+    case TOK.mod:
+    case TOK.xor:
+    case TOK.and:
+    case TOK.or:
+    case TOK.pow:
         return true;
     default:
         break;
@@ -291,15 +291,15 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKaddass:
-    case TOKminass:
-    case TOKmulass:
-    case TOKdivass:
-    case TOKmodass:
-    case TOKxorass:
-    case TOKandass:
-    case TOKorass:
-    case TOKpowass:
+    case TOK.addAssign:
+    case TOK.minAssign:
+    case TOK.mulAssign:
+    case TOK.divAssign:
+    case TOK.modAssign:
+    case TOK.xorAssign:
+    case TOK.andAssign:
+    case TOK.orAssign:
+    case TOK.powAssign:
         return true;
     default:
         break;
@@ -313,9 +313,9 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 extern (C++) bool isArrayOpOperand(Expression e)
 {
     //printf("Expression.isArrayOpOperand() %s\n", e.toChars());
-    if (e.op == TOKslice)
+    if (e.op == TOK.slice)
         return true;
-    if (e.op == TOKarrayliteral)
+    if (e.op == TOK.arrayLiteral)
     {
         Type t = e.type.toBasetype();
         while (t.ty == Tarray || t.ty == Tsarray)
@@ -328,7 +328,7 @@ extern (C++) bool isArrayOpOperand(Expression e)
         return (isUnaArrayOp(e.op) ||
                 isBinArrayOp(e.op) ||
                 isBinAssignArrayOp(e.op) ||
-                e.op == TOKassign);
+                e.op == TOK.assign);
     }
     return false;
 }

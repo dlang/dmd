@@ -173,37 +173,37 @@ void MODtoBuffer(OutBuffer* buf, MOD mod) nothrow
         break;
 
     case MODFlags.immutable_:
-        buf.writestring(Token.toString(TOKimmutable));
+        buf.writestring(Token.toString(TOK.immutable_));
         break;
 
     case MODFlags.shared_:
-        buf.writestring(Token.toString(TOKshared));
+        buf.writestring(Token.toString(TOK.shared_));
         break;
 
     case MODFlags.shared_ | MODFlags.const_:
-        buf.writestring(Token.toString(TOKshared));
+        buf.writestring(Token.toString(TOK.shared_));
         buf.writeByte(' ');
         goto case; /+ fall through +/
     case MODFlags.const_:
-        buf.writestring(Token.toString(TOKconst));
+        buf.writestring(Token.toString(TOK.const_));
         break;
 
     case MODFlags.shared_ | MODFlags.wild:
-        buf.writestring(Token.toString(TOKshared));
+        buf.writestring(Token.toString(TOK.shared_));
         buf.writeByte(' ');
         goto case; /+ fall through +/
     case MODFlags.wild:
-        buf.writestring(Token.toString(TOKwild));
+        buf.writestring(Token.toString(TOK.inout_));
         break;
 
     case MODFlags.shared_ | MODFlags.wildconst:
-        buf.writestring(Token.toString(TOKshared));
+        buf.writestring(Token.toString(TOK.shared_));
         buf.writeByte(' ');
         goto case; /+ fall through +/
     case MODFlags.wildconst:
-        buf.writestring(Token.toString(TOKwild));
+        buf.writestring(Token.toString(TOK.inout_));
         buf.writeByte(' ');
-        buf.writestring(Token.toString(TOKconst));
+        buf.writestring(Token.toString(TOK.const_));
         break;
 
     default:
@@ -2594,14 +2594,14 @@ extern (C++) abstract class Type : RootObject
             printf("Type::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
         Expression ex = e;
-        while (ex.op == TOKcomma)
+        while (ex.op == TOK.comma)
             ex = (cast(CommaExp)ex).e2;
-        if (ex.op == TOKdotvar)
+        if (ex.op == TOK.dotVariable)
         {
             DotVarExp dv = cast(DotVarExp)ex;
             v = dv.var.isVarDeclaration();
         }
-        else if (ex.op == TOKvar)
+        else if (ex.op == TOK.variable)
         {
             VarExp ve = cast(VarExp)ex;
             v = ve.var.isVarDeclaration();
@@ -2845,15 +2845,15 @@ extern (C++) abstract class Type : RootObject
         Dsymbol s;
         switch (e.op)
         {
-            case TOKerror:
+            case TOK.error:
                 *pt = Type.terror;
                 return;
 
-            case TOKtype:
+            case TOK.type:
                 *pt = e.type;
                 return;
 
-            case TOKvar:
+            case TOK.variable:
                 s = (cast(VarExp)e).var;
                 if (s.isVarDeclaration())
                     goto default;
@@ -2861,32 +2861,32 @@ extern (C++) abstract class Type : RootObject
                 //    todo;
                 break;
 
-            case TOKtemplate:
+            case TOK.template_:
                 // TemplateDeclaration
                 s = (cast(TemplateExp)e).td;
                 break;
 
-            case TOKscope:
+            case TOK.scope_:
                 s = (cast(ScopeExp)e).sds;
                 // TemplateDeclaration, TemplateInstance, Import, Package, Module
                 break;
 
-            case TOKfunction:
+            case TOK.function_:
                 s = getDsymbol(e);
                 break;
 
-            //case TOKthis:
-            //case TOKsuper:
+            //case TOK.this_:
+            //case TOK.super_:
 
-            //case TOKtuple:
+            //case TOK.tuple:
 
-            //case TOKoverloadset:
+            //case TOK.overloadSet:
 
-            //case TOKdotvar:
-            //case TOKdottd:
-            //case TOKdotti:
-            //case TOKdottype:
-            //case TOKdotid:
+            //case TOK.dotVariable:
+            //case TOK.dotTemplateDeclaration:
+            //case TOK.dotTemplateInstance:
+            //case TOK.dotType:
+            //case TOK.dotIdentifier:
 
             default:
                 *pe = e;
@@ -3454,101 +3454,101 @@ extern (C++) final class TypeBasic : Type
         switch (ty)
         {
         case Tvoid:
-            d = Token.toChars(TOKvoid);
+            d = Token.toChars(TOK.void_);
             break;
 
         case Tint8:
-            d = Token.toChars(TOKint8);
+            d = Token.toChars(TOK.int8);
             flags |= TFlags.integral;
             break;
 
         case Tuns8:
-            d = Token.toChars(TOKuns8);
+            d = Token.toChars(TOK.uns8);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tint16:
-            d = Token.toChars(TOKint16);
+            d = Token.toChars(TOK.int16);
             flags |= TFlags.integral;
             break;
 
         case Tuns16:
-            d = Token.toChars(TOKuns16);
+            d = Token.toChars(TOK.uns16);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tint32:
-            d = Token.toChars(TOKint32);
+            d = Token.toChars(TOK.int32);
             flags |= TFlags.integral;
             break;
 
         case Tuns32:
-            d = Token.toChars(TOKuns32);
+            d = Token.toChars(TOK.uns32);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tfloat32:
-            d = Token.toChars(TOKfloat32);
+            d = Token.toChars(TOK.float32);
             flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Tint64:
-            d = Token.toChars(TOKint64);
+            d = Token.toChars(TOK.int64);
             flags |= TFlags.integral;
             break;
 
         case Tuns64:
-            d = Token.toChars(TOKuns64);
+            d = Token.toChars(TOK.uns64);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tint128:
-            d = Token.toChars(TOKint128);
+            d = Token.toChars(TOK.int128);
             flags |= TFlags.integral;
             break;
 
         case Tuns128:
-            d = Token.toChars(TOKuns128);
+            d = Token.toChars(TOK.uns128);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tfloat64:
-            d = Token.toChars(TOKfloat64);
+            d = Token.toChars(TOK.float64);
             flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Tfloat80:
-            d = Token.toChars(TOKfloat80);
+            d = Token.toChars(TOK.float80);
             flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Timaginary32:
-            d = Token.toChars(TOKimaginary32);
+            d = Token.toChars(TOK.imaginary32);
             flags |= TFlags.floating | TFlags.imaginary;
             break;
 
         case Timaginary64:
-            d = Token.toChars(TOKimaginary64);
+            d = Token.toChars(TOK.imaginary64);
             flags |= TFlags.floating | TFlags.imaginary;
             break;
 
         case Timaginary80:
-            d = Token.toChars(TOKimaginary80);
+            d = Token.toChars(TOK.imaginary80);
             flags |= TFlags.floating | TFlags.imaginary;
             break;
 
         case Tcomplex32:
-            d = Token.toChars(TOKcomplex32);
+            d = Token.toChars(TOK.complex32);
             flags |= TFlags.floating | TFlags.complex;
             break;
 
         case Tcomplex64:
-            d = Token.toChars(TOKcomplex64);
+            d = Token.toChars(TOK.complex64);
             flags |= TFlags.floating | TFlags.complex;
             break;
 
         case Tcomplex80:
-            d = Token.toChars(TOKcomplex80);
+            d = Token.toChars(TOK.complex80);
             flags |= TFlags.floating | TFlags.complex;
             break;
 
@@ -3558,17 +3558,17 @@ extern (C++) final class TypeBasic : Type
             break;
 
         case Tchar:
-            d = Token.toChars(TOKchar);
+            d = Token.toChars(TOK.char_);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Twchar:
-            d = Token.toChars(TOKwchar);
+            d = Token.toChars(TOK.wchar_);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tdchar:
-            d = Token.toChars(TOKdchar);
+            d = Token.toChars(TOK.dchar_);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
@@ -4387,9 +4387,9 @@ extern (C++) final class TypeVector : Type
         {
             printf("TypeVector::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        if (ident == Id.ptr && e.op == TOKcall)
+        if (ident == Id.ptr && e.op == TOK.call)
         {
-            /* The trouble with TOKcall is the return ABI for float[4] is different from
+            /* The trouble with TOK.call is the return ABI for float[4] is different from
              * __vector(float[4]), and a type paint won't do.
              */
             e = new AddrExp(e.loc, e);
@@ -4597,7 +4597,7 @@ extern (C++) final class TypeSArray : TypeArray
             {
                 dim = semanticLength(sc, tup, dim);
                 dim = dim.ctfeInterpret();
-                if (dim.op == TOKerror)
+                if (dim.op == TOK.error)
                 {
                     *ps = null;
                     *pt = Type.terror;
@@ -4621,7 +4621,7 @@ extern (C++) final class TypeSArray : TypeArray
                 if (o.dyncast() == DYNCAST.expression)
                 {
                     Expression e = cast(Expression)o;
-                    if (e.op == TOKdsymbol)
+                    if (e.op == TOK.dSymbol)
                     {
                         *ps = (cast(DsymbolExp)e).s;
                         *pe = null;
@@ -4676,7 +4676,7 @@ extern (C++) final class TypeSArray : TypeArray
         }
         else if (ident == Id.ptr)
         {
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
             {
                 e.error("`%s` is not an expression", e.toChars());
                 return new ErrorExp();
@@ -4920,19 +4920,19 @@ extern (C++) final class TypeDArray : TypeArray
         {
             printf("TypeDArray::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        if (e.op == TOKtype && (ident == Id.length || ident == Id.ptr))
+        if (e.op == TOK.type && (ident == Id.length || ident == Id.ptr))
         {
             e.error("`%s` is not an expression", e.toChars());
             return new ErrorExp();
         }
         if (ident == Id.length)
         {
-            if (e.op == TOKstring)
+            if (e.op == TOK.string_)
             {
                 StringExp se = cast(StringExp)e;
                 return new IntegerExp(se.loc, se.len, Type.tsize_t);
             }
-            if (e.op == TOKnull)
+            if (e.op == TOK.null_)
                 return new IntegerExp(e.loc, 0, Type.tsize_t);
             if (checkNonAssignmentArrayOp(e))
                 return new ErrorExp();
@@ -6024,7 +6024,7 @@ extern (C++) final class TypeFunction : TypeNext
                         if (p.storageClass & STC.out_)
                             goto Nomatch;
 
-                        if (arg.op == TOKstring && tp.ty == Tsarray)
+                        if (arg.op == TOK.string_ && tp.ty == Tsarray)
                         {
                             if (ta.ty != Tsarray)
                             {
@@ -6033,7 +6033,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 ta = tn.sarrayOf(dim);
                             }
                         }
-                        else if (arg.op == TOKslice && tp.ty == Tsarray)
+                        else if (arg.op == TOK.slice && tp.ty == Tsarray)
                         {
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             if (ta.ty != Tsarray)
@@ -6461,7 +6461,7 @@ extern (C++) abstract class TypeQualified : Type
 
         eindex = semanticLength(sc, tup, eindex);
         eindex = eindex.ctfeInterpret();
-        if (eindex.op == TOKerror)
+        if (eindex.op == TOK.error)
         {
             *pt = Type.terror;
             return;
@@ -6648,7 +6648,7 @@ extern (C++) abstract class TypeQualified : Type
                  *  enum a = 1; alias b = a;
                  *  template X(alias e){ alias v = e; }  alias x = X!(1);
                  *  struct S { int v; alias w = v; }
-                 *      // TypeIdentifier 'a', 'e', and 'v' should be TOKvar,
+                 *      // TypeIdentifier 'a', 'e', and 'v' should be TOK.variable,
                  *      // because getDsymbol() need to work in AliasDeclaration::semantic().
                  */
                 if (!v.type ||
@@ -6997,7 +6997,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         exp2 = resolvePropertiesOnly(sc2, exp2);
         sc2.pop();
 
-        if (exp2.op == TOKerror)
+        if (exp2.op == TOK.error)
         {
             if (!global.gag)
                 exp = exp2;
@@ -7005,8 +7005,8 @@ extern (C++) final class TypeTypeof : TypeQualified
         }
         exp = exp2;
 
-        if (exp.op == TOKtype ||
-            exp.op == TOKscope)
+        if (exp.op == TOK.type ||
+            exp.op == TOK.scope_)
         {
             if (exp.checkType())
                 goto Lerr;
@@ -7018,8 +7018,8 @@ extern (C++) final class TypeTypeof : TypeQualified
              * template functions.
              */
         }
-        if (auto f = exp.op == TOKvar    ? (cast(   VarExp)exp).var.isFuncDeclaration()
-                   : exp.op == TOKdotvar ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
+        if (auto f = exp.op == TOK.variable    ? (cast(   VarExp)exp).var.isFuncDeclaration()
+                   : exp.op == TOK.dotVariable ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
         {
             if (f.checkForwardRef(loc))
                 goto Lerr;
@@ -7220,7 +7220,7 @@ extern (C++) final class TypeStruct : Type
         {
             printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        assert(e.op != TOKdot);
+        assert(e.op != TOK.dot);
 
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
@@ -7238,7 +7238,7 @@ extern (C++) final class TypeStruct : Type
             sym.size(e.loc); // do semantic of type
 
             Expression e0;
-            Expression ev = e.op == TOKtype ? null : e;
+            Expression ev = e.op == TOK.type ? null : e;
             if (ev)
                 ev = extractSideEffect(sc, "__tup", e0, ev);
 
@@ -7356,7 +7356,7 @@ extern (C++) final class TypeStruct : Type
         TemplateDeclaration td = s.isTemplateDeclaration();
         if (td)
         {
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
                 e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
@@ -7376,7 +7376,7 @@ extern (C++) final class TypeStruct : Type
             s = ti.inst.toAlias();
             if (!s.isTemplateInstance())
                 goto L1;
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
                 e = new ScopeExp(e.loc, ti);
             else
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
@@ -7393,7 +7393,7 @@ extern (C++) final class TypeStruct : Type
         if (o)
         {
             auto oe = new OverExp(e.loc, o);
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
@@ -7405,7 +7405,7 @@ extern (C++) final class TypeStruct : Type
             return new ErrorExp();
         }
 
-        if (e.op == TOKtype)
+        if (e.op == TOK.type)
         {
             /* It's:
              *    Struct.d
@@ -7437,7 +7437,7 @@ extern (C++) final class TypeStruct : Type
             return ve;
         }
 
-        bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
+        bool unreal = e.op == TOK.variable && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
             // (e, d)
@@ -7510,7 +7510,7 @@ extern (C++) final class TypeStruct : Type
             }
             else
                 e = vd.type.defaultInitLiteral(loc);
-            if (e && e.op == TOKerror)
+            if (e && e.op == TOK.error)
                 return e;
             if (e)
                 offset = vd.offset + cast(uint)vd.type.size();
@@ -8026,7 +8026,7 @@ extern (C++) final class TypeClass : Type
         {
             printf("TypeClass::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        assert(e.op != TOKdot);
+        assert(e.op != TOK.dot);
 
         // https://issues.dlang.org/show_bug.cgi?id=12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
@@ -8045,7 +8045,7 @@ extern (C++) final class TypeClass : Type
             sym.size(e.loc); // do semantic of type
 
             Expression e0;
-            Expression ev = e.op == TOKtype ? null : e;
+            Expression ev = e.op == TOK.type ? null : e;
             if (ev)
                 ev = extractSideEffect(sc, "__tup", e0, ev);
 
@@ -8112,7 +8112,7 @@ extern (C++) final class TypeClass : Type
             // See if it's 'this' class or a base class
             if (sym.ident == ident)
             {
-                if (e.op == TOKtype)
+                if (e.op == TOK.type)
                     return Type.getProperty(e.loc, ident, 0);
                 e = new DotTypeExp(e.loc, e, sym);
                 e = e.expressionSemantic(sc);
@@ -8120,7 +8120,7 @@ extern (C++) final class TypeClass : Type
             }
             if (auto cbase = sym.searchBase(ident))
             {
-                if (e.op == TOKtype)
+                if (e.op == TOK.type)
                     return Type.getProperty(e.loc, ident, 0);
                 if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
@@ -8134,7 +8134,7 @@ extern (C++) final class TypeClass : Type
             {
                 assert(Type.typeinfoclass);
                 Type t = Type.typeinfoclass.type;
-                if (e.op == TOKtype || e.op == TOKdottype)
+                if (e.op == TOK.type || e.op == TOK.dotType)
                 {
                     /* For type.classinfo, we know the classinfo
                      * at compile time.
@@ -8308,7 +8308,7 @@ extern (C++) final class TypeClass : Type
         TemplateDeclaration td = s.isTemplateDeclaration();
         if (td)
         {
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
                 e = new TemplateExp(e.loc, td);
             else
                 e = new DotTemplateExp(e.loc, e, td);
@@ -8328,7 +8328,7 @@ extern (C++) final class TypeClass : Type
             s = ti.inst.toAlias();
             if (!s.isTemplateInstance())
                 goto L1;
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
                 e = new ScopeExp(e.loc, ti);
             else
                 e = new DotExp(e.loc, e, new ScopeExp(e.loc, ti));
@@ -8345,7 +8345,7 @@ extern (C++) final class TypeClass : Type
         if (o)
         {
             auto oe = new OverExp(e.loc, o);
-            if (e.op == TOKtype)
+            if (e.op == TOK.type)
                 return oe;
             return new DotExp(e.loc, e, oe);
         }
@@ -8357,7 +8357,7 @@ extern (C++) final class TypeClass : Type
             return new ErrorExp();
         }
 
-        if (e.op == TOKtype)
+        if (e.op == TOK.type)
         {
             /* It's:
              *    Class.d
@@ -8441,7 +8441,7 @@ extern (C++) final class TypeClass : Type
             return ve;
         }
 
-        bool unreal = e.op == TOKvar && (cast(VarExp)e).var.isField();
+        bool unreal = e.op == TOK.variable && (cast(VarExp)e).var.isField();
         if (d.isDataseg() || unreal && d.isField())
         {
             // (e, d)
@@ -8743,7 +8743,7 @@ extern (C++) final class TypeTuple : Type
             Parameter p = (*arguments)[i];
             assert(p.type);
             Expression e = p.type.defaultInitLiteral(loc);
-            if (e.op == TOKerror)
+            if (e.op == TOK.error)
                 return e;
             (*exps)[i] = e;
         }

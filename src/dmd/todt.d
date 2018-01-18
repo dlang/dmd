@@ -255,7 +255,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             {
                 if ((cast(TypeClass)e.type).sym.isInterfaceDeclaration()) // casting from class to interface
                 {
-                    assert(e.e1.op == TOKclassreference);
+                    assert(e.e1.op == TOK.classReference);
                     ClassDeclaration from = (cast(ClassReferenceExp)e.e1).originalClass();
                     InterfaceDeclaration to = (cast(TypeClass)e.type).sym.isInterfaceDeclaration();
                     int off = 0;
@@ -278,7 +278,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             {
                 printf("AddrExp.toDt() %d\n", e.op);
             }
-            if (e.e1.op == TOKstructliteral)
+            if (e.e1.op == TOK.structLiteral)
             {
                 StructLiteralExp sl = cast(StructLiteralExp)e.e1;
                 Symbol* s = toSymbol(sl);
@@ -536,10 +536,10 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
         override void visit(FuncExp e)
         {
             //printf("FuncExp.toDt() %d\n", e.op);
-            if (e.fd.tok == TOKreserved && e.type.ty == Tpointer)
+            if (e.fd.tok == TOK.reserved && e.type.ty == Tpointer)
             {
                 // change to non-nested
-                e.fd.tok = TOKfunction;
+                e.fd.tok = TOK.function_;
                 e.fd.vthis = null;
             }
             Symbol *s = toSymbol(e.fd);
@@ -558,7 +558,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             for (size_t i = 0; i < e.dim; i++)
             {
                 Expression elem;
-                if (e.e1.op == TOKarrayliteral)
+                if (e.e1.op == TOK.arrayLiteral)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
                     elem = ale.getElement(i);
@@ -915,9 +915,9 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
         {
             // https://issues.dlang.org/show_bug.cgi?id=1914
             // https://issues.dlang.org/show_bug.cgi?id=3198
-            if (e.op == TOKstring)
+            if (e.op == TOK.string_)
                 len /= (cast(StringExp)e).numberOfCodeUnits();
-            else if (e.op == TOKarrayliteral)
+            else if (e.op == TOK.arrayLiteral)
                 len /= (cast(ArrayLiteralExp)e).elements.dim;
         }
 

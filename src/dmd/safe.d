@@ -41,7 +41,7 @@ import dmd.tokens;
 
 bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 {
-    if (e.op != TOKdotvar)
+    if (e.op != TOK.dotVariable)
         return false;
     DotVarExp dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
@@ -145,7 +145,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
          */
         if (tfromn.ty == Tvoid && ttobn.isMutable())
         {
-            if (ttob.ty == Tarray && e.op == TOKarrayliteral)
+            if (ttob.ty == Tarray && e.op == TOK.arrayLiteral)
                 return true;
             return false;
         }

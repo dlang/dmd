@@ -201,7 +201,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 Initializer iz = i.value[j];
                 iz = iz.initializerSemantic(sc, vd.type.addMod(t.mod), needInterpret);
                 Expression ex = iz.initializerToExpression();
-                if (ex.op == TOKerror)
+                if (ex.op == TOK.error)
                 {
                     errors = true;
                     continue;
@@ -228,7 +228,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
         {
-            TOK tok = (t.ty == Tdelegate) ? TOKdelegate : TOKfunction;
+            TOK tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
              */
             auto parameters = new Parameters();
@@ -313,7 +313,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     errors = true;
                 }
                 length = cast(uint)idxvalue;
-                if (idx.op == TOKerror)
+                if (idx.op == TOK.error)
                     errors = true;
             }
             Initializer val = i.value[j];
@@ -325,7 +325,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 errors = true;
             ei = val.isExpInitializer();
             // found a tuple, expand it
-            if (ei && ei.exp.op == TOKtuple)
+            if (ei && ei.exp.op == TOK.tuple)
             {
                 TupleExp te = cast(TupleExp)ei.exp;
                 i.index.remove(j);
@@ -388,7 +388,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         i.exp = resolveProperties(sc, i.exp);
         if (needInterpret)
             sc = sc.endCTFE();
-        if (i.exp.op == TOKerror)
+        if (i.exp.op == TOK.error)
         {
             result = new ErrorInitializer();
             return;
@@ -425,7 +425,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             i.exp = new TupleExp(i.exp.loc, new Expressions());
             i.exp.type = et;
         }
-        if (i.exp.op == TOKtype)
+        if (i.exp.op == TOK.type)
         {
             i.exp.error("initializer must be an expression, not `%s`", i.exp.toChars());
             result = new ErrorInitializer();
@@ -440,7 +440,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         }
         Type tb = t.toBasetype();
         Type ti = i.exp.type.toBasetype();
-        if (i.exp.op == TOKtuple && i.expandTuples && !i.exp.implicitConvTo(t))
+        if (i.exp.op == TOK.tuple && i.expandTuples && !i.exp.implicitConvTo(t))
         {
             result = new ExpInitializer(i.loc, i.exp);
             return;
@@ -451,7 +451,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
          * Allow this by doing an explicit cast, which will lengthen the string
          * literal.
          */
-        if (i.exp.op == TOKstring && tb.ty == Tsarray)
+        if (i.exp.op == TOK.string_ && tb.ty == Tsarray)
         {
             StringExp se = cast(StringExp)i.exp;
             Type typeb = se.type.toBasetype();
@@ -504,12 +504,12 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             {
                 uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
                 uinteger_t dim2 = dim1;
-                if (i.exp.op == TOKarrayliteral)
+                if (i.exp.op == TOK.arrayLiteral)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)i.exp;
                     dim2 = ale.elements ? ale.elements.dim : 0;
                 }
-                else if (i.exp.op == TOKslice)
+                else if (i.exp.op == TOK.slice)
                 {
                     Type tx = toStaticArrayType(cast(SliceExp)i.exp);
                     if (tx)
@@ -524,7 +524,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             i.exp = i.exp.implicitCastTo(sc, t);
         }
     L1:
-        if (i.exp.op == TOKerror)
+        if (i.exp.op == TOK.error)
         {
             result = i;
             return;
@@ -595,7 +595,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 }
                 assert(iz.isExpInitializer());
                 (*values)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*values)[i].op != TOKerror);
+                assert((*values)[i].op != TOK.error);
             }
             Expression e = new AssocArrayLiteralExp(init.loc, keys, values);
             auto ei = new ExpInitializer(init.loc, e);
@@ -621,7 +621,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 }
                 assert(iz.isExpInitializer());
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*elements)[i].op != TOKerror);
+                assert((*elements)[i].op != TOK.error);
             }
             Expression e = new ArrayLiteralExp(init.loc, elements);
             auto ei = new ExpInitializer(init.loc, e);
@@ -646,11 +646,11 @@ private extern(C++) final class InferTypeVisitor : Visitor
         init.exp = init.exp.expressionSemantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-        if (init.exp.op == TOKtype)
+        if (init.exp.op == TOK.type)
             init.exp = resolveAliasThis(sc, init.exp);
 
         init.exp = resolveProperties(sc, init.exp);
-        if (init.exp.op == TOKscope)
+        if (init.exp.op == TOK.scope_)
         {
             ScopeExp se = cast(ScopeExp)init.exp;
             TemplateInstance ti = se.sds.isTemplateInstance();
@@ -678,17 +678,17 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 return;
             }
         }
-        if (init.exp.op == TOKaddress)
+        if (init.exp.op == TOK.address)
         {
             AddrExp ae = cast(AddrExp)init.exp;
-            if (ae.e1.op == TOKoverloadset)
+            if (ae.e1.op == TOK.overloadSet)
             {
                 init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
                 result = new ErrorInitializer();
                 return;
             }
         }
-        if (init.exp.op == TOKerror)
+        if (init.exp.op == TOK.error)
         {
             result = new ErrorInitializer();
             return;
@@ -784,7 +784,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             {
                 if (init.index[i])
                 {
-                    if (init.index[i].op == TOKint64)
+                    if (init.index[i].op == TOK.int64)
                     {
                         const uinteger_t idxval = init.index[i].toInteger();
                         if (idxval >= amax)
@@ -862,7 +862,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             for (size_t i = 0; i < edim; i++)
             {
                 Expression e = (*elements)[i];
-                if (e.op == TOKerror)
+                if (e.op == TOK.error)
                 {
                     result = e;
                     return;
@@ -884,7 +884,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
         {
             //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
             Type tb = itype.toBasetype();
-            Expression e = (i.exp.op == TOKconstruct || i.exp.op == TOKblit) ? (cast(AssignExp)i.exp).e2 : i.exp;
+            Expression e = (i.exp.op == TOK.construct || i.exp.op == TOK.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
             {
                 TypeSArray tsa = cast(TypeSArray)tb;

@@ -232,7 +232,7 @@ private final class CppMangleVisitor : Visitor
                     if (is_nested)
                         buf.writeByte('E');
                 }
-                else if (e && e.op == TOKvar && (cast(VarExp)e).var.isVarDeclaration())
+                else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
                 {
                     VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
                     buf.writeByte('L');

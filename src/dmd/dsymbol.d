@@ -1689,11 +1689,11 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         Expression eold = null;
         for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
         {
-            if (e.op == TOKscope)
+            if (e.op == TOK.scope_)
             {
                 s = (cast(ScopeExp)e).sds;
             }
-            else if (e.op == TOKtype)
+            else if (e.op == TOK.type)
             {
                 s = e.type.toDsymbol(null);
             }
@@ -1736,7 +1736,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 
     extern (D) this(Scope* sc, Expression e)
     {
-        assert(e.op == TOKindex || e.op == TOKslice || e.op == TOKarray);
+        assert(e.op == TOK.index || e.op == TOK.slice || e.op == TOK.array);
         exp = e;
         this.sc = sc;
     }
@@ -1783,7 +1783,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 v.dsymbolSemantic(sc);
                 return v;
             }
-            if (exp.op == TOKindex)
+            if (exp.op == TOK.index)
             {
                 /* array[index] where index is some function of $
                  */
@@ -1791,7 +1791,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 pvar = &ie.lengthVar;
                 ce = ie.e1;
             }
-            else if (exp.op == TOKslice)
+            else if (exp.op == TOK.slice)
             {
                 /* array[lwr .. upr] where lwr or upr is some function of $
                  */
@@ -1799,7 +1799,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 pvar = &se.lengthVar;
                 ce = se.e1;
             }
-            else if (exp.op == TOKarray)
+            else if (exp.op == TOK.array)
             {
                 /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
                  * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
@@ -1814,13 +1814,13 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                  */
                 return null;
             }
-            while (ce.op == TOKcomma)
+            while (ce.op == TOK.comma)
                 ce = (cast(CommaExp)ce).e2;
             /* If we are indexing into an array that is really a type
              * tuple, rewrite this as an index into a type tuple and
              * try again.
              */
-            if (ce.op == TOKtype)
+            if (ce.op == TOK.type)
             {
                 Type t = (cast(TypeExp)ce).type;
                 if (t.ty == Ttuple)
@@ -1838,7 +1838,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                  */
                 VarDeclaration v;
                 Type t;
-                if (ce.op == TOKtuple)
+                if (ce.op == TOK.tuple)
                 {
                     /* It is for an expression tuple, so the
                      * length will be a const.
@@ -1850,7 +1850,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
                 {
                     // Look for opDollar
-                    assert(exp.op == TOKarray || exp.op == TOKslice);
+                    assert(exp.op == TOK.array || exp.op == TOK.slice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
                     Dsymbol s = ad.search(loc, Id.opDollar);
@@ -1862,11 +1862,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     if (TemplateDeclaration td = s.isTemplateDeclaration())
                     {
                         dinteger_t dim = 0;
-                        if (exp.op == TOKarray)
+                        if (exp.op == TOK.array)
                         {
                             dim = (cast(ArrayExp)exp).currentDimension;
                         }
-                        else if (exp.op == TOKslice)
+                        else if (exp.op == TOK.slice)
                         {
                             dim = 0; // slices are currently always one-dimensional
                         }
@@ -1887,7 +1887,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                          * Note that it's impossible to have both template & function opDollar,
                          * because both take no arguments.
                          */
-                        if (exp.op == TOKarray && (cast(ArrayExp)exp).arguments.dim != 1)
+                        if (exp.op == TOK.array && (cast(ArrayExp)exp).arguments.dim != 1)
                         {
                             exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
                             return null;

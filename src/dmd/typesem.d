@@ -264,7 +264,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             mtype.dim = semanticLength(sc, tup, mtype.dim);
             mtype.dim = mtype.dim.ctfeInterpret();
-            if (mtype.dim.op == TOKerror)
+            if (mtype.dim.op == TOK.error)
             {
                 result = errorReturn();
                 return;
@@ -309,7 +309,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
             mtype.dim = mtype.dim.optimize(WANTvalue);
             mtype.dim = mtype.dim.ctfeInterpret();
-            if (mtype.dim.op == TOKerror)
+            if (mtype.dim.op == TOK.error)
             {
                 result = errorReturn();
                 return;
@@ -324,7 +324,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
             mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
             mtype.dim = mtype.dim.optimize(WANTvalue);
-            if (mtype.dim.op == TOKerror)
+            if (mtype.dim.op == TOK.error)
             {
                 result = errorReturn();
                 return;
@@ -337,7 +337,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 return;
             }
 
-            if (mtype.dim.op == TOKerror)
+            if (mtype.dim.op == TOK.error)
             {
                 result = errorReturn();
                 return;
@@ -953,7 +953,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         iz = iz.initializerSemantic(argsc, fparam.type, INITnointerpret);
                         e = iz.initializerToExpression();
                     }
-                    if (e.op == TOKfunction) // https://issues.dlang.org/show_bug.cgi?id=4820
+                    if (e.op == TOK.function_) // https://issues.dlang.org/show_bug.cgi?id=4820
                     {
                         FuncExp fe = cast(FuncExp)e;
                         // Replace function literal with a function symbol,
@@ -970,7 +970,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                         e = e.toLvalue(argsc, e);
 
                     fparam.defaultArg = e;
-                    if (e.op == TOKerror)
+                    if (e.op == TOK.error)
                         errors = true;
                 }
 
@@ -1341,7 +1341,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         mtype.upr = semanticLength(sc, tbn, mtype.upr);
         mtype.lwr = mtype.lwr.ctfeInterpret();
         mtype.upr = mtype.upr.ctfeInterpret();
-        if (mtype.lwr.op == TOKerror || mtype.upr.op == TOKerror)
+        if (mtype.lwr.op == TOK.error || mtype.upr.op == TOK.error)
         {
             result = Type.terror;
             return;

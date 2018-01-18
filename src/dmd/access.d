@@ -421,7 +421,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     {
         // Do access check
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
-        if (e.op == TOKsuper)
+        if (e.op == TOK.super_)
         {
             ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration();
             if (cd2)

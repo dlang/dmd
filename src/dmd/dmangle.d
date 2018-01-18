@@ -765,19 +765,19 @@ public:
                 // Only constfold manifest constants, not const/immutable lvalues, see https://issues.dlang.org/show_bug.cgi?id=17339.
                 enum keepLvalue = true;
                 ea = ea.optimize(WANTvalue, keepLvalue);
-                if (ea.op == TOKvar)
+                if (ea.op == TOK.variable)
                 {
                     sa = (cast(VarExp)ea).var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOKthis)
+                if (ea.op == TOK.this_)
                 {
                     sa = (cast(ThisExp)ea).var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOKfunction)
+                if (ea.op == TOK.function_)
                 {
                     if ((cast(FuncExp)ea).td)
                         sa = (cast(FuncExp)ea).td;
@@ -787,7 +787,7 @@ public:
                     goto Lsa;
                 }
                 buf.writeByte('V');
-                if (ea.op == TOKtuple)
+                if (ea.op == TOK.tuple)
                 {
                     ea.error("tuple is not a valid template value argument");
                     continue;
@@ -795,7 +795,7 @@ public:
                 // Now that we know it is not an alias, we MUST obtain a value
                 uint olderr = global.errors;
                 ea = ea.ctfeInterpret();
-                if (ea.op == TOKerror || olderr != global.errors)
+                if (ea.op == TOK.error || olderr != global.errors)
                     continue;
 
                 /* Use type mangling that matches what it would be for a function parameter

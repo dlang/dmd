@@ -8,12 +8,12 @@ void main()
     import dmd.tokens;
 
     immutable expected = [
-        TOKvoid,
-        TOKidentifier,
-        TOKlparen,
-        TOKrparen,
-        TOKlcurly,
-        TOKrcurly
+        TOK.void_,
+        TOK.identifier,
+        TOK.leftParentheses,
+        TOK.rightParentheses,
+        TOK.leftCurly,
+        TOK.rightCurly
     ];
 
     immutable sourceCode = "void test() {} // foobar";
@@ -25,7 +25,7 @@ void main()
     do
     {
         result ~= lexer.token.value;
-    } while (lexer.nextToken != TOKeof);
+    } while (lexer.nextToken != TOK.endOfFile);
 
     assert(result == expected);
 }

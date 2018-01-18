@@ -214,14 +214,14 @@ extern(C++) private final class Supported : Objc
         {
             Expression uda = (*udas)[i];
             assert(uda);
-            if (uda.op != TOKtuple)
+            if (uda.op != TOK.tuple)
                 continue;
             Expressions* exps = (cast(TupleExp)uda).exps;
             for (size_t j = 0; j < exps.dim; j++)
             {
                 Expression e = (*exps)[j];
                 assert(e);
-                if (e.op != TOKstructliteral)
+                if (e.op != TOK.structLiteral)
                     continue;
                 StructLiteralExp literal = cast(StructLiteralExp)e;
                 assert(literal.sd);

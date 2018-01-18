@@ -113,7 +113,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             //printf("StringExp::implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
             visit(cast(Expression)e);
-            if (result.op == TOKstring)
+            if (result.op == TOK.string_)
             {
                 // Retain polysemous nature if it started out that way
                 (cast(StringExp)result).committed = e.committed;
@@ -149,11 +149,11 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
         override void visit(SliceExp e)
         {
             visit(cast(Expression)e);
-            if (result.op != TOKslice)
+            if (result.op != TOK.slice)
                 return;
 
             e = cast(SliceExp)result;
-            if (e.e1.op == TOKarrayliteral)
+            if (e.e1.op == TOK.arrayLiteral)
             {
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
                 Type tb = t.toBasetype();
@@ -895,7 +895,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             size_t nparams = Parameter.dim(tf.parameters);
             size_t j = (tf.linkage == LINK.d && tf.varargs == 1); // if TypeInfoArray was prepended
-            if (e.e1.op == TOKdotvar)
+            if (e.e1.op == TOK.dotVariable)
             {
                 /* Treat 'this' as just another function argument
                  */
@@ -956,7 +956,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type typeb = e.type.toBasetype();
 
             // Look for pointers to functions where the functions are overloaded.
-            if (e.e1.op == TOKoverloadset &&
+            if (e.e1.op == TOK.overloadSet &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
                 OverExp eo = cast(OverExp)e.e1;
@@ -982,7 +982,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 }
             }
 
-            if (e.e1.op == TOKvar &&
+            if (e.e1.op == TOK.variable &&
                 typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
                 tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
             {
@@ -1386,7 +1386,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
 
             // Enhancement 10724
-            if (tb.ty == Tpointer && e.e1.op == TOKstring)
+            if (tb.ty == Tpointer && e.e1.op == TOK.string_)
                 e.e1.accept(this);
         }
     }
@@ -1451,7 +1451,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = e;
                 return;
             }
-            if (e.op == TOKvar)
+            if (e.op == TOK.variable)
             {
                 VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
                 if (v && v.storage_class & STC.manifest)
@@ -1688,7 +1688,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         {
             //printf("NullExp::castTo(t = %s) %s\n", t.toChars(), toChars());
             visit(cast(Expression)e);
-            if (result.op == TOKnull)
+            if (result.op == TOK.null_)
             {
                 NullExp ex = cast(NullExp)result;
                 ex.committed = 1;
@@ -1699,7 +1699,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
         override void visit(StructLiteralExp e)
         {
             visit(cast(Expression)e);
-            if (result.op == TOKstructliteral)
+            if (result.op == TOK.structLiteral)
                 (cast(StructLiteralExp)result).stype = t; // commit type
         }
 
@@ -1991,7 +1991,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
             // Look for pointers to functions where the functions are overloaded.
-            if (e.e1.op == TOKoverloadset &&
+            if (e.e1.op == TOK.overloadSet &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
                 OverExp eo = cast(OverExp)e.e1;
@@ -2025,7 +2025,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
             }
 
-            if (e.e1.op == TOKvar &&
+            if (e.e1.op == TOK.variable &&
                 typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
                 tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
             {
@@ -2461,7 +2461,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 if (e.e1.implicitConvTo(t1b) > MATCH.nomatch)
                 {
                     Expression e1x = e.e1.implicitCastTo(sc, t1b);
-                    assert(e1x.op != TOKerror);
+                    assert(e1x.op != TOK.error);
                     e = cast(SliceExp)e.copy();
                     e.e1 = e1x;
                     e.type = t;
@@ -2633,7 +2633,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
     if (sc.func && !sc.intypeof)
     {
         eoff = eoff.optimize(WANTvalue);
-        if (eoff.op == TOKint64 && eoff.toInteger() == 0)
+        if (eoff.op == TOK.int64 && eoff.toInteger() == 0)
         {
         }
         else if (sc.func.setUnsafe())
@@ -2655,7 +2655,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
  */
 private bool isVoidArrayLiteral(Expression e, Type other)
 {
-    while (e.op == TOKarrayliteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
+    while (e.op == TOK.arrayLiteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
     {
         auto ale = cast(ArrayLiteralExp)e;
         e = ale.getElement(0);
@@ -2667,7 +2667,7 @@ private bool isVoidArrayLiteral(Expression e, Type other)
     if (other.ty != Tsarray && other.ty != Tarray)
         return false;
     Type t = e.type;
-    return (e.op == TOKarrayliteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
+    return (e.op == TOK.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
 }
 
 /**************************************
@@ -2690,7 +2690,7 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
 
-    if (op != TOKquestion || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
+    if (op != TOK.question || t1b.ty != t2b.ty && (t1b.isTypeBasic() && t2b.isTypeBasic()))
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
@@ -2884,7 +2884,7 @@ Lagain:
             goto Lincompatible;
         }
     }
-    else if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOKnull && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOKarrayliteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && (cast(TypeSArray)t2).dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
+    else if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOK.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOK.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && (cast(TypeSArray)t2).dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
     {
         /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
@@ -2895,7 +2895,7 @@ Lagain:
          */
         goto Lx1;
     }
-    else if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOKnull && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOKarrayliteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
+    else if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
     {
         /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
@@ -2912,9 +2912,9 @@ Lagain:
         // Tsarray op [x, y, ...] should to be Tsarray
         // https://issues.dlang.org/show_bug.cgi?id=14737
         // Tsarray ~ [x, y, ...] should to be Tarray
-        if (t1.ty == Tsarray && e2.op == TOKarrayliteral && op != TOKcat)
+        if (t1.ty == Tsarray && e2.op == TOK.arrayLiteral && op != TOK.concatenate)
             goto Lt1;
-        if (m == MATCH.constant && (op == TOKaddass || op == TOKminass || op == TOKmulass || op == TOKdivass || op == TOKmodass || op == TOKpowass || op == TOKandass || op == TOKorass || op == TOKxorass))
+        if (m == MATCH.constant && (op == TOK.addAssign || op == TOK.minAssign || op == TOK.mulAssign || op == TOK.divAssign || op == TOK.modAssign || op == TOK.powAssign || op == TOK.andAssign || op == TOK.orAssign || op == TOK.xorAssign))
         {
             // Don't make the lvalue const
             t = t2;
@@ -2926,7 +2926,7 @@ Lagain:
     {
         // https://issues.dlang.org/show_bug.cgi?id=7285
         // https://issues.dlang.org/show_bug.cgi?id=14737
-        if (t2.ty == Tsarray && e1.op == TOKarrayliteral && op != TOKcat)
+        if (t2.ty == Tsarray && e1.op == TOK.arrayLiteral && op != TOK.concatenate)
             goto Lt2;
         goto Lt1;
     }
@@ -2938,9 +2938,9 @@ Lagain:
         Type t1n = t1.nextOf();
         Type t2n = t2.nextOf();
         ubyte mod;
-        if (e1.op == TOKnull && e2.op != TOKnull)
+        if (e1.op == TOK.null_ && e2.op != TOK.null_)
             mod = t2n.mod;
-        else if (e1.op != TOKnull && e2.op == TOKnull)
+        else if (e1.op != TOK.null_ && e2.op == TOK.null_)
             mod = t1n.mod;
         else if (!t1n.isImmutable() && !t2n.isImmutable() && t1n.isShared() != t2n.isShared())
             goto Lincompatible;
@@ -2964,9 +2964,9 @@ Lagain:
         if (t1.mod != t2.mod)
         {
             ubyte mod;
-            if (e1.op == TOKnull && e2.op != TOKnull)
+            if (e1.op == TOK.null_ && e2.op != TOK.null_)
                 mod = t2.mod;
-            else if (e1.op != TOKnull && e2.op == TOKnull)
+            else if (e1.op != TOK.null_ && e2.op == TOK.null_)
                 mod = t1.mod;
             else if (!t1.isImmutable() && !t2.isImmutable() && t1.isShared() != t2.isShared())
                 goto Lincompatible;
@@ -3148,11 +3148,11 @@ Lagain:
         }
         goto Lincompatible;
     }
-    else if ((e1.op == TOKstring || e1.op == TOKnull) && e1.implicitConvTo(t2))
+    else if ((e1.op == TOK.string_ || e1.op == TOK.null_) && e1.implicitConvTo(t2))
     {
         goto Lt2;
     }
-    else if ((e2.op == TOKstring || e2.op == TOKnull) && e2.implicitConvTo(t1))
+    else if ((e2.op == TOK.string_ || e2.op == TOK.null_) && e2.implicitConvTo(t1))
     {
         goto Lt1;
     }
@@ -3347,7 +3347,7 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
     Expression errorReturn()
     {
         Expression ex = be.incompatibleTypes();
-        if (ex.op == TOKerror)
+        if (ex.op == TOK.error)
             return ex;
         return new ErrorExp();
     }
@@ -3355,7 +3355,7 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
     Type t1 = be.e1.type.toBasetype();
     Type t2 = be.e2.type.toBasetype();
 
-    if (be.op == TOKmin || be.op == TOKadd)
+    if (be.op == TOK.min || be.op == TOK.add)
     {
         // struct+struct, and class+class are errors
         if (t1.ty == Tstruct && t2.ty == Tstruct)
@@ -3370,9 +3370,9 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
         return errorReturn();
 
     // If the types have no value, return an error
-    if (be.e1.op == TOKerror)
+    if (be.e1.op == TOK.error)
         return be.e1;
-    if (be.e2.op == TOKerror)
+    if (be.e2.op == TOK.error)
         return be.e2;
     return null;
 }
