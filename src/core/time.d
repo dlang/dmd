@@ -520,7 +520,7 @@ public:
     {
         foreach(T; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
-            foreach(U; _TypeTuple!(Duration, const Duration, immutable Duration))
+            foreach(U; _TypeTuple!(Duration, /*const Duration,*/ immutable Duration))
             {
                 T t = 42;
                 U u = t;
