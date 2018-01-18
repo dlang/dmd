@@ -1959,7 +1959,7 @@ public:
         parametersToBuffer(tf.parameters, tf.varargs);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
-        if (f.semanticRun >= PASSsemantic3done && cs)
+        if (f.semanticRun >= PASS.semantic3done && cs)
         {
             s1 = (*cs.statements)[cs.statements.dim - 1];
         }

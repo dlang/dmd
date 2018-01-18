@@ -142,28 +142,17 @@ struct Prot
 
 enum PASS : int
 {
-    PASSinit,           // initial state
-    PASSsemantic,       // semantic() started
-    PASSsemanticdone,   // semantic() done
-    PASSsemantic2,      // semantic2() started
-    PASSsemantic2done,  // semantic2() done
-    PASSsemantic3,      // semantic3() started
-    PASSsemantic3done,  // semantic3() done
-    PASSinline,         // inline started
-    PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    init,           // initial state
+    semantic,       // semantic() started
+    semanticdone,   // semantic() done
+    semantic2,      // semantic2() started
+    semantic2done,  // semantic2() done
+    semantic3,      // semantic3() started
+    semantic3done,  // semantic3() done
+    inline,         // inline started
+    inlinedone,     // inline done
+    obj,            // toObjFile() run
 }
-
-alias PASSinit = PASS.PASSinit;
-alias PASSsemantic = PASS.PASSsemantic;
-alias PASSsemanticdone = PASS.PASSsemanticdone;
-alias PASSsemantic2 = PASS.PASSsemantic2;
-alias PASSsemantic2done = PASS.PASSsemantic2done;
-alias PASSsemantic3 = PASS.PASSsemantic3;
-alias PASSsemantic3done = PASS.PASSsemantic3done;
-alias PASSinline = PASS.PASSinline;
-alias PASSinlinedone = PASS.PASSinlinedone;
-alias PASSobj = PASS.PASSobj;
 
 // Search options
 enum : int
@@ -208,14 +197,14 @@ extern (C++) class Dsymbol : RootObject
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.semanticRun = PASSinit;
+        this.semanticRun = PASS.init;
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.ident = ident;
-        this.semanticRun = PASSinit;
+        this.semanticRun = PASS.init;
     }
 
     static Dsymbol create(Identifier ident)

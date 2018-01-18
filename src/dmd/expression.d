@@ -480,7 +480,7 @@ private bool checkPropertyCall(Expression e, Expression emsg)
             tf = cast(TypeFunction)ce.f.type;
             /* If a forward reference to ce.f, try to resolve it
              */
-            if (!tf.deco && ce.f.semanticRun < PASSsemanticdone)
+            if (!tf.deco && ce.f.semanticRun < PASS.semanticdone)
             {
                 ce.f.dsymbolSemantic(null);
                 tf = cast(TypeFunction)ce.f.type;
@@ -3972,7 +3972,7 @@ extern (C++) final class ScopeExp : Expression
             //assert(ti.needsTypeInference(sc));
             if (ti.tempdecl &&
                 ti.semantictiargsdone &&
-                ti.semanticRun == PASSinit)
+                ti.semanticRun == PASS.init)
             {
                 error("partial %s `%s` has no type", sds.kind(), toChars());
                 return true;
@@ -4384,7 +4384,7 @@ extern (C++) final class FuncExp : Expression
     {
         if (td)
             return new FuncExp(loc, td.syntaxCopy(null));
-        else if (fd.semanticRun == PASSinit)
+        else if (fd.semanticRun == PASS.init)
             return new FuncExp(loc, fd.syntaxCopy(null));
         else // https://issues.dlang.org/show_bug.cgi?id=13481
              // Prevent multiple semantic analysis of lambda body.

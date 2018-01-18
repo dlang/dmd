@@ -818,7 +818,7 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
                 if (init.isVoidInitializer())
                     continue;
 
-                assert(vd.semanticRun >= PASSsemantic2done);
+                assert(vd.semanticRun >= PASS.semantic2done);
 
                 ExpInitializer ei = init.isExpInitializer();
                 Type tb = vd.type.toBasetype();

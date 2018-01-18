@@ -131,7 +131,7 @@ void semantic3OnDependencies(Module m)
     if (!m)
         return;
 
-    if (m.semanticRun > PASSsemantic3)
+    if (m.semanticRun > PASS.semantic3)
         return;
 
     m.semantic3(null);

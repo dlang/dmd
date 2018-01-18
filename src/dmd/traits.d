@@ -699,7 +699,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 e.error("argument `%s` has no protection", o.toChars());
             return new ErrorExp();
         }
-        if (s.semanticRun == PASSinit)
+        if (s.semanticRun == PASS.init)
             s.dsymbolSemantic(null);
 
         auto protName = protectionToChars(s.prot().kind); // TODO: How about package(names)
@@ -1302,7 +1302,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
-            if (cd.semanticRun < PASSsemanticdone)
+            if (cd.semanticRun < PASS.semanticdone)
                 cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
                                    // Try to resolve forward reference
 

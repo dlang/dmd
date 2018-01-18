@@ -559,7 +559,7 @@ private Dsymbol mostVisibleOverload(Dsymbol s)
         {
             assert(ad.isOverloadable, "Non overloadable Aliasee in overload list");
             // Yet unresolved aliases store overloads in overnext.
-            if (ad.semanticRun < PASSsemanticdone)
+            if (ad.semanticRun < PASS.semanticdone)
                 next = ad.overnext;
             else
             {

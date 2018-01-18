@@ -1483,7 +1483,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         return false;
     }
 
-    if (fd.semanticRun < PASSsemantic3 && !hdrscan)
+    if (fd.semanticRun < PASS.semantic3 && !hdrscan)
     {
         if (!fd.fbody)
             return false;
@@ -1492,7 +1492,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         Module.runDeferredSemantic3();
         if (global.errors)
             return false;
-        assert(fd.semanticRun >= PASSsemantic3done);
+        assert(fd.semanticRun >= PASS.semantic3done);
     }
 
     final switch (statementsToo ? fd.inlineStatusStmt : fd.inlineStatusExp)
@@ -1694,9 +1694,9 @@ Lno:
  */
 public void inlineScanModule(Module m)
 {
-    if (m.semanticRun != PASSsemantic3done)
+    if (m.semanticRun != PASS.semantic3done)
         return;
-    m.semanticRun = PASSinline;
+    m.semanticRun = PASS.inline;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -1712,7 +1712,7 @@ public void inlineScanModule(Module m)
         scope InlineScanVisitor v = new InlineScanVisitor();
         s.accept(v);
     }
-    m.semanticRun = PASSinlinedone;
+    m.semanticRun = PASS.inlinedone;
 }
 
 /***********************************************************

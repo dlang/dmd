@@ -616,7 +616,7 @@ private void ctfeCompile(FuncDeclaration fd)
     }
     assert(!fd.ctfeCode);
     assert(!fd.semantic3Errors);
-    assert(fd.semanticRun == PASSsemantic3done);
+    assert(fd.semanticRun == PASS.semantic3done);
 
     fd.ctfeCode = new CompiledCtfeFunction(fd);
     if (fd.parameters)
@@ -736,14 +736,14 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
     }
-    if (fd.semanticRun == PASSsemantic3)
+    if (fd.semanticRun == PASS.semantic3)
     {
         fd.error("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
     if (!fd.functionSemantic3())
         return CTFEExp.cantexp;
-    if (fd.semanticRun < PASSsemantic3done)
+    if (fd.semanticRun < PASS.semantic3done)
         return CTFEExp.cantexp;
 
     // CTFE-compile the function
@@ -2246,7 +2246,7 @@ public:
             if (v.ident == Id.ctfe)
                 return new IntegerExp(loc, 1, Type.tbool);
 
-            if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
+            if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
             {
                 v.dsymbolSemantic(null);
                 if (v.type.ty == Terror)
@@ -4925,7 +4925,7 @@ public:
             }
         }
 
-        if (fd && fd.semanticRun >= PASSsemantic3done && fd.semantic3Errors)
+        if (fd && fd.semanticRun >= PASS.semantic3done && fd.semantic3Errors)
         {
             e.error("CTFE failed because of previous errors in `%s`", fd.toChars());
             result = CTFEExp.cantexp;

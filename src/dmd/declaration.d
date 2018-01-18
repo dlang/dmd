@@ -725,7 +725,7 @@ extern (C++) final class AliasDeclaration : Declaration
          *  simple Overload class (an array) and then later have that resolve
          *  all collisions.
          */
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASS.semanticdone)
         {
             /* Semantic analysis is already finished, and the aliased entity
              * is not overloadable.
@@ -863,7 +863,7 @@ extern (C++) final class AliasDeclaration : Declaration
             return aliassym;
         }
 
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASS.semanticdone)
         {
             // semantic is already done.
 
@@ -909,7 +909,7 @@ extern (C++) final class AliasDeclaration : Declaration
     override bool isOverloadable()
     {
         // assume overloadable until alias is resolved
-        return semanticRun < PASSsemanticdone ||
+        return semanticRun < PASS.semanticdone ||
             aliassym && aliassym.isOverloadable();
     }
 

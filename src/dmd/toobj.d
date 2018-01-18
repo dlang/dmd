@@ -336,7 +336,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (global.params.symdebug)
                 toDebug(cd);
 
-            assert(cd.semanticRun >= PASSsemantic3done);     // semantic() should have been run to completion
+            assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
 
             enum_SC scclass = SCcomdat;
 
@@ -985,7 +985,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(EnumDeclaration ed)
         {
-            if (ed.semanticRun >= PASSobj)  // already written
+            if (ed.semanticRun >= PASS.obj)  // already written
                 return;
             //printf("EnumDeclaration.toObjFile('%s')\n", ed.toChars());
 
@@ -1025,7 +1025,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 ed.sinit.Sdt = dtb.finish();
                 outdata(ed.sinit);
             }
-            ed.semanticRun = PASSobj;
+            ed.semanticRun = PASS.obj;
         }
 
         override void visit(TypeInfoDeclaration tid)

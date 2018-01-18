@@ -3525,7 +3525,7 @@ elem *toElem(Expression e, IRState *irs)
             if (global.params.useInline && v.offset == 0)
             {
                 FuncDeclaration fd = v.parent.isFuncDeclaration();
-                if (fd && fd.semanticRun < PASSobj)
+                if (fd && fd.semanticRun < PASS.obj)
                     setClosureVarOffset(fd);
             }
 
@@ -3550,7 +3550,7 @@ elem *toElem(Expression e, IRState *irs)
             int directcall = 0;
             //printf("DelegateExp.toElem() '%s'\n", de.toChars());
 
-            if (de.func.semanticRun == PASSsemantic3done)
+            if (de.func.semanticRun == PASS.semantic3done)
             {
                 // Bug 7745 - only include the function if it belongs to this module
                 // ie, it is a member of this module, or is a template instance

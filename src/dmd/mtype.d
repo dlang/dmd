@@ -773,7 +773,7 @@ extern (C++) abstract class Type : RootObject
 
                 // If t1n is forward referenced:
                 ClassDeclaration cd = (cast(TypeClass)t1n).sym;
-                if (cd.semanticRun < PASSsemanticdone && !cd.isBaseInfoComplete())
+                if (cd.semanticRun < PASS.semanticdone && !cd.isBaseInfoComplete())
                     cd.dsymbolSemantic(null);
                 if (!cd.isBaseInfoComplete())
                 {
@@ -7425,7 +7425,7 @@ extern (C++) final class TypeStruct : Type
                     return e;
                 }
             }
-            if (d.semanticRun == PASSinit)
+            if (d.semanticRun == PASS.init)
                 d.dsymbolSemantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
@@ -7783,7 +7783,7 @@ extern (C++) final class TypeEnum : Type
         if (ident == Id._mangleof)
             return getProperty(e.loc, ident, flag & 1);
 
-        if (sym.semanticRun < PASSsemanticdone)
+        if (sym.semanticRun < PASS.semanticdone)
             sym.dsymbolSemantic(null);
         if (!sym.members)
         {
@@ -8199,7 +8199,7 @@ extern (C++) final class TypeClass : Type
 
             if (ident == Id.outer && sym.vthis)
             {
-                if (sym.vthis.semanticRun == PASSinit)
+                if (sym.vthis.semanticRun == PASS.init)
                     sym.vthis.dsymbolSemantic(null);
 
                 if (auto cdp = sym.toParent2().isClassDeclaration())
@@ -8429,7 +8429,7 @@ extern (C++) final class TypeClass : Type
                 }
             }
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
-            if (d.semanticRun == PASSinit)
+            if (d.semanticRun == PASS.init)
                 d.dsymbolSemantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
@@ -8481,9 +8481,9 @@ extern (C++) final class TypeClass : Type
         if (cdto)
         {
             //printf("TypeClass::implicitConvTo(to = '%s') %s, isbase = %d %d\n", to.toChars(), toChars(), cdto.isBaseInfoComplete(), sym.isBaseInfoComplete());
-            if (cdto.semanticRun < PASSsemanticdone && !cdto.isBaseInfoComplete())
+            if (cdto.semanticRun < PASS.semanticdone && !cdto.isBaseInfoComplete())
                 cdto.dsymbolSemantic(null);
-            if (sym.semanticRun < PASSsemanticdone && !sym.isBaseInfoComplete())
+            if (sym.semanticRun < PASS.semanticdone && !sym.isBaseInfoComplete())
                 sym.dsymbolSemantic(null);
             if (cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
             {

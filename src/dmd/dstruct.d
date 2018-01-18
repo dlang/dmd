@@ -150,7 +150,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
             // If the struct is in a non-root module, run semantic3 to get
             // correct symbols for the member function.
-            if (sd.semanticRun >= PASSsemantic3)
+            if (sd.semanticRun >= PASS.semantic3)
             {
                 // semantic3 is already done
             }
@@ -282,7 +282,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         if (xeq &&
             xeq._scope &&
-            xeq.semanticRun < PASSsemantic3done)
+            xeq.semanticRun < PASS.semantic3done)
         {
             uint errors = global.startGagging();
             xeq.semantic3(xeq._scope);
@@ -292,7 +292,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (xcmp &&
             xcmp._scope &&
-            xcmp.semanticRun < PASSsemantic3done)
+            xcmp.semanticRun < PASS.semantic3done)
         {
             uint errors = global.startGagging();
             xcmp.semantic3(xcmp._scope);
@@ -303,28 +303,28 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         FuncDeclaration ftostr = search_toString(this);
         if (ftostr &&
             ftostr._scope &&
-            ftostr.semanticRun < PASSsemantic3done)
+            ftostr.semanticRun < PASS.semantic3done)
         {
             ftostr.semantic3(ftostr._scope);
         }
 
         if (xhash &&
             xhash._scope &&
-            xhash.semanticRun < PASSsemantic3done)
+            xhash.semanticRun < PASS.semantic3done)
         {
             xhash.semantic3(xhash._scope);
         }
 
         if (postblit &&
             postblit._scope &&
-            postblit.semanticRun < PASSsemantic3done)
+            postblit.semanticRun < PASS.semantic3done)
         {
             postblit.semantic3(postblit._scope);
         }
 
         if (dtor &&
             dtor._scope &&
-            dtor.semanticRun < PASSsemantic3done)
+            dtor.semanticRun < PASS.semantic3done)
         {
             dtor.semantic3(dtor._scope);
         }
