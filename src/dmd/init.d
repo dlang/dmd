@@ -337,7 +337,7 @@ version (all)
             return false;
         }
 
-        if (e.type.ty == Terror)
+        if (e.type.ty == TY.error)
             return false;
         if (e.op == TOKnull)
             return false;
@@ -383,7 +383,7 @@ version (all)
             }
             return true;
         }
-        if (e.type.ty == Tpointer && e.type.nextOf().ty != Tfunction)
+        if (e.type.ty == TY.pointer && e.type.nextOf().ty != TY.function_)
         {
             if (e.op == TOKsymoff) // address of a global is OK
                 return false;

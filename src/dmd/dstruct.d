@@ -367,7 +367,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             Dsymbol s = (*members)[i];
             s.setFieldOffset(this, &offset, isunion);
         }
-        if (type.ty == Terror)
+        if (type.ty == TY.error)
             return;
 
         // 0 sized struct's are set to 1 byte
@@ -483,14 +483,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
              * Allow this by doing an explicit cast, which will lengthen the string
              * literal.
              */
-            if (e.op == TOKstring && tb.ty == Tsarray)
+            if (e.op == TOKstring && tb.ty == TY.sarray)
             {
                 StringExp se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
                 if (!se.committed &&
-                    (typeb.ty == Tarray || typeb.ty == Tsarray) &&
-                    (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                    (typeb.ty == TY.array || typeb.ty == TY.sarray) &&
+                    (tynto == TY.char_ || tynto == TY.wchar_ || tynto == TY.dchar_) &&
                     se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
                 {
                     e = se.castTo(sc, t);
@@ -498,7 +498,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 }
             }
 
-            while (!e.implicitConvTo(t) && tb.ty == Tsarray)
+            while (!e.implicitConvTo(t) && tb.ty == TY.sarray)
             {
                 /* Static array initialization, as in:
                  *  T[3][5] = e;
@@ -555,7 +555,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
 
             Type tv = v.type.baseElemOf();
-            if (tv.ty == Tstruct)
+            if (tv.ty == TY.struct_)
             {
                 TypeStruct ts = cast(TypeStruct)tv;
                 StructDeclaration sd = ts.sym;

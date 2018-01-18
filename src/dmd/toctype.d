@@ -175,7 +175,7 @@ public:
                 // https://issues.dlang.org/show_bug.cgi?id=13792
                 t.ctype = Type_toCtype(Type.tvoid);
             }
-            else if (t.sym.memtype.toBasetype().ty == Tint32)
+            else if (t.sym.memtype.toBasetype().ty == TY.int32)
             {
                 t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
             }

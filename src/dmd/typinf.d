@@ -75,7 +75,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
 
 extern (C++) Type getTypeInfoType(Type t, Scope* sc)
 {
-    assert(t.ty != Terror);
+    assert(t.ty != TY.error);
     genTypeInfo(t, sc);
     return t.vtinfo.type;
 }
@@ -85,27 +85,27 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
     {
-    case Tpointer:
+    case TY.pointer:
         return TypeInfoPointerDeclaration.create(t);
-    case Tarray:
+    case TY.array:
         return TypeInfoArrayDeclaration.create(t);
-    case Tsarray:
+    case TY.sarray:
         return TypeInfoStaticArrayDeclaration.create(t);
-    case Taarray:
+    case TY.aarray:
         return TypeInfoAssociativeArrayDeclaration.create(t);
-    case Tstruct:
+    case TY.struct_:
         return TypeInfoStructDeclaration.create(t);
-    case Tvector:
+    case TY.vector:
         return TypeInfoVectorDeclaration.create(t);
-    case Tenum:
+    case TY.enum_:
         return TypeInfoEnumDeclaration.create(t);
-    case Tfunction:
+    case TY.function_:
         return TypeInfoFunctionDeclaration.create(t);
-    case Tdelegate:
+    case TY.delegate_:
         return TypeInfoDelegateDeclaration.create(t);
-    case Ttuple:
+    case TY.tuple:
         return TypeInfoTupleDeclaration.create(t);
-    case Tclass:
+    case TY.class_:
         if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
             return TypeInfoInterfaceDeclaration.create(t);
         else
@@ -235,16 +235,16 @@ extern (C++) bool isSpeculativeType(Type t)
  */
 private bool builtinTypeInfo(Type t)
 {
-    if (t.isTypeBasic() || t.ty == Tclass || t.ty == Tnull)
+    if (t.isTypeBasic() || t.ty == TY.class_ || t.ty == TY.null_)
         return !t.mod;
-    if (t.ty == Tarray)
+    if (t.ty == TY.array)
     {
         Type next = t.nextOf();
         // strings are so common, make them builtin
         return !t.mod &&
                (next.isTypeBasic() !is null && !next.mod ||
-                next.ty == Tchar && next.mod == MODFlags.immutable_ ||
-                next.ty == Tchar && next.mod == MODFlags.const_);
+                next.ty == TY.char_ && next.mod == MODFlags.immutable_ ||
+                next.ty == TY.char_ && next.mod == MODFlags.const_);
     }
     return false;
 }

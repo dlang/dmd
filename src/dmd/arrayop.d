@@ -39,12 +39,12 @@ extern (C++) bool isArrayOpValid(Expression e)
     if (e.op == TOKarrayliteral)
     {
         Type t = e.type.toBasetype();
-        while (t.ty == Tarray || t.ty == Tsarray)
+        while (t.ty == TY.array || t.ty == TY.sarray)
             t = t.nextOf().toBasetype();
-        return (t.ty != Tvoid);
+        return (t.ty != TY.void_);
     }
     Type tb = e.type.toBasetype();
-    if (tb.ty == Tarray || tb.ty == Tsarray)
+    if (tb.ty == TY.array || tb.ty == TY.sarray)
     {
         if (isUnaArrayOp(e.op))
         {
@@ -78,7 +78,7 @@ extern (C++) bool isNonAssignmentArrayOp(Expression e)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);
 
     Type tb = e.type.toBasetype();
-    if (tb.ty == Tarray || tb.ty == Tsarray)
+    if (tb.ty == TY.array || tb.ty == TY.sarray)
     {
         return (isUnaArrayOp(e.op) || isBinArrayOp(e.op));
     }
@@ -113,9 +113,9 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
 {
     //printf("BinExp.arrayOp() %s\n", toChars());
     Type tb = e.type.toBasetype();
-    assert(tb.ty == Tarray || tb.ty == Tsarray);
+    assert(tb.ty == TY.array || tb.ty == TY.sarray);
     Type tbn = tb.nextOf().toBasetype();
-    if (tbn.ty == Tvoid)
+    if (tbn.ty == TY.void_)
     {
         e.error("cannot perform array operations on `void[]` arrays");
         return new ErrorExp();
@@ -209,7 +209,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
         override void visit(UnaExp e)
         {
             Type tb = e.type.toBasetype();
-            if (tb.ty != Tarray && tb.ty != Tsarray) // hoist scalar expressions
+            if (tb.ty != TY.array && tb.ty != TY.sarray) // hoist scalar expressions
             {
                 visit(cast(Expression) e);
             }
@@ -227,7 +227,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
         override void visit(BinExp e)
         {
             Type tb = e.type.toBasetype();
-            if (tb.ty != Tarray && tb.ty != Tsarray) // hoist scalar expressions
+            if (tb.ty != TY.array && tb.ty != TY.sarray) // hoist scalar expressions
             {
                 visit(cast(Expression) e);
             }
@@ -318,12 +318,12 @@ extern (C++) bool isArrayOpOperand(Expression e)
     if (e.op == TOKarrayliteral)
     {
         Type t = e.type.toBasetype();
-        while (t.ty == Tarray || t.ty == Tsarray)
+        while (t.ty == TY.array || t.ty == TY.sarray)
             t = t.nextOf().toBasetype();
-        return (t.ty != Tvoid);
+        return (t.ty != TY.void_);
     }
     Type tb = e.type.toBasetype();
-    if (tb.ty == Tarray)
+    if (tb.ty == TY.array)
     {
         return (isUnaArrayOp(e.op) ||
                 isBinArrayOp(e.op) ||

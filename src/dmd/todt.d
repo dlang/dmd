@@ -97,7 +97,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
         {
             //printf("ArrayInitializer.toDt('%s')\n", ai.toChars());
             Type tb = ai.type.toBasetype();
-            if (tb.ty == Tvector)
+            if (tb.ty == TY.vector)
                 tb = (cast(TypeVector)tb).basetype;
 
             Type tn = tb.nextOf().toBasetype();
@@ -129,7 +129,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
             Expression edefault = tb.nextOf().defaultInit();
 
             size_t n = 1;
-            for (Type tbn = tn; tbn.ty == Tsarray; tbn = tbn.nextOf().toBasetype())
+            for (Type tbn = tn; tbn.ty == TY.sarray; tbn = tbn.nextOf().toBasetype())
             {
                 TypeSArray tsa = cast(TypeSArray)tbn;
                 n *= tsa.dim.toInteger();
@@ -156,7 +156,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
             }
             switch (tb.ty)
             {
-                case Tsarray:
+                case TY.sarray:
                 {
                     TypeSArray ta = cast(TypeSArray)tb;
                     size_t tadim = cast(size_t)ta.dim.toInteger();
@@ -189,10 +189,10 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                     break;
                 }
 
-                case Tpointer:
-                case Tarray:
+                case TY.pointer:
+                case TY.array:
                 {
-                    if (tb.ty == Tarray)
+                    if (tb.ty == TY.array)
                         dtb.size(ai.dim);
                     Symbol* s = dtb.dtoff(dtbarray.finish(), 0);
                     if (tn.isMutable())
@@ -251,7 +251,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             {
                 printf("CastExp.toDt() %d from %s to %s\n", e.op, e.e1.type.toChars(), e.type.toChars());
             }
-            if (e.e1.type.ty == Tclass && e.type.ty == Tclass)
+            if (e.e1.type.ty == TY.class_ && e.type.ty == TY.class_)
             {
                 if ((cast(TypeClass)e.type).sym.isInterfaceDeclaration()) // casting from class to interface
                 {
@@ -306,24 +306,24 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             //printf("RealExp.toDt(%Lg)\n", e.value);
             switch (e.type.toBasetype().ty)
             {
-                case Tfloat32:
-                case Timaginary32:
+                case TY.float32:
+                case TY.imaginary32:
                 {
                     auto fvalue = cast(float)e.value;
                     dtb.nbytes(4, cast(char*)&fvalue);
                     break;
                 }
 
-                case Tfloat64:
-                case Timaginary64:
+                case TY.float64:
+                case TY.imaginary64:
                 {
                     auto dvalue = cast(double)e.value;
                     dtb.nbytes(8, cast(char*)&dvalue);
                     break;
                 }
 
-                case Tfloat80:
-                case Timaginary80:
+                case TY.float80:
+                case TY.imaginary80:
                 {
                     auto evalue = e.value;
                     dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
@@ -343,7 +343,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             //printf("ComplexExp.toDt() '%s'\n", e.toChars());
             switch (e.type.toBasetype().ty)
             {
-                case Tcomplex32:
+                case TY.complex32:
                 {
                     auto fvalue = cast(float)creall(e.value);
                     dtb.nbytes(4, cast(char*)&fvalue);
@@ -352,7 +352,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                     break;
                 }
 
-                case Tcomplex64:
+                case TY.complex64:
                 {
                     auto dvalue = cast(double)creall(e.value);
                     dtb.nbytes(8, cast(char*)&dvalue);
@@ -361,7 +361,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                     break;
                 }
 
-                case Tcomplex80:
+                case TY.complex80:
                 {
                     auto evalue = creall(e.value);
                     dtb.nbytes(Target.realsize - Target.realpad, cast(char*)&evalue);
@@ -399,11 +399,11 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
 
             switch (t.ty)
             {
-                case Tarray:
+                case TY.array:
                     dtb.size(n);
-                    goto case Tpointer;
+                    goto case TY.pointer;
 
-                case Tpointer:
+                case TY.pointer:
                     if (e.sz == 1)
                     {
                         import dmd.e2ir : toStringSymbol;
@@ -415,7 +415,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
                         dtb.abytes(0, n * e.sz, p, cast(uint)e.sz);
                     break;
 
-                case Tsarray:
+                case TY.sarray:
                 {
                     TypeSArray tsa = cast(TypeSArray)t;
 
@@ -453,14 +453,14 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             Type t = e.type.toBasetype();
             switch (t.ty)
             {
-                case Tsarray:
+                case TY.sarray:
                     dtb.cat(dtbarray);
                     break;
 
-                case Tpointer:
-                case Tarray:
+                case TY.pointer:
+                case TY.array:
                 {
-                    if (t.ty == Tarray)
+                    if (t.ty == TY.array)
                         dtb.size(e.elements.dim);
                     dt_t* d = dtbarray.finish();
                     if (d)
@@ -507,7 +507,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
 
             VarDeclaration v = e.var.isVarDeclaration();
             if (v && (v.isConst() || v.isImmutable()) &&
-                e.type.toBasetype().ty != Tsarray && v._init)
+                e.type.toBasetype().ty != TY.sarray && v._init)
             {
                 if (v.inuse)
                 {
@@ -536,7 +536,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
         override void visit(FuncExp e)
         {
             //printf("FuncExp.toDt() %d\n", e.op);
-            if (e.fd.tok == TOKreserved && e.type.ty == Tpointer)
+            if (e.fd.tok == TOKreserved && e.type.ty == TY.pointer)
             {
                 // change to non-nested
                 e.fd.tok = TOKfunction;
@@ -805,7 +805,7 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
         {
             Expression e = (*elements)[firstFieldIndex + k];
             Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray)
+            if (tb.ty == TY.sarray)
                 toDtElem((cast(TypeSArray)tb), dtbx, e);
             else
                 Expression_toDt(e, dtbx);    // convert e to an initializer dt
@@ -822,7 +822,7 @@ private void membersToDt(AggregateDeclaration ad, DtBuilder dtb,
 
                 ExpInitializer ei = init.isExpInitializer();
                 Type tb = vd.type.toBasetype();
-                if (ei && tb.ty == Tsarray)
+                if (ei && tb.ty == TY.sarray)
                     toDtElem((cast(TypeSArray)tb), dtbx, ei.exp);
                 else
                     Initializer_toDt(init, dtbx);
@@ -870,7 +870,7 @@ extern (C++) void Type_toDt(Type t, DtBuilder dtb)
 
         override void visit(TypeVector t)
         {
-            assert(t.basetype.ty == Tsarray);
+            assert(t.basetype.ty == TY.sarray);
             toDtElem(cast(TypeSArray)t.basetype, dtb, null);
         }
 
@@ -902,7 +902,7 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
         assert(len);
         Type tnext = tsa.next;
         Type tbn = tnext.toBasetype();
-        while (tbn.ty == Tsarray && (!e || !tbn.equivalent(e.type.nextOf())))
+        while (tbn.ty == TY.sarray && (!e || !tbn.equivalent(e.type.nextOf())))
         {
             len *= (cast(TypeSArray)tbn).dim.toInteger();
             tnext = tbn.nextOf();
@@ -1054,7 +1054,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfoenum), 0); // vtbl for TypeInfo_Enum
         dtb.size(0);                        // monitor
 
-        assert(d.tinfo.ty == Tenum);
+        assert(d.tinfo.ty == TY.enum_);
 
         TypeEnum tc = cast(TypeEnum)d.tinfo;
         EnumDeclaration sd = tc.sym;
@@ -1105,7 +1105,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfopointer), 0);  // vtbl for TypeInfo_Pointer
         dtb.size(0);                                     // monitor
 
-        assert(d.tinfo.ty == Tpointer);
+        assert(d.tinfo.ty == TY.pointer);
 
         TypePointer tc = cast(TypePointer)d.tinfo;
 
@@ -1121,7 +1121,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfoarray), 0);    // vtbl for TypeInfo_Array
         dtb.size(0);                                     // monitor
 
-        assert(d.tinfo.ty == Tarray);
+        assert(d.tinfo.ty == TY.array);
 
         TypeDArray tc = cast(TypeDArray)d.tinfo;
 
@@ -1137,7 +1137,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfostaticarray), 0);  // vtbl for TypeInfo_StaticArray
         dtb.size(0);                                         // monitor
 
-        assert(d.tinfo.ty == Tsarray);
+        assert(d.tinfo.ty == TY.sarray);
 
         TypeSArray tc = cast(TypeSArray)d.tinfo;
 
@@ -1155,7 +1155,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfovector), 0);   // vtbl for TypeInfo_Vector
         dtb.size(0);                                     // monitor
 
-        assert(d.tinfo.ty == Tvector);
+        assert(d.tinfo.ty == TY.vector);
 
         TypeVector tc = cast(TypeVector)d.tinfo;
 
@@ -1171,7 +1171,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         dtb.size(0);                        // monitor
 
-        assert(d.tinfo.ty == Taarray);
+        assert(d.tinfo.ty == TY.aarray);
 
         TypeAArray tc = cast(TypeAArray)d.tinfo;
 
@@ -1190,7 +1190,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfofunction), 0); // vtbl for TypeInfo_Function
         dtb.size(0);                                     // monitor
 
-        assert(d.tinfo.ty == Tfunction);
+        assert(d.tinfo.ty == TY.function_);
 
         TypeFunction tc = cast(TypeFunction)d.tinfo;
 
@@ -1215,7 +1215,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfodelegate), 0); // vtbl for TypeInfo_Delegate
         dtb.size(0);                                     // monitor
 
-        assert(d.tinfo.ty == Tdelegate);
+        assert(d.tinfo.ty == TY.delegate_);
 
         TypeDelegate tc = cast(TypeDelegate)d.tinfo;
 
@@ -1243,7 +1243,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfostruct), 0); // vtbl for TypeInfo_Struct
         dtb.size(0);                        // monitor
 
-        assert(d.tinfo.ty == Tstruct);
+        assert(d.tinfo.ty == TY.struct_);
 
         TypeStruct tc = cast(TypeStruct)d.tinfo;
         StructDeclaration sd = tc.sym;
@@ -1309,7 +1309,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         {
             dtb.xoff(toSymbol(fd), 0);
             TypeFunction tf = cast(TypeFunction)fd.type;
-            assert(tf.ty == Tfunction);
+            assert(tf.ty == TY.function_);
             /* I'm a little unsure this is the right way to do it. Perhaps a better
              * way would to automatically add these attributes to any struct member
              * function with the name "toHash".
@@ -1416,7 +1416,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfointerface), 0);    // vtbl for TypeInfoInterface
         dtb.size(0);                                           // monitor
 
-        assert(d.tinfo.ty == Tclass);
+        assert(d.tinfo.ty == TY.class_);
 
         TypeClass tc = cast(TypeClass)d.tinfo;
         Symbol *s;
@@ -1435,7 +1435,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(toVtblSymbol(Type.typeinfotypelist), 0); // vtbl for TypeInfoInterface
         dtb.size(0);                                       // monitor
 
-        assert(d.tinfo.ty == Ttuple);
+        assert(d.tinfo.ty == TY.tuple);
 
         TypeTuple tu = cast(TypeTuple)d.tinfo;
 

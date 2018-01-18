@@ -346,7 +346,7 @@ private final class CppMangleVisitor : Visitor
     static bool isIdent_char(Identifier ident, RootObject o)
     {
         Type t = isType(o);
-        if (!t || t.ty != Tstruct)
+        if (!t || t.ty != TY.struct_)
             return false;
         Dsymbol s = (cast(TypeStruct)t).toDsymbol(null);
         if (s.ident != ident)
@@ -627,7 +627,7 @@ private final class CppMangleVisitor : Visitor
 
         if (tf.linkage == LINKcpp) //Template args accept extern "C" symbols with special mangling
         {
-            assert(tf.ty == Tfunction);
+            assert(tf.ty == TY.function_);
             mangleFunctionParameters(tf.parameters, tf.varargs);
         }
     }
@@ -651,7 +651,7 @@ private final class CppMangleVisitor : Visitor
             static if (IN_GCC)
             {
                 // Could be a va_list, which we mangle as a pointer.
-                if (t.ty == Tsarray && Type.tvalist.ty == Tsarray)
+                if (t.ty == TY.sarray && Type.tvalist.ty == TY.sarray)
                 {
                     Type tb = t.toBasetype().mutableOf();
                     if (tb == Type.tvalist)
@@ -661,7 +661,7 @@ private final class CppMangleVisitor : Visitor
                     }
                 }
             }
-            if (t.ty == Tsarray)
+            if (t.ty == TY.sarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
                 t.error(loc, "Internal Compiler Error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
@@ -732,7 +732,7 @@ public:
      */
     void headOfType(Type t)
     {
-        if (t.ty == Tclass)
+        if (t.ty == TY.class_)
         {
             mangleTypeClass(cast(TypeClass)t, true);
         }
@@ -810,34 +810,34 @@ public:
         char p = 0;
         switch (t.ty)
         {
-            case Tvoid:                 c = 'v';        break;
-            case Tint8:                 c = 'a';        break;
-            case Tuns8:                 c = 'h';        break;
-            case Tint16:                c = 's';        break;
-            case Tuns16:                c = 't';        break;
-            case Tint32:                c = 'i';        break;
-            case Tuns32:                c = 'j';        break;
-            case Tfloat32:              c = 'f';        break;
-            case Tint64:
+            case TY.void_:                 c = 'v';        break;
+            case TY.int8:                 c = 'a';        break;
+            case TY.uns8:                 c = 'h';        break;
+            case TY.int16:                c = 's';        break;
+            case TY.uns16:                c = 't';        break;
+            case TY.int32:                c = 'i';        break;
+            case TY.uns32:                c = 'j';        break;
+            case TY.float32:              c = 'f';        break;
+            case TY.int64:
                 c = Target.c_longsize == 8 ? Target.int64Mangle : 'x';
                 break;
-            case Tuns64:
+            case TY.uns64:
                 c = Target.c_longsize == 8 ? Target.uint64Mangle : 'y';
                 break;
-            case Tint128:                c = 'n';       break;
-            case Tuns128:                c = 'o';       break;
-            case Tfloat64:               c = 'd';       break;
-            case Tfloat80:               c = 'e';       break;
-            case Tbool:                  c = 'b';       break;
-            case Tchar:                  c = 'c';       break;
-            case Twchar:                 c = 't';       break;  // unsigned short (perhaps use 'Ds' ?
-            case Tdchar:                 c = 'w';       break;  // wchar_t (UTF-32) (perhaps use 'Di' ?
-            case Timaginary32:  p = 'G'; c = 'f';       break;  // 'G' means imaginary
-            case Timaginary64:  p = 'G'; c = 'd';       break;
-            case Timaginary80:  p = 'G'; c = 'e';       break;
-            case Tcomplex32:    p = 'C'; c = 'f';       break;  // 'C' means complex
-            case Tcomplex64:    p = 'C'; c = 'd';       break;
-            case Tcomplex80:    p = 'C'; c = 'e';       break;
+            case TY.int128:                c = 'n';       break;
+            case TY.uns128:                c = 'o';       break;
+            case TY.float64:               c = 'd';       break;
+            case TY.float80:               c = 'e';       break;
+            case TY.bool_:                  c = 'b';       break;
+            case TY.char_:                  c = 'c';       break;
+            case TY.wchar_:                 c = 't';       break;  // unsigned short (perhaps use 'Ds' ?
+            case TY.dchar_:                 c = 'w';       break;  // wchar_t (UTF-32) (perhaps use 'Di' ?
+            case TY.imaginary32:  p = 'G'; c = 'f';       break;  // 'G' means imaginary
+            case TY.imaginary64:  p = 'G'; c = 'd';       break;
+            case TY.imaginary80:  p = 'G'; c = 'e';       break;
+            case TY.complex32:    p = 'C'; c = 'f';       break;  // 'C' means complex
+            case TY.complex64:    p = 'C'; c = 'd';       break;
+            case TY.complex80:    p = 'C'; c = 'e';       break;
 
             default:
                 // Handle any target-specific basic types.
@@ -873,7 +873,7 @@ public:
         }
         else
         {
-            assert(t.basetype && t.basetype.ty == Tsarray);
+            assert(t.basetype && t.basetype.ty == TY.sarray);
             assert((cast(TypeSArray)t.basetype).dim);
             version (none)
             {

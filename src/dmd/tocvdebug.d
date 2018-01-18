@@ -968,7 +968,7 @@ int cvMember(Dsymbol s, ubyte *p)
         {
             //printf("VarDeclaration.cvMember(p = %p) '%s'\n", p, vd.toChars());
 
-            if (vd.type.toBasetype().ty == Ttuple)
+            if (vd.type.toBasetype().ty == TY.tuple)
                 return;
 
             const id = vd.toChars();
