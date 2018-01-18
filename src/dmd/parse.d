@@ -193,18 +193,12 @@ __gshared PREC[TOKMAX] precedence =
 
 enum ParseStatementFlags : int
 {
-    PSsemi          = 1,        // empty ';' statements are allowed, but deprecated
-    PSscope         = 2,        // start a new scope
-    PScurly         = 4,        // { } statement is required
-    PScurlyscope    = 8,        // { } starts a new scope
-    PSsemi_ok       = 0x10,     // empty ';' are really ok
+    semi          = 1,        // empty ';' statements are allowed, but deprecated
+    scope_        = 2,        // start a new scope
+    curly         = 4,        // { } statement is required
+    curlyScope    = 8,        // { } starts a new scope
+    semiOk        = 0x10,     // empty ';' are really ok
 }
-
-alias PSsemi = ParseStatementFlags.PSsemi;
-alias PSscope = ParseStatementFlags.PSscope;
-alias PScurly = ParseStatementFlags.PScurly;
-alias PScurlyscope = ParseStatementFlags.PScurlyscope;
-alias PSsemi_ok = ParseStatementFlags.PSsemi_ok;
 
 struct PrefixAttributes(AST)
 {
@@ -2640,7 +2634,7 @@ final class Parser(AST) : Lexer
             check(TOKrparen);
         }
 
-        auto fbody = parseStatement(PScurly);
+        auto fbody = parseStatement(ParseStatementFlags.curly);
         auto f = new AST.InvariantDeclaration(loc, token.loc, stc, null, fbody);
         return f;
     }
@@ -2659,7 +2653,7 @@ final class Parser(AST) : Lexer
 
         const(char)* begPtr = token.ptr + 1; // skip '{'
         const(char)* endPtr = null;
-        AST.Statement sbody = parseStatement(PScurly, &endPtr);
+        AST.Statement sbody = parseStatement(ParseStatementFlags.curly, &endPtr);
 
         /** Extract unittest body as a string. Must be done eagerly since memory
          will be released by the lexer before doc gen. */
@@ -4679,7 +4673,7 @@ final class Parser(AST) : Lexer
         case TOKlcurly:
             if (f.frequire || f.fensure)
                 error("missing `do { ... }` after `in` or `out`");
-            f.fbody = parseStatement(PSsemi);
+            f.fbody = parseStatement(ParseStatementFlags.semi);
             f.endloc = endloc;
             break;
 
@@ -4690,7 +4684,7 @@ final class Parser(AST) : Lexer
 
         case TOKdo:
             nextToken();
-            f.fbody = parseStatement(PScurly);
+            f.fbody = parseStatement(ParseStatementFlags.curly);
             f.endloc = endloc;
             break;
 
@@ -4730,7 +4724,7 @@ final class Parser(AST) : Lexer
             nextToken();
             if (f.frequire)
                 error("redundant `in` statement");
-            f.frequire = parseStatement(PScurly | PSscope);
+            f.frequire = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
             goto L1;
 
         case TOKout:
@@ -4747,7 +4741,7 @@ final class Parser(AST) : Lexer
             }
             if (f.fensure)
                 error("redundant `out` statement");
-            f.fensure = parseStatement(PScurly | PSscope);
+            f.fensure = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
             goto L1;
 
         case TOKsemicolon:
@@ -5037,7 +5031,7 @@ final class Parser(AST) : Lexer
         const loc = token.loc;
 
         //printf("parseStatement()\n");
-        if (flags & PScurly && token.value != TOKlcurly)
+        if (flags & ParseStatementFlags.curly && token.value != TOKlcurly)
             error("statement expected to be `{ }`, not `%s`", token.toChars());
 
         switch (token.value)
@@ -5067,9 +5061,9 @@ final class Parser(AST) : Lexer
                     if (token.value == TOKrcurly)
                         s = null;
                     else if (token.value == TOKlcurly)
-                        s = parseStatement(PScurly | PSscope);
+                        s = parseStatement(ParseStatementFlags.curly | ParseStatementFlags.scope_);
                     else
-                        s = parseStatement(PSsemi_ok);
+                        s = parseStatement(ParseStatementFlags.semiOk);
                     s = new AST.LabelStatement(loc, ident, s);
                     break;
                 }
@@ -5157,7 +5151,7 @@ final class Parser(AST) : Lexer
                 else if(t.value == TOKforeach || t.value == TOKforeach_reverse)
                 {
                     s = parseForeach!(true,false)(loc);
-                    if (flags & PSscope)
+                    if (flags & ParseStatementFlags.scope_)
                         s = new AST.ScopeStatement(loc, s, token.loc);
                     break;
                 }
@@ -5165,7 +5159,7 @@ final class Parser(AST) : Lexer
                 {
                     AST.Dsymbols* imports = parseImport();
                     s = new AST.ImportStatement(loc, imports);
-                    if (flags & PSscope)
+                    if (flags & ParseStatementFlags.scope_)
                         s = new AST.ScopeStatement(loc, s, token.loc);
                     break;
                 }
@@ -5252,7 +5246,7 @@ final class Parser(AST) : Lexer
                 }
                 else
                     s = new AST.ExpStatement(loc, cast(AST.Expression)null);
-                if (flags & PSscope)
+                if (flags & ParseStatementFlags.scope_)
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 break;
             }
@@ -5276,7 +5270,7 @@ final class Parser(AST) : Lexer
                         goto Ldeclaration;
                 }
                 s = new AST.ExpStatement(loc, d);
-                if (flags & PSscope)
+                if (flags & ParseStatementFlags.scope_)
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 break;
             }
@@ -5301,7 +5295,7 @@ final class Parser(AST) : Lexer
                 }
                 AST.Dsymbol d = parseMixin();
                 s = new AST.ExpStatement(loc, d);
-                if (flags & PSscope)
+                if (flags & ParseStatementFlags.scope_)
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 break;
             }
@@ -5316,7 +5310,7 @@ final class Parser(AST) : Lexer
                 auto statements = new AST.Statements();
                 while (token.value != TOKrcurly && token.value != TOKeof)
                 {
-                    statements.push(parseStatement(PSsemi | PScurlyscope));
+                    statements.push(parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
                 }
                 if (endPtr)
                     *endPtr = token.ptr;
@@ -5327,7 +5321,7 @@ final class Parser(AST) : Lexer
                     pEndloc = null; // don't set it again
                 }
                 s = new AST.CompoundStatement(loc, statements);
-                if (flags & (PSscope | PScurlyscope))
+                if (flags & (ParseStatementFlags.scope_ | ParseStatementFlags.curlyScope))
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 check(TOKrcurly, "compound statement");
                 lookingForElse = lookingForElseSave;
@@ -5340,14 +5334,14 @@ final class Parser(AST) : Lexer
                 AST.Expression condition = parseExpression();
                 check(TOKrparen);
                 Loc endloc;
-                AST.Statement _body = parseStatement(PSscope, null, &endloc);
+                AST.Statement _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
                 s = new AST.WhileStatement(loc, condition, _body, endloc);
                 break;
             }
         case TOKsemicolon:
-            if (!(flags & PSsemi_ok))
+            if (!(flags & ParseStatementFlags.semiOk))
             {
-                if (flags & PSsemi)
+                if (flags & ParseStatementFlags.semi)
                     deprecation("use `{ }` for an empty statement, not `;`");
                 else
                     error("use `{ }` for an empty statement, not `;`");
@@ -5364,7 +5358,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
-                _body = parseStatement(PSscope);
+                _body = parseStatement(ParseStatementFlags.scope_);
                 lookingForElse = lookingForElseSave;
                 check(TOKwhile);
                 check(TOKlparen);
@@ -5418,7 +5412,7 @@ final class Parser(AST) : Lexer
                     check(TOKrparen);
                 }
                 Loc endloc;
-                AST.Statement _body = parseStatement(PSscope, null, &endloc);
+                AST.Statement _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
                 s = new AST.ForStatement(loc, _init, condition, increment, _body, endloc);
                 break;
             }
@@ -5510,14 +5504,14 @@ final class Parser(AST) : Lexer
                 {
                     const lookingForElseSave = lookingForElse;
                     lookingForElse = loc;
-                    ifbody = parseStatement(PSscope);
+                    ifbody = parseStatement(ParseStatementFlags.scope_);
                     lookingForElse = lookingForElseSave;
                 }
                 if (token.value == TOKelse)
                 {
                     const elseloc = token.loc;
                     nextToken();
-                    elsebody = parseStatement(PSscope);
+                    elsebody = parseStatement(ParseStatementFlags.scope_);
                     checkDanglingElse(elseloc);
                 }
                 else
@@ -5552,7 +5546,7 @@ final class Parser(AST) : Lexer
                     error("valid scope identifiers are `exit`, `failure`, or `success`, not `%s`", id.toChars());
                 nextToken();
                 check(TOKrparen);
-                AST.Statement st = parseStatement(PSscope);
+                AST.Statement st = parseStatement(ParseStatementFlags.scope_);
                 s = new AST.OnScopeStatement(loc, t, st);
                 break;
             }
@@ -5597,7 +5591,7 @@ final class Parser(AST) : Lexer
                 checkDanglingElse(elseloc);
             }
             s = new AST.ConditionalStatement(loc, cond, ifbody, elsebody);
-            if (flags & PSscope)
+            if (flags & ParseStatementFlags.scope_)
                 s = new AST.ScopeStatement(loc, s, token.loc);
             break;
 
@@ -5626,7 +5620,7 @@ final class Parser(AST) : Lexer
                     _body = null;
                 }
                 else
-                    _body = parseStatement(PSsemi);
+                    _body = parseStatement(ParseStatementFlags.semi);
                 s = new AST.PragmaStatement(loc, ident, args, _body);
                 break;
             }
@@ -5640,7 +5634,7 @@ final class Parser(AST) : Lexer
                 check(TOKlparen);
                 AST.Expression condition = parseExpression();
                 check(TOKrparen);
-                AST.Statement _body = parseStatement(PSscope);
+                AST.Statement _body = parseStatement(ParseStatementFlags.scope_);
                 s = new AST.SwitchStatement(loc, condition, _body, isfinal);
                 break;
             }
@@ -5672,18 +5666,18 @@ final class Parser(AST) : Lexer
                     check(TOKcolon);
                 }
 
-                if (flags & PScurlyscope)
+                if (flags & ParseStatementFlags.curlyScope)
                 {
                     auto statements = new AST.Statements();
                     while (token.value != TOKcase && token.value != TOKdefault && token.value != TOKeof && token.value != TOKrcurly)
                     {
-                        statements.push(parseStatement(PSsemi | PScurlyscope));
+                        statements.push(parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
                     }
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
                 {
-                    s = parseStatement(PSsemi);
+                    s = parseStatement(ParseStatementFlags.semi);
                 }
                 s = new AST.ScopeStatement(loc, s, token.loc);
 
@@ -5707,17 +5701,17 @@ final class Parser(AST) : Lexer
                 nextToken();
                 check(TOKcolon);
 
-                if (flags & PScurlyscope)
+                if (flags & ParseStatementFlags.curlyScope)
                 {
                     auto statements = new AST.Statements();
                     while (token.value != TOKcase && token.value != TOKdefault && token.value != TOKeof && token.value != TOKrcurly)
                     {
-                        statements.push(parseStatement(PSsemi | PScurlyscope));
+                        statements.push(parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope));
                     }
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
-                    s = parseStatement(PSsemi);
+                    s = parseStatement(ParseStatementFlags.semi);
                 s = new AST.ScopeStatement(loc, s, token.loc);
                 s = new AST.DefaultStatement(loc, s);
                 break;
@@ -5816,7 +5810,7 @@ final class Parser(AST) : Lexer
                 }
                 else
                     exp = null;
-                _body = parseStatement(PSscope);
+                _body = parseStatement(ParseStatementFlags.scope_);
                 s = new AST.SynchronizedStatement(loc, exp, _body);
                 break;
             }
@@ -5830,7 +5824,7 @@ final class Parser(AST) : Lexer
                 check(TOKlparen);
                 exp = parseExpression();
                 check(TOKrparen);
-                _body = parseStatement(PSscope, null, &endloc);
+                _body = parseStatement(ParseStatementFlags.scope_, null, &endloc);
                 s = new AST.WithStatement(loc, exp, _body, endloc);
                 break;
             }
@@ -5843,7 +5837,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 const lookingForElseSave = lookingForElse;
                 lookingForElse = Loc();
-                _body = parseStatement(PSscope);
+                _body = parseStatement(ParseStatementFlags.scope_);
                 lookingForElse = lookingForElseSave;
                 while (token.value == TOKcatch)
                 {
@@ -5876,7 +5870,7 @@ final class Parser(AST) : Lexer
                 if (token.value == TOKfinally)
                 {
                     nextToken();
-                    finalbody = parseStatement(PSscope);
+                    finalbody = parseStatement(ParseStatementFlags.scope_);
                 }
 
                 s = _body;
@@ -6002,7 +5996,7 @@ final class Parser(AST) : Lexer
             {
                 AST.Dsymbols* imports = parseImport();
                 s = new AST.ImportStatement(loc, imports);
-                if (flags & PSscope)
+                if (flags & ParseStatementFlags.scope_)
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 break;
             }
