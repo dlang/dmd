@@ -193,18 +193,12 @@ __gshared PREC[TOKMAX] precedence =
 
 enum ParseStatementFlags : int
 {
-    PSsemi          = 1,        // empty ';' statements are allowed, but deprecated
-    PSscope         = 2,        // start a new scope
-    PScurly         = 4,        // { } statement is required
-    PScurlyscope    = 8,        // { } starts a new scope
-    PSsemi_ok       = 0x10,     // empty ';' are really ok
+    semi          = 1,        // empty ';' statements are allowed, but deprecated
+    scope_        = 2,        // start a new scope
+    curly         = 4,        // { } statement is required
+    curlyScope    = 8,        // { } starts a new scope
+    semiOk        = 0x10,     // empty ';' are really ok
 }
-
-alias PSsemi = ParseStatementFlags.PSsemi;
-alias PSscope = ParseStatementFlags.PSscope;
-alias PScurly = ParseStatementFlags.PScurly;
-alias PScurlyscope = ParseStatementFlags.PScurlyscope;
-alias PSsemi_ok = ParseStatementFlags.PSsemi_ok;
 
 struct PrefixAttributes(AST)
 {
