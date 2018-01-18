@@ -543,8 +543,8 @@ public:
 
 enum RET
 {
-    regs     = 1,    // returned in registers
-    stack    = 2,    // returned on stack
+    RETregs     = 1,    // returned in registers
+    RETstack    = 2,    // returned on stack
 };
 
 enum TRUST
@@ -567,11 +567,11 @@ enum TRUSTformat
 
 enum PURE
 {
-    impure = 0,     // not pure at all
-    fwdref = 1,     // it's pure, but not known which level yet
-    weak = 2,       // no mutable globals are read or written
-    const_ = 3,      // parameters are values or const
-    strong = 4,     // parameters are values or immutable
+    PUREimpure = 0,     // not pure at all
+    PUREfwdref = 1,     // it's pure, but not known which level yet
+    PUREweak = 2,       // no mutable globals are read or written
+    PUREconst = 3,      // parameters are values or const
+    PUREstrong = 4,     // parameters are values or immutable
 };
 
 class TypeFunction : public TypeNext
