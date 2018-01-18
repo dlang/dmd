@@ -3403,7 +3403,7 @@ extern (C++) final class TypeBasic : Type
         super(ty);
         const(char)* d;
         uint flags = 0;
-        switch (ty)
+        final switch (ty)
         {
         case TY.void_:
             d = Token.toChars(TOKvoid);
@@ -3523,8 +3523,27 @@ extern (C++) final class TypeBasic : Type
             d = Token.toChars(TOKdchar);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
-
-        default:
+        case TY.array:
+        case TY.sarray:
+        case TY.aarray:
+        case TY.pointer:
+        case TY.reference:
+        case TY.function_:
+        case TY.ident:
+        case TY.class_:
+        case TY.struct_:
+        case TY.enum_:
+        case TY.delegate_:
+        case TY.none:
+        case TY.error:
+        case TY.instance:
+        case TY.typeof_:
+        case TY.tuple:
+        case TY.slice:
+        case TY.return_:
+        case TY.null_:
+        case TY.vector:
+        case TY.MAX:
             assert(0);
         }
         this.dstring = d;
@@ -3547,7 +3566,7 @@ extern (C++) final class TypeBasic : Type
     {
         uint size;
         //printf("TypeBasic::size()\n");
-        switch (ty)
+        final switch (ty)
         {
         case TY.int8:
         case TY.uns8:
@@ -3613,7 +3632,27 @@ extern (C++) final class TypeBasic : Type
             size = 4;
             break;
 
-        default:
+        case TY.array:
+        case TY.sarray:
+        case TY.aarray:
+        case TY.pointer:
+        case TY.reference:
+        case TY.function_:
+        case TY.ident:
+        case TY.class_:
+        case TY.struct_:
+        case TY.enum_:
+        case TY.delegate_:
+        case TY.none:
+        case TY.error:
+        case TY.instance:
+        case TY.typeof_:
+        case TY.tuple:
+        case TY.slice:
+        case TY.return_:
+        case TY.null_:
+        case TY.vector:
+        case TY.MAX:
             assert(0);
         }
         //printf("TypeBasic::size() = %d\n", size);
@@ -3633,7 +3672,7 @@ extern (C++) final class TypeBasic : Type
         //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
         if (ident == Id.max)
         {
-            switch (ty)
+            final switch (ty)
             {
             case TY.int8:
                 ivalue = 0x7F;
@@ -3686,7 +3725,31 @@ extern (C++) final class TypeBasic : Type
             case TY.float80:
                 fvalue = Target.RealProperties.max;
                 goto Lfvalue;
-            default:
+
+            case TY.array:
+            case TY.sarray:
+            case TY.aarray:
+            case TY.pointer:
+            case TY.reference:
+            case TY.function_:
+            case TY.ident:
+            case TY.class_:
+            case TY.struct_:
+            case TY.enum_:
+            case TY.delegate_:
+            case TY.none:
+            case TY.void_:
+            case TY.error:
+            case TY.instance:
+            case TY.typeof_:
+            case TY.tuple:
+            case TY.slice:
+            case TY.return_:
+            case TY.null_:
+            case TY.vector:
+            case TY.int128:
+            case TY.uns128:
+            case TY.MAX:
                 break;
             }
         }

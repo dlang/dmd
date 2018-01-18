@@ -50,7 +50,7 @@ TypeTuple toArgTypes(Type t)
         {
             Type t1 = null;
             Type t2 = null;
-            switch (t.ty)
+            final switch (t.ty)
             {
             case TY.void_:
                 return;
@@ -105,8 +105,28 @@ TypeTuple toArgTypes(Type t)
             case TY.dchar_:
                 t1 = Type.tuns32;
                 break;
-            default:
-                assert(0);
+            case TY.array:
+            case TY.sarray:
+            case TY.aarray:
+            case TY.pointer:
+            case TY.reference:
+            case TY.function_:
+            case TY.ident:
+            case TY.class_:
+            case TY.struct_:
+            case TY.enum_:
+            case TY.delegate_:
+            case TY.none:
+            case TY.error:
+            case TY.instance:
+            case TY.typeof_:
+            case TY.tuple:
+            case TY.slice:
+            case TY.return_:
+            case TY.null_:
+            case TY.vector:
+            case TY.MAX:
+                break;
             }
             if (t1)
             {

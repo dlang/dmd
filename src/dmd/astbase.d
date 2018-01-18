@@ -3322,7 +3322,7 @@ struct ASTBase
             super(ty);
             const(char)* d;
             uint flags = 0;
-            switch (ty)
+            final switch (ty)
             {
             case TY.void_:
                 d = Token.toChars(TOKvoid);
@@ -3442,8 +3442,27 @@ struct ASTBase
                 d = Token.toChars(TOKdchar);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
-
-            default:
+            case TY.array:
+            case TY.sarray:
+            case TY.aarray:
+            case TY.pointer:
+            case TY.reference:
+            case TY.function_:
+            case TY.ident:
+            case TY.class_:
+            case TY.struct_:
+            case TY.enum_:
+            case TY.delegate_:
+            case TY.none:
+            case TY.error:
+            case TY.instance:
+            case TY.typeof_:
+            case TY.tuple:
+            case TY.slice:
+            case TY.return_:
+            case TY.null_:
+            case TY.vector:
+            case TY.MAX:
                 assert(0);
             }
             this.dstring = d;
@@ -4287,9 +4306,8 @@ struct ASTBase
                 else
                     assert(0);
                 break;
-
             default:
-                break;
+                assert(0);
             }
         }
 

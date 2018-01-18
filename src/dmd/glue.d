@@ -1375,7 +1375,7 @@ bool onlyOneMain(Loc loc)
 uint totym(Type tx)
 {
     uint t;
-    switch (tx.ty)
+    final switch (tx.ty)
     {
         case TY.void_:     t = TYvoid;     break;
         case TY.int8:     t = TYschar;    break;
@@ -1495,7 +1495,15 @@ uint totym(Type tx)
                 t |= mTYnothrow;
             return t;
         }
-        default:
+        case TY.none:
+        case TY.error:
+        case TY.instance:
+        case TY.tuple:
+        case TY.slice:
+        case TY.return_:
+        case TY.int128:
+        case TY.uns128:
+        case TY.MAX:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
             assert(0);
     }
