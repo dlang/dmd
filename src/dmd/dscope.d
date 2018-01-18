@@ -164,7 +164,7 @@ struct Scope
     CPPMANGLE cppmangle = CPPMANGLE.def;
 
     /// inlining strategy for functions
-    PINLINE inlining = PINLINEdefault;
+    PINLINE inlining = PINLINE.def;
 
     /// protection for class members
     Prot protection = Prot(Prot.Kind.public_);

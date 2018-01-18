@@ -779,9 +779,9 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
         if (ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINEdefault;
+            PINLINE inlining = PINLINE.def;
             if (!args || args.dim == 0)
-                inlining = PINLINEdefault;
+                inlining = PINLINE.def;
             else if (args.dim != 1)
             {
                 error("one boolean expression expected for `pragma(inline)`, not %d", args.dim);
@@ -800,9 +800,9 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
                     }
                 }
                 else if (e.isBool(true))
-                    inlining = PINLINEalways;
+                    inlining = PINLINE.always;
                 else if (e.isBool(false))
-                    inlining = PINLINEnever;
+                    inlining = PINLINE.never;
             }
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
         }

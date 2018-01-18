@@ -1513,16 +1513,14 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         break;
     }
 
-    switch (fd.inlining)
+    final switch (fd.inlining)
     {
-    case PINLINEdefault:
+    case PINLINE.def:
         break;
-    case PINLINEalways:
+    case PINLINE.always:
         break;
-    case PINLINEnever:
+    case PINLINE.never:
         return false;
-    default:
-        assert(0);
     }
 
     if (fd.type)
@@ -1668,7 +1666,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
     return true;
 
 Lno:
-    if (fd.inlining == PINLINEalways)
+    if (fd.inlining == PINLINE.always)
         fd.error("cannot inline function");
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan

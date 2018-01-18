@@ -459,10 +459,6 @@ enum PINLINE : int
     always,  // always inline
 }
 
-alias PINLINEdefault = PINLINE.def;
-alias PINLINEnever = PINLINE.never;
-alias PINLINEalways = PINLINE.always;
-
 alias StorageClass = uinteger_t;
 
 extern (C++) __gshared Global global;
