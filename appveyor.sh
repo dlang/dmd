@@ -80,5 +80,5 @@ export MODEL="64"
 export MODEL_FLAG="-m64"
 
 cd /c/projects/dmd/test
-../../gnumake/make -j2 all MODEL=$MODEL MODEL_FLAG=$MODEL_FLAG LIB="../../phobos;$LIB"
+../../gnumake/make -j3 all MODEL=$MODEL ARGS="-O -inline -g" MODEL_FLAG=$MODEL_FLAG LIB="../../phobos;$LIB"
 

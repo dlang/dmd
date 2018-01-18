@@ -13,6 +13,10 @@ cache:
   - C:\projects\gnumake\make.exe
   - C:\projects\VisualD-v0.45.1-rc2.exe
 
+skip_commits:
+  # Avoid retesting the merged PR on `master` or `stable`
+  message: /^Merge pull request/
+
 artifacts:
   - path: src/dmd.exe
     name: dmd
