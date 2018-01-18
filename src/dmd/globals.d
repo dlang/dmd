@@ -414,7 +414,7 @@ nothrow:
 
 enum LINK : int
 {
-    def,        // default
+    default_,
     d,
     c,
     cpp,
@@ -424,7 +424,7 @@ enum LINK : int
     system,
 }
 
-alias LINKdefault = LINK.def;
+alias LINKdefault = LINK.default_;
 alias LINKd = LINK.d;
 alias LINKc = LINK.c;
 alias LINKcpp = LINK.cpp;
