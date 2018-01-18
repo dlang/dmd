@@ -147,15 +147,15 @@ extern (C++) final class Import : Dsymbol
                 }
                 else if (Package p = s.isPackage())
                 {
-                    if (p.isPkgMod == PKGunknown)
+                    if (p.isPkgMod == PKG.unknown)
                     {
                         mod = Module.load(loc, packages, id);
                         if (!mod)
-                            p.isPkgMod = PKGpackage;
+                            p.isPkgMod = PKG.package_;
                         else
                         {
                             // mod is a package.d, or a normal module which conflicts with the package name.
-                            assert(mod.isPackageFile == (p.isPkgMod == PKGmodule));
+                            assert(mod.isPackageFile == (p.isPkgMod == PKG.module_));
                             if (mod.isPackageFile)
                                 mod.tag = p.tag; // reuse the same package tag
                         }

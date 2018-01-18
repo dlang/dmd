@@ -245,14 +245,10 @@ struct ASTBase
 
     enum PKG : int
     {
-        PKGunknown,     // not yet determined whether it's a package.d or not
-        PKGmodule,      // already determined that's an actual package.d
-        PKGpackage,     // already determined that's an actual package
+        unknown,     // not yet determined whether it's a package.d or not
+        module_,      // already determined that's an actual package.d
+        package_,     // already determined that's an actual package
     }
-
-    alias PKGunknown = PKG.PKGunknown;
-    alias PKGmodule = PKG.PKGmodule;
-    alias PKGpackage = PKG.PKGpackage;
 
     enum StructPOD : int
     {
@@ -973,7 +969,7 @@ struct ASTBase
         final extern (D) this(Identifier ident)
         {
             super(ident);
-            this.isPkgMod = PKGunknown;
+            this.isPkgMod = PKG.unknown;
             __gshared uint packageTag;
             this.tag = packageTag++;
         }
