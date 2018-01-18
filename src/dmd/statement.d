@@ -785,7 +785,7 @@ extern (C++) final class CompileStatement : Statement
         auto a = new Statements();
         while (p.token.value != TOKeof)
         {
-            Statement s = p.parseStatement(PSsemi | PScurlyscope);
+            Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
             if (!s || p.errors)
             {
                 assert(!p.errors || global.errors != errors); // make sure we caught all the cases
