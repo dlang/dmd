@@ -27,12 +27,15 @@ template xversion(string s)
 
 enum IN_GCC     = xversion!`IN_GCC`;
 
-enum TARGET_LINUX   = xversion!`linux`;
-enum TARGET_OSX     = xversion!`OSX`;
-enum TARGET_FREEBSD = xversion!`FreeBSD`;
-enum TARGET_OPENBSD = xversion!`OpenBSD`;
-enum TARGET_SOLARIS = xversion!`Solaris`;
-enum TARGET_WINDOS  = xversion!`Windows`;
+enum TARGET : bool
+{
+    Linux   = xversion!`linux`,
+    OSX     = xversion!`OSX`,
+    FreeBSD = xversion!`FreeBSD`,
+    OpenBSD = xversion!`OpenBSD`,
+    Solaris = xversion!`Solaris`,
+    Windows = xversion!`Windows`,
+}
 
 enum CHECKENABLE : ubyte
 {
