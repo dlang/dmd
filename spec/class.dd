@@ -831,12 +831,12 @@ $(GNAME SharedStaticDestructor):
 $(H2 $(LNAME2 invariants, Class Invariants))
 
 $(GRAMMAR
-$(GNAME Invariant):
+$(GNAME ClassInvariant):
     $(D invariant ( )) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
 )
 
-    $(P $(I Class Invariants) specify the relationships among the members of a class instance.
+    $(P $(I ClassInvariant) specify the relationships among the members of a class instance.
     Those relationships must hold for any interactions with the instance from its
     public interface.
     )
@@ -852,10 +852,10 @@ $(GNAME Invariant):
 
     $(P There may be multiple invariants in a class. They are applied in lexical order.)
 
-    $(P $(I Class Invariants) must hold at the exit of the class constructor (if any),
+    $(P $(I ClassInvariant)s must hold at the exit of the class constructor (if any),
     at the entry of the class destructor (if any).)
 
-    $(P $(I Class Invariants) must hold
+    $(P $(I ClassInvariant)s must hold
     at the entry and exit of all public or exported non-static member functions.
     The order of application of invariants is:
     $(OL
