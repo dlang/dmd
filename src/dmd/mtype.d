@@ -3459,117 +3459,117 @@ extern (C++) final class TypeBasic : Type
 
         case Tint8:
             d = Token.toChars(TOKint8);
-            flags |= TFLAGSintegral;
+            flags |= TFlags.integral;
             break;
 
         case Tuns8:
             d = Token.toChars(TOKuns8);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tint16:
             d = Token.toChars(TOKint16);
-            flags |= TFLAGSintegral;
+            flags |= TFlags.integral;
             break;
 
         case Tuns16:
             d = Token.toChars(TOKuns16);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tint32:
             d = Token.toChars(TOKint32);
-            flags |= TFLAGSintegral;
+            flags |= TFlags.integral;
             break;
 
         case Tuns32:
             d = Token.toChars(TOKuns32);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tfloat32:
             d = Token.toChars(TOKfloat32);
-            flags |= TFLAGSfloating | TFLAGSreal;
+            flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Tint64:
             d = Token.toChars(TOKint64);
-            flags |= TFLAGSintegral;
+            flags |= TFlags.integral;
             break;
 
         case Tuns64:
             d = Token.toChars(TOKuns64);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tint128:
             d = Token.toChars(TOKint128);
-            flags |= TFLAGSintegral;
+            flags |= TFlags.integral;
             break;
 
         case Tuns128:
             d = Token.toChars(TOKuns128);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tfloat64:
             d = Token.toChars(TOKfloat64);
-            flags |= TFLAGSfloating | TFLAGSreal;
+            flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Tfloat80:
             d = Token.toChars(TOKfloat80);
-            flags |= TFLAGSfloating | TFLAGSreal;
+            flags |= TFlags.floating | TFlags.real_;
             break;
 
         case Timaginary32:
             d = Token.toChars(TOKimaginary32);
-            flags |= TFLAGSfloating | TFLAGSimaginary;
+            flags |= TFlags.floating | TFlags.imaginary;
             break;
 
         case Timaginary64:
             d = Token.toChars(TOKimaginary64);
-            flags |= TFLAGSfloating | TFLAGSimaginary;
+            flags |= TFlags.floating | TFlags.imaginary;
             break;
 
         case Timaginary80:
             d = Token.toChars(TOKimaginary80);
-            flags |= TFLAGSfloating | TFLAGSimaginary;
+            flags |= TFlags.floating | TFlags.imaginary;
             break;
 
         case Tcomplex32:
             d = Token.toChars(TOKcomplex32);
-            flags |= TFLAGSfloating | TFLAGScomplex;
+            flags |= TFlags.floating | TFlags.complex;
             break;
 
         case Tcomplex64:
             d = Token.toChars(TOKcomplex64);
-            flags |= TFLAGSfloating | TFLAGScomplex;
+            flags |= TFlags.floating | TFlags.complex;
             break;
 
         case Tcomplex80:
             d = Token.toChars(TOKcomplex80);
-            flags |= TFLAGSfloating | TFLAGScomplex;
+            flags |= TFlags.floating | TFlags.complex;
             break;
 
         case Tbool:
             d = "bool";
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tchar:
             d = Token.toChars(TOKchar);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Twchar:
             d = Token.toChars(TOKwchar);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         case Tdchar:
             d = Token.toChars(TOKdchar);
-            flags |= TFLAGSintegral | TFLAGSunsigned;
+            flags |= TFlags.integral | TFlags.unsigned;
             break;
 
         default:
@@ -4143,37 +4143,37 @@ extern (C++) final class TypeBasic : Type
     override bool isintegral()
     {
         //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
-        return (flags & TFLAGSintegral) != 0;
+        return (flags & TFlags.integral) != 0;
     }
 
     override bool isfloating() const
     {
-        return (flags & TFLAGSfloating) != 0;
+        return (flags & TFlags.floating) != 0;
     }
 
     override bool isreal() const
     {
-        return (flags & TFLAGSreal) != 0;
+        return (flags & TFlags.real_) != 0;
     }
 
     override bool isimaginary() const
     {
-        return (flags & TFLAGSimaginary) != 0;
+        return (flags & TFlags.imaginary) != 0;
     }
 
     override bool iscomplex() const
     {
-        return (flags & TFLAGScomplex) != 0;
+        return (flags & TFlags.complex) != 0;
     }
 
     override bool isscalar() const
     {
-        return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
+        return (flags & (TFlags.integral | TFlags.floating)) != 0;
     }
 
     override bool isunsigned() const
     {
-        return (flags & TFLAGSunsigned) != 0;
+        return (flags & TFlags.unsigned) != 0;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -4210,14 +4210,14 @@ extern (C++) final class TypeBasic : Type
         if (!tob)
             return MATCH.nomatch;
 
-        if (flags & TFLAGSintegral)
+        if (flags & TFlags.integral)
         {
             // Disallow implicit conversion of integers to imaginary or complex
-            if (tob.flags & (TFLAGSimaginary | TFLAGScomplex))
+            if (tob.flags & (TFlags.imaginary | TFlags.complex))
                 return MATCH.nomatch;
 
             // If converting from integral to integral
-            if (tob.flags & TFLAGSintegral)
+            if (tob.flags & TFlags.integral)
             {
                 d_uns64 sz = size(Loc());
                 d_uns64 tosz = tob.size(Loc());
@@ -4228,28 +4228,28 @@ extern (C++) final class TypeBasic : Type
                     return MATCH.nomatch;
                 /* Can't change sign if same size
                  */
-                //if (sz == tosz && (flags ^ tob.flags) & TFLAGSunsigned)
+                //if (sz == tosz && (flags ^ tob.flags) & TFlags.unsigned)
                 //    return MATCH.nomatch;
             }
         }
-        else if (flags & TFLAGSfloating)
+        else if (flags & TFlags.floating)
         {
             // Disallow implicit conversion of floating point to integer
-            if (tob.flags & TFLAGSintegral)
+            if (tob.flags & TFlags.integral)
                 return MATCH.nomatch;
 
-            assert(tob.flags & TFLAGSfloating || to.ty == Tvector);
+            assert(tob.flags & TFlags.floating || to.ty == Tvector);
 
             // Disallow implicit conversion from complex to non-complex
-            if (flags & TFLAGScomplex && !(tob.flags & TFLAGScomplex))
+            if (flags & TFlags.complex && !(tob.flags & TFlags.complex))
                 return MATCH.nomatch;
 
             // Disallow implicit conversion of real or imaginary to complex
-            if (flags & (TFLAGSreal | TFLAGSimaginary) && tob.flags & TFLAGScomplex)
+            if (flags & (TFlags.real_ | TFlags.imaginary) && tob.flags & TFlags.complex)
                 return MATCH.nomatch;
 
             // Disallow implicit conversion to-from real and imaginary
-            if ((flags & (TFLAGSreal | TFLAGSimaginary)) != (tob.flags & (TFLAGSreal | TFLAGSimaginary)))
+            if ((flags & (TFlags.real_ | TFlags.imaginary)) != (tob.flags & (TFlags.real_ | TFlags.imaginary)))
                 return MATCH.nomatch;
         }
         return MATCH.convert;
