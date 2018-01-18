@@ -236,12 +236,15 @@ struct ASTBase
 
     alias TY = ubyte;
 
-    enum TFLAGSintegral     = 1;
-    enum TFLAGSfloating     = 2;
-    enum TFLAGSunsigned     = 4;
-    enum TFLAGSreal         = 8;
-    enum TFLAGSimaginary    = 0x10;
-    enum TFLAGScomplex      = 0x20;
+    enum TFlags
+    {
+        integral     = 1,
+        floating     = 2,
+        unsigned     = 4,
+        real_        = 8,
+        imaginary    = 0x10,
+        complex      = 0x20,
+    }
 
     enum PKG : int
     {
@@ -3375,117 +3378,117 @@ struct ASTBase
 
             case Tint8:
                 d = Token.toChars(TOKint8);
-                flags |= TFLAGSintegral;
+                flags |= TFlags.integral;
                 break;
 
             case Tuns8:
                 d = Token.toChars(TOKuns8);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tint16:
                 d = Token.toChars(TOKint16);
-                flags |= TFLAGSintegral;
+                flags |= TFlags.integral;
                 break;
 
             case Tuns16:
                 d = Token.toChars(TOKuns16);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tint32:
                 d = Token.toChars(TOKint32);
-                flags |= TFLAGSintegral;
+                flags |= TFlags.integral;
                 break;
 
             case Tuns32:
                 d = Token.toChars(TOKuns32);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tfloat32:
                 d = Token.toChars(TOKfloat32);
-                flags |= TFLAGSfloating | TFLAGSreal;
+                flags |= TFlags.floating | TFlags.real_;
                 break;
 
             case Tint64:
                 d = Token.toChars(TOKint64);
-                flags |= TFLAGSintegral;
+                flags |= TFlags.integral;
                 break;
 
             case Tuns64:
                 d = Token.toChars(TOKuns64);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tint128:
                 d = Token.toChars(TOKint128);
-                flags |= TFLAGSintegral;
+                flags |= TFlags.integral;
                 break;
 
             case Tuns128:
                 d = Token.toChars(TOKuns128);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tfloat64:
                 d = Token.toChars(TOKfloat64);
-                flags |= TFLAGSfloating | TFLAGSreal;
+                flags |= TFlags.floating | TFlags.real_;
                 break;
 
             case Tfloat80:
                 d = Token.toChars(TOKfloat80);
-                flags |= TFLAGSfloating | TFLAGSreal;
+                flags |= TFlags.floating | TFlags.real_;
                 break;
 
             case Timaginary32:
                 d = Token.toChars(TOKimaginary32);
-                flags |= TFLAGSfloating | TFLAGSimaginary;
+                flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
             case Timaginary64:
                 d = Token.toChars(TOKimaginary64);
-                flags |= TFLAGSfloating | TFLAGSimaginary;
+                flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
             case Timaginary80:
                 d = Token.toChars(TOKimaginary80);
-                flags |= TFLAGSfloating | TFLAGSimaginary;
+                flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
             case Tcomplex32:
                 d = Token.toChars(TOKcomplex32);
-                flags |= TFLAGSfloating | TFLAGScomplex;
+                flags |= TFlags.floating | TFlags.complex;
                 break;
 
             case Tcomplex64:
                 d = Token.toChars(TOKcomplex64);
-                flags |= TFLAGSfloating | TFLAGScomplex;
+                flags |= TFlags.floating | TFlags.complex;
                 break;
 
             case Tcomplex80:
                 d = Token.toChars(TOKcomplex80);
-                flags |= TFLAGSfloating | TFLAGScomplex;
+                flags |= TFlags.floating | TFlags.complex;
                 break;
 
             case Tbool:
                 d = "bool";
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tchar:
                 d = Token.toChars(TOKchar);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Twchar:
                 d = Token.toChars(TOKwchar);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             case Tdchar:
                 d = Token.toChars(TOKdchar);
-                flags |= TFLAGSintegral | TFLAGSunsigned;
+                flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
             default:
@@ -3498,7 +3501,7 @@ struct ASTBase
 
         override bool isscalar() const
         {
-            return (flags & (TFLAGSintegral | TFLAGSfloating)) != 0;
+            return (flags & (TFlags.integral | TFlags.floating)) != 0;
         }
 
         override void accept(Visitor v)
