@@ -589,6 +589,109 @@ $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
 
         $(P Unions may not have fields that have destructors.)
 
+$(H2 $(LNAME2 StructInvariant, Struct Invariants))
+
+$(GRAMMAR
+$(GNAME StructInvariant):
+    $(D invariant ( )) $(GLINK2 statement, BlockStatement)
+    $(D invariant) $(GLINK2 statement, BlockStatement)
+)
+
+    $(P $(I StructInvariant)s specify the relationships among the members of a struct instance.
+    Those relationships must hold for any interactions with the instance from its
+    public interface.
+    )
+
+    $(P The invariant is in the form of a $(D const) member function. The invariant is defined
+    to $(I hold) if all the $(GLINK2 expression, AssertExpression)s within the invariant that are executed
+    succeed.
+    )
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(P Any invariants for fields are applied before the struct invariant.)
+
+    $(P There may be multiple invariants in a struct. They are applied in lexical order.)
+
+    $(P $(I StructInvariant)s must hold at the exit of the struct constructor (if any),
+    and at the entry of the struct destructor (if any).)
+
+    $(P $(I StructInvariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+    )
+
+    $(P The invariant need not hold if the struct instance is implicitly constructed using
+    the default $(D .init) value.)
+
+    ---
+    struct Date
+    {
+        this(int d, int h)
+        {
+            day = d;    // days are 1..31
+            hour = h;   // hours are 0..23
+        }
+
+        invariant
+        {
+            assert(1 <= day && day <= 31);
+            assert(0 <= hour && hour < 24);
+        }
+
+      private:
+        int day;
+        int hour;
+    }
+    ---
+
+    $(P Public or exported non-static member functions cannot be called from within an invariant.)
+
+    ---
+    struct Foo
+    {
+        public void f() { }
+        private void g() { }
+
+        invariant
+        {
+            f();  // error, cannot call public member function from invariant
+            g();  // ok, g() is not public
+        }
+    }
+    ---
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the $(I StructInvariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Do not indirectly call exported or public member functions within a struct invariant,
+    as this can result in infinite recursion.)
+    $(LI Avoid reliance on side effects in the invariant. as the invariant may or may not
+    be executed.)
+    $(LI Avoid having mutable public fields of structs with invariants,
+    as then the invariant cannot verify the public interface.)
+    )
+    )
+
+
+
 $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload))
 
         $(P While copy construction takes care of initializing
