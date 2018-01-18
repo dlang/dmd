@@ -101,25 +101,6 @@ struct BaseClass
                 if (fd.linkage != ifd.linkage)
                     fd.error("linkage doesn't match interface function");
 
-                /* Check that the function found is implemented and not inherited
-                 * from the base class. See: https://issues.dlang.org/show_bug.cgi?id=17462
-                 *
-                 * newinstance -> this function is called multiple times. The error is
-                 *                issued just once.
-                 *
-                 * fd.toParent() != cd -> the parent of the found function needs to
-                 *                     be the same as the function that implements it
-                 *
-                 * ifdParent.isBaseOf2(sym) -> if an interface inherits another interface
-                 *                          then the function found might be declared in the
-                 *                          parent of the implemented interface
-                 */
-                //printf("newinstance = %d\n fd.toParent() = %s\n ifd.toParent() = %s\n cd.toChars = %s\n sym=%s\n",
-                //    newinstance, fd.toParent().toChars(), ifd.toParent().toChars(), cd.toChars(), sym.toChars());
-                ClassDeclaration ifdParent = cast(ClassDeclaration)(ifd.toParent);
-                if (newinstance && fd.toParent() != cd  && ifdParent.isBaseOf2(sym))
-                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
-
                 if (fd.toParent() == cd)
                     result = true;
             }
@@ -127,8 +108,9 @@ struct BaseClass
             {
                 //printf("            not found %p\n", fd);
                 // BUG: should mark this class as abstract?
-                if (!cd.isAbstract())
-                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                if (newinstance && !cd.isAbstract() /*&& sym == ifd.toParent()*/)
+                    cd.error("interface function `%s`, required by interface `%s` is not implemented",
+                             ifd.toFullSignature(), sym.toChars());
 
                 fd = null;
             }

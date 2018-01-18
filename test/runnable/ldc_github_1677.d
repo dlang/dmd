@@ -20,8 +20,6 @@ class DOMImplementation(T)
     class FooImpl: BarImpl, IFoo!T
     {
         IList!T getList() { return null; }
-        alias ownerDocument = BarImpl.ownerDocument;
-        IFoo!T ownerDocument() { return null; }
     }
 }
 

@@ -83,7 +83,6 @@ class D3 : A3
 
 class E3 : D3, C3
 {
-    override void close() {}
 }
 
 void test3()
@@ -141,7 +140,6 @@ class A5 : I5
 class B5 : A5, J5
 {
     char N () { printf("N()\n"); return 'N'; }
-    override char M () { printf("M()\n"); return 'M'; }
 }
 
 void test5()

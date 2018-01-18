@@ -327,7 +327,6 @@ class A11 : I11
 class B11 : A11, J11
 {
   void N () { printf("B.N()\n"); }
-  override void M () { printf("B.M()\n"); }
 }
 
 void test11()
