@@ -352,14 +352,6 @@ $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D <)$(D =) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<=) $(GLINK ShiftExpression)
 )
 
     $(P First, the integral promotions are done on the operands.
@@ -411,45 +403,19 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         point comparison is performed.
     )
 
-    $(P Useful floating point operations must take into account NAN values.
-        In particular, a relational operator can have NAN operands.
-        The result of a relational operation on float
-        values is less, greater, equal, or unordered (unordered means
-        either or both of the
-        operands is a NAN). That means there are 14 possible comparison
-        conditions to test for:)
+    $(P A relational operator can have `NaN` operands.
+        If either or both operands is `NaN`, the floating point
+        comparison operation returns as follows:)
 
         $(TABLE2 Floating point comparison operators,
-        $(THEAD Operator, Greater, Less, Equal, Unordered, Exception, Relation)
-        $(TROW $(D ==),$(D F),$(D F),$(D T),$(D F),$(D no),equal)
-        $(TROW $(D !=),$(D T),$(D T),$(D F),$(D T),$(D no),$(ARGS unordered, less, or greater))
-        $(TROW $(D >),$(D T),$(D F),$(D F),$(D F),$(D yes),$(ARGS greater))
-        $(TROW $(D >=),$(D T),$(D F),$(D T),$(D F),$(D yes),$(ARGS greater or equal))
-        $(TROW $(D <),$(D F),$(D T),$(D F),$(D F),$(D yes),$(ARGS less))
-        $(TROW $(D <)$(D =),$(D F),$(D T),$(D T),$(D F),$(D yes),$(ARGS less or equal))
-        $(TROW $(D !)$(D <)$(D >)$(D =), $(D F),$(D F),$(D F),$(D T),$(D no),$(ARGS unordered))
-        $(TROW $(D <)$(D >),$(D T),$(D T),$(D F),$(D F),$(D yes),$(ARGS less or greater))
-        $(TROW $(D <)$(D >)$(D =),$(D T),$(D T),$(D T),$(D F),$(D yes),$(ARGS less, equal, or greater))
-        $(TROW $(D !<=),$(D T),$(D F),$(D F),$(D T),$(D no),$(ARGS unordered or greater))
-        $(TROW $(D !<),$(D T),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered, greater, or equal))
-        $(TROW $(D !>=),$(D F),$(D T),$(D F),$(D T),$(D no),$(ARGS unordered or less))
-        $(TROW $(D !>),$(D F),$(D T),$(D T),$(D T),$(D no),$(ARGS unordered, less, or equal))
-        $(TROW $(D !<>),$(D F),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered or equal))
+        $(THEAD Operator, Relation, Returns)
+        $(TROW $(D <),$(ARGS less), `false`)
+        $(TROW $(D >),$(ARGS greater), `false`)
+        $(TROW $(D <)$(D =),$(ARGS less or equal), `false`)
+        $(TROW $(D >=),$(ARGS greater or equal), `false`)
+        $(TROW $(D ==),equal, `false`)
+        $(TROW $(D !=),$(ARGS unordered, less, or greater), `true`)
         )
-
-    $(H4 Notes:)
-
-    $(OL
-        $(LI For floating point comparison operators,
-         $(CODE (a !op b))
-         is not the same as $(CODE !(a op b)).)
-        $(LI "Unordered" means one or both of the operands is a NAN.)
-        $(LI "Exception" means the $(I Invalid Exception) is raised if one
-                of the operands is a NAN. It does not mean an exception
-                is thrown. The $(I Invalid Exception) can be checked
-                using the functions in $(D core.stdc.fenv).
-        )
-    )
 
 $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
 

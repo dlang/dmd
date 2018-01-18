@@ -179,14 +179,6 @@ $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D <)$(D =) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<=) $(GLINK ShiftExpression)
 )
 
 $(GRAMMAR
