@@ -450,7 +450,7 @@ enum MATCH : int
 
 enum PINLINE : int
 {
-    def,     // as specified on the command line
+    default_,     // as specified on the command line
     never,   // never inline
     always,  // always inline
 }

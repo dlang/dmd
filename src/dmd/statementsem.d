@@ -2287,9 +2287,9 @@ else
         }
         else if (ps.ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINE.def;
+            PINLINE inlining = PINLINE.default_;
             if (!ps.args || ps.args.dim == 0)
-                inlining = PINLINE.def;
+                inlining = PINLINE.default_;
             else if (!ps.args || ps.args.dim != 1)
             {
                 ps.error("boolean expression expected for pragma(inline)");
