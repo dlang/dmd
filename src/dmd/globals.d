@@ -424,15 +424,6 @@ enum LINK : int
     system,
 }
 
-alias LINKdefault = LINK.default_;
-alias LINKd = LINK.d;
-alias LINKc = LINK.c;
-alias LINKcpp = LINK.cpp;
-alias LINKwindows = LINK.windows;
-alias LINKpascal = LINK.pascal;
-alias LINKobjc = LINK.objc;
-alias LINKsystem = LINK.system;
-
 enum CPPMANGLE : int
 {
     def,
