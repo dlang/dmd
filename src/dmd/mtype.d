@@ -315,12 +315,15 @@ Lnot:
     return t;
 }
 
-enum TFLAGSintegral     = 1;
-enum TFLAGSfloating     = 2;
-enum TFLAGSunsigned     = 4;
-enum TFLAGSreal         = 8;
-enum TFLAGSimaginary    = 0x10;
-enum TFLAGScomplex      = 0x20;
+enum TFlags
+{
+    integral     = 1,
+    floating     = 2,
+    unsigned     = 4,
+    real_        = 8,
+    imaginary    = 0x10,
+    complex      = 0x20,
+}
 
 Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
 {
