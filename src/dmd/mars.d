@@ -1736,7 +1736,16 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                             foreach (t; Usage.transitions)
                             {
                                 if (t.bugzillaNumber !is null)
-                                    buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                                {
+                                    buf ~= `case `~t.bugzillaNumber~`:`;
+                                    if (t.deprecated_)
+                                        buf ~= `Loc loc;
+                                            deprecation(loc, "The -transition=`~t.bugzillaNumber ~` has no effect anymore.");`;
+                                    else
+                                        buf ~= `params.`~t.paramName~` = true;`;
+
+                                    buf ~= "break;";
+                                }
                             }
                             return buf;
                         }
@@ -1756,12 +1765,20 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                             import dmd.cli : Usage;
                             string buf = `case "all":`;
                             foreach (t; Usage.transitions)
-                                buf ~= `params.`~t.paramName~` = true;`;
+                                if (!t.deprecated_)
+                                    buf ~= `params.`~t.paramName~` = true;`;
                             buf ~= "break;";
 
                             foreach (t; Usage.transitions)
                             {
-                                buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                                buf ~= `case "`~t.name~`":`;
+                                if (t.deprecated_)
+                                    buf ~= `Loc loc;
+                                        deprecation(loc, "The -transition=`~t.name~` has no effect anymore.");`;
+                                else
+                                    buf ~= `params.`~t.paramName~` = true;`;
+
+                                buf ~= "break;";
                             }
                             return buf;
                         }

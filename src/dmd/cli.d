@@ -570,8 +570,9 @@ dmd -cov -unittest myprog.d
     {
         string bugzillaNumber; /// bugzilla issue number (if existent)
         string name; /// name of the transition
-        string paramName; // internal transition parameter name
-        string helpText; // detailed description of the transition
+        string paramName; /// internal transition parameter name
+        string helpText; /// detailed description of the transition
+        bool deprecated_; /// whether the flag is still in use
     }
 
     /// Returns all available transitions
@@ -579,9 +580,9 @@ dmd -cov -unittest myprog.d
         Transition("3449", "field", "vfield",
             "list all non-mutable fields which occupy an object instance"),
         Transition("10378", "import", "bug10378",
-            "revert to single phase name lookup"),
+            "revert to single phase name lookup", true),
         Transition(null, "checkimports", "check10378",
-            "give deprecation messages about 10378 anomalies"),
+            "give deprecation messages about 10378 anomalies", true),
         Transition("14488", "complex", "vcomplex",
             "give deprecation messages about all usages of complex or imaginary types"),
         Transition("16997", "intpromote", "fix16997",
@@ -658,6 +659,8 @@ CPU architectures supported by -mcpu=id:
                 "list information on all language changes")] ~ Usage.transitions;
             foreach (t; allTransitions)
             {
+                if (t.deprecated_)
+                    continue;
                 buf ~= "  =";
                 buf ~= t.name;
                 auto lineLength = 3 + t.name.length;
