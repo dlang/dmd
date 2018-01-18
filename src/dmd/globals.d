@@ -27,12 +27,15 @@ template xversion(string s)
 
 enum IN_GCC     = xversion!`IN_GCC`;
 
-enum TARGET_LINUX   = xversion!`linux`;
-enum TARGET_OSX     = xversion!`OSX`;
-enum TARGET_FREEBSD = xversion!`FreeBSD`;
-enum TARGET_OPENBSD = xversion!`OpenBSD`;
-enum TARGET_SOLARIS = xversion!`Solaris`;
-enum TARGET_WINDOS  = xversion!`Windows`;
+enum TARGET : bool
+{
+    Linux   = xversion!`linux`,
+    OSX     = xversion!`OSX`,
+    FreeBSD = xversion!`FreeBSD`,
+    OpenBSD = xversion!`OpenBSD`,
+    Solaris = xversion!`Solaris`,
+    Windows = xversion!`Windows`,
+}
 
 enum CHECKENABLE : ubyte
 {
@@ -290,11 +293,11 @@ struct Global
 
     extern (C++) void _init()
     {
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             obj_ext = "obj";
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
         {
             obj_ext = "o";
         }
@@ -302,11 +305,11 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             lib_ext = "lib";
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
         {
             lib_ext = "a";
         }
@@ -314,15 +317,15 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             dll_ext = "dll";
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
         {
             dll_ext = "so";
         }
-        else static if (TARGET_OSX)
+        else static if (TARGET.OSX)
         {
             dll_ext = "dylib";
         }
@@ -330,11 +333,11 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             run_noext = false;
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
         {
             // Allow 'script' D source files to have no extension.
             run_noext = true;

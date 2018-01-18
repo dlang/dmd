@@ -203,7 +203,7 @@ private int tryMain(size_t argc, const(char)** argv)
     global.params.argv0 = arguments[0];
 
     // Temporary: Use 32 bits as the default on Windows, for config parsing
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
         global.params.is64bit = false;
 
     global.inifilename = parse_conf_arg(&arguments);
@@ -356,16 +356,16 @@ private int tryMain(size_t argc, const(char)** argv)
         usage();
         return EXIT_FAILURE;
     }
-    static if (TARGET_OSX)
+    static if (TARGET.OSX)
     {
         global.params.pic = 1;
     }
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
     {
         if (global.params.lib && global.params.dll)
             error(Loc(), "cannot mix -lib and -shared");
     }
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
     {
         if (!global.params.mscrtlib)
             global.params.mscrtlib = "libcmt";
@@ -539,7 +539,7 @@ private int tryMain(size_t argc, const(char)** argv)
                 libmodules.push(files[i]);
                 continue;
             }
-            static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
             {
                 if (FileName.equals(ext, global.dll_ext))
                 {
@@ -564,7 +564,7 @@ private int tryMain(size_t argc, const(char)** argv)
                 global.params.mapfile = files[i];
                 continue;
             }
-            static if (TARGET_WINDOS)
+            static if (TARGET.Windows)
             {
                 if (FileName.equals(ext, "res"))
                 {
@@ -1185,7 +1185,7 @@ private void setDefaultLibrary()
 {
     if (global.params.defaultlibname is null)
     {
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             if (global.params.is64bit)
                 global.params.defaultlibname = "phobos64";
@@ -1194,11 +1194,11 @@ private void setDefaultLibrary()
             else
                 global.params.defaultlibname = "phobos";
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
         {
             global.params.defaultlibname = "libphobos2.a";
         }
-        else static if (TARGET_OSX)
+        else static if (TARGET.OSX)
         {
             global.params.defaultlibname = "phobos2";
         }
@@ -1224,19 +1224,19 @@ private void setDefaultLibrary()
 private void addDefaultVersionIdentifiers()
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
         global.params.isWindows = true;
     }
-    else static if (TARGET_LINUX)
+    else static if (TARGET.Linux)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isLinux = true;
     }
-    else static if (TARGET_OSX)
+    else static if (TARGET.OSX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
@@ -1244,21 +1244,21 @@ private void addDefaultVersionIdentifiers()
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
-    else static if (TARGET_FREEBSD)
+    else static if (TARGET.FreeBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isFreeBSD = true;
     }
-    else static if (TARGET_OPENBSD)
+    else static if (TARGET.OpenBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isOpenBSD = true;
     }
-    else static if (TARGET_SOLARIS)
+    else static if (TARGET.Solaris)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("Solaris");
@@ -1286,7 +1286,7 @@ private void addDefaultVersionIdentifiers()
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
         }
@@ -1296,19 +1296,19 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }
     }
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
     {
         if (global.params.mscoff)
             VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
         else
             VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
     }
-    else static if (TARGET_LINUX)
+    else static if (TARGET.Linux)
     {
         VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }
@@ -1364,7 +1364,7 @@ private CPU setTargetCPU(CPU cpu)
         baseline = CPU.sse2;
     else
     {
-        static if (TARGET_OSX)
+        static if (TARGET.OSX)
         {
             baseline = CPU.sse2;
         }
@@ -1528,7 +1528,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.dll = true;
             else if (arg == "-dylib")
             {
-                static if (TARGET_OSX)
+                static if (TARGET.OSX)
                 {
                     Loc loc;
                     deprecation(loc, "use -shared instead of -dylib");
@@ -1541,7 +1541,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-fPIC")
             {
-                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
                 {
                     params.pic = 1;
                 }
@@ -1585,14 +1585,14 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
             {
                 params.is64bit = true;
-                static if (TARGET_WINDOS)
+                static if (TARGET.Windows)
                 {
                     params.mscoff = true;
                 }
             }
             else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
             {
-                static if (TARGET_WINDOS)
+                static if (TARGET.Windows)
                 {
                     params.is64bit = 0;
                     params.mscoff = true;
@@ -1604,7 +1604,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
             {
-                static if (TARGET_WINDOS)
+                static if (TARGET.Windows)
                 {
                     params.mscrtlib = p + 10;
                 }
@@ -2141,7 +2141,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         }
         else
         {
-            static if (TARGET_WINDOS)
+            static if (TARGET.Windows)
             {
                 const(char)* ext = FileName.ext(p);
                 if (ext && FileName.compare(ext, "exe") == 0)
