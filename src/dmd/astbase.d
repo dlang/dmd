@@ -969,7 +969,7 @@ struct ASTBase
         final extern (D) this(Identifier ident)
         {
             super(ident);
-            this.isPkgMod = PKGunknown;
+            this.isPkgMod = PKG.unknown;
             __gshared uint packageTag;
             this.tag = packageTag++;
         }

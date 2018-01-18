@@ -153,12 +153,12 @@ extern (C++) class Package : ScopeDsymbol
 {
     PKG isPkgMod;
     uint tag;        // auto incremented tag, used to mask package tree in scopes
-    Module mod;     // !=null if isPkgMod == PKGmodule
+    Module mod;     // !=null if isPkgMod == PKG.module_
 
     final extern (D) this(Identifier ident)
     {
         super(ident);
-        this.isPkgMod = PKGunknown;
+        this.isPkgMod = PKG.unknown;
         __gshared uint packageTag;
         this.tag = packageTag++;
     }
@@ -278,7 +278,7 @@ extern (C++) class Package : ScopeDsymbol
 
     final Module isPackageMod()
     {
-        if (isPkgMod == PKGmodule)
+        if (isPkgMod == PKG.module_)
         {
             return mod;
         }
@@ -988,12 +988,12 @@ extern (C++) final class Module : Package
              *
              * To avoid the conflict:
              * 1. If preceding package name insertion had occurred by Package::resolve,
-             *    later package.d loading will change Package::isPkgMod to PKGmodule and set Package::mod.
+             *    later package.d loading will change Package::isPkgMod to PKG.module_ and set Package::mod.
              * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
              */
             auto p = new Package(ident);
             p.parent = this.parent;
-            p.isPkgMod = PKGmodule;
+            p.isPkgMod = PKG.module_;
             p.mod = this;
             p.tag = this.tag; // reuse the same package tag
             p.symtab = new DsymbolTable();
@@ -1020,12 +1020,12 @@ extern (C++) final class Module : Package
             }
             else if (Package pkg = prev.isPackage())
             {
-                if (pkg.isPkgMod == PKGunknown && isPackageFile)
+                if (pkg.isPkgMod == PKG.unknown && isPackageFile)
                 {
                     /* If the previous inserted Package is not yet determined as package.d,
                      * link it to the actual module.
                      */
-                    pkg.isPkgMod = PKGmodule;
+                    pkg.isPkgMod = PKG.module_;
                     pkg.mod = this;
                     pkg.tag = this.tag; // reuse the same package tag
                     amodules.push(this); // Add to global array of all modules
