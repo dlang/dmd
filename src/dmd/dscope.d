@@ -158,7 +158,7 @@ struct Scope
     AlignDeclaration aligndecl;
 
     /// linkage for external functions
-    LINK linkage = LINKd;
+    LINK linkage = LINK.d;
 
     /// mangle type
     CPPMANGLE cppmangle = CPPMANGLE.def;

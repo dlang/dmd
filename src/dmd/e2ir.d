@@ -194,7 +194,7 @@ private elem *callfunc(Loc loc,
         assert(elems);
 
         // j=1 if _arguments[] is first argument
-        int j = (tf.linkage == LINKd && tf.varargs == 1);
+        int j = (tf.linkage == LINK.d && tf.varargs == 1);
 
         foreach (const i; 0 .. n)
         {
@@ -288,7 +288,7 @@ private elem *callfunc(Loc loc,
         if ((global.params.isLinux ||
              global.params.isOSX ||
              global.params.isFreeBSD ||
-             global.params.isSolaris) && tf.linkage != LINKd)
+             global.params.isSolaris) && tf.linkage != LINK.d)
         {
                 // ehidden goes last on Linux/OSX C++
         }
@@ -3743,7 +3743,7 @@ elem *toElem(Expression e, IRState *irs)
                     // multiple times within the same function, eg in a loop
                     // see issue 3822
                     if (fd && fd.ident == Id.__alloca &&
-                        !fd.fbody && fd.linkage == LINKc &&
+                        !fd.fbody && fd.linkage == LINK.c &&
                         arguments && arguments.dim == 1)
                     {   Expression arg = (*arguments)[0];
                         arg = arg.optimize(WANTvalue);

@@ -1082,7 +1082,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             errors = true;
         }
 
-        if (tf.varargs == 1 && tf.linkage != LINKd && Parameter.dim(tf.parameters) == 0)
+        if (tf.varargs == 1 && tf.linkage != LINK.d && Parameter.dim(tf.parameters) == 0)
         {
             mtype.error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;

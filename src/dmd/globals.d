@@ -417,7 +417,7 @@ nothrow:
 
 enum LINK : int
 {
-    def,        // default
+    default_,
     d,
     c,
     cpp,
@@ -426,15 +426,6 @@ enum LINK : int
     objc,
     system,
 }
-
-alias LINKdefault = LINK.def;
-alias LINKd = LINK.d;
-alias LINKc = LINK.c;
-alias LINKcpp = LINK.cpp;
-alias LINKwindows = LINK.windows;
-alias LINKpascal = LINK.pascal;
-alias LINKobjc = LINK.objc;
-alias LINKsystem = LINK.system;
 
 enum CPPMANGLE : int
 {

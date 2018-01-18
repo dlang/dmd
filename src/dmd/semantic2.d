@@ -385,7 +385,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             assert(sc);
             sc = sc.push(ns);
-            sc.linkage = LINKcpp;
+            sc.linkage = LINK.cpp;
             foreach (s; *ns.members)
             {
                 static if (LOG)

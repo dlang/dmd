@@ -885,7 +885,7 @@ public:
         pas.buf = buf;
         pas.isCtor = false;
         pas.isPostfixStyle = true;
-        if (t.linkage > LINKd && hgs.ddoc != 1 && !hgs.hdrgen)
+        if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
             buf.writeByte(' ');
@@ -932,7 +932,7 @@ public:
             buf.writeByte(' ');
         }
         t.attributesApply(&pas, &PrePostAppendStrings.fp);
-        if (t.linkage > LINKd && hgs.ddoc != 1 && !hgs.hdrgen)
+        if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
             buf.writeByte(' ');
@@ -1229,22 +1229,22 @@ public:
         const(char)* p;
         switch (d.linkage)
         {
-        case LINKd:
+        case LINK.d:
             p = "D";
             break;
-        case LINKc:
+        case LINK.c:
             p = "C";
             break;
-        case LINKcpp:
+        case LINK.cpp:
             p = "C++";
             break;
-        case LINKwindows:
+        case LINK.windows:
             p = "Windows";
             break;
-        case LINKpascal:
+        case LINK.pascal:
             p = "Pascal";
             break;
-        case LINKobjc:
+        case LINK.objc:
             p = "Objective-C";
             break;
         default:
@@ -3307,26 +3307,24 @@ private void linkageToBuffer(OutBuffer* buf, LINK linkage)
 
 extern (C++) const(char)* linkageToChars(LINK linkage)
 {
-    switch (linkage)
+    final switch (linkage)
     {
-    case LINKdefault:
+    case LINK.default_:
         return null;
-    case LINKd:
+    case LINK.d:
         return "D";
-    case LINKc:
+    case LINK.c:
         return "C";
-    case LINKcpp:
+    case LINK.cpp:
         return "C++";
-    case LINKwindows:
+    case LINK.windows:
         return "Windows";
-    case LINKpascal:
+    case LINK.pascal:
         return "Pascal";
-    case LINKobjc:
+    case LINK.objc:
         return "Objective-C";
-    case LINKsystem:
+    case LINK.system:
         return "System";
-    default:
-        assert(0);
     }
 }
 

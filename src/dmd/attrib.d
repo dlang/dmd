@@ -439,7 +439,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         super(decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
-        linkage = (p == LINKsystem) ? Target.systemLinkage() : p;
+        linkage = (p == LINK.system) ? Target.systemLinkage() : p;
     }
 
     static LinkDeclaration create(LINK p, Dsymbols* decl)
@@ -491,7 +491,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, LINKcpp, cppmangle, sc.protection, sc.explicitProtection,
+        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.protection, sc.explicitProtection,
             sc.aligndecl, sc.inlining);
     }
 

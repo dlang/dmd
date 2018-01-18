@@ -351,28 +351,28 @@ public:
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
         ubyte mc;
-        switch (t.linkage)
+        final switch (t.linkage)
         {
-        case LINKd:
+        case LINK.default_:
+        case LINK.system:
+        case LINK.d:
             mc = 'F';
             break;
-        case LINKc:
+        case LINK.c:
             mc = 'U';
             break;
-        case LINKwindows:
+        case LINK.windows:
             mc = 'W';
             break;
-        case LINKpascal:
+        case LINK.pascal:
             mc = 'V';
             break;
-        case LINKcpp:
+        case LINK.cpp:
             mc = 'R';
             break;
-        case LINKobjc:
+        case LINK.objc:
             mc = 'Y';
             break;
-        default:
-            assert(0);
         }
         buf.writeByte(mc);
         if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn || ta.isscope)
@@ -543,25 +543,23 @@ public:
 
     static const(char)* externallyMangledIdentifier(Declaration d)
     {
-        if (!d.parent || d.parent.isModule() || d.linkage == LINKcpp) // if at global scope
+        if (!d.parent || d.parent.isModule() || d.linkage == LINK.cpp) // if at global scope
         {
-            switch (d.linkage)
+            final switch (d.linkage)
             {
-                case LINKd:
+                case LINK.d:
                     break;
-                case LINKc:
-                case LINKwindows:
-                case LINKpascal:
-                case LINKobjc:
+                case LINK.c:
+                case LINK.windows:
+                case LINK.pascal:
+                case LINK.objc:
                     return d.ident.toChars();
-                case LINKcpp:
+                case LINK.cpp:
                     return Target.toCppMangle(d);
-                case LINKdefault:
+                case LINK.default_:
+                case LINK.system:
                     d.error("forward declaration");
                     return d.ident.toChars();
-                default:
-                    fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
-                    assert(0);
             }
         }
         return null;

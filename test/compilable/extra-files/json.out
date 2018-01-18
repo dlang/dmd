@@ -807,6 +807,123 @@
       "offset" : 0
      }
     ]
+   },
+   {
+    "name" : "vlinkageDefault",
+    "kind" : "variable",
+    "line" : 180,
+    "char" : 12,
+    "storageClass" : [
+     "extern"
+    ],
+    "deco" : "i"
+   },
+   {
+    "name" : "vlinkageD",
+    "kind" : "variable",
+    "line" : 181,
+    "char" : 15,
+    "deco" : "i"
+   },
+   {
+    "name" : "vlinakgeC",
+    "kind" : "variable",
+    "line" : 182,
+    "char" : 15,
+    "linkage" : "c",
+    "deco" : "i"
+   },
+   {
+    "name" : "vlinkageCpp",
+    "kind" : "variable",
+    "line" : 183,
+    "char" : 27,
+    "storageClass" : [
+     "__gshared"
+    ],
+    "linkage" : "cpp",
+    "deco" : "i"
+   },
+   {
+    "name" : "vlinkageWindows",
+    "kind" : "variable",
+    "line" : 184,
+    "char" : 21,
+    "linkage" : "windows",
+    "deco" : "i"
+   },
+   {
+    "name" : "vlinkagePascal",
+    "kind" : "variable",
+    "line" : 185,
+    "char" : 20,
+    "linkage" : "pascal",
+    "deco" : "i"
+   },
+   {
+    "name" : "vlinkageObjc",
+    "kind" : "variable",
+    "line" : 186,
+    "char" : 25,
+    "linkage" : "objc",
+    "deco" : "i"
+   },
+   {
+    "name" : "flinkageDefault",
+    "kind" : "function",
+    "line" : 188,
+    "char" : 12,
+    "storageClass" : [
+     "extern"
+    ],
+    "deco" : "FZi"
+   },
+   {
+    "name" : "flinkageD",
+    "kind" : "function",
+    "line" : 189,
+    "char" : 15,
+    "deco" : "FZi"
+   },
+   {
+    "name" : "linakgeC",
+    "kind" : "function",
+    "line" : 190,
+    "char" : 15,
+    "linkage" : "c",
+    "deco" : "UZi"
+   },
+   {
+    "name" : "flinkageCpp",
+    "kind" : "function",
+    "line" : 191,
+    "char" : 17,
+    "linkage" : "cpp",
+    "deco" : "RZi"
+   },
+   {
+    "name" : "flinkageWindows",
+    "kind" : "function",
+    "line" : 192,
+    "char" : 21,
+    "linkage" : "windows",
+    "deco" : "WZi"
+   },
+   {
+    "name" : "flinkagePascal",
+    "kind" : "function",
+    "line" : 193,
+    "char" : 20,
+    "linkage" : "pascal",
+    "deco" : "VZi"
+   },
+   {
+    "name" : "flinkageObjc",
+    "kind" : "function",
+    "line" : 194,
+    "char" : 25,
+    "linkage" : "objc",
+    "deco" : "YZi"
    }
   ]
  }

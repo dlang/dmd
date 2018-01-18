@@ -293,30 +293,35 @@ public:
 
     void property(const(char)* name, LINK linkage)
     {
-        switch (linkage)
+        final switch (linkage)
         {
-        case LINKdefault:
+        case LINK.default_:
             // Should not be printed
             //property(name, "default");
             break;
-        case LINKd:
+        case LINK.d:
             // Should not be printed
             //property(name, "d");
             break;
-        case LINKc:
+        case LINK.system:
+            // Should not be printed
+            //property(name, "system");
+            break;
+        case LINK.c:
             property(name, "c");
             break;
-        case LINKcpp:
+        case LINK.cpp:
             property(name, "cpp");
             break;
-        case LINKwindows:
+        case LINK.windows:
             property(name, "windows");
             break;
-        case LINKpascal:
+        case LINK.pascal:
             property(name, "pascal");
             break;
-        default:
-            assert(false);
+        case LINK.objc:
+            property(name, "objc");
+            break;
         }
     }
 
@@ -429,6 +434,7 @@ public:
             return;
         jsonProperties(cast(Dsymbol)d);
         propertyStorageClass("storageClass", d.storage_class);
+        property("linkage", d.linkage);
         property("type", "deco", d.type);
         // Emit originalType if it differs from type
         if (d.type != d.originalType && d.originalType)

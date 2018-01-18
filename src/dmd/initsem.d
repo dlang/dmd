@@ -232,7 +232,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             /* Rewrite as empty delegate literal { }
              */
             auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, 0, LINKd);
+            Type tf = new TypeFunction(parameters, null, 0, LINK.d);
             auto fd = new FuncLiteralDeclaration(i.loc, Loc(), tf, tok, null);
             fd.fbody = new CompoundStatement(i.loc, new Statements());
             fd.endloc = i.loc;

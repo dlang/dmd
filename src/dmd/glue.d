@@ -1096,7 +1096,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 
     if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-         fd.linkage != LINKd && shidden && sthis)
+         fd.linkage != LINK.d && shidden && sthis)
     {
         /* swap shidden and sthis
          */
@@ -1459,21 +1459,21 @@ uint totym(Type tx)
         case Tfunction:
         {
             TypeFunction tf = cast(TypeFunction)tx;
-            switch (tf.linkage)
+            final switch (tf.linkage)
             {
-                case LINKwindows:
+                case LINK.windows:
                     if (global.params.is64bit)
                         goto Lc;
                     t = (tf.varargs == 1) ? TYnfunc : TYnsfunc;
                     break;
 
-                case LINKpascal:
+                case LINK.pascal:
                     t = (tf.varargs == 1) ? TYnfunc : TYnpfunc;
                     break;
 
-                case LINKc:
-                case LINKcpp:
-                case LINKobjc:
+                case LINK.c:
+                case LINK.cpp:
+                case LINK.objc:
                 Lc:
                     t = TYnfunc;
                     if (global.params.isWindows)
@@ -1483,11 +1483,12 @@ uint totym(Type tx)
                         t = TYhfunc;
                     break;
 
-                case LINKd:
+                case LINK.d:
                     t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
                     break;
 
-                default:
+                case LINK.default_:
+                case LINK.system:
                     printf("linkage = %d\n", tf.linkage);
                     assert(0);
             }

@@ -280,7 +280,7 @@ extern (C++) abstract class Declaration : Dsymbol
         super(id);
         storage_class = STC.undefined_;
         protection = Prot(Prot.Kind.undefined);
-        linkage = LINKdefault;
+        linkage = LINK.default_;
     }
 
     override const(char)* kind() const
@@ -1658,7 +1658,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
         this.tinfo = tinfo;
         storage_class = STC.static_ | STC.gshared;
         protection = Prot(Prot.Kind.public_);
-        linkage = LINKc;
+        linkage = LINK.c;
         alignment = Target.ptrsize;
     }
 

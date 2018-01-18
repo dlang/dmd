@@ -1022,11 +1022,11 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         auto sc2 = super.newScope(sc);
         if (com)
-            sc2.linkage = LINKwindows;
+            sc2.linkage = LINK.windows;
         else if (classKind == ClassKind.cpp)
-            sc2.linkage = LINKcpp;
+            sc2.linkage = LINK.cpp;
         else if (classKind == ClassKind.objc)
-            sc2.linkage = LINKobjc;
+            sc2.linkage = LINK.objc;
         return sc2;
     }
 
