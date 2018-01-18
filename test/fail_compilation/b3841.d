@@ -4,21 +4,34 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/b3841.d-mixin-31(31): Warning: `char += float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `int += float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `long += double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `char -= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `int -= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `long -= double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `char *= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `int *= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `long *= double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `char /= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `int /= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `long /= double` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `char %= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `int %= float` is performing truncating conversion
-fail_compilation/b3841.d-mixin-31(31): Warning: `long %= double` is performing truncating conversion
+fail_compilation/b3841.d(42): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
+fail_compilation/b3841.d-mixin-44(44): Warning: `char += float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `int += float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `long += double` is performing truncating conversion
+fail_compilation/b3841.d(42): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
+fail_compilation/b3841.d-mixin-44(44): Warning: `char -= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `int -= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `long -= double` is performing truncating conversion
+fail_compilation/b3841.d(42): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
+fail_compilation/b3841.d-mixin-44(44): Warning: `char *= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `int *= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `long *= double` is performing truncating conversion
+fail_compilation/b3841.d(42): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
+fail_compilation/b3841.d-mixin-44(44): Warning: `char /= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `int /= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `long /= double` is performing truncating conversion
+fail_compilation/b3841.d(42): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
+fail_compilation/b3841.d-mixin-44(44): Warning: `char %= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `int %= float` is performing truncating conversion
+fail_compilation/b3841.d-mixin-44(44): Warning: `long %= double` is performing truncating conversion
+fail_compilation/b3841.d(42): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+fail_compilation/b3841.d(43): Deprecation: use of imaginary type `ifloat` is deprecated, use `float` instead
+fail_compilation/b3841.d(42): Deprecation: use of imaginary type `ifloat` is deprecated, use `float` instead
+fail_compilation/b3841.d(43): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+fail_compilation/b3841.d(42): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+fail_compilation/b3841.d(43): Deprecation: use of imaginary type `ifloat` is deprecated, use `float` instead
+fail_compilation/b3841.d(42): Deprecation: use of imaginary type `ifloat` is deprecated, use `float` instead
+fail_compilation/b3841.d(43): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
 ---
 */
 
@@ -47,7 +60,7 @@ void main()
         f!(op, float, long)();
         f!(op, cfloat, long)();
         f!(op, double, float)();
-        
+
         // Should that really be OK ?
         f!(op, short, int)();
         f!(op, float, double)();
@@ -66,7 +79,7 @@ void main()
         // Should that really be OK ?
         f!(op, ifloat, idouble)();
     }
-    
+
     // OK
     f!("^^=", int, int)();
     f!("^^=", long, int)();
