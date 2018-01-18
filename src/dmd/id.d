@@ -177,6 +177,7 @@ immutable Msgtable[] msgtable =
     { "exit" },
     { "success" },
     { "failure" },
+    { "__dassert_msg", "__dassert_msg"},
 
     { "keys" },
     { "values" },

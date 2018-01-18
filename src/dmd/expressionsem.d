@@ -4375,6 +4375,36 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
         }
+
+        if (global.params.useAssert == CHECKENABLE.on)
+        {
+            if (global.params.checkAction != CHECKACTION.C)
+            {
+                char *mname = cast(char*)sc._module.srcfile.toChars();
+                if (exp.loc.filename && (exp.msg || strcmp(exp.loc.filename, mname) != 0))
+                {
+                    if (exp.msg)
+                    {
+                        Expression sl = new IdentifierExp(exp.loc, Id.empty);
+                        sl = new DotIdExp(exp.loc, sl, Id.object);
+                        sl = new DotIdExp(exp.loc, sl, Id.__dassert_msg);
+
+                        Expressions* args = new Expressions();
+                        args.push(cast(StringExp) exp.msg);
+                        args.push(new StringExp(exp.loc, cast(char*) exp.loc.filename));
+                        args.push(new IntegerExp(exp.loc.linnum));
+
+                        sl = new CallExp(exp.loc, sl, args);
+                        sl = new LogicalExp(exp.loc, TOKoror, exp.e1, sl);
+
+                        sl.expressionSemantic(sc);
+                        result = sl;
+                        return;
+                    }
+                }
+            }
+        }
+
         exp.type = Type.tvoid;
         result = exp;
     }
