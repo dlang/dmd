@@ -779,9 +779,9 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
         if (ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINE.def;
+            PINLINE inlining = PINLINE.default_;
             if (!args || args.dim == 0)
-                inlining = PINLINE.def;
+                inlining = PINLINE.default_;
             else if (args.dim != 1)
             {
                 error("one boolean expression expected for `pragma(inline)`, not %d", args.dim);

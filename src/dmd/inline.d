@@ -1515,7 +1515,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
 
     final switch (fd.inlining)
     {
-    case PINLINE.def:
+    case PINLINE.default_:
         break;
     case PINLINE.always:
         break;

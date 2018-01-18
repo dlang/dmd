@@ -189,7 +189,7 @@ extern (C++) class FuncDeclaration : Declaration
                                         /// supplied by the user
     ILS inlineStatusStmt = ILS.uninitialized;
     ILS inlineStatusExp = ILS.uninitialized;
-    PINLINE inlining = PINLINE.def;
+    PINLINE inlining = PINLINE.default_;
 
     CompiledCtfeFunction* ctfeCode;     /// Compiled code for interpreter (not actually)
     int inlineNest;                     /// !=0 if nested inline
