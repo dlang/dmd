@@ -364,106 +364,58 @@ Expression semanticLength(Scope* sc, Type t, Expression exp)
     return exp;
 }
 
-enum ENUMTY : int
+enum TY : ubyte
 {
-    Tarray,     // slice array, aka T[]
-    Tsarray,    // static array, aka T[dimension]
-    Taarray,    // associative array, aka T[type]
-    Tpointer,
-    Treference,
-    Tfunction,
-    Tident,
-    Tclass,
-    Tstruct,
-    Tenum,
+    array,     // slice array, aka T[]
+    sarray,    // static array, aka T[dimension]
+    aarray,    // associative array, aka T[type]
+    pointer,
+    reference,
+    function_,
+    ident,
+    class_,
+    struct_,
+    enum_,
 
-    Tdelegate,
-    Tnone,
-    Tvoid,
-    Tint8,
-    Tuns8,
-    Tint16,
-    Tuns16,
-    Tint32,
-    Tuns32,
-    Tint64,
+    delegate_,
+    none,
+    void_,
+    int8,
+    uns8,
+    int16,
+    uns16,
+    int32,
+    uns32,
+    int64,
 
-    Tuns64,
-    Tfloat32,
-    Tfloat64,
-    Tfloat80,
-    Timaginary32,
-    Timaginary64,
-    Timaginary80,
-    Tcomplex32,
-    Tcomplex64,
-    Tcomplex80,
+    uns64,
+    float32,
+    float64,
+    float80,
+    imaginary32,
+    imaginary64,
+    imaginary80,
+    complex32,
+    complex64,
+    complex80,
 
-    Tbool,
-    Tchar,
-    Twchar,
-    Tdchar,
-    Terror,
-    Tinstance,
-    Ttypeof,
-    Ttuple,
-    Tslice,
-    Treturn,
+    bool_,
+    char_,
+    wchar_,
+    dchar_,
+    error,
+    instance,
+    typeof_,
+    tuple,
+    slice,
+    return_,
 
-    Tnull,
-    Tvector,
-    Tint128,
-    Tuns128,
-    TMAX,
+    null_,
+    vector,
+    int128,
+    uns128,
+    MAX,
 }
-
-alias Tarray = ENUMTY.Tarray;
-alias Tsarray = ENUMTY.Tsarray;
-alias Taarray = ENUMTY.Taarray;
-alias Tpointer = ENUMTY.Tpointer;
-alias Treference = ENUMTY.Treference;
-alias Tfunction = ENUMTY.Tfunction;
-alias Tident = ENUMTY.Tident;
-alias Tclass = ENUMTY.Tclass;
-alias Tstruct = ENUMTY.Tstruct;
-alias Tenum = ENUMTY.Tenum;
-alias Tdelegate = ENUMTY.Tdelegate;
-alias Tnone = ENUMTY.Tnone;
-alias Tvoid = ENUMTY.Tvoid;
-alias Tint8 = ENUMTY.Tint8;
-alias Tuns8 = ENUMTY.Tuns8;
-alias Tint16 = ENUMTY.Tint16;
-alias Tuns16 = ENUMTY.Tuns16;
-alias Tint32 = ENUMTY.Tint32;
-alias Tuns32 = ENUMTY.Tuns32;
-alias Tint64 = ENUMTY.Tint64;
-alias Tuns64 = ENUMTY.Tuns64;
-alias Tfloat32 = ENUMTY.Tfloat32;
-alias Tfloat64 = ENUMTY.Tfloat64;
-alias Tfloat80 = ENUMTY.Tfloat80;
-alias Timaginary32 = ENUMTY.Timaginary32;
-alias Timaginary64 = ENUMTY.Timaginary64;
-alias Timaginary80 = ENUMTY.Timaginary80;
-alias Tcomplex32 = ENUMTY.Tcomplex32;
-alias Tcomplex64 = ENUMTY.Tcomplex64;
-alias Tcomplex80 = ENUMTY.Tcomplex80;
-alias Tbool = ENUMTY.Tbool;
-alias Tchar = ENUMTY.Tchar;
-alias Twchar = ENUMTY.Twchar;
-alias Tdchar = ENUMTY.Tdchar;
-alias Terror = ENUMTY.Terror;
-alias Tinstance = ENUMTY.Tinstance;
-alias Ttypeof = ENUMTY.Ttypeof;
-alias Ttuple = ENUMTY.Ttuple;
-alias Tslice = ENUMTY.Tslice;
-alias Treturn = ENUMTY.Treturn;
-alias Tnull = ENUMTY.Tnull;
-alias Tvector = ENUMTY.Tvector;
-alias Tint128 = ENUMTY.Tint128;
-alias Tuns128 = ENUMTY.Tuns128;
-alias TMAX = ENUMTY.TMAX;
-
-alias TY = ubyte;
 
 enum MODFlags : int
 {
