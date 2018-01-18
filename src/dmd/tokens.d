@@ -24,538 +24,291 @@ import dmd.utf;
 
 enum TOK : int
 {
-    TOKreserved,
+    reserved,
 
     // Other
-    TOKlparen,
-    TOKrparen,
-    TOKlbracket,
-    TOKrbracket,
-    TOKlcurly,
-    TOKrcurly,
-    TOKcolon,
-    TOKneg,
-    TOKsemicolon,
-    TOKdotdotdot,
-    TOKeof,
-    TOKcast,
-    TOKnull,
-    TOKassert,
-    TOKtrue,
-    TOKfalse,
-    TOKarray,
-    TOKcall,
-    TOKaddress,
-    TOKtype,
-    TOKthrow,
-    TOKnew,
-    TOKdelete,
-    TOKstar,
-    TOKsymoff,
-    TOKvar,
-    TOKdotvar,
-    TOKdotid,
-    TOKdotti,
-    TOKdottype,
-    TOKslice,
-    TOKarraylength,
-    TOKversion,
-    TOKmodule,
-    TOKdollar,
-    TOKtemplate,
-    TOKdottd,
-    TOKdeclaration,
-    TOKtypeof,
-    TOKpragma,
-    TOKdsymbol,
-    TOKtypeid,
-    TOKuadd,
-    TOKremove,
-    TOKnewanonclass,
-    TOKcomment,
-    TOKarrayliteral,
-    TOKassocarrayliteral,
-    TOKstructliteral,
-    TOKclassreference,
-    TOKthrownexception,
-    TOKdelegateptr,
-    TOKdelegatefuncptr,
+    leftParentheses,
+    rightParentheses,
+    leftBracket,
+    rightBracket,
+    leftCurly,
+    rightCurly,
+    colon,
+    negate,
+    semicolon,
+    dotDotDot,
+    endOfFile,
+    cast_,
+    null_,
+    assert_,
+    true_,
+    false_,
+    array,
+    call,
+    address,
+    type,
+    throw_,
+    new_,
+    delete_,
+    star,
+    symbolOffset,
+    variable,
+    dotVariable,
+    dotIdentifier,
+    dotTemplateInstance,
+    dotType,
+    slice,
+    arrayLength,
+    version_,
+    module_,
+    dollar,
+    template_,
+    dotTemplateDeclaration,
+    declaration,
+    typeof_,
+    pragma_,
+    dSymbol,
+    typeid_,
+    uadd,
+    remove,
+    newAnonymousClass,
+    comment,
+    arrayLiteral,
+    assocArrayLiteral,
+    structLiteral,
+    classReference,
+    thrownException,
+    delegatePointer,
+    delegateFunctionPointer,
 
     // 54
     // Operators
-    TOKlt,
-    TOKgt,
-    TOKle,
-    TOKge,
-    TOKequal,
-    TOKnotequal,
-    TOKidentity,
-    TOKnotidentity,
-    TOKindex,
-    TOKis,
+    lessThan,
+    greaterThan,
+    lessOrEqual,
+    greaterOrEqual,
+    equal,
+    notEqual,
+    identity,
+    notIdentity,
+    index,
+    is_,
 
     // 64
     // NCEG floating point compares
     // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
-    TOKunord,
-    TOKlg,
-    TOKleg,
-    TOKule,
-    TOKul,
-    TOKuge,
-    TOKug,
-    TOKue,
+    unord,
+    lg,
+    leg,
+    ule,
+    ul,
+    uge,
+    ug,
+    ue,
 
     // 72
-    TOKshl,
-    TOKshr,
-    TOKshlass,
-    TOKshrass,
-    TOKushr,
-    TOKushrass,
-    TOKcat,
-    TOKcatass, // ~=
-    TOKcatelemass,
-    TOKcatdcharass,
-    TOKadd,
-    TOKmin,
-    TOKaddass,
-    TOKminass,
-    TOKmul,
-    TOKdiv,
-    TOKmod,
-    TOKmulass,
-    TOKdivass,
-    TOKmodass,
-    TOKand,
-    TOKor,
-    TOKxor,
-    TOKandass,
-    TOKorass,
-    TOKxorass,
-    TOKassign,
-    TOKnot,
-    TOKtilde,
-    TOKplusplus,
-    TOKminusminus,
-    TOKconstruct,
-    TOKblit,
-    TOKdot,
-    TOKarrow,
-    TOKcomma,
-    TOKquestion,
-    TOKandand,
-    TOKoror,
-    TOKpreplusplus,
-    TOKpreminusminus,
+    leftShift,
+    rightShift,
+    leftShiftAssign,
+    rightShiftAssign,
+    unsignedRightShift,
+    unsignedRightShiftAssign,
+    concatenate,
+    concatenateAssign, // ~=
+    concatenateElemAssign,
+    concatenateDcharAssign,
+    add,
+    min,
+    addAssign,
+    minAssign,
+    mul,
+    div,
+    mod,
+    mulAssign,
+    divAssign,
+    modAssign,
+    and,
+    or,
+    xor,
+    andAssign,
+    orAssign,
+    xorAssign,
+    assign,
+    not,
+    tilde,
+    plusPlus,
+    minusMinus,
+    construct,
+    blit,
+    dot,
+    arrow,
+    comma,
+    question,
+    andAnd,
+    orOr,
+    prePlusPlus,
+    preMinusMinus,
 
     // 113
     // Numeric literals
-    TOKint32v,
-    TOKuns32v,
-    TOKint64v,
-    TOKuns64v,
-    TOKint128v,
-    TOKuns128v,
-    TOKfloat32v,
-    TOKfloat64v,
-    TOKfloat80v,
-    TOKimaginary32v,
-    TOKimaginary64v,
-    TOKimaginary80v,
+    int32Literal,
+    uns32Literal,
+    int64Literal,
+    uns64Literal,
+    int128Literal,
+    uns128Literal,
+    float32Literal,
+    float64Literal,
+    float80Literal,
+    imaginary32Literal,
+    imaginary64Literal,
+    imaginary80Literal,
 
     // 125
     // Char constants
-    TOKcharv,
-    TOKwcharv,
-    TOKdcharv,
+    charLiteral,
+    wcharLiteral,
+    dcharLiteral,
 
     // 128
     // Leaf operators
-    TOKidentifier,
-    TOKstring,
-    TOKxstring,
-    TOKthis,
-    TOKsuper,
-    TOKhalt,
-    TOKtuple,
-    TOKerror,
+    identifier,
+    string_,
+    hexadecimalString,
+    this_,
+    super_,
+    halt,
+    tuple,
+    error,
 
     // 136
     // Basic types
-    TOKvoid,
-    TOKint8,
-    TOKuns8,
-    TOKint16,
-    TOKuns16,
-    TOKint32,
-    TOKuns32,
-    TOKint64,
-    TOKuns64,
-    TOKint128,
-    TOKuns128,
-    TOKfloat32,
-    TOKfloat64,
-    TOKfloat80,
-    TOKimaginary32,
-    TOKimaginary64,
-    TOKimaginary80,
-    TOKcomplex32,
-    TOKcomplex64,
-    TOKcomplex80,
-    TOKchar,
-    TOKwchar,
-    TOKdchar,
-    TOKbool,
+    void_,
+    int8,
+    uns8,
+    int16,
+    uns16,
+    int32,
+    uns32,
+    int64,
+    uns64,
+    int128,
+    uns128,
+    float32,
+    float64,
+    float80,
+    imaginary32,
+    imaginary64,
+    imaginary80,
+    complex32,
+    complex64,
+    complex80,
+    char_,
+    wchar_,
+    dchar_,
+    bool_,
 
     // 160
     // Aggregates
-    TOKstruct,
-    TOKclass,
-    TOKinterface,
-    TOKunion,
-    TOKenum,
-    TOKimport,
-    TOKalias,
-    TOKoverride,
-    TOKdelegate,
-    TOKfunction,
-    TOKmixin,
-    TOKalign,
-    TOKextern,
-    TOKprivate,
-    TOKprotected,
-    TOKpublic,
-    TOKexport,
-    TOKstatic,
-    TOKfinal,
-    TOKconst,
-    TOKabstract,
-    TOKdebug,
-    TOKdeprecated,
-    TOKin,
-    TOKout,
-    TOKinout,
-    TOKlazy,
-    TOKauto,
-    TOKpackage,
-    TOKmanifest,
-    TOKimmutable,
+    struct_,
+    class_,
+    interface_,
+    union_,
+    enum_,
+    import_,
+    alias_,
+    override_,
+    delegate_,
+    function_,
+    mixin_,
+    align_,
+    extern_,
+    private_,
+    protected_,
+    public_,
+    export_,
+    static_,
+    final_,
+    const_,
+    abstract_,
+    debug_,
+    deprecated_,
+    in_,
+    out_,
+    inout_,
+    lazy_,
+    auto_,
+    package_,
+    manifest,
+    immutable_,
 
     // 191
     // Statements
-    TOKif,
-    TOKelse,
-    TOKwhile,
-    TOKfor,
-    TOKdo,
-    TOKswitch,
-    TOKcase,
-    TOKdefault,
-    TOKbreak,
-    TOKcontinue,
-    TOKwith,
-    TOKsynchronized,
-    TOKreturn,
-    TOKgoto,
-    TOKtry,
-    TOKcatch,
-    TOKfinally,
-    TOKasm,
-    TOKforeach,
-    TOKforeach_reverse,
-    TOKscope,
-    TOKon_scope_exit,
-    TOKon_scope_failure,
-    TOKon_scope_success,
+    if_,
+    else_,
+    while_,
+    for_,
+    do_,
+    switch_,
+    case_,
+    default_,
+    break_,
+    continue_,
+    with_,
+    synchronized_,
+    return_,
+    goto_,
+    try_,
+    catch_,
+    finally_,
+    asm_,
+    foreach_,
+    foreach_reverse_,
+    scope_,
+    onScopeExit,
+    onScopeFailure,
+    onScopeSuccess,
 
     // 215
     // Contracts
-    TOKinvariant,
+    invariant_,
 
     // Testing
-    TOKunittest,
+    unittest_,
 
     // Added after 1.0
-    TOKargTypes,
-    TOKref,
-    TOKmacro,
+    argumentTypes,
+    ref_,
+    macro_,
 
     // 221
-    TOKparameters,
-    TOKtraits,
-    TOKoverloadset,
-    TOKpure,
-    TOKnothrow,
-    TOKgshared,
-    TOKline,
-    TOKfile,
-    TOKfilefullpath,
-    TOKmodulestring,
-    TOKfuncstring,
-    TOKprettyfunc,
-    TOKshared,
-    TOKat,
-    TOKpow,
-    TOKpowass,
-    TOKgoesto,
-    TOKvector,
-    TOKpound,
+    parameters,
+    traits,
+    overloadSet,
+    pure_,
+    nothrow_,
+    gshared,
+    line,
+    file,
+    fileFullPath,
+    moduleString,
+    functionString,
+    prettyFunction,
+    shared_,
+    at,
+    pow,
+    powAssign,
+    goesTo,
+    vector,
+    pound,
 
     // 239
-    TOKinterval,
-    TOKvoidexp,
-    TOKcantexp,
+    interval,
+    voidExpression,
+    cantExpression,
 
-    TOKMAX,
+    max_,
 }
-
-alias TOKreserved = TOK.TOKreserved;
-alias TOKlparen = TOK.TOKlparen;
-alias TOKrparen = TOK.TOKrparen;
-alias TOKlbracket = TOK.TOKlbracket;
-alias TOKrbracket = TOK.TOKrbracket;
-alias TOKlcurly = TOK.TOKlcurly;
-alias TOKrcurly = TOK.TOKrcurly;
-alias TOKcolon = TOK.TOKcolon;
-alias TOKneg = TOK.TOKneg;
-alias TOKsemicolon = TOK.TOKsemicolon;
-alias TOKdotdotdot = TOK.TOKdotdotdot;
-alias TOKeof = TOK.TOKeof;
-alias TOKcast = TOK.TOKcast;
-alias TOKnull = TOK.TOKnull;
-alias TOKassert = TOK.TOKassert;
-alias TOKtrue = TOK.TOKtrue;
-alias TOKfalse = TOK.TOKfalse;
-alias TOKarray = TOK.TOKarray;
-alias TOKcall = TOK.TOKcall;
-alias TOKaddress = TOK.TOKaddress;
-alias TOKtype = TOK.TOKtype;
-alias TOKthrow = TOK.TOKthrow;
-alias TOKnew = TOK.TOKnew;
-alias TOKdelete = TOK.TOKdelete;
-alias TOKstar = TOK.TOKstar;
-alias TOKsymoff = TOK.TOKsymoff;
-alias TOKvar = TOK.TOKvar;
-alias TOKdotvar = TOK.TOKdotvar;
-alias TOKdotid = TOK.TOKdotid;
-alias TOKdotti = TOK.TOKdotti;
-alias TOKdottype = TOK.TOKdottype;
-alias TOKslice = TOK.TOKslice;
-alias TOKarraylength = TOK.TOKarraylength;
-alias TOKversion = TOK.TOKversion;
-alias TOKmodule = TOK.TOKmodule;
-alias TOKdollar = TOK.TOKdollar;
-alias TOKtemplate = TOK.TOKtemplate;
-alias TOKdottd = TOK.TOKdottd;
-alias TOKdeclaration = TOK.TOKdeclaration;
-alias TOKtypeof = TOK.TOKtypeof;
-alias TOKpragma = TOK.TOKpragma;
-alias TOKdsymbol = TOK.TOKdsymbol;
-alias TOKtypeid = TOK.TOKtypeid;
-alias TOKuadd = TOK.TOKuadd;
-alias TOKremove = TOK.TOKremove;
-alias TOKnewanonclass = TOK.TOKnewanonclass;
-alias TOKcomment = TOK.TOKcomment;
-alias TOKarrayliteral = TOK.TOKarrayliteral;
-alias TOKassocarrayliteral = TOK.TOKassocarrayliteral;
-alias TOKstructliteral = TOK.TOKstructliteral;
-alias TOKclassreference = TOK.TOKclassreference;
-alias TOKthrownexception = TOK.TOKthrownexception;
-alias TOKdelegateptr = TOK.TOKdelegateptr;
-alias TOKdelegatefuncptr = TOK.TOKdelegatefuncptr;
-alias TOKlt = TOK.TOKlt;
-alias TOKgt = TOK.TOKgt;
-alias TOKle = TOK.TOKle;
-alias TOKge = TOK.TOKge;
-alias TOKequal = TOK.TOKequal;
-alias TOKnotequal = TOK.TOKnotequal;
-alias TOKidentity = TOK.TOKidentity;
-alias TOKnotidentity = TOK.TOKnotidentity;
-alias TOKindex = TOK.TOKindex;
-alias TOKis = TOK.TOKis;
-alias TOKunord = TOK.TOKunord;
-alias TOKlg = TOK.TOKlg;
-alias TOKleg = TOK.TOKleg;
-alias TOKule = TOK.TOKule;
-alias TOKul = TOK.TOKul;
-alias TOKuge = TOK.TOKuge;
-alias TOKug = TOK.TOKug;
-alias TOKue = TOK.TOKue;
-alias TOKshl = TOK.TOKshl;
-alias TOKshr = TOK.TOKshr;
-alias TOKshlass = TOK.TOKshlass;
-alias TOKshrass = TOK.TOKshrass;
-alias TOKushr = TOK.TOKushr;
-alias TOKushrass = TOK.TOKushrass;
-alias TOKcat = TOK.TOKcat;
-alias TOKcatass = TOK.TOKcatass;
-alias TOKcatelemass = TOK.TOKcatelemass;
-alias TOKcatdcharass = TOK.TOKcatdcharass;
-alias TOKadd = TOK.TOKadd;
-alias TOKmin = TOK.TOKmin;
-alias TOKaddass = TOK.TOKaddass;
-alias TOKminass = TOK.TOKminass;
-alias TOKmul = TOK.TOKmul;
-alias TOKdiv = TOK.TOKdiv;
-alias TOKmod = TOK.TOKmod;
-alias TOKmulass = TOK.TOKmulass;
-alias TOKdivass = TOK.TOKdivass;
-alias TOKmodass = TOK.TOKmodass;
-alias TOKand = TOK.TOKand;
-alias TOKor = TOK.TOKor;
-alias TOKxor = TOK.TOKxor;
-alias TOKandass = TOK.TOKandass;
-alias TOKorass = TOK.TOKorass;
-alias TOKxorass = TOK.TOKxorass;
-alias TOKassign = TOK.TOKassign;
-alias TOKnot = TOK.TOKnot;
-alias TOKtilde = TOK.TOKtilde;
-alias TOKplusplus = TOK.TOKplusplus;
-alias TOKminusminus = TOK.TOKminusminus;
-alias TOKconstruct = TOK.TOKconstruct;
-alias TOKblit = TOK.TOKblit;
-alias TOKdot = TOK.TOKdot;
-alias TOKarrow = TOK.TOKarrow;
-alias TOKcomma = TOK.TOKcomma;
-alias TOKquestion = TOK.TOKquestion;
-alias TOKandand = TOK.TOKandand;
-alias TOKoror = TOK.TOKoror;
-alias TOKpreplusplus = TOK.TOKpreplusplus;
-alias TOKpreminusminus = TOK.TOKpreminusminus;
-alias TOKint32v = TOK.TOKint32v;
-alias TOKuns32v = TOK.TOKuns32v;
-alias TOKint64v = TOK.TOKint64v;
-alias TOKuns64v = TOK.TOKuns64v;
-alias TOKint128v = TOK.TOKint128v;
-alias TOKuns128v = TOK.TOKuns128v;
-alias TOKfloat32v = TOK.TOKfloat32v;
-alias TOKfloat64v = TOK.TOKfloat64v;
-alias TOKfloat80v = TOK.TOKfloat80v;
-alias TOKimaginary32v = TOK.TOKimaginary32v;
-alias TOKimaginary64v = TOK.TOKimaginary64v;
-alias TOKimaginary80v = TOK.TOKimaginary80v;
-alias TOKcharv = TOK.TOKcharv;
-alias TOKwcharv = TOK.TOKwcharv;
-alias TOKdcharv = TOK.TOKdcharv;
-alias TOKidentifier = TOK.TOKidentifier;
-alias TOKstring = TOK.TOKstring;
-alias TOKxstring = TOK.TOKxstring;
-alias TOKthis = TOK.TOKthis;
-alias TOKsuper = TOK.TOKsuper;
-alias TOKhalt = TOK.TOKhalt;
-alias TOKtuple = TOK.TOKtuple;
-alias TOKerror = TOK.TOKerror;
-alias TOKvoid = TOK.TOKvoid;
-alias TOKint8 = TOK.TOKint8;
-alias TOKuns8 = TOK.TOKuns8;
-alias TOKint16 = TOK.TOKint16;
-alias TOKuns16 = TOK.TOKuns16;
-alias TOKint32 = TOK.TOKint32;
-alias TOKuns32 = TOK.TOKuns32;
-alias TOKint64 = TOK.TOKint64;
-alias TOKuns64 = TOK.TOKuns64;
-alias TOKint128 = TOK.TOKint128;
-alias TOKuns128 = TOK.TOKuns128;
-alias TOKfloat32 = TOK.TOKfloat32;
-alias TOKfloat64 = TOK.TOKfloat64;
-alias TOKfloat80 = TOK.TOKfloat80;
-alias TOKimaginary32 = TOK.TOKimaginary32;
-alias TOKimaginary64 = TOK.TOKimaginary64;
-alias TOKimaginary80 = TOK.TOKimaginary80;
-alias TOKcomplex32 = TOK.TOKcomplex32;
-alias TOKcomplex64 = TOK.TOKcomplex64;
-alias TOKcomplex80 = TOK.TOKcomplex80;
-alias TOKchar = TOK.TOKchar;
-alias TOKwchar = TOK.TOKwchar;
-alias TOKdchar = TOK.TOKdchar;
-alias TOKbool = TOK.TOKbool;
-alias TOKstruct = TOK.TOKstruct;
-alias TOKclass = TOK.TOKclass;
-alias TOKinterface = TOK.TOKinterface;
-alias TOKunion = TOK.TOKunion;
-alias TOKenum = TOK.TOKenum;
-alias TOKimport = TOK.TOKimport;
-alias TOKalias = TOK.TOKalias;
-alias TOKoverride = TOK.TOKoverride;
-alias TOKdelegate = TOK.TOKdelegate;
-alias TOKfunction = TOK.TOKfunction;
-alias TOKmixin = TOK.TOKmixin;
-alias TOKalign = TOK.TOKalign;
-alias TOKextern = TOK.TOKextern;
-alias TOKprivate = TOK.TOKprivate;
-alias TOKprotected = TOK.TOKprotected;
-alias TOKpublic = TOK.TOKpublic;
-alias TOKexport = TOK.TOKexport;
-alias TOKstatic = TOK.TOKstatic;
-alias TOKfinal = TOK.TOKfinal;
-alias TOKconst = TOK.TOKconst;
-alias TOKabstract = TOK.TOKabstract;
-alias TOKdebug = TOK.TOKdebug;
-alias TOKdeprecated = TOK.TOKdeprecated;
-alias TOKin = TOK.TOKin;
-alias TOKout = TOK.TOKout;
-alias TOKinout = TOK.TOKinout;
-alias TOKlazy = TOK.TOKlazy;
-alias TOKauto = TOK.TOKauto;
-alias TOKpackage = TOK.TOKpackage;
-alias TOKmanifest = TOK.TOKmanifest;
-alias TOKimmutable = TOK.TOKimmutable;
-alias TOKif = TOK.TOKif;
-alias TOKelse = TOK.TOKelse;
-alias TOKwhile = TOK.TOKwhile;
-alias TOKfor = TOK.TOKfor;
-alias TOKdo = TOK.TOKdo;
-alias TOKswitch = TOK.TOKswitch;
-alias TOKcase = TOK.TOKcase;
-alias TOKdefault = TOK.TOKdefault;
-alias TOKbreak = TOK.TOKbreak;
-alias TOKcontinue = TOK.TOKcontinue;
-alias TOKwith = TOK.TOKwith;
-alias TOKsynchronized = TOK.TOKsynchronized;
-alias TOKreturn = TOK.TOKreturn;
-alias TOKgoto = TOK.TOKgoto;
-alias TOKtry = TOK.TOKtry;
-alias TOKcatch = TOK.TOKcatch;
-alias TOKfinally = TOK.TOKfinally;
-alias TOKasm = TOK.TOKasm;
-alias TOKforeach = TOK.TOKforeach;
-alias TOKforeach_reverse = TOK.TOKforeach_reverse;
-alias TOKscope = TOK.TOKscope;
-alias TOKon_scope_exit = TOK.TOKon_scope_exit;
-alias TOKon_scope_failure = TOK.TOKon_scope_failure;
-alias TOKon_scope_success = TOK.TOKon_scope_success;
-alias TOKinvariant = TOK.TOKinvariant;
-alias TOKunittest = TOK.TOKunittest;
-alias TOKargTypes = TOK.TOKargTypes;
-alias TOKref = TOK.TOKref;
-alias TOKmacro = TOK.TOKmacro;
-alias TOKparameters = TOK.TOKparameters;
-alias TOKtraits = TOK.TOKtraits;
-alias TOKoverloadset = TOK.TOKoverloadset;
-alias TOKpure = TOK.TOKpure;
-alias TOKnothrow = TOK.TOKnothrow;
-alias TOKgshared = TOK.TOKgshared;
-alias TOKline = TOK.TOKline;
-alias TOKfile = TOK.TOKfile;
-alias TOKfilefullpath = TOK.TOKfilefullpath;
-alias TOKmodulestring = TOK.TOKmodulestring;
-alias TOKfuncstring = TOK.TOKfuncstring;
-alias TOKprettyfunc = TOK.TOKprettyfunc;
-alias TOKshared = TOK.TOKshared;
-alias TOKat = TOK.TOKat;
-alias TOKpow = TOK.TOKpow;
-alias TOKpowass = TOK.TOKpowass;
-alias TOKgoesto = TOK.TOKgoesto;
-alias TOKvector = TOK.TOKvector;
-alias TOKpound = TOK.TOKpound;
-alias TOKinterval = TOK.TOKinterval;
-alias TOKvoidexp = TOK.TOKvoidexp;
-alias TOKcantexp = TOK.TOKcantexp;
-
-alias TOKMAX = TOK.TOKMAX;
-
-enum TOKwild = TOKinout;
 
 /***********************************************************
  */
@@ -586,7 +339,7 @@ extern (C++) struct Token
         Identifier ident;
     }
 
-    extern (D) private __gshared immutable string[TOKMAX] tochars =
+    extern (D) private __gshared immutable string[TOK.max_] tochars =
     [
         // Keywords
         TOKthis: "this",
