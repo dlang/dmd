@@ -1259,7 +1259,7 @@ public:
     override void visit(CPPMangleDeclaration d)
     {
         const(char)* p;
-        switch (d.cppmangle)
+        final switch (d.cppmangle)
         {
         case CPPMANGLE.asClass:
             p = "class";
@@ -1267,8 +1267,8 @@ public:
         case CPPMANGLE.asStruct:
             p = "struct";
             break;
-        default:
-            assert(0);
+        case CPPMANGLE.def:
+            break;
         }
         buf.writestring("extern (C++, ");
         buf.writestring(p);
