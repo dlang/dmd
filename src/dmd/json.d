@@ -295,24 +295,24 @@ public:
     {
         switch (linkage)
         {
-        case LINKdefault:
+        case LINK.default_:
             // Should not be printed
             //property(name, "default");
             break;
-        case LINKd:
+        case LINK.d:
             // Should not be printed
             //property(name, "d");
             break;
-        case LINKc:
+        case LINK.c:
             property(name, "c");
             break;
-        case LINKcpp:
+        case LINK.cpp:
             property(name, "cpp");
             break;
-        case LINKwindows:
+        case LINK.windows:
             property(name, "windows");
             break;
-        case LINKpascal:
+        case LINK.pascal:
             property(name, "pascal");
             break;
         default:

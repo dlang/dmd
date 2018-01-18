@@ -1056,12 +1056,12 @@ extern (C++) class FuncDeclaration : Declaration
 
     final bool isMain()
     {
-        return ident == Id.main && linkage != LINKc && !isMember() && !isNested();
+        return ident == Id.main && linkage != LINK.c && !isMember() && !isNested();
     }
 
     final bool isCMain()
     {
-        return ident == Id.main && linkage == LINKc && !isMember() && !isNested();
+        return ident == Id.main && linkage == LINK.c && !isMember() && !isNested();
     }
 
     final bool isWinMain()
@@ -1069,24 +1069,24 @@ extern (C++) class FuncDeclaration : Declaration
         //printf("FuncDeclaration::isWinMain() %s\n", toChars());
         version (none)
         {
-            bool x = ident == Id.WinMain && linkage != LINKc && !isMember();
+            bool x = ident == Id.WinMain && linkage != LINK.c && !isMember();
             printf("%s\n", x ? "yes" : "no");
             return x;
         }
         else
         {
-            return ident == Id.WinMain && linkage != LINKc && !isMember();
+            return ident == Id.WinMain && linkage != LINK.c && !isMember();
         }
     }
 
     final bool isDllMain()
     {
-        return ident == Id.DllMain && linkage != LINKc && !isMember();
+        return ident == Id.DllMain && linkage != LINK.c && !isMember();
     }
 
     final bool isRtInit()
     {
-        return ident == Id.rt_init && linkage == LINKc && !isMember() && !isNested();
+        return ident == Id.rt_init && linkage == LINK.c && !isMember() && !isNested();
     }
 
     override final bool isExport()
@@ -1502,7 +1502,7 @@ extern (C++) class FuncDeclaration : Declaration
         auto f = toAliasFunc();
         //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
         return ((f.storage_class & STC.static_) == 0) &&
-                (f.linkage == LINKd) &&
+                (f.linkage == LINK.d) &&
                 (f.toParent2().isFuncDeclaration() !is null);
     }
 
@@ -1555,7 +1555,7 @@ extern (C++) class FuncDeclaration : Declaration
         version (none)
         {
             printf("FuncDeclaration::isVirtual(%s)\n", toChars());
-            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == Prot.Kind.private_, isCtorDeclaration(), linkage != LINKd);
+            printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == Prot.Kind.private_, isCtorDeclaration(), linkage != LINK.d);
             printf("result is %d\n", isMember() && !(isStatic() || protection == Prot.Kind.private_ || protection == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc()));
         }
         return isMember() && !(isStatic() || protection.kind == Prot.Kind.private_ || protection.kind == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
@@ -2043,7 +2043,7 @@ extern (C++) class FuncDeclaration : Declaration
              *   __require();
              */
             Loc loc = frequire.loc;
-            auto tf = new TypeFunction(null, Type.tvoid, 0, LINKd);
+            auto tf = new TypeFunction(null, Type.tvoid, 0, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2075,7 +2075,7 @@ extern (C++) class FuncDeclaration : Declaration
                 p = new Parameter(STC.ref_ | STC.const_, f.nextOf(), outId, null);
                 fparams.push(p);
             }
-            auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINKd);
+            auto tf = new TypeFunction(fparams, Type.tvoid, 0, LINK.d);
             tf.isnothrow = f.isnothrow;
             tf.isnogc = f.isnogc;
             tf.purity = f.purity;
@@ -2216,10 +2216,10 @@ extern (C++) class FuncDeclaration : Declaration
         }
         else
         {
-            tf = new TypeFunction(fparams, treturn, 0, LINKc, stc);
+            tf = new TypeFunction(fparams, treturn, 0, LINK.c, stc);
             fd = new FuncDeclaration(Loc(), Loc(), id, STC.static_, tf);
             fd.protection = Prot(Prot.Kind.public_);
-            fd.linkage = LINKc;
+            fd.linkage = LINK.c;
 
             st.insert(fd);
         }

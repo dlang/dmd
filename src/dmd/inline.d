@@ -1769,7 +1769,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto tmp = Identifier.generateId("__retvar");
             vret = new VarDeclaration(fd.loc, eret.type, tmp, ei);
             vret.storage_class |= STC.temp | STC.ref_;
-            vret.linkage = LINKd;
+            vret.linkage = LINK.d;
             vret.parent = parent;
 
             ei.exp = new ConstructExp(fd.loc, vret, eret);
@@ -1832,7 +1832,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
                 vthis.storage_class = STC.ref_;
             else
                 vthis.storage_class = STC.in_;
-            vthis.linkage = LINKd;
+            vthis.linkage = LINK.d;
             vthis.parent = parent;
 
             ei.exp = new ConstructExp(fd.loc, vthis, ethis);

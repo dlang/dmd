@@ -74,7 +74,7 @@ enum
     TYifunc             = 0x2E, // interrupt func
     TYptr               = 0x33, // generic pointer type
     TYmfunc             = 0x37, // NT C++ member func
-    TYjfunc             = 0x38, // LINKd D function
+    TYjfunc             = 0x38, // LINK.d D function
     TYhfunc             = 0x39, // C function with hidden parameter
     TYnref              = 0x3A, // near reference
 

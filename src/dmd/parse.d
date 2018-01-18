@@ -267,7 +267,7 @@ final class Parser(AST) : Lexer
         }
 
         mod = _module;
-        linkage = LINKd;
+        linkage = LINK.d;
         //nextToken();              // start up the scanner
     }
 
@@ -277,7 +277,7 @@ final class Parser(AST) : Lexer
 
         //printf("Parser::Parser()\n");
         mod = _module;
-        linkage = LINKd;
+        linkage = LINK.d;
         //nextToken();              // start up the scanner
     }
 
@@ -875,7 +875,7 @@ final class Parser(AST) : Lexer
                     AST.Identifiers* idents = null;
                     CPPMANGLE cppmangle;
                     const link = parseLinkage(&idents, cppmangle);
-                    if (pAttrs.link != LINKdefault)
+                    if (pAttrs.link != LINK.default_)
                     {
                         if (pAttrs.link != link)
                         {
@@ -896,7 +896,7 @@ final class Parser(AST) : Lexer
                     a = parseBlock(pLastDecl, pAttrs);
                     if (idents)
                     {
-                        assert(link == LINKcpp);
+                        assert(link == LINK.cpp);
                         assert(idents.dim);
                         for (size_t i = idents.dim; i;)
                         {
@@ -908,17 +908,17 @@ final class Parser(AST) : Lexer
                             }
                             s = new AST.Nspace(linkLoc, id, a);
                         }
-                        pAttrs.link = LINKdefault;
+                        pAttrs.link = LINK.default_;
                     }
                     else if (cppmangle != CPPMANGLE.def)
                     {
-                        assert(link == LINKcpp);
+                        assert(link == LINK.cpp);
                         s = new AST.CPPMangleDeclaration(cppmangle, a);
                     }
-                    else if (pAttrs.link != LINKdefault)
+                    else if (pAttrs.link != LINK.default_)
                     {
                         s = new AST.LinkDeclaration(pAttrs.link, a);
-                        pAttrs.link = LINKdefault;
+                        pAttrs.link = LINK.default_;
                     }
                     break;
                 }
@@ -2133,7 +2133,7 @@ final class Parser(AST) : Lexer
     {
         AST.Identifiers* idents = null;
         cppmangle = CPPMANGLE.def;
-        LINK link = LINKdefault;
+        LINK link = LINK.default_;
         nextToken();
         assert(token.value == TOKlparen);
         nextToken();
@@ -2142,17 +2142,17 @@ final class Parser(AST) : Lexer
             Identifier id = token.ident;
             nextToken();
             if (id == Id.Windows)
-                link = LINKwindows;
+                link = LINK.windows;
             else if (id == Id.Pascal)
-                link = LINKpascal;
+                link = LINK.pascal;
             else if (id == Id.D)
-                link = LINKd;
+                link = LINK.d;
             else if (id == Id.C)
             {
-                link = LINKc;
+                link = LINK.c;
                 if (token.value == TOKplusplus)
                 {
-                    link = LINKcpp;
+                    link = LINK.cpp;
                     nextToken();
                     if (token.value == TOKcomma) // , namespaces or class or struct
                     {
@@ -2196,7 +2196,7 @@ final class Parser(AST) : Lexer
                     nextToken();
                     if (token.ident == Id.C)
                     {
-                        link = LINKobjc;
+                        link = LINK.objc;
                         nextToken();
                     }
                     else
@@ -2207,18 +2207,18 @@ final class Parser(AST) : Lexer
             }
             else if (id == Id.System)
             {
-                link = LINKsystem;
+                link = LINK.system;
             }
             else
             {
             LinvalidLinkage:
                 error("valid linkage identifiers are `D`, `C`, `C++`, `Objective-C`, `Pascal`, `Windows`, `System`");
-                link = LINKd;
+                link = LINK.d;
             }
         }
         else
         {
-            link = LINKd; // default
+            link = LINK.d; // default
         }
         check(TOKrparen);
         *pidents = idents;
@@ -4672,7 +4672,7 @@ final class Parser(AST) : Lexer
 
         // The following is irrelevant, as it is overridden by sc.linkage in
         // TypeFunction::semantic
-        linkage = LINKd; // nested functions have D linkage
+        linkage = LINK.d; // nested functions have D linkage
     L1:
         switch (token.value)
         {

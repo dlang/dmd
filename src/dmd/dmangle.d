@@ -353,22 +353,22 @@ public:
         ubyte mc;
         switch (t.linkage)
         {
-        case LINKd:
+        case LINK.d:
             mc = 'F';
             break;
-        case LINKc:
+        case LINK.c:
             mc = 'U';
             break;
-        case LINKwindows:
+        case LINK.windows:
             mc = 'W';
             break;
-        case LINKpascal:
+        case LINK.pascal:
             mc = 'V';
             break;
-        case LINKcpp:
+        case LINK.cpp:
             mc = 'R';
             break;
-        case LINKobjc:
+        case LINK.objc:
             mc = 'Y';
             break;
         default:
@@ -543,20 +543,20 @@ public:
 
     static const(char)* externallyMangledIdentifier(Declaration d)
     {
-        if (!d.parent || d.parent.isModule() || d.linkage == LINKcpp) // if at global scope
+        if (!d.parent || d.parent.isModule() || d.linkage == LINK.cpp) // if at global scope
         {
             switch (d.linkage)
             {
-                case LINKd:
+                case LINK.d:
                     break;
-                case LINKc:
-                case LINKwindows:
-                case LINKpascal:
-                case LINKobjc:
+                case LINK.c:
+                case LINK.windows:
+                case LINK.pascal:
+                case LINK.objc:
                     return d.ident.toChars();
-                case LINKcpp:
+                case LINK.cpp:
                     return Target.toCppMangle(d);
-                case LINKdefault:
+                case LINK.default_:
                     d.error("forward declaration");
                     return d.ident.toChars();
                 default:

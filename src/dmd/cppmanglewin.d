@@ -975,19 +975,19 @@ private:
         {
             switch (type.linkage)
             {
-            case LINKc:
+            case LINK.c:
                 tmp.buf.writeByte('A');
                 break;
-            case LINKcpp:
+            case LINK.cpp:
                 if (needthis && type.varargs != 1)
                     tmp.buf.writeByte('E'); // thiscall
                 else
                     tmp.buf.writeByte('A'); // cdecl
                 break;
-            case LINKwindows:
+            case LINK.windows:
                 tmp.buf.writeByte('G'); // stdcall
                 break;
-            case LINKpascal:
+            case LINK.pascal:
                 tmp.buf.writeByte('C');
                 break;
             default:
@@ -1038,7 +1038,7 @@ private:
                 else if (p.storageClass & STC.lazy_)
                 {
                     // Mangle as delegate
-                    Type td = new TypeFunction(null, t, 0, LINKd);
+                    Type td = new TypeFunction(null, t, 0, LINK.d);
                     td = new TypeDelegate(td);
                     t = merge(t);
                 }

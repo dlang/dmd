@@ -857,7 +857,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
         {
             // These will be the trailing ... arguments
             // If not D linkage, do promotions
-            if (tf.linkage != LINKd)
+            if (tf.linkage != LINK.d)
             {
                 // Promote bytes, words, etc., to ints
                 arg = integralPromotions(arg, sc);
@@ -878,7 +878,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 }
                 if (tf.varargs == 1)
                 {
-                    const(char)* p = tf.linkage == LINKc ? "extern(C)" : "extern(C++)";
+                    const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
                     if (arg.type.ty == Tarray)
                     {
                         arg.error("cannot pass dynamic arrays to `%s` vararg functions", p);
@@ -1088,7 +1088,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
     //if (eprefix) printf("eprefix: %s\n", eprefix.toChars());
 
     // If D linkage and variadic, add _arguments[] as first argument
-    if (tf.linkage == LINKd && tf.varargs == 1)
+    if (tf.linkage == LINK.d && tf.varargs == 1)
     {
         assert(arguments.dim >= nparams);
 
@@ -2906,7 +2906,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // lazy parameters can be called without violating purity and safety
                     Type tw = ve.var.type;
                     Type tc = ve.var.type.substWildTo(MODFlags.const_);
-                    auto tf = new TypeFunction(null, tc, 0, LINKd, STC.safe | STC.pure_);
+                    auto tf = new TypeFunction(null, tc, 0, LINK.d, STC.safe | STC.pure_);
                     (tf = cast(TypeFunction)tf.typeSemantic(exp.loc, sc)).next = tw; // hack for bug7757
                     auto t = new TypeDelegate(tf);
                     ve.type = t.typeSemantic(exp.loc, sc);

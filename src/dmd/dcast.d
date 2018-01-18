@@ -894,7 +894,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              */
 
             size_t nparams = Parameter.dim(tf.parameters);
-            size_t j = (tf.linkage == LINKd && tf.varargs == 1); // if TypeInfoArray was prepended
+            size_t j = (tf.linkage == LINK.d && tf.varargs == 1); // if TypeInfoArray was prepended
             if (e.e1.op == TOKdotvar)
             {
                 /* Treat 'this' as just another function argument
@@ -1197,7 +1197,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 Expressions* args = (fd == e.allocator) ? e.newargs : e.arguments;
 
                 size_t nparams = Parameter.dim(tf.parameters);
-                size_t j = (tf.linkage == LINKd && tf.varargs == 1); // if TypeInfoArray was prepended
+                size_t j = (tf.linkage == LINK.d && tf.varargs == 1); // if TypeInfoArray was prepended
                 for (size_t i = j; i < e.arguments.dim; ++i)
                 {
                     Expression earg = (*args)[i];

@@ -1627,7 +1627,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 // https://issues.dlang.org/show_bug.cgi?id=13840
                 // Throwable nested function inside nothrow function is acceptable.
                 StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
-                tfld = new TypeFunction(params, Type.tint32, 0, LINKd, stc);
+                tfld = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
                 fs.cases = new Statements();
                 fs.gotos = new ScopeStatements();
                 auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, fs);
@@ -1707,7 +1707,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
                         if (dim == 2)
                             dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
-                        fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
+                        fldeTy[i] = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
                         params.push(new Parameter(0, fldeTy[i], null, null));
                         fdapply[i] = FuncDeclaration.genCfunc(params, Type.tint32, name[i]);
                     }
@@ -1775,7 +1775,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
                     if (dim == 2)
                         dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
-                    dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINKd));
+                    dgty = new TypeDelegate(new TypeFunction(dgparams, Type.tint32, 0, LINK.d));
                     params.push(new Parameter(0, dgty, null, null));
                     fdapply = FuncDeclaration.genCfunc(params, Type.tint32, fdname.ptr);
 

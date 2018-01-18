@@ -435,7 +435,7 @@ struct Target
     {
         switch (linkage)
         {
-        case LINKcpp:
+        case LINK.cpp:
             if (global.params.isOSX)
                 buf.prependbyte('_');
             break;
@@ -478,7 +478,7 @@ struct Target
      */
     extern (C++) static LINK systemLinkage()
     {
-        return global.params.isWindows ? LINKwindows : LINKc;
+        return global.params.isWindows ? LINK.windows : LINK.c;
     }
 
     /**

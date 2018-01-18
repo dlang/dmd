@@ -485,7 +485,7 @@ struct ASTBase
             super(id);
             storage_class = STC.undefined_;
             protection = Prot(Prot.Kind.undefined);
-            linkage = LINKdefault;
+            linkage = LINK.default_;
         }
 
         override final inout(Declaration) isDeclaration() inout
@@ -6280,19 +6280,19 @@ struct ASTBase
     {
         switch (linkage)
         {
-        case LINKdefault:
+        case LINK.default_:
             return null;
-        case LINKd:
+        case LINK.d:
             return "D";
-        case LINKc:
+        case LINK.c:
             return "C";
-        case LINKcpp:
+        case LINK.cpp:
             return "C++";
-        case LINKwindows:
+        case LINK.windows:
             return "Windows";
-        case LINKpascal:
+        case LINK.pascal:
             return "Pascal";
-        case LINKobjc:
+        case LINK.objc:
             return "Objective-C";
         default:
             assert(0);

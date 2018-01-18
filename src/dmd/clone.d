@@ -242,7 +242,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
     auto fparams = new Parameters();
     fparams.push(new Parameter(STC.nodtor, sd.type, Id.p, null));
-    auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINKd, stc | STC.ref_);
+    auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINK.d, stc | STC.ref_);
     auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
     fop.generated = true;
@@ -316,7 +316,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     uint errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
     sc2.stc = 0;
-    sc2.linkage = LINKd;
+    sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     // https://issues.dlang.org/show_bug.cgi?id=15044
@@ -487,7 +487,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                  */
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
-                tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINKd);
+                tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
                 tfeqptr.mod = MODFlags.const_;
                 tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc(), &scx);
             }
@@ -513,7 +513,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null));
-    auto tf = new TypeFunction(parameters, Type.tbool, 0, LINKd);
+    auto tf = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
     Identifier id = Id.xopEquals;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STC.static_, tf);
     fop.generated = true;
@@ -524,7 +524,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
-    sc2.linkage = LINKd;
+    sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
@@ -557,7 +557,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                  */
                 auto parameters = new Parameters();
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
-                tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINKd);
+                tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
                 tfcmpptr.mod = MODFlags.const_;
                 tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc(), &scx);
             }
@@ -633,7 +633,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null));
-    auto tf = new TypeFunction(parameters, Type.tint32, 0, LINKd);
+    auto tf = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
     Identifier id = Id.xopCmp;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STC.static_, tf);
     fop.generated = true;
@@ -644,7 +644,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
-    sc2.linkage = LINKd;
+    sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
@@ -721,7 +721,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         static __gshared TypeFunction tftohash;
         if (!tftohash)
         {
-            tftohash = new TypeFunction(null, Type.thash_t, 0, LINKd);
+            tftohash = new TypeFunction(null, Type.thash_t, 0, LINK.d);
             tftohash.mod = MODFlags.const_;
             tftohash = cast(TypeFunction)tftohash.merge();
         }
@@ -740,7 +740,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     Loc loc = Loc(); // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
-    auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINKd, STC.nothrow_ | STC.trusted);
+    auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINK.d, STC.nothrow_ | STC.trusted);
     Identifier id = Id.xtoHash;
     auto fop = new FuncDeclaration(declLoc, Loc(), id, STC.static_, tf);
     fop.generated = true;
@@ -758,7 +758,7 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
     fop.fbody = new CompileStatement(loc, new StringExp(loc, cast(char*)code));
     Scope* sc2 = sc.push();
     sc2.stc = 0;
-    sc2.linkage = LINKd;
+    sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();

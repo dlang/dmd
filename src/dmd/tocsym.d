@@ -245,23 +245,23 @@ Symbol *toSymbol(Dsymbol s)
             mangle_t m = 0;
             switch (vd.linkage)
             {
-                case LINKwindows:
+                case LINK.windows:
                     m = global.params.is64bit ? mTYman_c : mTYman_std;
                     break;
 
-                case LINKpascal:
+                case LINK.pascal:
                     m = mTYman_pas;
                     break;
 
-                case LINKobjc:
-                case LINKc:
+                case LINK.objc:
+                case LINK.c:
                     m = mTYman_c;
                     break;
 
-                case LINKd:
+                case LINK.d:
                     m = mTYman_d;
                     break;
-                case LINKcpp:
+                case LINK.cpp:
                     s.Sflags |= SFLpublic;
                     m = mTYman_d;
                     break;
@@ -343,24 +343,24 @@ Symbol *toSymbol(Dsymbol s)
             {
                 switch (fd.linkage)
                 {
-                    case LINKwindows:
+                    case LINK.windows:
                         t.Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
                         break;
 
-                    case LINKpascal:
+                    case LINK.pascal:
                         t.Tty = TYnpfunc;
                         t.Tmangle = mTYman_pas;
                         break;
 
-                    case LINKc:
-                    case LINKobjc:
+                    case LINK.c:
+                    case LINK.objc:
                         t.Tmangle = mTYman_c;
                         break;
 
-                    case LINKd:
+                    case LINK.d:
                         t.Tmangle = mTYman_d;
                         break;
-                    case LINKcpp:
+                    case LINK.cpp:
                         s.Sflags |= SFLpublic;
                         if (fd.isThis() && !global.params.is64bit && global.params.isWindows)
                         {

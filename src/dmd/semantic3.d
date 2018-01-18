@@ -315,7 +315,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.scontinue = null;
             sc2.sw = null;
             sc2.fes = funcdecl.fes;
-            sc2.linkage = LINKd;
+            sc2.linkage = LINK.d;
             sc2.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.abstract_ | STC.deprecated_ | STC.override_ | STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property | STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system);
             sc2.protection = Prot(Prot.Kind.public_);
             sc2.explicitProtection = 0;
@@ -374,7 +374,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             // Declare hidden variable _arguments[] and _argptr
             if (f.varargs == 1)
             {
-                if (f.linkage == LINKd)
+                if (f.linkage == LINK.d)
                 {
                     // Declare _arguments[]
                     funcdecl.v_arguments = new VarDeclaration(Loc(), Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
@@ -391,7 +391,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     sc2.insert(_arguments);
                     _arguments.parent = funcdecl;
                 }
-                if (f.linkage == LINKd || (f.parameters && Parameter.dim(f.parameters)))
+                if (f.linkage == LINK.d || (f.parameters && Parameter.dim(f.parameters)))
                 {
                     // Declare _argptr
                     Type t = Type.tvalist;
@@ -1214,7 +1214,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         if (ns.members)
         {
             sc = sc.push(ns);
-            sc.linkage = LINKcpp;
+            sc.linkage = LINK.cpp;
             foreach (s; *ns.members)
             {
                 s.semantic3(sc);

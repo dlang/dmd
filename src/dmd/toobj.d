@@ -1139,7 +1139,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     else if (auto f = s.isFuncDeclaration())
                     {
                         objmod.setModuleCtorDtor(s.csym, isCtor);
-                        if (f.linkage != LINKc)
+                        if (f.linkage != LINK.c)
                             f.error("must be extern(C) for pragma %s", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
                         return 1;
                     }
@@ -1324,7 +1324,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
-            if (vd.linkage == LINKcpp)
+            if (vd.linkage == LINK.cpp)
                 tlvInit.Sflags |= SFLpublic;
 
             return tlvInit;
@@ -1343,20 +1343,20 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             switch (vd.linkage)
             {
-                case LINKwindows:
+                case LINK.windows:
                     return global.params.is64bit ? mTYman_c : mTYman_std;
 
-                case LINKpascal:
+                case LINK.pascal:
                     return mTYman_pas;
 
-                case LINKobjc:
-                case LINKc:
+                case LINK.objc:
+                case LINK.c:
                     return mTYman_c;
 
-                case LINKd:
+                case LINK.d:
                     return mTYman_d;
 
-                case LINKcpp:
+                case LINK.cpp:
                     return mTYman_d;
 
                 default:

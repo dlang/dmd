@@ -63,7 +63,7 @@ extern (C++) final class Nspace : ScopeDsymbol
             }
             assert(sc);
             sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
+            sc.linkage = LINK.cpp; // namespaces default to C++ linkage
             sc.parent = this;
             foreach (s; *members)
             {
@@ -81,7 +81,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         {
             assert(sc);
             sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
+            sc.linkage = LINK.cpp; // namespaces default to C++ linkage
             sc.parent = this;
             foreach (s; *members)
             {

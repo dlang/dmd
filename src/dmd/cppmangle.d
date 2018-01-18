@@ -49,7 +49,7 @@ const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
-    Target.prefixName(&buf, LINKcpp);
+    Target.prefixName(&buf, LINK.cpp);
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.mangleOf(s);
     return buf.extractString();
@@ -223,7 +223,7 @@ private final class CppMangleVisitor : Visitor
                 {
                     bool is_nested = d.toParent() &&
                         !d.toParent().isModule() &&
-                        (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINKcpp;
+                        (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINK.cpp;
                     if (is_nested)
                         buf.writeByte('X');
                     buf.writeByte('L');
@@ -591,7 +591,7 @@ private final class CppMangleVisitor : Visitor
         else
         {
             Dsymbol p = d.toParent();
-            if (p && !p.isModule() && tf.linkage == LINKcpp)
+            if (p && !p.isModule() && tf.linkage == LINK.cpp)
             {
                 /* <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
                  *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
@@ -625,7 +625,7 @@ private final class CppMangleVisitor : Visitor
             }
         }
 
-        if (tf.linkage == LINKcpp) //Template args accept extern "C" symbols with special mangling
+        if (tf.linkage == LINK.cpp) //Template args accept extern "C" symbols with special mangling
         {
             assert(tf.ty == Tfunction);
             mangleFunctionParameters(tf.parameters, tf.varargs);
@@ -644,7 +644,7 @@ private final class CppMangleVisitor : Visitor
             else if (fparam.storageClass & STC.lazy_)
             {
                 // Mangle as delegate
-                Type td = new TypeFunction(null, t, 0, LINKd);
+                Type td = new TypeFunction(null, t, 0, LINK.d);
                 td = new TypeDelegate(td);
                 t = merge(t);
             }
@@ -950,7 +950,7 @@ public:
         if (substitute(t))
             return;
         buf.writeByte('F');
-        if (t.linkage == LINKc)
+        if (t.linkage == LINK.c)
             buf.writeByte('Y');
         Type tn = t.next;
         if (t.isref)

@@ -1011,7 +1011,7 @@ Lagain:
         if (tns.ty != Tstruct)
         {
 L2:
-            if (global.params.isLinux && tf.linkage != LINKd && !global.params.is64bit)
+            if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
             {
                                                 // 32 bit C/C++ structs always on stack
             }
@@ -1038,7 +1038,7 @@ L2:
     if (tns.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)tns).sym;
-        if (global.params.isLinux && tf.linkage != LINKd && !global.params.is64bit)
+        if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
         {
             if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
                 return RET.regs;
@@ -1046,7 +1046,7 @@ L2:
             //printf("  2 RET.stack\n");
             return RET.stack;            // 32 bit C/C++ structs always on stack
         }
-        if (global.params.isWindows && tf.linkage == LINKcpp && !global.params.is64bit &&
+        if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
                  sd.isPOD() && sd.ctor)
         {
             // win32 returns otherwise POD structs with ctors via memory
@@ -1088,7 +1088,7 @@ L2:
         return RET.stack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-             tf.linkage == LINKc &&
+             tf.linkage == LINK.c &&
              tns.iscomplex())
     {
         if (tns.ty == Tcomplex32)

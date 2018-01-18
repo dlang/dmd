@@ -253,7 +253,7 @@ extern(C++) private final class Supported : Objc
 
     override void checkLinkage(FuncDeclaration fd)
     {
-        if (fd.linkage != LINKobjc && fd.selector)
+        if (fd.linkage != LINK.objc && fd.selector)
             fd.error("must have Objective-C linkage to attach a selector");
     }
 

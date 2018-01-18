@@ -1065,7 +1065,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(TypeInfoDeclaration dsym)
     {
-        assert(dsym.linkage == LINKc);
+        assert(dsym.linkage == LINK.c);
     }
 
     override void visit(Import imp)
@@ -1877,7 +1877,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         em.semanticRun = PASS.semantic;
 
         em.protection = em.ed.isAnonymous() ? em.ed.protection : Prot(Prot.Kind.public_);
-        em.linkage = LINKd;
+        em.linkage = LINK.d;
         em.storage_class = STC.manifest;
         em.userAttribDecl = em.ed.isAnonymous() ? em.ed.userAttribDecl : null;
 
@@ -2472,7 +2472,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             assert(sc);
             sc = sc.push(ns);
-            sc.linkage = LINKcpp; // note that namespaces imply C++ linkage
+            sc.linkage = LINK.cpp; // note that namespaces imply C++ linkage
             sc.parent = ns;
             foreach (s; *ns.members)
             {
@@ -3361,11 +3361,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (pbd.ident == Id.postblit && pbd.semanticRun < PASS.semantic)
             ad.postblits.push(pbd);
         if (!pbd.type)
-            pbd.type = new TypeFunction(null, Type.tvoid, false, LINKd, pbd.storage_class);
+            pbd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, pbd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not static
-        sc.linkage = LINKd;
+        sc.linkage = LINK.d;
 
         funcDeclarationSemantic(pbd);
 
@@ -3397,12 +3397,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dd.ident == Id.dtor && dd.semanticRun < PASS.semantic)
             ad.dtors.push(dd);
         if (!dd.type)
-            dd.type = new TypeFunction(null, Type.tvoid, false, LINKd, dd.storage_class);
+            dd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, dd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static destructor
-        if (sc.linkage != LINKcpp)
-            sc.linkage = LINKd;
+        if (sc.linkage != LINK.cpp)
+            sc.linkage = LINK.d;
 
         funcDeclarationSemantic(dd);
 
@@ -3431,7 +3431,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!scd.type)
-            scd.type = new TypeFunction(null, Type.tvoid, false, LINKd, scd.storage_class);
+            scd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, scd.storage_class);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
@@ -3498,7 +3498,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!sdd.type)
-            sdd.type = new TypeFunction(null, Type.tvoid, false, LINKd, sdd.storage_class);
+            sdd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, sdd.storage_class);
 
         /* If the static ctor appears within a template instantiation,
          * it could get called multiple times by the module constructors
@@ -3573,13 +3573,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
            )
             ad.invs.push(invd);
         if (!invd.type)
-            invd.type = new TypeFunction(null, Type.tvoid, false, LINKd, invd.storage_class);
+            invd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, invd.storage_class);
 
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static invariant
         sc.stc |= STC.const_; // invariant() is always const
         sc.flags = (sc.flags & ~SCOPE.contract) | SCOPE.invariant_;
-        sc.linkage = LINKd;
+        sc.linkage = LINK.d;
 
         funcDeclarationSemantic(invd);
 
@@ -3617,9 +3617,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (global.params.useUnitTests)
         {
             if (!utd.type)
-                utd.type = new TypeFunction(null, Type.tvoid, false, LINKd, utd.storage_class);
+                utd.type = new TypeFunction(null, Type.tvoid, false, LINK.d, utd.storage_class);
             Scope* sc2 = sc.push();
-            sc2.linkage = LINKd;
+            sc2.linkage = LINK.d;
             funcDeclarationSemantic(utd);
             sc2.pop();
         }
@@ -3663,7 +3663,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
         Type tret = Type.tvoid.pointerTo();
         if (!nd.type)
-            nd.type = new TypeFunction(nd.parameters, tret, nd.varargs, LINKd, nd.storage_class);
+            nd.type = new TypeFunction(nd.parameters, tret, nd.varargs, LINK.d, nd.storage_class);
 
         nd.type = nd.type.typeSemantic(nd.loc, sc);
 
@@ -3704,7 +3704,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         if (!deld.type)
-            deld.type = new TypeFunction(deld.parameters, Type.tvoid, 0, LINKd, deld.storage_class);
+            deld.type = new TypeFunction(deld.parameters, Type.tvoid, 0, LINK.d, deld.storage_class);
 
         deld.type = deld.type.typeSemantic(deld.loc, sc);
 
@@ -4008,9 +4008,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             cldec.userAttribDecl = sc.userAttribDecl;
 
-            if (sc.linkage == LINKcpp)
+            if (sc.linkage == LINK.cpp)
                 cldec.classKind = ClassKind.cpp;
-            if (sc.linkage == LINKobjc)
+            if (sc.linkage == LINK.objc)
                 objc.setObjc(cldec);
         }
         else if (cldec.symtab && !scx)
@@ -4451,7 +4451,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 //printf("Creating default this(){} for class %s\n", toChars());
                 auto btf = fd.type.toTypeFunction();
-                auto tf = new TypeFunction(null, null, 0, LINKd, fd.storage_class);
+                auto tf = new TypeFunction(null, null, 0, LINK.d, fd.storage_class);
                 tf.mod       = btf.mod;
                 tf.purity    = btf.purity;
                 tf.isnothrow = btf.isnothrow;
@@ -4663,10 +4663,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 goto Lancestorsdone;
             }
 
-            if (!idec.baseclasses.dim && sc.linkage == LINKcpp)
+            if (!idec.baseclasses.dim && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
 
-            if (sc.linkage == LINKobjc)
+            if (sc.linkage == LINK.objc)
                 objc.setObjc(idec);
 
             // Check for errors, handle forward references
