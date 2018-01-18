@@ -108,6 +108,19 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
                         return;
                     }
                 }
+
+                // Assert errors are lowered to CallExp to druntime object.__dassert_msg
+                if (s.exp.op == TOKcall)
+                {
+                    auto callExp = cast(CallExp) (s.exp);
+                    FuncDeclaration funcId = callExp.f;
+                    if (funcId.isFuncDeclaration() && funcId.ident == Id.__dassert_msg)
+                    {
+                        result = BE.halt;
+                        return;
+                    }
+                }
+
                 if (canThrow(s.exp, func, mustNotThrow))
                     result |= BE.throw_;
             }
