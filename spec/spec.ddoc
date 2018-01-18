@@ -108,14 +108,6 @@ $(CLEAR)
 SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
 SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
 
-SPEC_HEADERNAV_TOC=$(DIVC page-contents quickindex,
-    $(DIVC page-contents-header,
-        $(B Contents)
-    )
-    $(OL $0)
-)
-SPEC_HEADERNAV_ITEM=$(LI $(RELATIVE_LINK2 $1, $+))
-SPEC_HEADERNAV_SUBITEMS=$(LI $(RELATIVE_LINK2 $1, $2)$(OL $(MULTICOLS $+)))
 _=
 
 CLEAR=<div style="clear:both"></div>

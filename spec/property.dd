@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Properties,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P Every type and expression has properties that can be queried:)
 

@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Traits,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P Traits are extensions to the language to enable
         programs, at compile time, to get at information

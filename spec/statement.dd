@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Statements,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 C and C++ programmers will find the D statements very familiar, with a few
 interesting additions.

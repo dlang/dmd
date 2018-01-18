@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Classes,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P The object-oriented features of D all come from classes. The class
         hierarchy

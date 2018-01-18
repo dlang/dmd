@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Arrays,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 array-kinds, Kinds))
 

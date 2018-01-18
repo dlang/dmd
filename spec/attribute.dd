@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Attributes,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME AttributeSpecifier):

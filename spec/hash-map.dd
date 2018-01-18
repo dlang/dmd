@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Associative Arrays,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P Associative arrays have an index that is not necessarily an integer,
         and can be sparsely populated. The index for an associative array

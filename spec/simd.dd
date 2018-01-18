@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Vector Extensions,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P Modern CPUs often support specialized vector types and vector
         operations, sometimes called "media instructions".

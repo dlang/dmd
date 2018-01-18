@@ -2,7 +2,7 @@ Ddoc
 
 $(SPEC_S Portability Guide,
 
-$(SPEC_HEADERNAV_TOC)
+$(HEADERNAV_TOC)
 
         $(P It's good software engineering practice to minimize gratuitous
         portability problems in the code.
