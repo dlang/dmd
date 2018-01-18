@@ -2287,9 +2287,9 @@ else
         }
         else if (ps.ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINEdefault;
+            PINLINE inlining = PINLINE.def;
             if (!ps.args || ps.args.dim == 0)
-                inlining = PINLINEdefault;
+                inlining = PINLINE.def;
             else if (!ps.args || ps.args.dim != 1)
             {
                 ps.error("boolean expression expected for pragma(inline)");
@@ -2305,9 +2305,9 @@ else
                 }
 
                 if (e.isBool(true))
-                    inlining = PINLINEalways;
+                    inlining = PINLINE.always;
                 else if (e.isBool(false))
-                    inlining = PINLINEnever;
+                    inlining = PINLINE.never;
 
                     FuncDeclaration fd = sc.func;
                 if (!fd)
