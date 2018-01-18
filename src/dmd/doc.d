@@ -2603,7 +2603,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-                newParagraph = true;
 
                 inlineDelimiters.length = 0;
 
@@ -2612,6 +2611,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 quoteLevel = 0;
 
                 i = buf.insert(i, "$(DDOC_BLANKLINE)");
+
+                newParagraph = true;
 // TODO: markdowny paragraphy things
             }
             leadingBlank = true;
@@ -2929,6 +2930,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
                     i = buf.insert(i, ")\n");
                     i -= 2; // in next loop, c should be '\n'
+                    newParagraph = true;
                 }
                 else
                 {
@@ -3149,6 +3151,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
         case '!':
         {
+            if (inCode)
+                break;
+
             if (i < buf.offset-1 && buf.data[i+1] == '[')
             {
                 auto imageStart = MarkdownDelimiter(i, c, 2, macroLevel, false, false);
@@ -3269,7 +3274,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
         case '(':
         {
-            if (i > offset && buf.data[i-1] != '$')
+            if (!inCode && i > offset && buf.data[i-1] != '$')
                 ++parenLevel;
             break;
         }
