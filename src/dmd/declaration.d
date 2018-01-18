@@ -480,6 +480,11 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.deprecated_) != 0;
     }
 
+    final bool isDisabled() const pure nothrow @nogc @safe
+    {
+        return (storage_class & STC.disable) != 0;
+    }
+
     final bool isOverride() const pure nothrow @nogc @safe
     {
         return (storage_class & STC.override_) != 0;

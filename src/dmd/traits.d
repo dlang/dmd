@@ -99,6 +99,7 @@ shared static this()
         "isAbstractClass",
         "isArithmetic",
         "isAssociativeArray",
+        "isDisabled",
         "isDeprecated",
         "isFuture",
         "isFinalClass",
@@ -582,6 +583,13 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         e.error("aggregate or function expected instead of `%s`", o.toChars());
         return new ErrorExp();
+    }
+    if (e.ident == Id.isDisabled)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isFuncX(f => f.isDisabled());
     }
     if (e.ident == Id.isAbstractFunction)
     {
