@@ -90,13 +90,6 @@ class Value
     static Value create(float   v) { return _create!FloatValue  (v); }
     static Value create(double  v) { return _create!DoubleValue (v); }
     static Value create(real    v) { return _create!RealValue   (v); }
-    static Value create(ifloat  v) { return _create!IFloatValue (v); }
-    static Value create(idouble v) { return _create!IDoubleValue(v); }
-    static Value create(ireal   v) { return _create!IRealValue  (v); }
-    static Value create(cfloat  v) { return _create!CFloatValue (v); }
-    static Value create(cdouble v) { return _create!CDoubleValue(v); }
-    static Value create(creal   v) { return _create!CRealValue  (v); }
-
     static Value create(string  v) { return createStringValue (v); }
 
     Type getType()
@@ -431,17 +424,13 @@ alias TypeTuple!(bool, byte, ubyte, short, ushort,
 alias TypeTuple!(BoolValue, ByteValue, UByteValue, ShortValue, UShortValue,
                  IntValue, UIntValue, LongValue, ULongValue,
                  CharValue, WCharValue, DCharValue,
-                 FloatValue, DoubleValue, RealValue,
-                 IFloatValue, IDoubleValue, IRealValue,
-                 CFloatValue, CDoubleValue, CRealValue) BasicTypeValues;
+                 FloatValue, DoubleValue, RealValue) BasicTypeValues;
 alias TypeTuple!(BasicTypeValues, SetLengthValue) RHS_BasicTypeValues;
 
 alias TypeTuple!(TOK_bool, TOK_byte, TOK_ubyte, TOK_short, TOK_ushort,
                  TOK_int, TOK_uint, TOK_long, TOK_ulong,
                  TOK_char, TOK_wchar, TOK_dchar,
-                 TOK_float, TOK_double, TOK_real,
-                 TOK_ifloat, TOK_idouble, TOK_ireal,
-                 TOK_cfloat, TOK_cdouble, TOK_creal) BasicTypeTokens;
+                 TOK_float, TOK_double, TOK_real) BasicTypeTokens;
 
 int BasicType2Token(T)()     { return BasicTypeTokens[staticIndexOf!(T, BasicTypes)]; }
 
@@ -761,30 +750,6 @@ class DoubleValue : ValueT!double
 }
 
 class RealValue : ValueT!real
-{
-}
-
-class IFloatValue : ValueT!ifloat
-{
-}
-
-class IDoubleValue : ValueT!idouble
-{
-}
-
-class IRealValue : ValueT!ireal
-{
-}
-
-class CFloatValue : ValueT!cfloat
-{
-}
-
-class CDoubleValue : ValueT!cdouble
-{
-}
-
-class CRealValue : ValueT!creal
 {
 }
 

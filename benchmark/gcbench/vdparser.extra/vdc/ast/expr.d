@@ -2032,12 +2032,7 @@ class FloatLiteralExpression : PrimaryExpression
     Value _interpret(Context sc)
     {
         if(complex)
-            if(lng)
-                return Value.create(cast(ireal) (1i * value));
-            else if(flt)
-                return Value.create(cast(ifloat) (1i * value));
-            else
-                return Value.create(cast(idouble) (1i * value));
+            assert(0, "Complex numbers aren't supported anymore.");
         else
             if(lng)
                 return Value.create(cast(real)value);
