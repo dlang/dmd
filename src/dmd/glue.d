@@ -1459,7 +1459,7 @@ uint totym(Type tx)
         case Tfunction:
         {
             TypeFunction tf = cast(TypeFunction)tx;
-            switch (tf.linkage)
+            final switch (tf.linkage)
             {
                 case LINK.windows:
                     if (global.params.is64bit)
@@ -1487,7 +1487,8 @@ uint totym(Type tx)
                     t = (tf.varargs == 1) ? TYnfunc : TYjfunc;
                     break;
 
-                default:
+                case LINK.default_:
+                case LINK.system:
                     printf("linkage = %d\n", tf.linkage);
                     assert(0);
             }

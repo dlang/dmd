@@ -351,8 +351,10 @@ public:
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
         ubyte mc;
-        switch (t.linkage)
+        final switch (t.linkage)
         {
+        case LINK.default_:
+        case LINK.system:
         case LINK.d:
             mc = 'F';
             break;
@@ -371,8 +373,6 @@ public:
         case LINK.objc:
             mc = 'Y';
             break;
-        default:
-            assert(0);
         }
         buf.writeByte(mc);
         if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn || ta.isscope)
@@ -545,7 +545,7 @@ public:
     {
         if (!d.parent || d.parent.isModule() || d.linkage == LINK.cpp) // if at global scope
         {
-            switch (d.linkage)
+            final switch (d.linkage)
             {
                 case LINK.d:
                     break;
@@ -557,11 +557,9 @@ public:
                 case LINK.cpp:
                     return Target.toCppMangle(d);
                 case LINK.default_:
+                case LINK.system:
                     d.error("forward declaration");
                     return d.ident.toChars();
-                default:
-                    fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
-                    assert(0);
             }
         }
         return null;

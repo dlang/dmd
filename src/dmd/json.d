@@ -293,7 +293,7 @@ public:
 
     void property(const(char)* name, LINK linkage)
     {
-        switch (linkage)
+        final switch (linkage)
         {
         case LINK.default_:
             // Should not be printed
@@ -302,6 +302,10 @@ public:
         case LINK.d:
             // Should not be printed
             //property(name, "d");
+            break;
+        case LINK.system:
+            // Should not be printed
+            //property(name, "system");
             break;
         case LINK.c:
             property(name, "c");
@@ -315,8 +319,9 @@ public:
         case LINK.pascal:
             property(name, "pascal");
             break;
-        default:
-            assert(false);
+        case LINK.objc:
+            property(name, "objc");
+            break;
         }
     }
 

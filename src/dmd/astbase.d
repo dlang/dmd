@@ -6278,9 +6278,10 @@ struct ASTBase
 
     extern (C++) static const(char)* linkageToChars(LINK linkage)
     {
-        switch (linkage)
+        final switch (linkage)
         {
         case LINK.default_:
+        case LINK.system:
             return null;
         case LINK.d:
             return "D";
@@ -6294,8 +6295,6 @@ struct ASTBase
             return "Pascal";
         case LINK.objc:
             return "Objective-C";
-        default:
-            assert(0);
         }
     }
 

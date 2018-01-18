@@ -433,13 +433,19 @@ struct Target
      */
     extern (C++) static void prefixName(OutBuffer* buf, LINK linkage)
     {
-        switch (linkage)
+        final switch (linkage)
         {
         case LINK.cpp:
             if (global.params.isOSX)
                 buf.prependbyte('_');
             break;
-        default:
+        case LINK.default_:
+        case LINK.d:
+        case LINK.c:
+        case LINK.windows:
+        case LINK.pascal:
+        case LINK.objc:
+        case LINK.system:
             break;
         }
     }

@@ -3307,7 +3307,7 @@ private void linkageToBuffer(OutBuffer* buf, LINK linkage)
 
 extern (C++) const(char)* linkageToChars(LINK linkage)
 {
-    switch (linkage)
+    final switch (linkage)
     {
     case LINK.default_:
         return null;
@@ -3325,8 +3325,6 @@ extern (C++) const(char)* linkageToChars(LINK linkage)
         return "Objective-C";
     case LINK.system:
         return "System";
-    default:
-        assert(0);
     }
 }
 

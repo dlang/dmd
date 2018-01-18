@@ -973,7 +973,7 @@ private:
         }
         else
         {
-            switch (type.linkage)
+            final switch (type.linkage)
             {
             case LINK.c:
                 tmp.buf.writeByte('A');
@@ -990,7 +990,10 @@ private:
             case LINK.pascal:
                 tmp.buf.writeByte('C');
                 break;
-            default:
+            case LINK.d:
+            case LINK.default_:
+            case LINK.system:
+            case LINK.objc:
                 tmp.visit(cast(Type)type);
                 break;
             }

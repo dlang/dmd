@@ -1341,7 +1341,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static mangle_t mangle(const VarDeclaration vd)
         {
-            switch (vd.linkage)
+            final switch (vd.linkage)
             {
                 case LINK.windows:
                     return global.params.is64bit ? mTYman_c : mTYman_std;
@@ -1359,7 +1359,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 case LINK.cpp:
                     return mTYman_d;
 
-                default:
+                case LINK.default_:
+                case LINK.system:
                     printf("linkage = %d\n", vd.linkage);
                     assert(0);
             }

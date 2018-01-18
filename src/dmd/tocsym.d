@@ -243,7 +243,7 @@ Symbol *toSymbol(Dsymbol s)
             }
 
             mangle_t m = 0;
-            switch (vd.linkage)
+            final switch (vd.linkage)
             {
                 case LINK.windows:
                     m = global.params.is64bit ? mTYman_c : mTYman_std;
@@ -265,7 +265,8 @@ Symbol *toSymbol(Dsymbol s)
                     s.Sflags |= SFLpublic;
                     m = mTYman_d;
                     break;
-                default:
+                case LINK.default_:
+                case LINK.system:
                     printf("linkage = %d, vd = %s %s @ [%s]\n",
                         vd.linkage, vd.kind(), vd.toChars(), vd.loc.toChars());
                     assert(0);
@@ -341,7 +342,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else
             {
-                switch (fd.linkage)
+                final switch (fd.linkage)
                 {
                     case LINK.windows:
                         t.Tmangle = global.params.is64bit ? mTYman_c : mTYman_std;
@@ -375,7 +376,8 @@ Symbol *toSymbol(Dsymbol s)
                         }
                         t.Tmangle = mTYman_d;
                         break;
-                    default:
+                    case LINK.default_:
+                    case LINK.system:
                         printf("linkage = %d\n", fd.linkage);
                         assert(0);
                 }
