@@ -181,11 +181,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             if (v.storage_class & STC.ref_)
                 return 0;
             auto tv = v.type.baseElemOf();
-            if (tv.ty != Tstruct)
+            if (tv.ty != TY.struct_)
                 return 0;
             if (ad == (cast(TypeStruct)tv).sym)
             {
-                const(char)* psz = (v.type.toBasetype().ty == Tsarray) ? "static array of " : "";
+                const(char)* psz = (v.type.toBasetype().ty == TY.sarray) ? "static array of " : "";
                 ad.error("cannot have field `%s` with %ssame struct type", v.toChars(), psz);
                 ad.type = Type.terror;
                 ad.errors = true;
@@ -224,7 +224,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
 
         // The previous instance size finalizing had:
-        if (type.ty == Terror)
+        if (type.ty == TY.error)
             return false;   // failed already
         if (sizeok == Sizeok.done)
             return true;    // succeeded
@@ -253,7 +253,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             finalizeSize();
 
         // this aggregate type has:
-        if (type.ty == Terror)
+        if (type.ty == TY.error)
             return false;   // marked as invalid during the finalizing.
         if (sizeok == Sizeok.done)
             return true;    // succeeded to calculate instance size.
@@ -479,16 +479,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                      * Get the element of static array type.
                      */
                     Type telem = vx.type;
-                    if (telem.ty == Tsarray)
+                    if (telem.ty == TY.sarray)
                     {
                         /* We cannot use Type::baseElemOf() here.
-                         * If the bottom of the Tsarray is an enum type, baseElemOf()
+                         * If the bottom of the TY.sarray is an enum type, baseElemOf()
                          * will return the base of the enum, and its default initializer
                          * would be different from the enum's.
                          */
-                        while (telem.toBasetype().ty == Tsarray)
+                        while (telem.toBasetype().ty == TY.sarray)
                             telem = (cast(TypeSArray)telem.toBasetype()).next;
-                        if (telem.ty == Tvoid)
+                        if (telem.ty == TY.void_)
                             telem = Type.tuns8.addMod(telem.mod);
                     }
                     if (telem.needsNested() && ctorinit)
@@ -648,7 +648,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         {
             //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing.toChars());
             assert(t);
-            if (t.ty == Tstruct)
+            if (t.ty == TY.struct_)
                 t = Type.tvoidptr; // t should not be a ref type
 
             assert(!vthis);

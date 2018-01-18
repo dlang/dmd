@@ -243,7 +243,7 @@ struct IRState
                 if (fd)
                 {
                     Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
+                    if (t.ty == TY.function_ && (cast(TypeFunction)t).trust == TRUST.safe)
                         result = true;
                 }
                 break;

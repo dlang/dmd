@@ -622,7 +622,7 @@ private void ctfeCompile(FuncDeclaration fd)
     if (fd.parameters)
     {
         Type tb = fd.type.toBasetype();
-        assert(tb.ty == Tfunction);
+        assert(tb.ty == TY.function_);
         for (size_t i = 0; i < fd.parameters.dim; i++)
         {
             VarDeclaration v = (*fd.parameters)[i];
@@ -649,8 +649,8 @@ extern (C++) Expression ctfeInterpret(Expression e)
     if (e.op == TOKerror)
         return e;
     assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642
-    //assert(e.type.ty != Terror);    // FIXME
-    if (e.type.ty == Terror)
+    //assert(e.type.ty != TY.error);    // FIXME
+    if (e.type.ty == TY.error)
         return new ErrorExp();
 
     // This code is outside a function, but still needs to be compiled
@@ -751,7 +751,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
         ctfeCompile(fd);
 
     Type tb = fd.type.toBasetype();
-    assert(tb.ty == Tfunction);
+    assert(tb.ty == TY.function_);
     TypeFunction tf = cast(TypeFunction)tb;
     if (tf.varargs && arguments && ((fd.parameters && arguments.dim != fd.parameters.dim) || (!fd.parameters && arguments.dim)))
     {
@@ -810,7 +810,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
             /* Value parameters
              */
             Type ta = fparam.type.toBasetype();
-            if (ta.ty == Tsarray && earg.op == TOKaddress)
+            if (ta.ty == TY.sarray && earg.op == TOKaddress)
             {
                 /* Static arrays are passed by a simple pointer.
                  * Skip past this to get at the actual arg.
@@ -961,7 +961,7 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
         }
     }
     // If fell off the end of a void function, return void
-    if (!e && tf.next.ty == Tvoid)
+    if (!e && tf.next.ty == TY.void_)
         e = CTFEExp.voidexp;
     if (tf.isref && e.op == TOKvar && (cast(VarExp)e).var == fd.vthis)
         e = thisarg;
@@ -1264,7 +1264,7 @@ public:
             return;
         }
 
-        assert(istate && istate.fd && istate.fd.type && istate.fd.type.ty == Tfunction);
+        assert(istate && istate.fd && istate.fd.type && istate.fd.type.ty == TY.function_);
         TypeFunction tf = cast(TypeFunction)istate.fd.type;
 
         /* If the function returns a ref AND it's been called from an assignment,
@@ -1275,7 +1275,7 @@ public:
             result = interpret(s.exp, istate, ctfeNeedLvalue);
             return;
         }
-        if (tf.next && tf.next.ty == Tdelegate && istate.fd.closureVars.dim > 0)
+        if (tf.next && tf.next.ty == TY.delegate_ && istate.fd.closureVars.dim > 0)
         {
             // To support this, we need to copy all the closure vars
             // into the delegate literal.
@@ -1746,16 +1746,16 @@ public:
         // Little sanity check to make sure it's really a Throwable
         ClassReferenceExp boss = oldest.thrown;
         const next = 4;                         // index of Throwable.next
-        assert((*boss.value.elements)[next].type.ty == Tclass); // Throwable.next
+        assert((*boss.value.elements)[next].type.ty == TY.class_); // Throwable.next
         ClassReferenceExp collateral = newest.thrown;
         if (isAnErrorException(collateral.originalClass()) && !isAnErrorException(boss.originalClass()))
         {
             /* Find the index of the Error.bypassException field
              */
             auto bypass = next + 1;
-            if ((*collateral.value.elements)[bypass].type.ty == Tuns32)
+            if ((*collateral.value.elements)[bypass].type.ty == TY.uns32)
                 bypass += 1;  // skip over _refcount field
-            assert((*collateral.value.elements)[bypass].type.ty == Tclass);
+            assert((*collateral.value.elements)[bypass].type.ty == TY.class_);
 
             // The new exception bypass the existing chain
             (*collateral.value.elements)[bypass] = boss;
@@ -1884,7 +1884,7 @@ public:
         if (exceptionOrCant(e))
             return;
 
-        if (s.wthis.type.ty == Tpointer && s.exp.type.ty != Tpointer)
+        if (s.wthis.type.ty == TY.pointer && s.exp.type.ty != TY.pointer)
         {
             e = new AddrExp(s.loc, e);
             e.type = s.wthis.type;
@@ -2053,7 +2053,7 @@ public:
             result = e;
             return;
         }
-        if (e.type.ty != Tpointer)
+        if (e.type.ty != TY.pointer)
         {
             // Probably impossible
             e.error("cannot interpret `%s` at compile time", e.toChars());
@@ -2070,7 +2070,7 @@ public:
         // Check for taking an address of a shared variable.
         // If the shared variable is an array, the offset might not be zero.
         Type fromType = null;
-        if (e.var.type.ty == Tarray || e.var.type.ty == Tsarray)
+        if (e.var.type.ty == TY.array || e.var.type.ty == TY.sarray)
         {
             fromType = (cast(TypeArray)e.var.type).next;
         }
@@ -2083,14 +2083,14 @@ public:
         Expression val = getVarExp(e.loc, istate, e.var, goal);
         if (exceptionOrCant(val))
             return;
-        if (val.type.ty == Tarray || val.type.ty == Tsarray)
+        if (val.type.ty == TY.array || val.type.ty == TY.sarray)
         {
             // Check for unsupported type painting operations
             Type elemtype = (cast(TypeArray)val.type).next;
             d_uns64 elemsize = elemtype.size();
 
             // It's OK to cast from fixed length to dynamic array, eg &int[3] to int[]*
-            if (val.type.ty == Tsarray && pointee.ty == Tarray && elemsize == pointee.nextOf().size())
+            if (val.type.ty == TY.sarray && pointee.ty == TY.array && elemsize == pointee.nextOf().size())
             {
                 result = new AddrExp(e.loc, val);
                 result.type = e.type;
@@ -2098,7 +2098,7 @@ public:
             }
 
             // It's OK to cast from fixed length to fixed length array, eg &int[n] to int[d]*.
-            if (val.type.ty == Tsarray && pointee.ty == Tsarray && elemsize == pointee.nextOf().size())
+            if (val.type.ty == TY.sarray && pointee.ty == TY.sarray && elemsize == pointee.nextOf().size())
             {
                 size_t d = cast(size_t)(cast(TypeSArray)pointee).dim.toInteger();
                 Expression elwr = new IntegerExp(e.loc, e.offset / elemsize, Type.tsize_t);
@@ -2249,7 +2249,7 @@ public:
             if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
             {
                 v.dsymbolSemantic(null);
-                if (v.type.ty == Terror)
+                if (v.type.ty == TY.error)
                     return CTFEExp.cantexp;
             }
 
@@ -2414,7 +2414,7 @@ public:
         result = getVarExp(e.loc, istate, e.var, goal);
         if (exceptionOrCant(result))
             return;
-        if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != Tstruct)
+        if ((e.var.storage_class & (STC.ref_ | STC.out_)) == 0 && e.type.baseElemOf().ty != TY.struct_)
         {
             /* Ultimately, STC.ref_|STC.out_ check should be enough to see the
              * necessity of type repainting. But currently front-end paints
@@ -2646,7 +2646,7 @@ public:
         }
 
         Type tn = e.type.toBasetype().nextOf().toBasetype();
-        bool wantCopy = (tn.ty == Tsarray || tn.ty == Tstruct);
+        bool wantCopy = (tn.ty == TY.sarray || tn.ty == TY.struct_);
 
         auto basis = interpret(e.basis, istate);
         if (exceptionOrCant(basis))
@@ -2842,7 +2842,7 @@ public:
                 ex = interpret(exp, istate);
                 if (exceptionOrCant(ex))
                     return;
-                if ((v.type.ty != ex.type.ty) && v.type.ty == Tsarray)
+                if ((v.type.ty != ex.type.ty) && v.type.ty == TY.sarray)
                 {
                     // Block assignment from inside struct literals
                     auto tsa = cast(TypeSArray)v.type;
@@ -2887,7 +2887,7 @@ public:
             return lenExpr;
         size_t len = cast(size_t)lenExpr.toInteger();
         Type elemType = (cast(TypeArray)newtype).next;
-        if (elemType.ty == Tarray && argnum < arguments.dim - 1)
+        if (elemType.ty == TY.array && argnum < arguments.dim - 1)
         {
             Expression elem = recursivelyCreateArrayLiteral(loc, elemType, istate, arguments, argnum + 1);
             if (exceptionOrCantInterpret(elem))
@@ -2903,7 +2903,7 @@ public:
             return ae;
         }
         assert(argnum == arguments.dim - 1);
-        if (elemType.ty == Tchar || elemType.ty == Twchar || elemType.ty == Tdchar)
+        if (elemType.ty == TY.char_ || elemType.ty == TY.wchar_ || elemType.ty == TY.dchar_)
         {
             const ch = cast(dchar)elemType.defaultInitLiteral(loc).toInteger();
             const sz = cast(ubyte)elemType.size();
@@ -2933,12 +2933,12 @@ public:
         if (exceptionOrCant(result))
             return;
 
-        if (e.newtype.ty == Tarray && e.arguments)
+        if (e.newtype.ty == TY.array && e.arguments)
         {
             result = recursivelyCreateArrayLiteral(e.loc, e.newtype, istate, e.arguments, 0);
             return;
         }
-        if (e.newtype.toBasetype().ty == Tstruct)
+        if (e.newtype.toBasetype().ty == TY.struct_)
         {
             if (e.member)
             {
@@ -2981,7 +2981,7 @@ public:
             result.type = e.type;
             return;
         }
-        if (e.newtype.toBasetype().ty == Tclass)
+        if (e.newtype.toBasetype().ty == TY.class_)
         {
             ClassDeclaration cd = (cast(TypeClass)e.newtype.toBasetype()).sym;
             size_t totalFieldCount = 0;
@@ -3140,7 +3140,7 @@ public:
         {
             printf("%s BinExp::interpretCommon() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.e1.type.ty == Tpointer && e.e2.type.ty == Tpointer && e.op == TOKmin)
+        if (e.e1.type.ty == TY.pointer && e.e2.type.ty == TY.pointer && e.op == TOKmin)
         {
             Expression e1 = interpret(e.e1, istate);
             if (exceptionOrCant(e1))
@@ -3151,7 +3151,7 @@ public:
             result = pointerDifference(e.loc, e.type, e1, e2).copy();
             return;
         }
-        if (e.e1.type.ty == Tpointer && e.e2.type.isintegral())
+        if (e.e1.type.ty == TY.pointer && e.e2.type.isintegral())
         {
             Expression e1 = interpret(e.e1, istate);
             if (exceptionOrCant(e1))
@@ -3162,7 +3162,7 @@ public:
             result = pointerArithmetic(e.loc, e.op, e.type, e1, e2).copy();
             return;
         }
-        if (e.e2.type.ty == Tpointer && e.e1.type.isintegral() && e.op == TOKadd)
+        if (e.e2.type.ty == TY.pointer && e.e1.type.isintegral() && e.op == TOKadd)
         {
             Expression e1 = interpret(e.e1, istate);
             if (exceptionOrCant(e1))
@@ -3173,7 +3173,7 @@ public:
             result = pointerArithmetic(e.loc, e.op, e.type, e2, e1).copy();
             return;
         }
-        if (e.e1.type.ty == Tpointer || e.e2.type.ty == Tpointer)
+        if (e.e1.type.ty == TY.pointer || e.e2.type.ty == TY.pointer)
         {
             e.error("pointer expression `%s` cannot be interpreted at compile time", e.toChars());
             result = CTFEExp.cantexp;
@@ -3228,7 +3228,7 @@ public:
         {
             printf("%s BinExp::interpretCompareCommon() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.e1.type.ty == Tpointer && e.e2.type.ty == Tpointer)
+        if (e.e1.type.ty == TY.pointer && e.e2.type.ty == TY.pointer)
         {
             Expression e1 = interpret(e.e1, istate);
             if (exceptionOrCant(e1))
@@ -3406,7 +3406,7 @@ public:
             // a[] = e can have const e. So we compare the naked types.
             Type tdst = e1.type.toBasetype();
             Type tsrc = e.e2.type.toBasetype();
-            while (tdst.ty == Tsarray || tdst.ty == Tarray)
+            while (tdst.ty == TY.sarray || tdst.ty == TY.array)
             {
                 tdst = (cast(TypeArray)tdst).next.toBasetype();
                 if (tsrc.equivalent(tdst))
@@ -3457,7 +3457,7 @@ public:
         AssocArrayLiteralExp existingAA = null;
         Expression lastIndex = null;
         Expression oldval = null;
-        if (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == Taarray)
+        if (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == TY.aarray)
         {
             // ---------------------------------------
             //      Deal with AA index assignment
@@ -3471,7 +3471,7 @@ public:
              */
             IndexExp ie = cast(IndexExp)e1;
             int depth = 0; // how many nested AA indices are there?
-            while (ie.e1.op == TOKindex && (cast(IndexExp)ie.e1).e1.type.toBasetype().ty == Taarray)
+            while (ie.e1.op == TOKindex && (cast(IndexExp)ie.e1).e1.type.toBasetype().ty == TY.aarray)
             {
                 assert(ie.modifiable);
                 ie = cast(IndexExp)ie.e1;
@@ -3546,7 +3546,7 @@ public:
                 oldval = copyLiteral(e.e1.type.defaultInitLiteral(e.loc)).copy();
 
                 Expression newaae = oldval;
-                while (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == Taarray)
+                while (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == TY.aarray)
                 {
                     Expression ekey = interpret((cast(IndexExp)e1).e2, istate);
                     if (exceptionOrCant(ekey))
@@ -3617,7 +3617,7 @@ public:
             if (exceptionOrCant(e1))
                 return;
 
-            if (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == Taarray)
+            if (e1.op == TOKindex && (cast(IndexExp)e1).e1.type.toBasetype().ty == TY.aarray)
             {
                 IndexExp ie = cast(IndexExp)e1;
                 assert(ie.e1.op == TOKassocarrayliteral);
@@ -3635,7 +3635,7 @@ public:
         if (e.op == TOKblit && newval.op == TOKint64)
         {
             Type tbn = e.type.baseElemOf();
-            if (tbn.ty == Tstruct)
+            if (tbn.ty == TY.struct_)
             {
                 /* Look for special case of struct being initialized with 0.
                  */
@@ -3667,14 +3667,14 @@ public:
                     return;
             }
 
-            if (e.e1.type.ty != Tpointer)
+            if (e.e1.type.ty != TY.pointer)
             {
                 // ~= can create new values (see bug 6052)
                 if (e.op == TOKcatass || e.op == TOKcatelemass || e.op == TOKcatdcharass)
                 {
                     // We need to dup it and repaint the type. For a dynamic array
                     // we can skip duplication, because it gets copied later anyway.
-                    if (newval.type.ty != Tarray)
+                    if (newval.type.ty != TY.array)
                     {
                         newval = copyLiteral(newval).copy();
                         newval.type = e.e2.type; // repaint type
@@ -3750,7 +3750,7 @@ public:
             // Note that returnValue is still the new length.
             e1 = (cast(ArrayLengthExp)e1).e1;
             Type t = e1.type.toBasetype();
-            if (t.ty != Tarray)
+            if (t.ty != TY.array)
             {
                 e.error("`%s` is not yet supported at compile time", e.toChars());
                 result = CTFEExp.cantexp;
@@ -3800,7 +3800,7 @@ public:
             e1.op == TOKvector ||
             e1.op == TOKarrayliteral ||
             e1.op == TOKstring ||
-            e1.op == TOKnull && e1.type.toBasetype().ty == Tarray)
+            e1.op == TOKnull && e1.type.toBasetype().ty == TY.array)
         {
             // Note that slice assignments don't support things like ++, so
             // we don't need to remember 'returnValue'.
@@ -3905,7 +3905,7 @@ public:
         else if (e1.op == TOKindex)
         {
             IndexExp ie = cast(IndexExp)e1;
-            assert(ie.e1.type.toBasetype().ty != Taarray);
+            assert(ie.e1.type.toBasetype().ty != TY.aarray);
 
             Expression aggregate;
             uinteger_t indexToModify;
@@ -3949,7 +3949,7 @@ public:
         }
 
         Type t1b = e1.type.toBasetype();
-        bool wantCopy = t1b.baseElemOf().ty == Tstruct;
+        bool wantCopy = t1b.baseElemOf().ty == TY.struct_;
 
         if (newval.op == TOKstructliteral && oldval)
         {
@@ -4002,7 +4002,7 @@ public:
             if (wantCopy)
                 newval = copyLiteral(newval).copy();
 
-            if (t1b.ty == Tsarray && e.op == TOKconstruct && e.e2.isLvalue())
+            if (t1b.ty == TY.sarray && e.op == TOKconstruct && e.e2.isLvalue())
             {
                 // https://issues.dlang.org/show_bug.cgi?id=9245
                 if (Expression ex = evaluatePostblit(istate, newval))
@@ -4225,7 +4225,7 @@ public:
                 auto aggr2 = se.e1;
                 const srclower = se.lwr.toInteger();
                 const srcupper = se.upr.toInteger();
-                const wantCopy = (newval.type.toBasetype().nextOf().baseElemOf().ty == Tstruct);
+                const wantCopy = (newval.type.toBasetype().nextOf().baseElemOf().ty == TY.struct_);
 
                 //printf("oldval = %p %s[%d..%u]\nnewval = %p %s[%llu..%llu] wantCopy = %d\n",
                 //    aggregate, aggregate.toChars(), lowerbound, upperbound,
@@ -4355,7 +4355,7 @@ public:
                 extern (C++) Expression assignTo(ArrayLiteralExp ae, size_t lwr, size_t upr)
                 {
                     Expressions* w = ae.elements;
-                    assert(ae.type.ty == Tsarray || ae.type.ty == Tarray);
+                    assert(ae.type.ty == TY.sarray || ae.type.ty == TY.array);
                     bool directblk = (cast(TypeArray)ae.type).next.equivalent(newval.type);
                     for (size_t k = lwr; k < upr; k++)
                     {
@@ -4396,10 +4396,10 @@ public:
             }
 
             Type tn = newval.type.toBasetype();
-            bool wantRef = (tn.ty == Tarray || isAssocArray(tn) || tn.ty == Tclass);
+            bool wantRef = (tn.ty == TY.array || isAssocArray(tn) || tn.ty == TY.class_);
             bool cow = newval.op != TOKstructliteral && newval.op != TOKarrayliteral && newval.op != TOKstring;
             Type tb = tn.baseElemOf();
-            StructDeclaration sd = (tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null);
+            StructDeclaration sd = (tb.ty == TY.struct_ ? (cast(TypeStruct)tb).sym : null);
 
             RecursiveBlock rb;
             rb.istate = istate;
@@ -4718,7 +4718,7 @@ public:
                 return;
             if (result.op == TOKvoidexp)
             {
-                assert(e.type.ty == Tvoid);
+                assert(e.type.ty == TY.void_);
                 result = null;
                 return;
             }
@@ -4904,7 +4904,7 @@ public:
 
             if (pthis.op == TOKnull)
             {
-                assert(pthis.type.toBasetype().ty == Tclass);
+                assert(pthis.type.toBasetype().ty == TY.class_);
                 e.error("function call through null class reference `%s`", pthis.toChars());
                 result = CTFEExp.cantexp;
                 return;
@@ -5104,9 +5104,9 @@ public:
 
     static bool resolveIndexing(IndexExp e, InterState* istate, Expression* pagg, uinteger_t* pidx, bool modify)
     {
-        assert(e.e1.type.toBasetype().ty != Taarray);
+        assert(e.e1.type.toBasetype().ty != TY.aarray);
 
-        if (e.e1.type.toBasetype().ty == Tpointer)
+        if (e.e1.type.toBasetype().ty == TY.pointer)
         {
             // Indexing a pointer. Note that there is no $ in this case.
             Expression e1 = interpret(e.e1, istate);
@@ -5230,7 +5230,7 @@ public:
         {
             printf("%s IndexExp::interpret() %s, goal = %d\n", e.loc.toChars(), e.toChars(), goal);
         }
-        if (e.e1.type.toBasetype().ty == Tpointer)
+        if (e.e1.type.toBasetype().ty == TY.pointer)
         {
             Expression agg;
             uinteger_t indexToAccess;
@@ -5263,14 +5263,14 @@ public:
             }
         }
 
-        if (e.e1.type.toBasetype().ty == Taarray)
+        if (e.e1.type.toBasetype().ty == TY.aarray)
         {
             Expression e1 = interpret(e.e1, istate);
             if (exceptionOrCant(e1))
                 return;
             if (e1.op == TOKnull)
             {
-                if (goal == ctfeNeedLvalue && e1.type.ty == Taarray && e.modifiable)
+                if (goal == ctfeNeedLvalue && e1.type.ty == TY.aarray && e.modifiable)
                 {
                     assert(0); // does not reach here?
                 }
@@ -5341,7 +5341,7 @@ public:
         {
             printf("%s SliceExp::interpret() %s\n", e.loc.toChars(), e.toChars());
         }
-        if (e.e1.type.toBasetype().ty == Tpointer)
+        if (e.e1.type.toBasetype().ty == TY.pointer)
         {
             // Slicing a pointer. Note that there is no $ in this case.
             Expression e1 = interpret(e.e1, istate);
@@ -5602,7 +5602,7 @@ public:
         auto tb = e.e1.type.toBasetype();
         switch (tb.ty)
         {
-        case Tclass:
+        case TY.class_:
             if (result.op != TOKclassreference)
             {
                 e.error("`delete` on invalid class reference `%s`", result.toChars());
@@ -5627,9 +5627,9 @@ public:
             }
             break;
 
-        case Tpointer:
+        case TY.pointer:
             tb = (cast(TypePointer)tb).next.toBasetype();
-            if (tb.ty == Tstruct)
+            if (tb.ty == TY.struct_)
             {
                 if (result.op != TOKaddress ||
                     (cast(AddrExp)result).e1.op != TOKstructliteral)
@@ -5657,9 +5657,9 @@ public:
             }
             break;
 
-        case Tarray:
+        case TY.array:
             auto tv = tb.nextOf().baseElemOf();
-            if (tv.ty == Tstruct)
+            if (tv.ty == TY.struct_)
             {
                 if (result.op != TOKarrayliteral)
                 {
@@ -5705,12 +5705,12 @@ public:
         if (exceptionOrCant(e1))
             return;
         // If the expression has been cast to void, do nothing.
-        if (e.to.ty == Tvoid)
+        if (e.to.ty == TY.void_)
         {
             result = CTFEExp.voidexp;
             return;
         }
-        if (e.to.ty == Tpointer && e1.op != TOKnull)
+        if (e.to.ty == TY.pointer && e1.op != TOKnull)
         {
             Type pointee = (cast(TypePointer)e.type).next;
             // Implement special cases of normally-unsafe casts
@@ -5723,7 +5723,7 @@ public:
 
             bool castToSarrayPointer = false;
             bool castBackFromVoid = false;
-            if (e1.type.ty == Tarray || e1.type.ty == Tsarray || e1.type.ty == Tpointer)
+            if (e1.type.ty == TY.array || e1.type.ty == TY.sarray || e1.type.ty == TY.pointer)
             {
                 // Check for unsupported type painting operations
                 // For slices, we need the type being sliced,
@@ -5739,22 +5739,22 @@ public:
                 // we check this later on.
                 Type ultimatePointee = pointee;
                 Type ultimateSrc = elemtype;
-                while (ultimatePointee.ty == Tpointer && ultimateSrc.ty == Tpointer)
+                while (ultimatePointee.ty == TY.pointer && ultimateSrc.ty == TY.pointer)
                 {
                     ultimatePointee = ultimatePointee.nextOf();
                     ultimateSrc = ultimateSrc.nextOf();
                 }
-                if (ultimatePointee.ty == Tsarray && ultimatePointee.nextOf().equivalent(ultimateSrc))
+                if (ultimatePointee.ty == TY.sarray && ultimatePointee.nextOf().equivalent(ultimateSrc))
                 {
                     castToSarrayPointer = true;
                 }
-                else if (ultimatePointee.ty != Tvoid && ultimateSrc.ty != Tvoid && !isSafePointerCast(elemtype, pointee))
+                else if (ultimatePointee.ty != TY.void_ && ultimateSrc.ty != TY.void_ && !isSafePointerCast(elemtype, pointee))
                 {
                     e.error("reinterpreting cast from `%s*` to `%s*` is not supported in CTFE", elemtype.toChars(), pointee.toChars());
                     result = CTFEExp.cantexp;
                     return;
                 }
-                if (ultimateSrc.ty == Tvoid)
+                if (ultimateSrc.ty == TY.void_)
                     castBackFromVoid = true;
             }
 
@@ -5824,7 +5824,7 @@ public:
                     result.type = e.type;
                     return;
                 }
-                if (castToSarrayPointer && pointee.toBasetype().ty == Tsarray && (cast(AddrExp)e1).e1.op == TOKindex)
+                if (castToSarrayPointer && pointee.toBasetype().ty == TY.sarray && (cast(AddrExp)e1).e1.op == TOKindex)
                 {
                     // &val[idx]
                     dinteger_t dim = (cast(TypeSArray)pointee.toBasetype()).dim.toInteger();
@@ -5867,7 +5867,7 @@ public:
                 return;
             }
         }
-        if (e.to.ty == Tsarray && e.e1.type.ty == Tvector)
+        if (e.to.ty == TY.sarray && e.e1.type.ty == TY.vector)
         {
             // Special handling for: cast(float[4])__vector([w, x, y, z])
             e1 = interpret(e.e1, istate);
@@ -5876,7 +5876,7 @@ public:
             assert(e1.op == TOKvector);
             e1 = (cast(VectorExp)e1).e1;
         }
-        if (e.to.ty == Tarray && e1.op == TOKslice)
+        if (e.to.ty == TY.array && e1.op == TOKslice)
         {
             // Note that the slice may be void[], so when checking for dangerous
             // casts, we need to use the original type, which is se.e1.
@@ -5894,15 +5894,15 @@ public:
         }
         // Disallow array type painting, except for conversions between built-in
         // types of identical size.
-        if ((e.to.ty == Tsarray || e.to.ty == Tarray) && (e1.type.ty == Tsarray || e1.type.ty == Tarray) && !isSafePointerCast(e1.type.nextOf(), e.to.nextOf()))
+        if ((e.to.ty == TY.sarray || e.to.ty == TY.array) && (e1.type.ty == TY.sarray || e1.type.ty == TY.array) && !isSafePointerCast(e1.type.nextOf(), e.to.nextOf()))
         {
             e.error("array cast from `%s` to `%s` is not supported at compile time", e1.type.toChars(), e.to.toChars());
             result = CTFEExp.cantexp;
             return;
         }
-        if (e.to.ty == Tsarray)
+        if (e.to.ty == TY.sarray)
             e1 = resolveSlice(e1);
-        if (e.to.toBasetype().ty == Tbool && e1.type.ty == Tpointer)
+        if (e.to.toBasetype().ty == TY.bool_ && e1.type.ty == TY.pointer)
         {
             result = new IntegerExp(e.loc, e1.op != TOKnull, e.to);
             return;
@@ -6022,7 +6022,7 @@ public:
         // *(&x) ==> x
         result = (cast(AddrExp)result).e1;
 
-        if (result.op == TOKslice && e.type.toBasetype().ty == Tsarray)
+        if (result.op == TOKslice && e.type.toBasetype().ty == TY.sarray)
         {
             /* aggr[lwr..upr]
              * upr may exceed the upper boundary of aggr, but the check is deferred
@@ -6073,7 +6073,7 @@ public:
 
         if (ex.op == TOKnull)
         {
-            if (ex.type.toBasetype().ty == Tclass)
+            if (ex.type.toBasetype().ty == TY.class_)
                 e.error("class `%s` is `null` and cannot be dereferenced", e.e1.toChars());
             else
                 e.error("CTFE internal error: null this `%s`", e.e1.toChars());
@@ -6146,7 +6146,7 @@ public:
             return;
         }
 
-        if (v.type.ty != result.type.ty && v.type.ty == Tsarray)
+        if (v.type.ty != result.type.ty && v.type.ty == TY.sarray)
         {
             // Block assignment from inside struct literals
             auto tsa = cast(TypeSArray)v.type;
@@ -6340,7 +6340,7 @@ private Expression scrubArray(Loc loc, Expressions* elems, bool structlit = fals
 
         // A struct .init may contain void members.
         // Static array members are a weird special case (bug 10994).
-        if (structlit && ((m.op == TOKvoid) || (m.op == TOKarrayliteral && m.type.ty == Tsarray && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) || (m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements))))
+        if (structlit && ((m.op == TOKvoid) || (m.op == TOKarrayliteral && m.type.ty == TY.sarray && isEntirelyVoid((cast(ArrayLiteralExp)m).elements)) || (m.op == TOKstructliteral && isEntirelyVoid((cast(StructLiteralExp)m).elements))))
         {
             m = null;
         }
@@ -6445,7 +6445,7 @@ private Expression interpret_keys(InterState* istate, Expression earg, Type retu
         return earg;
     if (earg.op == TOKnull)
         return new NullExp(earg.loc, returnType);
-    if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != Taarray)
+    if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != TY.aarray)
         return null;
     assert(earg.op == TOKassocarrayliteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
@@ -6466,7 +6466,7 @@ private Expression interpret_values(InterState* istate, Expression earg, Type re
         return earg;
     if (earg.op == TOKnull)
         return new NullExp(earg.loc, returnType);
-    if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != Taarray)
+    if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != TY.aarray)
         return null;
     assert(earg.op == TOKassocarrayliteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)earg;
@@ -6488,7 +6488,7 @@ private Expression interpret_dup(InterState* istate, Expression earg)
         return earg;
     if (earg.op == TOKnull)
         return new NullExp(earg.loc, earg.type);
-    if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != Taarray)
+    if (earg.op != TOKassocarrayliteral && earg.type.toBasetype().ty != TY.aarray)
         return null;
     assert(earg.op == TOKassocarrayliteral);
     AssocArrayLiteralExp aae = cast(AssocArrayLiteralExp)copyLiteral(earg).copy();
@@ -6853,7 +6853,7 @@ private Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDeclaratio
     if (!pthis)
     {
         Expression firstarg = nargs > 0 ? (*arguments)[0] : null;
-        if (firstarg && firstarg.type.toBasetype().ty == Taarray)
+        if (firstarg && firstarg.type.toBasetype().ty == TY.aarray)
         {
             TypeAArray firstAAtype = cast(TypeAArray)firstarg.type;
             const id = fd.ident.toChars();
@@ -6924,7 +6924,7 @@ private Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDeclaratio
 private Expression evaluatePostblit(InterState* istate, Expression e)
 {
     Type tb = e.type.baseElemOf();
-    if (tb.ty != Tstruct)
+    if (tb.ty != TY.struct_)
         return null;
     StructDeclaration sd = (cast(TypeStruct)tb).sym;
     if (!sd.postblit)
@@ -6955,7 +6955,7 @@ private Expression evaluatePostblit(InterState* istate, Expression e)
 private Expression evaluateDtor(InterState* istate, Expression e)
 {
     Type tb = e.type.baseElemOf();
-    if (tb.ty != Tstruct)
+    if (tb.ty != TY.struct_)
         return null;
     StructDeclaration sd = (cast(TypeStruct)tb).sym;
     if (!sd.dtor)

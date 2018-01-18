@@ -52,34 +52,34 @@ TypeTuple toArgTypes(Type t)
             Type t2 = null;
             switch (t.ty)
             {
-            case Tvoid:
+            case TY.void_:
                 return;
-            case Tbool:
-            case Tint8:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            case Tint32:
-            case Tuns32:
-            case Tfloat32:
-            case Tint64:
-            case Tuns64:
-            case Tint128:
-            case Tuns128:
-            case Tfloat64:
-            case Tfloat80:
+            case TY.bool_:
+            case TY.int8:
+            case TY.uns8:
+            case TY.int16:
+            case TY.uns16:
+            case TY.int32:
+            case TY.uns32:
+            case TY.float32:
+            case TY.int64:
+            case TY.uns64:
+            case TY.int128:
+            case TY.uns128:
+            case TY.float64:
+            case TY.float80:
                 t1 = t;
                 break;
-            case Timaginary32:
+            case TY.imaginary32:
                 t1 = Type.tfloat32;
                 break;
-            case Timaginary64:
+            case TY.imaginary64:
                 t1 = Type.tfloat64;
                 break;
-            case Timaginary80:
+            case TY.imaginary80:
                 t1 = Type.tfloat80;
                 break;
-            case Tcomplex32:
+            case TY.complex32:
                 if (global.params.is64bit)
                     t1 = Type.tfloat64;
                 else
@@ -88,21 +88,21 @@ TypeTuple toArgTypes(Type t)
                     t2 = Type.tfloat64;
                 }
                 break;
-            case Tcomplex64:
+            case TY.complex64:
                 t1 = Type.tfloat64;
                 t2 = Type.tfloat64;
                 break;
-            case Tcomplex80:
+            case TY.complex80:
                 t1 = Type.tfloat80;
                 t2 = Type.tfloat80;
                 break;
-            case Tchar:
+            case TY.char_:
                 t1 = Type.tuns8;
                 break;
-            case Twchar:
+            case TY.wchar_:
                 t1 = Type.tuns16;
                 break;
-            case Tdchar:
+            case TY.dchar_:
                 t1 = Type.tuns32;
                 break;
             default:
@@ -160,13 +160,13 @@ TypeTuple toArgTypes(Type t)
         {
             switch (t.ty)
             {
-            case Tfloat32:
-            case Timaginary32:
+            case TY.float32:
+            case TY.imaginary32:
                 t = Type.tint32;
                 break;
-            case Tfloat64:
-            case Timaginary64:
-            case Tcomplex32:
+            case TY.float64:
+            case TY.imaginary64:
+            case TY.complex32:
                 t = Type.tint64;
                 break;
             default:
@@ -201,10 +201,10 @@ TypeTuple toArgTypes(Type t)
             const sz1 = t1.size(Loc());
             const sz2 = t2.size(Loc());
             assert(sz1 != SIZE_INVALID && sz2 != SIZE_INVALID);
-            if (t1.ty != t2.ty && (t1.ty == Tfloat80 || t2.ty == Tfloat80))
+            if (t1.ty != t2.ty && (t1.ty == TY.float80 || t2.ty == TY.float80))
                 return null;
             // [float,float] => [cfloat]
-            if (t1.ty == Tfloat32 && t2.ty == Tfloat32 && offset2 == 4)
+            if (t1.ty == TY.float32 && t2.ty == TY.float32 && offset2 == 4)
                 return Type.tfloat64;
             // Merging floating and non-floating types produces the non-floating type
             if (t1.isfloating())
@@ -403,7 +403,7 @@ TypeTuple toArgTypes(Type t)
                     {
                         if (t1.isfloating() && t2.isfloating())
                         {
-                            if ((t1.ty == Tfloat32 || t1.ty == Tfloat64) && (t2.ty == Tfloat32 || t2.ty == Tfloat64))
+                            if ((t1.ty == TY.float32 || t1.ty == TY.float64) && (t2.ty == TY.float32 || t2.ty == TY.float64))
                             {
                             }
                             else
@@ -448,7 +448,7 @@ TypeTuple toArgTypes(Type t)
                 if (tup && tup.arguments.dim == 1)
                 {
                     Type ft1 = (*tup.arguments)[0].type;
-                    if (ft1.ty == Tfloat32 || ft1.ty == Tfloat64)
+                    if (ft1.ty == TY.float32 || ft1.ty == TY.float64)
                         t1 = ft1;
                 }
             }

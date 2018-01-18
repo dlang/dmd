@@ -63,7 +63,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
     {
         VarDeclaration vd = ad.fields[i];
         Type tb = vd.type.baseElemOf();
-        if (tb.ty == Tstruct)
+        if (tb.ty == TY.struct_)
         {
             result |= checkFrameAccess(loc, sc, (cast(TypeStruct)tb).sym);
         }
@@ -842,7 +842,7 @@ extern (C++) final class AliasDeclaration : Declaration
             else
             {
                 Type t = type.typeSemantic(loc, _scope);
-                if (t.ty == Terror)
+                if (t.ty == TY.error)
                     goto Lerr;
                 if (global.errors != olderrors)
                     goto Lerr;
@@ -1159,7 +1159,7 @@ extern (C++) class VarDeclaration : Declaration
             t = Type.tvoidptr;
         }
         Type tv = t.baseElemOf();
-        if (tv.ty == Tstruct)
+        if (tv.ty == TY.struct_)
         {
             auto ts = cast(TypeStruct)tv;
             assert(ts.sym != ad);   // already checked in ad.determineFields()
@@ -1175,7 +1175,7 @@ extern (C++) class VarDeclaration : Declaration
         // pointless error diagnostic "more initializers than fields" on struct literal.
         ad.fields.push(this);
 
-        if (t.ty == Terror)
+        if (t.ty == TY.error)
             return;
 
         const sz = t.size(loc);
@@ -1344,7 +1344,7 @@ extern (C++) class VarDeclaration : Declaration
         Expression e = null;
         // Destructors for structs and arrays of structs
         Type tv = type.baseElemOf();
-        if (tv.ty == Tstruct)
+        if (tv.ty == TY.struct_)
         {
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
             if (!sd.dtor || sd.errors)
@@ -1355,7 +1355,7 @@ extern (C++) class VarDeclaration : Declaration
             if (!sz)
                 return null;
 
-            if (type.toBasetype().ty == Tstruct)
+            if (type.toBasetype().ty == TY.struct_)
             {
                 // v.__xdtor()
                 e = new VarExp(loc, this);

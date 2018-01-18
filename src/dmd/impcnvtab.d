@@ -14,17 +14,17 @@ module dmd.impcnvtab;
 
 import dmd.mtype;
 
-immutable TY[TMAX][TMAX] impcnvResult = impCnvTab.impcnvResultTab;
-immutable TY[TMAX][TMAX] impcnvType1 = impCnvTab.impcnvType1Tab;
-immutable TY[TMAX][TMAX] impcnvType2 = impCnvTab.impcnvType2Tab;
+immutable TY[TY.MAX][TY.MAX] impcnvResult = impCnvTab.impcnvResultTab;
+immutable TY[TY.MAX][TY.MAX] impcnvType1 = impCnvTab.impcnvType1Tab;
+immutable TY[TY.MAX][TY.MAX] impcnvType2 = impCnvTab.impcnvType2Tab;
 
 private:
 
 struct ImpCnvTab
 {
-    TY[TMAX][TMAX] impcnvResultTab;
-    TY[TMAX][TMAX] impcnvType1Tab;
-    TY[TMAX][TMAX] impcnvType2Tab;
+    TY[TY.MAX][TY.MAX] impcnvResultTab;
+    TY[TY.MAX][TY.MAX] impcnvType1Tab;
+    TY[TY.MAX][TY.MAX] impcnvType2Tab;
 }
 
 enum ImpCnvTab impCnvTab = generateImpCnvTab();
@@ -34,13 +34,13 @@ ImpCnvTab generateImpCnvTab()
     ImpCnvTab impCnvTab;
 
     // Set conversion tables
-    foreach (i; 0 .. cast(size_t)TMAX)
+    foreach (i; 0 .. cast(size_t)TY.MAX)
     {
-        foreach (j; 0 .. cast(size_t)TMAX)
+        foreach (j; 0 .. cast(size_t)TY.MAX)
         {
-            impCnvTab.impcnvResultTab[i][j] = Terror;
-            impCnvTab.impcnvType1Tab[i][j] = Terror;
-            impCnvTab.impcnvType2Tab[i][j] = Terror;
+            impCnvTab.impcnvResultTab[i][j] = TY.error;
+            impCnvTab.impcnvType1Tab[i][j] = TY.error;
+            impCnvTab.impcnvType2Tab[i][j] = TY.error;
         }
     }
 
@@ -53,299 +53,299 @@ ImpCnvTab generateImpCnvTab()
 
     /* ======================= */
 
-    X(Tbool,Tbool,   Tbool,Tbool,    Tbool);
-    X(Tbool,Tint8,   Tint32,Tint32,  Tint32);
-    X(Tbool,Tuns8,   Tint32,Tint32,  Tint32);
-    X(Tbool,Tint16,  Tint32,Tint32,  Tint32);
-    X(Tbool,Tuns16,  Tint32,Tint32,  Tint32);
-    X(Tbool,Tint32,  Tint32,Tint32,  Tint32);
-    X(Tbool,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tbool,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tbool,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tbool,Tint128, Tint128,Tint128, Tint128);
-    X(Tbool,Tuns128, Tuns128,Tuns128, Tuns128);
+    X(TY.bool_,TY.bool_,   TY.bool_,TY.bool_,    TY.bool_);
+    X(TY.bool_,TY.int8,   TY.int32,TY.int32,  TY.int32);
+    X(TY.bool_,TY.uns8,   TY.int32,TY.int32,  TY.int32);
+    X(TY.bool_,TY.int16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.bool_,TY.uns16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.bool_,TY.int32,  TY.int32,TY.int32,  TY.int32);
+    X(TY.bool_,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.bool_,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.bool_,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.bool_,TY.int128, TY.int128,TY.int128, TY.int128);
+    X(TY.bool_,TY.uns128, TY.uns128,TY.uns128, TY.uns128);
 
-    X(Tbool,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tbool,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tbool,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tbool,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tbool,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tbool,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tbool,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tbool,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tbool,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
-
-    /* ======================= */
-
-    X(Tint8,Tint8,   Tint32,Tint32,  Tint32);
-    X(Tint8,Tuns8,   Tint32,Tint32,  Tint32);
-    X(Tint8,Tint16,  Tint32,Tint32,  Tint32);
-    X(Tint8,Tuns16,  Tint32,Tint32,  Tint32);
-    X(Tint8,Tint32,  Tint32,Tint32,  Tint32);
-    X(Tint8,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tint8,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tint8,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tint8,Tint128, Tint128,Tint128, Tint128);
-    X(Tint8,Tuns128, Tuns128,Tuns128, Tuns128);
-
-    X(Tint8,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tint8,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tint8,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tint8,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tint8,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tint8,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tint8,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tint8,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tint8,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
+    X(TY.bool_,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.bool_,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.bool_,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.bool_,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.bool_,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.bool_,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.bool_,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.bool_,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.bool_,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tuns8,Tuns8,   Tint32,Tint32,  Tint32);
-    X(Tuns8,Tint16,  Tint32,Tint32,  Tint32);
-    X(Tuns8,Tuns16,  Tint32,Tint32,  Tint32);
-    X(Tuns8,Tint32,  Tint32,Tint32,  Tint32);
-    X(Tuns8,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tuns8,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tuns8,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tuns8,Tint128,  Tint128,Tint128,  Tint128);
-    X(Tuns8,Tuns128,  Tuns128,Tuns128,  Tuns128);
+    X(TY.int8,TY.int8,   TY.int32,TY.int32,  TY.int32);
+    X(TY.int8,TY.uns8,   TY.int32,TY.int32,  TY.int32);
+    X(TY.int8,TY.int16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int8,TY.uns16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int8,TY.int32,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int8,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.int8,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.int8,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.int8,TY.int128, TY.int128,TY.int128, TY.int128);
+    X(TY.int8,TY.uns128, TY.uns128,TY.uns128, TY.uns128);
 
-    X(Tuns8,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tuns8,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tuns8,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tuns8,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tuns8,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tuns8,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tuns8,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tuns8,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tuns8,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
-
-    /* ======================= */
-
-    X(Tint16,Tint16,  Tint32,Tint32,  Tint32);
-    X(Tint16,Tuns16,  Tint32,Tint32,  Tint32);
-    X(Tint16,Tint32,  Tint32,Tint32,  Tint32);
-    X(Tint16,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tint16,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tint16,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tint16,Tint128,  Tint128,Tint128,  Tint128);
-    X(Tint16,Tuns128,  Tuns128,Tuns128,  Tuns128);
-
-    X(Tint16,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tint16,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tint16,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tint16,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tint16,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tint16,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tint16,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tint16,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tint16,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
+    X(TY.int8,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.int8,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.int8,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.int8,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.int8,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.int8,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.int8,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.int8,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.int8,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tuns16,Tuns16,  Tint32,Tint32,  Tint32);
-    X(Tuns16,Tint32,  Tint32,Tint32,  Tint32);
-    X(Tuns16,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tuns16,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tuns16,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tuns16,Tint128, Tint128,Tint128,  Tint128);
-    X(Tuns16,Tuns128, Tuns128,Tuns128,  Tuns128);
+    X(TY.uns8,TY.uns8,   TY.int32,TY.int32,  TY.int32);
+    X(TY.uns8,TY.int16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.uns8,TY.uns16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.uns8,TY.int32,  TY.int32,TY.int32,  TY.int32);
+    X(TY.uns8,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.uns8,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.uns8,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.uns8,TY.int128,  TY.int128,TY.int128,  TY.int128);
+    X(TY.uns8,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Tuns16,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tuns16,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tuns16,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tuns16,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tuns16,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tuns16,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tuns16,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tuns16,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tuns16,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
-
-    /* ======================= */
-
-    X(Tint32,Tint32,  Tint32,Tint32,  Tint32);
-    X(Tint32,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tint32,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tint32,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tint32,Tint128, Tint128,Tint128,  Tint128);
-    X(Tint32,Tuns128, Tuns128,Tuns128,  Tuns128);
-
-    X(Tint32,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tint32,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tint32,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tint32,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tint32,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tint32,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tint32,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tint32,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tint32,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
+    X(TY.uns8,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.uns8,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.uns8,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.uns8,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.uns8,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.uns8,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.uns8,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.uns8,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.uns8,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tuns32,Tuns32,  Tuns32,Tuns32,  Tuns32);
-    X(Tuns32,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tuns32,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tuns32,Tint128,  Tint128,Tint128,  Tint128);
-    X(Tuns32,Tuns128,  Tuns128,Tuns128,  Tuns128);
+    X(TY.int16,TY.int16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int16,TY.uns16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int16,TY.int32,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int16,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.int16,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.int16,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.int16,TY.int128,  TY.int128,TY.int128,  TY.int128);
+    X(TY.int16,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Tuns32,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tuns32,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tuns32,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tuns32,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tuns32,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tuns32,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tuns32,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tuns32,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tuns32,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
-
-    /* ======================= */
-
-    X(Tint64,Tint64,  Tint64,Tint64,  Tint64);
-    X(Tint64,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tint64,Tint128,  Tint128,Tint128,  Tint128);
-    X(Tint64,Tuns128,  Tuns128,Tuns128,  Tuns128);
-
-    X(Tint64,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tint64,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tint64,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tint64,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tint64,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tint64,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tint64,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tint64,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tint64,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
+    X(TY.int16,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.int16,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.int16,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.int16,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.int16,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.int16,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.int16,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.int16,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.int16,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tuns64,Tuns64,  Tuns64,Tuns64,  Tuns64);
-    X(Tuns64,Tint128,  Tint128,Tint128,  Tint128);
-    X(Tuns64,Tuns128,  Tuns128,Tuns128,  Tuns128);
+    X(TY.uns16,TY.uns16,  TY.int32,TY.int32,  TY.int32);
+    X(TY.uns16,TY.int32,  TY.int32,TY.int32,  TY.int32);
+    X(TY.uns16,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.uns16,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.uns16,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.uns16,TY.int128, TY.int128,TY.int128,  TY.int128);
+    X(TY.uns16,TY.uns128, TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Tuns64,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tuns64,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tuns64,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tuns64,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tuns64,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tuns64,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tuns64,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tuns64,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tuns64,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
-
-    /* ======================= */
-
-    X(Tint128,Tint128,  Tint128,Tint128,  Tint128);
-    X(Tint128,Tuns128,  Tuns128,Tuns128,  Tuns128);
-
-    X(Tint128,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tint128,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tint128,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tint128,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tint128,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tint128,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tint128,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tint128,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tint128,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
+    X(TY.uns16,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.uns16,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.uns16,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.uns16,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.uns16,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.uns16,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.uns16,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.uns16,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.uns16,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tuns128,Tuns128,  Tuns128,Tuns128,  Tuns128);
+    X(TY.int32,TY.int32,  TY.int32,TY.int32,  TY.int32);
+    X(TY.int32,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.int32,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.int32,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.int32,TY.int128, TY.int128,TY.int128,  TY.int128);
+    X(TY.int32,TY.uns128, TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Tuns128,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32);
-    X(Tuns128,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64);
-    X(Tuns128,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80);
-    X(Tuns128,Timaginary32, Tfloat32,Timaginary32, Tfloat32);
-    X(Tuns128,Timaginary64, Tfloat64,Timaginary64, Tfloat64);
-    X(Tuns128,Timaginary80, Tfloat80,Timaginary80, Tfloat80);
-    X(Tuns128,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32);
-    X(Tuns128,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64);
-    X(Tuns128,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80);
-
-    /* ======================= */
-
-    X(Tfloat32,Tfloat32,  Tfloat32,Tfloat32, Tfloat32);
-    X(Tfloat32,Tfloat64,  Tfloat64,Tfloat64, Tfloat64);
-    X(Tfloat32,Tfloat80,  Tfloat80,Tfloat80, Tfloat80);
-
-    X(Tfloat32,Timaginary32,  Tfloat32,Timaginary32, Tfloat32);
-    X(Tfloat32,Timaginary64,  Tfloat64,Timaginary64, Tfloat64);
-    X(Tfloat32,Timaginary80,  Tfloat80,Timaginary80, Tfloat80);
-
-    X(Tfloat32,Tcomplex32,  Tfloat32,Tcomplex32, Tcomplex32);
-    X(Tfloat32,Tcomplex64,  Tfloat64,Tcomplex64, Tcomplex64);
-    X(Tfloat32,Tcomplex80,  Tfloat80,Tcomplex80, Tcomplex80);
+    X(TY.int32,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.int32,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.int32,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.int32,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.int32,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.int32,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.int32,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.int32,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.int32,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tfloat64,Tfloat64,  Tfloat64,Tfloat64, Tfloat64);
-    X(Tfloat64,Tfloat80,  Tfloat80,Tfloat80, Tfloat80);
+    X(TY.uns32,TY.uns32,  TY.uns32,TY.uns32,  TY.uns32);
+    X(TY.uns32,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.uns32,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.uns32,TY.int128,  TY.int128,TY.int128,  TY.int128);
+    X(TY.uns32,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Tfloat64,Timaginary32,  Tfloat64,Timaginary64, Tfloat64);
-    X(Tfloat64,Timaginary64,  Tfloat64,Timaginary64, Tfloat64);
-    X(Tfloat64,Timaginary80,  Tfloat80,Timaginary80, Tfloat80);
-
-    X(Tfloat64,Tcomplex32,  Tfloat64,Tcomplex64, Tcomplex64);
-    X(Tfloat64,Tcomplex64,  Tfloat64,Tcomplex64, Tcomplex64);
-    X(Tfloat64,Tcomplex80,  Tfloat80,Tcomplex80, Tcomplex80);
-
-    /* ======================= */
-
-    X(Tfloat80,Tfloat80,  Tfloat80,Tfloat80, Tfloat80);
-
-    X(Tfloat80,Timaginary32,  Tfloat80,Timaginary80, Tfloat80);
-    X(Tfloat80,Timaginary64,  Tfloat80,Timaginary80, Tfloat80);
-    X(Tfloat80,Timaginary80,  Tfloat80,Timaginary80, Tfloat80);
-
-    X(Tfloat80,Tcomplex32,  Tfloat80,Tcomplex80, Tcomplex80);
-    X(Tfloat80,Tcomplex64,  Tfloat80,Tcomplex80, Tcomplex80);
-    X(Tfloat80,Tcomplex80,  Tfloat80,Tcomplex80, Tcomplex80);
+    X(TY.uns32,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.uns32,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.uns32,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.uns32,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.uns32,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.uns32,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.uns32,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.uns32,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.uns32,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Timaginary32,Timaginary32,  Timaginary32,Timaginary32, Timaginary32);
-    X(Timaginary32,Timaginary64,  Timaginary64,Timaginary64, Timaginary64);
-    X(Timaginary32,Timaginary80,  Timaginary80,Timaginary80, Timaginary80);
+    X(TY.int64,TY.int64,  TY.int64,TY.int64,  TY.int64);
+    X(TY.int64,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.int64,TY.int128,  TY.int128,TY.int128,  TY.int128);
+    X(TY.int64,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Timaginary32,Tcomplex32,  Timaginary32,Tcomplex32, Tcomplex32);
-    X(Timaginary32,Tcomplex64,  Timaginary64,Tcomplex64, Tcomplex64);
-    X(Timaginary32,Tcomplex80,  Timaginary80,Tcomplex80, Tcomplex80);
-
-    /* ======================= */
-
-    X(Timaginary64,Timaginary64,  Timaginary64,Timaginary64, Timaginary64);
-    X(Timaginary64,Timaginary80,  Timaginary80,Timaginary80, Timaginary80);
-
-    X(Timaginary64,Tcomplex32,  Timaginary64,Tcomplex64, Tcomplex64);
-    X(Timaginary64,Tcomplex64,  Timaginary64,Tcomplex64, Tcomplex64);
-    X(Timaginary64,Tcomplex80,  Timaginary80,Tcomplex80, Tcomplex80);
+    X(TY.int64,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.int64,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.int64,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.int64,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.int64,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.int64,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.int64,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.int64,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.int64,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Timaginary80,Timaginary80,  Timaginary80,Timaginary80, Timaginary80);
+    X(TY.uns64,TY.uns64,  TY.uns64,TY.uns64,  TY.uns64);
+    X(TY.uns64,TY.int128,  TY.int128,TY.int128,  TY.int128);
+    X(TY.uns64,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
 
-    X(Timaginary80,Tcomplex32,  Timaginary80,Tcomplex80, Tcomplex80);
-    X(Timaginary80,Tcomplex64,  Timaginary80,Tcomplex80, Tcomplex80);
-    X(Timaginary80,Tcomplex80,  Timaginary80,Tcomplex80, Tcomplex80);
-
-    /* ======================= */
-
-    X(Tcomplex32,Tcomplex32,  Tcomplex32,Tcomplex32, Tcomplex32);
-    X(Tcomplex32,Tcomplex64,  Tcomplex64,Tcomplex64, Tcomplex64);
-    X(Tcomplex32,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80);
-
-    /* ======================= */
-
-    X(Tcomplex64,Tcomplex64,  Tcomplex64,Tcomplex64, Tcomplex64);
-    X(Tcomplex64,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80);
+    X(TY.uns64,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.uns64,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.uns64,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.uns64,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.uns64,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.uns64,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.uns64,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.uns64,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.uns64,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
 
     /* ======================= */
 
-    X(Tcomplex80,Tcomplex80,  Tcomplex80,Tcomplex80, Tcomplex80);
+    X(TY.int128,TY.int128,  TY.int128,TY.int128,  TY.int128);
+    X(TY.int128,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
 
-    foreach (i; 0 .. cast(size_t)TMAX)
+    X(TY.int128,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.int128,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.int128,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.int128,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.int128,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.int128,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.int128,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.int128,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.int128,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
+
+    /* ======================= */
+
+    X(TY.uns128,TY.uns128,  TY.uns128,TY.uns128,  TY.uns128);
+
+    X(TY.uns128,TY.float32,     TY.float32,TY.float32,     TY.float32);
+    X(TY.uns128,TY.float64,     TY.float64,TY.float64,     TY.float64);
+    X(TY.uns128,TY.float80,     TY.float80,TY.float80,     TY.float80);
+    X(TY.uns128,TY.imaginary32, TY.float32,TY.imaginary32, TY.float32);
+    X(TY.uns128,TY.imaginary64, TY.float64,TY.imaginary64, TY.float64);
+    X(TY.uns128,TY.imaginary80, TY.float80,TY.imaginary80, TY.float80);
+    X(TY.uns128,TY.complex32,   TY.float32,TY.complex32,   TY.complex32);
+    X(TY.uns128,TY.complex64,   TY.float64,TY.complex64,   TY.complex64);
+    X(TY.uns128,TY.complex80,   TY.float80,TY.complex80,   TY.complex80);
+
+    /* ======================= */
+
+    X(TY.float32,TY.float32,  TY.float32,TY.float32, TY.float32);
+    X(TY.float32,TY.float64,  TY.float64,TY.float64, TY.float64);
+    X(TY.float32,TY.float80,  TY.float80,TY.float80, TY.float80);
+
+    X(TY.float32,TY.imaginary32,  TY.float32,TY.imaginary32, TY.float32);
+    X(TY.float32,TY.imaginary64,  TY.float64,TY.imaginary64, TY.float64);
+    X(TY.float32,TY.imaginary80,  TY.float80,TY.imaginary80, TY.float80);
+
+    X(TY.float32,TY.complex32,  TY.float32,TY.complex32, TY.complex32);
+    X(TY.float32,TY.complex64,  TY.float64,TY.complex64, TY.complex64);
+    X(TY.float32,TY.complex80,  TY.float80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.float64,TY.float64,  TY.float64,TY.float64, TY.float64);
+    X(TY.float64,TY.float80,  TY.float80,TY.float80, TY.float80);
+
+    X(TY.float64,TY.imaginary32,  TY.float64,TY.imaginary64, TY.float64);
+    X(TY.float64,TY.imaginary64,  TY.float64,TY.imaginary64, TY.float64);
+    X(TY.float64,TY.imaginary80,  TY.float80,TY.imaginary80, TY.float80);
+
+    X(TY.float64,TY.complex32,  TY.float64,TY.complex64, TY.complex64);
+    X(TY.float64,TY.complex64,  TY.float64,TY.complex64, TY.complex64);
+    X(TY.float64,TY.complex80,  TY.float80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.float80,TY.float80,  TY.float80,TY.float80, TY.float80);
+
+    X(TY.float80,TY.imaginary32,  TY.float80,TY.imaginary80, TY.float80);
+    X(TY.float80,TY.imaginary64,  TY.float80,TY.imaginary80, TY.float80);
+    X(TY.float80,TY.imaginary80,  TY.float80,TY.imaginary80, TY.float80);
+
+    X(TY.float80,TY.complex32,  TY.float80,TY.complex80, TY.complex80);
+    X(TY.float80,TY.complex64,  TY.float80,TY.complex80, TY.complex80);
+    X(TY.float80,TY.complex80,  TY.float80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.imaginary32,TY.imaginary32,  TY.imaginary32,TY.imaginary32, TY.imaginary32);
+    X(TY.imaginary32,TY.imaginary64,  TY.imaginary64,TY.imaginary64, TY.imaginary64);
+    X(TY.imaginary32,TY.imaginary80,  TY.imaginary80,TY.imaginary80, TY.imaginary80);
+
+    X(TY.imaginary32,TY.complex32,  TY.imaginary32,TY.complex32, TY.complex32);
+    X(TY.imaginary32,TY.complex64,  TY.imaginary64,TY.complex64, TY.complex64);
+    X(TY.imaginary32,TY.complex80,  TY.imaginary80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.imaginary64,TY.imaginary64,  TY.imaginary64,TY.imaginary64, TY.imaginary64);
+    X(TY.imaginary64,TY.imaginary80,  TY.imaginary80,TY.imaginary80, TY.imaginary80);
+
+    X(TY.imaginary64,TY.complex32,  TY.imaginary64,TY.complex64, TY.complex64);
+    X(TY.imaginary64,TY.complex64,  TY.imaginary64,TY.complex64, TY.complex64);
+    X(TY.imaginary64,TY.complex80,  TY.imaginary80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.imaginary80,TY.imaginary80,  TY.imaginary80,TY.imaginary80, TY.imaginary80);
+
+    X(TY.imaginary80,TY.complex32,  TY.imaginary80,TY.complex80, TY.complex80);
+    X(TY.imaginary80,TY.complex64,  TY.imaginary80,TY.complex80, TY.complex80);
+    X(TY.imaginary80,TY.complex80,  TY.imaginary80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.complex32,TY.complex32,  TY.complex32,TY.complex32, TY.complex32);
+    X(TY.complex32,TY.complex64,  TY.complex64,TY.complex64, TY.complex64);
+    X(TY.complex32,TY.complex80,  TY.complex80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.complex64,TY.complex64,  TY.complex64,TY.complex64, TY.complex64);
+    X(TY.complex64,TY.complex80,  TY.complex80,TY.complex80, TY.complex80);
+
+    /* ======================= */
+
+    X(TY.complex80,TY.complex80,  TY.complex80,TY.complex80, TY.complex80);
+
+    foreach (i; 0 .. cast(size_t)TY.MAX)
     {
-        foreach (j; 0 .. cast(size_t)TMAX)
+        foreach (j; 0 .. cast(size_t)TY.MAX)
         {
-            if (impCnvTab.impcnvResultTab[i][j] == Terror)
+            if (impCnvTab.impcnvResultTab[i][j] == TY.error)
             {
                 impCnvTab.impcnvResultTab[i][j] = impCnvTab.impcnvResultTab[j][i];
                 impCnvTab.impcnvType1Tab[i][j] = impCnvTab.impcnvType2Tab[j][i];

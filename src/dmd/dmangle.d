@@ -37,56 +37,56 @@ import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
 
-private immutable char[TMAX] mangleChar =
+private immutable char[TY.MAX] mangleChar =
 [
-    Tchar        : 'a',
-    Tbool        : 'b',
-    Tcomplex80   : 'c',
-    Tfloat64     : 'd',
-    Tfloat80     : 'e',
-    Tfloat32     : 'f',
-    Tint8        : 'g',
-    Tuns8        : 'h',
-    Tint32       : 'i',
-    Timaginary80 : 'j',
-    Tuns32       : 'k',
-    Tint64       : 'l',
-    Tuns64       : 'm',
-    Tnone        : 'n',
-    Tnull        : 'n', // yes, same as TypeNone
-    Timaginary32 : 'o',
-    Timaginary64 : 'p',
-    Tcomplex32   : 'q',
-    Tcomplex64   : 'r',
-    Tint16       : 's',
-    Tuns16       : 't',
-    Twchar       : 'u',
-    Tvoid        : 'v',
-    Tdchar       : 'w',
+    TY.char_        : 'a',
+    TY.bool_        : 'b',
+    TY.complex80   : 'c',
+    TY.float64     : 'd',
+    TY.float80     : 'e',
+    TY.float32     : 'f',
+    TY.int8        : 'g',
+    TY.uns8        : 'h',
+    TY.int32       : 'i',
+    TY.imaginary80 : 'j',
+    TY.uns32       : 'k',
+    TY.int64       : 'l',
+    TY.uns64       : 'm',
+    TY.none        : 'n',
+    TY.null_        : 'n', // yes, same as TypeNone
+    TY.imaginary32 : 'o',
+    TY.imaginary64 : 'p',
+    TY.complex32   : 'q',
+    TY.complex64   : 'r',
+    TY.int16       : 's',
+    TY.uns16       : 't',
+    TY.wchar_       : 'u',
+    TY.void_        : 'v',
+    TY.dchar_       : 'w',
     //              x   // const
     //              y   // immutable
-    Tint128      : 'z', // zi
-    Tuns128      : 'z', // zk
+    TY.int128      : 'z', // zi
+    TY.uns128      : 'z', // zk
 
-    Tarray       : 'A',
-    Ttuple       : 'B',
-    Tclass       : 'C',
-    Tdelegate    : 'D',
-    Tenum        : 'E',
-    Tfunction    : 'F', // D function
-    Tsarray      : 'G',
-    Taarray      : 'H',
-    Tident       : 'I',
+    TY.array       : 'A',
+    TY.tuple       : 'B',
+    TY.class_       : 'C',
+    TY.delegate_    : 'D',
+    TY.enum_        : 'E',
+    TY.function_    : 'F', // D function
+    TY.sarray      : 'G',
+    TY.aarray      : 'H',
+    TY.ident       : 'I',
     //              J   // out
     //              K   // ref
     //              L   // lazy
     //              M   // has this, or scope
     //              N   // Nh:vector Ng:wild
     //              O   // shared
-    Tpointer     : 'P',
+    TY.pointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
-    Treference   : 'R',
-    Tstruct      : 'S',
+    TY.reference   : 'R',
+    TY.struct_      : 'S',
     //              T   // Ttypedef
     //              U   // C function
     //              V   // Pascal function
@@ -96,12 +96,12 @@ private immutable char[TMAX] mangleChar =
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
-    Tinstance    : '@',
-    Terror       : '@',
-    Ttypeof      : '@',
-    Tslice       : '@',
-    Treturn      : '@',
-    Tvector      : '@',
+    TY.instance    : '@',
+    TY.error       : '@',
+    TY.typeof_      : '@',
+    TY.slice       : '@',
+    TY.return_      : '@',
+    TY.vector      : '@',
 ];
 
 unittest
@@ -125,7 +125,7 @@ private void tyToDecoBuffer(OutBuffer* buf, int ty)
     const c = mangleChar[ty];
     buf.writeByte(c);
     if (c == 'z')
-        buf.writeByte(ty == Tint128 ? 'i' : 'k');
+        buf.writeByte(ty == TY.int128 ? 'i' : 'k');
 }
 
 /*********************************
@@ -505,7 +505,7 @@ public:
         if (fd.needThis() || fd.isNested())
             buf.writeByte('M');
 
-        if (!fd.type || fd.type.ty == Terror)
+        if (!fd.type || fd.type.ty == TY.error)
         {
             // never should have gotten here, but could be the result of
             // failed speculative compilation

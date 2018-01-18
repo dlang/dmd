@@ -319,7 +319,7 @@ public:
     {
         //printf("VarExp.inlineCost3() %s\n", toChars());
         Type tb = e.type.toBasetype();
-        if (tb.ty == Tstruct)
+        if (tb.ty == TY.struct_)
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.isNested())

@@ -70,9 +70,9 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             Type t = ce.e1.type.toBasetype();
             if (ce.f && ce.f == func)
                 return;
-            if (t.ty == Tfunction && (cast(TypeFunction)t).isnothrow)
+            if (t.ty == TY.function_ && (cast(TypeFunction)t).isnothrow)
                 return;
-            if (t.ty == Tdelegate && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
+            if (t.ty == TY.delegate_ && (cast(TypeFunction)(cast(TypeDelegate)t).next).isnothrow)
                 return;
 
             if (mustNotThrow)
@@ -101,7 +101,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=14407
                     Type t = ne.allocator.type.toBasetype();
-                    if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                    if (t.ty == TY.function_ && !(cast(TypeFunction)t).isnothrow)
                     {
                         if (mustNotThrow)
                         {
@@ -113,7 +113,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 }
                 // See if constructor call can throw
                 Type t = ne.member.type.toBasetype();
-                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                if (t.ty == TY.function_ && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
                     {
@@ -132,19 +132,19 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             AggregateDeclaration ad = null;
             switch (tb.ty)
             {
-            case Tclass:
+            case TY.class_:
                 ad = (cast(TypeClass)tb).sym;
                 break;
 
-            case Tpointer:
+            case TY.pointer:
                 tb = (cast(TypePointer)tb).next.toBasetype();
-                if (tb.ty == Tstruct)
+                if (tb.ty == TY.struct_)
                     ad = (cast(TypeStruct)tb).sym;
                 break;
 
-            case Tarray:
+            case TY.array:
                 Type tv = tb.nextOf().baseElemOf();
-                if (tv.ty == Tstruct)
+                if (tv.ty == TY.struct_)
                     ad = (cast(TypeStruct)tv).sym;
                 break;
 
@@ -157,7 +157,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             if (ad.dtor)
             {
                 Type t = ad.dtor.type.toBasetype();
-                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                if (t.ty == TY.function_ && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
                     {
@@ -167,10 +167,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     stop = true;
                 }
             }
-            if (ad.aggDelete && tb.ty != Tarray)
+            if (ad.aggDelete && tb.ty != TY.array)
             {
                 Type t = ad.aggDelete.type;
-                if (t.ty == Tfunction && !(cast(TypeFunction)t).isnothrow)
+                if (t.ty == TY.function_ && !(cast(TypeFunction)t).isnothrow)
                 {
                     if (mustNotThrow)
                     {
@@ -190,7 +190,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             /* Element-wise assignment could invoke postblits.
              */
             Type t;
-            if (ae.type.toBasetype().ty == Tsarray)
+            if (ae.type.toBasetype().ty == TY.sarray)
             {
                 if (!ae.e2.isLvalue())
                     return;
@@ -201,10 +201,10 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             else
                 return;
             Type tv = t.baseElemOf();
-            if (tv.ty != Tstruct)
+            if (tv.ty != TY.struct_)
                 return;
             StructDeclaration sd = (cast(TypeStruct)tv).sym;
-            if (!sd.postblit || sd.postblit.type.ty != Tfunction)
+            if (!sd.postblit || sd.postblit.type.ty != TY.function_)
                 return;
             if ((cast(TypeFunction)sd.postblit.type).isnothrow)
             {

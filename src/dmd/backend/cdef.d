@@ -278,7 +278,7 @@ enum
     CENTSIZE       = 16,
     FLOATSIZE      = 4,
     DOUBLESIZE     = 8,
-    TMAXSIZE       = 16,      // largest size a constant can be
+    MAXSIZE       = 16,      // largest size a constant can be
 }
 
 //#define intsize         _tysize[TYint]
