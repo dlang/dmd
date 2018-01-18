@@ -1306,7 +1306,11 @@ $(GNAME Deallocator):
     $(D delete) $(GLINK Parameters) $(D ;)
     $(D delete) $(GLINK Parameters) $(GLINK FunctionBody)
 
-$(GNAME Invariant):
+$(GNAME ClassInvariant):
+    $(D invariant ( )) $(GLINK BlockStatement)
+    $(D invariant) $(GLINK BlockStatement)
+
+$(GNAME StructInvariant):
     $(D invariant ( )) $(GLINK BlockStatement)
     $(D invariant) $(GLINK BlockStatement)
 
