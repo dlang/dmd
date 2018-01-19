@@ -14,7 +14,7 @@ $(HEADERNAV_TOC)
         is $(B not involved). More information is provided below.
         )
 
-        $(P C and C++ programmers accustomed to explicitly managing memory
+        $(P Programmers accustomed to explicitly managing memory
         allocation and
         deallocation will likely be skeptical of the benefits and efficacy of
         garbage collection. Experience both with new projects written with

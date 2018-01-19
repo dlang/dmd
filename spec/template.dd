@@ -4,9 +4,6 @@ $(SPEC_S Templates,
 
 $(HEADERNAV_TOC)
 
-$(BLOCKQUOTE_BY Richard Deyman,
-I think that I can safely say that nobody understands C++ template mechanics.)
-
     $(P Templates are D's approach to generic programming.
         Templates are defined with a $(I TemplateDeclaration):
     )
@@ -340,8 +337,6 @@ $(H3 $(LNAME2 parameters_specialization, Specialization))
 
     $(P The template picked to instantiate is the one that is most specialized
         that fits the types of the $(I TemplateArgumentList).
-        Determining which is more specialized is done in the same way as the
-        C++ partial ordering rules.
         If the result is ambiguous, it is an error.
     )
 

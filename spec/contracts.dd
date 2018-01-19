@@ -7,9 +7,7 @@ $(HEADERNAV_TOC)
         $(P Contracts are a breakthrough technique to reduce the programming effort
         for large projects. Contracts are the concept of preconditions, postconditions,
         errors, and invariants.
-        Contracts can be done in C++ without modification to the language,
-        but the result is
-        clumsy and inconsistent.)
+        )
 
         $(P Building contract support into the language makes for:)
 
