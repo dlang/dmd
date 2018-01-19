@@ -445,49 +445,46 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         return new IntegerExp(e.loc, false, Type.tbool);
     }
 
-    /**
-       Gets the function type from a given AST node
-       if the node is a function of some sort.
-
-     Params:
-        o = an AST node to check for a `TypeFunction`
-        fdp = optional pointer to a function declararion, to be set
-          if `o` is a function declarartion.
-
-     Returns:
-        a type node if `o` is a declaration of
-            a delegate, function, function-pointer
-          or a variable of the former.  Otherwise, `null`.
-    */
-    static TypeFunction toTypeFunction(RootObject o, FuncDeclaration* fdp = null)
+    /********
+     * Gets the function type from a given AST node
+     * if the node is a function of some sort.
+     * Params:
+     *   o = an AST node to check for a `TypeFunction`
+     *   fdp = if `o` is a FuncDeclaration then fdp is set to that, otherwise `null`
+     * Returns:
+     *   a type node if `o` is a declaration of
+     *   a delegate, function, function-pointer or a variable of the former.
+     *   Otherwise, `null`.
+     */
+    static TypeFunction toTypeFunction(RootObject o, out FuncDeclaration fdp)
     {
-        auto s = getDsymbolWithoutExpCtx(o);
-        auto t = isType(o);
-        TypeFunction tf = null;
-
-        if (s)
+        Type t;
+        if (auto s = getDsymbolWithoutExpCtx(o))
         {
-            auto fd = s.isFuncDeclaration();
-            if (fd)
+            if (auto fd = s.isFuncDeclaration())
             {
                 t = fd.type;
-                if (fdp)
-                    *fdp = fd;
+                fdp = fd;
             }
             else if (auto vd = s.isVarDeclaration())
                 t = vd.type;
+            else
+                t = isType(o);
         }
+        else
+            t = isType(o);
+
         if (t)
         {
             if (t.ty == Type.Kind.function_)
-                tf = cast(TypeFunction)t;
+                return cast(TypeFunction)t;
             else if (t.ty == Type.Kind.delegate_)
-                tf = cast(TypeFunction)t.nextOf();
+                return cast(TypeFunction)t.nextOf();
             else if (t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.function_)
-                tf = cast(TypeFunction)t.nextOf();
+                return cast(TypeFunction)t.nextOf();
         }
 
-        return tf;
+        return null;
     }
 
     IntegerExp isX(T)(bool function(T) fp)
@@ -1036,7 +1033,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        TypeFunction tf = toTypeFunction((*e.args)[0]);
+        FuncDeclaration fd;
+        TypeFunction tf = toTypeFunction((*e.args)[0], fd);
 
         if (!tf)
         {
@@ -1070,7 +1068,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o = (*e.args)[0];
 
         FuncDeclaration fd;
-        TypeFunction tf = toTypeFunction(o, &fd);
+        TypeFunction tf = toTypeFunction(o, fd);
 
         if (tf)
         {
@@ -1113,7 +1111,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o1 = (*e.args)[1];
 
         FuncDeclaration fd;
-        TypeFunction tf = toTypeFunction(o, &fd);
+        TypeFunction tf = toTypeFunction(o, fd);
 
         Parameters* fparams;
         if (tf)
@@ -1203,7 +1201,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         LINK link;
         auto o = (*e.args)[0];
 
-        TypeFunction tf = toTypeFunction(o);
+        FuncDeclaration fd;
+        TypeFunction tf = toTypeFunction(o, fd);
 
         if (tf)
             link = tf.linkage;
