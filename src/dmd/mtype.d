@@ -4744,8 +4744,15 @@ extern (C++) final class TypeFunction : TypeNext
                         sz = tsa.dim.toInteger();
                         if (sz != nargs - u)
                         {
-                            if (pMessage) *pMessage = getMatchError("expected %d variadic argument(s), not %d",
-                                sz, nargs - u);
+                            if (pMessage)
+                            {
+                                // Windows (Vista) OutBuffer.vprintf issue? 2nd argument always zero
+                                //*pMessage = getMatchError("expected %d variadic argument(s), not %d", sz, nargs - u);
+                                OutBuffer buf;
+                                buf.printf("expected %d variadic argument(s)", sz);
+                                buf.printf(", not %d", nargs - u);
+                                *pMessage = buf.extractString();
+                            }
                             goto Nomatch;
                         }
                         goto case Tarray;
