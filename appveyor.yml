@@ -28,6 +28,9 @@ artifacts:
 init:
   - git config --global core.autocrlf input
 
+before_build:
+  - choco install codecov
+
 build_script:
   - cd c:/projects/
   - call "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
@@ -81,4 +84,9 @@ build_script:
   - set CC=c:/"Program Files (x86)"/"Microsoft Visual Studio 14.0"/VC/bin/cl.exe
   - ..\..\gnumake\make -j3 all MODEL=32mscoff ARGS="-O -inline -g" "OS=win32" DMD=..\generated\Windows\Release\Win32\dmd.exe LIB="../../phobos;%LIB%" RESULTS_DIR=test_m32mscoff
 
-test_script: true
+test_script:
+  - cd c:/projects/dmd
+  - ps: |
+      $env:PATH = 'C:\msys64\usr\bin;' + $env:PATH
+      Invoke-WebRequest -Uri 'https://codecov.io/bash' -OutFile codecov.sh
+      bash codecov.sh

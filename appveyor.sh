@@ -66,13 +66,20 @@ done
 
 # build via makefile
 cd /c/projects/dmd/src
-make -f win64.mak reldmd DMD=../src/dmd
+make -f win64.mak reldmd
 
 cd /c/projects/druntime
-make -f win64.mak DMD=../dmd/src/dmd
+make -f win64.mak
 
 cd /c/projects/phobos
-make -f win64.mak DMD=../dmd/src/dmd
+make -f win64.mak
+
+cd /c/projects/dmd/
+mv generated _generated
+cd src
+# Inject -cov into the Makefile
+sed -i 's/DOPT=-O -release -inline"/DOPT=-O -release -inline -cov"/' -i win32.mak
+make -f win64.mak reldmd DMD=../_generated/windows/release/64/dmd.exe
 
 cp /c/projects/phobos/phobos64.lib /c/projects/dmd/
 
