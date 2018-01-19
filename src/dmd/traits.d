@@ -477,11 +477,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (t)
         {
             if (t.ty == Tfunction)
-                tf = cast(TypeFunction)t;
+                return cast(TypeFunction)t;
             else if (t.ty == Tdelegate)
-                tf = cast(TypeFunction)t.nextOf();
+                return cast(TypeFunction)t.nextOf();
             else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
-                tf = cast(TypeFunction)t.nextOf();
+                return cast(TypeFunction)t.nextOf();
         }
 
         return null;
