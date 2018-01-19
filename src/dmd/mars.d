@@ -472,6 +472,13 @@ private int tryMain(size_t argc, const(char)** argv)
     Objc._init();
     builtin_init();
 
+    if (global.params.showProbingInfo)
+    {
+        import dmd.probing : printProbingInfo;
+        printProbingInfo();
+        return EXIT_SUCCESS;
+    }
+
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
@@ -2096,6 +2103,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
             {
                 params.manual = true;
+                return false;
+            }
+            else if (strcmp(p + 1, "probe") == 0) // not documented for 2.079
+            {
+                params.showProbingInfo = true;
                 return false;
             }
             else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run

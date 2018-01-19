@@ -151,6 +151,7 @@ struct Param
     bool mcpuUsage;         // print help on -mcpu switch
     bool transitionUsage;   // print help on -transition switch
     bool logo;              // print compiler logo
+    bool showProbingInfo;   // print detailed information about the compiler
 
     CPU cpu = CPU.baseline; // CPU instruction set to target
 
