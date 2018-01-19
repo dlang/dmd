@@ -93,7 +93,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
         else if (v.storage_class & STC.variadic && p == sc.func)
         {
             Type tb = v.type.toBasetype();
-            if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
+            if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 unsafeAssign(v, "variadic variable");
             }
@@ -210,7 +210,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     else if (e1.op == TOK.index)
     {
         auto ie = cast(IndexExp)e1;
-        if (ie.e1.op == TOK.variable && ie.e1.type.toBasetype().ty == Type.Kind.staticArray)
+        if (ie.e1.op == TOK.variable && ie.e1.type.toBasetype().ty == Tsarray)
             va = (cast(VarExp)ie.e1).var.isVarDeclaration();
     }
 
@@ -230,7 +230,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 
     // Try to infer 'scope' for va if in a function not marked @system
     bool inferScope = false;
-    if (va && sc.func && sc.func.type && sc.func.type.ty == Type.Kind.function_)
+    if (va && sc.func && sc.func.type && sc.func.type.ty == Tfunction)
         inferScope = (cast(TypeFunction)sc.func.type).trust != TRUST.system;
 
     bool result = false;
@@ -263,7 +263,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             if (va &&
                 (va.enclosesLifetimeOf(v) && !(v.storage_class & (STC.parameter | STC.temp)) ||
                  // va is class reference
-                 ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Type.Kind.class_ && (va.enclosesLifetimeOf(v) || !va.isScope) ||
+                 ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope) ||
                  va.storage_class & STC.ref_ && !(v.storage_class & STC.temp)) &&
                 sc.func.setUnsafe())
             {
@@ -292,7 +292,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         else if (v.storage_class & STC.variadic && p == sc.func)
         {
             Type tb = v.type.toBasetype();
-            if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
+            if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 if (va && !va.isDataseg() && !va.doNotInferScope)
                 {
@@ -428,7 +428,7 @@ ByRef:
 
         /* Do not allow slicing of a static array returned by a function
          */
-        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Type.Kind.staticArray && va.type.toBasetype().ty == Type.Kind.array &&
+        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Tsarray && va.type.toBasetype().ty == Tarray &&
             !(va.storage_class & STC.temp))
         {
             if (!gag)
@@ -614,7 +614,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         else if (v.storage_class & STC.variadic && p == sc.func)
         {
             Type tb = v.type.toBasetype();
-            if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
+            if (tb.ty == Tarray || tb.ty == Tsarray)
             {
                 if (!gag)
                     error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
@@ -698,7 +698,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 }
                 // Don't need to be concerned if v's parent does not return a ref
                 FuncDeclaration fd = p.isFuncDeclaration();
-                if (fd && fd.type && fd.type.ty == Type.Kind.function_)
+                if (fd && fd.type && fd.type.ty == Tfunction)
                 {
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (tf.isref)
@@ -746,7 +746,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
         /* v is the 'this' reference, so mark the function
          */
         fd.storage_class |= STC.return_;
-        if (tf.ty == Type.Kind.function_)
+        if (tf.ty == Tfunction)
         {
             //printf("'this' too %p %s\n", tf, sc.func.toChars());
             tf.isreturn = true;
@@ -755,7 +755,7 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
     else
     {
         // Perform 'return' inference on parameter
-        if (tf.ty == Type.Kind.function_ && tf.parameters)
+        if (tf.ty == Tfunction && tf.parameters)
         {
             const dim = Parameter.dim(tf.parameters);
             foreach (const i; 0 .. dim)
@@ -835,14 +835,14 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         override void visit(DotVarExp e)
         {
             auto t = e.e1.type.toBasetype();
-            if (t.ty == Type.Kind.struct_)
+            if (t.ty == Tstruct)
                 e.e1.accept(this);
         }
 
         override void visit(DelegateExp e)
         {
             Type t = e.e1.type.toBasetype();
-            if (t.ty == Type.Kind.class_ || t.ty == Type.Kind.pointer)
+            if (t.ty == Tclass || t.ty == Tpointer)
                 escapeByValue(e.e1, er);
             else
                 escapeByRef(e.e1, er);
@@ -863,7 +863,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         override void visit(ArrayLiteralExp e)
         {
             Type tb = e.type.toBasetype();
-            if (tb.ty == Type.Kind.staticArray || tb.ty == Type.Kind.array)
+            if (tb.ty == Tsarray || tb.ty == Tarray)
             {
                 if (e.basis)
                     e.basis.accept(this);
@@ -890,7 +890,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         override void visit(NewExp e)
         {
             Type tb = e.newtype.toBasetype();
-            if (tb.ty == Type.Kind.struct_ && !e.member && e.arguments)
+            if (tb.ty == Tstruct && !e.member && e.arguments)
             {
                 foreach (ex; *e.arguments)
                 {
@@ -903,7 +903,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         override void visit(CastExp e)
         {
             Type tb = e.type.toBasetype();
-            if (tb.ty == Type.Kind.array && e.e1.type.toBasetype().ty == Type.Kind.staticArray)
+            if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
             {
                 escapeByRef(e.e1, er);
             }
@@ -919,7 +919,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 Type tb = e.type.toBasetype();
                 if (v)
                 {
-                    if (tb.ty == Type.Kind.staticArray)
+                    if (tb.ty == Tsarray)
                         return;
                     if (v.storage_class & STC.variadic)
                     {
@@ -929,10 +929,10 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 }
             }
             Type t1b = e.e1.type.toBasetype();
-            if (t1b.ty == Type.Kind.staticArray)
+            if (t1b.ty == Tsarray)
             {
                 Type tb = e.type.toBasetype();
-                if (tb.ty != Type.Kind.staticArray)
+                if (tb.ty != Tsarray)
                     escapeByRef(e.e1, er);
             }
             else
@@ -950,7 +950,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
         override void visit(BinExp e)
         {
             Type tb = e.type.toBasetype();
-            if (tb.ty == Type.Kind.pointer)
+            if (tb.ty == Tpointer)
             {
                 e.e1.accept(this);
                 e.e2.accept(this);
@@ -987,12 +987,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
             Type t1 = e.e1.type.toBasetype();
             TypeFunction tf;
             TypeDelegate dg;
-            if (t1.ty == Type.Kind.delegate_)
+            if (t1.ty == Tdelegate)
             {
                 dg = cast(TypeDelegate)t1;
                 tf = cast(TypeFunction)(cast(TypeDelegate)t1).next;
             }
-            else if (t1.ty == Type.Kind.function_)
+            else if (t1.ty == Tfunction)
                 tf = cast(TypeFunction)t1;
             else
                 return;
@@ -1019,7 +1019,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 }
             }
             // If 'this' is returned, check it too
-            if (e.e1.op == TOK.dotVariable && t1.ty == Type.Kind.function_)
+            if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
             {
                 DotVarExp dve = cast(DotVarExp)e.e1;
                 FuncDeclaration fd = dve.var.isFuncDeclaration();
@@ -1131,7 +1131,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
             if (e.e1.op == TOK.variable)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
+                if (tb.ty == Tarray || tb.ty == Tsarray)
                 {
                     if (v && v.storage_class & STC.variadic)
                     {
@@ -1140,11 +1140,11 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     }
                 }
             }
-            if (tb.ty == Type.Kind.staticArray)
+            if (tb.ty == Tsarray)
             {
                 e.e1.accept(this);
             }
-            else if (tb.ty == Type.Kind.array)
+            else if (tb.ty == Tarray)
             {
                 escapeByValue(e.e1, er);
             }
@@ -1153,7 +1153,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
         override void visit(DotVarExp e)
         {
             Type t1b = e.e1.type.toBasetype();
-            if (t1b.ty == Type.Kind.class_)
+            if (t1b.ty == Tclass)
                 escapeByValue(e.e1, er);
             else
                 e.e1.accept(this);
@@ -1187,9 +1187,9 @@ private void escapeByRef(Expression e, EscapeByResults* er)
              */
             Type t1 = e.e1.type.toBasetype();
             TypeFunction tf;
-            if (t1.ty == Type.Kind.delegate_)
+            if (t1.ty == Tdelegate)
                 tf = cast(TypeFunction)(cast(TypeDelegate)t1).next;
-            else if (t1.ty == Type.Kind.function_)
+            else if (t1.ty == Tfunction)
                 tf = cast(TypeFunction)t1;
             else
                 return;
@@ -1226,7 +1226,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     }
                 }
                 // If 'this' is returned by ref, check it too
-                if (e.e1.op == TOK.dotVariable && t1.ty == Type.Kind.function_)
+                if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
                 {
                     DotVarExp dve = cast(DotVarExp)e.e1;
                     if (dve.var.storage_class & STC.return_ || tf.isreturn)
@@ -1238,7 +1238,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     }
                 }
                 // If it's a delegate, check it too
-                if (e.e1.op == TOK.variable && t1.ty == Type.Kind.delegate_)
+                if (e.e1.op == TOK.variable && t1.ty == Tdelegate)
                 {
                     escapeByValue(e.e1, er);
                 }

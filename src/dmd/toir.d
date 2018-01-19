@@ -690,7 +690,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         elem *elength;
         Symbol *slength;
 
-        if (t1.ty == Type.Kind.staticArray)
+        if (t1.ty == Tsarray)
         {
             TypeSArray tsa = cast(TypeSArray)t1;
             dinteger_t length = tsa.dim.toInteger();
@@ -698,7 +698,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
             elength = el_long(TYsize_t, length);
             goto L3;
         }
-        else if (t1.ty == Type.Kind.array)
+        else if (t1.ty == Tarray)
         {
             elength = *pe;
             *pe = el_same(&elength);
@@ -973,13 +973,13 @@ RET retStyle(TypeFunction tf)
     if (global.params.isWindows && global.params.is64bit)
     {
         // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
-        if (tns.ty == Type.Kind.complex32)
+        if (tns.ty == Tcomplex32)
             return RET.stack;
         if (tns.isscalar())
             return RET.regs;
 
         tns = tns.baseElemOf();
-        if (tns.ty == Type.Kind.struct_)
+        if (tns.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tns).sym;
             if (sd.ident == Id.__c_long_double)
@@ -996,7 +996,7 @@ RET retStyle(TypeFunction tf)
     else if (global.params.isWindows && global.params.mscoff)
     {
         Type tb = tns.baseElemOf();
-        if (tb.ty == Type.Kind.struct_)
+        if (tb.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ident == Id.__c_long_double)
@@ -1005,10 +1005,10 @@ RET retStyle(TypeFunction tf)
     }
 
 Lagain:
-    if (tns.ty == Type.Kind.staticArray)
+    if (tns.ty == Tsarray)
     {
         tns = tns.baseElemOf();
-        if (tns.ty != Type.Kind.struct_)
+        if (tns.ty != Tstruct)
         {
 L2:
             if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
@@ -1035,7 +1035,7 @@ L2:
         }
     }
 
-    if (tns.ty == Type.Kind.struct_)
+    if (tns.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)tns).sym;
         if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
@@ -1058,7 +1058,7 @@ L2:
         if (sd.arg1type && !sd.arg2type)
         {
             tns = sd.arg1type;
-            if (tns.ty != Type.Kind.struct_)
+            if (tns.ty != Tstruct)
                 goto L2;
             goto Lagain;
         }
@@ -1091,7 +1091,7 @@ L2:
              tf.linkage == LINK.c &&
              tns.iscomplex())
     {
-        if (tns.ty == Type.Kind.complex32)
+        if (tns.ty == Tcomplex32)
             return RET.regs;     // in EDX:EAX, not ST1:ST0
         else
             return RET.stack;

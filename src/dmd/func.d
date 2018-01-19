@@ -403,14 +403,14 @@ extern (C++) class FuncDeclaration : Declaration
             thandle = thandle.addStorageClass(storage_class);
             VarDeclaration v = new ThisDeclaration(loc, thandle);
             v.storage_class |= STC.parameter;
-            if (thandle.ty == Type.Kind.struct_)
+            if (thandle.ty == Tstruct)
             {
                 v.storage_class |= STC.ref_;
                 // if member function is marked 'inout', then 'this' is 'return ref'
-                if (type.ty == Type.Kind.function_ && (cast(TypeFunction)type).iswild & 2)
+                if (type.ty == Tfunction && (cast(TypeFunction)type).iswild & 2)
                     v.storage_class |= STC.return_;
             }
-            if (type.ty == Type.Kind.function_)
+            if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
                 if (tf.isreturn)
@@ -435,7 +435,7 @@ extern (C++) class FuncDeclaration : Declaration
              */
             VarDeclaration v = new ThisDeclaration(loc, Type.tvoid.pointerTo());
             v.storage_class |= STC.parameter;
-            if (type.ty == Type.Kind.function_)
+            if (type.ty == Tfunction)
             {
                 TypeFunction tf = cast(TypeFunction)type;
                 if (tf.isreturn)
@@ -633,7 +633,7 @@ extern (C++) class FuncDeclaration : Declaration
         {
             if (overnext)
                 return overnext.overloadInsert(ad);
-            if (!ad.aliassym && ad.type.ty != Type.Kind.identifier && ad.type.ty != Type.Kind.instance)
+            if (!ad.aliassym && ad.type.ty != Tident && ad.type.ty != Tinstance)
             {
                 //printf("\tad = '%s'\n", ad.type.toChars());
                 return false;
@@ -710,7 +710,7 @@ extern (C++) class FuncDeclaration : Declaration
              * is just a const conversion.
              * This allows things like pure functions to match with an impure function type.
              */
-            if (t.ty == Type.Kind.function_)
+            if (t.ty == Tfunction)
             {
                 auto tf = cast(TypeFunction)f.type;
                 if (tf.covariant(t) == 1 &&
@@ -1374,15 +1374,15 @@ extern (C++) class FuncDeclaration : Declaration
         t = t.baseElemOf();
         switch (t.ty)
         {
-            case Type.Kind.array:
-            case Type.Kind.pointer:
+            case Tarray:
+            case Tpointer:
                 return isTypeIsolatedIndirect(t.nextOf()); // go down one level
 
-            case Type.Kind.associativeArray:
-            case Type.Kind.class_:
+            case Taarray:
+            case Tclass:
                 return isTypeIsolatedIndirect(t);
 
-            case Type.Kind.struct_:
+            case Tstruct:
                 /* Drill down and check the struct's fields
                  */
                 auto sym = t.toDsymbol(null).isStructDeclaration();
@@ -1449,15 +1449,15 @@ extern (C++) class FuncDeclaration : Declaration
                 tp = tp.baseElemOf();
                 switch (tp.ty)
                 {
-                    case Type.Kind.array:
-                    case Type.Kind.pointer:
+                    case Tarray:
+                    case Tpointer:
                         return traverseIndirections(tp.nextOf(), t);
 
-                    case Type.Kind.associativeArray:
-                    case Type.Kind.class_:
+                    case Taarray:
+                    case Tclass:
                         return traverseIndirections(tp, t);
 
-                    case Type.Kind.struct_:
+                    case Tstruct:
                         /* Drill down and check the struct's fields
                          */
                         auto sym = tp.toDsymbol(null).isStructDeclaration();
@@ -2057,7 +2057,7 @@ extern (C++) class FuncDeclaration : Declaration
             fdrequire = fd;
         }
 
-        if (!outId && f.nextOf() && f.nextOf().toBasetype().ty != Type.Kind.void_)
+        if (!outId && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid)
             outId = Id.result; // provide a default
 
         if (fensure)
@@ -2239,9 +2239,9 @@ extern (C++) class FuncDeclaration : Declaration
         {
             auto fparam0 = Parameter.getNth(tf.parameters, 0);
             auto t = fparam0.type.toBasetype();
-            if (t.ty != Type.Kind.array ||
-                t.nextOf().ty != Type.Kind.array ||
-                t.nextOf().nextOf().ty != Type.Kind.char_ ||
+            if (t.ty != Tarray ||
+                t.nextOf().ty != Tarray ||
+                t.nextOf().nextOf().ty != Tchar ||
                 fparam0.storageClass & (STC.out_ | STC.ref_ | STC.lazy_))
             {
                 argerr = true;
@@ -2250,7 +2250,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (!tf.nextOf())
             error("must return int or void");
-        else if (tf.nextOf().ty != Type.Kind.int32 && tf.nextOf().ty != Type.Kind.void_)
+        else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
             error("must return int or void, not %s", tf.nextOf().toChars());
         else if (tf.varargs || nparams >= 2 || argerr)
             error("parameters must be main() or main(string[] args)");
@@ -2610,7 +2610,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 auto td = s.isTemplateDeclaration();
                 if (fd)
                 {
-                    if (fd.errors || fd.type.ty == Type.Kind.error)
+                    if (fd.errors || fd.type.ty == Terror)
                         return 0;
 
                     auto tf = cast(TypeFunction)fd.type;
@@ -2659,11 +2659,11 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
 extern (C++) Type getIndirection(Type t)
 {
     t = t.baseElemOf();
-    if (t.ty == Type.Kind.array || t.ty == Type.Kind.pointer)
+    if (t.ty == Tarray || t.ty == Tpointer)
         return t.nextOf().toBasetype();
-    if (t.ty == Type.Kind.associativeArray || t.ty == Type.Kind.class_)
+    if (t.ty == Taarray || t.ty == Tclass)
         return t;
-    if (t.ty == Type.Kind.struct_)
+    if (t.ty == Tstruct)
         return t.hasPointers() ? t : null; // TODO
 
     // should consider TypeDelegate?
@@ -2726,7 +2726,7 @@ private bool traverseIndirections(Type ta, Type tb)
                 // if source is the same as target or can be const-converted to target
                 source.constConv(target) != MATCH.nomatch ||
                 // if target is void and source can be const-converted to target
-                (target.ty == Type.Kind.void_ && MODimplicitConv(source.mod, target.mod));
+                (target.ty == Tvoid && MODimplicitConv(source.mod, target.mod));
         }
 
         if (mayAliasDirect(reversePass ? tb : ta, reversePass ? ta : tb))
@@ -2740,7 +2740,7 @@ private bool traverseIndirections(Type ta, Type tb)
              return true;
         }
 
-        if (tb.ty == Type.Kind.class_ || tb.ty == Type.Kind.struct_)
+        if (tb.ty == Tclass || tb.ty == Tstruct)
         {
             for (Ctxt* c = ctxt; c; c = c.prev)
                 if (tb == c.type)
@@ -2760,7 +2760,7 @@ private bool traverseIndirections(Type ta, Type tb)
                     return false;
             }
         }
-        else if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.associativeArray || tb.ty == Type.Kind.pointer)
+        else if (tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tpointer)
         {
             Type tind = tb.nextOf();
             if (!traverse(ta, tind, ctxt, reversePass))

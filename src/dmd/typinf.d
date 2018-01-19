@@ -75,7 +75,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
 
 extern (C++) Type getTypeInfoType(Type t, Scope* sc)
 {
-    assert(t.ty != Type.Kind.error);
+    assert(t.ty != Terror);
     genTypeInfo(t, sc);
     return t.vtinfo.type;
 }
@@ -85,27 +85,27 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
     //printf("Type::getTypeInfoDeclaration() %s\n", t.toChars());
     switch (t.ty)
     {
-    case Type.Kind.pointer:
+    case Tpointer:
         return TypeInfoPointerDeclaration.create(t);
-    case Type.Kind.array:
+    case Tarray:
         return TypeInfoArrayDeclaration.create(t);
-    case Type.Kind.staticArray:
+    case Tsarray:
         return TypeInfoStaticArrayDeclaration.create(t);
-    case Type.Kind.associativeArray:
+    case Taarray:
         return TypeInfoAssociativeArrayDeclaration.create(t);
-    case Type.Kind.struct_:
+    case Tstruct:
         return TypeInfoStructDeclaration.create(t);
-    case Type.Kind.vector:
+    case Tvector:
         return TypeInfoVectorDeclaration.create(t);
-    case Type.Kind.enum_:
+    case Tenum:
         return TypeInfoEnumDeclaration.create(t);
-    case Type.Kind.function_:
+    case Tfunction:
         return TypeInfoFunctionDeclaration.create(t);
-    case Type.Kind.delegate_:
+    case Tdelegate:
         return TypeInfoDelegateDeclaration.create(t);
-    case Type.Kind.tuple:
+    case Ttuple:
         return TypeInfoTupleDeclaration.create(t);
-    case Type.Kind.class_:
+    case Tclass:
         if ((cast(TypeClass)t).sym.isInterfaceDeclaration())
             return TypeInfoInterfaceDeclaration.create(t);
         else
@@ -235,16 +235,16 @@ extern (C++) bool isSpeculativeType(Type t)
  */
 private bool builtinTypeInfo(Type t)
 {
-    if (t.isTypeBasic() || t.ty == Type.Kind.class_ || t.ty == Type.Kind.null_)
+    if (t.isTypeBasic() || t.ty == Tclass || t.ty == Tnull)
         return !t.mod;
-    if (t.ty == Type.Kind.array)
+    if (t.ty == Tarray)
     {
         Type next = t.nextOf();
         // strings are so common, make them builtin
         return !t.mod &&
                (next.isTypeBasic() !is null && !next.mod ||
-                next.ty == Type.Kind.char_ && next.mod == MODFlags.immutable_ ||
-                next.ty == Type.Kind.char_ && next.mod == MODFlags.const_);
+                next.ty == Tchar && next.mod == MODFlags.immutable_ ||
+                next.ty == Tchar && next.mod == MODFlags.const_);
     }
     return false;
 }

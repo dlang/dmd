@@ -58,7 +58,7 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
         return new ErrorExp();
 
     Statement s;
-    if (t.ty == Type.Kind.void_)
+    if (t.ty == Tvoid)
         s = new ExpStatement(loc, e);
     else
         s = new ReturnStatement(loc, e);

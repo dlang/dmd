@@ -125,7 +125,7 @@ public:
             if (checkTypeSaved(type))
                 return;
         }
-        if ((type.ty == Type.Kind.bool_) && checkTypeSaved(type)) // try to replace long name with number
+        if ((type.ty == Tbool) && checkTypeSaved(type)) // try to replace long name with number
         {
             return;
         }
@@ -133,12 +133,12 @@ public:
         {
             switch (type.ty)
             {
-            case Type.Kind.int64:
-            case Type.Kind.uint64:
-            case Type.Kind.int128:
-            case Type.Kind.uint128:
-            case Type.Kind.float80:
-            case Type.Kind.wchar_:
+            case Tint64:
+            case Tuns64:
+            case Tint128:
+            case Tuns128:
+            case Tfloat80:
+            case Twchar:
                 if (checkTypeSaved(type))
                     return;
                 break;
@@ -150,62 +150,62 @@ public:
         mangleModifier(type);
         switch (type.ty)
         {
-        case Type.Kind.void_:
+        case Tvoid:
             buf.writeByte('X');
             break;
-        case Type.Kind.int8:
+        case Tint8:
             buf.writeByte('C');
             break;
-        case Type.Kind.uint8:
+        case Tuns8:
             buf.writeByte('E');
             break;
-        case Type.Kind.int16:
+        case Tint16:
             buf.writeByte('F');
             break;
-        case Type.Kind.uint16:
+        case Tuns16:
             buf.writeByte('G');
             break;
-        case Type.Kind.int32:
+        case Tint32:
             buf.writeByte('H');
             break;
-        case Type.Kind.uint32:
+        case Tuns32:
             buf.writeByte('I');
             break;
-        case Type.Kind.float32:
+        case Tfloat32:
             buf.writeByte('M');
             break;
-        case Type.Kind.int64:
+        case Tint64:
             buf.writestring("_J");
             break;
-        case Type.Kind.uint64:
+        case Tuns64:
             buf.writestring("_K");
             break;
-        case Type.Kind.int128:
+        case Tint128:
             buf.writestring("_L");
             break;
-        case Type.Kind.uint128:
+        case Tuns128:
             buf.writestring("_M");
             break;
-        case Type.Kind.float64:
+        case Tfloat64:
             buf.writeByte('N');
             break;
-        case Type.Kind.bool_:
+        case Tbool:
             buf.writestring("_N");
             break;
-        case Type.Kind.char_:
+        case Tchar:
             buf.writeByte('D');
             break;
-        case Type.Kind.dchar_:
+        case Tdchar:
             buf.writeByte('I');
             break;
             // unsigned int
-        case Type.Kind.float80:
+        case Tfloat80:
             if (flags & IS_DMC)
                 buf.writestring("_Z"); // DigitalMars long double
             else
                 buf.writestring("_T"); // Intel long double
             break;
-        case Type.Kind.wchar_:
+        case Twchar:
             if (flags & IS_DMC)
                 buf.writestring("_Y"); // DigitalMars wchar_t
             else
@@ -242,7 +242,7 @@ public:
             buf.writeByte('P');
         flags |= IS_NOT_TOP_TYPE;
         assert(type.next);
-        if (type.next.ty == Type.Kind.staticArray)
+        if (type.next.ty == Tsarray)
         {
             mangleArray(cast(TypeSArray)type.next);
         }
@@ -263,7 +263,7 @@ public:
             return;
         }
         assert(type.next);
-        if (type.next.ty == Type.Kind.function_)
+        if (type.next.ty == Tfunction)
         {
             const(char)* arg = mangleFunctionType(cast(TypeFunction)type.next); // compute args before checking to save; args should be saved before function type
             // If we've mangled this function early, previous call is meaningless.
@@ -282,7 +282,7 @@ public:
             flags &= ~IGNORE_CONST;
             return;
         }
-        else if (type.next.ty == Type.Kind.staticArray)
+        else if (type.next.ty == Tsarray)
         {
             if (checkTypeSaved(type))
                 return;
@@ -332,7 +332,7 @@ public:
             buf.writeByte('E');
         flags |= IS_NOT_TOP_TYPE;
         assert(type.next);
-        if (type.next.ty == Type.Kind.staticArray)
+        if (type.next.ty == Tsarray)
         {
             mangleArray(cast(TypeSArray)type.next);
         }
@@ -410,29 +410,29 @@ public:
         buf.writeByte('W');
         switch (type.sym.memtype.ty)
         {
-        case Type.Kind.char_:
-        case Type.Kind.int8:
+        case Tchar:
+        case Tint8:
             buf.writeByte('0');
             break;
-        case Type.Kind.uint8:
+        case Tuns8:
             buf.writeByte('1');
             break;
-        case Type.Kind.int16:
+        case Tint16:
             buf.writeByte('2');
             break;
-        case Type.Kind.uint16:
+        case Tuns16:
             buf.writeByte('3');
             break;
-        case Type.Kind.int32:
+        case Tint32:
             buf.writeByte('4');
             break;
-        case Type.Kind.uint32:
+        case Tuns32:
             buf.writeByte('5');
             break;
-        case Type.Kind.int64:
+        case Tint64:
             buf.writeByte('6');
             break;
-        case Type.Kind.uint64:
+        case Tuns64:
             buf.writeByte('7');
             break;
         default:
@@ -616,10 +616,10 @@ private:
         {
             cv_mod = 'A'; // mutable
         }
-        if (t.ty != Type.Kind.pointer)
+        if (t.ty != Tpointer)
             t = t.mutableOf();
         t.accept(this);
-        if ((t.ty == Type.Kind.pointer || t.ty == Type.Kind.reference || t.ty == Type.Kind.class_) && global.params.is64bit)
+        if ((t.ty == Tpointer || t.ty == Treference || t.ty == Tclass) && global.params.is64bit)
         {
             buf.writeByte('E');
         }
@@ -933,7 +933,7 @@ private:
         {
             if (flags & IS_NOT_TOP_TYPE)
                 buf.writeByte('B'); // const
-            else if ((flags & IS_DMC) && type.ty != Type.Kind.pointer)
+            else if ((flags & IS_DMC) && type.ty != Tpointer)
                 buf.writestring("_O");
         }
         else if (flags & IS_NOT_TOP_TYPE)
@@ -945,7 +945,7 @@ private:
         mangleModifier(type);
         size_t i = 0;
         Type cur = type;
-        while (cur && cur.ty == Type.Kind.staticArray)
+        while (cur && cur.ty == Tsarray)
         {
             i++;
             cur = cur.nextOf();
@@ -953,7 +953,7 @@ private:
         buf.writeByte('Y');
         mangleNumber(i); // count of dimensions
         cur = type;
-        while (cur && cur.ty == Type.Kind.staticArray) // sizes of dimensions
+        while (cur && cur.ty == Tsarray) // sizes of dimensions
         {
             TypeSArray sa = cast(TypeSArray)cur;
             mangleNumber(sa.dim ? sa.dim.toInteger() : 0);
@@ -1009,7 +1009,7 @@ private:
             if (type.isref)
                 rettype = rettype.referenceTo();
             flags &= ~IGNORE_CONST;
-            if (rettype.ty == Type.Kind.struct_ || rettype.ty == Type.Kind.enum_)
+            if (rettype.ty == Tstruct || rettype.ty == Tenum)
             {
                 const id = rettype.toDsymbol(null).ident;
                 if (id != Id.__c_long_double && id != Id.__c_long && id != Id.__c_ulong)
@@ -1045,7 +1045,7 @@ private:
                     td = new TypeDelegate(td);
                     t = merge(t);
                 }
-                if (t.ty == Type.Kind.staticArray)
+                if (t.ty == Tsarray)
                 {
                     t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
                     t.error(Loc(), "Use pointer instead.");

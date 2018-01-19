@@ -1008,15 +1008,15 @@ version (none)
     {
         switch (popnd.ptype.ty)
         {
-            case Type.Kind.float32:
+            case Tfloat32:
                 popnd.s = fconst(popnd.vreal);
                 return(CONSTRUCT_FLAGS(_32, _m, _normal, 0));
 
-            case Type.Kind.float64:
+            case Tfloat64:
                 popnd.s = dconst(popnd.vreal);
                 return(CONSTRUCT_FLAGS(0, _m, _normal, _f64));
 
-            case Type.Kind.float80:
+            case Tfloat80:
                 popnd.s = ldconst(popnd.vreal);
                 return(CONSTRUCT_FLAGS(0, _m, _normal, _f80));
         }
@@ -1118,12 +1118,12 @@ opflag_t asm_determine_operand_flags(OPND *popnd)
         if (!popnd.ptype)
             return CONSTRUCT_FLAGS(sz, _m, _normal, 0);
         ty = popnd.ptype.ty;
-        if (ty == Type.Kind.pointer && popnd.ptype.nextOf().ty == Type.Kind.function_ &&
+        if (ty == Tpointer && popnd.ptype.nextOf().ty == Tfunction &&
             !ps.isVarDeclaration())
         {
             return CONSTRUCT_FLAGS(_32, _m, _fn16, 0);
         }
-        else if (ty == Type.Kind.function_)
+        else if (ty == Tfunction)
         {
             return CONSTRUCT_FLAGS(_32, _rel, _fn16, 0);
         }
@@ -2224,7 +2224,7 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             goto L2;
         }
         if ((v.isConst() || v.isImmutable() || v.storage_class & STC.manifest) &&
-            !v.type.isfloating() && v.type.ty != Type.Kind.vector && v._init)
+            !v.type.isfloating() && v.type.ty != Tvector && v._init)
         {
             ExpInitializer ei = v._init.isExpInitializer();
             if (ei)
@@ -3258,7 +3258,7 @@ uint asm_type_size(Type ptype)
 
     //if (ptype) printf("asm_type_size('%s') = %d\n", ptype.toChars(), (int)ptype.size());
     u = _anysize;
-    if (ptype && ptype.ty != Type.Kind.function_ /*&& ptype.isscalar()*/)
+    if (ptype && ptype.ty != Tfunction /*&& ptype.isscalar()*/)
     {
         switch (cast(int)ptype.size())
         {
@@ -4272,7 +4272,7 @@ void asm_primary_exp(out OPND o1)
                 if (o1.ptype && asmstate.tokValue != TOK.comma && asmstate.tokValue != TOK.endOfFile)
                 {
                     for (;
-                         o1.ptype.ty == Type.Kind.staticArray;
+                         o1.ptype.ty == Tsarray;
                          o1.ptype = o1.ptype.nextOf())
                     {
                     }

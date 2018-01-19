@@ -160,7 +160,7 @@ private bool needOpAssign(StructDeclaration sd)
         if (v.overlapped)               // if field of a union
             continue;                   // user must handle it themselves
         Type tv = v.type.baseElemOf();
-        if (tv.ty == Type.Kind.struct_)
+        if (tv.ty == Tstruct)
         {
             TypeStruct ts = cast(TypeStruct)tv;
             if (ts.sym.isUnionDeclaration())
@@ -225,7 +225,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         if (v.overlapped)
             continue;
         Type tv = v.type.baseElemOf();
-        if (tv.ty != Type.Kind.struct_)
+        if (tv.ty != Tstruct)
             continue;
         StructDeclaration sdv = (cast(TypeStruct)tv).sym;
         stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
@@ -358,7 +358,7 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
             continue;
         Type tv = v.type.toBasetype();
         auto tvbase = tv.baseElemOf();
-        if (tvbase.ty == Type.Kind.struct_)
+        if (tvbase.ty == Tstruct)
         {
             TypeStruct ts = cast(TypeStruct)tvbase;
             if (ts.sym.isUnionDeclaration())
@@ -375,11 +375,11 @@ extern (C++) bool needOpEquals(StructDeclaration sd)
             //  2. comparison of NANs should be false always.
             goto Lneed;
         }
-        if (tv.ty == Type.Kind.array)
+        if (tv.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Type.Kind.associativeArray)
+        if (tv.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Type.Kind.class_)
+        if (tv.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -678,7 +678,7 @@ private bool needToHash(StructDeclaration sd)
             continue;
         Type tv = v.type.toBasetype();
         auto tvbase = tv.baseElemOf();
-        if (tvbase.ty == Type.Kind.struct_)
+        if (tvbase.ty == Tstruct)
         {
             TypeStruct ts = cast(TypeStruct)tvbase;
             if (ts.sym.isUnionDeclaration())
@@ -695,11 +695,11 @@ private bool needToHash(StructDeclaration sd)
              */
             goto Lneed;
         }
-        if (tv.ty == Type.Kind.array)
+        if (tv.ty == Tarray)
             goto Lneed;
-        if (tv.ty == Type.Kind.associativeArray)
+        if (tv.ty == Taarray)
             goto Lneed;
-        if (tv.ty == Type.Kind.class_)
+        if (tv.ty == Tclass)
             goto Lneed;
     }
 Ldontneed:
@@ -798,7 +798,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         if (v.overlapped)
             continue;
         Type tv = v.type.baseElemOf();
-        if (tv.ty != Type.Kind.struct_)
+        if (tv.ty != Tstruct)
             continue;
         auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.postblit)
@@ -816,7 +816,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
         Expression ex;
         tv = v.type.toBasetype();
-        if (tv.ty == Type.Kind.struct_)
+        if (tv.ty == Tstruct)
         {
             // this.v.__xpostblit()
 
@@ -838,7 +838,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
 
             uinteger_t n = 1;
-            while (tv.ty == Type.Kind.staticArray)
+            while (tv.ty == Tsarray)
             {
                 n *= (cast(TypeSArray)tv).dim.toUInteger();
                 tv = tv.nextOf().toBasetype();
@@ -873,7 +873,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         sdv.dtor.functionSemantic();
 
         tv = v.type.toBasetype();
-        if (tv.ty == Type.Kind.struct_)
+        if (tv.ty == Tstruct)
         {
             // this.v.__xdtor()
 
@@ -895,7 +895,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
             uinteger_t n = 1;
-            while (tv.ty == Type.Kind.staticArray)
+            while (tv.ty == Tsarray)
             {
                 n *= (cast(TypeSArray)tv).dim.toUInteger();
                 tv = tv.nextOf().toBasetype();
@@ -1016,7 +1016,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         if (v.overlapped)
             continue;
         auto tv = v.type.baseElemOf();
-        if (tv.ty != Type.Kind.struct_)
+        if (tv.ty != Tstruct)
             continue;
         auto sdv = (cast(TypeStruct)tv).sym;
         if (!sdv.dtor)
@@ -1032,7 +1032,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 
         Expression ex;
         tv = v.type.toBasetype();
-        if (tv.ty == Type.Kind.struct_)
+        if (tv.ty == Tstruct)
         {
             // this.v.__xdtor()
 
@@ -1053,7 +1053,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
             uinteger_t n = 1;
-            while (tv.ty == Type.Kind.staticArray)
+            while (tv.ty == Tsarray)
             {
                 n *= (cast(TypeSArray)tv).dim.toUInteger();
                 tv = tv.nextOf().toBasetype();

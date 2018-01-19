@@ -3549,10 +3549,10 @@ final class Parser(AST) : Lexer
         // See https://issues.dlang.org/show_bug.cgi?id=1215
         // A basic type can look like MyType (typical case), but also:
         //  MyType.T -> A type
-        //  MyType[expr] -> Either a static array of MyType or a type (iif MyType is a Type.Kind.tuple)
+        //  MyType[expr] -> Either a static array of MyType or a type (iif MyType is a Ttuple)
         //  MyType[expr].T -> A type.
         //  MyType[expr].T[expr] ->  Either a static array of MyType[expr].T or a type
-        //                           (iif MyType[expr].T is a Type.Kind.tuple)
+        //                           (iif MyType[expr].T is a Ttuple)
         while (1)
         {
             switch (token.value)
@@ -3574,14 +3574,14 @@ final class Parser(AST) : Lexer
                         AST.Type t = maybeArray;
                         while (true)
                         {
-                            if (t.ty == AST.Type.Kind.staticArray)
+                            if (t.ty == AST.Tsarray)
                             {
                                 // The index expression is an Expression.
                                 AST.TypeSArray a = cast(AST.TypeSArray)t;
                                 dimStack.push(a.dim.syntaxCopy());
                                 t = a.next.syntaxCopy();
                             }
-                            else if (t.ty == AST.Type.Kind.associativeArray)
+                            else if (t.ty == AST.Taarray)
                             {
                                 // The index expression is a Type. It will be interpreted as an expression at semantic time.
                                 AST.TypeAArray a = cast(AST.TypeAArray)t;
@@ -4353,7 +4353,7 @@ final class Parser(AST) : Lexer
             else if (t != tfirst)
                 error("multiple declarations must have the same type, not `%s` and `%s`", tfirst.toChars(), t.toChars());
 
-            bool isThis = (t.ty == AST.Type.Kind.identifier && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
+            bool isThis = (t.ty == AST.Tident && (cast(AST.TypeIdentifier)t).ident == Id.This && token.value == TOK.assign);
             if (ident)
                 checkCstyleTypeSyntax(loc, t, alt, ident);
             else if (!isThis)
@@ -4425,7 +4425,7 @@ final class Parser(AST) : Lexer
                     break;
                 }
             }
-            else if (t.ty == AST.Type.Kind.function_)
+            else if (t.ty == AST.Tfunction)
             {
                 AST.Expression constraint = null;
                 version (none)
@@ -8542,7 +8542,7 @@ final class Parser(AST) : Lexer
         auto t = parseBasicType(true);
         t = parseBasicType2(t);
         t = t.addSTC(stc);
-        if (t.ty == AST.Type.Kind.associativeArray)
+        if (t.ty == AST.Taarray)
         {
             AST.TypeAArray taa = cast(AST.TypeAArray)t;
             AST.Type index = taa.index;
@@ -8554,7 +8554,7 @@ final class Parser(AST) : Lexer
             }
             t = new AST.TypeSArray(taa.next, edim);
         }
-        else if (t.ty == AST.Type.Kind.staticArray)
+        else if (t.ty == AST.Tsarray)
         {
         }
         else if (token.value == TOK.leftParentheses)

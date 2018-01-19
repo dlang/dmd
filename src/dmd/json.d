@@ -639,7 +639,7 @@ public:
         objectStart();
         jsonProperties(d);
         TypeFunction tf = cast(TypeFunction)d.type;
-        if (tf && tf.ty == Type.Kind.function_)
+        if (tf && tf.ty == Tfunction)
             property("parameters", tf.parameters);
         property("endline", "endchar", &d.endloc);
         if (d.foverrides.dim)

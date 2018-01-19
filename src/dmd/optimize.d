@@ -59,7 +59,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
             return e;
         }
         Type tb = v.type.toBasetype();
-        if (v.storage_class & STC.manifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Type.Kind.staticArray && tb.ty != Type.Kind.struct_)))
+        if (v.storage_class & STC.manifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
             {
@@ -95,7 +95,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                         // Do not constfold the string literal
                         // if it's typed as a C string, because the value expansion
                         // will drop the pointer identity.
-                        if (!(result & WANTexpand) && ei.type.toBasetype().ty == Type.Kind.pointer)
+                        if (!(result & WANTexpand) && ei.type.toBasetype().ty == Tpointer)
                             goto L1;
                     }
                     else
@@ -172,7 +172,7 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
             // See bugzilla 4465.
             if (e.op == TOK.comma && (cast(CommaExp)e).e1.op == TOK.declaration)
                 e = e1;
-            else if (e.type != e1.type && e1.type && e1.type.ty != Type.Kind.identifier)
+            else if (e.type != e1.type && e1.type && e1.type.ty != Tident)
             {
                 // Type 'paint' operation
                 e = e.copy();
@@ -391,7 +391,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 {
                     sinteger_t index = ae.e2.toInteger();
                     VarExp ve = cast(VarExp)ae.e1;
-                    if (ve.type.ty == Type.Kind.staticArray && !ve.var.isImportedSymbol())
+                    if (ve.type.ty == Tsarray && !ve.var.isImportedSymbol())
                     {
                         TypeSArray ts = cast(TypeSArray)ve.type;
                         sinteger_t dim = ts.dim.toInteger();
@@ -528,9 +528,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (e.arguments)
             {
                 Type t1 = e.e1.type.toBasetype();
-                if (t1.ty == Type.Kind.delegate_)
+                if (t1.ty == Tdelegate)
                     t1 = t1.nextOf();
-                assert(t1.ty == Type.Kind.function_);
+                assert(t1.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)t1;
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
@@ -554,14 +554,14 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (expOptimize(e.e1, result))
                 return;
             e.e1 = fromConstInitializer(result, e.e1);
-            if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Type.Kind.pointer && e.e1.type.toBasetype().ty != Type.Kind.staticArray)
+            if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
             {
                 // Casting this will result in the same expression, and
                 // infinite loop because of Expression::implicitCastTo()
                 return; // no change
             }
             if ((e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral) &&
-                (e.type.ty == Type.Kind.pointer || e.type.ty == Type.Kind.array))
+                (e.type.ty == Tpointer || e.type.ty == Tarray))
             {
                 const esz  = e.type.nextOf().size(e.loc);
                 const e1sz = e.e1.type.toBasetype().nextOf().size(e.e1.loc);
@@ -573,7 +573,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     // https://issues.dlang.org/show_bug.cgi?id=12937
                     // If target type is void array, trying to paint
                     // e.e1 with that type will cause infinite recursive optimization.
-                    if (e.type.nextOf().ty == Type.Kind.void_)
+                    if (e.type.nextOf().ty == Tvoid)
                         return;
                     ret = e.e1.castTo(null, e.type);
                     //printf(" returning1 %s\n", ret.toChars());
@@ -597,12 +597,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 ret = e.e1.castTo(null, e.to);
                 return;
             }
-            if (e.e1.op == TOK.null_ && (e.type.ty == Type.Kind.pointer || e.type.ty == Type.Kind.class_ || e.type.ty == Type.Kind.array))
+            if (e.e1.op == TOK.null_ && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
             {
                 //printf(" returning3 %s\n", e.e1.toChars());
                 goto L1;
             }
-            if (e.type.ty == Type.Kind.class_ && e.e1.type.ty == Type.Kind.class_)
+            if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
             {
                 import dmd.aggregate : Sizeok;
 
@@ -633,7 +633,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             {
                 if (e.e1.op == TOK.symbolOffset)
                 {
-                    if (e.type.toBasetype().ty != Type.Kind.staticArray)
+                    if (e.type.toBasetype().ty != Tsarray)
                     {
                         const esz = e.type.size(e.loc);
                         const e1sz = e.e1.type.size(e.e1.loc);
@@ -646,7 +646,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     }
                     return;
                 }
-                if (e.to.toBasetype().ty != Type.Kind.void_)
+                if (e.to.toBasetype().ty != Tvoid)
                 {
                     if (e.e1.type.equals(e.type) && e.type.equals(e.to))
                         ret = e.e1;
@@ -931,7 +931,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                         e.e1 = ci;
                 }
             }
-            if (e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral || e.e1.op == TOK.assocArrayLiteral || e.e1.type.toBasetype().ty == Type.Kind.staticArray)
+            if (e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral || e.e1.op == TOK.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
             {
                 ret = ArrayLength(e.type, e.e1).copy();
             }
@@ -990,7 +990,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             else
             {
                 Type t = arr.type.toBasetype();
-                if (t.ty == Type.Kind.staticArray)
+                if (t.ty == Tsarray)
                     len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
                 else
                     return; // we don't know the length yet
@@ -1071,7 +1071,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 // Replace with (e1, oror)
                 ret = new IntegerExp(e.loc, oror, Type.tbool);
                 ret = Expression.combine(e.e1, ret);
-                if (e.type.toBasetype().ty == Type.Kind.void_)
+                if (e.type.toBasetype().ty == Tvoid)
                 {
                     ret = new CastExp(e.loc, ret, Type.tvoid);
                     ret.type = e.type;
@@ -1091,7 +1091,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
                 else if (e.e1.isBool(!oror))
                 {
-                    if (e.type.toBasetype().ty == Type.Kind.void_)
+                    if (e.type.toBasetype().ty == Tvoid)
                         ret = e.e2;
                     else
                     {

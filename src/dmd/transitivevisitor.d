@@ -315,7 +315,7 @@ package mixin template ParseVisitMethods(AST)
         //printf("Visiting Type\n");
         if (!t)
             return;
-        if (t.ty == AST.Type.Kind.function_)
+        if (t.ty == AST.Tfunction)
         {
             visitFunctionType(cast(AST.TypeFunction)t, null);
             return;
@@ -379,7 +379,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.TypePointer t)
     {
         //printf("Visiting TypePointer\n");
-        if (t.next.ty == AST.Type.Kind.function_)
+        if (t.next.ty == AST.Tfunction)
         {
             visitFunctionType(cast(AST.TypeFunction)t.next, null);
         }
@@ -777,7 +777,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.FuncLiteralDeclaration f)
     {
         //printf("Visiting FuncLiteralDeclaration\n");
-        if (f.type.ty == AST.Type.Kind.error)
+        if (f.type.ty == AST.Terror)
             return;
         AST.TypeFunction tf = cast(AST.TypeFunction)f.type;
         if (!f.inferRetType && tf.next)
