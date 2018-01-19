@@ -43,13 +43,13 @@ import dmd.utils;
 
 bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool errors)
 {
-    if (e.op == TOKandand || e.op == TOKoror)
+    if (e.op == TOK.andAnd || e.op == TOK.orOr)
     {
         LogicalExp aae = cast(LogicalExp)e;
         bool result = evalStaticCondition(sc, exp, aae.e1, errors);
         if (errors)
             return false;
-        if (e.op == TOKandand)
+        if (e.op == TOK.andAnd)
         {
             if (!result)
                 return false;
@@ -63,7 +63,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
         return !errors && result;
     }
 
-    if (e.op == TOKquestion)
+    if (e.op == TOK.question)
     {
         CondExp ce = cast(CondExp)e;
         bool result = evalStaticCondition(sc, exp, ce.econd, errors);
@@ -86,7 +86,7 @@ bool evalStaticCondition(Scope* sc, Expression exp, Expression e, ref bool error
     e = e.optimize(WANTvalue);
 
     if (nerrors != global.errors ||
-        e.op == TOKerror ||
+        e.op == TOK.error ||
         e.type.toBasetype() == Type.terror)
     {
         errors = true;

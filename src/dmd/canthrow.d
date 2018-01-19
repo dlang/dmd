@@ -85,7 +85,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 else
                 {
                     auto e1 = ce.e1;
-                    if (e1.op == TOKstar)   // print 'fp' if e1 is (*fp)
+                    if (e1.op == TOK.star)   // print 'fp' if e1 is (*fp)
                         e1 = (cast(PtrExp)e1).e1;
                     ce.error("`%s` is not `nothrow`", e1.toChars());
                 }
@@ -185,7 +185,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
         override void visit(AssignExp ae)
         {
             // blit-init cannot throw
-            if (ae.op == TOKblit)
+            if (ae.op == TOK.blit)
                 return;
             /* Element-wise assignment could invoke postblits.
              */
@@ -196,7 +196,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     return;
                 t = ae.type;
             }
-            else if (ae.e1.op == TOKslice)
+            else if (ae.e1.op == TOK.slice)
                 t = (cast(SliceExp)ae.e1).e1.type;
             else
                 return;
@@ -299,7 +299,7 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
             if (o.dyncast() == DYNCAST.expression)
             {
                 Expression eo = cast(Expression)o;
-                if (eo.op == TOKdsymbol)
+                if (eo.op == TOK.dSymbol)
                 {
                     DsymbolExp se = cast(DsymbolExp)eo;
                     if (Dsymbol_canThrow(se.s, func, mustNotThrow))

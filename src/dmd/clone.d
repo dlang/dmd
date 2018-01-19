@@ -519,7 +519,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
-    Expression e = new EqualExp(TOKequal, loc, e1, e2);
+    Expression e = new EqualExp(TOK.equal, loc, e1, e2);
     fop.fbody = new ReturnStatement(loc, e);
     uint errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
@@ -583,13 +583,13 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 Dsymbol s = null;
                 switch (e.op)
                 {
-                case TOKoverloadset:
+                case TOK.overloadSet:
                     s = (cast(OverExp)e).vars;
                     break;
-                case TOKscope:
+                case TOK.scope_:
                     s = (cast(ScopeExp)e).sds;
                     break;
-                case TOKvar:
+                case TOK.variable:
                     s = (cast(VarExp)e).var;
                     break;
                 default:
@@ -920,7 +920,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
         }
-        a.push(new OnScopeStatement(loc, TOKon_scope_failure, new ExpStatement(loc, ex)));
+        a.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
     }
 
     // Build our own "postblit" which executes a, but only if needed.

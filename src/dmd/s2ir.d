@@ -728,7 +728,7 @@ private extern (C++) class S2irVisitor : Visitor
                 /* If returning struct literal, write result
                  * directly into return value
                  */
-                if (s.exp.op == TOKstructliteral)
+                if (s.exp.op == TOK.structLiteral)
                 {
                     StructLiteralExp sle = cast(StructLiteralExp)s.exp;
                     sle.sym = irs.shidden;
@@ -738,16 +738,16 @@ private extern (C++) class S2irVisitor : Visitor
                  *    structliteral.ctor(args)
                  * and construct directly into *shidden
                  */
-                else if (s.exp.op == TOKcall)
+                else if (s.exp.op == TOK.call)
                 {
                     auto ce = cast(CallExp)s.exp;
-                    if (ce.e1.op == TOKdotvar)
+                    if (ce.e1.op == TOK.dotVariable)
                     {
                         auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
                         if (fd && fd.isCtorDeclaration())
                         {
-                            if (dve.e1.op == TOKstructliteral)
+                            if (dve.e1.op == TOK.structLiteral)
                             {
                                 auto sle = cast(StructLiteralExp)dve.e1;
                                 sle.sym = irs.shidden;
@@ -918,7 +918,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("WithStatement.toIR()\n");
-        if (s.exp.op == TOKscope || s.exp.op == TOKtype)
+        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
         {
         }
         else

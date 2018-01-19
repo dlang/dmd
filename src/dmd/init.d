@@ -339,21 +339,21 @@ version (all)
 
         if (e.type.ty == Terror)
             return false;
-        if (e.op == TOKnull)
+        if (e.op == TOK.null_)
             return false;
-        if (e.op == TOKstructliteral)
+        if (e.op == TOK.structLiteral)
         {
             StructLiteralExp se = cast(StructLiteralExp)e;
             return checkArray(se.elements);
         }
-        if (e.op == TOKarrayliteral)
+        if (e.op == TOK.arrayLiteral)
         {
             if (!e.type.nextOf().hasPointers())
                 return false;
             ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
             return checkArray(ae.elements);
         }
-        if (e.op == TOKassocarrayliteral)
+        if (e.op == TOK.assocArrayLiteral)
         {
             AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
             if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
@@ -362,10 +362,10 @@ version (all)
                 return checkArray(ae.keys);
             return false;
         }
-        if (e.op == TOKaddress)
+        if (e.op == TOK.address)
         {
             AddrExp ae = cast(AddrExp)e;
-            if (ae.e1.op == TOKstructliteral)
+            if (ae.e1.op == TOK.structLiteral)
             {
                 StructLiteralExp se = cast(StructLiteralExp)ae.e1;
                 if (!(se.stageflags & stageSearchPointers))
@@ -385,11 +385,11 @@ version (all)
         }
         if (e.type.ty == Tpointer && e.type.nextOf().ty != Tfunction)
         {
-            if (e.op == TOKsymoff) // address of a global is OK
+            if (e.op == TOK.symbolOffset) // address of a global is OK
                 return false;
-            if (e.op == TOKint64) // cast(void *)int is OK
+            if (e.op == TOK.int64) // cast(void *)int is OK
                 return false;
-            if (e.op == TOKstring) // "abc".ptr is OK
+            if (e.op == TOK.string_) // "abc".ptr is OK
                 return false;
             return true;
         }

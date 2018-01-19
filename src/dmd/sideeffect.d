@@ -47,7 +47,7 @@ extern (C++) bool isTrivialExp(Expression e)
              * CallExp is always non trivial expression,
              * especially for inlining.
              */
-            if (e.op == TOKcall)
+            if (e.op == TOK.call)
             {
                 stop = true;
                 return;
@@ -147,36 +147,36 @@ private bool lambdaHasSideEffect(Expression e)
     switch (e.op)
     {
     // Sort the cases by most frequently used first
-    case TOKassign:
-    case TOKplusplus:
-    case TOKminusminus:
-    case TOKdeclaration:
-    case TOKconstruct:
-    case TOKblit:
-    case TOKaddass:
-    case TOKminass:
-    case TOKcatass:
-    case TOKcatelemass:
-    case TOKcatdcharass:
-    case TOKmulass:
-    case TOKdivass:
-    case TOKmodass:
-    case TOKshlass:
-    case TOKshrass:
-    case TOKushrass:
-    case TOKandass:
-    case TOKorass:
-    case TOKxorass:
-    case TOKpowass:
-    case TOKin:
-    case TOKremove:
-    case TOKassert:
-    case TOKhalt:
-    case TOKdelete:
-    case TOKnew:
-    case TOKnewanonclass:
+    case TOK.assign:
+    case TOK.plusPlus:
+    case TOK.minusMinus:
+    case TOK.declaration:
+    case TOK.construct:
+    case TOK.blit:
+    case TOK.addAssign:
+    case TOK.minAssign:
+    case TOK.concatenateAssign:
+    case TOK.concatenateElemAssign:
+    case TOK.concatenateDcharAssign:
+    case TOK.mulAssign:
+    case TOK.divAssign:
+    case TOK.modAssign:
+    case TOK.leftShiftAssign:
+    case TOK.rightShiftAssign:
+    case TOK.unsignedRightShiftAssign:
+    case TOK.andAssign:
+    case TOK.orAssign:
+    case TOK.xorAssign:
+    case TOK.powAssign:
+    case TOK.in_:
+    case TOK.remove:
+    case TOK.assert_:
+    case TOK.halt:
+    case TOK.delete_:
+    case TOK.new_:
+    case TOK.newAnonymousClass:
         return true;
-    case TOKcall:
+    case TOK.call:
         {
             CallExp ce = cast(CallExp)e;
             /* Calling a function or delegate that is pure nothrow
@@ -195,13 +195,13 @@ private bool lambdaHasSideEffect(Expression e)
             }
             break;
         }
-    case TOKcast:
+    case TOK.cast_:
         {
             CastExp ce = cast(CastExp)e;
             /* if:
              *  cast(classtype)func()  // because it may throw
              */
-            if (ce.to.ty == Tclass && ce.e1.op == TOKcall && ce.e1.type.ty == Tclass)
+            if (ce.to.ty == Tclass && ce.e1.op == TOK.call && ce.e1.type.ty == Tclass)
                 return true;
             break;
         }
@@ -223,7 +223,7 @@ extern (C++) bool discardValue(Expression e)
         return false;
     switch (e.op)
     {
-    case TOKcast:
+    case TOK.cast_:
         {
             CastExp ce = cast(CastExp)e;
             if (ce.to.equals(Type.tvoid))
@@ -235,9 +235,9 @@ extern (C++) bool discardValue(Expression e)
             }
             break; // complain
         }
-    case TOKerror:
+    case TOK.error:
         return false;
-    case TOKvar:
+    case TOK.variable:
         {
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
             if (v && (v.storage_class & STC.temp))
@@ -248,7 +248,7 @@ extern (C++) bool discardValue(Expression e)
             }
             break;
         }
-    case TOKcall:
+    case TOK.call:
         /* Issue 3882: */
         if (global.params.warnings && !global.gag)
         {
@@ -273,7 +273,7 @@ extern (C++) bool discardValue(Expression e)
                     const(char)* s;
                     if (ce.f)
                         s = ce.f.toPrettyChars();
-                    else if (ce.e1.op == TOKstar)
+                    else if (ce.e1.op == TOK.star)
                     {
                         // print 'fp' if ce.e1 is (*fp)
                         s = (cast(PtrExp)ce.e1).e1.toChars();
@@ -285,13 +285,13 @@ extern (C++) bool discardValue(Expression e)
             }
         }
         return false;
-    case TOKandand:
-    case TOKoror:
+    case TOK.andAnd:
+    case TOK.orOr:
         {
             LogicalExp aae = cast(LogicalExp)e;
             return discardValue(aae.e2);
         }
-    case TOKquestion:
+    case TOK.question:
         {
             CondExp ce = cast(CondExp)e;
             /* https://issues.dlang.org/show_bug.cgi?id=6178
@@ -321,7 +321,7 @@ extern (C++) bool discardValue(Expression e)
             }
             return false;
         }
-    case TOKcomma:
+    case TOK.comma:
         {
             CommaExp ce = cast(CommaExp)e;
             /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
@@ -330,9 +330,9 @@ extern (C++) bool discardValue(Expression e)
              * See https://issues.dlang.org/show_bug.cgi?id=4231 for discussion
              */
             CommaExp firstComma = ce;
-            while (firstComma.e1.op == TOKcomma)
+            while (firstComma.e1.op == TOK.comma)
                 firstComma = cast(CommaExp)firstComma.e1;
-            if (firstComma.e1.op == TOKdeclaration && ce.e2.op == TOKvar && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
+            if (firstComma.e1.op == TOK.declaration && ce.e2.op == TOK.variable && (cast(DeclarationExp)firstComma.e1).declaration == (cast(VarExp)ce.e2).var)
             {
                 return false;
             }
@@ -340,7 +340,7 @@ extern (C++) bool discardValue(Expression e)
             //discardValue(ce.e1);
             return discardValue(ce.e2);
         }
-    case TOKtuple:
+    case TOK.tuple:
         /* Pass without complaint if any of the tuple elements have side effects.
          * Ideally any tuple elements with no side effects should raise an error,
          * this needs more investigation as to what is the right thing to do.

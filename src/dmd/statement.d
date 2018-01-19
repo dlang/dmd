@@ -650,7 +650,7 @@ extern (C++) class ExpStatement : Statement
         *sexception = null;
         *sfinally = null;
 
-        if (exp && exp.op == TOKdeclaration)
+        if (exp && exp.op == TOK.declaration)
         {
             auto de = cast(DeclarationExp)exp;
             auto v = de.declaration.isVarDeclaration();
@@ -673,13 +673,13 @@ extern (C++) class ExpStatement : Statement
          * expand template mixin in statement scope
          * to handle variable destructors.
          */
-        if (exp && exp.op == TOKdeclaration)
+        if (exp && exp.op == TOK.declaration)
         {
             Dsymbol d = (cast(DeclarationExp)exp).declaration;
             if (TemplateMixin tm = d.isTemplateMixin())
             {
                 Expression e = exp.expressionSemantic(sc);
-                if (e.op == TOKerror || tm.errors)
+                if (e.op == TOK.error || tm.errors)
                 {
                     auto a = new Statements();
                     a.push(new ErrorStatement());
@@ -783,7 +783,7 @@ extern (C++) final class CompileStatement : Statement
         p.nextToken();
 
         auto a = new Statements();
-        while (p.token.value != TOKeof)
+        while (p.token.value != TOK.endOfFile)
         {
             Statement s = p.parseStatement(ParseStatementFlags.semi | ParseStatementFlags.curlyScope);
             if (!s || p.errors)
@@ -1251,7 +1251,7 @@ extern (C++) final class ForStatement : Statement
  */
 extern (C++) final class ForeachStatement : Statement
 {
-    TOK op;                     // TOKforeach or TOKforeach_reverse
+    TOK op;                     // TOK.foreach_ or TOK.foreach_reverse_
     Parameters* parameters;     // array of Parameter*'s
     Expression aggr;
     Statement _body;
@@ -1319,7 +1319,7 @@ extern (C++) final class ForeachStatement : Statement
  */
 extern (C++) final class ForeachRangeStatement : Statement
 {
-    TOK op;                 // TOKforeach or TOKforeach_reverse
+    TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
     Parameter prm;          // loop index variable
     Expression lwr;
     Expression upr;
@@ -2092,15 +2092,15 @@ extern (C++) final class OnScopeStatement : Statement
 
         switch (tok)
         {
-        case TOKon_scope_exit:
+        case TOK.onScopeExit:
             *sfinally = s;
             break;
 
-        case TOKon_scope_failure:
+        case TOK.onScopeFailure:
             *sexception = s;
             break;
 
-        case TOKon_scope_success:
+        case TOK.onScopeSuccess:
             {
                 /* Create:
                  *  sentry:   bool x = false;
@@ -2228,7 +2228,7 @@ extern (C++) final class GotoStatement : Statement
 
         if (label.statement.os != os)
         {
-            if (os && os.tok == TOKon_scope_failure && !label.statement.os)
+            if (os && os.tok == TOK.onScopeFailure && !label.statement.os)
             {
                 // Jump out from scope(failure) block is allowed.
             }

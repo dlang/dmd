@@ -117,7 +117,7 @@ structalign_t getAlignment(AlignDeclaration ad, Scope* sc)
     sc = sc.endCTFE();
     ad.ealign = ad.ealign.ctfeInterpret();
 
-    if (ad.ealign.op == TOKerror)
+    if (ad.ealign.op == TOK.error)
         return ad.salign = STRUCTALIGN_DEFAULT;
 
     Type tb = ad.ealign.type.toBasetype();
@@ -460,7 +460,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                             continue;
                     }
 
-                    if (e.op == TOKtuple)
+                    if (e.op == TOK.tuple)
                     {
                         TupleExp te = cast(TupleExp)e;
                         if (iexps.dim - 1 + te.exps.dim > nelems)
@@ -521,7 +521,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         Lnomatch:
 
-            if (ie && ie.op == TOKtuple)
+            if (ie && ie.op == TOK.tuple)
             {
                 TupleExp te = cast(TupleExp)ie;
                 size_t tedim = te.exps.dim;
@@ -547,7 +547,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (ie)
                 {
                     Expression einit = ie;
-                    if (ie.op == TOKtuple)
+                    if (ie.op == TOK.tuple)
                     {
                         TupleExp te = cast(TupleExp)ie;
                         einit = (*te.exps)[i];
@@ -891,7 +891,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     exp = exp.expressionSemantic(sc);
                     dsym.canassign--;
                     exp = exp.optimize(WANTvalue);
-                    if (exp.op == TOKerror)
+                    if (exp.op == TOK.error)
                     {
                         dsym._init = new ErrorInitializer();
                         ei = null;
@@ -902,11 +902,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (ei && dsym.isScope())
                     {
                         Expression ex = ei.exp;
-                        while (ex.op == TOKcomma)
+                        while (ex.op == TOK.comma)
                             ex = (cast(CommaExp)ex).e2;
-                        if (ex.op == TOKblit || ex.op == TOKconstruct)
+                        if (ex.op == TOK.blit || ex.op == TOK.construct)
                             ex = (cast(AssignExp)ex).e2;
-                        if (ex.op == TOKnew)
+                        if (ex.op == TOK.new_)
                         {
                             // See if initializer is a NewExp that can be allocated on the stack
                             NewExp ne = cast(NewExp)ex;
@@ -923,7 +923,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 }
                             }
                         }
-                        else if (ex.op == TOKfunction)
+                        else if (ex.op == TOK.function_)
                         {
                             // or a delegate that doesn't escape a reference to the function
                             FuncDeclaration f = (cast(FuncExp)ex).fd;
@@ -1325,7 +1325,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         return;
                     }
                     e = ctfeInterpretForPragmaMsg(e);
-                    if (e.op == TOKerror)
+                    if (e.op == TOK.error)
                     {
                         errorSupplemental(pd.loc, "while evaluating `pragma(msg, %s)`", (*pd.args)[i].toChars());
                         return;
@@ -1564,7 +1564,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             assert(global.errors != errors);    // should have caught all these cases
             return null;
         }
-        if (p.token.value != TOKeof)
+        if (p.token.value != TOK.endOfFile)
         {
             cd.exp.error("incomplete mixin declaration `%s`", se.toChars());
             return null;
@@ -1898,7 +1898,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             e = e.expressionSemantic(sc);
             e = resolveProperties(sc, e);
             e = e.ctfeInterpret();
-            if (e.op == TOKerror)
+            if (e.op == TOK.error)
                 return errorReturn();
             if (first && !em.ed.memtype && !em.ed.isAnonymous())
             {
@@ -1926,7 +1926,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ev = ev.implicitCastTo(sc, em.ed.memtype);
                         ev = ev.ctfeInterpret();
                         ev = ev.castTo(sc, em.ed.type);
-                        if (ev.op == TOKerror)
+                        if (ev.op == TOK.error)
                             em.ed.errors = true;
                         enm.value = ev;
                     }
@@ -2020,7 +2020,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             // Set value to (eprev + 1).
             // But first check that (eprev != emax)
             assert(eprev);
-            Expression e = new EqualExp(TOKequal, em.loc, eprev, emax);
+            Expression e = new EqualExp(TOK.equal, em.loc, eprev, emax);
             e = e.expressionSemantic(sc);
             e = e.ctfeInterpret();
             if (e.toInteger())
@@ -2037,7 +2037,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             e = e.ctfeInterpret();
 
             // save origValue (without cast) for better json output
-            if (e.op != TOKerror) // avoid duplicate diagnostics
+            if (e.op != TOK.error) // avoid duplicate diagnostics
             {
                 assert(emprev.origValue);
                 em.origValue = new AddExp(em.loc, emprev.origValue, new IntegerExp(em.loc, 1, Type.tint32));
@@ -2045,12 +2045,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 em.origValue = em.origValue.ctfeInterpret();
             }
 
-            if (e.op == TOKerror)
+            if (e.op == TOK.error)
                 return errorReturn();
             if (e.type.isfloating())
             {
                 // Check that e != eprev (not always true for floats)
-                Expression etest = new EqualExp(TOKequal, em.loc, e, eprev);
+                Expression etest = new EqualExp(TOK.equal, em.loc, e, eprev);
                 etest = etest.expressionSemantic(sc);
                 etest = etest.ctfeInterpret();
                 if (etest.toInteger())
@@ -2562,9 +2562,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Type treq = fld.treq;
             assert(treq.nextOf().ty == Tfunction);
             if (treq.ty == Tdelegate)
-                fld.tok = TOKdelegate;
+                fld.tok = TOK.delegate_;
             else if (treq.ty == Tpointer && treq.nextOf().ty == Tfunction)
-                fld.tok = TOKfunction;
+                fld.tok = TOK.function_;
             else
                 assert(0);
             funcdecl.linkage = treq.nextOf().toTypeFunction().linkage;
@@ -3454,7 +3454,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             Expression e = new IdentifierExp(Loc(), v.ident);
             e = new AddAssignExp(Loc(), e, new IntegerExp(1));
-            e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(1));
+            e = new EqualExp(TOK.notEqual, Loc(), e, new IntegerExp(1));
             s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
 
             sa.push(s);
@@ -3522,7 +3522,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             Expression e = new IdentifierExp(Loc(), v.ident);
             e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
-            e = new EqualExp(TOKnotequal, Loc(), e, new IntegerExp(0));
+            e = new EqualExp(TOK.notEqual, Loc(), e, new IntegerExp(0));
             s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
 
             sa.push(s);
@@ -5299,7 +5299,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
                 }
                 if (auto fld = s.isFuncLiteralDeclaration())
                 {
-                    if (fld.tok == TOKreserved)
+                    if (fld.tok == TOK.reserved)
                     {
                         doSemantic3 = true;
                         break;
@@ -5427,7 +5427,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
 
             Expression e = new FuncExp(ds.loc, ds.aliassym);
             e = e.expressionSemantic(sc);
-            if (e.op == TOKfunction)
+            if (e.op == TOK.function_)
             {
                 FuncExp fe = cast(FuncExp)e;
                 ds.aliassym = fe.td ? cast(Dsymbol)fe.td : fe.fd;
@@ -5506,7 +5506,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             s = getDsymbol(e);
             if (!s)
             {
-                if (e.op != TOKerror)
+                if (e.op != TOK.error)
                     ds.error("cannot alias an expression `%s`", e.toChars());
                 t = Type.terror;
             }

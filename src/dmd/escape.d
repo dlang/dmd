@@ -178,8 +178,8 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
 {
     enum log = false;
     if (log) printf("checkAssignEscape(e: %s)\n", e.toChars());
-    if (e.op != TOKassign && e.op != TOKblit && e.op != TOKconstruct &&
-        e.op != TOKcatass && e.op != TOKcatelemass && e.op != TOKcatdcharass)
+    if (e.op != TOK.assign && e.op != TOK.blit && e.op != TOK.construct &&
+        e.op != TOK.concatenateAssign && e.op != TOK.concatenateElemAssign && e.op != TOK.concatenateDcharAssign)
         return false;
     auto ae = cast(BinExp)e;
     Expression e1 = ae.e1;
@@ -189,7 +189,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     if (!e1.type.hasPointers())
         return false;
 
-    if (e1.op == TOKslice)
+    if (e1.op == TOK.slice)
         return false;
 
     EscapeByResults er;
@@ -200,21 +200,21 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         return false;
 
     VarDeclaration va;
-    while (e1.op == TOKdotvar)
+    while (e1.op == TOK.dotVariable)
         e1 = (cast(DotVarExp)e1).e1;
 
-    if (e1.op == TOKvar)
+    if (e1.op == TOK.variable)
         va = (cast(VarExp)e1).var.isVarDeclaration();
-    else if (e1.op == TOKthis)
+    else if (e1.op == TOK.this_)
         va = (cast(ThisExp)e1).var.isVarDeclaration();
-    else if (e1.op == TOKindex)
+    else if (e1.op == TOK.index)
     {
         auto ie = cast(IndexExp)e1;
-        if (ie.e1.op == TOKvar && ie.e1.type.toBasetype().ty == Tsarray)
+        if (ie.e1.op == TOK.variable && ie.e1.type.toBasetype().ty == Tsarray)
             va = (cast(VarExp)ie.e1).var.isVarDeclaration();
     }
 
-    if (va && e.op == TOKcatelemass)
+    if (va && e.op == TOK.concatenateElemAssign)
     {
         /* https://issues.dlang.org/show_bug.cgi?id=17842
          * Draw an equivalence between:
@@ -263,7 +263,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             if (va &&
                 (va.enclosesLifetimeOf(v) && !(v.storage_class & (STC.parameter | STC.temp)) ||
                  // va is class reference
-                 ae.e1.op == TOKdotvar && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope) ||
+                 ae.e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass && (va.enclosesLifetimeOf(v) || !va.isScope) ||
                  va.storage_class & STC.ref_ && !(v.storage_class & STC.temp)) &&
                 sc.func.setUnsafe())
             {
@@ -428,7 +428,7 @@ ByRef:
 
         /* Do not allow slicing of a static array returned by a function
          */
-        if (va && ee.op == TOKcall && ee.type.toBasetype().ty == Tsarray && va.type.toBasetype().ty == Tarray &&
+        if (va && ee.op == TOK.call && ee.type.toBasetype().ty == Tsarray && va.type.toBasetype().ty == Tarray &&
             !(va.storage_class & STC.temp))
         {
             if (!gag)
@@ -851,7 +851,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(FuncExp e)
         {
-            if (e.fd.tok == TOKdelegate)
+            if (e.fd.tok == TOK.delegate_)
                 er.byfunc.push(e.fd);
         }
 
@@ -913,7 +913,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(SliceExp e)
         {
-            if (e.e1.op == TOKvar)
+            if (e.e1.op == TOK.variable)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 Type tb = e.type.toBasetype();
@@ -1019,7 +1019,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 }
             }
             // If 'this' is returned, check it too
-            if (e.e1.op == TOKdotvar && t1.ty == Tfunction)
+            if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
             {
                 DotVarExp dve = cast(DotVarExp)e.e1;
                 FuncDeclaration fd = dve.var.isFuncDeclaration();
@@ -1104,7 +1104,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                      */
                     if (ExpInitializer ez = v._init.isExpInitializer())
                     {
-                        assert(ez.exp && ez.exp.op == TOKconstruct);
+                        assert(ez.exp && ez.exp.op == TOK.construct);
                         Expression ex = (cast(ConstructExp)ez.exp).e2;
                         ex.accept(this);
                     }
@@ -1128,7 +1128,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
         override void visit(IndexExp e)
         {
             Type tb = e.e1.type.toBasetype();
-            if (e.e1.op == TOKvar)
+            if (e.e1.op == TOK.variable)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
                 if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -1213,7 +1213,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                                 arg.accept(this);
                             else if ((stc & STC.scope_) && (stc & STC.return_))
                             {
-                                if (arg.op == TOKdelegate)
+                                if (arg.op == TOK.delegate_)
                                 {
                                     DelegateExp de = cast(DelegateExp)arg;
                                     if (de.func.isNested())
@@ -1226,7 +1226,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     }
                 }
                 // If 'this' is returned by ref, check it too
-                if (e.e1.op == TOKdotvar && t1.ty == Tfunction)
+                if (e.e1.op == TOK.dotVariable && t1.ty == Tfunction)
                 {
                     DotVarExp dve = cast(DotVarExp)e.e1;
                     if (dve.var.storage_class & STC.return_ || tf.isreturn)
@@ -1238,7 +1238,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                     }
                 }
                 // If it's a delegate, check it too
-                if (e.e1.op == TOKvar && t1.ty == Tdelegate)
+                if (e.e1.op == TOK.variable && t1.ty == Tdelegate)
                 {
                     escapeByValue(e.e1, er);
                 }

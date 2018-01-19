@@ -138,7 +138,7 @@ extern (C++) final class StaticForeach : RootObject
         sc = sc.endCTFE();
         el = el.optimize(WANTvalue);
         el = el.ctfeInterpret();
-        if (el.op == TOKint64)
+        if (el.op == TOK.int64)
         {
             dinteger_t length = el.toInteger();
             auto es = new Expressions();
@@ -170,7 +170,7 @@ extern (C++) final class StaticForeach : RootObject
     private extern(D) Expression wrapAndCall(Loc loc, Statement s)
     {
         auto tf = new TypeFunction(new Parameters(), null, 0, LINK.default_, 0);
-        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOKreserved, null);
+        auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
         fd.fbody = s;
         auto fe = new FuncExp(loc, fd);
         auto ce = new CallExp(loc, fe, new Expressions());
@@ -360,7 +360,7 @@ extern (C++) final class StaticForeach : RootObject
         aggr = aggr.ctfeInterpret();
 
         assert(!!aggrfe ^ !!rangefe);
-        aggrfe = new ForeachStatement(loc, TOKforeach, pparams[2], aggr,
+        aggrfe = new ForeachStatement(loc, TOK.foreach_, pparams[2], aggr,
                                       aggrfe ? aggrfe._body : rangefe._body,
                                       aggrfe ? aggrfe.endloc : rangefe.endloc);
         rangefe = null;
@@ -842,7 +842,7 @@ extern (C++) final class StaticIfCondition : Condition
 
         if (inc == 0)
         {
-            if (exp.op == TOKerror || nest > 100)
+            if (exp.op == TOK.error || nest > 100)
             {
                 error(loc, (nest > 1000) ? "unresolvable circular `static if` expression" : "error evaluating `static if` expression");
                 return errorReturn();

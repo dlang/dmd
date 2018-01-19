@@ -340,16 +340,16 @@ private void colorHighlightCode(OutBuffer* buf)
         HIGHLIGHT highlight;
         switch (tok.value)
         {
-        case TOKidentifier:
+        case TOK.identifier:
             highlight = HIGHLIGHT.Identifier;
             break;
-        case TOKcomment:
+        case TOK.comment:
             highlight = HIGHLIGHT.Comment;
             break;
-        case TOKint32v:
+        case TOK.int32Literal:
             ..
-        case TOKdcharv:
-        case TOKstring:
+        case TOK.dcharLiteral:
+        case TOK.string_:
             highlight = HIGHLIGHT.Literal;
             break;
         default:
@@ -367,7 +367,7 @@ private void colorHighlightCode(OutBuffer* buf)
         }
         else
             res.writestring(tok.ptr[0 .. lex.p - tok.ptr]);
-        if (tok.value == TOKeof)
+        if (tok.value == TOK.endOfFile)
             break;
         lastp = lex.p;
     }

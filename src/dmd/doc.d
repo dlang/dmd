@@ -2666,7 +2666,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         const(char)* highlight = null;
         switch (tok.value)
         {
-        case TOKidentifier:
+        case TOK.identifier:
             {
                 if (!sc)
                     break;
@@ -2684,10 +2684,10 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
                 }
                 break;
             }
-        case TOKcomment:
+        case TOK.comment:
             highlight = "$(D_COMMENT ";
             break;
-        case TOKstring:
+        case TOK.string_:
             highlight = "$(D_STRING ";
             break;
         default:
@@ -2700,7 +2700,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
             res.writestring(highlight);
             size_t o = res.offset;
             highlightCode3(sc, &res, tok.ptr, lex.p);
-            if (tok.value == TOKcomment || tok.value == TOKstring)
+            if (tok.value == TOK.comment || tok.value == TOK.string_)
                 /* https://issues.dlang.org/show_bug.cgi?id=7656
                  * https://issues.dlang.org/show_bug.cgi?id=7715
                  * https://issues.dlang.org/show_bug.cgi?id=10519
@@ -2710,7 +2710,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         }
         else
             highlightCode3(sc, &res, tok.ptr, lex.p);
-        if (tok.value == TOKeof)
+        if (tok.value == TOK.endOfFile)
             break;
         lastp = lex.p;
     }

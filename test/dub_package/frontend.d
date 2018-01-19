@@ -93,7 +93,6 @@ void main()
     import dmd.frontend : initDMD;
     import dmd.parse : Parser;
     import dmd.statement : Identifier;
-    import dmd.tokens : TOKeof;
     import dmd.id : Id;
 
     initDMD;

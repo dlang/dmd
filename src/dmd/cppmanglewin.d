@@ -725,7 +725,7 @@ private:
                         tmp.buf.writeByte('1');
                         tmp.mangleFunction(d.isFuncDeclaration());
                     }
-                    else if (e && e.op == TOKvar && (cast(VarExp)e).var.isVarDeclaration())
+                    else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
                     {
                         tmp.buf.writeByte('$');
                         if (flags & IS_DMC)

@@ -47,7 +47,7 @@ extern (C++) Expression toDelegate(Expression e, Type t, Scope* sc)
     auto tf = new TypeFunction(null, t, 0, LINK.d);
     if (t.hasWild())
         tf.mod = MODFlags.wild;
-    auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, null);
+    auto fld = new FuncLiteralDeclaration(loc, loc, tf, TOK.delegate_, null);
     lambdaSetParent(e, fld);
 
     sc = sc.push();
@@ -230,7 +230,7 @@ bool ensureStaticLinkTo(Dsymbol s, Dsymbol p)
             // https://issues.dlang.org/show_bug.cgi?id=15332
             // change to delegate if fd is actually nested.
             if (auto fld = fd.isFuncLiteralDeclaration())
-                fld.tok = TOKdelegate;
+                fld.tok = TOK.delegate_;
         }
         if (auto ad = s.isAggregateDeclaration())
         {

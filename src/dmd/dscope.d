@@ -666,13 +666,13 @@ struct Scope
     {
         TOK tok;
         if (ident == Id.NULL)
-            tok = TOKnull;
+            tok = TOK.null_;
         else if (ident == Id.TRUE)
-            tok = TOKtrue;
+            tok = TOK.true_;
         else if (ident == Id.FALSE)
-            tok = TOKfalse;
+            tok = TOK.false_;
         else if (ident == Id.unsigned)
-            tok = TOKuns32;
+            tok = TOK.uns32;
         else
             return null;
         return Token.toChars(tok);

@@ -109,9 +109,9 @@ private LabelStatement checkLabeledLoop(Scope* sc, Statement statement)
 private Expression checkAssignmentAsCondition(Expression e)
 {
     auto ec = e;
-    while (ec.op == TOKcomma)
+    while (ec.op == TOK.comma)
         ec = (cast(CommaExp)ec).e2;
-    if (ec.op == TOKassign)
+    if (ec.op == TOK.assign)
     {
         ec.error("assignment cannot be used as a condition, perhaps `==` was meant?");
         return new ErrorExp();
@@ -186,7 +186,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
             s.exp = s.exp.optimize(WANTvalue);
             s.exp = checkGC(sc, s.exp);
-            if (s.exp.op == TOKerror)
+            if (s.exp.op == TOK.error)
                 return setError();
         }
         result = s;
@@ -464,7 +464,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             ds._body = ds._body.semanticScope(sc, ds, ds);
         sc.noctor--;
 
-        if (ds.condition.op == TOKdotid)
+        if (ds.condition.op == TOK.dotIdentifier)
             (cast(DotIdExp)ds.condition).noderef = true;
 
         // check in syntax level
@@ -479,7 +479,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         ds.condition = ds.condition.toBoolean(sc);
 
-        if (ds.condition.op == TOKerror)
+        if (ds.condition.op == TOK.error)
             return setError();
         if (ds._body && ds._body.isErrorStatement())
         {
@@ -535,7 +535,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sc.noctor++;
         if (fs.condition)
         {
-            if (fs.condition.op == TOKdotid)
+            if (fs.condition.op == TOK.dotIdentifier)
                 (cast(DotIdExp)fs.condition).noderef = true;
 
             // check in syntax level
@@ -569,8 +569,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         sc.pop();
 
-        if (fs.condition && fs.condition.op == TOKerror ||
-            fs.increment && fs.increment.op == TOKerror ||
+        if (fs.condition && fs.condition.op == TOK.error ||
+            fs.increment && fs.increment.op == TOK.error ||
             fs._body && fs._body.isErrorStatement())
             return setError();
         result = fs;
@@ -675,12 +675,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         //printf("aggr: op = %d, %s\n", fs.aggr.op, fs.aggr.toChars());
         size_t n;
         TupleExp te = null;
-        if (fs.aggr.op == TOKtuple) // expression tuple
+        if (fs.aggr.op == TOK.tuple) // expression tuple
         {
             te = cast(TupleExp)fs.aggr;
             n = te.exps.dim;
         }
-        else if (fs.aggr.op == TOKtype) // type tuple
+        else if (fs.aggr.op == TOK.type) // type tuple
         {
             n = Parameter.dim(tuple.arguments);
         }
@@ -688,7 +688,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             assert(0);
         foreach (j; 0 .. n)
         {
-            size_t k = (fs.op == TOKforeach) ? j : n - 1 - j;
+            size_t k = (fs.op == TOK.foreach_) ? j : n - 1 - j;
             Expression e = null;
             Type t = null;
             if (te)
@@ -785,13 +785,13 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     Dsymbol ds = null;
                     if (!(storageClass & STC.manifest))
                     {
-                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STC.alias_) && e.op == TOKvar)
+                        if ((isStatic || tb.ty == Tfunction || tb.ty == Tsarray || storageClass&STC.alias_) && e.op == TOK.variable)
                             ds = (cast(VarExp)e).var;
-                        else if (e.op == TOKtemplate)
+                        else if (e.op == TOK.template_)
                             ds = (cast(TemplateExp)e).td;
-                        else if (e.op == TOKscope)
+                        else if (e.op == TOK.scope_)
                             ds = (cast(ScopeExp)e).sds;
-                        else if (e.op == TOKfunction)
+                        else if (e.op == TOK.function_)
                         {
                             auto fe = cast(FuncExp)e;
                             ds = fe.td ? cast(Dsymbol)fe.td : fe.fd;
@@ -820,7 +820,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             return false;
                         }
                     }
-                    else if (e.op == TOKtype)
+                    else if (e.op == TOK.type)
                     {
                         var = new AliasDeclaration(loc, ident, e.type);
                         if (paramtype)
@@ -841,9 +841,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         if (storageClass & STC.ref_)
                             v.storage_class |= STC.ref_ | STC.foreach_;
                         if (isStatic || storageClass&STC.manifest || e.isConst() ||
-                            e.op == TOKstring ||
-                            e.op == TOKstructliteral ||
-                            e.op == TOKarrayliteral)
+                            e.op == TOK.string_ ||
+                            e.op == TOK.structLiteral ||
+                            e.op == TOK.arrayLiteral)
                         {
                             if (v.storage_class & STC.ref_)
                             {
@@ -1015,12 +1015,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         fs.aggr = fs.aggr.expressionSemantic(sc);
         fs.aggr = resolveProperties(sc, fs.aggr);
         fs.aggr = fs.aggr.optimize(WANTvalue);
-        if (fs.aggr.op == TOKerror)
+        if (fs.aggr.op == TOK.error)
             return setError();
         Expression oaggr = fs.aggr;
         if (fs.aggr.type && fs.aggr.type.toBasetype().ty == Tstruct &&
             (cast(TypeStruct)(fs.aggr.type.toBasetype())).sym.dtor &&
-            fs.aggr.op != TOKtype && !fs.aggr.isLvalue())
+            fs.aggr.op != TOK.type && !fs.aggr.isLvalue())
         {
             // https://issues.dlang.org/show_bug.cgi?id=14653
             // Extend the life of rvalue aggregate till the end of foreach.
@@ -1244,7 +1244,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 auto id = Identifier.generateId("__r");
                 auto ie = new ExpInitializer(loc, new SliceExp(loc, fs.aggr, null, null));
                 VarDeclaration tmp;
-                if (fs.aggr.op == TOKarrayliteral &&
+                if (fs.aggr.op == TOK.arrayLiteral &&
                     !((*fs.parameters)[dim - 1].storageClass & STC.ref_))
                 {
                     auto ale = cast(ArrayLiteralExp)fs.aggr;
@@ -1255,7 +1255,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     // if telem has been specified explicitly,
                     // converting array literal elements to telem might make it @nogc.
                     fs.aggr = fs.aggr.implicitCastTo(sc, telem.sarrayOf(edim));
-                    if (fs.aggr.op == TOKerror)
+                    if (fs.aggr.op == TOK.error)
                         goto case Terror;
 
                     // for (T[edim] tmp = a, ...)
@@ -1273,7 +1273,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     fs.key = new VarDeclaration(loc, Type.tsize_t, idkey, null);
                     fs.key.storage_class |= STC.temp;
                 }
-                if (fs.op == TOKforeach_reverse)
+                if (fs.op == TOK.foreach_reverse_)
                     fs.key._init = new ExpInitializer(loc, tmp_length);
                 else
                     fs.key._init = new ExpInitializer(loc, new IntegerExp(loc, 0, fs.key.type));
@@ -1286,19 +1286,19 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 Statement forinit = new CompoundDeclarationStatement(loc, cs);
 
                 Expression cond;
-                if (fs.op == TOKforeach_reverse)
+                if (fs.op == TOK.foreach_reverse_)
                 {
                     // key--
-                    cond = new PostExp(TOKminusminus, loc, new VarExp(loc, fs.key));
+                    cond = new PostExp(TOK.minusMinus, loc, new VarExp(loc, fs.key));
                 }
                 else
                 {
                     // key < tmp.length
-                    cond = new CmpExp(TOKlt, loc, new VarExp(loc, fs.key), tmp_length);
+                    cond = new CmpExp(TOK.lessThan, loc, new VarExp(loc, fs.key), tmp_length);
                 }
 
                 Expression increment = null;
-                if (fs.op == TOKforeach)
+                if (fs.op == TOK.foreach_)
                 {
                     // key += 1
                     increment = new AddAssignExp(loc, new VarExp(loc, fs.key), new IntegerExp(loc, 1, fs.key.type));
@@ -1343,7 +1343,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 break;
             }
         case Taarray:
-            if (fs.op == TOKforeach_reverse)
+            if (fs.op == TOK.foreach_reverse_)
                 fs.warning("cannot use foreach_reverse with an associative array");
             if (fs.checkForArgTypes())
             {
@@ -1380,7 +1380,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     cast(AggregateDeclaration)(cast(TypeStruct)tab).sym;
                 Identifier idfront;
                 Identifier idpopFront;
-                if (fs.op == TOKforeach)
+                if (fs.op == TOK.foreach_)
                 {
                     idfront = Id.Ffront;
                     idpopFront = Id.FpopFront;
@@ -1398,7 +1398,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                  */
                 VarDeclaration r;
                 Statement _init;
-                if (vinit && fs.aggr.op == TOKvar && (cast(VarExp)fs.aggr).var == vinit)
+                if (vinit && fs.aggr.op == TOK.variable && (cast(VarExp)fs.aggr).var == vinit)
                 {
                     r = vinit;
                     _init = new ExpStatement(loc, vinit);
@@ -1535,7 +1535,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 goto case Terror;
             }
         case Tdelegate:
-            if (fs.op == TOKforeach_reverse)
+            if (fs.op == TOK.foreach_reverse_)
                 fs.deprecation("cannot use foreach_reverse with a delegate");
         Lapply:
             {
@@ -1630,7 +1630,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 tfld = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
                 fs.cases = new Statements();
                 fs.gotos = new ScopeStatements();
-                auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOKdelegate, fs);
+                auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOK.delegate_, fs);
                 fld.fbody = fs._body;
                 Expression flde = new FuncExp(loc, fld);
                 flde = flde.expressionSemantic(sc2);
@@ -1655,7 +1655,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 {
                     e = new DeclarationExp(loc, vinit);
                     e = e.expressionSemantic(sc2);
-                    if (e.op == TOKerror)
+                    if (e.op == TOK.error)
                         goto case Terror;
                 }
 
@@ -1763,7 +1763,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     default:
                         assert(0);
                     }
-                    const(char)* r = (fs.op == TOKforeach_reverse) ? "R" : "";
+                    const(char)* r = (fs.op == TOK.foreach_reverse_) ? "R" : "";
                     int j = sprintf(fdname.ptr, "_aApply%s%.*s%llu", r, 2, fntab[flag], cast(ulong)dim);
                     assert(j < BUFFER_LEN);
 
@@ -1796,14 +1796,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     /* Call:
                      *      aggr(flde)
                      */
-                    if (fs.aggr.op == TOKdelegate && (cast(DelegateExp)fs.aggr).func.isNested())
+                    if (fs.aggr.op == TOK.delegate_ && (cast(DelegateExp)fs.aggr).func.isNested())
                     {
                         // https://issues.dlang.org/show_bug.cgi?id=3560
                         fs.aggr = (cast(DelegateExp)fs.aggr).e1;
                     }
                     ec = new CallExp(loc, fs.aggr, flde);
                     ec = ec.expressionSemantic(sc2);
-                    if (ec.op == TOKerror)
+                    if (ec.op == TOK.error)
                         goto case Terror;
                     if (ec.type != Type.tint32)
                     {
@@ -1839,7 +1839,7 @@ else
                     ec = new DotIdExp(loc, fs.aggr, sapply.ident);
                     ec = new CallExp(loc, ec, flde);
                     ec = ec.expressionSemantic(sc2);
-                    if (ec.op == TOKerror)
+                    if (ec.op == TOK.error)
                         goto case Terror;
                     if (ec.type != Type.tint32)
                     {
@@ -1964,7 +1964,7 @@ else
             }
             fs.prm.type = fs.prm.type.addStorageClass(fs.prm.storageClass);
         }
-        if (fs.prm.type.ty == Terror || fs.lwr.op == TOKerror || fs.upr.op == TOKerror)
+        if (fs.prm.type.ty == Terror || fs.lwr.op == TOK.error || fs.upr.op == TOK.error)
         {
             return setError();
         }
@@ -1976,7 +1976,7 @@ else
          *  foreach_reverse (key; lwr .. upr) =>
          *  for (auto tmp = lwr, auto key = upr; key-- > tmp;)
          */
-        auto ie = new ExpInitializer(loc, (fs.op == TOKforeach) ? fs.lwr : fs.upr);
+        auto ie = new ExpInitializer(loc, (fs.op == TOK.foreach_) ? fs.lwr : fs.upr);
         fs.key = new VarDeclaration(loc, fs.upr.type.mutableOf(), Identifier.generateId("__key"), ie);
         fs.key.storage_class |= STC.temp;
         SignExtendedNumber lower = getIntRange(fs.lwr).imin;
@@ -1987,13 +1987,13 @@ else
         }
 
         Identifier id = Identifier.generateId("__limit");
-        ie = new ExpInitializer(loc, (fs.op == TOKforeach) ? fs.upr : fs.lwr);
+        ie = new ExpInitializer(loc, (fs.op == TOK.foreach_) ? fs.upr : fs.lwr);
         auto tmp = new VarDeclaration(loc, fs.upr.type, id, ie);
         tmp.storage_class |= STC.temp;
 
         auto cs = new Statements();
         // Keep order of evaluation as lwr, then upr
-        if (fs.op == TOKforeach)
+        if (fs.op == TOK.foreach_)
         {
             cs.push(new ExpStatement(loc, fs.key));
             cs.push(new ExpStatement(loc, tmp));
@@ -2006,18 +2006,18 @@ else
         Statement forinit = new CompoundDeclarationStatement(loc, cs);
 
         Expression cond;
-        if (fs.op == TOKforeach_reverse)
+        if (fs.op == TOK.foreach_reverse_)
         {
-            cond = new PostExp(TOKminusminus, loc, new VarExp(loc, fs.key));
+            cond = new PostExp(TOK.minusMinus, loc, new VarExp(loc, fs.key));
             if (fs.prm.type.isscalar())
             {
                 // key-- > tmp
-                cond = new CmpExp(TOKgt, loc, cond, new VarExp(loc, tmp));
+                cond = new CmpExp(TOK.greaterThan, loc, cond, new VarExp(loc, tmp));
             }
             else
             {
                 // key-- != tmp
-                cond = new EqualExp(TOKnotequal, loc, cond, new VarExp(loc, tmp));
+                cond = new EqualExp(TOK.notEqual, loc, cond, new VarExp(loc, tmp));
             }
         }
         else
@@ -2025,21 +2025,21 @@ else
             if (fs.prm.type.isscalar())
             {
                 // key < tmp
-                cond = new CmpExp(TOKlt, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
+                cond = new CmpExp(TOK.lessThan, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
             }
             else
             {
                 // key != tmp
-                cond = new EqualExp(TOKnotequal, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
+                cond = new EqualExp(TOK.notEqual, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
             }
         }
 
         Expression increment = null;
-        if (fs.op == TOKforeach)
+        if (fs.op == TOK.foreach_)
         {
             // key += 1
             //increment = new AddAssignExp(loc, new VarExp(loc, fs.key), new IntegerExp(1));
-            increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, fs.key));
+            increment = new PreExp(TOK.prePlusPlus, loc, new VarExp(loc, fs.key));
         }
         if ((fs.prm.storageClass & STC.ref_) && fs.prm.type.equals(fs.key.type))
         {
@@ -2109,14 +2109,14 @@ else
             if (ifs.match.edtor)
             {
                 Statement sdtor = new DtorExpStatement(ifs.loc, ifs.match.edtor, ifs.match);
-                sdtor = new OnScopeStatement(ifs.loc, TOKon_scope_exit, sdtor);
+                sdtor = new OnScopeStatement(ifs.loc, TOK.onScopeExit, sdtor);
                 ifs.ifbody = new CompoundStatement(ifs.loc, sdtor, ifs.ifbody);
                 ifs.match.storage_class |= STC.nodtor;
             }
         }
         else
         {
-            if (ifs.condition.op == TOKdotid)
+            if (ifs.condition.op == TOK.dotIdentifier)
                 (cast(DotIdExp)ifs.condition).noderef = true;
 
             ifs.condition = ifs.condition.expressionSemantic(scd);
@@ -2149,7 +2149,7 @@ else
         sc.mergeCallSuper(ifs.loc, cs1);
         sc.mergeFieldInit(ifs.loc, fi1);
 
-        if (ifs.condition.op == TOKerror ||
+        if (ifs.condition.op == TOK.error ||
             (ifs.ifbody && ifs.ifbody.isErrorStatement()) ||
             (ifs.elsebody && ifs.elsebody.isErrorStatement()))
         {
@@ -2206,7 +2206,7 @@ else
 
                     // pragma(msg) is allowed to contain types as well as expressions
                     e = ctfeInterpretForPragmaMsg(e);
-                    if (e.op == TOKerror)
+                    if (e.op == TOK.error)
                     {
                         errorSupplemental(ps.loc, "while evaluating `pragma(msg, %s)`", arg.toChars());
                         return setError();
@@ -2298,7 +2298,7 @@ else
             else
             {
                 Expression e = (*ps.args)[0];
-                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
+                if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
                 {
                     ps.error("pragma(inline, true or false) expected, not `%s`", e.toChars());
                     return setError();
@@ -2352,7 +2352,7 @@ else
 
         Type att = null;
         TypeEnum te = null;
-        while (ss.condition.op != TOKerror)
+        while (ss.condition.op != TOK.error)
         {
             // preserve enum type for final switches
             if (ss.condition.type.ty == Tenum)
@@ -2368,7 +2368,7 @@ else
                 break;
             }
             ss.condition = integralPromotions(ss.condition, sc);
-            if (ss.condition.op != TOKerror && ss.condition.type.isintegral())
+            if (ss.condition.op != TOK.error && ss.condition.type.isintegral())
                 break;
 
             auto ad = isAggregate(ss.condition.type);
@@ -2383,7 +2383,7 @@ else
                 }
             }
 
-            if (ss.condition.op != TOKerror)
+            if (ss.condition.op != TOK.error)
             {
                 ss.error("`%s` must be of integral or string type, it is a `%s`",
                     ss.condition.toChars(), ss.condition.type.toChars());
@@ -2395,7 +2395,7 @@ else
             ss.condition = new ErrorExp();
         ss.condition = ss.condition.optimize(WANTvalue);
         ss.condition = checkGC(sc, ss.condition);
-        if (ss.condition.op == TOKerror)
+        if (ss.condition.op == TOK.error)
             conditionError = true;
 
         bool needswitcherror = false;
@@ -2622,12 +2622,12 @@ else
             Expression e = cs.exp;
             // Remove all the casts the user and/or implicitCastTo may introduce
             // otherwise we'd sometimes fail the check below.
-            while (e.op == TOKcast)
+            while (e.op == TOK.cast_)
                 e = (cast(CastExp)e).e1;
 
             /* This is where variables are allowed as case expressions.
              */
-            if (e.op == TOKvar)
+            if (e.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)e;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -2677,7 +2677,7 @@ else
 
             if (StringExp se = cs.exp.toStringExp())
                 cs.exp = se;
-            else if (cs.exp.op != TOKint64 && cs.exp.op != TOKerror)
+            else if (cs.exp.op != TOK.int64 && cs.exp.op != TOK.error)
             {
                 cs.error("case must be a string or an integral constant, not `%s`", cs.exp.toChars());
                 errors = true;
@@ -2728,7 +2728,7 @@ else
             result = cs.statement;
             return;
         }
-        if (errors || cs.exp.op == TOKerror)
+        if (errors || cs.exp.op == TOK.error)
             return setError();
 
         cs.lastVar = sc.lastVar;
@@ -2766,7 +2766,7 @@ else
         crs.last = crs.last.implicitCastTo(sc, sw.condition.type);
         crs.last = crs.last.ctfeInterpret();
 
-        if (crs.first.op == TOKerror || crs.last.op == TOKerror || errors)
+        if (crs.first.op == TOK.error || crs.last.op == TOK.error || errors)
         {
             if (crs.statement)
                 crs.statement.statementSemantic(sc);
@@ -2884,7 +2884,7 @@ else
             gcs.exp = gcs.exp.expressionSemantic(sc);
             gcs.exp = gcs.exp.implicitCastTo(sc, sc.sw.condition.type);
             gcs.exp = gcs.exp.optimize(WANTvalue);
-            if (gcs.exp.op == TOKerror)
+            if (gcs.exp.op == TOK.error)
                 return setError();
         }
 
@@ -2903,7 +2903,7 @@ else
             TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
 
-        if (rs.exp && rs.exp.op == TOKvar && (cast(VarExp)rs.exp).var == fd.vresult)
+        if (rs.exp && rs.exp.op == TOK.variable && (cast(VarExp)rs.exp).var == fd.vresult)
         {
             // return vresult;
             if (sc.fes)
@@ -2940,7 +2940,7 @@ else
             rs.error("return statements cannot be in contracts");
             errors = true;
         }
-        if (sc.os && sc.os.tok != TOKon_scope_failure)
+        if (sc.os && sc.os.tok != TOK.onScopeFailure)
         {
             rs.error("return statements cannot be in `%s` bodies", Token.toChars(sc.os.tok));
             errors = true;
@@ -2977,7 +2977,7 @@ else
             rs.exp = rs.exp.expressionSemantic(sc);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-            if (rs.exp.op == TOKtype)
+            if (rs.exp.op == TOK.type)
                 rs.exp = resolveAliasThis(sc, rs.exp);
 
             rs.exp = resolveProperties(sc, rs.exp);
@@ -2993,7 +2993,7 @@ else
 
             // Extract side-effect part
             rs.exp = Expression.extractLast(rs.exp, &e0);
-            if (rs.exp.op == TOKcall)
+            if (rs.exp.op == TOK.call)
                 rs.exp = valueNoDtor(rs.exp);
 
             if (e0)
@@ -3047,7 +3047,7 @@ else
                     else if (m1 && !m2)
                     {
                     }
-                    else if (rs.exp.op != TOKerror)
+                    else if (rs.exp.op != TOK.error)
                     {
                         rs.error("mismatched function return type inference of `%s` and `%s`", rs.exp.type.toChars(), tret.toChars());
                         errors = true;
@@ -3082,7 +3082,7 @@ else
             }
 
             // handle NRVO
-            if (fd.nrvo_can && rs.exp.op == TOKvar)
+            if (fd.nrvo_can && rs.exp.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)rs.exp;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -3284,7 +3284,7 @@ else
         }
         else if (!sc.sbreak)
         {
-            if (sc.os && sc.os.tok != TOKon_scope_failure)
+            if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
                 bs.error("break is not inside `%s` bodies", Token.toChars(sc.os.tok));
             }
@@ -3368,7 +3368,7 @@ else
         }
         else if (!sc.scontinue)
         {
-            if (sc.os && sc.os.tok != TOKon_scope_failure)
+            if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
                 cs.error("continue is not inside `%s` bodies", Token.toChars(sc.os.tok));
             }
@@ -3397,7 +3397,7 @@ else
             ss.exp = resolveProperties(sc, ss.exp);
             ss.exp = ss.exp.optimize(WANTvalue);
             ss.exp = checkGC(sc, ss.exp);
-            if (ss.exp.op == TOKerror)
+            if (ss.exp.op == TOK.error)
             {
                 if (ss._body)
                     ss._body = ss._body.statementSemantic(sc);
@@ -3519,15 +3519,15 @@ else
         ws.exp = resolveProperties(sc, ws.exp);
         ws.exp = ws.exp.optimize(WANTvalue);
         ws.exp = checkGC(sc, ws.exp);
-        if (ws.exp.op == TOKerror)
+        if (ws.exp.op == TOK.error)
             return setError();
-        if (ws.exp.op == TOKscope)
+        if (ws.exp.op == TOK.scope_)
         {
             sym = new WithScopeSymbol(ws);
             sym.parent = sc.scopesym;
             sym.endlinnum = ws.endloc.linnum;
         }
-        else if (ws.exp.op == TOKtype)
+        else if (ws.exp.op == TOK.type)
         {
             Dsymbol s = (cast(TypeExp)ws.exp).type.toDsymbol(sc);
             if (!s || !s.isScopeDsymbol())
@@ -3751,12 +3751,12 @@ else
 
     override void visit(OnScopeStatement oss)
     {
-        if (oss.tok != TOKon_scope_exit)
+        if (oss.tok != TOK.onScopeExit)
         {
             // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
             // so the generated catch block cannot be placed in finally block.
             // See also Catch::semantic.
-            if (sc.os && sc.os.tok != TOKon_scope_failure)
+            if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
                 // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
                 oss.error("cannot put `%s` statement inside `%s`", Token.toChars(oss.tok), Token.toChars(sc.os.tok));
@@ -3772,7 +3772,7 @@ else
         sc = sc.push();
         sc.tf = null;
         sc.os = oss;
-        if (oss.tok != TOKon_scope_failure)
+        if (oss.tok != TOK.onScopeFailure)
         {
             // Jump out from scope(failure) block is allowed.
             sc.sbreak = null;
@@ -3802,7 +3802,7 @@ else
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
         fd.hasReturnExp |= 2;
 
-        if (ts.exp.op == TOKnew)
+        if (ts.exp.op == TOK.new_)
         {
             NewExp ne = cast(NewExp)ts.exp;
             ne.thrownew = true;
@@ -3811,7 +3811,7 @@ else
         ts.exp = ts.exp.expressionSemantic(sc);
         ts.exp = resolveProperties(sc, ts.exp);
         ts.exp = checkGC(sc, ts.exp);
-        if (ts.exp.op == TOKerror)
+        if (ts.exp.op == TOK.error)
             return setError();
 
         checkThrowEscape(sc, ts.exp, false);
@@ -3972,7 +3972,7 @@ void catchSemantic(Catch c, Scope* sc)
 {
     //printf("Catch::semantic(%s)\n", ident.toChars());
 
-    if (sc.os && sc.os.tok != TOKon_scope_failure)
+    if (sc.os && sc.os.tok != TOK.onScopeFailure)
     {
         // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
         error(c.loc, "cannot put catch statement inside `%s`", Token.toChars(sc.os.tok));
