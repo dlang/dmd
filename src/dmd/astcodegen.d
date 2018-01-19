@@ -33,7 +33,7 @@ struct ASTCodegen
     public import dmd.typesem;
     public import dmd.ctfeexpr;
 
-/*
+
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
@@ -59,5 +59,5 @@ struct ASTCodegen
     alias isType                    = dmd.dtemplate.isType;
     alias isExpression              = dmd.dtemplate.isExpression;
     alias isTuple                   = dmd.dtemplate.isTuple;
-*/
+
 }
