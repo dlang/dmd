@@ -14,6 +14,7 @@ module dmd.traits;
 
 import core.stdc.stdio;
 import core.stdc.string;
+
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.canthrow;
@@ -442,6 +443,51 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     IntegerExp False()
     {
         return new IntegerExp(e.loc, false, Type.tbool);
+    }
+
+    /**
+       Gets the function type from a given AST node
+       if the node is a function of some sort.
+
+     Params:
+        o = an AST node to check for a `TypeFunction`
+        fdp = optional pointer to a function declararion, to be set
+          if `o` is a function declarartion.
+
+     Returns:
+        a type node if `o` is a declaration of
+            a delegate, function, function-pointer
+          or a variable of the former.  Otherwise, `null`.
+    */
+    static TypeFunction toTypeFunction(RootObject o, FuncDeclaration* fdp = null)
+    {
+        auto s = getDsymbolWithoutExpCtx(o);
+        auto t = isType(o);
+        TypeFunction tf = null;
+
+        if (s)
+        {
+            auto fd = s.isFuncDeclaration();
+            if (fd)
+            {
+                t = fd.type;
+                if (fdp)
+                    *fdp = fd;
+            }
+            else if (auto vd = s.isVarDeclaration())
+                t = vd.type;
+        }
+        if (t)
+        {
+            if (t.ty == Tfunction)
+                tf = cast(TypeFunction)t;
+            else if (t.ty == Tdelegate)
+                tf = cast(TypeFunction)t.nextOf();
+            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
+                tf = cast(TypeFunction)t.nextOf();
+        }
+
+        return tf;
     }
 
     IntegerExp isX(T)(bool function(T) fp)
@@ -990,26 +1036,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 1)
             return dimError(1);
 
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-        auto t = isType(o);
-        TypeFunction tf = null;
-        if (s)
-        {
-            if (auto fd = s.isFuncDeclaration())
-                t = fd.type;
-            else if (auto vd = s.isVarDeclaration())
-                t = vd.type;
-        }
-        if (t)
-        {
-            if (t.ty == Tfunction)
-                tf = cast(TypeFunction)t;
-            else if (t.ty == Tdelegate)
-                tf = cast(TypeFunction)t.nextOf();
-            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
-                tf = cast(TypeFunction)t.nextOf();
-        }
+        TypeFunction tf = toTypeFunction((*e.args)[0]);
+
         if (!tf)
         {
             e.error("first argument is not a function");
@@ -1040,17 +1068,10 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         LINK link;
         int varargs;
         auto o = (*e.args)[0];
-        auto t = isType(o);
-        TypeFunction tf = null;
-        if (t)
-        {
-            if (t.ty == Tfunction)
-                tf = cast(TypeFunction)t;
-            else if (t.ty == Tdelegate)
-                tf = cast(TypeFunction)t.nextOf();
-            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
-                tf = cast(TypeFunction)t.nextOf();
-        }
+
+        FuncDeclaration fd;
+        TypeFunction tf = toTypeFunction(o, &fd);
+
         if (tf)
         {
             link = tf.linkage;
@@ -1058,9 +1079,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else
         {
-            auto s = getDsymbol(o);
-            FuncDeclaration fd;
-            if (!s || (fd = s.isFuncDeclaration()) is null)
+            if (!fd)
             {
                 e.error("argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
                 return new ErrorExp();
@@ -1090,19 +1109,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (dim != 2)
             return dimError(2);
 
-        auto o1 = (*e.args)[1];
         auto o = (*e.args)[0];
-        auto t = isType(o);
-        TypeFunction tf = null;
-        if (t)
-        {
-            if (t.ty == Tfunction)
-                tf = cast(TypeFunction)t;
-            else if (t.ty == Tdelegate)
-                tf = cast(TypeFunction)t.nextOf();
-            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
-                tf = cast(TypeFunction)t.nextOf();
-        }
+        auto o1 = (*e.args)[1];
+
+        FuncDeclaration fd;
+        TypeFunction tf = toTypeFunction(o, &fd);
+
         Parameters* fparams;
         if (tf)
         {
@@ -1110,9 +1122,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         else
         {
-            auto s = getDsymbol(o);
-            FuncDeclaration fd;
-            if (!s || (fd = s.isFuncDeclaration()) is null)
+            if (!fd)
             {
                 e.error("first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function",
                     o.toChars(), o1.toChars());
@@ -1192,17 +1202,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         LINK link;
         auto o = (*e.args)[0];
-        auto t = isType(o);
-        TypeFunction tf = null;
-        if (t)
-        {
-            if (t.ty == Tfunction)
-                tf = cast(TypeFunction)t;
-            else if (t.ty == Tdelegate)
-                tf = cast(TypeFunction)t.nextOf();
-            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
-                tf = cast(TypeFunction)t.nextOf();
-        }
+
+        TypeFunction tf = toTypeFunction(o);
+
         if (tf)
             link = tf.linkage;
         else
