@@ -2321,16 +2321,15 @@ extern (C++) final class TypeDeduced : Type
 /*************************************************
  * Given function arguments, figure out which template function
  * to expand, and return matching result.
- * Input:
- *      m               matching result
- *      dstart          the root of overloaded function templates
- *      loc             instantiation location
- *      sc              instantiation scope
- *      tiargs          initial list of template arguments
- *      tthis           if !NULL, the 'this' pointer argument
- *      fargs           arguments to function
- *      failedIndex     address to store argument index of first type mismatch
- *      pMessage        address to store error message, or null
+ * Params:
+ *      m           = matching result
+ *      dstart      = the root of overloaded function templates
+ *      loc         = instantiation location
+ *      sc          = instantiation scope
+ *      tiargs      = initial list of template arguments
+ *      tthis       = if !NULL, the 'this' pointer argument
+ *      fargs       = arguments to function
+ *      pMessage    = address to store error message, or null
  */
 void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
     Type tthis, Expressions* fargs, const(char)** pMessage = null)
