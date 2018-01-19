@@ -1823,7 +1823,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
             if (ce.op == TOK.type)
             {
                 Type t = (cast(TypeExp)ce).type;
-                if (t.ty == Ttuple)
+                if (t.ty == Type.Kind.tuple)
                 {
                     type = cast(TypeTuple)t;
                     goto L1;
@@ -1847,7 +1847,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 }
-                else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
+                else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Type.Kind.struct_ || t.ty == Type.Kind.class_))
                 {
                     // Look for opDollar
                     assert(exp.op == TOK.array || exp.op == TOK.slice);
@@ -1900,7 +1900,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     if (!e.type)
                         exp.error("`%s` has no value", e.toChars());
                     t = e.type.toBasetype();
-                    if (t && t.ty == Tfunction)
+                    if (t && t.ty == Type.Kind.function_)
                         e = new CallExp(e.loc, e);
                     v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;

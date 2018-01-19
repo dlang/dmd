@@ -119,9 +119,9 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
     {
         //printf("StructInitializer::semantic(t = %s) %s\n", t.toChars(), toChars());
         t = t.toBasetype();
-        if (t.ty == Tsarray && t.nextOf().toBasetype().ty == Tstruct)
+        if (t.ty == Type.Kind.staticArray && t.nextOf().toBasetype().ty == Type.Kind.struct_)
             t = t.nextOf().toBasetype();
-        if (t.ty == Tstruct)
+        if (t.ty == Type.Kind.struct_)
         {
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.ctor)
@@ -226,9 +226,9 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             result = ie.initializerSemantic(sc, t, needInterpret);
             return;
         }
-        else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
+        else if ((t.ty == Type.Kind.delegate_ || t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.function_) && i.value.dim == 0)
         {
-            TOK tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
+            TOK tok = (t.ty == Type.Kind.delegate_) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
              */
             auto parameters = new Parameters();
@@ -261,18 +261,18 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         t = t.toBasetype();
         switch (t.ty)
         {
-        case Tsarray:
-        case Tarray:
+        case Type.Kind.staticArray:
+        case Type.Kind.array:
             break;
-        case Tvector:
+        case Type.Kind.vector:
             t = (cast(TypeVector)t).basetype;
             break;
-        case Taarray:
-        case Tstruct: // consider implicit constructor call
+        case Type.Kind.associativeArray:
+        case Type.Kind.struct_: // consider implicit constructor call
             {
                 Expression e;
                 // note: MyStruct foo = [1:2, 3:4] is correct code if MyStruct has a this(int[int])
-                if (t.ty == Taarray || i.isAssociativeArray())
+                if (t.ty == Type.Kind.associativeArray || i.isAssociativeArray())
                     e = i.toAssocArrayLiteral();
                 else
                     e = i.initializerToExpression();
@@ -286,8 +286,8 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 result = ei.initializerSemantic(sc, t, needInterpret);
                 return;
             }
-        case Tpointer:
-            if (t.nextOf().ty != Tfunction)
+        case Type.Kind.pointer:
+            if (t.nextOf().ty != Type.Kind.function_)
                 break;
             goto default;
         default:
@@ -352,7 +352,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             if (length > i.dim)
                 i.dim = length;
         }
-        if (t.ty == Tsarray)
+        if (t.ty == Type.Kind.staticArray)
         {
             uinteger_t edim = (cast(TypeSArray)t).dim.toInteger();
             if (i.dim > edim)
@@ -419,7 +419,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             result = i; // Failed, suppress duplicate error messages
             return;
         }
-        if (i.exp.type.ty == Ttuple && (cast(TypeTuple)i.exp.type).arguments.dim == 0)
+        if (i.exp.type.ty == Type.Kind.tuple && (cast(TypeTuple)i.exp.type).arguments.dim == 0)
         {
             Type et = i.exp.type;
             i.exp = new TupleExp(i.exp.loc, new Expressions());
@@ -451,14 +451,14 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
          * Allow this by doing an explicit cast, which will lengthen the string
          * literal.
          */
-        if (i.exp.op == TOK.string_ && tb.ty == Tsarray)
+        if (i.exp.op == TOK.string_ && tb.ty == Type.Kind.staticArray)
         {
             StringExp se = cast(StringExp)i.exp;
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray) &&
-                (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
+                (typeb.ty == Type.Kind.array || typeb.ty == Type.Kind.staticArray) &&
+                (tynto == Type.Kind.char_ || tynto == Type.Kind.wchar_ || tynto == Type.Kind.dchar_) &&
                 se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
             {
                 i.exp = se.castTo(sc, t);
@@ -466,7 +466,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             }
         }
         // Look for implicit constructor call
-        if (tb.ty == Tstruct && !(ti.ty == Tstruct && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !i.exp.implicitConvTo(t))
+        if (tb.ty == Type.Kind.struct_ && !(ti.ty == Type.Kind.struct_ && tb.toDsymbol(sc) == ti.toDsymbol(sc)) && !i.exp.implicitConvTo(t))
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ctor)
@@ -485,7 +485,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         }
         // Look for the case of statically initializing an array
         // with a single member.
-        if (tb.ty == Tsarray && !tb.nextOf().equals(ti.toBasetype().nextOf()) && i.exp.implicitConvTo(tb.nextOf()))
+        if (tb.ty == Type.Kind.staticArray && !tb.nextOf().equals(ti.toBasetype().nextOf()) && i.exp.implicitConvTo(tb.nextOf()))
         {
             /* If the variable is not actually used in compile time, array creation is
              * redundant. So delay it until invocation of toExpression() or toDt().
@@ -500,7 +500,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         {
             // Look for mismatch of compile-time known length to emit
             // better diagnostic message, as same as AssignExp::semantic.
-            if (tb.ty == Tsarray && i.exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCH.nomatch)
+            if (tb.ty == Type.Kind.staticArray && i.exp.implicitConvTo(tb.nextOf().arrayOf()) > MATCH.nomatch)
             {
                 uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
                 uinteger_t dim2 = dim1;
@@ -757,19 +757,19 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             t = init.type.toBasetype();
             switch (t.ty)
             {
-            case Tvector:
+            case Type.Kind.vector:
                 t = (cast(TypeVector)t).basetype;
-                goto case Tsarray;
+                goto case Type.Kind.staticArray;
 
-            case Tsarray:
+            case Type.Kind.staticArray:
                 uinteger_t adim = (cast(TypeSArray)t).dim.toInteger();
                 if (adim >= amax)
                     goto Lno;
                 edim = cast(uint)adim;
                 break;
 
-            case Tpointer:
-            case Tarray:
+            case Type.Kind.pointer:
+            case Type.Kind.array:
                 edim = init.dim;
                 break;
 
@@ -838,7 +838,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             if (t)
             {
                 Type tn = t.nextOf().toBasetype();
-                if (tn.ty == Tsarray)
+                if (tn.ty == Type.Kind.staticArray)
                 {
                     const dim = cast(size_t)(cast(TypeSArray)tn).dim.toInteger();
                     Type te = tn.nextOf().toBasetype();
@@ -885,7 +885,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
             Type tb = itype.toBasetype();
             Expression e = (i.exp.op == TOK.construct || i.exp.op == TOK.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
-            if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
+            if (tb.ty == Type.Kind.staticArray && e.implicitConvTo(tb.nextOf()))
             {
                 TypeSArray tsa = cast(TypeSArray)tb;
                 size_t d = cast(size_t)tsa.dim.toInteger();

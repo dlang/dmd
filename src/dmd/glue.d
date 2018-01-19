@@ -738,11 +738,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.semanticRun >= PASS.obj) // if toObjFile() already run
         return;
 
-    if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next is null)
+    if (fd.type && fd.type.ty == Type.Kind.function_ && (cast(TypeFunction)fd.type).next is null)
         return;
 
     // If errors occurred compiling it, such as https://issues.dlang.org/show_bug.cgi?id=6118
-    if (fd.type && fd.type.ty == Tfunction && (cast(TypeFunction)fd.type).next.ty == Terror)
+    if (fd.type && fd.type.ty == Type.Kind.function_ && (cast(TypeFunction)fd.type).next.ty == Type.Kind.error)
         return;
 
     if (fd.semantic3Errors)
@@ -990,7 +990,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
     int reverse = tyrevfunc(s.Stype.Tty);
 
-    assert(fd.type.ty == Tfunction);
+    assert(fd.type.ty == Type.Kind.function_);
     TypeFunction tf = cast(TypeFunction)fd.type;
     RET retmethod = retStyle(tf);
     if (retmethod == RET.stack)
@@ -1377,78 +1377,78 @@ uint totym(Type tx)
     uint t;
     switch (tx.ty)
     {
-        case Tvoid:     t = TYvoid;     break;
-        case Tint8:     t = TYschar;    break;
-        case Tuns8:     t = TYuchar;    break;
-        case Tint16:    t = TYshort;    break;
-        case Tuns16:    t = TYushort;   break;
-        case Tint32:    t = TYint;      break;
-        case Tuns32:    t = TYuint;     break;
-        case Tint64:    t = TYllong;    break;
-        case Tuns64:    t = TYullong;   break;
-        case Tfloat32:  t = TYfloat;    break;
-        case Tfloat64:  t = TYdouble;   break;
-        case Tfloat80:  t = TYldouble;  break;
-        case Timaginary32: t = TYifloat; break;
-        case Timaginary64: t = TYidouble; break;
-        case Timaginary80: t = TYildouble; break;
-        case Tcomplex32: t = TYcfloat;  break;
-        case Tcomplex64: t = TYcdouble; break;
-        case Tcomplex80: t = TYcldouble; break;
-        case Tbool:     t = TYbool;     break;
-        case Tchar:     t = TYchar;     break;
-        case Twchar:    t = TYwchar_t;  break;
-        case Tdchar:
+        case Type.Kind.void_:     t = TYvoid;     break;
+        case Type.Kind.int8:     t = TYschar;    break;
+        case Type.Kind.uint8:     t = TYuchar;    break;
+        case Type.Kind.int16:    t = TYshort;    break;
+        case Type.Kind.uint16:    t = TYushort;   break;
+        case Type.Kind.int32:    t = TYint;      break;
+        case Type.Kind.uint32:    t = TYuint;     break;
+        case Type.Kind.int64:    t = TYllong;    break;
+        case Type.Kind.uint64:    t = TYullong;   break;
+        case Type.Kind.float32:  t = TYfloat;    break;
+        case Type.Kind.float64:  t = TYdouble;   break;
+        case Type.Kind.float80:  t = TYldouble;  break;
+        case Type.Kind.imaginary32: t = TYifloat; break;
+        case Type.Kind.imaginary64: t = TYidouble; break;
+        case Type.Kind.imaginary80: t = TYildouble; break;
+        case Type.Kind.complex32: t = TYcfloat;  break;
+        case Type.Kind.complex64: t = TYcdouble; break;
+        case Type.Kind.complex80: t = TYcldouble; break;
+        case Type.Kind.bool_:     t = TYbool;     break;
+        case Type.Kind.char_:     t = TYchar;     break;
+        case Type.Kind.wchar_:    t = TYwchar_t;  break;
+        case Type.Kind.dchar_:
             t = (global.params.symdebug == 1 || !global.params.isWindows) ? TYdchar : TYulong;
             break;
 
-        case Taarray:   t = TYaarray;   break;
-        case Tclass:
-        case Treference:
-        case Tpointer:  t = TYnptr;     break;
-        case Tdelegate: t = TYdelegate; break;
-        case Tarray:    t = TYdarray;   break;
-        case Tsarray:   t = TYstruct;   break;
+        case Type.Kind.associativeArray:   t = TYaarray;   break;
+        case Type.Kind.class_:
+        case Type.Kind.reference:
+        case Type.Kind.pointer:  t = TYnptr;     break;
+        case Type.Kind.delegate_: t = TYdelegate; break;
+        case Type.Kind.array:    t = TYdarray;   break;
+        case Type.Kind.staticArray:   t = TYstruct;   break;
 
-        case Tstruct:
+        case Type.Kind.struct_:
             t = TYstruct;
             if (tx.toDsymbol(null).ident == Id.__c_long_double)
                 t = TYdouble;
             break;
 
-        case Tenum:
+        case Type.Kind.enum_:
             t = totym(tx.toBasetype());
             break;
 
-        case Tident:
-        case Ttypeof:
+        case Type.Kind.identifier:
+        case Type.Kind.typeof_:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
             error(Loc(), "forward reference of `%s`", tx.toChars());
             t = TYint;
             break;
 
-        case Tnull:
+        case Type.Kind.null_:
             t = TYnptr;
             break;
 
-        case Tvector:
+        case Type.Kind.vector:
         {
             TypeVector tv = cast(TypeVector)tx;
             TypeBasic tb = tv.elementType();
             const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
             switch (tb.ty)
             {
-                case Tvoid:
-                case Tint8:     t = s32 ? TYschar32  : TYschar16;  break;
-                case Tuns8:     t = s32 ? TYuchar32  : TYuchar16;  break;
-                case Tint16:    t = s32 ? TYshort16  : TYshort8;   break;
-                case Tuns16:    t = s32 ? TYushort16 : TYushort8;  break;
-                case Tint32:    t = s32 ? TYlong8    : TYlong4;    break;
-                case Tuns32:    t = s32 ? TYulong8   : TYulong4;   break;
-                case Tint64:    t = s32 ? TYllong4   : TYllong2;   break;
-                case Tuns64:    t = s32 ? TYullong4  : TYullong2;  break;
-                case Tfloat32:  t = s32 ? TYfloat8   : TYfloat4;   break;
-                case Tfloat64:  t = s32 ? TYdouble4  : TYdouble2;  break;
+                case Type.Kind.void_:
+                case Type.Kind.int8:     t = s32 ? TYschar32  : TYschar16;  break;
+                case Type.Kind.uint8:     t = s32 ? TYuchar32  : TYuchar16;  break;
+                case Type.Kind.int16:    t = s32 ? TYshort16  : TYshort8;   break;
+                case Type.Kind.uint16:    t = s32 ? TYushort16 : TYushort8;  break;
+                case Type.Kind.int32:    t = s32 ? TYlong8    : TYlong4;    break;
+                case Type.Kind.uint32:    t = s32 ? TYulong8   : TYulong4;   break;
+                case Type.Kind.int64:    t = s32 ? TYllong4   : TYllong2;   break;
+                case Type.Kind.uint64:    t = s32 ? TYullong4  : TYullong2;  break;
+                case Type.Kind.float32:  t = s32 ? TYfloat8   : TYfloat4;   break;
+                case Type.Kind.float64:  t = s32 ? TYdouble4  : TYdouble2;  break;
                 default:
                     assert(0);
             }
@@ -1456,7 +1456,7 @@ uint totym(Type tx)
             break;
         }
 
-        case Tfunction:
+        case Type.Kind.function_:
         {
             TypeFunction tf = cast(TypeFunction)tx;
             final switch (tf.linkage)
@@ -1534,7 +1534,7 @@ uint totym(Type tx)
 
 Symbol *toSymbol(Type t)
 {
-    if (t.ty == Tclass)
+    if (t.ty == Type.Kind.class_)
     {
         return toSymbol((cast(TypeClass)t).sym);
     }

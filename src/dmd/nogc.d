@@ -68,7 +68,7 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        if (e.type.ty != Tarray || !e.elements || !e.elements.dim)
+        if (e.type.ty != Type.Kind.array || !e.elements || !e.elements.dim)
             return;
         if (f.setGC())
         {
@@ -130,13 +130,13 @@ public:
         AggregateDeclaration ad = null;
         switch (tb.ty)
         {
-        case Tclass:
+        case Type.Kind.class_:
             ad = (cast(TypeClass)tb).sym;
             break;
 
-        case Tpointer:
+        case Type.Kind.pointer:
             tb = (cast(TypePointer)tb).next.toBasetype();
-            if (tb.ty == Tstruct)
+            if (tb.ty == Type.Kind.struct_)
                 ad = (cast(TypeStruct)tb).sym;
             break;
 
@@ -159,7 +159,7 @@ public:
     override void visit(IndexExp e)
     {
         Type t1b = e.e1.type.toBasetype();
-        if (t1b.ty == Taarray)
+        if (t1b.ty == Type.Kind.associativeArray)
         {
             if (f.setGC())
             {
@@ -215,7 +215,7 @@ public:
 extern (C++) Expression checkGC(Scope* sc, Expression e)
 {
     FuncDeclaration f = sc.func;
-    if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) && (f.type.ty == Tfunction && (cast(TypeFunction)f.type).isnogc || (f.flags & FUNCFLAG.nogcInprocess) || global.params.vgc))
+    if (e && e.op != TOK.error && f && sc.intypeof != 1 && !(sc.flags & SCOPE.ctfe) && (f.type.ty == Type.Kind.function_ && (cast(TypeFunction)f.type).isnogc || (f.flags & FUNCFLAG.nogcInprocess) || global.params.vgc))
     {
         scope NOGCVisitor gcv = new NOGCVisitor(f);
         walkPostorder(e, gcv);

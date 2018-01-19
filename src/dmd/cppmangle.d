@@ -346,7 +346,7 @@ private final class CppMangleVisitor : Visitor
     static bool isIdent_char(Identifier ident, RootObject o)
     {
         Type t = isType(o);
-        if (!t || t.ty != Tstruct)
+        if (!t || t.ty != Type.Kind.struct_)
             return false;
         Dsymbol s = (cast(TypeStruct)t).toDsymbol(null);
         if (s.ident != ident)
@@ -627,7 +627,7 @@ private final class CppMangleVisitor : Visitor
 
         if (tf.linkage == LINK.cpp) //Template args accept extern "C" symbols with special mangling
         {
-            assert(tf.ty == Tfunction);
+            assert(tf.ty == Type.Kind.function_);
             mangleFunctionParameters(tf.parameters, tf.varargs);
         }
     }
@@ -651,7 +651,7 @@ private final class CppMangleVisitor : Visitor
             static if (IN_GCC)
             {
                 // Could be a va_list, which we mangle as a pointer.
-                if (t.ty == Tsarray && Type.tvalist.ty == Tsarray)
+                if (t.ty == Type.Kind.staticArray && Type.tvalist.ty == Type.Kind.staticArray)
                 {
                     Type tb = t.toBasetype().mutableOf();
                     if (tb == Type.tvalist)
@@ -661,7 +661,7 @@ private final class CppMangleVisitor : Visitor
                     }
                 }
             }
-            if (t.ty == Tsarray)
+            if (t.ty == Type.Kind.staticArray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
                 t.error(loc, "Internal Compiler Error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
@@ -732,7 +732,7 @@ public:
      */
     void headOfType(Type t)
     {
-        if (t.ty == Tclass)
+        if (t.ty == Type.Kind.class_)
         {
             mangleTypeClass(cast(TypeClass)t, true);
         }
@@ -810,34 +810,34 @@ public:
         char p = 0;
         switch (t.ty)
         {
-            case Tvoid:                 c = 'v';        break;
-            case Tint8:                 c = 'a';        break;
-            case Tuns8:                 c = 'h';        break;
-            case Tint16:                c = 's';        break;
-            case Tuns16:                c = 't';        break;
-            case Tint32:                c = 'i';        break;
-            case Tuns32:                c = 'j';        break;
-            case Tfloat32:              c = 'f';        break;
-            case Tint64:
+            case Type.Kind.void_:                 c = 'v';        break;
+            case Type.Kind.int8:                 c = 'a';        break;
+            case Type.Kind.uint8:                 c = 'h';        break;
+            case Type.Kind.int16:                c = 's';        break;
+            case Type.Kind.uint16:                c = 't';        break;
+            case Type.Kind.int32:                c = 'i';        break;
+            case Type.Kind.uint32:                c = 'j';        break;
+            case Type.Kind.float32:              c = 'f';        break;
+            case Type.Kind.int64:
                 c = Target.c_longsize == 8 ? Target.int64Mangle : 'x';
                 break;
-            case Tuns64:
+            case Type.Kind.uint64:
                 c = Target.c_longsize == 8 ? Target.uint64Mangle : 'y';
                 break;
-            case Tint128:                c = 'n';       break;
-            case Tuns128:                c = 'o';       break;
-            case Tfloat64:               c = 'd';       break;
-            case Tfloat80:               c = 'e';       break;
-            case Tbool:                  c = 'b';       break;
-            case Tchar:                  c = 'c';       break;
-            case Twchar:                 c = 't';       break;  // unsigned short (perhaps use 'Ds' ?
-            case Tdchar:                 c = 'w';       break;  // wchar_t (UTF-32) (perhaps use 'Di' ?
-            case Timaginary32:  p = 'G'; c = 'f';       break;  // 'G' means imaginary
-            case Timaginary64:  p = 'G'; c = 'd';       break;
-            case Timaginary80:  p = 'G'; c = 'e';       break;
-            case Tcomplex32:    p = 'C'; c = 'f';       break;  // 'C' means complex
-            case Tcomplex64:    p = 'C'; c = 'd';       break;
-            case Tcomplex80:    p = 'C'; c = 'e';       break;
+            case Type.Kind.int128:                c = 'n';       break;
+            case Type.Kind.uint128:                c = 'o';       break;
+            case Type.Kind.float64:               c = 'd';       break;
+            case Type.Kind.float80:               c = 'e';       break;
+            case Type.Kind.bool_:                  c = 'b';       break;
+            case Type.Kind.char_:                  c = 'c';       break;
+            case Type.Kind.wchar_:                 c = 't';       break;  // unsigned short (perhaps use 'Ds' ?
+            case Type.Kind.dchar_:                 c = 'w';       break;  // wchar_t (UTF-32) (perhaps use 'Di' ?
+            case Type.Kind.imaginary32:  p = 'G'; c = 'f';       break;  // 'G' means imaginary
+            case Type.Kind.imaginary64:  p = 'G'; c = 'd';       break;
+            case Type.Kind.imaginary80:  p = 'G'; c = 'e';       break;
+            case Type.Kind.complex32:    p = 'C'; c = 'f';       break;  // 'C' means complex
+            case Type.Kind.complex64:    p = 'C'; c = 'd';       break;
+            case Type.Kind.complex80:    p = 'C'; c = 'e';       break;
 
             default:
                 // Handle any target-specific basic types.
@@ -873,7 +873,7 @@ public:
         }
         else
         {
-            assert(t.basetype && t.basetype.ty == Tsarray);
+            assert(t.basetype && t.basetype.ty == Type.Kind.staticArray);
             assert((cast(TypeSArray)t.basetype).dim);
             version (none)
             {

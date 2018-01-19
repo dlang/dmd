@@ -99,7 +99,7 @@ extern (C++) int callSideEffectLevel(FuncDeclaration f)
      */
     if (f.isCtorDeclaration())
         return 0;
-    assert(f.type.ty == Tfunction);
+    assert(f.type.ty == Type.Kind.function_);
     TypeFunction tf = cast(TypeFunction)f.type;
     if (tf.isnothrow)
     {
@@ -116,16 +116,16 @@ extern (C++) int callSideEffectLevel(Type t)
 {
     t = t.toBasetype();
     TypeFunction tf;
-    if (t.ty == Tdelegate)
+    if (t.ty == Type.Kind.delegate_)
         tf = cast(TypeFunction)(cast(TypeDelegate)t).next;
     else
     {
-        assert(t.ty == Tfunction);
+        assert(t.ty == Type.Kind.function_);
         tf = cast(TypeFunction)t;
     }
     tf.purityLevel();
     PURE purity = tf.purity;
-    if (t.ty == Tdelegate && purity > PURE.weak)
+    if (t.ty == Type.Kind.delegate_ && purity > PURE.weak)
     {
         if (tf.isMutable())
             purity = PURE.weak;
@@ -185,9 +185,9 @@ private bool lambdaHasSideEffect(Expression e)
             if (ce.e1.type)
             {
                 Type t = ce.e1.type.toBasetype();
-                if (t.ty == Tdelegate)
+                if (t.ty == Type.Kind.delegate_)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Type.Kind.function_ && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                 }
                 else
@@ -201,7 +201,7 @@ private bool lambdaHasSideEffect(Expression e)
             /* if:
              *  cast(classtype)func()  // because it may throw
              */
-            if (ce.to.ty == Tclass && ce.e1.op == TOK.call && ce.e1.type.ty == Tclass)
+            if (ce.to.ty == Type.Kind.class_ && ce.e1.op == TOK.call && ce.e1.type.ty == Type.Kind.class_)
                 return true;
             break;
         }
@@ -253,7 +253,7 @@ extern (C++) bool discardValue(Expression e)
         if (global.params.warnings && !global.gag)
         {
             CallExp ce = cast(CallExp)e;
-            if (e.type.ty == Tvoid)
+            if (e.type.ty == Type.Kind.void_)
             {
                 /* Don't complain about calling void-returning functions with no side-effect,
                  * because purity and nothrow are inferred, and because some of the
@@ -266,9 +266,9 @@ extern (C++) bool discardValue(Expression e)
             else if (ce.e1.type)
             {
                 Type t = ce.e1.type.toBasetype();
-                if (t.ty == Tdelegate)
+                if (t.ty == Type.Kind.delegate_)
                     t = (cast(TypeDelegate)t).next;
-                if (t.ty == Tfunction && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
+                if (t.ty == Type.Kind.function_ && (ce.f ? callSideEffectLevel(ce.f) : callSideEffectLevel(ce.e1.type)) > 0)
                 {
                     const(char)* s;
                     if (ce.f)

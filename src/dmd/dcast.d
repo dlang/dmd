@@ -90,7 +90,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 return;
             }
 
-            if (t.ty != Terror && e.type.ty != Terror)
+            if (t.ty != Type.Kind.error && e.type.ty != Type.Kind.error)
             {
                 if (!t.deco)
                 {
@@ -142,7 +142,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
             visit(cast(Expression)e);
 
             Type tb = result.type.toBasetype();
-            if (tb.ty == Tarray)
+            if (tb.ty == Type.Kind.array)
                 semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
         }
 
@@ -158,7 +158,7 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 ArrayLiteralExp ale = cast(ArrayLiteralExp)e.e1;
                 Type tb = t.toBasetype();
                 Type tx;
-                if (tb.ty == Tsarray)
+                if (tb.ty == Type.Kind.staticArray)
                     tx = tb.nextOf().sarrayOf(ale.elements ? ale.elements.dim : 0);
                 else
                     tx = tb.nextOf().arrayOf();
@@ -249,11 +249,11 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
         static MATCH implicitMod(Expression e, Type t, MOD mod)
         {
             Type tprime;
-            if (t.ty == Tpointer)
+            if (t.ty == Type.Kind.pointer)
                 tprime = t.nextOf().castMod(mod).pointerTo();
-            else if (t.ty == Tarray)
+            else if (t.ty == Type.Kind.array)
                 tprime = t.nextOf().castMod(mod).arrayOf();
-            else if (t.ty == Tsarray)
+            else if (t.ty == Type.Kind.staticArray)
                 tprime = t.nextOf().castMod(mod).sarrayOf(t.size() / t.nextOf().size());
             else
                 tprime = t.castMod(mod);
@@ -272,19 +272,19 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (typeb.ty != Tpointer || tb.ty != Tpointer)
+            if (typeb.ty != Type.Kind.pointer || tb.ty != Type.Kind.pointer)
                 return MATCH.nomatch;
 
             Type t1b = e.e1.type.toBasetype();
             Type t2b = e.e2.type.toBasetype();
-            if (t1b.ty == Tpointer && t2b.isintegral() && t1b.equivalent(tb))
+            if (t1b.ty == Type.Kind.pointer && t2b.isintegral() && t1b.equivalent(tb))
             {
                 // ptr + offset
                 // ptr - offset
                 MATCH m = e.e1.implicitConvTo(t);
                 return (m > MATCH.constant) ? MATCH.constant : m;
             }
-            if (t2b.ty == Tpointer && t1b.isintegral() && t2b.equivalent(tb))
+            if (t2b.ty == Type.Kind.pointer && t1b.isintegral() && t2b.equivalent(tb))
             {
                 // offset + ptr
                 MATCH m = e.e2.implicitConvTo(t);
@@ -333,32 +333,32 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             TY toty = t.toBasetype().ty;
             TY oldty = ty;
 
-            if (m == MATCH.nomatch && t.ty == Tenum)
+            if (m == MATCH.nomatch && t.ty == Type.Kind.enum_)
                 return;
 
-            if (t.ty == Tvector)
+            if (t.ty == Type.Kind.vector)
             {
                 TypeVector tv = cast(TypeVector)t;
                 TypeBasic tb = tv.elementType();
-                if (tb.ty == Tvoid)
+                if (tb.ty == Type.Kind.void_)
                     return;
                 toty = tb.ty;
             }
 
             switch (ty)
             {
-            case Tbool:
-            case Tint8:
-            case Tchar:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            case Twchar:
-                ty = Tint32;
+            case Type.Kind.bool_:
+            case Type.Kind.int8:
+            case Type.Kind.char_:
+            case Type.Kind.uint8:
+            case Type.Kind.int16:
+            case Type.Kind.uint16:
+            case Type.Kind.wchar_:
+                ty = Type.Kind.int32;
                 break;
 
-            case Tdchar:
-                ty = Tuns32;
+            case Type.Kind.dchar_:
+                ty = Type.Kind.uint32;
                 break;
 
             default:
@@ -369,68 +369,68 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             dinteger_t value = e.toInteger();
             switch (toty)
             {
-            case Tbool:
+            case Type.Kind.bool_:
                 if ((value & 1) != value)
                     return;
                 break;
 
-            case Tint8:
-                if (ty == Tuns64 && value & ~0x7FU)
+            case Type.Kind.int8:
+                if (ty == Type.Kind.uint64 && value & ~0x7FU)
                     return;
                 else if (cast(byte)value != value)
                     return;
                 break;
 
-            case Tchar:
-                if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
+            case Type.Kind.char_:
+                if ((oldty == Type.Kind.wchar_ || oldty == Type.Kind.dchar_) && value > 0x7F)
                     return;
-                goto case Tuns8;
-            case Tuns8:
+                goto case Type.Kind.uint8;
+            case Type.Kind.uint8:
                 //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
                 if (cast(ubyte)value != value)
                     return;
                 break;
 
-            case Tint16:
-                if (ty == Tuns64 && value & ~0x7FFFU)
+            case Type.Kind.int16:
+                if (ty == Type.Kind.uint64 && value & ~0x7FFFU)
                     return;
                 else if (cast(short)value != value)
                     return;
                 break;
 
-            case Twchar:
-                if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
+            case Type.Kind.wchar_:
+                if (oldty == Type.Kind.dchar_ && value > 0xD7FF && value < 0xE000)
                     return;
-                goto case Tuns16;
-            case Tuns16:
+                goto case Type.Kind.uint16;
+            case Type.Kind.uint16:
                 if (cast(ushort)value != value)
                     return;
                 break;
 
-            case Tint32:
-                if (ty == Tuns32)
+            case Type.Kind.int32:
+                if (ty == Type.Kind.uint32)
                 {
                 }
-                else if (ty == Tuns64 && value & ~0x7FFFFFFFU)
+                else if (ty == Type.Kind.uint64 && value & ~0x7FFFFFFFU)
                     return;
                 else if (cast(int)value != value)
                     return;
                 break;
 
-            case Tuns32:
-                if (ty == Tint32)
+            case Type.Kind.uint32:
+                if (ty == Type.Kind.int32)
                 {
                 }
                 else if (cast(uint)value != value)
                     return;
                 break;
 
-            case Tdchar:
+            case Type.Kind.dchar_:
                 if (value > 0x10FFFFU)
                     return;
                 break;
 
-            case Tfloat32:
+            case Type.Kind.float32:
                 {
                     float f;
                     if (e.type.isunsigned())
@@ -448,7 +448,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
 
-            case Tfloat64:
+            case Type.Kind.float64:
                 {
                     double f;
                     if (e.type.isunsigned())
@@ -466,7 +466,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
 
-            case Tfloat80:
+            case Type.Kind.float80:
                 {
                     if (e.type.isunsigned())
                     {
@@ -483,10 +483,10 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 }
 
-            case Tpointer:
+            case Type.Kind.pointer:
                 //printf("type = %s\n", type.toBasetype()->toChars());
                 //printf("t = %s\n", t.toBasetype()->toChars());
-                if (ty == Tpointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
+                if (ty == Type.Kind.pointer && e.type.toBasetype().nextOf().ty == t.toBasetype().nextOf().ty)
                 {
                     /* Allow things like:
                      *      const char* P = cast(char *)3;
@@ -544,7 +544,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             visit(cast(Expression)e);
             if (result != MATCH.nomatch)
                 return;
-            if (e.type.ty == t.ty && e.type.ty == Tstruct && (cast(TypeStruct)e.type).sym == (cast(TypeStruct)t).sym)
+            if (e.type.ty == t.ty && e.type.ty == Type.Kind.struct_ && (cast(TypeStruct)e.type).sym == (cast(TypeStruct)t).sym)
             {
                 result = MATCH.constant;
                 for (size_t i = 0; i < e.elements.dim; i++)
@@ -567,18 +567,18 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n", e.toChars(), e.committed, e.type.toChars(), t.toChars());
             }
-            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
+            if (!e.committed && t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.void_)
                 return;
 
-            if (e.type.ty == Tsarray || e.type.ty == Tarray || e.type.ty == Tpointer)
+            if (e.type.ty == Type.Kind.staticArray || e.type.ty == Type.Kind.array || e.type.ty == Type.Kind.pointer)
             {
                 TY tyn = e.type.nextOf().ty;
-                if (tyn == Tchar || tyn == Twchar || tyn == Tdchar)
+                if (tyn == Type.Kind.char_ || tyn == Type.Kind.wchar_ || tyn == Type.Kind.dchar_)
                 {
                     switch (t.ty)
                     {
-                    case Tsarray:
-                        if (e.type.ty == Tsarray)
+                    case Type.Kind.staticArray:
+                        if (e.type.ty == Type.Kind.staticArray)
                         {
                             TY tynto = t.nextOf().ty;
                             if (tynto == tyn)
@@ -589,7 +589,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 }
                                 return;
                             }
-                            if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                            if (tynto == Type.Kind.char_ || tynto == Type.Kind.wchar_ || tynto == Type.Kind.dchar_)
                             {
                                 if (e.committed && tynto != tyn)
                                     return;
@@ -604,16 +604,16 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                     return;
                                 }
                             }
-                            if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                            if (!e.committed && (tynto == Type.Kind.char_ || tynto == Type.Kind.wchar_ || tynto == Type.Kind.dchar_))
                             {
                                 result = MATCH.exact;
                                 return;
                             }
                         }
-                        else if (e.type.ty == Tarray)
+                        else if (e.type.ty == Type.Kind.array)
                         {
                             TY tynto = t.nextOf().ty;
-                            if (tynto == Tchar || tynto == Twchar || tynto == Tdchar)
+                            if (tynto == Type.Kind.char_ || tynto == Type.Kind.wchar_ || tynto == Type.Kind.dchar_)
                             {
                                 if (e.committed && tynto != tyn)
                                     return;
@@ -633,15 +633,15 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                                 result = MATCH.exact;
                                 return;
                             }
-                            if (!e.committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
+                            if (!e.committed && (tynto == Type.Kind.char_ || tynto == Type.Kind.wchar_ || tynto == Type.Kind.dchar_))
                             {
                                 result = MATCH.exact;
                                 return;
                             }
                         }
                         goto case; /+ fall through +/
-                    case Tarray:
-                    case Tpointer:
+                    case Type.Kind.array:
+                    case Type.Kind.pointer:
                         Type tn = t.nextOf();
                         MATCH m = MATCH.exact;
                         if (e.type.nextOf().mod != tn.mod)
@@ -655,17 +655,17 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                         {
                             switch (tn.ty)
                             {
-                            case Tchar:
+                            case Type.Kind.char_:
                                 if (e.postfix == 'w' || e.postfix == 'd')
                                     m = MATCH.convert;
                                 result = m;
                                 return;
-                            case Twchar:
+                            case Type.Kind.wchar_:
                                 if (e.postfix != 'w')
                                     m = MATCH.convert;
                                 result = m;
                                 return;
-                            case Tdchar:
+                            case Type.Kind.dchar_:
                                 if (e.postfix != 'd')
                                     m = MATCH.convert;
                                 result = m;
@@ -694,13 +694,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if ((tb.ty == Tarray || tb.ty == Tsarray) &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray))
+            if ((tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray) &&
+                (typeb.ty == Type.Kind.array || typeb.ty == Type.Kind.staticArray))
             {
                 result = MATCH.exact;
                 Type typen = typeb.nextOf().toBasetype();
 
-                if (tb.ty == Tsarray)
+                if (tb.ty == Type.Kind.staticArray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tb;
                     if (e.elements.dim != tsa.dim.toInteger())
@@ -710,7 +710,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 Type telement = tb.nextOf();
                 if (!e.elements.dim)
                 {
-                    if (typen.ty != Tvoid)
+                    if (typen.ty != Type.Kind.void_)
                         result = typen.implicitConvTo(telement);
                 }
                 else
@@ -739,13 +739,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
                 return;
             }
-            else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
+            else if (tb.ty == Type.Kind.vector && (typeb.ty == Type.Kind.array || typeb.ty == Type.Kind.staticArray))
             {
                 result = MATCH.exact;
                 // Convert array literal to vector type
                 TypeVector tv = cast(TypeVector)tb;
                 TypeSArray tbase = cast(TypeSArray)tv.basetype;
-                assert(tbase.ty == Tsarray);
+                assert(tbase.ty == Type.Kind.staticArray);
                 const edim = e.elements.dim;
                 const tbasedim = tbase.dim.toInteger();
                 if (edim > tbasedim)
@@ -782,7 +782,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (tb.ty == Taarray && typeb.ty == Taarray)
+            if (tb.ty == Type.Kind.associativeArray && typeb.ty == Type.Kind.associativeArray)
             {
                 result = MATCH.exact;
                 for (size_t i = 0; i < e.keys.dim; i++)
@@ -836,7 +836,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              */
             Type tx = e.f ? e.f.type : e.e1.type;
             tx = tx.toBasetype();
-            if (tx.ty != Tfunction)
+            if (tx.ty != Type.Kind.function_)
                 return;
             TypeFunction tf = cast(TypeFunction)tx;
 
@@ -957,7 +957,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
             // Look for pointers to functions where the functions are overloaded.
             if (e.e1.op == TOK.overloadSet &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+                (tb.ty == Type.Kind.pointer || tb.ty == Type.Kind.delegate_) && tb.nextOf().ty == Type.Kind.function_)
             {
                 OverExp eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
@@ -983,8 +983,8 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
 
             if (e.e1.op == TOK.variable &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
+                typeb.ty == Type.Kind.pointer && typeb.nextOf().ty == Type.Kind.function_ &&
+                tb.ty == Type.Kind.pointer && tb.nextOf().ty == Type.Kind.function_)
             {
                 /* I don't think this can ever happen -
                  * it should have been
@@ -1011,16 +1011,16 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type typeb = e.type.toBasetype();
 
             // Look for pointers to functions where the functions are overloaded.
-            if (typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+            if (typeb.ty == Type.Kind.pointer && typeb.nextOf().ty == Type.Kind.function_ &&
+                (tb.ty == Type.Kind.pointer || tb.ty == Type.Kind.delegate_) && tb.nextOf().ty == Type.Kind.function_)
             {
                 if (FuncDeclaration f = e.var.isFuncDeclaration())
                 {
                     f = f.overloadExactMatch(tb.nextOf());
                     if (f)
                     {
-                        if ((tb.ty == Tdelegate && (f.needThis() || f.isNested())) ||
-                            (tb.ty == Tpointer && !(f.needThis() || f.isNested())))
+                        if ((tb.ty == Type.Kind.delegate_ && (f.needThis() || f.isNested())) ||
+                            (tb.ty == Type.Kind.pointer && !(f.needThis() || f.isNested())))
                         {
                             result = MATCH.exact;
                         }
@@ -1044,7 +1044,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type typeb = e.type.toBasetype();
 
             // Look for pointers to functions where the functions are overloaded.
-            if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
+            if (typeb.ty == Type.Kind.delegate_ && tb.ty == Type.Kind.delegate_)
             {
                 if (e.func && e.func.overloadExactMatch(tb.nextOf()))
                     result = MATCH.exact;
@@ -1178,7 +1178,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 if (!fd)
                     continue;
-                if (fd.errors || fd.type.ty != Tfunction)
+                if (fd.errors || fd.type.ty != Type.Kind.function_)
                     return; // error
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (tf.purity == PURE.impure)
@@ -1255,9 +1255,9 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             /* Consider the .init expression as an argument
              */
             Type ntb = e.newtype.toBasetype();
-            if (ntb.ty == Tarray)
+            if (ntb.ty == Type.Kind.array)
                 ntb = ntb.nextOf().toBasetype();
-            if (ntb.ty == Tstruct)
+            if (ntb.ty == Type.Kind.struct_)
             {
                 // Don't allow nested structs - uplevel reference may not be convertible
                 StructDeclaration sd = (cast(TypeStruct)ntb).sym;
@@ -1269,7 +1269,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             {
                 /* Zeros are implicitly convertible, except for special cases.
                  */
-                if (ntb.ty == Tclass)
+                if (ntb.ty == Type.Kind.class_)
                 {
                     /* With new() must look at the class instance initializer.
                      */
@@ -1343,7 +1343,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (tb.ty == Tsarray && typeb.ty == Tarray)
+            if (tb.ty == Type.Kind.staticArray && typeb.ty == Type.Kind.array)
             {
                 typeb = toStaticArrayType(e);
                 if (typeb)
@@ -1356,7 +1356,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
              * same mod bits.
              */
             Type t1b = e.e1.type.toBasetype();
-            if (tb.ty == Tarray && typeb.equivalent(tb))
+            if (tb.ty == Type.Kind.array && typeb.equivalent(tb))
             {
                 Type tbn = tb.nextOf();
                 Type tx = null;
@@ -1365,16 +1365,16 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                  * is equivalent with the uniqueness of the referred data. And in here
                  * we can have arbitrary typed reference for that.
                  */
-                if (t1b.ty == Tarray)
+                if (t1b.ty == Type.Kind.array)
                     tx = tbn.arrayOf();
-                if (t1b.ty == Tpointer)
+                if (t1b.ty == Type.Kind.pointer)
                     tx = tbn.pointerTo();
 
                 /* If e.e1 is static array, at least it should be an rvalue.
                  * If not, e.e1 is a reference, and its uniqueness does not link
                  * to the uniqueness of the referred data.
                  */
-                if (t1b.ty == Tsarray && !e.e1.isLvalue())
+                if (t1b.ty == Type.Kind.staticArray && !e.e1.isLvalue())
                     tx = tbn.sarrayOf(t1b.size() / tbn.size());
 
                 if (tx)
@@ -1386,7 +1386,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
 
             // Enhancement 10724
-            if (tb.ty == Tpointer && e.e1.op == TOK.string_)
+            if (tb.ty == Type.Kind.pointer && e.e1.op == TOK.string_)
                 e.e1.accept(this);
         }
     }
@@ -1413,7 +1413,7 @@ extern (C++) Type toStaticArrayType(SliceExp e)
     else
     {
         Type t1b = e.e1.type.toBasetype();
-        if (t1b.ty == Tsarray)
+        if (t1b.ty == Type.Kind.staticArray)
             return t1b;
     }
     return null;
@@ -1477,16 +1477,16 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
              */
 
             // Fat Value types
-            const(bool) tob_isFV = (tob.ty == Tstruct || tob.ty == Tsarray);
-            const(bool) t1b_isFV = (t1b.ty == Tstruct || t1b.ty == Tsarray);
+            const(bool) tob_isFV = (tob.ty == Type.Kind.struct_ || tob.ty == Type.Kind.staticArray);
+            const(bool) t1b_isFV = (t1b.ty == Type.Kind.struct_ || t1b.ty == Type.Kind.staticArray);
 
             // Fat Reference types
-            const(bool) tob_isFR = (tob.ty == Tarray || tob.ty == Tdelegate);
-            const(bool) t1b_isFR = (t1b.ty == Tarray || t1b.ty == Tdelegate);
+            const(bool) tob_isFR = (tob.ty == Type.Kind.array || tob.ty == Type.Kind.delegate_);
+            const(bool) t1b_isFR = (t1b.ty == Type.Kind.array || t1b.ty == Type.Kind.delegate_);
 
             // Reference types
-            const(bool) tob_isR = (tob_isFR || tob.ty == Tpointer || tob.ty == Taarray || tob.ty == Tclass);
-            const(bool) t1b_isR = (t1b_isFR || t1b.ty == Tpointer || t1b.ty == Taarray || t1b.ty == Tclass);
+            const(bool) tob_isR = (tob_isFR || tob.ty == Type.Kind.pointer || tob.ty == Type.Kind.associativeArray || tob.ty == Type.Kind.class_);
+            const(bool) t1b_isR = (t1b_isFR || t1b.ty == Type.Kind.pointer || t1b.ty == Type.Kind.associativeArray || t1b.ty == Type.Kind.class_);
 
             // Arithmetic types (== valueable basic types)
             const(bool) tob_isA = (tob.isintegral() || tob.isfloating());
@@ -1497,7 +1497,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 AggregateDeclaration toad = isAggregate(tob);
                 if (t1ad != toad && t1ad.aliasthis)
                 {
-                    if (t1b.ty == Tclass && tob.ty == Tclass)
+                    if (t1b.ty == Type.Kind.class_ && tob.ty == Type.Kind.class_)
                     {
                         ClassDeclaration t1cd = t1b.isClassHandle();
                         ClassDeclaration tocd = tob.isClassHandle();
@@ -1514,7 +1514,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-            else if (tob.ty == Tvector && t1b.ty != Tvector)
+            else if (tob.ty == Type.Kind.vector && t1b.ty != Type.Kind.vector)
             {
                 //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
                 TypeVector tv = cast(TypeVector)tob;
@@ -1523,10 +1523,10 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 result = result.expressionSemantic(sc);
                 return;
             }
-            else if (tob.ty != Tvector && t1b.ty == Tvector)
+            else if (tob.ty != Type.Kind.vector && t1b.ty == Type.Kind.vector)
             {
                 // T[n] <-- __vector(U[m])
-                if (tob.ty == Tsarray)
+                if (tob.ty == Type.Kind.staticArray)
                 {
                     if (t1b.size(e.loc) == tob.size(e.loc))
                         goto Lok;
@@ -1542,7 +1542,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             // arithmetic values vs. other arithmetic values
             // arithmetic values vs. T*
-            if (tob_isA && (t1b_isA || t1b.ty == Tpointer) || t1b_isA && (tob_isA || tob.ty == Tpointer))
+            if (tob_isA && (t1b_isA || t1b.ty == Type.Kind.pointer) || t1b_isA && (tob_isA || tob.ty == Type.Kind.pointer))
             {
                 goto Lok;
             }
@@ -1566,9 +1566,9 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
             // Fat values vs. null or references
-            if (tob_isFV && (t1b.ty == Tnull || t1b_isR) || t1b_isFV && (tob.ty == Tnull || tob_isR))
+            if (tob_isFV && (t1b.ty == Type.Kind.null_ || t1b_isR) || t1b_isFV && (tob.ty == Type.Kind.null_ || tob_isR))
             {
-                if (tob.ty == Tpointer && t1b.ty == Tsarray)
+                if (tob.ty == Type.Kind.pointer && t1b.ty == Type.Kind.staticArray)
                 {
                     // T[n] sa;
                     // cast(U*)sa; // ==> cast(U*)sa.ptr;
@@ -1576,7 +1576,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     result.type = t;
                     return;
                 }
-                if (tob.ty == Tarray && t1b.ty == Tsarray)
+                if (tob.ty == Type.Kind.array && t1b.ty == Type.Kind.staticArray)
                 {
                     // T[n] sa;
                     // cast(U[])sa; // ==> cast(U[])sa[];
@@ -1606,34 +1606,34 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 goto Lok;
 
             // typeof(null) <-- non-null references or values
-            if (tob.ty == Tnull && t1b.ty != Tnull)
+            if (tob.ty == Type.Kind.null_ && t1b.ty != Type.Kind.null_)
                 goto Lfail; // https://issues.dlang.org/show_bug.cgi?id=14629
             // typeof(null) --> non-null references or arithmetic values
-            if (t1b.ty == Tnull && tob.ty != Tnull)
+            if (t1b.ty == Type.Kind.null_ && tob.ty != Type.Kind.null_)
                 goto Lok;
 
             // Check size mismatch of references.
-            // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
+            // Type.Kind.array and Type.Kind.delegate_ are (void*).sizeof*2, but others have (void*).sizeof.
             if (tob_isFR && t1b_isR || t1b_isFR && tob_isR)
             {
-                if (tob.ty == Tpointer && t1b.ty == Tarray)
+                if (tob.ty == Type.Kind.pointer && t1b.ty == Type.Kind.array)
                 {
                     // T[] da;
                     // cast(U*)da; // ==> cast(U*)da.ptr;
                     goto Lok;
                 }
-                if (tob.ty == Tpointer && t1b.ty == Tdelegate)
+                if (tob.ty == Type.Kind.pointer && t1b.ty == Type.Kind.delegate_)
                 {
                     // void delegate() dg;
                     // cast(U*)dg; // ==> cast(U*)dg.ptr;
-                    // Note that it happens even when U is a Tfunction!
+                    // Note that it happens even when U is a Type.Kind.function_!
                     e.deprecation("casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
                     goto Lok;
                 }
                 goto Lfail;
             }
 
-            if (t1b.ty == Tvoid && tob.ty != Tvoid)
+            if (t1b.ty == Type.Kind.void_ && tob.ty != Type.Kind.void_)
             {
             Lfail:
                 e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
@@ -1713,7 +1713,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
 
-            if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid)
+            if (!e.committed && t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.void_)
             {
                 e.error("cannot convert string literal to `void*`");
                 result = new ErrorExp();
@@ -1738,7 +1738,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type typeb = e.type.toBasetype();
 
             //printf("\ttype = %s\n", e.type.toChars());
-            if (tb.ty == Tdelegate && typeb.ty != Tdelegate)
+            if (tb.ty == Type.Kind.delegate_ && typeb.ty != Type.Kind.delegate_)
             {
                 visit(cast(Expression)e);
                 return;
@@ -1761,7 +1761,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
              *  cast(wchar[2])"abcd"c --> [\u6261, \u6463]
              *  cast(wchar[1])"abcd"c --> [\u6261]
              */
-            if (e.committed && tb.ty == Tsarray && typeb.ty == Tarray)
+            if (e.committed && tb.ty == Type.Kind.staticArray && typeb.ty == Type.Kind.array)
             {
                 se = cast(StringExp)e.copy();
                 d_uns64 szx = tb.nextOf().size();
@@ -1784,7 +1784,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 return;
             }
 
-            if (tb.ty != Tsarray && tb.ty != Tarray && tb.ty != Tpointer)
+            if (tb.ty != Type.Kind.staticArray && tb.ty != Type.Kind.array && tb.ty != Type.Kind.pointer)
             {
                 if (!copied)
                 {
@@ -1793,7 +1793,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 }
                 goto Lcast;
             }
-            if (typeb.ty != Tsarray && typeb.ty != Tarray && typeb.ty != Tpointer)
+            if (typeb.ty != Type.Kind.staticArray && typeb.ty != Type.Kind.array && typeb.ty != Type.Kind.pointer)
             {
                 if (!copied)
                 {
@@ -1810,7 +1810,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     se = cast(StringExp)e.copy();
                     copied = 1;
                 }
-                if (tb.ty == Tsarray)
+                if (tb.ty == Type.Kind.staticArray)
                     goto L2; // handle possible change in static array dimension
                 se.type = t;
                 result = se;
@@ -1832,12 +1832,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 int ttty = tb.nextOf().toBasetype().ty;
                 switch (X(tfty, ttty))
                 {
-                case X(Tchar, Tchar):
-                case X(Twchar, Twchar):
-                case X(Tdchar, Tdchar):
+                case X(Type.Kind.char_, Type.Kind.char_):
+                case X(Type.Kind.wchar_, Type.Kind.wchar_):
+                case X(Type.Kind.dchar_, Type.Kind.dchar_):
                     break;
 
-                case X(Tchar, Twchar):
+                case X(Type.Kind.char_, Type.Kind.wchar_):
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
@@ -1851,7 +1851,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     buffer.writeUTF16(0);
                     goto L1;
 
-                case X(Tchar, Tdchar):
+                case X(Type.Kind.char_, Type.Kind.dchar_):
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
@@ -1864,7 +1864,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     buffer.write4(0);
                     goto L1;
 
-                case X(Twchar, Tchar):
+                case X(Type.Kind.wchar_, Type.Kind.char_):
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
@@ -1878,7 +1878,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     buffer.writeUTF8(0);
                     goto L1;
 
-                case X(Twchar, Tdchar):
+                case X(Type.Kind.wchar_, Type.Kind.dchar_):
                     for (size_t u = 0; u < e.len;)
                     {
                         dchar c;
@@ -1891,7 +1891,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     buffer.write4(0);
                     goto L1;
 
-                case X(Tdchar, Tchar):
+                case X(Type.Kind.dchar_, Type.Kind.char_):
                     for (size_t u = 0; u < e.len; u++)
                     {
                         uint c = se.dstring[u];
@@ -1905,7 +1905,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     buffer.writeUTF8(0);
                     goto L1;
 
-                case X(Tdchar, Twchar):
+                case X(Type.Kind.dchar_, Type.Kind.wchar_):
                     for (size_t u = 0; u < e.len; u++)
                     {
                         uint c = se.dstring[u];
@@ -1944,7 +1944,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             assert(copied);
 
             // See if need to truncate or extend the literal
-            if (tb.ty == Tsarray)
+            if (tb.ty == Type.Kind.staticArray)
             {
                 size_t dim2 = cast(size_t)(cast(TypeSArray)tb).dim.toInteger();
                 //printf("dim from = %d, to = %d\n", (int)se.len, (int)dim2);
@@ -1992,7 +1992,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             // Look for pointers to functions where the functions are overloaded.
             if (e.e1.op == TOK.overloadSet &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+                (tb.ty == Type.Kind.pointer || tb.ty == Type.Kind.delegate_) && tb.nextOf().ty == Type.Kind.function_)
             {
                 OverExp eo = cast(OverExp)e.e1;
                 FuncDeclaration f = null;
@@ -2026,8 +2026,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
             if (e.e1.op == TOK.variable &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
+                typeb.ty == Type.Kind.pointer && typeb.nextOf().ty == Type.Kind.function_ &&
+                tb.ty == Type.Kind.pointer && tb.nextOf().ty == Type.Kind.function_)
             {
                 auto ve = cast(VarExp)e.e1;
                 auto f = ve.var.isFuncDeclaration();
@@ -2105,20 +2105,20 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if ((tb.ty == Tarray || tb.ty == Tsarray) &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray))
+            if ((tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray) &&
+                (typeb.ty == Type.Kind.array || typeb.ty == Type.Kind.staticArray))
             {
-                if (tb.nextOf().toBasetype().ty == Tvoid && typeb.nextOf().toBasetype().ty != Tvoid)
+                if (tb.nextOf().toBasetype().ty == Type.Kind.void_ && typeb.nextOf().toBasetype().ty != Type.Kind.void_)
                 {
                     // Don't do anything to cast non-void[] to void[]
                 }
-                else if (typeb.ty == Tsarray && typeb.nextOf().toBasetype().ty == Tvoid)
+                else if (typeb.ty == Type.Kind.staticArray && typeb.nextOf().toBasetype().ty == Type.Kind.void_)
                 {
                     // Don't do anything for casting void[n] to others
                 }
                 else
                 {
-                    if (tb.ty == Tsarray)
+                    if (tb.ty == Type.Kind.staticArray)
                     {
                         TypeSArray tsa = cast(TypeSArray)tb;
                         if (e.elements.dim != tsa.dim.toInteger())
@@ -2142,7 +2142,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     return;
                 }
             }
-            else if (tb.ty == Tpointer && typeb.ty == Tsarray)
+            else if (tb.ty == Type.Kind.pointer && typeb.ty == Type.Kind.staticArray)
             {
                 Type tp = typeb.nextOf().pointerTo();
                 if (!tp.equals(ae.type))
@@ -2151,12 +2151,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                     ae.type = tp;
                 }
             }
-            else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
+            else if (tb.ty == Type.Kind.vector && (typeb.ty == Type.Kind.array || typeb.ty == Type.Kind.staticArray))
             {
                 // Convert array literal to vector type
                 TypeVector tv = cast(TypeVector)tb;
                 TypeSArray tbase = cast(TypeSArray)tv.basetype;
-                assert(tbase.ty == Tsarray);
+                assert(tbase.ty == Type.Kind.staticArray);
                 const edim = e.elements.dim;
                 const tbasedim = tbase.dim.toInteger();
                 if (edim > tbasedim)
@@ -2200,8 +2200,8 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (tb.ty == Taarray && typeb.ty == Taarray &&
-                tb.nextOf().toBasetype().ty != Tvoid)
+            if (tb.ty == Type.Kind.associativeArray && typeb.ty == Type.Kind.associativeArray &&
+                tb.nextOf().toBasetype().ty != Type.Kind.void_)
             {
                 AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e.copy();
                 ae.keys = e.keys.copy();
@@ -2249,14 +2249,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
             // Look for pointers to functions where the functions are overloaded.
             if (e.hasOverloads &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
-                (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
+                typeb.ty == Type.Kind.pointer && typeb.nextOf().ty == Type.Kind.function_ &&
+                (tb.ty == Type.Kind.pointer || tb.ty == Type.Kind.delegate_) && tb.nextOf().ty == Type.Kind.function_)
             {
                 FuncDeclaration f = e.var.isFuncDeclaration();
                 f = f ? f.overloadExactMatch(tb.nextOf()) : null;
                 if (f)
                 {
-                    if (tb.ty == Tdelegate)
+                    if (tb.ty == Type.Kind.delegate_)
                     {
                         if (f.needThis() && hasThis(sc))
                         {
@@ -2326,7 +2326,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
             // Look for delegates to functions where the functions are overloaded.
-            if (typeb.ty == Tdelegate && tb.ty == Tdelegate)
+            if (typeb.ty == Type.Kind.delegate_ && tb.ty == Type.Kind.delegate_)
             {
                 if (e.func)
                 {
@@ -2405,14 +2405,14 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
-            if (e.type.equals(t) || typeb.ty != Tarray ||
-                (tb.ty != Tarray && tb.ty != Tsarray))
+            if (e.type.equals(t) || typeb.ty != Type.Kind.array ||
+                (tb.ty != Type.Kind.array && tb.ty != Type.Kind.staticArray))
             {
                 visit(cast(Expression)e);
                 return;
             }
 
-            if (tb.ty == Tarray)
+            if (tb.ty == Type.Kind.array)
             {
                 if (typeb.nextOf().equivalent(tb.nextOf()))
                 {
@@ -2427,7 +2427,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                 return;
             }
 
-            // Handle the cast from Tarray to Tsarray with CT-known slicing
+            // Handle the cast from Type.Kind.array to Type.Kind.staticArray with CT-known slicing
 
             TypeSArray tsa = cast(TypeSArray)toStaticArrayType(e);
             if (tsa && tsa.size(e.loc) == tb.size(e.loc))
@@ -2436,7 +2436,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                  *  T[a .. b] to const(T)[b-a]
                  *  T[a .. b] to U[dim] if (T.sizeof*(b-a) == U.sizeof*dim)
                  *
-                 * If a SliceExp has Tsarray, it will become lvalue.
+                 * If a SliceExp has Type.Kind.staticArray, it will become lvalue.
                  * That's handled in SliceExp::isLvalue and toLvalue
                  */
                 result = e.copy();
@@ -2450,11 +2450,11 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
                  *  cast(float[2]) [2.0, 1.0, 0.0][0..2];
                  */
                 Type t1b = e.e1.type.toBasetype();
-                if (t1b.ty == Tsarray)
+                if (t1b.ty == Type.Kind.staticArray)
                     t1b = tb.nextOf().sarrayOf((cast(TypeSArray)t1b).dim.toInteger());
-                else if (t1b.ty == Tarray)
+                else if (t1b.ty == Type.Kind.array)
                     t1b = tb.nextOf().arrayOf();
-                else if (t1b.ty == Tpointer)
+                else if (t1b.ty == Type.Kind.pointer)
                     t1b = tb.nextOf().pointerTo();
                 else
                     assert(0);
@@ -2510,7 +2510,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
         override void visit(ArrayLiteralExp ale)
         {
             Type tb = t.toBasetype();
-            if (tb.ty == Tarray || tb.ty == Tsarray)
+            if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
             {
                 Type tn = tb.nextOf();
                 if (ale.basis)
@@ -2531,7 +2531,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
         override void visit(AssocArrayLiteralExp aale)
         {
             Type tb = t.toBasetype();
-            if (tb.ty == Taarray)
+            if (tb.ty == Type.Kind.associativeArray)
             {
                 TypeAArray taa = cast(TypeAArray)tb;
                 Type ti = taa.index;
@@ -2561,7 +2561,7 @@ extern (C++) Expression inferType(Expression e, Type t, int flag = 0)
         override void visit(FuncExp fe)
         {
             //printf("FuncExp::inferType('%s'), to=%s\n", fe.type ? fe.type.toChars() : "null", t.toChars());
-            if (t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction)
+            if (t.ty == Type.Kind.delegate_ || t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.function_)
             {
                 fe.fd.treq = t;
             }
@@ -2594,7 +2594,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
     Type t2b = be.e2.type.toBasetype();
     Expression eoff;
 
-    if (t1b.ty == Tpointer && t2b.isintegral())
+    if (t1b.ty == Type.Kind.pointer && t2b.isintegral())
     {
         // Need to adjust operator by the stride
         // Replace (ptr + int) with (ptr + (int * stride))
@@ -2608,7 +2608,7 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
         be.e2.type = t;
         be.type = be.e1.type;
     }
-    else if (t2b.ty == Tpointer && t1b.isintegral())
+    else if (t2b.ty == Type.Kind.pointer && t1b.isintegral())
     {
         // Need to adjust operator by the stride
         // Replace (int + ptr) with (ptr + (int * stride))
@@ -2655,19 +2655,19 @@ extern (C++) Expression scaleFactor(BinExp be, Scope* sc)
  */
 private bool isVoidArrayLiteral(Expression e, Type other)
 {
-    while (e.op == TOK.arrayLiteral && e.type.ty == Tarray && ((cast(ArrayLiteralExp)e).elements.dim == 1))
+    while (e.op == TOK.arrayLiteral && e.type.ty == Type.Kind.array && ((cast(ArrayLiteralExp)e).elements.dim == 1))
     {
         auto ale = cast(ArrayLiteralExp)e;
         e = ale.getElement(0);
-        if (other.ty == Tsarray || other.ty == Tarray)
+        if (other.ty == Type.Kind.staticArray || other.ty == Type.Kind.array)
             other = other.nextOf();
         else
             return false;
     }
-    if (other.ty != Tsarray && other.ty != Tarray)
+    if (other.ty != Type.Kind.staticArray && other.ty != Type.Kind.array)
         return false;
     Type t = e.type;
-    return (e.op == TOK.arrayLiteral && t.ty == Tarray && t.nextOf().ty == Tvoid && (cast(ArrayLiteralExp)e).elements.dim == 0);
+    return (e.op == TOK.arrayLiteral && t.ty == Type.Kind.array && t.nextOf().ty == Type.Kind.void_ && (cast(ArrayLiteralExp)e).elements.dim == 0);
 }
 
 /**************************************
@@ -2719,7 +2719,7 @@ extern (C++) bool typeMerge(Scope* sc, TOK op, Type* pt, Expression* pe1, Expres
     assert(t2);
 
     if (t1.mod != t2.mod &&
-        t1.ty == Tenum && t2.ty == Tenum &&
+        t1.ty == Type.Kind.enum_ && t2.ty == Type.Kind.enum_ &&
         (cast(TypeEnum)t1).sym == (cast(TypeEnum)t2).sym)
     {
         ubyte mod = MODmerge(t1.mod, t2.mod);
@@ -2732,7 +2732,7 @@ Lagain:
     t2b = t2.toBasetype();
 
     TY ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
-    if (ty != Terror)
+    if (ty != Type.Kind.error)
     {
         TY ty1 = cast(TY)impcnvType1[t1b.ty][t2b.ty];
         TY ty2 = cast(TY)impcnvType2[t1b.ty][t2b.ty];
@@ -2767,16 +2767,16 @@ Lagain:
     t1 = t1b;
     t2 = t2b;
 
-    if (t1.ty == Ttuple || t2.ty == Ttuple)
+    if (t1.ty == Type.Kind.tuple || t2.ty == Type.Kind.tuple)
         goto Lincompatible;
 
     if (t1.equals(t2))
     {
         // merging can not result in new enum type
-        if (t.ty == Tenum)
+        if (t.ty == Type.Kind.enum_)
             t = t1b;
     }
-    else if ((t1.ty == Tpointer && t2.ty == Tpointer) || (t1.ty == Tdelegate && t2.ty == Tdelegate))
+    else if ((t1.ty == Type.Kind.pointer && t2.ty == Type.Kind.pointer) || (t1.ty == Type.Kind.delegate_ && t2.ty == Type.Kind.delegate_))
     {
         // Bring pointers to compatible type
         Type t1n = t1.nextOf();
@@ -2785,9 +2785,9 @@ Lagain:
         if (t1n.equals(t2n))
         {
         }
-        else if (t1n.ty == Tvoid) // pointers to void are always compatible
+        else if (t1n.ty == Type.Kind.void_) // pointers to void are always compatible
             t = t2;
-        else if (t2n.ty == Tvoid)
+        else if (t2n.ty == Type.Kind.void_)
         {
         }
         else if (t1.implicitConvTo(t2))
@@ -2798,7 +2798,7 @@ Lagain:
         {
             goto Lt1;
         }
-        else if (t1n.ty == Tfunction && t2n.ty == Tfunction)
+        else if (t1n.ty == Type.Kind.function_ && t2n.ty == Type.Kind.function_)
         {
             TypeFunction tf1 = cast(TypeFunction)t1n;
             TypeFunction tf2 = cast(TypeFunction)t2n;
@@ -2822,7 +2822,7 @@ Lagain:
                 d.trust = TRUST.trusted;
 
             Type tx = null;
-            if (t1.ty == Tdelegate)
+            if (t1.ty == Type.Kind.delegate_)
             {
                 tx = new TypeDelegate(d);
             }
@@ -2850,7 +2850,7 @@ Lagain:
             t = t1;
             goto Lagain;
         }
-        else if (t1n.ty == Tclass && t2n.ty == Tclass)
+        else if (t1n.ty == Type.Kind.class_ && t2n.ty == Type.Kind.class_)
         {
             ClassDeclaration cd1 = t1n.isClassHandle();
             ClassDeclaration cd2 = t2n.isClassHandle();
@@ -2884,7 +2884,7 @@ Lagain:
             goto Lincompatible;
         }
     }
-    else if ((t1.ty == Tsarray || t1.ty == Tarray) && (e2.op == TOK.null_ && t2.ty == Tpointer && t2.nextOf().ty == Tvoid || e2.op == TOK.arrayLiteral && t2.ty == Tsarray && t2.nextOf().ty == Tvoid && (cast(TypeSArray)t2).dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
+    else if ((t1.ty == Type.Kind.staticArray || t1.ty == Type.Kind.array) && (e2.op == TOK.null_ && t2.ty == Type.Kind.pointer && t2.nextOf().ty == Type.Kind.void_ || e2.op == TOK.arrayLiteral && t2.ty == Type.Kind.staticArray && t2.nextOf().ty == Type.Kind.void_ && (cast(TypeSArray)t2).dim.toInteger() == 0 || isVoidArrayLiteral(e2, t1)))
     {
         /*  (T[n] op void*)   => T[]
          *  (T[]  op void*)   => T[]
@@ -2895,7 +2895,7 @@ Lagain:
          */
         goto Lx1;
     }
-    else if ((t2.ty == Tsarray || t2.ty == Tarray) && (e1.op == TOK.null_ && t1.ty == Tpointer && t1.nextOf().ty == Tvoid || e1.op == TOK.arrayLiteral && t1.ty == Tsarray && t1.nextOf().ty == Tvoid && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
+    else if ((t2.ty == Type.Kind.staticArray || t2.ty == Type.Kind.array) && (e1.op == TOK.null_ && t1.ty == Type.Kind.pointer && t1.nextOf().ty == Type.Kind.void_ || e1.op == TOK.arrayLiteral && t1.ty == Type.Kind.staticArray && t1.nextOf().ty == Type.Kind.void_ && (cast(TypeSArray)t1).dim.toInteger() == 0 || isVoidArrayLiteral(e1, t2)))
     {
         /*  (void*   op T[n]) => T[]
          *  (void*   op T[])  => T[]
@@ -2906,13 +2906,13 @@ Lagain:
          */
         goto Lx2;
     }
-    else if ((t1.ty == Tsarray || t1.ty == Tarray) && (m = t1.implicitConvTo(t2)) != MATCH.nomatch)
+    else if ((t1.ty == Type.Kind.staticArray || t1.ty == Type.Kind.array) && (m = t1.implicitConvTo(t2)) != MATCH.nomatch)
     {
         // https://issues.dlang.org/show_bug.cgi?id=7285
-        // Tsarray op [x, y, ...] should to be Tsarray
+        // Type.Kind.staticArray op [x, y, ...] should to be Type.Kind.staticArray
         // https://issues.dlang.org/show_bug.cgi?id=14737
-        // Tsarray ~ [x, y, ...] should to be Tarray
-        if (t1.ty == Tsarray && e2.op == TOK.arrayLiteral && op != TOK.concatenate)
+        // Type.Kind.staticArray ~ [x, y, ...] should to be Type.Kind.array
+        if (t1.ty == Type.Kind.staticArray && e2.op == TOK.arrayLiteral && op != TOK.concatenate)
             goto Lt1;
         if (m == MATCH.constant && (op == TOK.addAssign || op == TOK.minAssign || op == TOK.mulAssign || op == TOK.divAssign || op == TOK.modAssign || op == TOK.powAssign || op == TOK.andAssign || op == TOK.orAssign || op == TOK.xorAssign))
         {
@@ -2922,15 +2922,15 @@ Lagain:
         }
         goto Lt2;
     }
-    else if ((t2.ty == Tsarray || t2.ty == Tarray) && t2.implicitConvTo(t1))
+    else if ((t2.ty == Type.Kind.staticArray || t2.ty == Type.Kind.array) && t2.implicitConvTo(t1))
     {
         // https://issues.dlang.org/show_bug.cgi?id=7285
         // https://issues.dlang.org/show_bug.cgi?id=14737
-        if (t2.ty == Tsarray && e1.op == TOK.arrayLiteral && op != TOK.concatenate)
+        if (t2.ty == Type.Kind.staticArray && e1.op == TOK.arrayLiteral && op != TOK.concatenate)
             goto Lt2;
         goto Lt1;
     }
-    else if ((t1.ty == Tsarray || t1.ty == Tarray || t1.ty == Tpointer) && (t2.ty == Tsarray || t2.ty == Tarray || t2.ty == Tpointer) && t1.nextOf().mod != t2.nextOf().mod)
+    else if ((t1.ty == Type.Kind.staticArray || t1.ty == Type.Kind.array || t1.ty == Type.Kind.pointer) && (t2.ty == Type.Kind.staticArray || t2.ty == Type.Kind.array || t2.ty == Type.Kind.pointer) && t1.nextOf().mod != t2.nextOf().mod)
     {
         /* If one is mutable and the other invariant, then retry
          * with both of them as const
@@ -2947,19 +2947,19 @@ Lagain:
         else
             mod = MODmerge(t1n.mod, t2n.mod);
 
-        if (t1.ty == Tpointer)
+        if (t1.ty == Type.Kind.pointer)
             t1 = t1n.castMod(mod).pointerTo();
         else
             t1 = t1n.castMod(mod).arrayOf();
 
-        if (t2.ty == Tpointer)
+        if (t2.ty == Type.Kind.pointer)
             t2 = t2n.castMod(mod).pointerTo();
         else
             t2 = t2n.castMod(mod).arrayOf();
         t = t1;
         goto Lagain;
     }
-    else if (t1.ty == Tclass && t2.ty == Tclass)
+    else if (t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.class_)
     {
         if (t1.mod != t2.mod)
         {
@@ -2979,7 +2979,7 @@ Lagain:
         }
         goto Lcc;
     }
-    else if (t1.ty == Tclass || t2.ty == Tclass)
+    else if (t1.ty == Type.Kind.class_ || t2.ty == Type.Kind.class_)
     {
     Lcc:
         while (1)
@@ -2990,9 +2990,9 @@ Lagain:
             if (i1 && i2)
             {
                 // We have the case of class vs. void*, so pick class
-                if (t1.ty == Tpointer)
+                if (t1.ty == Type.Kind.pointer)
                     i1 = MATCH.nomatch;
-                else if (t2.ty == Tpointer)
+                else if (t2.ty == Type.Kind.pointer)
                     i2 = MATCH.nomatch;
             }
 
@@ -3006,7 +3006,7 @@ Lagain:
                 e1 = e1.castTo(sc, t1);
                 goto Lt1;
             }
-            else if (t1.ty == Tclass && t2.ty == Tclass)
+            else if (t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.class_)
             {
                 TypeClass tc1 = cast(TypeClass)t1;
                 TypeClass tc2 = cast(TypeClass)t2;
@@ -3027,7 +3027,7 @@ Lagain:
                 else
                     goto Lincompatible;
             }
-            else if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
+            else if (t1.ty == Type.Kind.struct_ && (cast(TypeStruct)t1).sym.aliasthis)
             {
                 if (att1 && e1.type == att1)
                     goto Lincompatible;
@@ -3038,7 +3038,7 @@ Lagain:
                 t1 = e1.type;
                 continue;
             }
-            else if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
+            else if (t2.ty == Type.Kind.struct_ && (cast(TypeStruct)t2).sym.aliasthis)
             {
                 if (att2 && e2.type == att2)
                     goto Lincompatible;
@@ -3053,7 +3053,7 @@ Lagain:
                 goto Lincompatible;
         }
     }
-    else if (t1.ty == Tstruct && t2.ty == Tstruct)
+    else if (t1.ty == Type.Kind.struct_ && t2.ty == Type.Kind.struct_)
     {
         if (t1.mod != t2.mod)
         {
@@ -3120,9 +3120,9 @@ Lagain:
             goto Lagain;
         }
     }
-    else if (t1.ty == Tstruct || t2.ty == Tstruct)
+    else if (t1.ty == Type.Kind.struct_ || t2.ty == Type.Kind.struct_)
     {
-        if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.aliasthis)
+        if (t1.ty == Type.Kind.struct_ && (cast(TypeStruct)t1).sym.aliasthis)
         {
             if (att1 && e1.type == att1)
                 goto Lincompatible;
@@ -3134,7 +3134,7 @@ Lagain:
             t = t1;
             goto Lagain;
         }
-        if (t2.ty == Tstruct && (cast(TypeStruct)t2).sym.aliasthis)
+        if (t2.ty == Type.Kind.struct_ && (cast(TypeStruct)t2).sym.aliasthis)
         {
             if (att2 && e2.type == att2)
                 goto Lincompatible;
@@ -3156,21 +3156,21 @@ Lagain:
     {
         goto Lt1;
     }
-    else if (t1.ty == Tsarray && t2.ty == Tsarray && e2.implicitConvTo(t1.nextOf().arrayOf()))
+    else if (t1.ty == Type.Kind.staticArray && t2.ty == Type.Kind.staticArray && e2.implicitConvTo(t1.nextOf().arrayOf()))
     {
     Lx1:
         t = t1.nextOf().arrayOf(); // T[]
         e1 = e1.castTo(sc, t);
         e2 = e2.castTo(sc, t);
     }
-    else if (t1.ty == Tsarray && t2.ty == Tsarray && e1.implicitConvTo(t2.nextOf().arrayOf()))
+    else if (t1.ty == Type.Kind.staticArray && t2.ty == Type.Kind.staticArray && e1.implicitConvTo(t2.nextOf().arrayOf()))
     {
     Lx2:
         t = t2.nextOf().arrayOf();
         e1 = e1.castTo(sc, t);
         e2 = e2.castTo(sc, t);
     }
-    else if (t1.ty == Tvector && t2.ty == Tvector)
+    else if (t1.ty == Type.Kind.vector && t2.ty == Type.Kind.vector)
     {
         // https://issues.dlang.org/show_bug.cgi?id=13841
         // all vector types should have no common types between
@@ -3182,14 +3182,14 @@ Lagain:
 
         goto LmodCompare;
     }
-    else if (t1.ty == Tvector && t2.ty != Tvector && e2.implicitConvTo(t1))
+    else if (t1.ty == Type.Kind.vector && t2.ty != Type.Kind.vector && e2.implicitConvTo(t1))
     {
         e2 = e2.castTo(sc, t1);
         t2 = t1;
         t = t1;
         goto Lagain;
     }
-    else if (t2.ty == Tvector && t1.ty != Tvector && e1.implicitConvTo(t2))
+    else if (t2.ty == Type.Kind.vector && t1.ty != Type.Kind.vector && e1.implicitConvTo(t2))
     {
         e1 = e1.castTo(sc, t2);
         t1 = t2;
@@ -3200,7 +3200,7 @@ Lagain:
     {
         if (t1.ty != t2.ty)
         {
-            if (t1.ty == Tvector || t2.ty == Tvector)
+            if (t1.ty == Type.Kind.vector || t2.ty == Type.Kind.vector)
                 goto Lincompatible;
             e1 = integralPromotions(e1, sc);
             e2 = integralPromotions(e2, sc);
@@ -3221,7 +3221,7 @@ LmodCompare:
         e2 = e2.castTo(sc, t);
         goto Lagain;
     }
-    else if (t1.ty == Tnull && t2.ty == Tnull)
+    else if (t1.ty == Type.Kind.null_ && t2.ty == Type.Kind.null_)
     {
         ubyte mod = MODmerge(t1.mod, t2.mod);
 
@@ -3230,15 +3230,15 @@ LmodCompare:
         e2 = e2.castTo(sc, t);
         goto Lret;
     }
-    else if (t2.ty == Tnull && (t1.ty == Tpointer || t1.ty == Taarray || t1.ty == Tarray))
+    else if (t2.ty == Type.Kind.null_ && (t1.ty == Type.Kind.pointer || t1.ty == Type.Kind.associativeArray || t1.ty == Type.Kind.array))
     {
         goto Lt1;
     }
-    else if (t1.ty == Tnull && (t2.ty == Tpointer || t2.ty == Taarray || t2.ty == Tarray))
+    else if (t1.ty == Type.Kind.null_ && (t2.ty == Type.Kind.pointer || t2.ty == Type.Kind.associativeArray || t2.ty == Type.Kind.array))
     {
         goto Lt2;
     }
-    else if (t1.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e1))
+    else if (t1.ty == Type.Kind.array && isBinArrayOp(op) && isArrayOpOperand(e1))
     {
         if (e2.implicitConvTo(t1.nextOf()))
         {
@@ -3253,7 +3253,7 @@ LmodCompare:
             // e1 is left as U[], it will be handled in arrayOp() later.
             t = e2.type.arrayOf();
         }
-        else if (t2.ty == Tarray && isArrayOpOperand(e2))
+        else if (t2.ty == Type.Kind.array && isArrayOpOperand(e2))
         {
             if (t1.nextOf().implicitConvTo(t2.nextOf()))
             {
@@ -3273,7 +3273,7 @@ LmodCompare:
         else
             goto Lincompatible;
     }
-    else if (t2.ty == Tarray && isBinArrayOp(op) && isArrayOpOperand(e2))
+    else if (t2.ty == Type.Kind.array && isBinArrayOp(op) && isArrayOpOperand(e2))
     {
         if (e1.implicitConvTo(t2.nextOf()))
         {
@@ -3358,11 +3358,11 @@ extern (C++) Expression typeCombine(BinExp be, Scope* sc)
     if (be.op == TOK.min || be.op == TOK.add)
     {
         // struct+struct, and class+class are errors
-        if (t1.ty == Tstruct && t2.ty == Tstruct)
+        if (t1.ty == Type.Kind.struct_ && t2.ty == Type.Kind.struct_)
             return errorReturn();
-        else if (t1.ty == Tclass && t2.ty == Tclass)
+        else if (t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.class_)
             return errorReturn();
-        else if (t1.ty == Taarray && t2.ty == Taarray)
+        else if (t1.ty == Type.Kind.associativeArray && t2.ty == Type.Kind.associativeArray)
             return errorReturn();
     }
 
@@ -3386,21 +3386,21 @@ extern (C++) Expression integralPromotions(Expression e, Scope* sc)
     //printf("integralPromotions %s %s\n", e.toChars(), e.type.toChars());
     switch (e.type.toBasetype().ty)
     {
-    case Tvoid:
+    case Type.Kind.void_:
         e.error("void has no value");
         return new ErrorExp();
 
-    case Tint8:
-    case Tuns8:
-    case Tint16:
-    case Tuns16:
-    case Tbool:
-    case Tchar:
-    case Twchar:
+    case Type.Kind.int8:
+    case Type.Kind.uint8:
+    case Type.Kind.int16:
+    case Type.Kind.uint16:
+    case Type.Kind.bool_:
+    case Type.Kind.char_:
+    case Type.Kind.wchar_:
         e = e.castTo(sc, Type.tint32);
         break;
 
-    case Tdchar:
+    case Type.Kind.dchar_:
         e = e.castTo(sc, Type.tuns32);
         break;
 
@@ -3428,14 +3428,14 @@ void fix16997(Scope* sc, UnaExp ue)
     {
         switch (ue.e1.type.toBasetype.ty)
         {
-            case Tint8:
-            case Tuns8:
-            case Tint16:
-            case Tuns16:
-            //case Tbool:       // these operations aren't allowed on bool anyway
-            case Tchar:
-            case Twchar:
-            case Tdchar:
+            case Type.Kind.int8:
+            case Type.Kind.uint8:
+            case Type.Kind.int16:
+            case Type.Kind.uint16:
+            //case Type.Kind.bool_:       // these operations aren't allowed on bool anyway
+            case Type.Kind.char_:
+            case Type.Kind.wchar_:
+            case Type.Kind.dchar_:
                 ue.deprecation("integral promotion not done for `%s`, use '-transition=intpromote' switch or `%scast(int)(%s)`",
                     ue.toChars(), Token.toChars(ue.op), ue.e1.toChars());
                 break;
@@ -3458,9 +3458,9 @@ extern (C++) bool arrayTypeCompatible(Loc loc, Type t1, Type t2)
     t1 = t1.toBasetype().merge2();
     t2 = t2.toBasetype().merge2();
 
-    if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
+    if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray || t1.ty == Type.Kind.pointer) && (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray || t2.ty == Type.Kind.pointer))
     {
-        if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCH.constant && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCH.constant && (t1.nextOf().ty != Tvoid && t2.nextOf().ty != Tvoid))
+        if (t1.nextOf().implicitConvTo(t2.nextOf()) < MATCH.constant && t2.nextOf().implicitConvTo(t1.nextOf()) < MATCH.constant && (t1.nextOf().ty != Type.Kind.void_ && t2.nextOf().ty != Type.Kind.void_))
         {
             error(loc, "array equality comparison type mismatch, `%s` vs `%s`", t1.toChars(), t2.toChars());
         }
@@ -3480,7 +3480,7 @@ extern (C++) bool arrayTypeCompatibleWithoutCasting(Loc loc, Type t1, Type t2)
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();
 
-    if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && t2.ty == t1.ty)
+    if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray || t1.ty == Type.Kind.pointer) && t2.ty == t1.ty)
     {
         if (t1.nextOf().implicitConvTo(t2.nextOf()) >= MATCH.constant || t2.nextOf().implicitConvTo(t1.nextOf()) >= MATCH.constant)
             return true;

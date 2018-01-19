@@ -135,105 +135,6 @@ struct ASTBase
     extern (C++) __gshared const(StorageClass) STCStorageClass =
         (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ | STC.deprecated_ | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest | STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared | STC.property | STC.safe | STC.trusted | STC.system | STC.disable);
 
-    enum ENUMTY : int
-    {
-        Tarray,     // slice array, aka T[]
-        Tsarray,    // static array, aka T[dimension]
-        Taarray,    // associative array, aka T[type]
-        Tpointer,
-        Treference,
-        Tfunction,
-        Tident,
-        Tclass,
-        Tstruct,
-        Tenum,
-
-        Tdelegate,
-        Tnone,
-        Tvoid,
-        Tint8,
-        Tuns8,
-        Tint16,
-        Tuns16,
-        Tint32,
-        Tuns32,
-        Tint64,
-
-        Tuns64,
-        Tfloat32,
-        Tfloat64,
-        Tfloat80,
-        Timaginary32,
-        Timaginary64,
-        Timaginary80,
-        Tcomplex32,
-        Tcomplex64,
-        Tcomplex80,
-
-        Tbool,
-        Tchar,
-        Twchar,
-        Tdchar,
-        Terror,
-        Tinstance,
-        Ttypeof,
-        Ttuple,
-        Tslice,
-        Treturn,
-
-        Tnull,
-        Tvector,
-        Tint128,
-        Tuns128,
-        TMAX
-    }
-
-    alias Tarray = ENUMTY.Tarray;
-    alias Tsarray = ENUMTY.Tsarray;
-    alias Taarray = ENUMTY.Taarray;
-    alias Tpointer = ENUMTY.Tpointer;
-    alias Treference = ENUMTY.Treference;
-    alias Tfunction = ENUMTY.Tfunction;
-    alias Tident = ENUMTY.Tident;
-    alias Tclass = ENUMTY.Tclass;
-    alias Tstruct = ENUMTY.Tstruct;
-    alias Tenum = ENUMTY.Tenum;
-    alias Tdelegate = ENUMTY.Tdelegate;
-    alias Tnone = ENUMTY.Tnone;
-    alias Tvoid = ENUMTY.Tvoid;
-    alias Tint8 = ENUMTY.Tint8;
-    alias Tuns8 = ENUMTY.Tuns8;
-    alias Tint16 = ENUMTY.Tint16;
-    alias Tuns16 = ENUMTY.Tuns16;
-    alias Tint32 = ENUMTY.Tint32;
-    alias Tuns32 = ENUMTY.Tuns32;
-    alias Tint64 = ENUMTY.Tint64;
-    alias Tuns64 = ENUMTY.Tuns64;
-    alias Tfloat32 = ENUMTY.Tfloat32;
-    alias Tfloat64 = ENUMTY.Tfloat64;
-    alias Tfloat80 = ENUMTY.Tfloat80;
-    alias Timaginary32 = ENUMTY.Timaginary32;
-    alias Timaginary64 = ENUMTY.Timaginary64;
-    alias Timaginary80 = ENUMTY.Timaginary80;
-    alias Tcomplex32 = ENUMTY.Tcomplex32;
-    alias Tcomplex64 = ENUMTY.Tcomplex64;
-    alias Tcomplex80 = ENUMTY.Tcomplex80;
-    alias Tbool = ENUMTY.Tbool;
-    alias Tchar = ENUMTY.Tchar;
-    alias Twchar = ENUMTY.Twchar;
-    alias Tdchar = ENUMTY.Tdchar;
-    alias Terror = ENUMTY.Terror;
-    alias Tinstance = ENUMTY.Tinstance;
-    alias Ttypeof = ENUMTY.Ttypeof;
-    alias Ttuple = ENUMTY.Ttuple;
-    alias Tslice = ENUMTY.Tslice;
-    alias Treturn = ENUMTY.Treturn;
-    alias Tnull = ENUMTY.Tnull;
-    alias Tvector = ENUMTY.Tvector;
-    alias Tint128 = ENUMTY.Tint128;
-    alias Tuns128 = ENUMTY.Tuns128;
-    alias TMAX = ENUMTY.TMAX;
-
     alias TY = ubyte;
 
     enum TFlags
@@ -1778,7 +1679,7 @@ struct ASTBase
                 Parameter p = (*parameters)[i];
                 Type t = p.type.toBasetype();
 
-                if (t.ty == Ttuple)
+                if (t.ty == Type.Kind.tuple)
                 {
                     TypeTuple tu = cast(TypeTuple)t;
                     result = _foreach(tu.arguments, dg, &n);
@@ -2526,11 +2427,64 @@ struct ASTBase
         }
     }
 
-    extern (C++) __gshared int Tsize_t = Tuns32;
-    extern (C++) __gshared int Tptrdiff_t = Tint32;
+    extern (C++) __gshared int Tsize_t = Type.Kind.uint32;
+    extern (C++) __gshared int Tptrdiff_t = Type.Kind.int32;
 
     extern (C++) abstract class Type : RootObject
     {
+        enum Kind : int
+        {
+            array,              // slice array, aka T[]
+            staticArray,        // static array, aka T[dimension]
+            associativeArray,   // associative array, aka T[type]
+            pointer,
+            reference,
+            function_,
+            identifier,
+            class_,
+            struct_,
+            enum_,
+
+            delegate_,
+            none,
+            void_,
+            int8,
+            uint8,
+            int16,
+            uint16,
+            int32,
+            uint32,
+            int64,
+
+            uint64,
+            float32,
+            float64,
+            float80,
+            imaginary32,
+            imaginary64,
+            imaginary80,
+            complex32,
+            complex64,
+            complex80,
+
+            bool_,
+            char_,
+            wchar_,
+            dchar_,
+            error,
+            instance,
+            typeof_,
+            tuple,
+            slice,
+            return_,
+
+            null_,
+            vector,
+            int128,
+            uint128,
+            max_,
+        }
+
         TY ty;
         MOD mod;
         char* deco;
@@ -2560,7 +2514,7 @@ struct ASTBase
         extern (C++) static __gshared Type twchar;
         extern (C++) static __gshared Type tdchar;
 
-        extern (C++) static __gshared Type[TMAX] basic;
+        extern (C++) static __gshared Type[Type.Kind.max_] basic;
 
         extern (C++) static __gshared Type tshiftcnt;
         extern (C++) static __gshared Type tvoidptr;    // void*
@@ -2595,28 +2549,28 @@ struct ASTBase
         extern (C++) static __gshared ClassDeclaration typeinfoshared;
         extern (C++) static __gshared ClassDeclaration typeinfowild;
         extern (C++) static __gshared StringTable stringtable;
-        extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+        extern (C++) static __gshared ubyte[Type.Kind.max_] sizeTy = ()
             {
-                ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
-                sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
-                sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
-                sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
-                sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
-                sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
-                sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
-                sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
-                sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
-                sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
-                sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
-                sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
-                sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
-                sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
-                sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
-                sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
-                sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
-                sizeTy[Terror] = __traits(classInstanceSize, TypeError);
-                sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
-                sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+                ubyte[Type.Kind.max_] sizeTy = __traits(classInstanceSize, TypeBasic);
+                sizeTy[Type.Kind.staticArray] = __traits(classInstanceSize, TypeSArray);
+                sizeTy[Type.Kind.array] = __traits(classInstanceSize, TypeDArray);
+                sizeTy[Type.Kind.associativeArray] = __traits(classInstanceSize, TypeAArray);
+                sizeTy[Type.Kind.pointer] = __traits(classInstanceSize, TypePointer);
+                sizeTy[Type.Kind.reference] = __traits(classInstanceSize, TypeReference);
+                sizeTy[Type.Kind.function_] = __traits(classInstanceSize, TypeFunction);
+                sizeTy[Type.Kind.delegate_] = __traits(classInstanceSize, TypeDelegate);
+                sizeTy[Type.Kind.identifier] = __traits(classInstanceSize, TypeIdentifier);
+                sizeTy[Type.Kind.instance] = __traits(classInstanceSize, TypeInstance);
+                sizeTy[Type.Kind.typeof_] = __traits(classInstanceSize, TypeTypeof);
+                sizeTy[Type.Kind.enum_] = __traits(classInstanceSize, TypeEnum);
+                sizeTy[Type.Kind.struct_] = __traits(classInstanceSize, TypeStruct);
+                sizeTy[Type.Kind.class_] = __traits(classInstanceSize, TypeClass);
+                sizeTy[Type.Kind.tuple] = __traits(classInstanceSize, TypeTuple);
+                sizeTy[Type.Kind.slice] = __traits(classInstanceSize, TypeSlice);
+                sizeTy[Type.Kind.return_] = __traits(classInstanceSize, TypeReturn);
+                sizeTy[Type.Kind.error] = __traits(classInstanceSize, TypeError);
+                sizeTy[Type.Kind.null_] = __traits(classInstanceSize, TypeNull);
+                sizeTy[Type.Kind.vector] = __traits(classInstanceSize, TypeVector);
                 return sizeTy;
             }();
 
@@ -2654,72 +2608,72 @@ struct ASTBase
             // Set basic types
             static __gshared TY* basetab =
             [
-                Tvoid,
-                Tint8,
-                Tuns8,
-                Tint16,
-                Tuns16,
-                Tint32,
-                Tuns32,
-                Tint64,
-                Tuns64,
-                Tint128,
-                Tuns128,
-                Tfloat32,
-                Tfloat64,
-                Tfloat80,
-                Timaginary32,
-                Timaginary64,
-                Timaginary80,
-                Tcomplex32,
-                Tcomplex64,
-                Tcomplex80,
-                Tbool,
-                Tchar,
-                Twchar,
-                Tdchar,
-                Terror
+                Type.Kind.void_,
+                Type.Kind.int8,
+                Type.Kind.uint8,
+                Type.Kind.int16,
+                Type.Kind.uint16,
+                Type.Kind.int32,
+                Type.Kind.uint32,
+                Type.Kind.int64,
+                Type.Kind.uint64,
+                Type.Kind.int128,
+                Type.Kind.uint128,
+                Type.Kind.float32,
+                Type.Kind.float64,
+                Type.Kind.float80,
+                Type.Kind.imaginary32,
+                Type.Kind.imaginary64,
+                Type.Kind.imaginary80,
+                Type.Kind.complex32,
+                Type.Kind.complex64,
+                Type.Kind.complex80,
+                Type.Kind.bool_,
+                Type.Kind.char_,
+                Type.Kind.wchar_,
+                Type.Kind.dchar_,
+                Type.Kind.error
             ];
 
-            for (size_t i = 0; basetab[i] != Terror; i++)
+            for (size_t i = 0; basetab[i] != Type.Kind.error; i++)
             {
                 Type t = new TypeBasic(basetab[i]);
                 t = t.merge();
                 basic[basetab[i]] = t;
             }
-            basic[Terror] = new TypeError();
+            basic[Type.Kind.error] = new TypeError();
 
-            tvoid = basic[Tvoid];
-            tint8 = basic[Tint8];
-            tuns8 = basic[Tuns8];
-            tint16 = basic[Tint16];
-            tuns16 = basic[Tuns16];
-            tint32 = basic[Tint32];
-            tuns32 = basic[Tuns32];
-            tint64 = basic[Tint64];
-            tuns64 = basic[Tuns64];
-            tint128 = basic[Tint128];
-            tuns128 = basic[Tuns128];
-            tfloat32 = basic[Tfloat32];
-            tfloat64 = basic[Tfloat64];
-            tfloat80 = basic[Tfloat80];
+            tvoid = basic[Type.Kind.void_];
+            tint8 = basic[Type.Kind.int8];
+            tuns8 = basic[Type.Kind.uint8];
+            tint16 = basic[Type.Kind.int16];
+            tuns16 = basic[Type.Kind.uint16];
+            tint32 = basic[Type.Kind.int32];
+            tuns32 = basic[Type.Kind.uint32];
+            tint64 = basic[Type.Kind.int64];
+            tuns64 = basic[Type.Kind.uint64];
+            tint128 = basic[Type.Kind.int128];
+            tuns128 = basic[Type.Kind.uint128];
+            tfloat32 = basic[Type.Kind.float32];
+            tfloat64 = basic[Type.Kind.float64];
+            tfloat80 = basic[Type.Kind.float80];
 
-            timaginary32 = basic[Timaginary32];
-            timaginary64 = basic[Timaginary64];
-            timaginary80 = basic[Timaginary80];
+            timaginary32 = basic[Type.Kind.imaginary32];
+            timaginary64 = basic[Type.Kind.imaginary64];
+            timaginary80 = basic[Type.Kind.imaginary80];
 
-            tcomplex32 = basic[Tcomplex32];
-            tcomplex64 = basic[Tcomplex64];
-            tcomplex80 = basic[Tcomplex80];
+            tcomplex32 = basic[Type.Kind.complex32];
+            tcomplex64 = basic[Type.Kind.complex64];
+            tcomplex80 = basic[Type.Kind.complex80];
 
-            tbool = basic[Tbool];
-            tchar = basic[Tchar];
-            twchar = basic[Twchar];
-            tdchar = basic[Tdchar];
+            tbool = basic[Type.Kind.bool_];
+            tchar = basic[Type.Kind.char_];
+            twchar = basic[Type.Kind.wchar_];
+            tdchar = basic[Type.Kind.dchar_];
 
             tshiftcnt = tint32;
-            terror = basic[Terror];
-            tnull = basic[Tnull];
+            terror = basic[Type.Kind.error];
+            tnull = basic[Type.Kind.null_];
             tnull = new TypeNull();
             tnull.deco = tnull.merge().deco;
 
@@ -2731,13 +2685,13 @@ struct ASTBase
 
             if (global.params.isLP64)
             {
-                Tsize_t = Tuns64;
-                Tptrdiff_t = Tint64;
+                Tsize_t = Type.Kind.uint64;
+                Tptrdiff_t = Type.Kind.int64;
             }
             else
             {
-                Tsize_t = Tuns32;
-                Tptrdiff_t = Tint32;
+                Tsize_t = Type.Kind.uint32;
+                Tptrdiff_t = Type.Kind.int32;
             }
 
             tsize_t = basic[Tsize_t];
@@ -2747,12 +2701,12 @@ struct ASTBase
 
         final Type pointerTo()
         {
-            if (ty == Terror)
+            if (ty == Type.Kind.error)
                 return this;
             if (!pto)
             {
                 Type t = new TypePointer(this);
-                if (ty == Tfunction)
+                if (ty == Type.Kind.function_)
                 {
                     t.deco = t.merge().deco;
                     pto = t;
@@ -2765,7 +2719,7 @@ struct ASTBase
 
         final Type arrayOf()
         {
-            if (ty == Terror)
+            if (ty == Type.Kind.error)
                 return this;
             if (!arrayof)
             {
@@ -2800,9 +2754,9 @@ struct ASTBase
             t.swcto = null;
             //t.vtinfo = null; these aren't used in parsing
             //t.ctype = null;
-            if (t.ty == Tstruct)
+            if (t.ty == Type.Kind.struct_)
                 (cast(TypeStruct)t).att = AliasThisRec.fwdref;
-            if (t.ty == Tclass)
+            if (t.ty == Type.Kind.class_)
                 (cast(TypeClass)t).att = AliasThisRec.fwdref;
             return t;
         }
@@ -2882,17 +2836,17 @@ struct ASTBase
         // Truncated
         final Type merge()
         {
-            if (ty == Terror)
+            if (ty == Type.Kind.error)
                 return this;
-            if (ty == Ttypeof)
+            if (ty == Type.Kind.typeof_)
                 return this;
-            if (ty == Tident)
+            if (ty == Type.Kind.identifier)
                 return this;
-            if (ty == Tinstance)
+            if (ty == Type.Kind.instance)
                 return this;
-            if (ty == Taarray && !(cast(TypeAArray)this).index.merge().deco)
+            if (ty == Type.Kind.associativeArray && !(cast(TypeAArray)this).index.merge().deco)
                 return this;
-            if (ty != Tenum && nextOf() && !nextOf().deco)
+            if (ty != Type.Kind.enum_ && nextOf() && !nextOf().deco)
                 return this;
 
             // if (!deco) - code missing
@@ -3103,7 +3057,7 @@ struct ASTBase
         {
             Type mto = null;
             Type tn = nextOf();
-            if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
+            if (!tn || ty != Type.Kind.staticArray && tn.mod == t.nextOf().mod)
             {
                 switch (t.mod)
                 {
@@ -3372,121 +3326,121 @@ struct ASTBase
             uint flags = 0;
             switch (ty)
             {
-            case Tvoid:
+            case Type.Kind.void_:
                 d = Token.toChars(TOK.void_);
                 break;
 
-            case Tint8:
+            case Type.Kind.int8:
                 d = Token.toChars(TOK.int8);
                 flags |= TFlags.integral;
                 break;
 
-            case Tuns8:
+            case Type.Kind.uint8:
                 d = Token.toChars(TOK.uns8);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tint16:
+            case Type.Kind.int16:
                 d = Token.toChars(TOK.int16);
                 flags |= TFlags.integral;
                 break;
 
-            case Tuns16:
+            case Type.Kind.uint16:
                 d = Token.toChars(TOK.uns16);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tint32:
+            case Type.Kind.int32:
                 d = Token.toChars(TOK.int32);
                 flags |= TFlags.integral;
                 break;
 
-            case Tuns32:
+            case Type.Kind.uint32:
                 d = Token.toChars(TOK.uns32);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tfloat32:
+            case Type.Kind.float32:
                 d = Token.toChars(TOK.float32);
                 flags |= TFlags.floating | TFlags.real_;
                 break;
 
-            case Tint64:
+            case Type.Kind.int64:
                 d = Token.toChars(TOK.int64);
                 flags |= TFlags.integral;
                 break;
 
-            case Tuns64:
+            case Type.Kind.uint64:
                 d = Token.toChars(TOK.uns64);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tint128:
+            case Type.Kind.int128:
                 d = Token.toChars(TOK.int128);
                 flags |= TFlags.integral;
                 break;
 
-            case Tuns128:
+            case Type.Kind.uint128:
                 d = Token.toChars(TOK.uns128);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tfloat64:
+            case Type.Kind.float64:
                 d = Token.toChars(TOK.float64);
                 flags |= TFlags.floating | TFlags.real_;
                 break;
 
-            case Tfloat80:
+            case Type.Kind.float80:
                 d = Token.toChars(TOK.float80);
                 flags |= TFlags.floating | TFlags.real_;
                 break;
 
-            case Timaginary32:
+            case Type.Kind.imaginary32:
                 d = Token.toChars(TOK.imaginary32);
                 flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
-            case Timaginary64:
+            case Type.Kind.imaginary64:
                 d = Token.toChars(TOK.imaginary64);
                 flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
-            case Timaginary80:
+            case Type.Kind.imaginary80:
                 d = Token.toChars(TOK.imaginary80);
                 flags |= TFlags.floating | TFlags.imaginary;
                 break;
 
-            case Tcomplex32:
+            case Type.Kind.complex32:
                 d = Token.toChars(TOK.complex32);
                 flags |= TFlags.floating | TFlags.complex;
                 break;
 
-            case Tcomplex64:
+            case Type.Kind.complex64:
                 d = Token.toChars(TOK.complex64);
                 flags |= TFlags.floating | TFlags.complex;
                 break;
 
-            case Tcomplex80:
+            case Type.Kind.complex80:
                 d = Token.toChars(TOK.complex80);
                 flags |= TFlags.floating | TFlags.complex;
                 break;
 
-            case Tbool:
+            case Type.Kind.bool_:
                 d = "bool";
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tchar:
+            case Type.Kind.char_:
                 d = Token.toChars(TOK.char_);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Twchar:
+            case Type.Kind.wchar_:
                 d = Token.toChars(TOK.wchar_);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
 
-            case Tdchar:
+            case Type.Kind.dchar_:
                 d = Token.toChars(TOK.dchar_);
                 flags |= TFlags.integral | TFlags.unsigned;
                 break;
@@ -3514,7 +3468,7 @@ struct ASTBase
     {
         extern (D) this()
         {
-            super(Terror);
+            super(Type.Kind.error);
         }
 
         override Type syntaxCopy()
@@ -3532,7 +3486,7 @@ struct ASTBase
     {
         extern (D) this()
         {
-            super(Tnull);
+            super(Type.Kind.null_);
         }
 
         override Type syntaxCopy()
@@ -3553,7 +3507,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Type baseType)
         {
-            super(Tvector);
+            super(Type.Kind.vector);
             this.basetype = basetype;
         }
 
@@ -3574,7 +3528,7 @@ struct ASTBase
 
         extern (D) this(EnumDeclaration sym)
         {
-            super(Tenum);
+            super(Type.Kind.enum_);
             this.sym = sym;
         }
 
@@ -3595,13 +3549,13 @@ struct ASTBase
 
         extern (D) this(Parameters* arguments)
         {
-            super(Ttuple);
+            super(Type.Kind.tuple);
             this.arguments = arguments;
         }
 
         extern (D) this(Expressions* exps)
         {
-            super(Ttuple);
+            super(Type.Kind.tuple);
             auto arguments = new Parameters();
             if (exps)
             {
@@ -3609,7 +3563,7 @@ struct ASTBase
                 for (size_t i = 0; i < exps.dim; i++)
                 {
                     Expression e = (*exps)[i];
-                    if (e.type.ty == Ttuple)
+                    if (e.type.ty == Type.Kind.tuple)
                         e.error("cannot form tuple of tuples");
                     auto arg = new Parameter(STC.undefined_, e.type, null, null);
                     (*arguments)[i] = arg;
@@ -3639,7 +3593,7 @@ struct ASTBase
 
         extern (D) this (ClassDeclaration sym)
         {
-            super(Tclass);
+            super(Type.Kind.class_);
             this.sym = sym;
         }
 
@@ -3661,7 +3615,7 @@ struct ASTBase
 
         extern (D) this(StructDeclaration sym)
         {
-            super(Tstruct);
+            super(Type.Kind.struct_);
             this.sym = sym;
         }
 
@@ -3680,7 +3634,7 @@ struct ASTBase
     {
         extern (D) this(Type t)
         {
-            super(Treference, t);
+            super(Type.Kind.reference, t);
             // BUG: what about references to static arrays?
         }
 
@@ -3731,7 +3685,7 @@ struct ASTBase
 
         extern (D) this(Type next, Expression lwr, Expression upr)
         {
-            super(Tslice, next);
+            super(Type.Kind.slice, next);
             this.lwr = lwr;
             this.upr = upr;
         }
@@ -3753,8 +3707,8 @@ struct ASTBase
     {
         extern (D) this(Type t)
         {
-            super(Tfunction, t);
-            ty = Tdelegate;
+            super(Type.Kind.function_, t);
+            ty = Type.Kind.delegate_;
         }
 
         override Type syntaxCopy()
@@ -3780,7 +3734,7 @@ struct ASTBase
     {
         extern (D) this(Type t)
         {
-            super(Tpointer, t);
+            super(Type.Kind.pointer, t);
         }
 
         override Type syntaxCopy()
@@ -3822,7 +3776,7 @@ struct ASTBase
 
         extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
         {
-            super(Tfunction, treturn);
+            super(Type.Kind.function_, treturn);
             assert(0 <= varargs && varargs <= 2);
             this.parameters = parameters;
             this.varargs = varargs;
@@ -3895,7 +3849,7 @@ struct ASTBase
     {
         extern (D) this(Type t)
         {
-            super(Tarray, t);
+            super(Type.Kind.array, t);
         }
 
         override Type syntaxCopy()
@@ -3924,7 +3878,7 @@ struct ASTBase
 
         extern (D) this(Type t, Type index)
         {
-            super(Taarray, t);
+            super(Type.Kind.associativeArray, t);
             this.index = index;
         }
 
@@ -3966,7 +3920,7 @@ struct ASTBase
 
         final extern (D) this(Type t, Expression dim)
         {
-            super(Tsarray, t);
+            super(Type.Kind.staticArray, t);
             this.dim = dim;
         }
 
@@ -4092,7 +4046,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Identifier ident)
         {
-            super(Tident, loc);
+            super(Type.Kind.identifier, loc);
             this.ident = ident;
         }
 
@@ -4119,7 +4073,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc)
         {
-            super(Treturn, loc);
+            super(Type.Kind.return_, loc);
         }
 
         override Type syntaxCopy()
@@ -4142,7 +4096,7 @@ struct ASTBase
 
         extern (D) this(Loc loc, Expression exp)
         {
-            super(Ttypeof, loc);
+            super(Type.Kind.typeof_, loc);
             this.exp = exp;
         }
 
@@ -4166,7 +4120,7 @@ struct ASTBase
 
         final extern (D) this(Loc loc, TemplateInstance tempinst)
         {
-            super(Tinstance, loc);
+            super(Type.Kind.instance, loc);
             this.tempinst = tempinst;
         }
 
@@ -4268,7 +4222,7 @@ struct ASTBase
             assert(type);
             if (!type.isscalar())
             {
-                if (type.ty != Terror)
+                if (type.ty != Type.Kind.error)
                     error("integral constant must be scalar type, not %s", type.toChars());
                 type = Type.terror;
             }
@@ -4288,46 +4242,46 @@ struct ASTBase
              */
             switch (type.toBasetype().ty)
             {
-            case Tbool:
+            case Type.Kind.bool_:
                 value = (value != 0);
                 break;
 
-            case Tint8:
+            case Type.Kind.int8:
                 value = cast(d_int8)value;
                 break;
 
-            case Tchar:
-            case Tuns8:
+            case Type.Kind.char_:
+            case Type.Kind.uint8:
                 value = cast(d_uns8)value;
                 break;
 
-            case Tint16:
+            case Type.Kind.int16:
                 value = cast(d_int16)value;
                 break;
 
-            case Twchar:
-            case Tuns16:
+            case Type.Kind.wchar_:
+            case Type.Kind.uint16:
                 value = cast(d_uns16)value;
                 break;
 
-            case Tint32:
+            case Type.Kind.int32:
                 value = cast(d_int32)value;
                 break;
 
-            case Tdchar:
-            case Tuns32:
+            case Type.Kind.dchar_:
+            case Type.Kind.uint32:
                 value = cast(d_uns32)value;
                 break;
 
-            case Tint64:
+            case Type.Kind.int64:
                 value = cast(d_int64)value;
                 break;
 
-            case Tuns64:
+            case Type.Kind.uint64:
                 value = cast(d_uns64)value;
                 break;
 
-            case Tpointer:
+            case Type.Kind.pointer:
                 if (Target.ptrsize == 4)
                     value = cast(d_uns32)value;
                 else if (Target.ptrsize == 8)

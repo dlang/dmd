@@ -417,7 +417,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
             return true;
         }
     }
-    else if (e.type.ty == Tclass)
+    else if (e.type.ty == Type.Kind.class_)
     {
         // Do access check
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
@@ -429,7 +429,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
         }
         return checkAccess(cd, loc, sc, d);
     }
-    else if (e.type.ty == Tstruct)
+    else if (e.type.ty == Type.Kind.struct_)
     {
         // Do access check
         StructDeclaration cd = (cast(TypeStruct)e.type).sym;

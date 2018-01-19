@@ -236,7 +236,7 @@ void genModuleInfo(Module m)
 void write_pointers(Type type, Symbol *s, uint offset)
 {
     uint ty = type.toBasetype().ty;
-    if (ty == Tclass)
+    if (ty == Type.Kind.class_)
         return objmod.write_pointerRef(s, offset);
 
     write_instance_pointers(type, s, offset);
@@ -316,7 +316,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             //printf("ClassDeclaration.toObjFile('%s')\n", cd.toChars());
 
-            if (cd.type.ty == Terror)
+            if (cd.type.ty == Type.Kind.error)
             {
                 cd.error("had semantic errors when compiling");
                 return;
@@ -643,7 +643,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             //printf("InterfaceDeclaration.toObjFile('%s')\n", id.toChars());
 
-            if (id.type.ty == Terror)
+            if (id.type.ty == Type.Kind.error)
             {
                 id.error("had semantic errors when compiling");
                 return;
@@ -820,7 +820,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         {
             //printf("StructDeclaration.toObjFile('%s')\n", sd.toChars());
 
-            if (sd.type.ty == Terror)
+            if (sd.type.ty == Type.Kind.error)
             {
                 sd.error("had semantic errors when compiling");
                 return;
@@ -887,7 +887,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //printf("VarDeclaration.toObjFile(%p '%s' type=%s) protection %d\n", vd, vd.toChars(), vd.type.toChars(), vd.protection);
             //printf("\talign = %d\n", vd.alignment);
 
-            if (vd.type.ty == Terror)
+            if (vd.type.ty == Type.Kind.error)
             {
                 vd.error("had semantic errors when compiling");
                 return;
@@ -939,7 +939,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             } while (parent);
             s.Sfl = FLdata;
 
-            if (!sz && vd.type.toBasetype().ty != Tsarray)
+            if (!sz && vd.type.toBasetype().ty != Type.Kind.staticArray)
                 assert(0); // this shouldn't be possible
 
             scope dtb = new DtBuilder();
@@ -989,7 +989,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             //printf("EnumDeclaration.toObjFile('%s')\n", ed.toChars());
 
-            if (ed.errors || ed.type.ty == Terror)
+            if (ed.errors || ed.type.ty == Type.Kind.error)
             {
                 ed.error("had semantic errors when compiling");
                 return;
@@ -1228,7 +1228,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             ExpInitializer ie = vd._init.isExpInitializer();
 
             Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray && ie &&
+            if (tb.ty == Type.Kind.staticArray && ie &&
                 !tb.nextOf().equals(ie.exp.type.toBasetype().nextOf()) &&
                 ie.exp.implicitConvTo(tb.nextOf())
                 )
@@ -1415,7 +1415,7 @@ private void finishVtbl(ClassDeclaration cd)
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = cast(TypeFunction)fd.type;
-            if (tf.ty == Tfunction)
+            if (tf.ty == Type.Kind.function_)
             {
                 cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
                     fd.toPrettyChars(),

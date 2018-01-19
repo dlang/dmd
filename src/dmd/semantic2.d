@@ -298,13 +298,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             // Cannot initialize a thread-local class or pointer to struct variable with a literal
             // that itself is a thread-local reference and would need dynamic initialization also.
-            if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
+            if ((vd.type.ty == Type.Kind.class_) && vd.type.isMutable() && !vd.type.isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == TOK.classReference)
                     vd.error("is a thread-local class and cannot have a static initializer. Use `static this()` to initialize instead.");
             }
-            else if (vd.type.ty == Tpointer && vd.type.nextOf().ty == Tstruct && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
+            else if (vd.type.ty == Type.Kind.pointer && vd.type.nextOf().ty == Type.Kind.struct_ && vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == TOK.address && (cast(AddrExp)ei.exp).e1.op == TOK.structLiteral)

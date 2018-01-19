@@ -162,7 +162,7 @@ shared static this()
 extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data)
 {
     d_uns64 sz;
-    if (t.ty == Tclass && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
+    if (t.ty == Type.Kind.class_ && !(cast(TypeClass)t).sym.isInterfaceDeclaration())
         sz = (cast(TypeClass)t).sym.AggregateDeclaration.size(loc);
     else
         sz = t.size(loc);
@@ -218,7 +218,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
 
         override void visit(TypeBasic t)
         {
-            if (t.ty == Tvoid)
+            if (t.ty == Type.Kind.void_)
                 setpointer(offset);
         }
 
@@ -259,7 +259,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
 
         override void visit(TypePointer t)
         {
-            if (t.nextOf().ty != Tfunction) // don't mark function pointers
+            if (t.nextOf().ty != Type.Kind.function_) // don't mark function pointers
                 setpointer(offset);
         }
 
@@ -335,7 +335,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
             foreach (v; t.sym.fields)
             {
                 offset = structoff + v.offset;
-                if (v.type.ty == Tclass)
+                if (v.type.ty == Type.Kind.class_)
                     setpointer(offset);
                 else
                     v.type.accept(this);
@@ -365,7 +365,7 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
     }
 
     scope PointerBitmapVisitor pbv = new PointerBitmapVisitor(data, sz_size_t);
-    if (t.ty == Tclass)
+    if (t.ty == Type.Kind.class_)
         pbv.visitClass(cast(TypeClass)t);
     else
         t.accept(pbv);
@@ -479,11 +479,11 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (t)
         {
-            if (t.ty == Tfunction)
+            if (t.ty == Type.Kind.function_)
                 tf = cast(TypeFunction)t;
-            else if (t.ty == Tdelegate)
+            else if (t.ty == Type.Kind.delegate_)
                 tf = cast(TypeFunction)t.nextOf();
-            else if (t.ty == Tpointer && t.nextOf().ty == Tfunction)
+            else if (t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.function_)
                 tf = cast(TypeFunction)t.nextOf();
         }
 
@@ -545,7 +545,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isAssociativeArray)
     {
-        return isTypeX(t => t.toBasetype().ty == Taarray);
+        return isTypeX(t => t.toBasetype().ty == Type.Kind.associativeArray);
     }
     if (e.ident == Id.isDeprecated)
     {
@@ -562,16 +562,16 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isStaticArray)
     {
-        return isTypeX(t => t.toBasetype().ty == Tsarray);
+        return isTypeX(t => t.toBasetype().ty == Type.Kind.staticArray);
     }
     if (e.ident == Id.isAbstractClass)
     {
-        return isTypeX(t => t.toBasetype().ty == Tclass &&
+        return isTypeX(t => t.toBasetype().ty == Type.Kind.class_ &&
                             (cast(TypeClass)t.toBasetype()).sym.isAbstract());
     }
     if (e.ident == Id.isFinalClass)
     {
-        return isTypeX(t => t.toBasetype().ty == Tclass &&
+        return isTypeX(t => t.toBasetype().ty == Type.Kind.class_ &&
                             ((cast(TypeClass)t.toBasetype()).sym.storage_class & STC.final_) != 0);
     }
     if (e.ident == Id.isTemplate)
@@ -602,7 +602,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
 
         Type tb = t.baseElemOf();
-        if (auto sd = tb.ty == Tstruct ? (cast(TypeStruct)tb).sym : null)
+        if (auto sd = tb.ty == Type.Kind.struct_ ? (cast(TypeStruct)tb).sym : null)
         {
             return sd.isPOD() ? True() : False();
         }
@@ -1375,7 +1375,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (t)
                 {
                     t.typeSemantic(e.loc, sc2);
-                    if (t.ty == Terror)
+                    if (t.ty == Type.Kind.error)
                         err = true;
                 }
                 else if (s && s.errors)
@@ -1386,7 +1386,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 ex = ex.expressionSemantic(sc2);
                 ex = resolvePropertiesOnly(sc2, ex);
                 ex = ex.optimize(WANTvalue);
-                if (sc2.func && sc2.func.type.ty == Tfunction)
+                if (sc2.func && sc2.func.type.ty == Type.Kind.function_)
                 {
                     const tf = cast(TypeFunction)sc2.func.type;
                     err |= tf.isnothrow && canThrow(ex, sc2.func, false);

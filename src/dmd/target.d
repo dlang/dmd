@@ -154,19 +154,19 @@ struct Target
         assert(type.isTypeBasic());
         switch (type.ty)
         {
-        case Tfloat80:
-        case Timaginary80:
-        case Tcomplex80:
+        case Type.Kind.float80:
+        case Type.Kind.imaginary80:
+        case Type.Kind.complex80:
             return Target.realalignsize;
-        case Tcomplex32:
+        case Type.Kind.complex32:
             if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
                 return 4;
             break;
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-        case Timaginary64:
-        case Tcomplex64:
+        case Type.Kind.int64:
+        case Type.Kind.uint64:
+        case Type.Kind.float64:
+        case Type.Kind.imaginary64:
+        case Type.Kind.complex64:
             if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
                 return global.params.is64bit ? 8 : 4;
             break;
@@ -275,17 +275,17 @@ struct Target
             return 1; // not supported
         switch (type.ty)
         {
-        case Tvoid:
-        case Tint8:
-        case Tuns8:
-        case Tint16:
-        case Tuns16:
-        case Tint32:
-        case Tuns32:
-        case Tfloat32:
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
+        case Type.Kind.void_:
+        case Type.Kind.int8:
+        case Type.Kind.uint8:
+        case Type.Kind.int16:
+        case Type.Kind.uint16:
+        case Type.Kind.int32:
+        case Type.Kind.uint32:
+        case Type.Kind.float32:
+        case Type.Kind.int64:
+        case Type.Kind.uint64:
+        case Type.Kind.float64:
             break;
         default:
             return 2; // wrong base type
@@ -306,7 +306,7 @@ struct Target
     {
         import dmd.tokens;
 
-        if (type.ty != Tvector)
+        if (type.ty != Type.Kind.vector)
             return true; // not a vector op
         auto tvec = cast(TypeVector) type;
 
@@ -388,14 +388,14 @@ struct Target
         // Write the expression into the buffer.
         switch (e.type.ty)
         {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
+        case Type.Kind.int32:
+        case Type.Kind.uint32:
+        case Type.Kind.int64:
+        case Type.Kind.uint64:
             encodeInteger(e, buffer.ptr);
             break;
-        case Tfloat32:
-        case Tfloat64:
+        case Type.Kind.float32:
+        case Type.Kind.float64:
             encodeReal(e, buffer.ptr);
             break;
         default:
@@ -404,13 +404,13 @@ struct Target
         // Interpret the buffer as a new type.
         switch (type.ty)
         {
-        case Tint32:
-        case Tuns32:
-        case Tint64:
-        case Tuns64:
+        case Type.Kind.int32:
+        case Type.Kind.uint32:
+        case Type.Kind.int64:
+        case Type.Kind.uint64:
             return decodeInteger(e.loc, type, buffer.ptr);
-        case Tfloat32:
-        case Tfloat64:
+        case Type.Kind.float32:
+        case Type.Kind.float64:
             return decodeReal(e.loc, type, buffer.ptr);
         default:
             assert(0);
@@ -531,13 +531,13 @@ private void encodeReal(Expression e, ubyte* buffer)
 {
     switch (e.type.ty)
     {
-    case Tfloat32:
+    case Type.Kind.float32:
         {
             float* p = cast(float*)buffer;
             *p = cast(float)e.toReal();
             break;
         }
-    case Tfloat64:
+    case Type.Kind.float64:
         {
             double* p = cast(double*)buffer;
             *p = cast(double)e.toReal();
@@ -555,13 +555,13 @@ private Expression decodeReal(Loc loc, Type type, ubyte* buffer)
     real_t value;
     switch (type.ty)
     {
-    case Tfloat32:
+    case Type.Kind.float32:
         {
             float* p = cast(float*)buffer;
             value = real_t(*p);
             break;
         }
-    case Tfloat64:
+    case Type.Kind.float64:
         {
             double* p = cast(double*)buffer;
             value = real_t(*p);

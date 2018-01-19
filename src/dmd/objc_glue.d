@@ -309,9 +309,9 @@ static:
         if (hasHiddenArgument)
             return setSymbol!("_objc_msgSend_stret")(TYhfunc);
         // not sure if DMD can handle this
-        else if (returnType.ty == Tcomplex80)
+        else if (returnType.ty == Type.Kind.complex80)
             return setSymbol!("_objc_msgSend_fp2ret");
-        else if (returnType.ty == Tfloat80)
+        else if (returnType.ty == Type.Kind.float80)
             return setSymbol!("_objc_msgSend_fpret");
         else
             return setSymbol!("_objc_msgSend");
