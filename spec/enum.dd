@@ -42,12 +42,6 @@ $(GNAME AnonymousEnumMember):
 )
 
         $(P Enum declarations are used to define a group of constants.
-        They come in these forms:
-        )
-        $(OL
-        $(LI Named enums, which have a name.)
-        $(LI Anonymous enums, which do not have a name.)
-        $(LI Manifest constants.)
         )
 
 $(H2 $(LNAME2 named_enums, Named Enums))
@@ -55,16 +49,16 @@ $(H2 $(LNAME2 named_enums, Named Enums))
         $(P
         Named enums are used to declare related
         constants and group them by giving them a unique type.
-        The $(I EnumMembers) are declared in the scope of the named enum. The named
+        The $(GLINK EnumMembers) are declared in the scope of the named enum. The named
         enum declares a new type, and all the $(I EnumMembers) have that type.
         )
 
         $(P This defines a new type $(CODE X) which has values
         $(CODE X.A=0), $(CODE X.B=1), $(CODE X.C=2):)
 
-------
-enum X { A, B, C }  // named enum
-------
+        ---
+        enum X { A, B, C }  // named enum
+        ---
 
 
         $(P If the $(I EnumBaseType) is not explicitly set, and the first
@@ -76,12 +70,12 @@ enum X { A, B, C }  // named enum
         )
 
 
-        $(P A named enum member can be implicitly cast to its $(I EnumBaseType),
+        $(P A named enum member can be implicitly cast to its $(GLINK EnumBaseType),
         but $(I EnumBaseType) types
         cannot be implicitly cast to an enum type.
         )
 
-        $(P The value of an $(I EnumMember) is given by its $(ASSIGNEXPRESSION).
+        $(P The value of an $(GLINK EnumMember) is given by its $(ASSIGNEXPRESSION).
         If there is no $(ASSIGNEXPRESSION) and it is the first $(I EnumMember),
         its value is $(GLINK EnumBaseType)`.init`.
         )
@@ -156,7 +150,7 @@ X.max    // is X.C
 X.sizeof // is same as int.sizeof
 ---
 
-        $(P The $(I EnumBaseType) of named enums must support comparison
+        $(P The $(GLINK EnumBaseType) of named enums must support comparison
         in order to compute the $(CODE .max) and $(CODE .min) properties.
         )
 
@@ -164,8 +158,8 @@ X.sizeof // is same as int.sizeof
 $(H2 $(LNAME2 anonymous_enums, Anonymous Enums))
 
         $(P If the enum $(I Identifier) is not present, then the enum
-        is an $(I anonymous enum), and the $(I EnumMembers) are declared
-        in the scope the $(I EnumDeclaration) appears in.
+        is an $(I anonymous enum), and the $(GLINK EnumMembers) are declared
+        in the scope the $(GLINK EnumDeclaration) appears in.
         No new type is created.
         )
 
@@ -175,7 +169,7 @@ $(H2 $(LNAME2 anonymous_enums, Anonymous Enums))
 
         $(OL
         $(LI The $(I Type), if present. Types are not permitted when an
-                $(I EnumBaseType) is present.)
+                $(GLINK EnumBaseType) is present.)
         $(LI The $(I EnumBaseType), if present.)
         $(LI The type of the $(I AssignExpression), if present.)
         $(LI The type of the previous $(I EnumMember), if present.)
@@ -187,7 +181,7 @@ $(H2 $(LNAME2 anonymous_enums, Anonymous Enums))
 enum { A, B, C }  // anonymous enum
 ------
 
-        $(P Defines the constants A=0, B=1, C=2, all of type int.)
+        $(P Defines the constants A=0, B=1, C=2, all of type `int`.)
 
         $(P Enums must have at least one member.
         )
@@ -214,13 +208,13 @@ enum { A, B, C }  // anonymous enum
 enum { A, B = 5+7, C, D = 8+C, E }
 ------
 
-        $(P Sets A=0, B=12, C=13, D=21, and E=22, all of type int.)
+        $(P Sets A=0, B=12, C=13, D=21, and E=22, all of type `int`.)
 
 ---
 enum : long { A = 3, B }
 ---
 
-        $(P Sets A=3, B=4 all of type long.)
+        $(P Sets A=3, B=4 all of type `long`.)
 
 ---
 enum : string
@@ -243,7 +237,7 @@ enum
 
 $(H2 $(LNAME2 manifest_constants, Manifest Constants))
 
-        $(P If there is only one member of an anonymous enum, the { } can
+        $(P If there is only one member of an anonymous enum, the `{ }` can
         be omitted. Gramatically speaking, this is an $(GLINK2 declaration, AutoDeclaration).
         )
 
@@ -252,15 +246,14 @@ enum i = 4;      // i is 4 of type int
 enum long l = 3; // l is 3 of type long
 ---
 
-        $(P Such declarations are not lvalues, meaning their address
+        $(P Manifest constants are not lvalues, meaning their address
         cannot be taken.  They exist only in the memory of the compiler.)
 
 ---
 enum size = __traits(classInstanceSize, Foo);  // evaluated at compile-time
 ---
 
-        $(P Using manifest constants is an idiomatic D method
-        to force compile-time evaluation of an expression.)
+        $(P The initializer for a manifest constant is evaluated using compile time function evaluation.)
 
 ---
 template Foo(T)
