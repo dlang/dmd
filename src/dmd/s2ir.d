@@ -716,7 +716,7 @@ private extern (C++) class S2irVisitor : Visitor
 
             FuncDeclaration func = irs.getFunc();
             assert(func);
-            assert(func.type.ty == Tfunction);
+            assert(func.type.ty == Type.Kind.function_);
             TypeFunction tf = cast(TypeFunction)(func.type);
 
             RET retmethod = retStyle(tf);

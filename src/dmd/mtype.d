@@ -61,8 +61,8 @@ import dmd.visitor;
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
-extern (C++) __gshared int Tsize_t = Tuns32;
-extern (C++) __gshared int Tptrdiff_t = Tint32;
+extern (C++) __gshared int Tsize_t = Type.Kind.uint32;
+extern (C++) __gshared int Tptrdiff_t = Type.Kind.int32;
 
 enum SIZE_INVALID = (~cast(d_uns64)0);   // error return from size() functions
 
@@ -274,7 +274,7 @@ Type stripDefaultArgs(Type t)
     if (t is null)
         return t;
 
-    if (t.ty == Tfunction)
+    if (t.ty == Type.Kind.function_)
     {
         TypeFunction tf = cast(TypeFunction)t;
         Type tret = stripDefaultArgs(tf.next);
@@ -287,7 +287,7 @@ Type stripDefaultArgs(Type t)
         //printf("strip %s\n   <- %s\n", tf.toChars(), t.toChars());
         t = tf;
     }
-    else if (t.ty == Ttuple)
+    else if (t.ty == Type.Kind.tuple)
     {
         TypeTuple tt = cast(TypeTuple)t;
         Parameters* args = stripParams(tt.arguments);
@@ -296,7 +296,7 @@ Type stripDefaultArgs(Type t)
         t = t.copy();
         (cast(TypeTuple)t).arguments = args;
     }
-    else if (t.ty == Tenum)
+    else if (t.ty == Type.Kind.enum_)
     {
         // TypeEnum::nextOf() may be != NULL, but it's not necessary here.
         goto Lnot;
@@ -345,7 +345,7 @@ Expression semanticLength(Scope* sc, TupleDeclaration tup, Expression exp)
  */
 Expression semanticLength(Scope* sc, Type t, Expression exp)
 {
-    if (t.ty == Ttuple)
+    if (t.ty == Type.Kind.tuple)
     {
         ScopeDsymbol sym = new ArrayScopeSymbol(sc, cast(TypeTuple)t);
         sym.parent = sc.scopesym;
@@ -363,105 +363,6 @@ Expression semanticLength(Scope* sc, Type t, Expression exp)
     }
     return exp;
 }
-
-enum ENUMTY : int
-{
-    Tarray,     // slice array, aka T[]
-    Tsarray,    // static array, aka T[dimension]
-    Taarray,    // associative array, aka T[type]
-    Tpointer,
-    Treference,
-    Tfunction,
-    Tident,
-    Tclass,
-    Tstruct,
-    Tenum,
-
-    Tdelegate,
-    Tnone,
-    Tvoid,
-    Tint8,
-    Tuns8,
-    Tint16,
-    Tuns16,
-    Tint32,
-    Tuns32,
-    Tint64,
-
-    Tuns64,
-    Tfloat32,
-    Tfloat64,
-    Tfloat80,
-    Timaginary32,
-    Timaginary64,
-    Timaginary80,
-    Tcomplex32,
-    Tcomplex64,
-    Tcomplex80,
-
-    Tbool,
-    Tchar,
-    Twchar,
-    Tdchar,
-    Terror,
-    Tinstance,
-    Ttypeof,
-    Ttuple,
-    Tslice,
-    Treturn,
-
-    Tnull,
-    Tvector,
-    Tint128,
-    Tuns128,
-    TMAX,
-}
-
-alias Tarray = ENUMTY.Tarray;
-alias Tsarray = ENUMTY.Tsarray;
-alias Taarray = ENUMTY.Taarray;
-alias Tpointer = ENUMTY.Tpointer;
-alias Treference = ENUMTY.Treference;
-alias Tfunction = ENUMTY.Tfunction;
-alias Tident = ENUMTY.Tident;
-alias Tclass = ENUMTY.Tclass;
-alias Tstruct = ENUMTY.Tstruct;
-alias Tenum = ENUMTY.Tenum;
-alias Tdelegate = ENUMTY.Tdelegate;
-alias Tnone = ENUMTY.Tnone;
-alias Tvoid = ENUMTY.Tvoid;
-alias Tint8 = ENUMTY.Tint8;
-alias Tuns8 = ENUMTY.Tuns8;
-alias Tint16 = ENUMTY.Tint16;
-alias Tuns16 = ENUMTY.Tuns16;
-alias Tint32 = ENUMTY.Tint32;
-alias Tuns32 = ENUMTY.Tuns32;
-alias Tint64 = ENUMTY.Tint64;
-alias Tuns64 = ENUMTY.Tuns64;
-alias Tfloat32 = ENUMTY.Tfloat32;
-alias Tfloat64 = ENUMTY.Tfloat64;
-alias Tfloat80 = ENUMTY.Tfloat80;
-alias Timaginary32 = ENUMTY.Timaginary32;
-alias Timaginary64 = ENUMTY.Timaginary64;
-alias Timaginary80 = ENUMTY.Timaginary80;
-alias Tcomplex32 = ENUMTY.Tcomplex32;
-alias Tcomplex64 = ENUMTY.Tcomplex64;
-alias Tcomplex80 = ENUMTY.Tcomplex80;
-alias Tbool = ENUMTY.Tbool;
-alias Tchar = ENUMTY.Tchar;
-alias Twchar = ENUMTY.Twchar;
-alias Tdchar = ENUMTY.Tdchar;
-alias Terror = ENUMTY.Terror;
-alias Tinstance = ENUMTY.Tinstance;
-alias Ttypeof = ENUMTY.Ttypeof;
-alias Ttuple = ENUMTY.Ttuple;
-alias Tslice = ENUMTY.Tslice;
-alias Treturn = ENUMTY.Treturn;
-alias Tnull = ENUMTY.Tnull;
-alias Tvector = ENUMTY.Tvector;
-alias Tint128 = ENUMTY.Tint128;
-alias Tuns128 = ENUMTY.Tuns128;
-alias TMAX = ENUMTY.TMAX;
 
 alias TY = ubyte;
 
@@ -481,6 +382,59 @@ alias MOD = ubyte;
  */
 extern (C++) abstract class Type : RootObject
 {
+    enum Kind : int
+    {
+        array,              // slice array, aka T[]
+        staticArray,        // static array, aka T[dimension]
+        associativeArray,   // associative array, aka T[type]
+        pointer,
+        reference,
+        function_,
+        identifier,
+        class_,
+        struct_,
+        enum_,
+
+        delegate_,
+        none,
+        void_,
+        int8,
+        uint8,
+        int16,
+        uint16,
+        int32,
+        uint32,
+        int64,
+
+        uint64,
+        float32,
+        float64,
+        float80,
+        imaginary32,
+        imaginary64,
+        imaginary80,
+        complex32,
+        complex64,
+        complex80,
+
+        bool_,
+        char_,
+        wchar_,
+        dchar_,
+        error,
+        instance,
+        typeof_,
+        tuple,
+        slice,
+        return_,
+
+        null_,
+        vector,
+        int128,
+        uint128,
+        max_,
+    }
+
     TY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
@@ -567,31 +521,31 @@ extern (C++) abstract class Type : RootObject
 
     extern (C++) static __gshared TemplateDeclaration rtinfo;
 
-    extern (C++) static __gshared Type[TMAX] basic;
+    extern (C++) static __gshared Type[Type.Kind.max_] basic;
     extern (C++) static __gshared StringTable stringtable;
 
-    extern (C++) static __gshared ubyte[TMAX] sizeTy = ()
+    extern (C++) static __gshared ubyte[Type.Kind.max_] sizeTy = ()
         {
-            ubyte[TMAX] sizeTy = __traits(classInstanceSize, TypeBasic);
-            sizeTy[Tsarray] = __traits(classInstanceSize, TypeSArray);
-            sizeTy[Tarray] = __traits(classInstanceSize, TypeDArray);
-            sizeTy[Taarray] = __traits(classInstanceSize, TypeAArray);
-            sizeTy[Tpointer] = __traits(classInstanceSize, TypePointer);
-            sizeTy[Treference] = __traits(classInstanceSize, TypeReference);
-            sizeTy[Tfunction] = __traits(classInstanceSize, TypeFunction);
-            sizeTy[Tdelegate] = __traits(classInstanceSize, TypeDelegate);
-            sizeTy[Tident] = __traits(classInstanceSize, TypeIdentifier);
-            sizeTy[Tinstance] = __traits(classInstanceSize, TypeInstance);
-            sizeTy[Ttypeof] = __traits(classInstanceSize, TypeTypeof);
-            sizeTy[Tenum] = __traits(classInstanceSize, TypeEnum);
-            sizeTy[Tstruct] = __traits(classInstanceSize, TypeStruct);
-            sizeTy[Tclass] = __traits(classInstanceSize, TypeClass);
-            sizeTy[Ttuple] = __traits(classInstanceSize, TypeTuple);
-            sizeTy[Tslice] = __traits(classInstanceSize, TypeSlice);
-            sizeTy[Treturn] = __traits(classInstanceSize, TypeReturn);
-            sizeTy[Terror] = __traits(classInstanceSize, TypeError);
-            sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
-            sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+            ubyte[Type.Kind.max_] sizeTy = __traits(classInstanceSize, TypeBasic);
+            sizeTy[Type.Kind.staticArray] = __traits(classInstanceSize, TypeSArray);
+            sizeTy[Type.Kind.array] = __traits(classInstanceSize, TypeDArray);
+            sizeTy[Type.Kind.associativeArray] = __traits(classInstanceSize, TypeAArray);
+            sizeTy[Type.Kind.pointer] = __traits(classInstanceSize, TypePointer);
+            sizeTy[Type.Kind.reference] = __traits(classInstanceSize, TypeReference);
+            sizeTy[Type.Kind.function_] = __traits(classInstanceSize, TypeFunction);
+            sizeTy[Type.Kind.delegate_] = __traits(classInstanceSize, TypeDelegate);
+            sizeTy[Type.Kind.identifier] = __traits(classInstanceSize, TypeIdentifier);
+            sizeTy[Type.Kind.instance] = __traits(classInstanceSize, TypeInstance);
+            sizeTy[Type.Kind.typeof_] = __traits(classInstanceSize, TypeTypeof);
+            sizeTy[Type.Kind.enum_] = __traits(classInstanceSize, TypeEnum);
+            sizeTy[Type.Kind.struct_] = __traits(classInstanceSize, TypeStruct);
+            sizeTy[Type.Kind.class_] = __traits(classInstanceSize, TypeClass);
+            sizeTy[Type.Kind.tuple] = __traits(classInstanceSize, TypeTuple);
+            sizeTy[Type.Kind.slice] = __traits(classInstanceSize, TypeSlice);
+            sizeTy[Type.Kind.return_] = __traits(classInstanceSize, TypeReturn);
+            sizeTy[Type.Kind.error] = __traits(classInstanceSize, TypeError);
+            sizeTy[Type.Kind.null_] = __traits(classInstanceSize, TypeNull);
+            sizeTy[Type.Kind.vector] = __traits(classInstanceSize, TypeVector);
             return sizeTy;
         }();
 
@@ -681,7 +635,7 @@ extern (C++) abstract class Type : RootObject
         if (equals(t))
             return 1; // covariant
 
-        if (ty != Tfunction || t.ty != Tfunction)
+        if (ty != Type.Kind.function_ || t.ty != Type.Kind.function_)
             goto Ldistinct;
 
         t1 = cast(TypeFunction)this;
@@ -709,27 +663,27 @@ extern (C++) abstract class Type : RootObject
                     Type tp2 = fparam2.type;
                     if (tp1.ty == tp2.ty)
                     {
-                        if (tp1.ty == Tclass)
+                        if (tp1.ty == Type.Kind.class_)
                         {
                             if ((cast(TypeClass)tp1).sym == (cast(TypeClass)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tstruct)
+                        else if (tp1.ty == Type.Kind.struct_)
                         {
                             if ((cast(TypeStruct)tp1).sym == (cast(TypeStruct)tp2).sym && MODimplicitConv(tp2.mod, tp1.mod))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tpointer)
+                        else if (tp1.ty == Type.Kind.pointer)
                         {
                             if (tp2.implicitConvTo(tp1))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tarray)
+                        else if (tp1.ty == Type.Kind.array)
                         {
                             if (tp2.implicitConvTo(tp1))
                                 goto Lcov;
                         }
-                        else if (tp1.ty == Tdelegate)
+                        else if (tp1.ty == Type.Kind.delegate_)
                         {
                             if (tp1.implicitConvTo(tp2))
                                 goto Lcov;
@@ -765,7 +719,7 @@ extern (C++) abstract class Type : RootObject
 
             if (t1n.equals(t2n))
                 goto Lcovariant;
-            if (t1n.ty == Tclass && t2n.ty == Tclass)
+            if (t1n.ty == Type.Kind.class_ && t2n.ty == Type.Kind.class_)
             {
                 /* If same class type, but t2n is const, then it's
                  * covariant. Do this test first because it can work on
@@ -783,14 +737,14 @@ extern (C++) abstract class Type : RootObject
                     return 3; // forward references
                 }
             }
-            if (t1n.ty == Tstruct && t2n.ty == Tstruct)
+            if (t1n.ty == Type.Kind.struct_ && t2n.ty == Type.Kind.struct_)
             {
                 if ((cast(TypeStruct)t1n).sym == (cast(TypeStruct)t2n).sym && MODimplicitConv(t1n.mod, t2n.mod))
                     goto Lcovariant;
             }
             else if (t1n.ty == t2n.ty && t1n.implicitConvTo(t2n))
                 goto Lcovariant;
-            else if (t1n.ty == Tnull && t1n.implicitConvTo(t2n) && t1n.size() == t2n.size())
+            else if (t1n.ty == Type.Kind.null_ && t1n.implicitConvTo(t2n) && t1n.size() == t2n.size())
                 goto Lcovariant;
         }
         goto Lnotcovariant;
@@ -888,7 +842,7 @@ extern (C++) abstract class Type : RootObject
         OutBuffer buf;
         buf.reserve(16);
         HdrGenState hgs;
-        hgs.fullQual = (ty == Tclass && !mod);
+        hgs.fullQual = (ty == Type.Kind.class_ && !mod);
 
         .toCBuffer(this, &buf, null, &hgs);
         return buf.extractString();
@@ -913,72 +867,72 @@ extern (C++) abstract class Type : RootObject
         // Set basic types
         static __gshared TY* basetab =
         [
-            Tvoid,
-            Tint8,
-            Tuns8,
-            Tint16,
-            Tuns16,
-            Tint32,
-            Tuns32,
-            Tint64,
-            Tuns64,
-            Tint128,
-            Tuns128,
-            Tfloat32,
-            Tfloat64,
-            Tfloat80,
-            Timaginary32,
-            Timaginary64,
-            Timaginary80,
-            Tcomplex32,
-            Tcomplex64,
-            Tcomplex80,
-            Tbool,
-            Tchar,
-            Twchar,
-            Tdchar,
-            Terror
+            Type.Kind.void_,
+            Type.Kind.int8,
+            Type.Kind.uint8,
+            Type.Kind.int16,
+            Type.Kind.uint16,
+            Type.Kind.int32,
+            Type.Kind.uint32,
+            Type.Kind.int64,
+            Type.Kind.uint64,
+            Type.Kind.int128,
+            Type.Kind.uint128,
+            Type.Kind.float32,
+            Type.Kind.float64,
+            Type.Kind.float80,
+            Type.Kind.imaginary32,
+            Type.Kind.imaginary64,
+            Type.Kind.imaginary80,
+            Type.Kind.complex32,
+            Type.Kind.complex64,
+            Type.Kind.complex80,
+            Type.Kind.bool_,
+            Type.Kind.char_,
+            Type.Kind.wchar_,
+            Type.Kind.dchar_,
+            Type.Kind.error
         ];
 
-        for (size_t i = 0; basetab[i] != Terror; i++)
+        for (size_t i = 0; basetab[i] != Type.Kind.error; i++)
         {
             Type t = new TypeBasic(basetab[i]);
             t = t.merge();
             basic[basetab[i]] = t;
         }
-        basic[Terror] = new TypeError();
+        basic[Type.Kind.error] = new TypeError();
 
-        tvoid = basic[Tvoid];
-        tint8 = basic[Tint8];
-        tuns8 = basic[Tuns8];
-        tint16 = basic[Tint16];
-        tuns16 = basic[Tuns16];
-        tint32 = basic[Tint32];
-        tuns32 = basic[Tuns32];
-        tint64 = basic[Tint64];
-        tuns64 = basic[Tuns64];
-        tint128 = basic[Tint128];
-        tuns128 = basic[Tuns128];
-        tfloat32 = basic[Tfloat32];
-        tfloat64 = basic[Tfloat64];
-        tfloat80 = basic[Tfloat80];
+        tvoid = basic[Type.Kind.void_];
+        tint8 = basic[Type.Kind.int8];
+        tuns8 = basic[Type.Kind.uint8];
+        tint16 = basic[Type.Kind.int16];
+        tuns16 = basic[Type.Kind.uint16];
+        tint32 = basic[Type.Kind.int32];
+        tuns32 = basic[Type.Kind.uint32];
+        tint64 = basic[Type.Kind.int64];
+        tuns64 = basic[Type.Kind.uint64];
+        tint128 = basic[Type.Kind.int128];
+        tuns128 = basic[Type.Kind.uint128];
+        tfloat32 = basic[Type.Kind.float32];
+        tfloat64 = basic[Type.Kind.float64];
+        tfloat80 = basic[Type.Kind.float80];
 
-        timaginary32 = basic[Timaginary32];
-        timaginary64 = basic[Timaginary64];
-        timaginary80 = basic[Timaginary80];
+        timaginary32 = basic[Type.Kind.imaginary32];
+        timaginary64 = basic[Type.Kind.imaginary64];
+        timaginary80 = basic[Type.Kind.imaginary80];
 
-        tcomplex32 = basic[Tcomplex32];
-        tcomplex64 = basic[Tcomplex64];
-        tcomplex80 = basic[Tcomplex80];
+        tcomplex32 = basic[Type.Kind.complex32];
+        tcomplex64 = basic[Type.Kind.complex64];
+        tcomplex80 = basic[Type.Kind.complex80];
 
-        tbool = basic[Tbool];
-        tchar = basic[Tchar];
-        twchar = basic[Twchar];
-        tdchar = basic[Tdchar];
+        tbool = basic[Type.Kind.bool_];
+        tchar = basic[Type.Kind.char_];
+        twchar = basic[Type.Kind.wchar_];
+        tdchar = basic[Type.Kind.dchar_];
 
         tshiftcnt = tint32;
-        terror = basic[Terror];
-        tnull = basic[Tnull];
+        terror = basic[Type.Kind.error];
+        tnull = basic[Type.Kind.null_];
         tnull = new TypeNull();
         tnull.deco = tnull.merge().deco;
 
@@ -990,13 +944,13 @@ extern (C++) abstract class Type : RootObject
 
         if (global.params.isLP64)
         {
-            Tsize_t = Tuns64;
-            Tptrdiff_t = Tint64;
+            Tsize_t = Type.Kind.uint64;
+            Tptrdiff_t = Type.Kind.int64;
         }
         else
         {
-            Tsize_t = Tuns32;
-            Tptrdiff_t = Tint32;
+            Tsize_t = Type.Kind.uint32;
+            Tptrdiff_t = Type.Kind.int32;
         }
 
         tsize_t = basic[Tsize_t];
@@ -1025,7 +979,7 @@ extern (C++) abstract class Type : RootObject
         //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
         uint errors = global.startGagging();
         Type t = typeSemantic(this, loc, sc);
-        if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
+        if (global.endGagging(errors) || t.ty == Type.Kind.error) // if any errors happened
         {
             t = null;
         }
@@ -1244,9 +1198,9 @@ extern (C++) abstract class Type : RootObject
         t.swcto = null;
         t.vtinfo = null;
         t.ctype = null;
-        if (t.ty == Tstruct)
+        if (t.ty == Type.Kind.struct_)
             (cast(TypeStruct)t).att = AliasThisRec.fwdref;
-        if (t.ty == Tclass)
+        if (t.ty == Type.Kind.class_)
             (cast(TypeClass)t).att = AliasThisRec.fwdref;
         return t;
     }
@@ -1506,7 +1460,7 @@ extern (C++) abstract class Type : RootObject
         // cache t to this.xto won't break transitivity.
         Type mto = null;
         Type tn = nextOf();
-        if (!tn || ty != Tsarray && tn.mod == t.nextOf().mod)
+        if (!tn || ty != Type.Kind.staticArray && tn.mod == t.nextOf().mod)
         {
             switch (t.mod)
             {
@@ -1791,7 +1745,7 @@ extern (C++) abstract class Type : RootObject
         }
 
         Type tn = nextOf();
-        if (tn && ty != Tfunction && tn.ty != Tfunction && ty != Tenum)
+        if (tn && ty != Type.Kind.function_ && tn.ty != Type.Kind.function_ && ty != Type.Kind.enum_)
         {
             // Verify transitivity
             switch (mod)
@@ -2065,12 +2019,12 @@ extern (C++) abstract class Type : RootObject
 
     final Type pointerTo()
     {
-        if (ty == Terror)
+        if (ty == Type.Kind.error)
             return this;
         if (!pto)
         {
             Type t = new TypePointer(this);
-            if (ty == Tfunction)
+            if (ty == Type.Kind.function_)
             {
                 t.deco = t.merge().deco;
                 pto = t;
@@ -2083,7 +2037,7 @@ extern (C++) abstract class Type : RootObject
 
     final Type referenceTo()
     {
-        if (ty == Terror)
+        if (ty == Type.Kind.error)
             return this;
         if (!rto)
         {
@@ -2095,7 +2049,7 @@ extern (C++) abstract class Type : RootObject
 
     final Type arrayOf()
     {
-        if (ty == Terror)
+        if (ty == Type.Kind.error)
             return this;
         if (!arrayof)
         {
@@ -2179,9 +2133,9 @@ extern (C++) abstract class Type : RootObject
     {
         Type tb = toBasetype();
         AliasThisRec* pflag;
-        if (tb.ty == Tstruct)
+        if (tb.ty == Type.Kind.struct_)
             pflag = &(cast(TypeStruct)tb).att;
-        else if (tb.ty == Tclass)
+        else if (tb.ty == Type.Kind.class_)
             pflag = &(cast(TypeClass)tb).att;
         else
             return false;
@@ -2367,7 +2321,7 @@ extern (C++) abstract class Type : RootObject
         if (Type tn = nextOf())
         {
             // substitution has no effect on function pointer type.
-            if (ty == Tpointer && tn.ty == Tfunction)
+            if (ty == Type.Kind.pointer && tn.ty == Type.Kind.function_)
             {
                 t = this;
                 goto L1;
@@ -2378,18 +2332,18 @@ extern (C++) abstract class Type : RootObject
                 t = this;
             else
             {
-                if (ty == Tpointer)
+                if (ty == Type.Kind.pointer)
                     t = t.pointerTo();
-                else if (ty == Tarray)
+                else if (ty == Type.Kind.array)
                     t = t.arrayOf();
-                else if (ty == Tsarray)
+                else if (ty == Type.Kind.staticArray)
                     t = new TypeSArray(t, (cast(TypeSArray)this).dim.syntaxCopy());
-                else if (ty == Taarray)
+                else if (ty == Type.Kind.associativeArray)
                 {
                     t = new TypeAArray(t, (cast(TypeAArray)this).index.syntaxCopy());
                     (cast(TypeAArray)t).sc = (cast(TypeAArray)this).sc; // duplicate scope
                 }
-                else if (ty == Tdelegate)
+                else if (ty == Type.Kind.delegate_)
                 {
                     t = new TypeDelegate(t);
                 }
@@ -2445,19 +2399,19 @@ extern (C++) abstract class Type : RootObject
     {
         Type t = mutableOf().unSharedOf();
 
-        Type tn = ty == Tenum ? null : nextOf();
-        if (tn && tn.ty != Tfunction)
+        Type tn = ty == Type.Kind.enum_ ? null : nextOf();
+        if (tn && tn.ty != Type.Kind.function_)
         {
             Type utn = tn.unqualify(m);
             if (utn != tn)
             {
-                if (ty == Tpointer)
+                if (ty == Type.Kind.pointer)
                     t = utn.pointerTo();
-                else if (ty == Tarray)
+                else if (ty == Type.Kind.array)
                     t = utn.arrayOf();
-                else if (ty == Tsarray)
+                else if (ty == Type.Kind.staticArray)
                     t = new TypeSArray(utn, (cast(TypeSArray)this).dim);
-                else if (ty == Taarray)
+                else if (ty == Type.Kind.associativeArray)
                 {
                     t = new TypeAArray(utn, (cast(TypeAArray)this).index);
                     (cast(TypeAArray)t).sc = (cast(TypeAArray)this).sc; // duplicate scope
@@ -2517,7 +2471,7 @@ extern (C++) abstract class Type : RootObject
         {
             Type tb = toBasetype();
             e = defaultInitLiteral(loc);
-            if (tb.ty == Tstruct && tb.needsNested())
+            if (tb.ty == Type.Kind.struct_ && tb.needsNested())
             {
                 StructLiteralExp se = cast(StructLiteralExp)e;
                 se.useStaticInit = true;
@@ -2551,7 +2505,7 @@ extern (C++) abstract class Type : RootObject
         else
         {
             Dsymbol s = null;
-            if (ty == Tstruct || ty == Tclass || ty == Tenum)
+            if (ty == Type.Kind.struct_ || ty == Type.Kind.class_ || ty == Type.Kind.enum_)
                 s = toDsymbol(null);
             if (s)
                 s = s.search_correct(ident);
@@ -2624,7 +2578,7 @@ extern (C++) abstract class Type : RootObject
             {
                 Type tb = toBasetype();
                 e = defaultInitLiteral(e.loc);
-                if (tb.ty == Tstruct && tb.needsNested())
+                if (tb.ty == Type.Kind.struct_ && tb.needsNested())
                 {
                     StructLiteralExp se = cast(StructLiteralExp)e;
                     se.useStaticInit = true;
@@ -2683,7 +2637,7 @@ extern (C++) abstract class Type : RootObject
         }
 
 
-        assert(ty == Tstruct || ty == Tclass);
+        assert(ty == Type.Kind.struct_ || ty == Type.Kind.class_);
         auto sym = toDsymbol(sc).isAggregateDeclaration();
         assert(sym);
         if (ident != Id.__sizeof &&
@@ -2940,7 +2894,7 @@ extern (C++) abstract class Type : RootObject
     final Type baseElemOf()
     {
         Type t = toBasetype();
-        while (t.ty == Tsarray)
+        while (t.ty == Type.Kind.staticArray)
             t = (cast(TypeSArray)t).next.toBasetype();
         return t;
     }
@@ -2954,26 +2908,26 @@ extern (C++) abstract class Type : RootObject
         uinteger_t m;
         switch (toBasetype().ty)
         {
-        case Tbool:
+        case Type.Kind.bool_:
             m = 1;
             break;
-        case Tchar:
-        case Tint8:
-        case Tuns8:
+        case Type.Kind.char_:
+        case Type.Kind.int8:
+        case Type.Kind.uint8:
             m = 0xFF;
             break;
-        case Twchar:
-        case Tint16:
-        case Tuns16:
+        case Type.Kind.wchar_:
+        case Type.Kind.int16:
+        case Type.Kind.uint16:
             m = 0xFFFFU;
             break;
-        case Tdchar:
-        case Tint32:
-        case Tuns32:
+        case Type.Kind.dchar_:
+        case Type.Kind.int32:
+        case Type.Kind.uint32:
             m = 0xFFFFFFFFU;
             break;
-        case Tint64:
-        case Tuns64:
+        case Type.Kind.int64:
+        case Type.Kind.uint64:
             m = 0xFFFFFFFFFFFFFFFFUL;
             break;
         default:
@@ -3013,11 +2967,11 @@ extern (C++) abstract class Type : RootObject
             return false;
 
         Type t = baseElemOf();
-        while (t.ty == Tpointer || t.ty == Tarray)
+        while (t.ty == Type.Kind.pointer || t.ty == Type.Kind.array)
             t = t.nextOf().baseElemOf();
 
         // Basetype is an opaque enum, nothing to check.
-        if (t.ty == Tenum && !(cast(TypeEnum)t).sym.memtype)
+        if (t.ty == Type.Kind.enum_ && !(cast(TypeEnum)t).sym.memtype)
             return false;
 
         if (t.isimaginary() || t.iscomplex())
@@ -3025,18 +2979,18 @@ extern (C++) abstract class Type : RootObject
             Type rt;
             switch (t.ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
                 rt = Type.tfloat32;
                 break;
 
-            case Tcomplex64:
-            case Timaginary64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
                 rt = Type.tfloat64;
                 break;
 
-            case Tcomplex80:
-            case Timaginary80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
                 rt = Type.tfloat80;
                 break;
 
@@ -3088,7 +3042,7 @@ extern (C++) abstract class Type : RootObject
 
     final TypeFunction toTypeFunction()
     {
-        if (ty != Tfunction)
+        if (ty != Type.Kind.function_)
             assert(0);
         return cast(TypeFunction)this;
     }
@@ -3100,7 +3054,7 @@ extern (C++) final class TypeError : Type
 {
     extern (D) this()
     {
-        super(Terror);
+        super(Type.Kind.error);
     }
 
     override Type syntaxCopy()
@@ -3161,9 +3115,9 @@ extern (C++) abstract class TypeNext : Type
 
     override final int hasWild() const
     {
-        if (ty == Tfunction)
+        if (ty == Type.Kind.function_)
             return 0;
-        if (ty == Tdelegate)
+        if (ty == Type.Kind.delegate_)
             return Type.hasWild();
         return mod & MODFlags.wild || (next && next.hasWild());
     }
@@ -3187,7 +3141,7 @@ extern (C++) abstract class TypeNext : Type
             return cto;
         }
         TypeNext t = cast(TypeNext)Type.makeConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             if (next.isShared())
             {
@@ -3217,7 +3171,7 @@ extern (C++) abstract class TypeNext : Type
             return ito;
         }
         TypeNext t = cast(TypeNext)Type.makeImmutable();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             t.next = next.immutableOf();
         }
@@ -3233,7 +3187,7 @@ extern (C++) abstract class TypeNext : Type
             return sto;
         }
         TypeNext t = cast(TypeNext)Type.makeShared();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             if (next.isWild())
             {
@@ -3263,7 +3217,7 @@ extern (C++) abstract class TypeNext : Type
             return scto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             if (next.isWild())
                 t.next = next.sharedWildConstOf();
@@ -3283,7 +3237,7 @@ extern (C++) abstract class TypeNext : Type
             return wto;
         }
         TypeNext t = cast(TypeNext)Type.makeWild();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             if (next.isShared())
             {
@@ -3313,7 +3267,7 @@ extern (C++) abstract class TypeNext : Type
             return wcto;
         }
         TypeNext t = cast(TypeNext)Type.makeWildConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             if (next.isShared())
                 t.next = next.sharedWildConstOf();
@@ -3333,7 +3287,7 @@ extern (C++) abstract class TypeNext : Type
             return swto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedWild();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             if (next.isConst())
                 t.next = next.sharedWildConstOf();
@@ -3353,7 +3307,7 @@ extern (C++) abstract class TypeNext : Type
             return swcto;
         }
         TypeNext t = cast(TypeNext)Type.makeSharedWildConst();
-        if (ty != Tfunction && next.ty != Tfunction && !next.isImmutable())
+        if (ty != Type.Kind.function_ && next.ty != Type.Kind.function_ && !next.isImmutable())
         {
             t.next = next.sharedWildConstOf();
         }
@@ -3365,7 +3319,7 @@ extern (C++) abstract class TypeNext : Type
     {
         //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
         TypeNext t = cast(TypeNext)Type.makeMutable();
-        if (ty == Tsarray)
+        if (ty == Type.Kind.staticArray)
         {
             t.next = next.mutableOf();
         }
@@ -3404,13 +3358,13 @@ extern (C++) abstract class TypeNext : Type
 
     override final ubyte deduceWild(Type t, bool isRef)
     {
-        if (ty == Tfunction)
+        if (ty == Type.Kind.function_)
             return 0;
 
         ubyte wm;
 
         Type tn = t.nextOf();
-        if (!isRef && (ty == Tarray || ty == Tpointer) && tn)
+        if (!isRef && (ty == Type.Kind.array || ty == Type.Kind.pointer) && tn)
         {
             wm = next.deduceWild(tn, true);
             if (!wm)
@@ -3453,121 +3407,121 @@ extern (C++) final class TypeBasic : Type
         uint flags = 0;
         switch (ty)
         {
-        case Tvoid:
+        case Type.Kind.void_:
             d = Token.toChars(TOK.void_);
             break;
 
-        case Tint8:
+        case Type.Kind.int8:
             d = Token.toChars(TOK.int8);
             flags |= TFlags.integral;
             break;
 
-        case Tuns8:
+        case Type.Kind.uint8:
             d = Token.toChars(TOK.uns8);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tint16:
+        case Type.Kind.int16:
             d = Token.toChars(TOK.int16);
             flags |= TFlags.integral;
             break;
 
-        case Tuns16:
+        case Type.Kind.uint16:
             d = Token.toChars(TOK.uns16);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tint32:
+        case Type.Kind.int32:
             d = Token.toChars(TOK.int32);
             flags |= TFlags.integral;
             break;
 
-        case Tuns32:
+        case Type.Kind.uint32:
             d = Token.toChars(TOK.uns32);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tfloat32:
+        case Type.Kind.float32:
             d = Token.toChars(TOK.float32);
             flags |= TFlags.floating | TFlags.real_;
             break;
 
-        case Tint64:
+        case Type.Kind.int64:
             d = Token.toChars(TOK.int64);
             flags |= TFlags.integral;
             break;
 
-        case Tuns64:
+        case Type.Kind.uint64:
             d = Token.toChars(TOK.uns64);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tint128:
+        case Type.Kind.int128:
             d = Token.toChars(TOK.int128);
             flags |= TFlags.integral;
             break;
 
-        case Tuns128:
+        case Type.Kind.uint128:
             d = Token.toChars(TOK.uns128);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tfloat64:
+        case Type.Kind.float64:
             d = Token.toChars(TOK.float64);
             flags |= TFlags.floating | TFlags.real_;
             break;
 
-        case Tfloat80:
+        case Type.Kind.float80:
             d = Token.toChars(TOK.float80);
             flags |= TFlags.floating | TFlags.real_;
             break;
 
-        case Timaginary32:
+        case Type.Kind.imaginary32:
             d = Token.toChars(TOK.imaginary32);
             flags |= TFlags.floating | TFlags.imaginary;
             break;
 
-        case Timaginary64:
+        case Type.Kind.imaginary64:
             d = Token.toChars(TOK.imaginary64);
             flags |= TFlags.floating | TFlags.imaginary;
             break;
 
-        case Timaginary80:
+        case Type.Kind.imaginary80:
             d = Token.toChars(TOK.imaginary80);
             flags |= TFlags.floating | TFlags.imaginary;
             break;
 
-        case Tcomplex32:
+        case Type.Kind.complex32:
             d = Token.toChars(TOK.complex32);
             flags |= TFlags.floating | TFlags.complex;
             break;
 
-        case Tcomplex64:
+        case Type.Kind.complex64:
             d = Token.toChars(TOK.complex64);
             flags |= TFlags.floating | TFlags.complex;
             break;
 
-        case Tcomplex80:
+        case Type.Kind.complex80:
             d = Token.toChars(TOK.complex80);
             flags |= TFlags.floating | TFlags.complex;
             break;
 
-        case Tbool:
+        case Type.Kind.bool_:
             d = "bool";
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tchar:
+        case Type.Kind.char_:
             d = Token.toChars(TOK.char_);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Twchar:
+        case Type.Kind.wchar_:
             d = Token.toChars(TOK.wchar_);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
 
-        case Tdchar:
+        case Type.Kind.dchar_:
             d = Token.toChars(TOK.dchar_);
             flags |= TFlags.integral | TFlags.unsigned;
             break;
@@ -3597,67 +3551,67 @@ extern (C++) final class TypeBasic : Type
         //printf("TypeBasic::size()\n");
         switch (ty)
         {
-        case Tint8:
-        case Tuns8:
+        case Type.Kind.int8:
+        case Type.Kind.uint8:
             size = 1;
             break;
 
-        case Tint16:
-        case Tuns16:
+        case Type.Kind.int16:
+        case Type.Kind.uint16:
             size = 2;
             break;
 
-        case Tint32:
-        case Tuns32:
-        case Tfloat32:
-        case Timaginary32:
+        case Type.Kind.int32:
+        case Type.Kind.uint32:
+        case Type.Kind.float32:
+        case Type.Kind.imaginary32:
             size = 4;
             break;
 
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-        case Timaginary64:
+        case Type.Kind.int64:
+        case Type.Kind.uint64:
+        case Type.Kind.float64:
+        case Type.Kind.imaginary64:
             size = 8;
             break;
 
-        case Tfloat80:
-        case Timaginary80:
+        case Type.Kind.float80:
+        case Type.Kind.imaginary80:
             size = Target.realsize;
             break;
 
-        case Tcomplex32:
+        case Type.Kind.complex32:
             size = 8;
             break;
 
-        case Tcomplex64:
-        case Tint128:
-        case Tuns128:
+        case Type.Kind.complex64:
+        case Type.Kind.int128:
+        case Type.Kind.uint128:
             size = 16;
             break;
 
-        case Tcomplex80:
+        case Type.Kind.complex80:
             size = Target.realsize * 2;
             break;
 
-        case Tvoid:
+        case Type.Kind.void_:
             //size = Type::size();      // error message
             size = 1;
             break;
 
-        case Tbool:
+        case Type.Kind.bool_:
             size = 1;
             break;
 
-        case Tchar:
+        case Type.Kind.char_:
             size = 1;
             break;
 
-        case Twchar:
+        case Type.Kind.wchar_:
             size = 2;
             break;
 
-        case Tdchar:
+        case Type.Kind.dchar_:
             size = 4;
             break;
 
@@ -3683,55 +3637,55 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tint8:
+            case Type.Kind.int8:
                 ivalue = 0x7F;
                 goto Livalue;
-            case Tuns8:
+            case Type.Kind.uint8:
                 ivalue = 0xFF;
                 goto Livalue;
-            case Tint16:
+            case Type.Kind.int16:
                 ivalue = 0x7FFFU;
                 goto Livalue;
-            case Tuns16:
+            case Type.Kind.uint16:
                 ivalue = 0xFFFFU;
                 goto Livalue;
-            case Tint32:
+            case Type.Kind.int32:
                 ivalue = 0x7FFFFFFFU;
                 goto Livalue;
-            case Tuns32:
+            case Type.Kind.uint32:
                 ivalue = 0xFFFFFFFFU;
                 goto Livalue;
-            case Tint64:
+            case Type.Kind.int64:
                 ivalue = 0x7FFFFFFFFFFFFFFFL;
                 goto Livalue;
-            case Tuns64:
+            case Type.Kind.uint64:
                 ivalue = 0xFFFFFFFFFFFFFFFFUL;
                 goto Livalue;
-            case Tbool:
+            case Type.Kind.bool_:
                 ivalue = 1;
                 goto Livalue;
-            case Tchar:
+            case Type.Kind.char_:
                 ivalue = 0xFF;
                 goto Livalue;
-            case Twchar:
+            case Type.Kind.wchar_:
                 ivalue = 0xFFFFU;
                 goto Livalue;
-            case Tdchar:
+            case Type.Kind.dchar_:
                 ivalue = 0x10FFFFU;
                 goto Livalue;
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 fvalue = Target.FloatProperties.max;
                 goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 fvalue = Target.DoubleProperties.max;
                 goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 fvalue = Target.RealProperties.max;
                 goto Lfvalue;
             default:
@@ -3742,40 +3696,40 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tint8:
+            case Type.Kind.int8:
                 ivalue = -128;
                 goto Livalue;
-            case Tuns8:
+            case Type.Kind.uint8:
                 ivalue = 0;
                 goto Livalue;
-            case Tint16:
+            case Type.Kind.int16:
                 ivalue = -32768;
                 goto Livalue;
-            case Tuns16:
+            case Type.Kind.uint16:
                 ivalue = 0;
                 goto Livalue;
-            case Tint32:
+            case Type.Kind.int32:
                 ivalue = -2147483647 - 1;
                 goto Livalue;
-            case Tuns32:
+            case Type.Kind.uint32:
                 ivalue = 0;
                 goto Livalue;
-            case Tint64:
+            case Type.Kind.int64:
                 ivalue = (-9223372036854775807L - 1L);
                 goto Livalue;
-            case Tuns64:
+            case Type.Kind.uint64:
                 ivalue = 0;
                 goto Livalue;
-            case Tbool:
+            case Type.Kind.bool_:
                 ivalue = 0;
                 goto Livalue;
-            case Tchar:
+            case Type.Kind.char_:
                 ivalue = 0;
                 goto Livalue;
-            case Twchar:
+            case Type.Kind.wchar_:
                 ivalue = 0;
                 goto Livalue;
-            case Tdchar:
+            case Type.Kind.dchar_:
                 ivalue = 0;
                 goto Livalue;
             default:
@@ -3787,19 +3741,19 @@ extern (C++) final class TypeBasic : Type
         Lmin_normal:
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 fvalue = Target.FloatProperties.min_normal;
                 goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 fvalue = Target.DoubleProperties.min_normal;
                 goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 fvalue = Target.RealProperties.min_normal;
                 goto Lfvalue;
             default:
@@ -3810,15 +3764,15 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-            case Timaginary32:
-            case Timaginary64:
-            case Timaginary80:
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
+            case Type.Kind.complex32:
+            case Type.Kind.complex64:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary32:
+            case Type.Kind.imaginary64:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float32:
+            case Type.Kind.float64:
+            case Type.Kind.float80:
                 fvalue = Target.RealProperties.nan;
                 goto Lfvalue;
             default:
@@ -3829,15 +3783,15 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-            case Timaginary32:
-            case Timaginary64:
-            case Timaginary80:
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
+            case Type.Kind.complex32:
+            case Type.Kind.complex64:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary32:
+            case Type.Kind.imaginary64:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float32:
+            case Type.Kind.float64:
+            case Type.Kind.float80:
                 fvalue = Target.RealProperties.infinity;
                 goto Lfvalue;
             default:
@@ -3848,19 +3802,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 ivalue = Target.FloatProperties.dig;
                 goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 ivalue = Target.DoubleProperties.dig;
                 goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 ivalue = Target.RealProperties.dig;
                 goto Lint;
             default:
@@ -3871,19 +3825,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 fvalue = Target.FloatProperties.epsilon;
                 goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 fvalue = Target.DoubleProperties.epsilon;
                 goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 fvalue = Target.RealProperties.epsilon;
                 goto Lfvalue;
             default:
@@ -3894,19 +3848,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 ivalue = Target.FloatProperties.mant_dig;
                 goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 ivalue = Target.DoubleProperties.mant_dig;
                 goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 ivalue = Target.RealProperties.mant_dig;
                 goto Lint;
             default:
@@ -3917,19 +3871,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 ivalue = Target.FloatProperties.max_10_exp;
                 goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 ivalue = Target.DoubleProperties.max_10_exp;
                 goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 ivalue = Target.RealProperties.max_10_exp;
                 goto Lint;
             default:
@@ -3940,19 +3894,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 ivalue = Target.FloatProperties.max_exp;
                 goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 ivalue = Target.DoubleProperties.max_exp;
                 goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 ivalue = Target.RealProperties.max_exp;
                 goto Lint;
             default:
@@ -3963,19 +3917,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 ivalue = Target.FloatProperties.min_10_exp;
                 goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 ivalue = Target.DoubleProperties.min_10_exp;
                 goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 ivalue = Target.RealProperties.min_10_exp;
                 goto Lint;
             default:
@@ -3986,19 +3940,19 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
+            case Type.Kind.complex32:
+            case Type.Kind.imaginary32:
+            case Type.Kind.float32:
                 ivalue = Target.FloatProperties.min_exp;
                 goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
+            case Type.Kind.complex64:
+            case Type.Kind.imaginary64:
+            case Type.Kind.float64:
                 ivalue = Target.DoubleProperties.min_exp;
                 goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
+            case Type.Kind.complex80:
+            case Type.Kind.imaginary80:
+            case Type.Kind.float80:
                 ivalue = Target.RealProperties.min_exp;
                 goto Lint;
             default:
@@ -4040,35 +3994,35 @@ extern (C++) final class TypeBasic : Type
         {
             switch (ty)
             {
-            case Tcomplex32:
+            case Type.Kind.complex32:
                 t = tfloat32;
                 goto L1;
 
-            case Tcomplex64:
+            case Type.Kind.complex64:
                 t = tfloat64;
                 goto L1;
 
-            case Tcomplex80:
+            case Type.Kind.complex80:
                 t = tfloat80;
                 goto L1;
             L1:
                 e = e.castTo(sc, t);
                 break;
 
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
+            case Type.Kind.float32:
+            case Type.Kind.float64:
+            case Type.Kind.float80:
                 break;
 
-            case Timaginary32:
+            case Type.Kind.imaginary32:
                 t = tfloat32;
                 goto L2;
 
-            case Timaginary64:
+            case Type.Kind.imaginary64:
                 t = tfloat64;
                 goto L2;
 
-            case Timaginary80:
+            case Type.Kind.imaginary80:
                 t = tfloat80;
                 goto L2;
             L2:
@@ -4085,17 +4039,17 @@ extern (C++) final class TypeBasic : Type
             Type t2;
             switch (ty)
             {
-            case Tcomplex32:
+            case Type.Kind.complex32:
                 t = timaginary32;
                 t2 = tfloat32;
                 goto L3;
 
-            case Tcomplex64:
+            case Type.Kind.complex64:
                 t = timaginary64;
                 t2 = tfloat64;
                 goto L3;
 
-            case Tcomplex80:
+            case Type.Kind.complex80:
                 t = timaginary80;
                 t2 = tfloat80;
                 goto L3;
@@ -4104,15 +4058,15 @@ extern (C++) final class TypeBasic : Type
                 e.type = t2;
                 break;
 
-            case Timaginary32:
+            case Type.Kind.imaginary32:
                 t = tfloat32;
                 goto L4;
 
-            case Timaginary64:
+            case Type.Kind.imaginary64:
                 t = tfloat64;
                 goto L4;
 
-            case Timaginary80:
+            case Type.Kind.imaginary80:
                 t = tfloat80;
                 goto L4;
             L4:
@@ -4120,9 +4074,9 @@ extern (C++) final class TypeBasic : Type
                 e.type = t;
                 break;
 
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
+            case Type.Kind.float32:
+            case Type.Kind.float64:
+            case Type.Kind.float80:
                 e = new RealExp(e.loc, CTFloat.zero, this);
                 break;
 
@@ -4194,13 +4148,13 @@ extern (C++) final class TypeBasic : Type
                 return MATCH.convert;
         }
 
-        if (ty == Tvoid || to.ty == Tvoid)
+        if (ty == Type.Kind.void_ || to.ty == Type.Kind.void_)
             return MATCH.nomatch;
-        if (to.ty == Tbool)
+        if (to.ty == Type.Kind.bool_)
             return MATCH.nomatch;
 
         TypeBasic tob;
-        if (to.ty == Tvector && to.deco)
+        if (to.ty == Type.Kind.vector && to.deco)
         {
             TypeVector tv = cast(TypeVector)to;
             tob = tv.elementType();
@@ -4238,7 +4192,7 @@ extern (C++) final class TypeBasic : Type
             if (tob.flags & TFlags.integral)
                 return MATCH.nomatch;
 
-            assert(tob.flags & TFlags.floating || to.ty == Tvector);
+            assert(tob.flags & TFlags.floating || to.ty == Type.Kind.vector);
 
             // Disallow implicit conversion from complex to non-complex
             if (flags & TFlags.complex && !(tob.flags & TFlags.complex))
@@ -4265,33 +4219,33 @@ extern (C++) final class TypeBasic : Type
 
         switch (ty)
         {
-        case Tchar:
+        case Type.Kind.char_:
             value = 0xFF;
             break;
 
-        case Twchar:
-        case Tdchar:
+        case Type.Kind.wchar_:
+        case Type.Kind.dchar_:
             value = 0xFFFF;
             break;
 
-        case Timaginary32:
-        case Timaginary64:
-        case Timaginary80:
-        case Tfloat32:
-        case Tfloat64:
-        case Tfloat80:
+        case Type.Kind.imaginary32:
+        case Type.Kind.imaginary64:
+        case Type.Kind.imaginary80:
+        case Type.Kind.float32:
+        case Type.Kind.float64:
+        case Type.Kind.float80:
             return new RealExp(loc, Target.RealProperties.snan, this);
 
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80:
+        case Type.Kind.complex32:
+        case Type.Kind.complex64:
+        case Type.Kind.complex80:
             {
                 // Can't use fvalue + I*fvalue (the im part becomes a quiet NaN).
                 const cvalue = complex_t(Target.RealProperties.snan, Target.RealProperties.snan);
                 return new ComplexExp(loc, cvalue, this);
             }
 
-        case Tvoid:
+        case Type.Kind.void_:
             error(loc, "`void` does not have a default initializer");
             return new ErrorExp();
 
@@ -4305,18 +4259,18 @@ extern (C++) final class TypeBasic : Type
     {
         switch (ty)
         {
-        case Tchar:
-        case Twchar:
-        case Tdchar:
-        case Timaginary32:
-        case Timaginary64:
-        case Timaginary80:
-        case Tfloat32:
-        case Tfloat64:
-        case Tfloat80:
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80:
+        case Type.Kind.char_:
+        case Type.Kind.wchar_:
+        case Type.Kind.dchar_:
+        case Type.Kind.imaginary32:
+        case Type.Kind.imaginary64:
+        case Type.Kind.imaginary80:
+        case Type.Kind.float32:
+        case Type.Kind.float64:
+        case Type.Kind.float80:
+        case Type.Kind.complex32:
+        case Type.Kind.complex64:
+        case Type.Kind.complex80:
             return false; // no
         default:
             return true; // yes
@@ -4347,7 +4301,7 @@ extern (C++) final class TypeVector : Type
 
     extern (D) this(Loc loc, Type basetype)
     {
-        super(Tvector);
+        super(Type.Kind.vector);
         this.basetype = basetype;
     }
 
@@ -4455,7 +4409,7 @@ extern (C++) final class TypeVector : Type
     override Expression defaultInit(Loc loc)
     {
         //printf("TypeVector::defaultInit()\n");
-        assert(basetype.ty == Tsarray);
+        assert(basetype.ty == Type.Kind.staticArray);
         Expression e = basetype.defaultInit(loc);
         auto ve = new VectorExp(loc, e, this);
         ve.type = this;
@@ -4466,7 +4420,7 @@ extern (C++) final class TypeVector : Type
     override Expression defaultInitLiteral(Loc loc)
     {
         //printf("TypeVector::defaultInitLiteral()\n");
-        assert(basetype.ty == Tsarray);
+        assert(basetype.ty == Type.Kind.staticArray);
         Expression e = basetype.defaultInitLiteral(loc);
         auto ve = new VectorExp(loc, e, this);
         ve.type = this;
@@ -4476,7 +4430,7 @@ extern (C++) final class TypeVector : Type
 
     TypeBasic elementType()
     {
-        assert(basetype.ty == Tsarray);
+        assert(basetype.ty == Type.Kind.staticArray);
         TypeSArray t = cast(TypeSArray)basetype;
         TypeBasic tb = t.nextOf().isTypeBasic();
         assert(tb);
@@ -4532,7 +4486,7 @@ extern (C++) final class TypeSArray : TypeArray
 
     extern (D) this(Type t, Expression dim)
     {
-        super(Tsarray, t);
+        super(Type.Kind.staticArray, t);
         //printf("TypeSArray(%s)\n", dim.toChars());
         this.dim = dim;
     }
@@ -4655,7 +4609,7 @@ extern (C++) final class TypeSArray : TypeArray
         }
         else
         {
-            if ((*pt).ty != Terror)
+            if ((*pt).ty != Type.Kind.error)
                 next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
             Type.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4700,7 +4654,7 @@ extern (C++) final class TypeSArray : TypeArray
     override bool isString()
     {
         TY nty = next.toBasetype().ty;
-        return nty == Tchar || nty == Twchar || nty == Tdchar;
+        return nty == Type.Kind.char_ || nty == Type.Kind.wchar_ || nty == Type.Kind.dchar_;
     }
 
     override bool isZeroInit(Loc loc)
@@ -4715,7 +4669,7 @@ extern (C++) final class TypeSArray : TypeArray
 
     override MATCH constConv(Type to)
     {
-        if (to.ty == Tsarray)
+        if (to.ty == Type.Kind.staticArray)
         {
             TypeSArray tsa = cast(TypeSArray)to;
             if (!dim.equals(tsa.dim))
@@ -4727,7 +4681,7 @@ extern (C++) final class TypeSArray : TypeArray
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to.toChars(), toChars());
-        if (to.ty == Tarray)
+        if (to.ty == Type.Kind.array)
         {
             TypeDArray ta = cast(TypeDArray)to;
             if (!MODimplicitConv(next.mod, ta.next.mod))
@@ -4735,7 +4689,7 @@ extern (C++) final class TypeSArray : TypeArray
 
             /* Allow conversion to void[]
              */
-            if (ta.next.ty == Tvoid)
+            if (ta.next.ty == Type.Kind.void_)
             {
                 return MATCH.convert;
             }
@@ -4747,7 +4701,7 @@ extern (C++) final class TypeSArray : TypeArray
             }
             return MATCH.nomatch;
         }
-        if (to.ty == Tsarray)
+        if (to.ty == Type.Kind.staticArray)
         {
             if (this == to)
                 return MATCH.exact;
@@ -4778,7 +4732,7 @@ extern (C++) final class TypeSArray : TypeArray
         {
             printf("TypeSArray::defaultInit() '%s'\n", toChars());
         }
-        if (next.ty == Tvoid)
+        if (next.ty == Type.Kind.void_)
             return tuns8.defaultInit(loc);
         else
             return next.defaultInit(loc);
@@ -4792,7 +4746,7 @@ extern (C++) final class TypeSArray : TypeArray
         }
         size_t d = cast(size_t)dim.toInteger();
         Expression elementinit;
-        if (next.ty == Tvoid)
+        if (next.ty == Type.Kind.void_)
             elementinit = tuns8.defaultInitLiteral(loc);
         else
             elementinit = next.defaultInitLiteral(loc);
@@ -4814,7 +4768,7 @@ extern (C++) final class TypeSArray : TypeArray
         //if (dim.toInteger() == 0)
         //    return false;
 
-        if (next.ty == Tvoid)
+        if (next.ty == Type.Kind.void_)
         {
             // Arrays of void contain arbitrary data, which may include pointers
             return true;
@@ -4849,7 +4803,7 @@ extern (C++) final class TypeDArray : TypeArray
 {
     extern (D) this(Type t)
     {
-        super(Tarray, t);
+        super(Type.Kind.array, t);
         //printf("TypeDArray(t = %p)\n", t);
     }
 
@@ -4907,7 +4861,7 @@ extern (C++) final class TypeDArray : TypeArray
         }
         else
         {
-            if ((*pt).ty != Terror)
+            if ((*pt).ty != Type.Kind.error)
                 next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
             Type.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4960,7 +4914,7 @@ extern (C++) final class TypeDArray : TypeArray
     override bool isString()
     {
         TY nty = next.toBasetype().ty;
-        return nty == Tchar || nty == Twchar || nty == Tdchar;
+        return nty == Type.Kind.char_ || nty == Type.Kind.wchar_ || nty == Type.Kind.dchar_;
     }
 
     override bool isZeroInit(Loc loc) const
@@ -4979,7 +4933,7 @@ extern (C++) final class TypeDArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
-        if (to.ty == Tarray)
+        if (to.ty == Type.Kind.array)
         {
             TypeDArray ta = cast(TypeDArray)to;
 
@@ -4988,7 +4942,7 @@ extern (C++) final class TypeDArray : TypeArray
 
             /* Allow conversion to void[]
              */
-            if (next.ty != Tvoid && ta.next.ty == Tvoid)
+            if (next.ty != Type.Kind.void_ && ta.next.ty == Type.Kind.void_)
             {
                 return MATCH.convert;
             }
@@ -5034,7 +4988,7 @@ extern (C++) final class TypeAArray : TypeArray
 
     extern (D) this(Type t, Type index)
     {
-        super(Taarray, t);
+        super(Type.Kind.associativeArray, t);
         this.index = index;
     }
 
@@ -5072,7 +5026,7 @@ extern (C++) final class TypeAArray : TypeArray
         //printf("TypeAArray::resolve() %s\n", toChars());
         // Deal with the case where we thought the index was a type, but
         // in reality it was an expression.
-        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray)
+        if (index.ty == Type.Kind.identifier || index.ty == Type.Kind.instance || index.ty == Type.Kind.staticArray)
         {
             Expression e;
             Type t;
@@ -5152,7 +5106,7 @@ extern (C++) final class TypeAArray : TypeArray
         if (equals(to))
             return MATCH.exact;
 
-        if (to.ty == Taarray)
+        if (to.ty == Type.Kind.associativeArray)
         {
             TypeAArray ta = cast(TypeAArray)to;
 
@@ -5174,7 +5128,7 @@ extern (C++) final class TypeAArray : TypeArray
 
     override MATCH constConv(Type to)
     {
-        if (to.ty == Taarray)
+        if (to.ty == Type.Kind.associativeArray)
         {
             TypeAArray taa = cast(TypeAArray)to;
             MATCH mindex = index.constConv(taa.index);
@@ -5197,7 +5151,7 @@ extern (C++) final class TypePointer : TypeNext
 {
     extern (D) this(Type t)
     {
-        super(Tpointer, t);
+        super(Type.Kind.pointer, t);
     }
 
     static TypePointer create(Type t)
@@ -5234,12 +5188,12 @@ extern (C++) final class TypePointer : TypeNext
         if (equals(to))
             return MATCH.exact;
 
-        if (next.ty == Tfunction)
+        if (next.ty == Type.Kind.function_)
         {
-            if (to.ty == Tpointer)
+            if (to.ty == Type.Kind.pointer)
             {
                 TypePointer tp = cast(TypePointer)to;
-                if (tp.next.ty == Tfunction)
+                if (tp.next.ty == Type.Kind.function_)
                 {
                     if (next.equals(tp.next))
                         return MATCH.constant;
@@ -5248,7 +5202,7 @@ extern (C++) final class TypePointer : TypeNext
                     {
                         Type tret = this.next.nextOf();
                         Type toret = tp.next.nextOf();
-                        if (tret.ty == Tclass && toret.ty == Tclass)
+                        if (tret.ty == Type.Kind.class_ && toret.ty == Type.Kind.class_)
                         {
                             /* https://issues.dlang.org/show_bug.cgi?id=10219
                              * Check covariant interface return with offset tweaking.
@@ -5263,7 +5217,7 @@ extern (C++) final class TypePointer : TypeNext
                         return MATCH.convert;
                     }
                 }
-                else if (tp.next.ty == Tvoid)
+                else if (tp.next.ty == Type.Kind.void_)
                 {
                     // Allow conversions to void*
                     return MATCH.convert;
@@ -5271,7 +5225,7 @@ extern (C++) final class TypePointer : TypeNext
             }
             return MATCH.nomatch;
         }
-        else if (to.ty == Tpointer)
+        else if (to.ty == Type.Kind.pointer)
         {
             TypePointer tp = cast(TypePointer)to;
             assert(tp.next);
@@ -5281,7 +5235,7 @@ extern (C++) final class TypePointer : TypeNext
 
             /* Alloc conversion to void*
              */
-            if (next.ty != Tvoid && tp.next.ty == Tvoid)
+            if (next.ty != Type.Kind.void_ && tp.next.ty == Type.Kind.void_)
             {
                 return MATCH.convert;
             }
@@ -5299,7 +5253,7 @@ extern (C++) final class TypePointer : TypeNext
 
     override MATCH constConv(Type to)
     {
-        if (next.ty == Tfunction)
+        if (next.ty == Type.Kind.function_)
         {
             if (to.nextOf() && next.equals((cast(TypeNext)to).next))
                 return Type.constConv(to);
@@ -5345,7 +5299,7 @@ extern (C++) final class TypeReference : TypeNext
 {
     extern (D) this(Type t)
     {
-        super(Treference, t);
+        super(Type.Kind.reference, t);
         // BUG: what about references to static arrays?
     }
 
@@ -5459,7 +5413,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     extern (D) this(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
     {
-        super(Tfunction, treturn);
+        super(Type.Kind.function_, treturn);
         //if (!treturn) *(char*)0=0;
         //    assert(treturn);
         assert(0 <= varargs && varargs <= 2);
@@ -5555,7 +5509,7 @@ extern (C++) final class TypeFunction : TypeNext
 
             /* Accept immutable(T)[] and immutable(T)* as being strongly pure
              */
-            if (t.ty == Tarray || t.ty == Tpointer)
+            if (t.ty == Type.Kind.array || t.ty == Type.Kind.pointer)
             {
                 Type tn = t.nextOf().toBasetype();
                 if (tn.mod & MODFlags.immutable_)
@@ -5707,7 +5661,7 @@ extern (C++) final class TypeFunction : TypeNext
                     if (fparam.storageClass & (STC.ref_ | STC.out_))
                     {
                     }
-                    else if (t.ty == Tarray || t.ty == Tpointer)
+                    else if (t.ty == Type.Kind.array || t.ty == Type.Kind.pointer)
                     {
                         Type tn = t.nextOf().toBasetype();
                         if (!(tn.isMutable() && tn.hasPointers()))
@@ -5902,7 +5856,7 @@ extern (C++) final class TypeFunction : TypeNext
         if (tthis)
         {
             Type t = tthis;
-            if (t.toBasetype().ty == Tpointer)
+            if (t.toBasetype().ty == Type.Kind.pointer)
                 t = t.toBasetype().nextOf(); // change struct* to struct
             if (t.mod != mod)
             {
@@ -5951,7 +5905,7 @@ extern (C++) final class TypeFunction : TypeNext
             Type tprm = p.type;
             Type targ = arg.type;
 
-            if (!(p.storageClass & STC.lazy_ && tprm.ty == Tvoid && targ.ty != Tvoid))
+            if (!(p.storageClass & STC.lazy_ && tprm.ty == Type.Kind.void_ && targ.ty != Type.Kind.void_))
             {
                 bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                 wildmatch |= targ.deduceWild(tprm, isRef);
@@ -5995,7 +5949,7 @@ extern (C++) final class TypeFunction : TypeNext
                 Type targ = arg.type;
                 Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
 
-                if (p.storageClass & STC.lazy_ && tprm.ty == Tvoid && targ.ty != Tvoid)
+                if (p.storageClass & STC.lazy_ && tprm.ty == Type.Kind.void_ && targ.ty != Type.Kind.void_)
                     m = MATCH.convert;
                 else
                 {
@@ -6024,19 +5978,19 @@ extern (C++) final class TypeFunction : TypeNext
                         if (p.storageClass & STC.out_)
                             goto Nomatch;
 
-                        if (arg.op == TOK.string_ && tp.ty == Tsarray)
+                        if (arg.op == TOK.string_ && tp.ty == Type.Kind.staticArray)
                         {
-                            if (ta.ty != Tsarray)
+                            if (ta.ty != Type.Kind.staticArray)
                             {
                                 Type tn = tp.nextOf().castMod(ta.nextOf().mod);
                                 dinteger_t dim = (cast(StringExp)arg).len;
                                 ta = tn.sarrayOf(dim);
                             }
                         }
-                        else if (arg.op == TOK.slice && tp.ty == Tsarray)
+                        else if (arg.op == TOK.slice && tp.ty == Type.Kind.staticArray)
                         {
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                            if (ta.ty != Tsarray)
+                            if (ta.ty != Type.Kind.staticArray)
                             {
                                 Type tn = ta.nextOf();
                                 dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
@@ -6090,13 +6044,13 @@ extern (C++) final class TypeFunction : TypeNext
 
                     switch (tb.ty)
                     {
-                    case Tsarray:
+                    case Type.Kind.staticArray:
                         tsa = cast(TypeSArray)tb;
                         sz = tsa.dim.toInteger();
                         if (sz != nargs - u)
                             goto Nomatch;
-                        goto case Tarray;
-                    case Tarray:
+                        goto case Type.Kind.array;
+                    case Type.Kind.array:
                         {
                             TypeArray ta = cast(TypeArray)tb;
                             for (; u < nargs; u++)
@@ -6112,7 +6066,7 @@ extern (C++) final class TypeFunction : TypeNext
                                 {
                                     if (ta.next.equals(arg.type))
                                         m = MATCH.exact;
-                                    else if (tret.toBasetype().ty == Tvoid)
+                                    else if (tret.toBasetype().ty == Type.Kind.void_)
                                         m = MATCH.convert;
                                     else
                                     {
@@ -6131,7 +6085,7 @@ extern (C++) final class TypeFunction : TypeNext
                             }
                             goto Ldone;
                         }
-                    case Tclass:
+                    case Type.Kind.class_:
                         // Should see if there's a constructor match?
                         // Or just leave it ambiguous?
                         goto Ldone;
@@ -6158,26 +6112,26 @@ extern (C++) final class TypeFunction : TypeNext
     bool checkRetType(Loc loc)
     {
         Type tb = next.toBasetype();
-        if (tb.ty == Tfunction)
+        if (tb.ty == Type.Kind.function_)
         {
             error(loc, "functions cannot return a function");
             next = Type.terror;
         }
-        if (tb.ty == Ttuple)
+        if (tb.ty == Type.Kind.tuple)
         {
             error(loc, "functions cannot return a tuple");
             next = Type.terror;
         }
-        if (!isref && (tb.ty == Tstruct || tb.ty == Tsarray))
+        if (!isref && (tb.ty == Type.Kind.struct_ || tb.ty == Type.Kind.staticArray))
         {
             Type tb2 = tb.baseElemOf();
-            if (tb2.ty == Tstruct && !(cast(TypeStruct)tb2).sym.members)
+            if (tb2.ty == Type.Kind.struct_ && !(cast(TypeStruct)tb2).sym.members)
             {
                 error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
                 next = Type.terror;
             }
         }
-        if (tb.ty == Terror)
+        if (tb.ty == Type.Kind.error)
             return true;
         return false;
     }
@@ -6202,8 +6156,8 @@ extern (C++) final class TypeDelegate : TypeNext
 
     extern (D) this(Type t)
     {
-        super(Tfunction, t);
-        ty = Tdelegate;
+        super(Type.Kind.function_, t);
+        ty = Type.Kind.delegate_;
     }
 
     static TypeDelegate create(Type t)
@@ -6272,11 +6226,11 @@ extern (C++) final class TypeDelegate : TypeNext
         version (all)
         {
             // not allowing covariant conversions because it interferes with overriding
-            if (to.ty == Tdelegate && this.nextOf().covariant(to.nextOf()) == 1)
+            if (to.ty == Type.Kind.delegate_ && this.nextOf().covariant(to.nextOf()) == 1)
             {
                 Type tret = this.next.nextOf();
                 Type toret = (cast(TypeDelegate)to).next.nextOf();
-                if (tret.ty == Tclass && toret.ty == Tclass)
+                if (tret.ty == Type.Kind.class_ && toret.ty == Type.Kind.class_)
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=10219
                      * Check covariant interface return with offset tweaking.
@@ -6661,7 +6615,7 @@ extern (C++) abstract class TypeQualified : Type
                     *pt = Type.terror;
                     return;
                 }
-                if (v.type.ty == Terror)
+                if (v.type.ty == Type.Kind.error)
                     *pt = Type.terror;
                 else
                     *pe = new VarExp(loc, v);
@@ -6698,7 +6652,7 @@ extern (C++) abstract class TypeQualified : Type
                 *ps = s;
                 return;
             }
-            if (t.ty == Tinstance && t != this && !t.deco)
+            if (t.ty == Type.Kind.instance && t != this && !t.deco)
             {
                 if (!(cast(TypeInstance)t).tempinst.errors)
                     error(loc, "forward reference to `%s`", t.toChars());
@@ -6706,7 +6660,7 @@ extern (C++) abstract class TypeQualified : Type
                 return;
             }
 
-            if (t.ty == Ttuple)
+            if (t.ty == Type.Kind.tuple)
                 *pt = t;
             else
                 *pt = t.merge();
@@ -6747,7 +6701,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
 
     extern (D) this(Loc loc, Identifier ident)
     {
-        super(Tident, loc);
+        super(Type.Kind.identifier, loc);
         this.ident = ident;
     }
 
@@ -6844,7 +6798,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         Expression e;
         Dsymbol s;
         resolve(loc, sc, &e, &t, &s);
-        if (t && t.ty != Tident)
+        if (t && t.ty != Type.Kind.identifier)
             s = t.toDsymbol(sc);
         if (e)
             s = getDsymbol(e);
@@ -6867,7 +6821,7 @@ extern (C++) final class TypeInstance : TypeQualified
 
     extern (D) this(Loc loc, TemplateInstance tempinst)
     {
-        super(Tinstance, loc);
+        super(Type.Kind.instance, loc);
         this.tempinst = tempinst;
     }
 
@@ -6913,7 +6867,7 @@ extern (C++) final class TypeInstance : TypeQualified
         Dsymbol s;
         //printf("TypeInstance::semantic(%s)\n", toChars());
         resolve(loc, sc, &e, &t, &s);
-        if (t && t.ty != Tinstance)
+        if (t && t.ty != Type.Kind.instance)
             s = t.toDsymbol(sc);
         return s;
     }
@@ -6933,7 +6887,7 @@ extern (C++) final class TypeTypeof : TypeQualified
 
     extern (D) this(Loc loc, Expression exp)
     {
-        super(Ttypeof, loc);
+        super(Type.Kind.typeof_, loc);
         this.exp = exp;
     }
 
@@ -7036,7 +6990,7 @@ extern (C++) final class TypeTypeof : TypeQualified
             error(loc, "expression `%s` has no type", exp.toChars());
             goto Lerr;
         }
-        if (t.ty == Ttypeof)
+        if (t.ty == Type.Kind.typeof_)
         {
             error(loc, "forward reference to `%s`", toChars());
             goto Lerr;
@@ -7080,7 +7034,7 @@ extern (C++) final class TypeReturn : TypeQualified
 {
     extern (D) this(Loc loc)
     {
-        super(Treturn, loc);
+        super(Type.Kind.return_, loc);
     }
 
     override const(char)* kind() const
@@ -7178,7 +7132,7 @@ extern (C++) final class TypeStruct : Type
 
     extern (D) this(StructDeclaration sym)
     {
-        super(Tstruct);
+        super(Type.Kind.struct_);
         this.sym = sym;
     }
 
@@ -7323,7 +7277,7 @@ extern (C++) final class TypeStruct : Type
                     e.error("forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v.type.ty == Terror)
+            if (v.type.ty == Type.Kind.error)
                 return new ErrorExp();
 
             if ((v.storage_class & STC.manifest) && v._init)
@@ -7744,7 +7698,7 @@ extern (C++) final class TypeEnum : Type
 
     extern (D) this(EnumDeclaration sym)
     {
-        super(Tenum);
+        super(Type.Kind.enum_);
         this.sym = sym;
     }
 
@@ -7766,7 +7720,7 @@ extern (C++) final class TypeEnum : Type
     override uint alignsize()
     {
         Type t = sym.getMemtype(Loc());
-        if (t.ty == Terror)
+        if (t.ty == Type.Kind.error)
             return 4;
         return t.alignsize();
     }
@@ -7995,7 +7949,7 @@ extern (C++) final class TypeClass : Type
 
     extern (D) this(ClassDeclaration sym)
     {
-        super(Tclass);
+        super(Type.Kind.class_);
         this.sym = sym;
     }
 
@@ -8275,7 +8229,7 @@ extern (C++) final class TypeClass : Type
                     e.error("forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                 return new ErrorExp();
             }
-            if (v.type.ty == Terror)
+            if (v.type.ty == Type.Kind.error)
                 return new ErrorExp();
 
             if ((v.storage_class & STC.manifest) && v._init)
@@ -8464,7 +8418,7 @@ extern (C++) final class TypeClass : Type
 
     override bool isBaseOf(Type t, int* poffset)
     {
-        if (t && t.ty == Tclass)
+        if (t && t.ty == Type.Kind.class_)
         {
             ClassDeclaration cd = (cast(TypeClass)t).sym;
             if (sym.isBaseOf(cd, poffset))
@@ -8600,7 +8554,7 @@ extern (C++) final class TypeTuple : Type
 
     extern (D) this(Parameters* arguments)
     {
-        super(Ttuple);
+        super(Type.Kind.tuple);
         //printf("TypeTuple(this = %p)\n", this);
         this.arguments = arguments;
         //printf("TypeTuple() %p, %s\n", this, toChars());
@@ -8623,7 +8577,7 @@ extern (C++) final class TypeTuple : Type
      */
     extern (D) this(Expressions* exps)
     {
-        super(Ttuple);
+        super(Type.Kind.tuple);
         auto arguments = new Parameters();
         if (exps)
         {
@@ -8631,7 +8585,7 @@ extern (C++) final class TypeTuple : Type
             for (size_t i = 0; i < exps.dim; i++)
             {
                 Expression e = (*exps)[i];
-                if (e.type.ty == Ttuple)
+                if (e.type.ty == Type.Kind.tuple)
                     e.error("cannot form tuple of tuples");
                 auto arg = new Parameter(STC.undefined_, e.type, null, null);
                 (*arguments)[i] = arg;
@@ -8651,20 +8605,20 @@ extern (C++) final class TypeTuple : Type
      */
     extern (D) this()
     {
-        super(Ttuple);
+        super(Type.Kind.tuple);
         arguments = new Parameters();
     }
 
     extern (D) this(Type t1)
     {
-        super(Ttuple);
+        super(Type.Kind.tuple);
         arguments = new Parameters();
         arguments.push(new Parameter(0, t1, null, null));
     }
 
     extern (D) this(Type t1, Type t2)
     {
-        super(Ttuple);
+        super(Type.Kind.tuple);
         arguments = new Parameters();
         arguments.push(new Parameter(0, t1, null, null));
         arguments.push(new Parameter(0, t2, null, null));
@@ -8689,7 +8643,7 @@ extern (C++) final class TypeTuple : Type
         //printf("TypeTuple::equals(%s, %s)\n", toChars(), t.toChars());
         if (this == t)
             return true;
-        if (t.ty == Ttuple)
+        if (t.ty == Type.Kind.tuple)
         {
             TypeTuple tt = cast(TypeTuple)t;
             if (arguments.dim == tt.arguments.dim)
@@ -8766,7 +8720,7 @@ extern (C++) final class TypeSlice : TypeNext
 
     extern (D) this(Type next, Expression lwr, Expression upr)
     {
-        super(Tslice, next);
+        super(Type.Kind.slice, next);
         //printf("TypeSlice[%s .. %s]\n", lwr.toChars(), upr.toChars());
         this.lwr = lwr;
         this.upr = upr;
@@ -8847,7 +8801,7 @@ extern (C++) final class TypeSlice : TypeNext
         }
         else
         {
-            if ((*pt).ty != Terror)
+            if ((*pt).ty != Type.Kind.error)
                 next = *pt; // prevent re-running semantic() on 'next'
         Ldefault:
             Type.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -8867,7 +8821,7 @@ extern (C++) final class TypeNull : Type
     extern (D) this()
     {
         //printf("TypeNull %p\n", this);
-        super(Tnull);
+        super(Type.Kind.null_);
     }
 
     override const(char)* kind() const
@@ -8891,10 +8845,10 @@ extern (C++) final class TypeNull : Type
             return m;
 
         // NULL implicitly converts to any pointer type or dynamic array
-        //if (type.ty == Tpointer && type.nextOf().ty == Tvoid)
+        //if (type.ty == Type.Kind.pointer && type.nextOf().ty == Type.Kind.void_)
         {
             Type tb = to.toBasetype();
-            if (tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate)
+            if (tb.ty == Type.Kind.null_ || tb.ty == Type.Kind.pointer || tb.ty == Type.Kind.array || tb.ty == Type.Kind.associativeArray || tb.ty == Type.Kind.class_ || tb.ty == Type.Kind.delegate_)
                 return MATCH.constant;
         }
 
@@ -8961,10 +8915,10 @@ extern (C++) final class Parameter : RootObject
     Type isLazyArray()
     {
         Type tb = type.toBasetype();
-        if (tb.ty == Tsarray || tb.ty == Tarray)
+        if (tb.ty == Type.Kind.staticArray || tb.ty == Type.Kind.array)
         {
             Type tel = (cast(TypeArray)tb).next.toBasetype();
-            if (tel.ty == Tdelegate)
+            if (tel.ty == Type.Kind.delegate_)
             {
                 TypeDelegate td = cast(TypeDelegate)tel;
                 TypeFunction tf = td.next.toTypeFunction();
@@ -9083,7 +9037,7 @@ extern (C++) final class Parameter : RootObject
             Parameter p = (*parameters)[i];
             Type t = p.type.toBasetype();
 
-            if (t.ty == Ttuple)
+            if (t.ty == Type.Kind.tuple)
             {
                 TypeTuple tu = cast(TypeTuple)t;
                 result = _foreach(tu.arguments, dg, &n);

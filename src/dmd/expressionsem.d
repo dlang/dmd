@@ -121,7 +121,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     if (f.errors)
                         return new ErrorExp();
                     fd = f;
-                    assert(fd.type.ty == Tfunction);
+                    assert(fd.type.ty == Type.Kind.function_);
                 }
             }
             if (fd)
@@ -139,7 +139,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     if (f.errors)
                         return new ErrorExp();
                     fd = f;
-                    assert(fd.type.ty == Tfunction);
+                    assert(fd.type.ty == Type.Kind.function_);
                     TypeFunction tf = cast(TypeFunction)fd.type;
                     if (!tf.isref && e2)
                         goto Leproplvalue;
@@ -202,7 +202,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = null;
         goto Lfd;
     }
-    else if (e1.op == TOK.dotVariable && e1.type && e1.type.toBasetype().ty == Tfunction)
+    else if (e1.op == TOK.dotVariable && e1.type && e1.type.toBasetype().ty == Type.Kind.function_)
     {
         DotVarExp dve = cast(DotVarExp)e1;
         s = dve.var.isFuncDeclaration();
@@ -210,7 +210,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = dve.e1.type;
         goto Lfd;
     }
-    else if (e1.op == TOK.variable && e1.type && e1.type.toBasetype().ty == Tfunction)
+    else if (e1.op == TOK.variable && e1.type && e1.type.toBasetype().ty == Type.Kind.function_)
     {
         s = (cast(VarExp)e1).var.isFuncDeclaration();
         tiargs = null;
@@ -232,7 +232,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             {
                 if (fd.errors)
                     return new ErrorExp();
-                assert(fd.type.ty == Tfunction);
+                assert(fd.type.ty == Type.Kind.function_);
                 Expression e = new CallExp(loc, e1, e2);
                 return e.expressionSemantic(sc);
             }
@@ -243,7 +243,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             {
                 if (fd.errors)
                     return new ErrorExp();
-                assert(fd.type.ty == Tfunction);
+                assert(fd.type.ty == Type.Kind.function_);
                 TypeFunction tf = cast(TypeFunction)fd.type;
                 if (!e2 || tf.isref)
                 {
@@ -257,7 +257,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         if (FuncDeclaration fd = s.isFuncDeclaration())
         {
             // Keep better diagnostic message for invalid property usage of functions
-            assert(fd.type.ty == Tfunction);
+            assert(fd.type.ty == Type.Kind.function_);
             Expression e = new CallExp(loc, e1, e2);
             return e.expressionSemantic(sc);
         }
@@ -375,7 +375,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
             t0 = Type.terror;
             continue;
         }
-        if (e.type.ty == Tvoid)
+        if (e.type.ty == Type.Kind.void_)
         {
             // void expressions do not concur to the determination of the common
             // type.
@@ -416,7 +416,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
 
     if (!t0)
         t0 = Type.tvoid; // [] is typed as void[]
-    else if (t0.ty != Terror)
+    else if (t0.ty != Type.Kind.error)
     {
         for (size_t i = 0; i < exps.dim; i++)
         {
@@ -489,7 +489,7 @@ private bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
 private bool checkDefCtor(Loc loc, Type t)
 {
     t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (t.ty == Type.Kind.struct_)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
         if (sd.noDefaultCtor)
@@ -626,8 +626,8 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 Type tret = p.isLazyArray();
                 switch (tb.ty)
                 {
-                case Tsarray:
-                case Tarray:
+                case Type.Kind.staticArray:
+                case Type.Kind.array:
                     {
                         /* Create a static array variable v of type arg.type:
                          *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
@@ -658,17 +658,17 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                         // Convert to a static array literal, or its slice.
                         arg = new ArrayLiteralExp(loc, elements);
                         arg.type = tsa;
-                        if (tb.ty == Tarray)
+                        if (tb.ty == Type.Kind.array)
                         {
                             arg = new SliceExp(loc, arg, null, null);
                             arg.type = p.type;
                         }
                         break;
                     }
-                case Tclass:
+                case Type.Kind.class_:
                     {
                         /* Set arg to be:
-                         *      new Tclass(arg0, arg1, ..., argn)
+                         *      new Type.Kind.class_(arg0, arg1, ..., argn)
                          */
                         auto args = new Expressions();
                         args.setDim(nargs - i);
@@ -694,7 +694,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             }
 
         L1:
-            if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
+            if (!(p.storageClass & STC.lazy_ && p.type.ty == Type.Kind.void_))
             {
                 bool isRef = (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                 if (ubyte wm = arg.type.deduceWild(p.type, isRef))
@@ -763,7 +763,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
         if (i < nparams)
         {
             Parameter p = Parameter.getNth(tf.parameters, i);
-            if (!(p.storageClass & STC.lazy_ && p.type.ty == Tvoid))
+            if (!(p.storageClass & STC.lazy_ && p.type.ty == Type.Kind.void_))
             {
                 Type tprm = p.type;
                 if (p.type.hasWild())
@@ -801,7 +801,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             else if (p.storageClass & STC.lazy_)
             {
                 // Convert lazy argument to a delegate
-                if (p.type.ty == Tvoid)
+                if (p.type.ty == Type.Kind.void_)
                     arg = toDelegate(arg, p.type, sc);
                 else
                     arg = toDelegate(arg, arg.type, sc);
@@ -865,11 +865,11 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 // Promote floats to doubles
                 switch (arg.type.ty)
                 {
-                case Tfloat32:
+                case Type.Kind.float32:
                     arg = arg.castTo(sc, Type.tfloat64);
                     break;
 
-                case Timaginary32:
+                case Type.Kind.imaginary32:
                     arg = arg.castTo(sc, Type.timaginary64);
                     break;
 
@@ -879,12 +879,12 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 if (tf.varargs == 1)
                 {
                     const(char)* p = tf.linkage == LINK.c ? "extern(C)" : "extern(C++)";
-                    if (arg.type.ty == Tarray)
+                    if (arg.type.ty == Type.Kind.array)
                     {
                         arg.error("cannot pass dynamic arrays to `%s` vararg functions", p);
                         err = true;
                     }
-                    if (arg.type.ty == Tsarray)
+                    if (arg.type.ty == Type.Kind.staticArray)
                     {
                         arg.error("cannot pass static arrays to `%s` vararg functions", p);
                         err = true;
@@ -902,7 +902,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
             Type tb = arg.type.toBasetype();
-            if (tb.ty == Tsarray)
+            if (tb.ty == Type.Kind.staticArray)
             {
                 TypeSArray ts = cast(TypeSArray)tb;
                 Type ta = ts.next.arrayOf();
@@ -911,7 +911,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 else
                     arg = arg.castTo(sc, ta);
             }
-            if (tb.ty == Tstruct)
+            if (tb.ty == Type.Kind.struct_)
             {
                 //arg = callCpCtor(sc, arg);
             }
@@ -1078,7 +1078,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                  * (or static arrays of them) if appropriate.
                  */
                 Type tv = arg.type.baseElemOf();
-                if (!isRef && tv.ty == Tstruct)
+                if (!isRef && tv.ty == Type.Kind.struct_)
                     arg = doCopyOrMove(sc, arg);
             }
 
@@ -1198,7 +1198,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(IntegerExp e)
     {
         assert(e.type);
-        if (e.type.ty == Terror)
+        if (e.type.ty == Type.Kind.error)
             return setError();
 
         assert(e.type.deco);
@@ -1721,7 +1721,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Disallow array literals of type void being used.
          */
-        if (e.elements.dim > 0 && t0.ty == Tvoid)
+        if (e.elements.dim > 0 && t0.ty == Type.Kind.void_)
         {
             e.error("`%s` of type `%s` has no value", e.toChars(), e.type.toChars());
             return setError();
@@ -1824,7 +1824,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(TypeExp exp)
     {
-        if (exp.type.ty == Terror)
+        if (exp.type.ty == Type.Kind.error)
             return setError();
 
         //printf("TypeExp::semantic(%s)\n", type.toChars());
@@ -2022,7 +2022,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // T should be analyzed first and edim should go into arguments iff it's
         // not a tuple.
         Expression edim = null;
-        if (!exp.arguments && exp.newtype.ty == Tsarray)
+        if (!exp.arguments && exp.newtype.ty == Type.Kind.staticArray)
         {
             edim = (cast(TypeSArray)exp.newtype).dim;
             exp.newtype = (cast(TypeNext)exp.newtype).next;
@@ -2050,17 +2050,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             exp.type = exp.newtype.typeSemantic(exp.loc, sc);
         }
-        if (exp.type.ty == Terror)
+        if (exp.type.ty == Type.Kind.error)
             return setError();
 
         if (edim)
         {
-            if (exp.type.toBasetype().ty == Ttuple)
+            if (exp.type.toBasetype().ty == Type.Kind.tuple)
             {
                 // --> new T[edim]
                 exp.type = new TypeSArray(exp.type, edim);
                 exp.type = exp.type.typeSemantic(exp.loc, sc);
-                if (exp.type.ty == Terror)
+                if (exp.type.ty == Type.Kind.error)
                     return setError();
             }
             else
@@ -2087,7 +2087,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (exp.thisexp && tb.ty != Tclass)
+        if (exp.thisexp && tb.ty != Type.Kind.class_)
         {
             exp.error("`.new` is only for allocating nested classes, not `%s`", tb.toChars());
             return setError();
@@ -2096,7 +2096,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         size_t nargs = exp.arguments ? exp.arguments.dim : 0;
         Expression newprefix = null;
 
-        if (tb.ty == Tclass)
+        if (tb.ty == Type.Kind.class_)
         {
             auto cd = (cast(TypeClass)tb).sym;
             cd.size(exp.loc);
@@ -2265,7 +2265,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if (tb.ty == Tstruct)
+        else if (tb.ty == Type.Kind.struct_)
         {
             auto sd = (cast(TypeStruct)tb).sym;
             sd.size(exp.loc);
@@ -2361,7 +2361,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             exp.type = exp.type.pointerTo();
         }
-        else if (tb.ty == Tarray && nargs)
+        else if (tb.ty == Type.Kind.array && nargs)
         {
             Type tn = tb.nextOf().baseElemOf();
             Dsymbol s = tn.toDsymbol(sc);
@@ -2373,7 +2373,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             for (size_t i = 0; i < nargs; i++)
             {
-                if (tb.ty != Tarray)
+                if (tb.ty != Type.Kind.array)
                 {
                     exp.error("too many arguments for array");
                     return setError();
@@ -2566,7 +2566,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.fd.treq && !exp.fd.type.nextOf())
         {
             TypeFunction tfv = null;
-            if (exp.fd.treq.ty == Tdelegate || (exp.fd.treq.ty == Tpointer && exp.fd.treq.nextOf().ty == Tfunction))
+            if (exp.fd.treq.ty == Type.Kind.delegate_ || (exp.fd.treq.ty == Type.Kind.pointer && exp.fd.treq.nextOf().ty == Type.Kind.function_))
                 tfv = cast(TypeFunction)exp.fd.treq.nextOf();
             if (tfv)
             {
@@ -2603,14 +2603,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (olderrors != global.errors)
         {
-            if (exp.fd.type && exp.fd.type.ty == Tfunction && !exp.fd.type.nextOf())
+            if (exp.fd.type && exp.fd.type.ty == Type.Kind.function_ && !exp.fd.type.nextOf())
                 (cast(TypeFunction)exp.fd.type).next = Type.terror;
             e = new ErrorExp();
             goto Ldone;
         }
 
         // Type is a "delegate to" or "pointer to" the function literal
-        if ((exp.fd.isNested() && exp.fd.tok == TOK.delegate_) || (exp.tok == TOK.reserved && exp.fd.treq && exp.fd.treq.ty == Tdelegate))
+        if ((exp.fd.isNested() && exp.fd.tok == TOK.delegate_) || (exp.tok == TOK.reserved && exp.fd.treq && exp.fd.treq.ty == Type.Kind.delegate_))
         {
             exp.type = new TypeDelegate(exp.fd.type);
             exp.type = exp.type.typeSemantic(exp.loc, sc);
@@ -2631,7 +2631,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 *
                 * So, should keep fd.tok == TOKreserve if fd.treq == NULL.
                 */
-            if (exp.fd.treq && exp.fd.treq.ty == Tpointer)
+            if (exp.fd.treq && exp.fd.treq.ty == Type.Kind.pointer)
             {
                 // change to non-nested
                 exp.fd.tok = TOK.function_;
@@ -2683,7 +2683,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     for (size_t u = 0; u < dim; u++)
                     {
                         Parameter p = Parameter.getNth(tfl.parameters, u);
-                        if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
+                        if (p.type.ty == Type.Kind.identifier && (cast(TypeIdentifier)p.type).ident == tp.ident)
                         {
                             Expression e = (*arguments)[u];
                             tiargs.push(e.type);
@@ -2933,7 +2933,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = de.e2;
                 }
             }
-            else if (exp.e1.op == TOK.star && exp.e1.type.ty == Tfunction)
+            else if (exp.e1.op == TOK.star && exp.e1.type.ty == Type.Kind.function_)
             {
                 // Rewrite (*fp)(arguments) to fp(arguments)
                 exp.e1 = (cast(PtrExp)exp.e1).e1;
@@ -2953,7 +2953,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Check for call operator overload
         if (t1)
         {
-            if (t1.ty == Tstruct)
+            if (t1.ty == Type.Kind.struct_)
             {
                 auto sd = (cast(TypeStruct)t1).sym;
                 sd.size(exp.loc); // Resolve forward references to construct object
@@ -3028,7 +3028,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 result = e;
                 return;
             }
-            else if (t1.ty == Tclass)
+            else if (t1.ty == Type.Kind.class_)
             {
             L1:
                 // Rewrite as e1.call(arguments)
@@ -3045,7 +3045,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Make sure to use the the enum type itself rather than its
                 // base type
                 // https://issues.dlang.org/show_bug.cgi?id=16346
-                if (exp.e1.type.ty == Tenum)
+                if (exp.e1.type.ty == Type.Kind.enum_)
                 {
                     t1 = exp.e1.type;
                 }
@@ -3101,7 +3101,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return f;
         }
 
-        if (exp.e1.op == TOK.dotVariable && t1.ty == Tfunction || exp.e1.op == TOK.dotTemplateDeclaration)
+        if (exp.e1.op == TOK.dotVariable && t1.ty == Type.Kind.function_ || exp.e1.op == TOK.dotTemplateDeclaration)
         {
             UnaExp ue = cast(UnaExp)exp.e1;
 
@@ -3133,7 +3133,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // Do overload resolution
             exp.f = resolveFuncCall(exp.loc, sc, s, tiargs, ue1 ? ue1.type : null, exp.arguments);
-            if (!exp.f || exp.f.errors || exp.f.type.ty == Terror)
+            if (!exp.f || exp.f.errors || exp.f.type.ty == Type.Kind.error)
                 return setError();
 
             if (exp.f.interfaceVirtual)
@@ -3161,7 +3161,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 ethis = ue.e1;
                 tthis = ue.e1.type;
-                if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isscope))
+                if (!(exp.f.type.ty == Type.Kind.function_ && (cast(TypeFunction)exp.f.type).isscope))
                 {
                     if (global.params.vsafe && checkParamArgumentEscape(sc, exp.f, Id.This, ethis, false))
                         return setError();
@@ -3233,7 +3233,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             // If we've got a pointer to a function then deference it
             // https://issues.dlang.org/show_bug.cgi?id=16483
-            if (exp.e1.type.ty == Tpointer && exp.e1.type.nextOf().ty == Tfunction)
+            if (exp.e1.type.ty == Type.Kind.pointer && exp.e1.type.nextOf().ty == Type.Kind.function_)
             {
                 Expression e = new PtrExp(exp.loc, exp.e1);
                 e.type = exp.e1.type.nextOf();
@@ -3346,11 +3346,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("function expected before `()`, not `%s`", exp.e1.toChars());
             return setError();
         }
-        else if (t1.ty == Terror)
+        else if (t1.ty == Type.Kind.error)
         {
             return setError();
         }
-        else if (t1.ty != Tfunction)
+        else if (t1.ty != Type.Kind.function_)
         {
             TypeFunction tf;
             const(char)* p;
@@ -3364,14 +3364,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tf = cast(TypeFunction)exp.f.type;
                 p = "function literal";
             }
-            else if (t1.ty == Tdelegate)
+            else if (t1.ty == Type.Kind.delegate_)
             {
                 TypeDelegate td = cast(TypeDelegate)t1;
-                assert(td.next.ty == Tfunction);
+                assert(td.next.ty == Type.Kind.function_);
                 tf = cast(TypeFunction)td.next;
                 p = "delegate";
             }
-            else if (t1.ty == Tpointer && (cast(TypePointer)t1).next.ty == Tfunction)
+            else if (t1.ty == Type.Kind.pointer && (cast(TypePointer)t1).next.ty == Type.Kind.function_)
             {
                 tf = cast(TypeFunction)(cast(TypePointer)t1).next;
                 p = "function pointer";
@@ -3477,7 +3477,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
             }
 
-            if (t1.ty == Tpointer)
+            if (t1.ty == Type.Kind.pointer)
             {
                 Expression e = new PtrExp(exp.loc, exp.e1);
                 e.type = tf;
@@ -3553,7 +3553,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             t1 = exp.f.type;
         }
-        assert(t1.ty == Tfunction);
+        assert(t1.ty == Type.Kind.function_);
 
         Expression argprefix;
         if (!exp.arguments)
@@ -3742,7 +3742,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             ta.checkComplexTransition(exp.loc, sc);
 
         Expression e;
-        if (ea && ta.toBasetype().ty == Tclass)
+        if (ea && ta.toBasetype().ty == Type.Kind.class_)
         {
             /* Get the dynamic type, which is .classinfo
              */
@@ -3750,7 +3750,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e = new TypeidExp(ea.loc, ea);
             e.type = Type.typeinfoclass.type;
         }
-        else if (ta.ty == Terror)
+        else if (ta.ty == Type.Kind.error)
         {
             e = new ErrorExp();
         }
@@ -3816,7 +3816,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             switch (e.tok2)
             {
             case TOK.struct_:
-                if (e.targ.ty != Tstruct)
+                if (e.targ.ty != Type.Kind.struct_)
                     goto Lno;
                 if ((cast(TypeStruct)e.targ).sym.isUnionDeclaration())
                     goto Lno;
@@ -3824,7 +3824,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
 
             case TOK.union_:
-                if (e.targ.ty != Tstruct)
+                if (e.targ.ty != Type.Kind.struct_)
                     goto Lno;
                 if (!(cast(TypeStruct)e.targ).sym.isUnionDeclaration())
                     goto Lno;
@@ -3832,7 +3832,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
 
             case TOK.class_:
-                if (e.targ.ty != Tclass)
+                if (e.targ.ty != Type.Kind.class_)
                     goto Lno;
                 if ((cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
                     goto Lno;
@@ -3840,7 +3840,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
 
             case TOK.interface_:
-                if (e.targ.ty != Tclass)
+                if (e.targ.ty != Type.Kind.class_)
                     goto Lno;
                 if (!(cast(TypeClass)e.targ).sym.isInterfaceDeclaration())
                     goto Lno;
@@ -3873,7 +3873,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             case TOK.super_:
                 // If class or interface, get the base class and interfaces
-                if (e.targ.ty != Tclass)
+                if (e.targ.ty != Type.Kind.class_)
                     goto Lno;
                 else
                 {
@@ -3892,19 +3892,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
 
             case TOK.enum_:
-                if (e.targ.ty != Tenum)
+                if (e.targ.ty != Type.Kind.enum_)
                     goto Lno;
                 if (e.id)
                     tded = (cast(TypeEnum)e.targ).sym.getMemtype(e.loc);
                 else
                     tded = e.targ;
 
-                if (tded.ty == Terror)
+                if (tded.ty == Type.Kind.error)
                     return setError();
                 break;
 
             case TOK.delegate_:
-                if (e.targ.ty != Tdelegate)
+                if (e.targ.ty != Type.Kind.delegate_)
                     goto Lno;
                 tded = (cast(TypeDelegate)e.targ).next; // the underlying function type
                 break;
@@ -3912,13 +3912,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             case TOK.function_:
             case TOK.parameters:
                 {
-                    if (e.targ.ty != Tfunction)
+                    if (e.targ.ty != Type.Kind.function_)
                         goto Lno;
                     tded = e.targ;
 
                     /* Generate tuple from function parameter types.
                      */
-                    assert(tded.ty == Tfunction);
+                    assert(tded.ty == Type.Kind.function_);
                     Parameters* params = (cast(TypeFunction)tded).parameters;
                     size_t dim = Parameter.dim(params);
                     auto args = new Parameters();
@@ -3941,14 +3941,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Get the 'return type' for the function,
                  * delegate, or pointer to function.
                  */
-                if (e.targ.ty == Tfunction)
+                if (e.targ.ty == Type.Kind.function_)
                     tded = (cast(TypeFunction)e.targ).next;
-                else if (e.targ.ty == Tdelegate)
+                else if (e.targ.ty == Type.Kind.delegate_)
                 {
                     tded = (cast(TypeDelegate)e.targ).next;
                     tded = (cast(TypeFunction)tded).next;
                 }
-                else if (e.targ.ty == Tpointer && (cast(TypePointer)e.targ).next.ty == Tfunction)
+                else if (e.targ.ty == Type.Kind.pointer && (cast(TypePointer)e.targ).next.ty == Type.Kind.function_)
                 {
                     tded = (cast(TypePointer)e.targ).next;
                     tded = (cast(TypeFunction)tded).next;
@@ -3970,7 +3970,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
 
             case TOK.vector:
-                if (e.targ.ty != Tvector)
+                if (e.targ.ty != Type.Kind.vector)
                     goto Lno;
                 tded = (cast(TypeVector)e.targ).basetype;
                 break;
@@ -4121,7 +4121,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
-        if (exp.e1.op == TOK.slice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
+        if (exp.e1.op == TOK.slice || exp.e1.type.ty == Type.Kind.array || exp.e1.type.ty == Type.Kind.staticArray)
         {
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
@@ -4156,12 +4156,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         int bitwise = (exp.op == TOK.andAssign || exp.op == TOK.orAssign || exp.op == TOK.xorAssign);
         int shift = (exp.op == TOK.leftShiftAssign || exp.op == TOK.rightShiftAssign || exp.op == TOK.unsignedRightShiftAssign);
 
-        if (bitwise && exp.type.toBasetype().ty == Tbool)
+        if (bitwise && exp.type.toBasetype().ty == Type.Kind.bool_)
             exp.e2 = exp.e2.implicitCastTo(sc, exp.type);
         else if (exp.checkNoBool())
             return setError();
 
-        if ((exp.op == TOK.addAssign || exp.op == TOK.minAssign) && exp.e1.type.toBasetype().ty == Tpointer && exp.e2.type.toBasetype().isintegral())
+        if ((exp.op == TOK.addAssign || exp.op == TOK.minAssign) && exp.e1.type.toBasetype().ty == Type.Kind.pointer && exp.e2.type.toBasetype().isintegral())
         {
             result = scaleFactor(exp, sc);
             return;
@@ -4180,7 +4180,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (shift)
         {
-            if (exp.e2.type.toBasetype().ty != Tvector)
+            if (exp.e2.type.toBasetype().ty != Type.Kind.vector)
                 exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
         }
 
@@ -4520,7 +4520,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             assert(exp.type);
 
-            if (t1.ty == Tpointer)
+            if (t1.ty == Type.Kind.pointer)
                 t1 = t1.nextOf();
 
             exp.type = exp.type.addMod(t1.mod);
@@ -4600,7 +4600,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
         if (f.needThis())
             e.e1 = getRightThis(e.loc, sc, ad, e.e1, f);
-        if (f.type.ty == Tfunction)
+        if (f.type.ty == Type.Kind.function_)
         {
             TypeFunction tf = cast(TypeFunction)f.type;
             if (!MODmethodConv(e.e1.type.mod, f.type.mod))
@@ -4861,7 +4861,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else if (exp.e1.op == TOK.call)
         {
             CallExp ce = cast(CallExp)exp.e1;
-            if (ce.e1.type.ty == Tfunction)
+            if (ce.e1.type.ty == Type.Kind.function_)
             {
                 TypeFunction tf = cast(TypeFunction)ce.e1.type;
                 if (tf.isref && sc.func && !sc.intypeof && sc.func.setUnsafe())
@@ -4880,7 +4880,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              */
             IndexExp ei = cast(IndexExp)exp.e1;
             Type tyi = ei.e1.type.toBasetype();
-            if (tyi.ty == Tsarray && ei.e1.op == TOK.variable)
+            if (tyi.ty == Type.Kind.staticArray && ei.e1.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)ei.e1;
                 VarDeclaration v = ve.var.isVarDeclaration();
@@ -4936,12 +4936,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb = exp.e1.type.toBasetype();
         switch (tb.ty)
         {
-        case Tpointer:
+        case Type.Kind.pointer:
             exp.type = (cast(TypePointer)tb).next;
             break;
 
-        case Tsarray:
-        case Tarray:
+        case Type.Kind.staticArray:
+        case Type.Kind.array:
             if (isNonAssignmentArrayOp(exp.e1))
                 goto default;
             exp.error("using `*` on an array is no longer supported; use `*(%s).ptr` instead", exp.e1.toChars());
@@ -4949,12 +4949,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = exp.e1.castTo(sc, exp.type.pointerTo());
             break;
 
-        case Terror:
+        case Type.Kind.error:
             return setError();
 
         default:
             exp.error("can only `*` a pointer, not a `%s`", exp.e1.type.toChars());
-            goto case Terror;
+            goto case Type.Kind.error;
         }
 
         if (exp.checkValue())
@@ -4985,7 +4985,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         fix16997(sc, exp);
         exp.type = exp.e1.type;
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp.e1))
             {
@@ -5055,7 +5055,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         fix16997(sc, exp);
         exp.type = exp.e1.type;
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp.e1))
             {
@@ -5140,7 +5140,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb = exp.e1.type.toBasetype();
         switch (tb.ty)
         {
-        case Tclass:
+        case Type.Kind.class_:
             {
                 auto cd = (cast(TypeClass)tb).sym;
                 if (cd.isCOMinterface())
@@ -5153,9 +5153,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ad = cd;
                 break;
             }
-        case Tpointer:
+        case Type.Kind.pointer:
             tb = (cast(TypePointer)tb).next.toBasetype();
-            if (tb.ty == Tstruct)
+            if (tb.ty == Type.Kind.struct_)
             {
                 ad = (cast(TypeStruct)tb).sym;
                 auto f = ad.aggDelete;
@@ -5204,10 +5204,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             break;
 
-        case Tarray:
+        case Type.Kind.array:
             {
                 Type tv = tb.nextOf().baseElemOf();
-                if (tv.ty == Tstruct)
+                if (tv.ty == Type.Kind.struct_)
                 {
                     ad = (cast(TypeStruct)tv).sym;
                     if (ad.dtor)
@@ -5229,7 +5229,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 err |= exp.checkSafety(sc, ad.dtor);
                 err |= exp.checkNogc(sc, ad.dtor);
             }
-            if (ad.aggDelete && tb.ty != Tarray)
+            if (ad.aggDelete && tb.ty != Type.Kind.array)
             {
                 err |= exp.checkPurity(sc, ad.aggDelete);
                 err |= exp.checkSafety(sc, ad.aggDelete);
@@ -5308,14 +5308,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
         }
 
-        if (exp.to.ty == Ttuple)
+        if (exp.to.ty == Type.Kind.tuple)
         {
             exp.error("cannot cast `%s` to tuple type `%s`", exp.e1.toChars(), exp.to.toChars());
             return setError();
         }
 
         // cast(void) is used to mark e1 as unused, so it is safe
-        if (exp.to.ty == Tvoid)
+        if (exp.to.ty == Type.Kind.void_)
         {
             exp.type = exp.to;
             result = exp;
@@ -5334,7 +5334,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t1b = exp.e1.type.toBasetype();
         Type tob = exp.to.toBasetype();
 
-        if (tob.ty == Tstruct && !tob.equals(t1b))
+        if (tob.ty == Type.Kind.struct_ && !tob.equals(t1b))
         {
             /* Look to replace:
              *  cast(S)t
@@ -5353,14 +5353,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        if (!t1b.equals(tob) && (t1b.ty == Tarray || t1b.ty == Tsarray))
+        if (!t1b.equals(tob) && (t1b.ty == Type.Kind.array || t1b.ty == Type.Kind.staticArray))
         {
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
         }
 
         // Look for casting to a vector type
-        if (tob.ty == Tvector && t1b.ty != Tvector)
+        if (tob.ty == Type.Kind.vector && t1b.ty != Type.Kind.vector)
         {
             result = new VectorExp(exp.loc, exp.e1, exp.to);
             return;
@@ -5399,14 +5399,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         exp.e1 = exp.e1.expressionSemantic(sc);
         exp.type = exp.to.typeSemantic(exp.loc, sc);
-        if (exp.e1.op == TOK.error || exp.type.ty == Terror)
+        if (exp.e1.op == TOK.error || exp.type.ty == Type.Kind.error)
         {
             result = exp.e1;
             return;
         }
 
         Type tb = exp.type.toBasetype();
-        assert(tb.ty == Tvector);
+        assert(tb.ty == Type.Kind.vector);
         TypeVector tv = cast(TypeVector)tb;
         Type te = tv.elementType();
         exp.dim = cast(int)(tv.size(exp.loc) / te.size(exp.loc));
@@ -5430,7 +5430,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 res |= checkElem((cast(ArrayLiteralExp)exp.e1).getElement(i));
             }
         }
-        else if (exp.e1.type.ty == Tvoid)
+        else if (exp.e1.type.ty == Type.Kind.void_)
             checkElem(exp.e1);
 
         result = res ? new ErrorExp() : exp;
@@ -5455,7 +5455,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = resolveProperties(sc, exp.e1);
-        if (exp.e1.op == TOK.type && exp.e1.type.ty != Ttuple)
+        if (exp.e1.op == TOK.type && exp.e1.type.ty != Type.Kind.tuple)
         {
             if (exp.lwr || exp.upr)
             {
@@ -5473,7 +5473,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Convert [a,b,c][] to [a,b,c]
                 Type t1b = exp.e1.type.toBasetype();
                 Expression e = exp.e1;
-                if (t1b.ty == Tsarray)
+                if (t1b.ty == Type.Kind.staticArray)
                 {
                     e = e.copy();
                     e.type = t1b.nextOf().arrayOf();
@@ -5503,13 +5503,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-        if (exp.e1.type.ty == Terror)
+        if (exp.e1.type.ty == Type.Kind.error)
             return setError();
 
         Type t1b = exp.e1.type.toBasetype();
-        if (t1b.ty == Tpointer)
+        if (t1b.ty == Type.Kind.pointer)
         {
-            if ((cast(TypePointer)t1b).next.ty == Tfunction)
+            if ((cast(TypePointer)t1b).next.ty == Type.Kind.function_)
             {
                 exp.error("cannot slice function pointer `%s`", exp.e1.toChars());
                 return setError();
@@ -5525,10 +5525,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else if (t1b.ty == Tarray)
+        else if (t1b.ty == Type.Kind.array)
         {
         }
-        else if (t1b.ty == Tsarray)
+        else if (t1b.ty == Type.Kind.staticArray)
         {
             if (!exp.arrayop && global.params.vsafe)
             {
@@ -5570,7 +5570,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if (t1b.ty == Ttuple)
+        else if (t1b.ty == Type.Kind.tuple)
         {
             if (!exp.lwr && !exp.upr)
             {
@@ -5583,7 +5583,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
         }
-        else if (t1b.ty == Tvector)
+        else if (t1b.ty == Type.Kind.vector)
         {
             // Convert e1 to corresponding static array
             TypeVector tv1 = cast(TypeVector)t1b;
@@ -5593,14 +5593,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            exp.error("`%s` cannot be sliced with `[]`", t1b.ty == Tvoid ? exp.e1.toChars() : t1b.toChars());
+            exp.error("`%s` cannot be sliced with `[]`", t1b.ty == Type.Kind.void_ ? exp.e1.toChars() : t1b.toChars());
             return setError();
         }
 
         /* Run semantic on lwr and upr.
          */
         Scope* scx = sc;
-        if (t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Ttuple)
+        if (t1b.ty == Type.Kind.staticArray || t1b.ty == Type.Kind.array || t1b.ty == Type.Kind.tuple)
         {
             // Create scope for 'length' variable
             ScopeDsymbol sym = new ArrayScopeSymbol(sc, exp);
@@ -5610,21 +5610,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.lwr)
         {
-            if (t1b.ty == Ttuple)
+            if (t1b.ty == Type.Kind.tuple)
                 sc = sc.startCTFE();
             exp.lwr = exp.lwr.expressionSemantic(sc);
             exp.lwr = resolveProperties(sc, exp.lwr);
-            if (t1b.ty == Ttuple)
+            if (t1b.ty == Type.Kind.tuple)
                 sc = sc.endCTFE();
             exp.lwr = exp.lwr.implicitCastTo(sc, Type.tsize_t);
         }
         if (exp.upr)
         {
-            if (t1b.ty == Ttuple)
+            if (t1b.ty == Type.Kind.tuple)
                 sc = sc.startCTFE();
             exp.upr = exp.upr.expressionSemantic(sc);
             exp.upr = resolveProperties(sc, exp.upr);
-            if (t1b.ty == Ttuple)
+            if (t1b.ty == Type.Kind.tuple)
                 sc = sc.endCTFE();
             exp.upr = exp.upr.implicitCastTo(sc, Type.tsize_t);
         }
@@ -5633,7 +5633,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.lwr && exp.lwr.type == Type.terror || exp.upr && exp.upr.type == Type.terror)
             return setError();
 
-        if (t1b.ty == Ttuple)
+        if (t1b.ty == Type.Kind.tuple)
         {
             exp.lwr = exp.lwr.ctfeInterpret();
             exp.upr = exp.upr.ctfeInterpret();
@@ -5706,7 +5706,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             IntRange lwrRange = getIntRange(exp.lwr);
             IntRange uprRange = getIntRange(exp.upr);
 
-            if (t1b.ty == Tsarray || t1b.ty == Tarray)
+            if (t1b.ty == Type.Kind.staticArray || t1b.ty == Type.Kind.array)
             {
                 Expression el = new ArrayLengthExp(exp.loc, exp.e1);
                 el = el.expressionSemantic(sc);
@@ -5718,7 +5718,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.upperIsInBounds = bounds.contains(uprRange);
                 }
             }
-            else if (t1b.ty == Tpointer)
+            else if (t1b.ty == Type.Kind.pointer)
             {
                 exp.upperIsInBounds = true;
             }
@@ -5936,7 +5936,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (!exp.e1.type)
             exp.e1 = exp.e1.expressionSemantic(sc);
         assert(exp.e1.type); // semantic() should already be run on it
-        if (exp.e1.op == TOK.type && exp.e1.type.ty != Ttuple)
+        if (exp.e1.op == TOK.type && exp.e1.type.ty != Type.Kind.tuple)
         {
             exp.e2 = exp.e2.expressionSemantic(sc);
             exp.e2 = resolveProperties(sc, exp.e2);
@@ -5954,14 +5954,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-        if (exp.e1.type.ty == Terror)
+        if (exp.e1.type.ty == Type.Kind.error)
             return setError();
 
         // Note that unlike C we do not implement the int[ptr]
 
         Type t1b = exp.e1.type.toBasetype();
 
-        if (t1b.ty == Tvector)
+        if (t1b.ty == Type.Kind.vector)
         {
             // Convert e1 to corresponding static array
             TypeVector tv1 = cast(TypeVector)t1b;
@@ -5973,7 +5973,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Run semantic on e2
          */
         Scope* scx = sc;
-        if (t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Ttuple)
+        if (t1b.ty == Type.Kind.staticArray || t1b.ty == Type.Kind.array || t1b.ty == Type.Kind.tuple)
         {
             // Create scope for 'length' variable
             ScopeDsymbol sym = new ArrayScopeSymbol(sc, exp);
@@ -5981,11 +5981,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             sym.parent = sc.scopesym;
             sc = sc.push(sym);
         }
-        if (t1b.ty == Ttuple)
+        if (t1b.ty == Type.Kind.tuple)
             sc = sc.startCTFE();
         exp.e2 = exp.e2.expressionSemantic(sc);
         exp.e2 = resolveProperties(sc, exp.e2);
-        if (t1b.ty == Ttuple)
+        if (t1b.ty == Type.Kind.tuple)
             sc = sc.endCTFE();
         if (exp.e2.op == TOK.tuple)
         {
@@ -6003,8 +6003,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         switch (t1b.ty)
         {
-        case Tpointer:
-            if ((cast(TypePointer)t1b).next.ty == Tfunction)
+        case Type.Kind.pointer:
+            if ((cast(TypePointer)t1b).next.ty == Type.Kind.function_)
             {
                 exp.error("cannot index function pointer `%s`", exp.e1.toChars());
                 return setError();
@@ -6024,14 +6024,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.type = (cast(TypeNext)t1b).next;
             break;
 
-        case Tarray:
+        case Type.Kind.array:
             exp.e2 = exp.e2.implicitCastTo(sc, Type.tsize_t);
             if (exp.e2.type == Type.terror)
                 return setError();
             exp.type = (cast(TypeNext)t1b).next;
             break;
 
-        case Tsarray:
+        case Type.Kind.staticArray:
             {
                 exp.e2 = exp.e2.implicitCastTo(sc, Type.tsize_t);
                 if (exp.e2.type == Type.terror)
@@ -6039,7 +6039,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = t1b.nextOf();
                 break;
             }
-        case Taarray:
+        case Type.Kind.associativeArray:
             {
                 TypeAArray taa = cast(TypeAArray)t1b;
                 /* We can skip the implicit conversion if they differ only by
@@ -6059,7 +6059,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = taa.next;
                 break;
             }
-        case Ttuple:
+        case Type.Kind.tuple:
             {
                 exp.e2 = exp.e2.implicitCastTo(sc, Type.tsize_t);
                 if (exp.e2.type == Type.terror)
@@ -6107,7 +6107,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (t1b.ty == Tsarray || t1b.ty == Tarray)
+        if (t1b.ty == Type.Kind.staticArray || t1b.ty == Type.Kind.array)
         {
             Expression el = new ArrayLengthExp(exp.loc, exp.e1);
             el = el.expressionSemantic(sc);
@@ -6172,7 +6172,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.optimize(WANTvalue);
 
         Type t1 = exp.e1.type.toBasetype();
-        if (t1.ty == Tclass || t1.ty == Tstruct || exp.e1.op == TOK.arrayLength)
+        if (t1.ty == Type.Kind.class_ || t1.ty == Type.Kind.struct_ || exp.e1.op == TOK.arrayLength)
         {
             /* Check for operator overloading,
              * but rewrite in terms of ++e instead of e++
@@ -6218,7 +6218,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.checkNoBool())
             return setError();
 
-        if (exp.e1.type.ty == Tpointer)
+        if (exp.e1.type.ty == Type.Kind.pointer)
             e = scaleFactor(exp, sc);
         else
             exp.e2 = exp.e2.castTo(sc, exp.e1.type);
@@ -6545,7 +6545,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!td)
                     goto Lnomatch;
 
-                assert(exp.e1.type.ty == Ttuple);
+                assert(exp.e1.type.ty == Type.Kind.tuple);
                 TypeTuple tt = cast(TypeTuple)exp.e1.type;
 
                 Expression e0;
@@ -6622,7 +6622,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // If this is an initialization of a reference,
             // do nothing
         }
-        else if (t1.ty == Tstruct)
+        else if (t1.ty == Type.Kind.struct_)
         {
             auto e1x = exp.e1;
             auto e2x = exp.e2;
@@ -6631,7 +6631,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.op == TOK.construct)
             {
                 Type t2 = e2x.type.toBasetype();
-                if (t2.ty == Tstruct && sd == (cast(TypeStruct)t2).sym)
+                if (t2.ty == Type.Kind.struct_ && sd == (cast(TypeStruct)t2).sym)
                 {
                     sd.size(exp.loc);
                     if (sd.sizeok != Sizeok.done)
@@ -6816,7 +6816,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (exp.op == TOK.assign)
             {
-                if (e1x.op == TOK.index && (cast(IndexExp)e1x).e1.type.toBasetype().ty == Taarray)
+                if (e1x.op == TOK.index && (cast(IndexExp)e1x).e1.type.toBasetype().ty == Type.Kind.associativeArray)
                 {
                     /*
                      * Rewrite:
@@ -6846,7 +6846,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (e)
                     {
                         Expression ey = null;
-                        if (t2.ty == Tstruct && sd == t2.toDsymbol(sc))
+                        if (t2.ty == Type.Kind.struct_ && sd == t2.toDsymbol(sc))
                         {
                             ey = ev;
                         }
@@ -6910,7 +6910,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = e1x;
             exp.e2 = e2x;
         }
-        else if (t1.ty == Tclass)
+        else if (t1.ty == Type.Kind.class_)
         {
             // Disallow assignment operator overloads for same type
             if (exp.op == TOK.assign && !exp.e2.implicitConvTo(exp.e1.type))
@@ -6923,7 +6923,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
             }
         }
-        else if (t1.ty == Tsarray)
+        else if (t1.ty == Type.Kind.staticArray)
         {
             // SliceExp cannot have static array type without context inference.
             assert(exp.e1.op != TOK.slice);
@@ -6987,7 +6987,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     while (1)
                     {
                         t = t.nextOf().toBasetype();
-                        if (t.ty != Tsarray)
+                        if (t.ty != Type.Kind.staticArray)
                             break;
                         dim *= (cast(TypeSArray)t).dim.toInteger();
                         e1x.type = t.nextOf().sarrayOf(dim);
@@ -7053,7 +7053,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             SliceExp se = cast(SliceExp)exp.e1;
             while (se.e1.op == TOK.slice)
                 se = cast(SliceExp)se.e1;
-            if (se.e1.op == TOK.question && se.e1.type.toBasetype().ty == Tsarray)
+            if (se.e1.op == TOK.question && se.e1.type.toBasetype().ty == Type.Kind.staticArray)
             {
                 se.e1 = se.e1.modifiableLvalue(sc, exp.e1);
                 if (se.e1.op == TOK.error)
@@ -7065,7 +7065,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            if (t1.ty == Tsarray && exp.op == TOK.assign)
+            if (t1.ty == Type.Kind.staticArray && exp.op == TOK.assign)
             {
                 Type tn = exp.e1.type.nextOf();
                 if (tn && !tn.baseElemOf().isAssignable())
@@ -7104,11 +7104,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // If it is a array, get the element type. Note that it may be
         // multi-dimensional.
         Type telem = t1;
-        while (telem.ty == Tarray)
+        while (telem.ty == Type.Kind.array)
             telem = telem.nextOf();
 
         if (exp.e1.op == TOK.slice && t1.nextOf() &&
-            (telem.ty != Tvoid || e2x.op == TOK.null_) &&
+            (telem.ty != Type.Kind.void_ || e2x.op == TOK.null_) &&
             e2x.implicitConvTo(t1.nextOf()))
         {
             // Check for block assignment. If it is of type void[], void[][], etc,
@@ -7119,7 +7119,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
         }
         else if (exp.e1.op == TOK.slice &&
-                 (t2.ty == Tarray || t2.ty == Tsarray) &&
+                 (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray) &&
                  t2.nextOf().implicitConvTo(t1.nextOf()))
         {
             // Check element-wise assignment.
@@ -7134,7 +7134,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tsa2 = cast(TypeSArray)t2.nextOf().sarrayOf((cast(ArrayLiteralExp)e2x).elements.dim);
             else if (e2x.op == TOK.slice)
                 tsa2 = cast(TypeSArray)toStaticArrayType(cast(SliceExp)e2x);
-            else if (t2.ty == Tsarray)
+            else if (t2.ty == Type.Kind.staticArray)
                 tsa2 = cast(TypeSArray)t2;
             if (tsa1 && tsa2)
             {
@@ -7209,7 +7209,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                     e2x = e2x.implicitCastTo(sc, exp.e1.type);
             }
-            if (t1n.toBasetype.ty == Tvoid && t2n.toBasetype.ty == Tvoid)
+            if (t1n.toBasetype.ty == Type.Kind.void_ && t2n.toBasetype.ty == Type.Kind.void_)
             {
                 if (!sc.intypeof && sc.func && sc.func.setUnsafe())
                 {
@@ -7221,7 +7221,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else
         {
             if (0 && global.params.warnings && !global.gag && exp.op == TOK.assign &&
-                t1.ty == Tarray && t2.ty == Tsarray &&
+                t1.ty == Type.Kind.array && t2.ty == Type.Kind.staticArray &&
                 e2x.op != TOK.slice &&
                 t2.implicitConvTo(t1))
             {
@@ -7247,7 +7247,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Look for array operations
          */
-        if ((t2.ty == Tarray || t2.ty == Tsarray) && isArrayOpValid(exp.e2))
+        if ((t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray) && isArrayOpValid(exp.e2))
         {
             // Look for valid array operations
             if (!(exp.memset & MemorySet.blockAssign) &&
@@ -7280,7 +7280,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration vd = ve.var.isVarDeclaration();
             if (vd && (vd.onstack || vd.mynew))
             {
-                assert(t1.ty == Tclass);
+                assert(t1.ty == Type.Kind.class_);
                 exp.error("cannot rebind scope variables");
             }
         }
@@ -7316,7 +7316,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(exp.e1.type && exp.e2.type);
-        if (exp.e1.op == TOK.slice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
+        if (exp.e1.op == TOK.slice || exp.e1.type.ty == Type.Kind.array || exp.e1.type.ty == Type.Kind.staticArray)
         {
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
@@ -7336,7 +7336,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Check element types are arithmetic
             Type tb1 = exp.e1.type.nextOf().toBasetype();
             Type tb2 = exp.e2.type.toBasetype();
-            if (tb2.ty == Tarray || tb2.ty == Tsarray)
+            if (tb2.ty == Type.Kind.array || tb2.ty == Type.Kind.staticArray)
                 tb2 = tb2.nextOf().toBasetype();
             if ((tb1.isintegral() || tb1.isfloating()) && (tb2.isintegral() || tb2.isfloating()))
             {
@@ -7400,7 +7400,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.op == TOK.slice)
         {
             SliceExp se = cast(SliceExp)exp.e1;
-            if (se.e1.type.toBasetype().ty == Tsarray)
+            if (se.e1.type.toBasetype().ty == Type.Kind.staticArray)
             {
                 exp.error("cannot append to static array `%s`", se.e1.type.toChars());
                 return setError();
@@ -7431,8 +7431,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * TOK.concatenateElemAssign: appending T to T[]
          * TOK.concatenateDcharAssign: appending dchar to T[]
          */
-        if ((tb1.ty == Tarray) &&
-            (tb2.ty == Tarray || tb2.ty == Tsarray) &&
+        if ((tb1.ty == Type.Kind.array) &&
+            (tb2.ty == Type.Kind.array || tb2.ty == Type.Kind.staticArray) &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
               (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
@@ -7444,7 +7444,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             exp.e2 = exp.e2.castTo(sc, exp.e1.type);
         }
-        else if ((tb1.ty == Tarray) && exp.e2.implicitConvTo(tb1next))
+        else if ((tb1.ty == Type.Kind.array) && exp.e2.implicitConvTo(tb1next))
         {
             // Append element
             if (exp.e2.checkPostblit(sc, tb2))
@@ -7454,8 +7454,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e2 = exp.e2.castTo(sc, tb1next);
             exp.e2 = doCopyOrMove(sc, exp.e2);
         }
-        else if (tb1.ty == Tarray &&
-                 (tb1next.ty == Tchar || tb1next.ty == Twchar) &&
+        else if (tb1.ty == Type.Kind.array &&
+                 (tb1next.ty == Type.Kind.char_ || tb1next.ty == Type.Kind.wchar_) &&
                  exp.e2.type.ty != tb1next.ty &&
                  exp.e2.implicitConvTo(Type.tdchar))
         {
@@ -7510,24 +7510,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type tb2 = exp.e2.type.toBasetype();
 
         bool err = false;
-        if (tb1.ty == Tdelegate || tb1.ty == Tpointer && tb1.nextOf().ty == Tfunction)
+        if (tb1.ty == Type.Kind.delegate_ || tb1.ty == Type.Kind.pointer && tb1.nextOf().ty == Type.Kind.function_)
         {
             err |= exp.e1.checkArithmetic();
         }
-        if (tb2.ty == Tdelegate || tb2.ty == Tpointer && tb2.nextOf().ty == Tfunction)
+        if (tb2.ty == Type.Kind.delegate_ || tb2.ty == Type.Kind.pointer && tb2.nextOf().ty == Type.Kind.function_)
         {
             err |= exp.e2.checkArithmetic();
         }
         if (err)
             return setError();
 
-        if (tb1.ty == Tpointer && exp.e2.type.isintegral() || tb2.ty == Tpointer && exp.e1.type.isintegral())
+        if (tb1.ty == Type.Kind.pointer && exp.e2.type.isintegral() || tb2.ty == Type.Kind.pointer && exp.e1.type.isintegral())
         {
             result = scaleFactor(exp, sc);
             return;
         }
 
-        if (tb1.ty == Tpointer && tb2.ty == Tpointer)
+        if (tb1.ty == Type.Kind.pointer && tb2.ty == Type.Kind.pointer)
         {
             result = exp.incompatibleTypes();
             return;
@@ -7540,7 +7540,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -7561,18 +7561,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             switch (exp.type.toBasetype().ty)
             {
-            case Tfloat32:
-            case Timaginary32:
+            case Type.Kind.float32:
+            case Type.Kind.imaginary32:
                 exp.type = Type.tcomplex32;
                 break;
 
-            case Tfloat64:
-            case Timaginary64:
+            case Type.Kind.float64:
+            case Type.Kind.imaginary64:
                 exp.type = Type.tcomplex64;
                 break;
 
-            case Tfloat80:
-            case Timaginary80:
+            case Type.Kind.float80:
+            case Type.Kind.imaginary80:
                 exp.type = Type.tcomplex80;
                 break;
 
@@ -7611,20 +7611,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t2 = exp.e2.type.toBasetype();
 
         bool err = false;
-        if (t1.ty == Tdelegate || t1.ty == Tpointer && t1.nextOf().ty == Tfunction)
+        if (t1.ty == Type.Kind.delegate_ || t1.ty == Type.Kind.pointer && t1.nextOf().ty == Type.Kind.function_)
         {
             err |= exp.e1.checkArithmetic();
         }
-        if (t2.ty == Tdelegate || t2.ty == Tpointer && t2.nextOf().ty == Tfunction)
+        if (t2.ty == Type.Kind.delegate_ || t2.ty == Type.Kind.pointer && t2.nextOf().ty == Type.Kind.function_)
         {
             err |= exp.e2.checkArithmetic();
         }
         if (err)
             return setError();
 
-        if (t1.ty == Tpointer)
+        if (t1.ty == Type.Kind.pointer)
         {
-            if (t2.ty == Tpointer)
+            if (t2.ty == Type.Kind.pointer)
             {
                 // https://dlang.org/spec/expression.html#add_expressions
                 // "If both operands are pointers, and the operator is -, the pointers are
@@ -7676,7 +7676,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
-        if (t2.ty == Tpointer)
+        if (t2.ty == Type.Kind.pointer)
         {
             exp.type = exp.e2.type;
             exp.error("can't subtract pointer from `%s`", exp.e1.type.toChars());
@@ -7690,7 +7690,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -7712,18 +7712,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             switch (exp.type.ty)
             {
-            case Tfloat32:
-            case Timaginary32:
+            case Type.Kind.float32:
+            case Type.Kind.imaginary32:
                 exp.type = Type.tcomplex32;
                 break;
 
-            case Tfloat64:
-            case Timaginary64:
+            case Type.Kind.float64:
+            case Type.Kind.imaginary64:
                 exp.type = Type.tcomplex64;
                 break;
 
-            case Tfloat80:
-            case Timaginary80:
+            case Type.Kind.float80:
+            case Type.Kind.imaginary80:
                 exp.type = Type.tcomplex80;
                 break;
 
@@ -7801,7 +7801,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Check for: array ~ element
-        if ((tb1.ty == Tsarray || tb1.ty == Tarray) && tb2.ty != Tvoid)
+        if ((tb1.ty == Type.Kind.staticArray || tb1.ty == Type.Kind.array) && tb2.ty != Type.Kind.void_)
         {
             if (exp.e1.op == TOK.arrayLiteral)
             {
@@ -7832,7 +7832,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e2 = exp.e2.implicitCastTo(sc, tb1next);
                 exp.type = tb1next.arrayOf();
             L2elem:
-                if (tb2.ty == Tarray || tb2.ty == Tsarray)
+                if (tb2.ty == Type.Kind.array || tb2.ty == Type.Kind.staticArray)
                 {
                     // Make e2 into [e2]
                     exp.e2 = new ArrayLiteralExp(exp.e2.loc, exp.e2);
@@ -7843,7 +7843,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         // Check for: element ~ array
-        if ((tb2.ty == Tsarray || tb2.ty == Tarray) && tb1.ty != Tvoid)
+        if ((tb2.ty == Type.Kind.staticArray || tb2.ty == Type.Kind.array) && tb1.ty != Type.Kind.void_)
         {
             if (exp.e2.op == TOK.arrayLiteral)
             {
@@ -7869,7 +7869,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e1 = exp.e1.implicitCastTo(sc, tb2next);
                 exp.type = tb2next.arrayOf();
             L1elem:
-                if (tb1.ty == Tarray || tb1.ty == Tsarray)
+                if (tb1.ty == Type.Kind.array || tb1.ty == Type.Kind.staticArray)
                 {
                     // Make e1 into [e1]
                     exp.e1 = new ArrayLiteralExp(exp.e1.loc, exp.e1);
@@ -7881,7 +7881,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
     Lpeer:
-        if ((tb1.ty == Tsarray || tb1.ty == Tarray) && (tb2.ty == Tsarray || tb2.ty == Tarray) && (tb1next.mod || tb2next.mod) && (tb1next.mod != tb2next.mod))
+        if ((tb1.ty == Type.Kind.staticArray || tb1.ty == Type.Kind.array) && (tb2.ty == Type.Kind.staticArray || tb2.ty == Type.Kind.array) && (tb1next.mod || tb2next.mod) && (tb1next.mod != tb2next.mod))
         {
             Type t1 = tb1next.mutableOf().constOf().arrayOf();
             Type t2 = tb2next.mutableOf().constOf().arrayOf();
@@ -7903,9 +7903,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.type = exp.type.toHeadMutable();
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.staticArray)
             exp.type = tb.nextOf().arrayOf();
-        if (exp.type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
+        if (exp.type.ty == Type.Kind.array && tb1next && tb2next && tb1next.mod != tb2next.mod)
         {
             exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
         }
@@ -7923,8 +7923,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
-        if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-            (t2.ty == Tarray || t2.ty == Tsarray))
+        if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray) &&
+            (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
         {
             // Normalize to ArrayLiteralExp or StringExp as far as possible
             e = exp.optimize(WANTvalue);
@@ -7970,7 +7970,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8003,15 +8003,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     switch (t1.toBasetype().ty)
                     {
-                    case Timaginary32:
+                    case Type.Kind.imaginary32:
                         exp.type = Type.tfloat32;
                         break;
 
-                    case Timaginary64:
+                    case Type.Kind.imaginary64:
                         exp.type = Type.tfloat64;
                         break;
 
-                    case Timaginary80:
+                    case Type.Kind.imaginary80:
                         exp.type = Type.tfloat80;
                         break;
 
@@ -8070,7 +8070,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8112,15 +8112,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     switch (t1.toBasetype().ty)
                     {
-                    case Timaginary32:
+                    case Type.Kind.imaginary32:
                         exp.type = Type.tfloat32;
                         break;
 
-                    case Timaginary64:
+                    case Type.Kind.imaginary64:
                         exp.type = Type.tfloat64;
                         break;
 
-                    case Timaginary80:
+                    case Type.Kind.imaginary80:
                         exp.type = Type.tfloat80;
                         break;
 
@@ -8171,7 +8171,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8230,7 +8230,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8351,7 +8351,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = integralPromotions(exp.e1, sc);
-        if (exp.e2.type.toBasetype().ty != Tvector)
+        if (exp.e2.type.toBasetype().ty != Type.Kind.vector)
             exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
 
         exp.type = exp.e1.type;
@@ -8387,7 +8387,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = integralPromotions(exp.e1, sc);
-        if (exp.e2.type.toBasetype().ty != Tvector)
+        if (exp.e2.type.toBasetype().ty != Type.Kind.vector)
             exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
 
         exp.type = exp.e1.type;
@@ -8423,7 +8423,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         exp.e1 = integralPromotions(exp.e1, sc);
-        if (exp.e2.type.toBasetype().ty != Tvector)
+        if (exp.e2.type.toBasetype().ty != Type.Kind.vector)
             exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
 
         exp.type = exp.e1.type;
@@ -8450,7 +8450,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.type.toBasetype().ty == Tbool && exp.e2.type.toBasetype().ty == Tbool)
+        if (exp.e1.type.toBasetype().ty == Type.Kind.bool_ && exp.e2.type.toBasetype().ty == Type.Kind.bool_)
         {
             exp.type = exp.e1.type;
             result = exp;
@@ -8464,7 +8464,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8505,7 +8505,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.type.toBasetype().ty == Tbool && exp.e2.type.toBasetype().ty == Tbool)
+        if (exp.e1.type.toBasetype().ty == Type.Kind.bool_ && exp.e2.type.toBasetype().ty == Type.Kind.bool_)
         {
             exp.type = exp.e1.type;
             result = exp;
@@ -8519,7 +8519,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8560,7 +8560,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.type.toBasetype().ty == Tbool && exp.e2.type.toBasetype().ty == Tbool)
+        if (exp.e1.type.toBasetype().ty == Type.Kind.bool_ && exp.e2.type.toBasetype().ty == Type.Kind.bool_)
         {
             exp.type = exp.e1.type;
             result = exp;
@@ -8574,7 +8574,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray)
         {
             if (!isArrayOpValid(exp))
             {
@@ -8642,7 +8642,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         // Unless the right operand is 'void', the expression is converted to 'bool'.
-        if (e2x.type.ty != Tvoid)
+        if (e2x.type.ty != Type.Kind.void_)
             e2x = e2x.toBoolean(sc);
 
         if (e2x.op == TOK.type || e2x.op == TOK.scope_)
@@ -8662,7 +8662,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // The result type is 'bool', unless the right operand has type 'void'.
-        if (e2x.type.ty == Tvoid)
+        if (e2x.type.ty == Type.Kind.void_)
             exp.type = Type.tvoid;
         else
             exp.type = Type.tbool;
@@ -8694,7 +8694,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
-        if (t1.ty == Tclass && exp.e2.op == TOK.null_ || t2.ty == Tclass && exp.e1.op == TOK.null_)
+        if (t1.ty == Type.Kind.class_ && exp.e2.op == TOK.null_ || t2.ty == Type.Kind.class_ && exp.e1.op == TOK.null_)
         {
             exp.error("do not use `null` when comparing class types");
             return setError();
@@ -8734,16 +8734,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression arrayLowering = null;
         t1 = exp.e1.type.toBasetype();
         t2 = exp.e2.type.toBasetype();
-        if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
+        if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray || t1.ty == Type.Kind.pointer) && (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray || t2.ty == Type.Kind.pointer))
         {
             Type t1next = t1.nextOf();
             Type t2next = t2.nextOf();
-            if (t1next.implicitConvTo(t2next) < MATCH.constant && t2next.implicitConvTo(t1next) < MATCH.constant && (t1next.ty != Tvoid && t2next.ty != Tvoid))
+            if (t1next.implicitConvTo(t2next) < MATCH.constant && t2next.implicitConvTo(t1next) < MATCH.constant && (t1next.ty != Type.Kind.void_ && t2next.ty != Type.Kind.void_))
             {
                 exp.error("array comparison type mismatch, `%s` vs `%s`", t1next.toChars(), t2next.toChars());
                 return setError();
             }
-            if ((t1.ty == Tarray || t1.ty == Tsarray) && (t2.ty == Tarray || t2.ty == Tsarray))
+            if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray) && (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
             {
                 // Lower to object.__cmp(e1, e2)
                 Expression al = new IdentifierExp(exp.loc, Id.empty);
@@ -8761,9 +8761,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 arrayLowering = al;
             }
         }
-        else if (t1.ty == Tstruct || t2.ty == Tstruct || (t1.ty == Tclass && t2.ty == Tclass))
+        else if (t1.ty == Type.Kind.struct_ || t2.ty == Type.Kind.struct_ || (t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.class_))
         {
-            if (t2.ty == Tstruct)
+            if (t2.ty == Type.Kind.struct_)
                 exp.error("need member function `opCmp()` for %s `%s` to compare", t2.toDsymbol(sc).kind(), t2.toChars());
             else
                 exp.error("need member function `opCmp()` for %s `%s` to compare", t1.toDsymbol(sc).kind(), t1.toChars());
@@ -8774,7 +8774,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("compare not defined for complex operands");
             return setError();
         }
-        else if (t1.ty == Taarray || t2.ty == Taarray)
+        else if (t1.ty == Type.Kind.associativeArray || t2.ty == Type.Kind.associativeArray)
         {
             exp.error("`%s` is not defined for associative arrays", Token.toChars(exp.op));
             return setError();
@@ -8832,7 +8832,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             altop = TOK.reserved;
             break;
         }
-        if (altop == TOK.error && (t1.ty == Tarray || t1.ty == Tsarray || t2.ty == Tarray || t2.ty == Tsarray))
+        if (altop == TOK.error && (t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray || t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
         {
             exp.error("`%s` is not defined for array comparisons", Token.toChars(exp.op));
             return setError();
@@ -8892,7 +8892,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t2b = exp.e2.type.toBasetype();
         switch (t2b.ty)
         {
-        case Taarray:
+        case Type.Kind.associativeArray:
             {
                 TypeAArray ta = cast(TypeAArray)t2b;
 
@@ -8910,7 +8910,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 break;
             }
 
-        case Terror:
+        case Type.Kind.error:
             return setError();
 
         default:
@@ -8955,7 +8955,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             auto t1 = exp.e1.type;
             auto t2 = exp.e2.type;
-            if (t1.ty == Tenum && t2.ty == Tenum && !t1.equivalent(t2))
+            if (t1.ty == Type.Kind.enum_ && t2.ty == Type.Kind.enum_ && !t1.equivalent(t2))
                 exp.deprecation("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
                     t1.toChars(), t2.toChars());
         }
@@ -8988,9 +8988,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             Type t1n = t1.nextOf().toBasetype();
             Type t2n = t2.nextOf().toBasetype();
-            if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) &&
-                 (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) ||
-                (t1n.ty == Tvoid || t2n.ty == Tvoid))
+            if (((t1n.ty == Type.Kind.char_ || t1n.ty == Type.Kind.wchar_ || t1n.ty == Type.Kind.dchar_) &&
+                 (t2n.ty == Type.Kind.char_ || t2n.ty == Type.Kind.wchar_ || t2n.ty == Type.Kind.dchar_)) ||
+                (t1n.ty == Type.Kind.void_ || t2n.ty == Type.Kind.void_))
             {
                 return false;
             }
@@ -9000,7 +9000,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Type t = t1n;
             while (t.toBasetype().nextOf())
                 t = t.nextOf().toBasetype();
-            if (t.ty != Tstruct)
+            if (t.ty != Type.Kind.struct_)
                 return false;
 
             semanticTypeInfo(sc, t);
@@ -9014,7 +9014,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
 
-        if (!(t1.ty == Tarray && t2.ty == Tarray && needsDirectEq(t1, t2)))
+        if (!(t1.ty == Type.Kind.array && t2.ty == Type.Kind.array && needsDirectEq(t1, t2)))
         {
             if (auto e = typeCombine(exp, sc))
             {
@@ -9031,7 +9031,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.type = Type.tbool;
 
         // Special handling for array comparisons
-        if (!(t1.ty == Tarray && t2.ty == Tarray && needsDirectEq(t1, t2)))
+        if (!(t1.ty == Type.Kind.array && t2.ty == Type.Kind.array && needsDirectEq(t1, t2)))
         {
             if (!arrayTypeCompatible(exp.loc, exp.e1.type, exp.e2.type))
             {
@@ -9044,7 +9044,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        if (t1.ty == Tarray && t2.ty == Tarray)
+        if (t1.ty == Type.Kind.array && t2.ty == Type.Kind.array)
         {
             //printf("Lowering to __equals %s %s\n", e1.toChars(), e2.toChars());
 
@@ -9071,7 +9071,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.type.toBasetype().ty == Taarray)
+        if (exp.e1.type.toBasetype().ty == Type.Kind.associativeArray)
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
 
 
@@ -9133,8 +9133,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e2.op == TOK.call)
             exp.e2 = (cast(CallExp)exp.e2).addDtorHook(sc);
 
-        if (exp.e1.type.toBasetype().ty == Tsarray ||
-            exp.e2.type.toBasetype().ty == Tsarray)
+        if (exp.e1.type.toBasetype().ty == Type.Kind.staticArray ||
+            exp.e2.type.toBasetype().ty == Type.Kind.staticArray)
             exp.deprecation("identity comparison of static arrays "
                 ~ "implicitly coerces them to slices, "
                 ~ "which are compared by reference");
@@ -9215,7 +9215,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // the expression to void so that we explicitly discard the expression
         // value if any
         // https://issues.dlang.org/show_bug.cgi?id=16598
-        if (t1.ty == Tvoid || t2.ty == Tvoid)
+        if (t1.ty == Type.Kind.void_ || t2.ty == Type.Kind.void_)
         {
             exp.type = Type.tvoid;
             exp.e1 = exp.e1.castTo(sc, exp.type);
@@ -9233,9 +9233,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             switch (exp.e1.type.toBasetype().ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
+            case Type.Kind.complex32:
+            case Type.Kind.complex64:
+            case Type.Kind.complex80:
                 exp.e2 = exp.e2.castTo(sc, exp.e1.type);
                 break;
             default:
@@ -9243,15 +9243,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             switch (exp.e2.type.toBasetype().ty)
             {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
+            case Type.Kind.complex32:
+            case Type.Kind.complex64:
+            case Type.Kind.complex80:
                 exp.e1 = exp.e1.castTo(sc, exp.e2.type);
                 break;
             default:
                 break;
             }
-            if (exp.type.toBasetype().ty == Tarray)
+            if (exp.type.toBasetype().ty == Type.Kind.array)
             {
                 exp.e1 = exp.e1.castTo(sc, exp.type);
                 exp.e2 = exp.e2.castTo(sc, exp.type);
@@ -9463,7 +9463,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
         }
     }
 
-    if (exp.e1.op == TOK.variable && exp.e1.type.toBasetype().ty == Tsarray && exp.ident == Id.length)
+    if (exp.e1.op == TOK.variable && exp.e1.type.toBasetype().ty == Type.Kind.staticArray && exp.ident == Id.length)
     {
         // bypass checkPurity
         return exp.e1.type.dotExp(sc, exp.e1, exp.ident, exp.noderef ? Type.DotExpFlag.noDeref : 0);
@@ -9622,7 +9622,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
                         exp.error("forward reference to %s `%s`", v.kind(), v.toPrettyChars());
                     return new ErrorExp();
                 }
-                if (v.type.ty == Terror)
+                if (v.type.ty == Type.Kind.error)
                     return new ErrorExp();
 
                 if ((v.storage_class & STC.manifest) && v._init && !exp.wantsym)
@@ -9776,7 +9776,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
             exp.error("undefined identifier `%s` in %s `%s`", exp.ident.toChars(), ie.sds.kind(), ie.sds.toPrettyChars());
         return new ErrorExp();
     }
-    else if (t1b.ty == Tpointer && exp.e1.type.ty != Tenum && exp.ident != Id._init && exp.ident != Id.__sizeof && exp.ident != Id.__xalignof && exp.ident != Id.offsetof && exp.ident != Id._mangleof && exp.ident != Id.stringof)
+    else if (t1b.ty == Type.Kind.pointer && exp.e1.type.ty != Type.Kind.enum_ && exp.ident != Id._init && exp.ident != Id.__sizeof && exp.ident != Id.__xalignof && exp.ident != Id.offsetof && exp.ident != Id._mangleof && exp.ident != Id.stringof)
     {
         Type t1bn = t1b.nextOf();
         if (flag)
@@ -9791,7 +9791,7 @@ Expression semanticY(DotIdExp exp, Scope* sc, int flag)
          * as:
          *   (*p).ident
          */
-        if (flag && t1bn.ty == Tvoid)
+        if (flag && t1bn.ty == Type.Kind.void_)
             return null;
         e = new PtrExp(exp.loc, exp.e1);
         e = e.expressionSemantic(sc);
@@ -9824,7 +9824,7 @@ Expression semanticY(DotTemplateInstanceExp exp, Scope* sc, int flag)
     {
         exp.e1 = die.e1; // take back
         Type t1b = exp.e1.type.toBasetype();
-        if (t1b.ty == Tarray || t1b.ty == Tsarray || t1b.ty == Taarray || t1b.ty == Tnull || (t1b.isTypeBasic() && t1b.ty != Tvoid))
+        if (t1b.ty == Type.Kind.array || t1b.ty == Type.Kind.staticArray || t1b.ty == Type.Kind.associativeArray || t1b.ty == Type.Kind.null_ || (t1b.isTypeBasic() && t1b.ty != Type.Kind.void_))
         {
             /* No built-in type has templatized properties, so do shortcut.
              * It is necessary in: 1024.max!"a < b"

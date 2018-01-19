@@ -439,7 +439,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
         if (n2 == -1 && !type.isunsigned())
         {
             // Check for int.min / -1
-            if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
+            if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Type.Kind.int64)
             {
                 e2.error("integer overflow: `int.min / -1`");
                 emplaceExp!(ErrorExp)(&ue);
@@ -504,7 +504,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
         if (n2 == -1 && !type.isunsigned())
         {
             // Check for int.min % -1
-            if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Tint64)
+            if (n1 == 0xFFFFFFFF80000000UL && type.toBasetype().ty != Type.Kind.int64)
             {
                 e2.error("integer overflow: `int.min %% -1`");
                 emplaceExp!(ErrorExp)(&ue);
@@ -621,34 +621,34 @@ extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
     uint count = cast(uint)dcount;
     switch (e1.type.toBasetype().ty)
     {
-    case Tint8:
+    case Type.Kind.int8:
         value = cast(d_int8)value >> count;
         break;
-    case Tuns8:
-    case Tchar:
+    case Type.Kind.uint8:
+    case Type.Kind.char_:
         value = cast(d_uns8)value >> count;
         break;
-    case Tint16:
+    case Type.Kind.int16:
         value = cast(d_int16)value >> count;
         break;
-    case Tuns16:
-    case Twchar:
+    case Type.Kind.uint16:
+    case Type.Kind.wchar_:
         value = cast(d_uns16)value >> count;
         break;
-    case Tint32:
+    case Type.Kind.int32:
         value = cast(d_int32)value >> count;
         break;
-    case Tuns32:
-    case Tdchar:
+    case Type.Kind.uint32:
+    case Type.Kind.dchar_:
         value = cast(d_uns32)value >> count;
         break;
-    case Tint64:
+    case Type.Kind.int64:
         value = cast(d_int64)value >> count;
         break;
-    case Tuns64:
+    case Type.Kind.uint64:
         value = cast(d_uns64)value >> count;
         break;
-    case Terror:
+    case Type.Kind.error:
         emplaceExp!(ErrorExp)(&ue);
         return ue;
     default:
@@ -667,28 +667,28 @@ extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
     uint count = cast(uint)dcount;
     switch (e1.type.toBasetype().ty)
     {
-    case Tint8:
-    case Tuns8:
-    case Tchar:
+    case Type.Kind.int8:
+    case Type.Kind.uint8:
+    case Type.Kind.char_:
         // Possible only with >>>=. >>> always gets promoted to int.
         value = (value & 0xFF) >> count;
         break;
-    case Tint16:
-    case Tuns16:
-    case Twchar:
+    case Type.Kind.int16:
+    case Type.Kind.uint16:
+    case Type.Kind.wchar_:
         // Possible only with >>>=. >>> always gets promoted to int.
         value = (value & 0xFFFF) >> count;
         break;
-    case Tint32:
-    case Tuns32:
-    case Tdchar:
+    case Type.Kind.int32:
+    case Type.Kind.uint32:
+    case Type.Kind.dchar_:
         value = (value & 0xFFFFFFFF) >> count;
         break;
-    case Tint64:
-    case Tuns64:
+    case Type.Kind.int64:
+    case Type.Kind.uint64:
         value = cast(d_uns64)value >> count;
         break;
-    case Terror:
+    case Type.Kind.error:
         emplaceExp!(ErrorExp)(&ue);
         return ue;
     default:
@@ -907,7 +907,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
     {
         cmp = e1.toComplex() == e2.toComplex();
     }
-    else if (e1.type.isintegral() || e1.type.toBasetype().ty == Tpointer)
+    else if (e1.type.isintegral() || e1.type.toBasetype().ty == Type.Kind.pointer)
     {
         cmp = (e1.toInteger() == e2.toInteger());
     }
@@ -1055,7 +1055,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     // Allow covariant converions of delegates
     // (Perhaps implicit conversion from pure to impure should be a MATCH.constant,
     // then we wouldn't need this extra check.)
-    if (e1.type.toBasetype().ty == Tdelegate && e1.type.implicitConvTo(to) == MATCH.convert)
+    if (e1.type.toBasetype().ty == Type.Kind.delegate_ && e1.type.implicitConvTo(to) == MATCH.convert)
     {
         goto L1;
     }
@@ -1063,7 +1063,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
      */
     if (e1.op == TOK.string_)
     {
-        if (tb.ty == Tarray && typeb.ty == Tarray && tb.nextOf().size() == typeb.nextOf().size())
+        if (tb.ty == Type.Kind.array && typeb.ty == Type.Kind.array && tb.nextOf().size() == typeb.nextOf().size())
         {
             goto L1;
         }
@@ -1079,7 +1079,7 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     {
         emplaceExp!(CTFEExp)(&ue, TOK.cantExpression);
     }
-    else if (tb.ty == Tbool)
+    else if (tb.ty == Type.Kind.bool_)
     {
         emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() != 0, type);
     }
@@ -1091,31 +1091,31 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
             real_t r = e1.toReal();
             switch (typeb.ty)
             {
-            case Tint8:
+            case Type.Kind.int8:
                 result = cast(d_int8)cast(sinteger_t)r;
                 break;
-            case Tchar:
-            case Tuns8:
+            case Type.Kind.char_:
+            case Type.Kind.uint8:
                 result = cast(d_uns8)cast(dinteger_t)r;
                 break;
-            case Tint16:
+            case Type.Kind.int16:
                 result = cast(d_int16)cast(sinteger_t)r;
                 break;
-            case Twchar:
-            case Tuns16:
+            case Type.Kind.wchar_:
+            case Type.Kind.uint16:
                 result = cast(d_uns16)cast(dinteger_t)r;
                 break;
-            case Tint32:
+            case Type.Kind.int32:
                 result = cast(d_int32)r;
                 break;
-            case Tdchar:
-            case Tuns32:
+            case Type.Kind.dchar_:
+            case Type.Kind.uint32:
                 result = cast(d_uns32)r;
                 break;
-            case Tint64:
+            case Type.Kind.int64:
                 result = cast(d_int64)r;
                 break;
-            case Tuns64:
+            case Type.Kind.uint64:
                 result = cast(d_uns64)r;
                 break;
             default:
@@ -1147,11 +1147,11 @@ extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
     {
         emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger(), type);
     }
-    else if (tb.ty == Tvoid)
+    else if (tb.ty == Type.Kind.void_)
     {
         emplaceExp!(CTFEExp)(&ue, TOK.cantExpression);
     }
-    else if (tb.ty == Tstruct && e1.op == TOK.int64)
+    else if (tb.ty == Type.Kind.struct_ && e1.op == TOK.int64)
     {
         // Struct = 0;
         StructDeclaration sd = tb.toDsymbol(null).isStructDeclaration();
@@ -1204,7 +1204,7 @@ extern (C++) UnionExp ArrayLength(Type type, Expression e1)
         size_t dim = ale.keys.dim;
         emplaceExp!(IntegerExp)(&ue, loc, dim, type);
     }
-    else if (e1.type.toBasetype().ty == Tsarray)
+    else if (e1.type.toBasetype().ty == Type.Kind.staticArray)
     {
         Expression e = (cast(TypeSArray)e1.type.toBasetype()).dim;
         emplaceExp!(UnionExp)(&ue, e);
@@ -1236,7 +1236,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
             emplaceExp!(IntegerExp)(&ue, loc, es1.charAt(i), type);
         }
     }
-    else if (e1.type.toBasetype().ty == Tsarray && e2.op == TOK.int64)
+    else if (e1.type.toBasetype().ty == Type.Kind.staticArray && e2.op == TOK.int64)
     {
         TypeSArray tsa = cast(TypeSArray)e1.type.toBasetype();
         uinteger_t length = tsa.dim.toInteger();
@@ -1260,7 +1260,7 @@ extern (C++) UnionExp Index(Type type, Expression e1, Expression e2)
         else
             emplaceExp!(CTFEExp)(&ue, TOK.cantExpression);
     }
-    else if (e1.type.toBasetype().ty == Tarray && e2.op == TOK.int64)
+    else if (e1.type.toBasetype().ty == Type.Kind.array && e2.op == TOK.int64)
     {
         uinteger_t i = e2.toInteger();
         if (e1.op == TOK.arrayLiteral)
@@ -1467,7 +1467,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         t = t2;
     L2:
         Type tn = e.type.toBasetype();
-        if (tn.ty == Tchar || tn.ty == Twchar || tn.ty == Tdchar)
+        if (tn.ty == Type.Kind.char_ || tn.ty == Type.Kind.wchar_ || tn.ty == Type.Kind.dchar_)
         {
             // Create a StringExp
             if (t.nextOf())
@@ -1501,7 +1501,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         if (type == e1.type)
         {
             // Handle null ~= null
-            if (t1.ty == Tarray && t2 == t1.nextOf())
+            if (t1.ty == Type.Kind.array && t2 == t1.nextOf())
             {
                 emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, e2);
                 ue.exp().type = type;
@@ -1643,7 +1643,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
 
         e = ue.exp();
-        if (type.toBasetype().ty == Tsarray)
+        if (type.toBasetype().ty == Type.Kind.staticArray)
         {
             e.type = t1.nextOf().sarrayOf(elems.dim);
         }
@@ -1667,7 +1667,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         emplaceExp!(ArrayLiteralExp)(&ue, e.loc, elems);
 
         e = ue.exp();
-        if (type.toBasetype().ty == Tsarray)
+        if (type.toBasetype().ty == Type.Kind.staticArray)
         {
             e.type = t1.nextOf().sarrayOf(elems.dim);
         }
@@ -1685,7 +1685,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         emplaceExp!(ArrayLiteralExp)(&ue, e1.loc, elems);
 
         e = ue.exp();
-        if (type.toBasetype().ty == Tsarray)
+        if (type.toBasetype().ty == Type.Kind.staticArray)
         {
             e.type = e2.type.sarrayOf(elems.dim);
         }
@@ -1701,7 +1701,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         emplaceExp!(ArrayLiteralExp)(&ue, e2.loc, elems);
 
         e = ue.exp();
-        if (type.toBasetype().ty == Tsarray)
+        if (type.toBasetype().ty == Type.Kind.staticArray)
         {
             e.type = e1.type.sarrayOf(elems.dim);
         }
@@ -1722,7 +1722,7 @@ extern (C++) UnionExp Cat(Type type, Expression e1, Expression e2)
         t = e2.type;
     L1:
         Type tb = t.toBasetype();
-        if (tb.ty == Tarray && tb.nextOf().equivalent(e.type))
+        if (tb.ty == Type.Kind.array && tb.nextOf().equivalent(e.type))
         {
             auto expressions = new Expressions();
             expressions.push(e);

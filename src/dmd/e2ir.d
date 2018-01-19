@@ -153,12 +153,12 @@ private elem *callfunc(Loc loc,
     }
 
     t = t.toBasetype();
-    if (t.ty == Tdelegate)
+    if (t.ty == Type.Kind.delegate_)
     {
         // A delegate consists of:
         //      { Object *this; Function *funcptr; }
         assert(!fd);
-        assert(t.nextOf().ty == Tfunction);
+        assert(t.nextOf().ty == Type.Kind.function_);
         tf = cast(TypeFunction)(t.nextOf());
         ethis = ec;
         ec = el_same(&ethis);
@@ -168,7 +168,7 @@ private elem *callfunc(Loc loc,
     }
     else
     {
-        assert(t.ty == Tfunction);
+        assert(t.ty == Type.Kind.function_);
         tf = cast(TypeFunction)(t);
     }
     const ty = fd ? toSymbol(fd).Stype.Tty : ec.Ety;
@@ -276,8 +276,8 @@ private elem *callfunc(Loc loc,
             type *tc;
 
             Type tret2 = tf.next;
-            if (tret2.toBasetype().ty == Tstruct ||
-                tret2.toBasetype().ty == Tsarray)
+            if (tret2.toBasetype().ty == Type.Kind.struct_ ||
+                tret2.toBasetype().ty == Type.Kind.staticArray)
                 tc = Type_toCtype(tret2);
             else
                 tc = type_fake(totym(tret2));
@@ -617,7 +617,7 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 
         // Convert to ((tmp=e2),tmp)
         TY ty;
-        if (t && ((ty = t.toBasetype().ty) == Tstruct || ty == Tsarray))
+        if (t && ((ty = t.toBasetype().ty) == Type.Kind.struct_ || ty == Type.Kind.staticArray))
             tx = Type_toCtype(t);
         else if (tybasic(e2.Ety) == TYstruct)
         {
@@ -656,11 +656,11 @@ elem *array_toPtr(Type t, elem *e)
     t = t.toBasetype();
     switch (t.ty)
     {
-        case Tpointer:
+        case Type.Kind.pointer:
             break;
 
-        case Tarray:
-        case Tdelegate:
+        case Type.Kind.array:
+        case Type.Kind.delegate_:
             if (e.Eoper == OPcomma)
             {
                 e.Ety = TYnptr;
@@ -684,7 +684,7 @@ else
             }
             break;
 
-        case Tsarray:
+        case Type.Kind.staticArray:
             //e = el_una(OPaddr, TYnptr, e);
             e = addressElem(e, t);
             break;
@@ -711,10 +711,10 @@ elem *array_toDarray(Type t, elem *e)
     t = t.toBasetype();
     switch (t.ty)
     {
-        case Tarray:
+        case Type.Kind.array:
             break;
 
-        case Tsarray:
+        case Type.Kind.staticArray:
             e = addressElem(e, t);
             dim = cast(uint)(cast(TypeSArray)t).dim.toInteger();
             e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
@@ -824,7 +824,7 @@ elem *sarray_toDarray(Loc loc, Type tfrom, Type tto, elem *e)
 
 elem *getTypeInfo(Type t, IRState *irs)
 {
-    assert(t.ty != Terror);
+    assert(t.ty != Type.Kind.error);
     genTypeInfo(t, null);
     elem *e = el_ptr(toSymbol(t.vtinfo));
     return e;
@@ -836,7 +836,7 @@ elem *getTypeInfo(Type t, IRState *irs)
 StructDeclaration needsPostblit(Type t)
 {
     t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (t.ty == Type.Kind.struct_)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
         if (sd.postblit)
@@ -851,7 +851,7 @@ StructDeclaration needsPostblit(Type t)
 StructDeclaration needsDtor(Type t)
 {
     t = t.baseElemOf();
-    if (t.ty == Tstruct)
+    if (t.ty == Type.Kind.struct_)
     {
         StructDeclaration sd = (cast(TypeStruct)t).sym;
         if (sd.dtor)
@@ -883,30 +883,30 @@ Lagain:
     int r;
     switch (tb.ty)
     {
-        case Tfloat80:
-        case Timaginary80:
+        case Type.Kind.float80:
+        case Type.Kind.imaginary80:
             r = RTLSYM_MEMSET80;
             break;
-        case Tcomplex80:
+        case Type.Kind.complex80:
             r = RTLSYM_MEMSET160;
             break;
-        case Tcomplex64:
+        case Type.Kind.complex64:
             r = RTLSYM_MEMSET128;
             break;
-        case Tfloat32:
-        case Timaginary32:
+        case Type.Kind.float32:
+        case Type.Kind.imaginary32:
             if (!global.params.is64bit)
                 goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETFLOAT;
             break;
-        case Tfloat64:
-        case Timaginary64:
+        case Type.Kind.float64:
+        case Type.Kind.imaginary64:
             if (!global.params.is64bit)
                 goto default;          // legacy binary compatibility
             r = RTLSYM_MEMSETDOUBLE;
             break;
 
-        case Tstruct:
+        case Type.Kind.struct_:
         {
             if (!global.params.is64bit)
                 goto default;
@@ -921,7 +921,7 @@ Lagain:
             goto default;
         }
 
-        case Tvector:
+        case Type.Kind.vector:
             r = RTLSYM_MEMSETSIMD;
             break;
 
@@ -1251,8 +1251,8 @@ elem *toElem(Expression e, IRState *irs)
 
                 tym_t tym;
                 if (se.var.storage_class & STC.lazy_)
-                    tym = TYdelegate;       // Tdelegate as C type
-                else if (tb.ty == Tfunction)
+                    tym = TYdelegate;       // Type.Kind.delegate_ as C type
+                else if (tb.ty == Type.Kind.function_)
                     tym = s.Stype.Tty;
                 else
                     tym = totym(se.type);
@@ -1285,7 +1285,7 @@ elem *toElem(Expression e, IRState *irs)
             //printf("FuncExp.toElem() %s\n", fe.toChars());
             FuncLiteralDeclaration fld = fe.fd;
 
-            if (fld.tok == TOK.reserved && fe.type.ty == Tpointer)
+            if (fld.tok == TOK.reserved && fe.type.ty == Type.Kind.pointer)
             {
                 // change to non-nested
                 fld.tok = TOK.function_;
@@ -1329,7 +1329,7 @@ elem *toElem(Expression e, IRState *irs)
             if (Expression ex = isExpression(e.obj))
             {
                 Type t = ex.type.toBasetype();
-                assert(t.ty == Tclass);
+                assert(t.ty == Type.Kind.class_);
                 // generate **classptr to get the classinfo
                 result = toElem(ex, irs);
                 result = el_una(OPind,TYnptr,result);
@@ -1361,7 +1361,7 @@ elem *toElem(Expression e, IRState *irs)
             else
                 ethis = el_var(irs.sthis);
 
-            if (te.type.ty == Tstruct)
+            if (te.type.ty == Type.Kind.struct_)
             {
                 ethis = el_una(OPind, TYstruct, ethis);
                 ethis.ET = Type_toCtype(te.type);
@@ -1516,12 +1516,12 @@ elem *toElem(Expression e, IRState *irs)
 
             elem *e;
             Type tb = se.type.toBasetype();
-            if (tb.ty == Tarray)
+            if (tb.ty == Type.Kind.array)
             {
                 Symbol *si = toStringSymbol(se);
                 e = el_pair(TYdarray, el_long(TYsize_t, se.numberOfCodeUnits()), el_ptr(si));
             }
-            else if (tb.ty == Tsarray)
+            else if (tb.ty == Type.Kind.staticArray)
             {
                 Symbol *si = toStringSymbol(se);
                 e = el_var(si);
@@ -1529,7 +1529,7 @@ elem *toElem(Expression e, IRState *irs)
                 e.ET = si.Stype;
                 e.ET.Tcount++;
             }
-            else if (tb.ty == Tpointer)
+            else if (tb.ty == Type.Kind.pointer)
             {
                 e = el_calloc();
                 e.Eoper = OPstring;
@@ -1558,10 +1558,10 @@ elem *toElem(Expression e, IRState *irs)
                 //printf("\tmember = %s\n", ne.member.toChars());
             elem *e;
             Type ectype;
-            if (t.ty == Tclass)
+            if (t.ty == Type.Kind.class_)
             {
                 t = ne.newtype.toBasetype();
-                assert(t.ty == Tclass);
+                assert(t.ty == Type.Kind.class_);
                 TypeClass tclass = cast(TypeClass)t;
                 ClassDeclaration cd = tclass.sym;
 
@@ -1691,10 +1691,10 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
-            else if (t.ty == Tpointer && t.nextOf().toBasetype().ty == Tstruct)
+            else if (t.ty == Type.Kind.pointer && t.nextOf().toBasetype().ty == Type.Kind.struct_)
             {
                 t = ne.newtype.toBasetype();
-                assert(t.ty == Tstruct);
+                assert(t.ty == Type.Kind.struct_);
                 TypeStruct tclass = cast(TypeStruct)t;
                 StructDeclaration sd = tclass.sym;
 
@@ -1766,7 +1766,7 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_combine(e, ezprefix);
                 e = el_combine(e, ez);
             }
-            else if (t.ty == Tarray)
+            else if (t.ty == Type.Kind.array)
             {
                 TypeDArray tda = cast(TypeDArray)t;
 
@@ -1790,7 +1790,7 @@ elem *toElem(Expression e, IRState *irs)
                     // Multidimensional array allocations
                     for (size_t i = 0; i < ne.arguments.dim; i++)
                     {
-                        assert(t.ty == Tarray);
+                        assert(t.ty == Type.Kind.array);
                         t = t.nextOf();
                         assert(t);
                     }
@@ -1811,7 +1811,7 @@ elem *toElem(Expression e, IRState *irs)
                 }
                 e = el_combine(ezprefix, e);
             }
-            else if (t.ty == Tpointer)
+            else if (t.ty == Type.Kind.pointer)
             {
                 TypePointer tp = cast(TypePointer)t;
                 elem *ezprefix = ne.argprefix ? toElem(ne.argprefix, irs) : null;
@@ -1861,11 +1861,11 @@ elem *toElem(Expression e, IRState *irs)
             elem *e = toElem(ne.e1, irs);
             Type tb1 = ne.e1.type.toBasetype();
 
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
+            assert(tb1.ty != Type.Kind.array && tb1.ty != Type.Kind.staticArray);
 
             switch (tb1.ty)
             {
-                case Tvector:
+                case Type.Kind.vector:
                 {
                     // rewrite (-e) as (0-e)
                     elem *ez = el_calloc();
@@ -1895,16 +1895,16 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = ce.e1.type.toBasetype();
             tym_t ty = totym(ce.type);
 
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
+            assert(tb1.ty != Type.Kind.array && tb1.ty != Type.Kind.staticArray);
 
             elem *e;
             switch (tb1.ty)
             {
-                case Tbool:
+                case Type.Kind.bool_:
                     e = el_bin(OPxor, ty, e1, el_long(ty, 1));
                     break;
 
-                case Tvector:
+                case Type.Kind.vector:
                 {
                     // rewrite (~e) as (e^~0)
                     elem *ec = el_calloc();
@@ -1976,7 +1976,7 @@ elem *toElem(Expression e, IRState *irs)
                 FuncDeclaration inv;
 
                 // If e1 is a class object, call the class invariant on it
-                if (global.params.useInvariants && t1.ty == Tclass &&
+                if (global.params.useInvariants && t1.ty == Type.Kind.class_ &&
                     !(cast(TypeClass)t1).sym.isInterfaceDeclaration() &&
                     !(cast(TypeClass)t1).sym.isCPPclass())
                 {
@@ -1990,8 +1990,8 @@ elem *toElem(Expression e, IRState *irs)
                     einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtl)), el_var(ts));
                 }
                 else if (global.params.useInvariants &&
-                    t1.ty == Tpointer &&
-                    t1.nextOf().ty == Tstruct &&
+                    t1.ty == Type.Kind.pointer &&
+                    t1.nextOf().ty == Type.Kind.struct_ &&
                     (inv = (cast(TypeStruct)t1.nextOf()).sym.inv) !is null)
                 {
                     // If e1 is a struct object, call the struct invariant on it
@@ -2093,9 +2093,9 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = be.e1.type.toBasetype();
             Type tb2 = be.e2.type.toBasetype();
 
-            assert(!((tb1.ty == Tarray || tb1.ty == Tsarray ||
-                      tb2.ty == Tarray || tb2.ty == Tsarray) &&
-                     tb2.ty != Tvoid &&
+            assert(!((tb1.ty == Type.Kind.array || tb1.ty == Type.Kind.staticArray ||
+                      tb2.ty == Type.Kind.array || tb2.ty == Type.Kind.staticArray) &&
+                     tb2.ty != Type.Kind.void_ &&
                      op != OPeq && op != OPandand && op != OPoror));
 
             tym_t tym = totym(be.type);
@@ -2115,9 +2115,9 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = be.e1.type.toBasetype();
             Type tb2 = be.e2.type.toBasetype();
 
-            assert(!((tb1.ty == Tarray || tb1.ty == Tsarray ||
-                      tb2.ty == Tarray || tb2.ty == Tsarray) &&
-                     tb2.ty != Tvoid &&
+            assert(!((tb1.ty == Type.Kind.array || tb1.ty == Type.Kind.staticArray ||
+                      tb2.ty == Type.Kind.array || tb2.ty == Type.Kind.staticArray) &&
+                     tb2.ty != Type.Kind.void_ &&
                      op != OPeq && op != OPandand && op != OPoror));
 
             tym_t tym = totym(be.type);
@@ -2213,7 +2213,7 @@ elem *toElem(Expression e, IRState *irs)
             Type tb1 = ce.e1.type.toBasetype();
             Type tb2 = ce.e2.type.toBasetype();
 
-            Type ta = (tb1.ty == Tarray || tb1.ty == Tsarray) ? tb1 : tb2;
+            Type ta = (tb1.ty == Type.Kind.array || tb1.ty == Type.Kind.staticArray) ? tb1 : tb2;
 
             elem *e;
             if (ce.e1.op == TOK.concatenate)
@@ -2309,14 +2309,14 @@ elem *toElem(Expression e, IRState *irs)
                 eop = cast(OPER)rel_integral(eop);
             }
             elem *e;
-            if (cast(int)eop > 1 && t1.ty == Tclass && t2.ty == Tclass)
+            if (cast(int)eop > 1 && t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.class_)
             {
                 // Should have already been lowered
                 assert(0);
             }
             else if (cast(int)eop > 1 &&
-                (t1.ty == Tarray || t1.ty == Tsarray) &&
-                (t2.ty == Tarray || t2.ty == Tsarray))
+                (t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray) &&
+                (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
             {
                 // This codepath was replaced by lowering during semantic
                 // to object.__cmp in druntime.
@@ -2357,12 +2357,12 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("EqualExp.toElem()\n");
             elem *e;
-            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0)
+            if (t1.ty == Type.Kind.struct_ && (cast(TypeStruct)t1).sym.fields.dim == 0)
             {
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ee.op == TOK.equal);
             }
-            else if (t1.ty == Tstruct)
+            else if (t1.ty == Type.Kind.struct_)
             {
                 // Do bit compare of struct's
                 elem *es1 = toElem(ee.e1, irs);
@@ -2375,13 +2375,13 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_bin(eop, TYint, e, el_long(TYint, 0));
                 elem_setLoc(e, ee.loc);
             }
-            else if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-                     (t2.ty == Tarray || t2.ty == Tsarray))
+            else if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray) &&
+                     (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
             {
                 Type telement  = t1.nextOf().toBasetype();
                 Type telement2 = t2.nextOf().toBasetype();
 
-                if ((telement.isintegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
+                if ((telement.isintegral() || telement.ty == Type.Kind.void_) && telement.ty == telement2.ty)
                 {
                     // Optimize comparisons of arrays of basic types
                     // For arrays of integers/characters, and void[],
@@ -2397,7 +2397,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem* esiz1, esiz2; // Data size, to pass to memcmp
                     d_uns64 sz = telement.size(); // Size of one element
 
-                    if (t1.ty == Tarray)
+                    if (t1.ty == Type.Kind.array)
                     {
                         elen1 = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
                         esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
@@ -2411,7 +2411,7 @@ elem *toElem(Expression e, IRState *irs)
                         eptr1 = el_same(&earr1);
                     }
 
-                    if (t2.ty == Tarray)
+                    if (t2.ty == Type.Kind.array)
                     {
                         elen2 = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
                         esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
@@ -2425,17 +2425,17 @@ elem *toElem(Expression e, IRState *irs)
                         eptr2 = el_same(&earr2);
                     }
 
-                    elem *esize = t2.ty == Tsarray ? esiz2 : esiz1;
+                    elem *esize = t2.ty == Type.Kind.staticArray ? esiz2 : esiz1;
 
                     e = el_param(eptr1, eptr2);
                     e = el_bin(OPmemcmp, TYint, e, esize);
                     e = el_bin(eop, TYint, e, el_long(TYint, 0));
 
-                    elem *elen = t2.ty == Tsarray ? elen2 : elen1;
+                    elem *elen = t2.ty == Type.Kind.staticArray ? elen2 : elen1;
                     elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
                     e = el_bin(ee.op == TOK.equal ? OPoror : OPandand, TYint, esizecheck, e);
 
-                    if (t1.ty == Tsarray && t2.ty == Tsarray)
+                    if (t1.ty == Type.Kind.staticArray && t2.ty == Type.Kind.staticArray)
                         assert(t1.size() == t2.size());
                     else
                     {
@@ -2462,7 +2462,7 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_bin(OPxor, TYint, e, el_long(TYint, 1));
                 elem_setLoc(e,ee.loc);
             }
-            else if (t1.ty == Taarray && t2.ty == Taarray)
+            else if (t1.ty == Type.Kind.associativeArray && t2.ty == Type.Kind.associativeArray)
             {
                 TypeAArray taa = cast(TypeAArray)t1;
                 Symbol *s = aaGetSymbol(taa, "Equal", 0);
@@ -2501,12 +2501,12 @@ elem *toElem(Expression e, IRState *irs)
             //printf("IdentityExp.toElem() %s\n", toChars());
 
             elem *e;
-            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0)
+            if (t1.ty == Type.Kind.struct_ && (cast(TypeStruct)t1).sym.fields.dim == 0)
             {
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ie.op == TOK.identity);
             }
-            else if (t1.ty == Tstruct || t1.isfloating())
+            else if (t1.ty == Type.Kind.struct_ || t1.isfloating())
             {
                 // Do bit compare of struct's
                 elem *es1 = toElem(ie.e1, irs);
@@ -2519,8 +2519,8 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_bin(eop, TYint, e, el_long(TYint, 0));
                 elem_setLoc(e, ie.loc);
             }
-            else if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-                     (t2.ty == Tarray || t2.ty == Tsarray))
+            else if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray) &&
+                     (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
             {
 
                 elem *ea1 = toElem(ie.e1, irs);
@@ -2563,7 +2563,7 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(RemoveExp re)
         {
             Type tb = re.e1.type.toBasetype();
-            assert(tb.ty == Taarray);
+            assert(tb.ty == Type.Kind.associativeArray);
             TypeAArray taa = cast(TypeAArray)tb;
             elem *ea = toElem(re.e1, irs);
             elem *ekey = toElem(re.e2, irs);
@@ -2643,7 +2643,7 @@ elem *toElem(Expression e, IRState *irs)
                     elem *enbytes;
                     elem *einit;
                     // Look for array[]=n
-                    if (ta.ty == Tsarray)
+                    if (ta.ty == Type.Kind.staticArray)
                     {
                         TypeSArray ts = cast(TypeSArray)ta;
                         n1 = array_toPtr(ta, n1);
@@ -2652,7 +2652,7 @@ elem *toElem(Expression e, IRState *irs)
                         n1 = el_same(&n1x);
                         einit = resolveLengthVar(are.lengthVar, &n1, ta);
                     }
-                    else if (ta.ty == Tarray)
+                    else if (ta.ty == Type.Kind.array)
                     {
                         n1 = el_same(&n1x);
                         einit = resolveLengthVar(are.lengthVar, &n1, ta);
@@ -2660,7 +2660,7 @@ elem *toElem(Expression e, IRState *irs)
                         n1 = array_toPtr(ta, n1);
                         enbytes = el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, enbytes);
                     }
-                    else if (ta.ty == Tpointer)
+                    else if (ta.ty == Type.Kind.pointer)
                     {
                         n1 = el_same(&n1x);
                         enbytes = el_long(TYsize_t, -1);   // largest possible index
@@ -2697,7 +2697,7 @@ elem *toElem(Expression e, IRState *irs)
                         printf("enbytes\n");    elem_print(enbytes);
                     }
 
-                    if (irs.arrayBoundsCheck() && eupr && ta.ty != Tpointer)
+                    if (irs.arrayBoundsCheck() && eupr && ta.ty != Type.Kind.pointer)
                     {
                         assert(elwr);
                         elem *enbytesx = enbytes;
@@ -2752,7 +2752,7 @@ elem *toElem(Expression e, IRState *irs)
                     }
                     bool destructor = needsDtor(t1.nextOf()) !is null;
 
-                    assert(ae.e2.type.ty != Tpointer);
+                    assert(ae.e2.type.ty != Type.Kind.pointer);
 
                     if (!postblit && !destructor && !irs.arrayBoundsCheck())
                     {
@@ -2836,7 +2836,7 @@ elem *toElem(Expression e, IRState *irs)
                         es = el_una(OPaddr, TYnptr, es);
                     es.Ety = TYnptr;
                     e = el_bin(OPeq, TYnptr, es, e);
-                    assert(!(t1b.ty == Tstruct && ae.e2.op == TOK.int64));
+                    assert(!(t1b.ty == Type.Kind.struct_ && ae.e2.op == TOK.int64));
 
                     elem_setLoc(e, ae.loc);
                     result = e;
@@ -2886,7 +2886,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 CallExp ce = cast(CallExp)ae.e2;
                 TypeFunction tf = cast(TypeFunction)ce.e1.type.toBasetype();
-                if (tf.ty == Tfunction && retStyle(tf) == RET.stack)
+                if (tf.ty == Type.Kind.function_ && retStyle(tf) == RET.stack)
                 {
                     elem *ehidden = e1;
                     ehidden = el_una(OPaddr, TYnptr, ehidden);
@@ -2920,7 +2920,7 @@ elem *toElem(Expression e, IRState *irs)
             }
 
             //if (ae.op == TOK.construct) printf("construct\n");
-            if (t1b.ty == Tstruct)
+            if (t1b.ty == Type.Kind.struct_)
             {
                 if (ae.e2.op == TOK.int64)
                 {
@@ -2979,7 +2979,7 @@ elem *toElem(Expression e, IRState *irs)
                 if (type_size(e.ET) == 0)
                     e.Eoper = OPcomma;
             }
-            else if (t1b.ty == Tsarray)
+            else if (t1b.ty == Type.Kind.staticArray)
             {
                 if (ae.op == TOK.blit && ae.e2.op == TOK.int64)
                 {
@@ -3007,7 +3007,7 @@ elem *toElem(Expression e, IRState *irs)
                 /* Implement:
                  *  (sarray = sarray)
                  */
-                assert(ae.e2.type.toBasetype().ty == Tsarray);
+                assert(ae.e2.type.toBasetype().ty == Type.Kind.staticArray);
 
                 bool postblit = needsPostblit(t1b.nextOf()) !is null;
                 bool destructor = needsDtor(t1b.nextOf()) !is null;
@@ -3149,7 +3149,7 @@ elem *toElem(Expression e, IRState *irs)
             elem *e;
             Type tb1 = ce.e1.type.toBasetype();
             Type tb2 = ce.e2.type.toBasetype();
-            assert(tb1.ty == Tarray);
+            assert(tb1.ty == Type.Kind.array);
             Type tb1n = tb1.nextOf().toBasetype();
 
             elem *e1 = toElem(ce.e1, irs);
@@ -3160,13 +3160,13 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.concatenateDcharAssign:
                 {
                     // Append dchar to char[] or wchar[]
-                    assert(tb2.ty == Tdchar &&
-                          (tb1n.ty == Tchar || tb1n.ty == Twchar));
+                    assert(tb2.ty == Type.Kind.dchar_ &&
+                          (tb1n.ty == Type.Kind.char_ || tb1n.ty == Type.Kind.wchar_));
 
                     e1 = el_una(OPaddr, TYnptr, e1);
 
                     elem *ep = el_params(e2, e1, null);
-                    int rtl = (tb1.nextOf().ty == Tchar)
+                    int rtl = (tb1.nextOf().ty == Type.Kind.char_)
                             ? RTLSYM_ARRAYAPPENDCD
                             : RTLSYM_ARRAYAPPENDWD;
                     e = el_bin(OPcall, TYdarray, el_var(getRtlsym(rtl)), ep);
@@ -3178,7 +3178,7 @@ elem *toElem(Expression e, IRState *irs)
                 case TOK.concatenateAssign:
                 {
                     // Append array
-                    assert(tb2.ty == Tarray || tb2.ty == Tsarray);
+                    assert(tb2.ty == Type.Kind.array || tb2.ty == Type.Kind.staticArray);
 
                     assert(tb1n.equals(tb2.nextOf().toBasetype()));
 
@@ -3354,7 +3354,7 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(PowAssignExp e)
         {
             Type tb1 = e.e1.type.toBasetype();
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
+            assert(tb1.ty != Type.Kind.array && tb1.ty != Type.Kind.staticArray);
 
             e.error("`^^` operator is not supported");
             result = el_long(totym(e.type), 0);  // error recovery
@@ -3392,7 +3392,7 @@ elem *toElem(Expression e, IRState *irs)
         override void visit(PowExp e)
         {
             Type tb1 = e.e1.type.toBasetype();
-            assert(tb1.ty != Tarray && tb1.ty != Tsarray);
+            assert(tb1.ty != Type.Kind.array && tb1.ty != Type.Kind.staticArray);
 
             e.error("`^^` operator is not supported");
             result = el_long(totym(e.type), 0);  // error recovery
@@ -3513,8 +3513,8 @@ elem *toElem(Expression e, IRState *irs)
             // https://issues.dlang.org/show_bug.cgi?id=12900
             Type txb = dve.type.toBasetype();
             Type tyb = v.type.toBasetype();
-            if (txb.ty == Tvector) txb = (cast(TypeVector)txb).basetype;
-            if (tyb.ty == Tvector) tyb = (cast(TypeVector)tyb).basetype;
+            if (txb.ty == Type.Kind.vector) txb = (cast(TypeVector)txb).basetype;
+            if (tyb.ty == Type.Kind.vector) tyb = (cast(TypeVector)tyb).basetype;
 
             debug if (txb.ty != tyb.ty)
                 printf("[%s] dve = %s, dve.type = %s, v.type = %s\n", dve.loc.toChars(), dve.toChars(), dve.type.toChars(), v.type.toChars());
@@ -3531,7 +3531,7 @@ elem *toElem(Expression e, IRState *irs)
 
             elem *e = toElem(dve.e1, irs);
             Type tb1 = dve.e1.type.toBasetype();
-            if (tb1.ty != Tclass && tb1.ty != Tpointer)
+            if (tb1.ty != Type.Kind.class_ && tb1.ty != Type.Kind.pointer)
                 e = addressElem(e, tb1);
             e = el_bin(OPadd, TYnptr, e, el_long(TYsize_t, v.offset));
             if (v.storage_class & (STC.out_ | STC.ref_))
@@ -3578,7 +3578,7 @@ elem *toElem(Expression e, IRState *irs)
             else
             {
                 ethis = toElem(de.e1, irs);
-                if (de.e1.type.ty != Tclass && de.e1.type.ty != Tpointer)
+                if (de.e1.type.ty != Type.Kind.class_ && de.e1.type.ty != Type.Kind.pointer)
                     ethis = addressElem(ethis, de.e1.type);
 
                 if (de.e1.op == TOK.super_ || de.e1.op == TOK.dotType)
@@ -3648,7 +3648,7 @@ elem *toElem(Expression e, IRState *irs)
             elem *ec;
             FuncDeclaration fd = null;
             bool dctor = false;
-            if (ce.e1.op == TOK.dotVariable && t1.ty != Tdelegate)
+            if (ce.e1.op == TOK.dotVariable && t1.ty != Type.Kind.delegate_)
             {
                 DotVarExp dve = cast(DotVarExp)ce.e1;
 
@@ -3884,7 +3884,7 @@ elem *toElem(Expression e, IRState *irs)
             {
                 IndexExp ae = cast(IndexExp)de.e1;
                 tb = ae.e1.type.toBasetype();
-                assert(tb.ty != Taarray);
+                assert(tb.ty != Type.Kind.associativeArray);
             }
             //e1.type.print();
             elem *e = toElem(de.e1, irs);
@@ -3892,7 +3892,7 @@ elem *toElem(Expression e, IRState *irs)
             int rtl;
             switch (tb.ty)
             {
-                case Tarray:
+                case Type.Kind.array:
                 {
                     e = addressElem(e, de.e1.type);
                     rtl = RTLSYM_DELARRAYT;
@@ -3901,7 +3901,7 @@ elem *toElem(Expression e, IRState *irs)
                      */
                     elem *et = null;
                     Type tv = tb.nextOf().baseElemOf();
-                    if (tv.ty == Tstruct)
+                    if (tv.ty == Type.Kind.struct_)
                     {
                         // FIXME: ts can be non-mutable, but _d_delarray_t requests TypeInfo_Struct.
                         TypeStruct ts = cast(TypeStruct)tv;
@@ -3915,7 +3915,7 @@ elem *toElem(Expression e, IRState *irs)
                     // call _d_delarray_t(e, et);
                     break;
                 }
-                case Tclass:
+                case Type.Kind.class_:
                     if (de.e1.op == TOK.variable)
                     {
                         VarExp ve = cast(VarExp)de.e1;
@@ -3934,11 +3934,11 @@ elem *toElem(Expression e, IRState *irs)
                         rtl = RTLSYM_DELINTERFACE;
                     break;
 
-                case Tpointer:
+                case Type.Kind.pointer:
                     e = addressElem(e, de.e1.type);
                     rtl = RTLSYM_DELMEMORY;
                     tb = (cast(TypePointer)tb).next.toBasetype();
-                    if (tb.ty == Tstruct)
+                    if (tb.ty == Type.Kind.struct_)
                     {
                         TypeStruct ts = cast(TypeStruct)tb;
                         if (ts.sym.dtor)
@@ -3983,33 +3983,33 @@ elem *toElem(Expression e, IRState *irs)
                     const integer = elem.toInteger();
                     switch (elem.type.toBasetype().ty)
                     {
-                        case Tfloat32:
+                        case Type.Kind.float32:
                             // Must not call toReal directly, to avoid dmd bug 14203 from breaking dmd
                             e.EV.Vfloat8[i] = complex.re;
                             break;
 
-                        case Tfloat64:
+                        case Type.Kind.float64:
                             // Must not call toReal directly, to avoid dmd bug 14203 from breaking dmd
                             e.EV.Vdouble4[i] = complex.re;
                             break;
 
-                        case Tint64:
-                        case Tuns64:
+                        case Type.Kind.int64:
+                        case Type.Kind.uint64:
                             e.EV.Vullong4[i] = integer;
                             break;
 
-                        case Tint32:
-                        case Tuns32:
+                        case Type.Kind.int32:
+                        case Type.Kind.uint32:
                             e.EV.Vulong8[i] = cast(uint)integer;
                             break;
 
-                        case Tint16:
-                        case Tuns16:
+                        case Type.Kind.int16:
+                        case Type.Kind.uint16:
                             e.EV.Vushort16[i] = cast(ushort)integer;
                             break;
 
-                        case Tint8:
-                        case Tuns8:
+                        case Type.Kind.int8:
+                        case Type.Kind.uint8:
                             e.EV.Vuchar32[i] = cast(ubyte)integer;
                             break;
 
@@ -4060,7 +4060,7 @@ elem *toElem(Expression e, IRState *irs)
             tty = t.ty;
             //printf("fty = %d\n", fty);
 
-            if (tty == Tpointer && fty == Tarray)
+            if (tty == Type.Kind.pointer && fty == Type.Kind.array)
             {
                 if (e.Eoper == OPvar)
                 {
@@ -4086,7 +4086,7 @@ elem *toElem(Expression e, IRState *irs)
                 goto Lret;
             }
 
-            if (tty == Tpointer && fty == Tsarray)
+            if (tty == Type.Kind.pointer && fty == Type.Kind.staticArray)
             {
                 // e1 . &e1
                 e = el_una(OPaddr, TYnptr, e);
@@ -4094,14 +4094,14 @@ elem *toElem(Expression e, IRState *irs)
             }
 
             // Convert from static array to dynamic array
-            if (tty == Tarray && fty == Tsarray)
+            if (tty == Type.Kind.array && fty == Type.Kind.staticArray)
             {
                 e = sarray_toDarray(ce.loc, tfrom, t, e);
                 goto Lret;
             }
 
             // Convert from dynamic array to dynamic array
-            if (tty == Tarray && fty == Tarray)
+            if (tty == Type.Kind.array && fty == Type.Kind.array)
             {
                 uint fsize = cast(uint)tfrom.nextOf().size();
                 uint tsize = cast(uint)t.nextOf().size();
@@ -4132,7 +4132,7 @@ elem *toElem(Expression e, IRState *irs)
             }
 
             // Casting between class/interface may require a runtime check
-            if (fty == Tclass && tty == Tclass)
+            if (fty == Type.Kind.class_ && tty == Type.Kind.class_)
             {
                 ClassDeclaration cdfrom = tfrom.isClassHandle();
                 ClassDeclaration cdto   = t.isClassHandle();
@@ -4212,7 +4212,7 @@ elem *toElem(Expression e, IRState *irs)
                 goto Lret;
             }
 
-            if (fty == Tvector && tty == Tsarray)
+            if (fty == Type.Kind.vector && tty == Type.Kind.staticArray)
             {
                 if (tfrom.size() == t.size())
                     goto Lret;
@@ -4228,18 +4228,18 @@ elem *toElem(Expression e, IRState *irs)
              */
             switch (tty)
             {
-                case Tpointer:
-                    if (fty == Tdelegate)
+                case Type.Kind.pointer:
+                    if (fty == Type.Kind.delegate_)
                         goto Lpaint;
-                    tty = global.params.is64bit ? Tuns64 : Tuns32;
+                    tty = global.params.is64bit ? Type.Kind.uint64 : Type.Kind.uint32;
                     break;
 
-                case Tchar:     tty = Tuns8;    break;
-                case Twchar:    tty = Tuns16;   break;
-                case Tdchar:    tty = Tuns32;   break;
-                case Tvoid:     goto Lpaint;
+                case Type.Kind.char_:     tty = Type.Kind.uint8;    break;
+                case Type.Kind.wchar_:    tty = Type.Kind.uint16;   break;
+                case Type.Kind.dchar_:    tty = Type.Kind.uint32;   break;
+                case Type.Kind.void_:     goto Lpaint;
 
-                case Tbool:
+                case Type.Kind.bool_:
                 {
                     // Construct e?true:false
                     e = el_una(OPbool, ttym, e);
@@ -4252,457 +4252,457 @@ elem *toElem(Expression e, IRState *irs)
 
             switch (fty)
             {
-                case Tnull:
+                case Type.Kind.null_:
                 {
                     // typeof(null) is same with void* in binary level.
                     goto Lzero;
                 }
-                case Tpointer:  fty = global.params.is64bit ? Tuns64 : Tuns32;  break;
-                case Tchar:     fty = Tuns8;    break;
-                case Twchar:    fty = Tuns16;   break;
-                case Tdchar:    fty = Tuns32;   break;
+                case Type.Kind.pointer:  fty = global.params.is64bit ? Type.Kind.uint64 : Type.Kind.uint32;  break;
+                case Type.Kind.char_:     fty = Type.Kind.uint8;    break;
+                case Type.Kind.wchar_:    fty = Type.Kind.uint16;   break;
+                case Type.Kind.dchar_:    fty = Type.Kind.uint32;   break;
 
                 default:
                     break;
             }
 
-            static int X(int fty, int tty) { return fty * TMAX + tty; }
+            static int X(int fty, int tty) { return fty * Type.Kind.max_ + tty; }
         Lagain:
             switch (X(fty,tty))
             {
                 /* ============================= */
 
-                case X(Tbool,Tint8):
-                case X(Tbool,Tuns8):
+                case X(Type.Kind.bool_,Type.Kind.int8):
+                case X(Type.Kind.bool_,Type.Kind.uint8):
                                         goto Lpaint;
-                case X(Tbool,Tint16):
-                case X(Tbool,Tuns16):
-                case X(Tbool,Tint32):
-                case X(Tbool,Tuns32):   eop = OPu8_16;  goto Leop;
-                case X(Tbool,Tint64):
-                case X(Tbool,Tuns64):
-                case X(Tbool,Tfloat32):
-                case X(Tbool,Tfloat64):
-                case X(Tbool,Tfloat80):
-                case X(Tbool,Tcomplex32):
-                case X(Tbool,Tcomplex64):
-                case X(Tbool,Tcomplex80):
+                case X(Type.Kind.bool_,Type.Kind.int16):
+                case X(Type.Kind.bool_,Type.Kind.uint16):
+                case X(Type.Kind.bool_,Type.Kind.int32):
+                case X(Type.Kind.bool_,Type.Kind.uint32):   eop = OPu8_16;  goto Leop;
+                case X(Type.Kind.bool_,Type.Kind.int64):
+                case X(Type.Kind.bool_,Type.Kind.uint64):
+                case X(Type.Kind.bool_,Type.Kind.float32):
+                case X(Type.Kind.bool_,Type.Kind.float64):
+                case X(Type.Kind.bool_,Type.Kind.float80):
+                case X(Type.Kind.bool_,Type.Kind.complex32):
+                case X(Type.Kind.bool_,Type.Kind.complex64):
+                case X(Type.Kind.bool_,Type.Kind.complex80):
                                         e = el_una(OPu8_16, TYuint, e);
-                                        fty = Tuns32;
+                                        fty = Type.Kind.uint32;
                                         goto Lagain;
-                case X(Tbool,Timaginary32):
-                case X(Tbool,Timaginary64):
-                case X(Tbool,Timaginary80): goto Lzero;
+                case X(Type.Kind.bool_,Type.Kind.imaginary32):
+                case X(Type.Kind.bool_,Type.Kind.imaginary64):
+                case X(Type.Kind.bool_,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tint8,Tuns8):    goto Lpaint;
-                case X(Tint8,Tint16):
-                case X(Tint8,Tuns16):
-                case X(Tint8,Tint32):
-                case X(Tint8,Tuns32):   eop = OPs8_16;  goto Leop;
-                case X(Tint8,Tint64):
-                case X(Tint8,Tuns64):
-                case X(Tint8,Tfloat32):
-                case X(Tint8,Tfloat64):
-                case X(Tint8,Tfloat80):
-                case X(Tint8,Tcomplex32):
-                case X(Tint8,Tcomplex64):
-                case X(Tint8,Tcomplex80):
+                case X(Type.Kind.int8,Type.Kind.uint8):    goto Lpaint;
+                case X(Type.Kind.int8,Type.Kind.int16):
+                case X(Type.Kind.int8,Type.Kind.uint16):
+                case X(Type.Kind.int8,Type.Kind.int32):
+                case X(Type.Kind.int8,Type.Kind.uint32):   eop = OPs8_16;  goto Leop;
+                case X(Type.Kind.int8,Type.Kind.int64):
+                case X(Type.Kind.int8,Type.Kind.uint64):
+                case X(Type.Kind.int8,Type.Kind.float32):
+                case X(Type.Kind.int8,Type.Kind.float64):
+                case X(Type.Kind.int8,Type.Kind.float80):
+                case X(Type.Kind.int8,Type.Kind.complex32):
+                case X(Type.Kind.int8,Type.Kind.complex64):
+                case X(Type.Kind.int8,Type.Kind.complex80):
                                         e = el_una(OPs8_16, TYint, e);
-                                        fty = Tint32;
+                                        fty = Type.Kind.int32;
                                         goto Lagain;
-                case X(Tint8,Timaginary32):
-                case X(Tint8,Timaginary64):
-                case X(Tint8,Timaginary80): goto Lzero;
+                case X(Type.Kind.int8,Type.Kind.imaginary32):
+                case X(Type.Kind.int8,Type.Kind.imaginary64):
+                case X(Type.Kind.int8,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tuns8,Tint8):    goto Lpaint;
-                case X(Tuns8,Tint16):
-                case X(Tuns8,Tuns16):
-                case X(Tuns8,Tint32):
-                case X(Tuns8,Tuns32):   eop = OPu8_16;  goto Leop;
-                case X(Tuns8,Tint64):
-                case X(Tuns8,Tuns64):
-                case X(Tuns8,Tfloat32):
-                case X(Tuns8,Tfloat64):
-                case X(Tuns8,Tfloat80):
-                case X(Tuns8,Tcomplex32):
-                case X(Tuns8,Tcomplex64):
-                case X(Tuns8,Tcomplex80):
+                case X(Type.Kind.uint8,Type.Kind.int8):    goto Lpaint;
+                case X(Type.Kind.uint8,Type.Kind.int16):
+                case X(Type.Kind.uint8,Type.Kind.uint16):
+                case X(Type.Kind.uint8,Type.Kind.int32):
+                case X(Type.Kind.uint8,Type.Kind.uint32):   eop = OPu8_16;  goto Leop;
+                case X(Type.Kind.uint8,Type.Kind.int64):
+                case X(Type.Kind.uint8,Type.Kind.uint64):
+                case X(Type.Kind.uint8,Type.Kind.float32):
+                case X(Type.Kind.uint8,Type.Kind.float64):
+                case X(Type.Kind.uint8,Type.Kind.float80):
+                case X(Type.Kind.uint8,Type.Kind.complex32):
+                case X(Type.Kind.uint8,Type.Kind.complex64):
+                case X(Type.Kind.uint8,Type.Kind.complex80):
                                         e = el_una(OPu8_16, TYuint, e);
-                                        fty = Tuns32;
+                                        fty = Type.Kind.uint32;
                                         goto Lagain;
-                case X(Tuns8,Timaginary32):
-                case X(Tuns8,Timaginary64):
-                case X(Tuns8,Timaginary80): goto Lzero;
+                case X(Type.Kind.uint8,Type.Kind.imaginary32):
+                case X(Type.Kind.uint8,Type.Kind.imaginary64):
+                case X(Type.Kind.uint8,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tint16,Tint8):
-                case X(Tint16,Tuns8):   eop = OP16_8;   goto Leop;
-                case X(Tint16,Tuns16):  goto Lpaint;
-                case X(Tint16,Tint32):
-                case X(Tint16,Tuns32):  eop = OPs16_32; goto Leop;
-                case X(Tint16,Tint64):
-                case X(Tint16,Tuns64):  e = el_una(OPs16_32, TYint, e);
-                                        fty = Tint32;
+                case X(Type.Kind.int16,Type.Kind.int8):
+                case X(Type.Kind.int16,Type.Kind.uint8):   eop = OP16_8;   goto Leop;
+                case X(Type.Kind.int16,Type.Kind.uint16):  goto Lpaint;
+                case X(Type.Kind.int16,Type.Kind.int32):
+                case X(Type.Kind.int16,Type.Kind.uint32):  eop = OPs16_32; goto Leop;
+                case X(Type.Kind.int16,Type.Kind.int64):
+                case X(Type.Kind.int16,Type.Kind.uint64):  e = el_una(OPs16_32, TYint, e);
+                                        fty = Type.Kind.int32;
                                         goto Lagain;
-                case X(Tint16,Tfloat32):
-                case X(Tint16,Tfloat64):
-                case X(Tint16,Tfloat80):
-                case X(Tint16,Tcomplex32):
-                case X(Tint16,Tcomplex64):
-                case X(Tint16,Tcomplex80):
+                case X(Type.Kind.int16,Type.Kind.float32):
+                case X(Type.Kind.int16,Type.Kind.float64):
+                case X(Type.Kind.int16,Type.Kind.float80):
+                case X(Type.Kind.int16,Type.Kind.complex32):
+                case X(Type.Kind.int16,Type.Kind.complex64):
+                case X(Type.Kind.int16,Type.Kind.complex80):
                                         e = el_una(OPs16_d, TYdouble, e);
-                                        fty = Tfloat64;
+                                        fty = Type.Kind.float64;
                                         goto Lagain;
-                case X(Tint16,Timaginary32):
-                case X(Tint16,Timaginary64):
-                case X(Tint16,Timaginary80): goto Lzero;
+                case X(Type.Kind.int16,Type.Kind.imaginary32):
+                case X(Type.Kind.int16,Type.Kind.imaginary64):
+                case X(Type.Kind.int16,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tuns16,Tint8):
-                case X(Tuns16,Tuns8):   eop = OP16_8;   goto Leop;
-                case X(Tuns16,Tint16):  goto Lpaint;
-                case X(Tuns16,Tint32):
-                case X(Tuns16,Tuns32):  eop = OPu16_32; goto Leop;
-                case X(Tuns16,Tint64):
-                case X(Tuns16,Tuns64):
-                case X(Tuns16,Tfloat64):
-                case X(Tuns16,Tfloat32):
-                case X(Tuns16,Tfloat80):
-                case X(Tuns16,Tcomplex32):
-                case X(Tuns16,Tcomplex64):
-                case X(Tuns16,Tcomplex80):
+                case X(Type.Kind.uint16,Type.Kind.int8):
+                case X(Type.Kind.uint16,Type.Kind.uint8):   eop = OP16_8;   goto Leop;
+                case X(Type.Kind.uint16,Type.Kind.int16):  goto Lpaint;
+                case X(Type.Kind.uint16,Type.Kind.int32):
+                case X(Type.Kind.uint16,Type.Kind.uint32):  eop = OPu16_32; goto Leop;
+                case X(Type.Kind.uint16,Type.Kind.int64):
+                case X(Type.Kind.uint16,Type.Kind.uint64):
+                case X(Type.Kind.uint16,Type.Kind.float64):
+                case X(Type.Kind.uint16,Type.Kind.float32):
+                case X(Type.Kind.uint16,Type.Kind.float80):
+                case X(Type.Kind.uint16,Type.Kind.complex32):
+                case X(Type.Kind.uint16,Type.Kind.complex64):
+                case X(Type.Kind.uint16,Type.Kind.complex80):
                                         e = el_una(OPu16_32, TYuint, e);
-                                        fty = Tuns32;
+                                        fty = Type.Kind.uint32;
                                         goto Lagain;
-                case X(Tuns16,Timaginary32):
-                case X(Tuns16,Timaginary64):
-                case X(Tuns16,Timaginary80): goto Lzero;
+                case X(Type.Kind.uint16,Type.Kind.imaginary32):
+                case X(Type.Kind.uint16,Type.Kind.imaginary64):
+                case X(Type.Kind.uint16,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tint32,Tint8):
-                case X(Tint32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                                        fty = Tint16;
+                case X(Type.Kind.int32,Type.Kind.int8):
+                case X(Type.Kind.int32,Type.Kind.uint8):   e = el_una(OP32_16, TYshort, e);
+                                        fty = Type.Kind.int16;
                                         goto Lagain;
-                case X(Tint32,Tint16):
-                case X(Tint32,Tuns16):  eop = OP32_16;  goto Leop;
-                case X(Tint32,Tuns32):  goto Lpaint;
-                case X(Tint32,Tint64):
-                case X(Tint32,Tuns64):  eop = OPs32_64; goto Leop;
-                case X(Tint32,Tfloat32):
-                case X(Tint32,Tfloat64):
-                case X(Tint32,Tfloat80):
-                case X(Tint32,Tcomplex32):
-                case X(Tint32,Tcomplex64):
-                case X(Tint32,Tcomplex80):
+                case X(Type.Kind.int32,Type.Kind.int16):
+                case X(Type.Kind.int32,Type.Kind.uint16):  eop = OP32_16;  goto Leop;
+                case X(Type.Kind.int32,Type.Kind.uint32):  goto Lpaint;
+                case X(Type.Kind.int32,Type.Kind.int64):
+                case X(Type.Kind.int32,Type.Kind.uint64):  eop = OPs32_64; goto Leop;
+                case X(Type.Kind.int32,Type.Kind.float32):
+                case X(Type.Kind.int32,Type.Kind.float64):
+                case X(Type.Kind.int32,Type.Kind.float80):
+                case X(Type.Kind.int32,Type.Kind.complex32):
+                case X(Type.Kind.int32,Type.Kind.complex64):
+                case X(Type.Kind.int32,Type.Kind.complex80):
                                         e = el_una(OPs32_d, TYdouble, e);
-                                        fty = Tfloat64;
+                                        fty = Type.Kind.float64;
                                         goto Lagain;
-                case X(Tint32,Timaginary32):
-                case X(Tint32,Timaginary64):
-                case X(Tint32,Timaginary80): goto Lzero;
+                case X(Type.Kind.int32,Type.Kind.imaginary32):
+                case X(Type.Kind.int32,Type.Kind.imaginary64):
+                case X(Type.Kind.int32,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tuns32,Tint8):
-                case X(Tuns32,Tuns8):   e = el_una(OP32_16, TYshort, e);
-                                        fty = Tuns16;
+                case X(Type.Kind.uint32,Type.Kind.int8):
+                case X(Type.Kind.uint32,Type.Kind.uint8):   e = el_una(OP32_16, TYshort, e);
+                                        fty = Type.Kind.uint16;
                                         goto Lagain;
-                case X(Tuns32,Tint16):
-                case X(Tuns32,Tuns16):  eop = OP32_16;  goto Leop;
-                case X(Tuns32,Tint32):  goto Lpaint;
-                case X(Tuns32,Tint64):
-                case X(Tuns32,Tuns64):  eop = OPu32_64; goto Leop;
-                case X(Tuns32,Tfloat32):
-                case X(Tuns32,Tfloat64):
-                case X(Tuns32,Tfloat80):
-                case X(Tuns32,Tcomplex32):
-                case X(Tuns32,Tcomplex64):
-                case X(Tuns32,Tcomplex80):
+                case X(Type.Kind.uint32,Type.Kind.int16):
+                case X(Type.Kind.uint32,Type.Kind.uint16):  eop = OP32_16;  goto Leop;
+                case X(Type.Kind.uint32,Type.Kind.int32):  goto Lpaint;
+                case X(Type.Kind.uint32,Type.Kind.int64):
+                case X(Type.Kind.uint32,Type.Kind.uint64):  eop = OPu32_64; goto Leop;
+                case X(Type.Kind.uint32,Type.Kind.float32):
+                case X(Type.Kind.uint32,Type.Kind.float64):
+                case X(Type.Kind.uint32,Type.Kind.float80):
+                case X(Type.Kind.uint32,Type.Kind.complex32):
+                case X(Type.Kind.uint32,Type.Kind.complex64):
+                case X(Type.Kind.uint32,Type.Kind.complex80):
                                         e = el_una(OPu32_d, TYdouble, e);
-                                        fty = Tfloat64;
+                                        fty = Type.Kind.float64;
                                         goto Lagain;
-                case X(Tuns32,Timaginary32):
-                case X(Tuns32,Timaginary64):
-                case X(Tuns32,Timaginary80): goto Lzero;
+                case X(Type.Kind.uint32,Type.Kind.imaginary32):
+                case X(Type.Kind.uint32,Type.Kind.imaginary64):
+                case X(Type.Kind.uint32,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tint64,Tint8):
-                case X(Tint64,Tuns8):
-                case X(Tint64,Tint16):
-                case X(Tint64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                                        fty = Tint32;
+                case X(Type.Kind.int64,Type.Kind.int8):
+                case X(Type.Kind.int64,Type.Kind.uint8):
+                case X(Type.Kind.int64,Type.Kind.int16):
+                case X(Type.Kind.int64,Type.Kind.uint16):  e = el_una(OP64_32, TYint, e);
+                                        fty = Type.Kind.int32;
                                         goto Lagain;
-                case X(Tint64,Tint32):
-                case X(Tint64,Tuns32):  eop = OP64_32; goto Leop;
-                case X(Tint64,Tuns64):  goto Lpaint;
-                case X(Tint64,Tfloat32):
-                case X(Tint64,Tfloat64):
-                case X(Tint64,Tfloat80):
-                case X(Tint64,Tcomplex32):
-                case X(Tint64,Tcomplex64):
-                case X(Tint64,Tcomplex80):
+                case X(Type.Kind.int64,Type.Kind.int32):
+                case X(Type.Kind.int64,Type.Kind.uint32):  eop = OP64_32; goto Leop;
+                case X(Type.Kind.int64,Type.Kind.uint64):  goto Lpaint;
+                case X(Type.Kind.int64,Type.Kind.float32):
+                case X(Type.Kind.int64,Type.Kind.float64):
+                case X(Type.Kind.int64,Type.Kind.float80):
+                case X(Type.Kind.int64,Type.Kind.complex32):
+                case X(Type.Kind.int64,Type.Kind.complex64):
+                case X(Type.Kind.int64,Type.Kind.complex80):
                                         e = el_una(OPs64_d, TYdouble, e);
-                                        fty = Tfloat64;
+                                        fty = Type.Kind.float64;
                                         goto Lagain;
-                case X(Tint64,Timaginary32):
-                case X(Tint64,Timaginary64):
-                case X(Tint64,Timaginary80): goto Lzero;
+                case X(Type.Kind.int64,Type.Kind.imaginary32):
+                case X(Type.Kind.int64,Type.Kind.imaginary64):
+                case X(Type.Kind.int64,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tuns64,Tint8):
-                case X(Tuns64,Tuns8):
-                case X(Tuns64,Tint16):
-                case X(Tuns64,Tuns16):  e = el_una(OP64_32, TYint, e);
-                                        fty = Tint32;
+                case X(Type.Kind.uint64,Type.Kind.int8):
+                case X(Type.Kind.uint64,Type.Kind.uint8):
+                case X(Type.Kind.uint64,Type.Kind.int16):
+                case X(Type.Kind.uint64,Type.Kind.uint16):  e = el_una(OP64_32, TYint, e);
+                                        fty = Type.Kind.int32;
                                         goto Lagain;
-                case X(Tuns64,Tint32):
-                case X(Tuns64,Tuns32):  eop = OP64_32;  goto Leop;
-                case X(Tuns64,Tint64):  goto Lpaint;
-                case X(Tuns64,Tfloat32):
-                case X(Tuns64,Tfloat64):
-                case X(Tuns64,Tfloat80):
-                case X(Tuns64,Tcomplex32):
-                case X(Tuns64,Tcomplex64):
-                case X(Tuns64,Tcomplex80):
+                case X(Type.Kind.uint64,Type.Kind.int32):
+                case X(Type.Kind.uint64,Type.Kind.uint32):  eop = OP64_32;  goto Leop;
+                case X(Type.Kind.uint64,Type.Kind.int64):  goto Lpaint;
+                case X(Type.Kind.uint64,Type.Kind.float32):
+                case X(Type.Kind.uint64,Type.Kind.float64):
+                case X(Type.Kind.uint64,Type.Kind.float80):
+                case X(Type.Kind.uint64,Type.Kind.complex32):
+                case X(Type.Kind.uint64,Type.Kind.complex64):
+                case X(Type.Kind.uint64,Type.Kind.complex80):
                                          e = el_una(OPu64_d, TYdouble, e);
-                                         fty = Tfloat64;
+                                         fty = Type.Kind.float64;
                                          goto Lagain;
-                case X(Tuns64,Timaginary32):
-                case X(Tuns64,Timaginary64):
-                case X(Tuns64,Timaginary80): goto Lzero;
+                case X(Type.Kind.uint64,Type.Kind.imaginary32):
+                case X(Type.Kind.uint64,Type.Kind.imaginary64):
+                case X(Type.Kind.uint64,Type.Kind.imaginary80): goto Lzero;
 
                 /* ============================= */
 
-                case X(Tfloat32,Tint8):
-                case X(Tfloat32,Tuns8):
-                case X(Tfloat32,Tint16):
-                case X(Tfloat32,Tuns16):
-                case X(Tfloat32,Tint32):
-                case X(Tfloat32,Tuns32):
-                case X(Tfloat32,Tint64):
-                case X(Tfloat32,Tuns64):
-                case X(Tfloat32,Tfloat80): e = el_una(OPf_d, TYdouble, e);
-                                           fty = Tfloat64;
+                case X(Type.Kind.float32,Type.Kind.int8):
+                case X(Type.Kind.float32,Type.Kind.uint8):
+                case X(Type.Kind.float32,Type.Kind.int16):
+                case X(Type.Kind.float32,Type.Kind.uint16):
+                case X(Type.Kind.float32,Type.Kind.int32):
+                case X(Type.Kind.float32,Type.Kind.uint32):
+                case X(Type.Kind.float32,Type.Kind.int64):
+                case X(Type.Kind.float32,Type.Kind.uint64):
+                case X(Type.Kind.float32,Type.Kind.float80): e = el_una(OPf_d, TYdouble, e);
+                                           fty = Type.Kind.float64;
                                            goto Lagain;
-                case X(Tfloat32,Tfloat64): eop = OPf_d; goto Leop;
-                case X(Tfloat32,Timaginary32):
-                case X(Tfloat32,Timaginary64):
-                case X(Tfloat32,Timaginary80): goto Lzero;
-                case X(Tfloat32,Tcomplex32):
-                case X(Tfloat32,Tcomplex64):
-                case X(Tfloat32,Tcomplex80):
+                case X(Type.Kind.float32,Type.Kind.float64): eop = OPf_d; goto Leop;
+                case X(Type.Kind.float32,Type.Kind.imaginary32):
+                case X(Type.Kind.float32,Type.Kind.imaginary64):
+                case X(Type.Kind.float32,Type.Kind.imaginary80): goto Lzero;
+                case X(Type.Kind.float32,Type.Kind.complex32):
+                case X(Type.Kind.float32,Type.Kind.complex64):
+                case X(Type.Kind.float32,Type.Kind.complex80):
                     e = el_bin(OPadd,TYcfloat,el_long(TYifloat,0),e);
-                    fty = Tcomplex32;
+                    fty = Type.Kind.complex32;
                     goto Lagain;
 
                 /* ============================= */
 
-                case X(Tfloat64,Tint8):
-                case X(Tfloat64,Tuns8):    e = el_una(OPd_s16, TYshort, e);
-                                           fty = Tint16;
+                case X(Type.Kind.float64,Type.Kind.int8):
+                case X(Type.Kind.float64,Type.Kind.uint8):    e = el_una(OPd_s16, TYshort, e);
+                                           fty = Type.Kind.int16;
                                            goto Lagain;
-                case X(Tfloat64,Tint16):   eop = OPd_s16; goto Leop;
-                case X(Tfloat64,Tuns16):   eop = OPd_u16; goto Leop;
-                case X(Tfloat64,Tint32):   eop = OPd_s32; goto Leop;
-                case X(Tfloat64,Tuns32):   eop = OPd_u32; goto Leop;
-                case X(Tfloat64,Tint64):   eop = OPd_s64; goto Leop;
-                case X(Tfloat64,Tuns64):   eop = OPd_u64; goto Leop;
-                case X(Tfloat64,Tfloat32): eop = OPd_f;   goto Leop;
-                case X(Tfloat64,Tfloat80): eop = OPd_ld;  goto Leop;
-                case X(Tfloat64,Timaginary32):
-                case X(Tfloat64,Timaginary64):
-                case X(Tfloat64,Timaginary80):  goto Lzero;
-                case X(Tfloat64,Tcomplex32):
-                case X(Tfloat64,Tcomplex64):
-                case X(Tfloat64,Tcomplex80):
+                case X(Type.Kind.float64,Type.Kind.int16):   eop = OPd_s16; goto Leop;
+                case X(Type.Kind.float64,Type.Kind.uint16):   eop = OPd_u16; goto Leop;
+                case X(Type.Kind.float64,Type.Kind.int32):   eop = OPd_s32; goto Leop;
+                case X(Type.Kind.float64,Type.Kind.uint32):   eop = OPd_u32; goto Leop;
+                case X(Type.Kind.float64,Type.Kind.int64):   eop = OPd_s64; goto Leop;
+                case X(Type.Kind.float64,Type.Kind.uint64):   eop = OPd_u64; goto Leop;
+                case X(Type.Kind.float64,Type.Kind.float32): eop = OPd_f;   goto Leop;
+                case X(Type.Kind.float64,Type.Kind.float80): eop = OPd_ld;  goto Leop;
+                case X(Type.Kind.float64,Type.Kind.imaginary32):
+                case X(Type.Kind.float64,Type.Kind.imaginary64):
+                case X(Type.Kind.float64,Type.Kind.imaginary80):  goto Lzero;
+                case X(Type.Kind.float64,Type.Kind.complex32):
+                case X(Type.Kind.float64,Type.Kind.complex64):
+                case X(Type.Kind.float64,Type.Kind.complex80):
                     e = el_bin(OPadd,TYcdouble,el_long(TYidouble,0),e);
-                    fty = Tcomplex64;
+                    fty = Type.Kind.complex64;
                     goto Lagain;
 
                 /* ============================= */
 
-                case X(Tfloat80,Tint8):
-                case X(Tfloat80,Tuns8):
-                case X(Tfloat80,Tint16):
-                case X(Tfloat80,Tuns16):
-                case X(Tfloat80,Tint32):
-                case X(Tfloat80,Tuns32):
-                case X(Tfloat80,Tint64):
-                case X(Tfloat80,Tfloat32): e = el_una(OPld_d, TYdouble, e);
-                                           fty = Tfloat64;
+                case X(Type.Kind.float80,Type.Kind.int8):
+                case X(Type.Kind.float80,Type.Kind.uint8):
+                case X(Type.Kind.float80,Type.Kind.int16):
+                case X(Type.Kind.float80,Type.Kind.uint16):
+                case X(Type.Kind.float80,Type.Kind.int32):
+                case X(Type.Kind.float80,Type.Kind.uint32):
+                case X(Type.Kind.float80,Type.Kind.int64):
+                case X(Type.Kind.float80,Type.Kind.float32): e = el_una(OPld_d, TYdouble, e);
+                                           fty = Type.Kind.float64;
                                            goto Lagain;
-                case X(Tfloat80,Tuns64):
+                case X(Type.Kind.float80,Type.Kind.uint64):
                                            eop = OPld_u64; goto Leop;
-                case X(Tfloat80,Tfloat64): eop = OPld_d; goto Leop;
-                case X(Tfloat80,Timaginary32):
-                case X(Tfloat80,Timaginary64):
-                case X(Tfloat80,Timaginary80): goto Lzero;
-                case X(Tfloat80,Tcomplex32):
-                case X(Tfloat80,Tcomplex64):
-                case X(Tfloat80,Tcomplex80):
+                case X(Type.Kind.float80,Type.Kind.float64): eop = OPld_d; goto Leop;
+                case X(Type.Kind.float80,Type.Kind.imaginary32):
+                case X(Type.Kind.float80,Type.Kind.imaginary64):
+                case X(Type.Kind.float80,Type.Kind.imaginary80): goto Lzero;
+                case X(Type.Kind.float80,Type.Kind.complex32):
+                case X(Type.Kind.float80,Type.Kind.complex64):
+                case X(Type.Kind.float80,Type.Kind.complex80):
                     e = el_bin(OPadd,TYcldouble,e,el_long(TYildouble,0));
-                    fty = Tcomplex80;
+                    fty = Type.Kind.complex80;
                     goto Lagain;
 
                 /* ============================= */
 
-                case X(Timaginary32,Tint8):
-                case X(Timaginary32,Tuns8):
-                case X(Timaginary32,Tint16):
-                case X(Timaginary32,Tuns16):
-                case X(Timaginary32,Tint32):
-                case X(Timaginary32,Tuns32):
-                case X(Timaginary32,Tint64):
-                case X(Timaginary32,Tuns64):
-                case X(Timaginary32,Tfloat32):
-                case X(Timaginary32,Tfloat64):
-                case X(Timaginary32,Tfloat80):  goto Lzero;
-                case X(Timaginary32,Timaginary64): eop = OPf_d; goto Leop;
-                case X(Timaginary32,Timaginary80):
+                case X(Type.Kind.imaginary32,Type.Kind.int8):
+                case X(Type.Kind.imaginary32,Type.Kind.uint8):
+                case X(Type.Kind.imaginary32,Type.Kind.int16):
+                case X(Type.Kind.imaginary32,Type.Kind.uint16):
+                case X(Type.Kind.imaginary32,Type.Kind.int32):
+                case X(Type.Kind.imaginary32,Type.Kind.uint32):
+                case X(Type.Kind.imaginary32,Type.Kind.int64):
+                case X(Type.Kind.imaginary32,Type.Kind.uint64):
+                case X(Type.Kind.imaginary32,Type.Kind.float32):
+                case X(Type.Kind.imaginary32,Type.Kind.float64):
+                case X(Type.Kind.imaginary32,Type.Kind.float80):  goto Lzero;
+                case X(Type.Kind.imaginary32,Type.Kind.imaginary64): eop = OPf_d; goto Leop;
+                case X(Type.Kind.imaginary32,Type.Kind.imaginary80):
                                            e = el_una(OPf_d, TYidouble, e);
-                                           fty = Timaginary64;
+                                           fty = Type.Kind.imaginary64;
                                            goto Lagain;
-                case X(Timaginary32,Tcomplex32):
-                case X(Timaginary32,Tcomplex64):
-                case X(Timaginary32,Tcomplex80):
+                case X(Type.Kind.imaginary32,Type.Kind.complex32):
+                case X(Type.Kind.imaginary32,Type.Kind.complex64):
+                case X(Type.Kind.imaginary32,Type.Kind.complex80):
                     e = el_bin(OPadd,TYcfloat,el_long(TYfloat,0),e);
-                    fty = Tcomplex32;
+                    fty = Type.Kind.complex32;
                     goto Lagain;
 
                 /* ============================= */
 
-                case X(Timaginary64,Tint8):
-                case X(Timaginary64,Tuns8):
-                case X(Timaginary64,Tint16):
-                case X(Timaginary64,Tuns16):
-                case X(Timaginary64,Tint32):
-                case X(Timaginary64,Tuns32):
-                case X(Timaginary64,Tint64):
-                case X(Timaginary64,Tuns64):
-                case X(Timaginary64,Tfloat32):
-                case X(Timaginary64,Tfloat64):
-                case X(Timaginary64,Tfloat80):  goto Lzero;
-                case X(Timaginary64,Timaginary32): eop = OPd_f;   goto Leop;
-                case X(Timaginary64,Timaginary80): eop = OPd_ld;  goto Leop;
-                case X(Timaginary64,Tcomplex32):
-                case X(Timaginary64,Tcomplex64):
-                case X(Timaginary64,Tcomplex80):
+                case X(Type.Kind.imaginary64,Type.Kind.int8):
+                case X(Type.Kind.imaginary64,Type.Kind.uint8):
+                case X(Type.Kind.imaginary64,Type.Kind.int16):
+                case X(Type.Kind.imaginary64,Type.Kind.uint16):
+                case X(Type.Kind.imaginary64,Type.Kind.int32):
+                case X(Type.Kind.imaginary64,Type.Kind.uint32):
+                case X(Type.Kind.imaginary64,Type.Kind.int64):
+                case X(Type.Kind.imaginary64,Type.Kind.uint64):
+                case X(Type.Kind.imaginary64,Type.Kind.float32):
+                case X(Type.Kind.imaginary64,Type.Kind.float64):
+                case X(Type.Kind.imaginary64,Type.Kind.float80):  goto Lzero;
+                case X(Type.Kind.imaginary64,Type.Kind.imaginary32): eop = OPd_f;   goto Leop;
+                case X(Type.Kind.imaginary64,Type.Kind.imaginary80): eop = OPd_ld;  goto Leop;
+                case X(Type.Kind.imaginary64,Type.Kind.complex32):
+                case X(Type.Kind.imaginary64,Type.Kind.complex64):
+                case X(Type.Kind.imaginary64,Type.Kind.complex80):
                     e = el_bin(OPadd,TYcdouble,el_long(TYdouble,0),e);
-                    fty = Tcomplex64;
+                    fty = Type.Kind.complex64;
                     goto Lagain;
 
                 /* ============================= */
 
-                case X(Timaginary80,Tint8):
-                case X(Timaginary80,Tuns8):
-                case X(Timaginary80,Tint16):
-                case X(Timaginary80,Tuns16):
-                case X(Timaginary80,Tint32):
-                case X(Timaginary80,Tuns32):
-                case X(Timaginary80,Tint64):
-                case X(Timaginary80,Tuns64):
-                case X(Timaginary80,Tfloat32):
-                case X(Timaginary80,Tfloat64):
-                case X(Timaginary80,Tfloat80):  goto Lzero;
-                case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
-                                           fty = Timaginary64;
+                case X(Type.Kind.imaginary80,Type.Kind.int8):
+                case X(Type.Kind.imaginary80,Type.Kind.uint8):
+                case X(Type.Kind.imaginary80,Type.Kind.int16):
+                case X(Type.Kind.imaginary80,Type.Kind.uint16):
+                case X(Type.Kind.imaginary80,Type.Kind.int32):
+                case X(Type.Kind.imaginary80,Type.Kind.uint32):
+                case X(Type.Kind.imaginary80,Type.Kind.int64):
+                case X(Type.Kind.imaginary80,Type.Kind.uint64):
+                case X(Type.Kind.imaginary80,Type.Kind.float32):
+                case X(Type.Kind.imaginary80,Type.Kind.float64):
+                case X(Type.Kind.imaginary80,Type.Kind.float80):  goto Lzero;
+                case X(Type.Kind.imaginary80,Type.Kind.imaginary32): e = el_una(OPld_d, TYidouble, e);
+                                           fty = Type.Kind.imaginary64;
                                            goto Lagain;
-                case X(Timaginary80,Timaginary64): eop = OPld_d; goto Leop;
-                case X(Timaginary80,Tcomplex32):
-                case X(Timaginary80,Tcomplex64):
-                case X(Timaginary80,Tcomplex80):
+                case X(Type.Kind.imaginary80,Type.Kind.imaginary64): eop = OPld_d; goto Leop;
+                case X(Type.Kind.imaginary80,Type.Kind.complex32):
+                case X(Type.Kind.imaginary80,Type.Kind.complex64):
+                case X(Type.Kind.imaginary80,Type.Kind.complex80):
                     e = el_bin(OPadd,TYcldouble,el_long(TYldouble,0),e);
-                    fty = Tcomplex80;
+                    fty = Type.Kind.complex80;
                     goto Lagain;
 
                 /* ============================= */
 
-                case X(Tcomplex32,Tint8):
-                case X(Tcomplex32,Tuns8):
-                case X(Tcomplex32,Tint16):
-                case X(Tcomplex32,Tuns16):
-                case X(Tcomplex32,Tint32):
-                case X(Tcomplex32,Tuns32):
-                case X(Tcomplex32,Tint64):
-                case X(Tcomplex32,Tuns64):
-                case X(Tcomplex32,Tfloat32):
-                case X(Tcomplex32,Tfloat64):
-                case X(Tcomplex32,Tfloat80):
+                case X(Type.Kind.complex32,Type.Kind.int8):
+                case X(Type.Kind.complex32,Type.Kind.uint8):
+                case X(Type.Kind.complex32,Type.Kind.int16):
+                case X(Type.Kind.complex32,Type.Kind.uint16):
+                case X(Type.Kind.complex32,Type.Kind.int32):
+                case X(Type.Kind.complex32,Type.Kind.uint32):
+                case X(Type.Kind.complex32,Type.Kind.int64):
+                case X(Type.Kind.complex32,Type.Kind.uint64):
+                case X(Type.Kind.complex32,Type.Kind.float32):
+                case X(Type.Kind.complex32,Type.Kind.float64):
+                case X(Type.Kind.complex32,Type.Kind.float80):
                         e = el_una(OPc_r, TYfloat, e);
-                        fty = Tfloat32;
+                        fty = Type.Kind.float32;
                         goto Lagain;
-                case X(Tcomplex32,Timaginary32):
-                case X(Tcomplex32,Timaginary64):
-                case X(Tcomplex32,Timaginary80):
+                case X(Type.Kind.complex32,Type.Kind.imaginary32):
+                case X(Type.Kind.complex32,Type.Kind.imaginary64):
+                case X(Type.Kind.complex32,Type.Kind.imaginary80):
                         e = el_una(OPc_i, TYifloat, e);
-                        fty = Timaginary32;
+                        fty = Type.Kind.imaginary32;
                         goto Lagain;
-                case X(Tcomplex32,Tcomplex64):
-                case X(Tcomplex32,Tcomplex80):
+                case X(Type.Kind.complex32,Type.Kind.complex64):
+                case X(Type.Kind.complex32,Type.Kind.complex80):
                         e = el_una(OPf_d, TYcdouble, e);
-                        fty = Tcomplex64;
+                        fty = Type.Kind.complex64;
                         goto Lagain;
 
                 /* ============================= */
 
-                case X(Tcomplex64,Tint8):
-                case X(Tcomplex64,Tuns8):
-                case X(Tcomplex64,Tint16):
-                case X(Tcomplex64,Tuns16):
-                case X(Tcomplex64,Tint32):
-                case X(Tcomplex64,Tuns32):
-                case X(Tcomplex64,Tint64):
-                case X(Tcomplex64,Tuns64):
-                case X(Tcomplex64,Tfloat32):
-                case X(Tcomplex64,Tfloat64):
-                case X(Tcomplex64,Tfloat80):
+                case X(Type.Kind.complex64,Type.Kind.int8):
+                case X(Type.Kind.complex64,Type.Kind.uint8):
+                case X(Type.Kind.complex64,Type.Kind.int16):
+                case X(Type.Kind.complex64,Type.Kind.uint16):
+                case X(Type.Kind.complex64,Type.Kind.int32):
+                case X(Type.Kind.complex64,Type.Kind.uint32):
+                case X(Type.Kind.complex64,Type.Kind.int64):
+                case X(Type.Kind.complex64,Type.Kind.uint64):
+                case X(Type.Kind.complex64,Type.Kind.float32):
+                case X(Type.Kind.complex64,Type.Kind.float64):
+                case X(Type.Kind.complex64,Type.Kind.float80):
                         e = el_una(OPc_r, TYdouble, e);
-                        fty = Tfloat64;
+                        fty = Type.Kind.float64;
                         goto Lagain;
-                case X(Tcomplex64,Timaginary32):
-                case X(Tcomplex64,Timaginary64):
-                case X(Tcomplex64,Timaginary80):
+                case X(Type.Kind.complex64,Type.Kind.imaginary32):
+                case X(Type.Kind.complex64,Type.Kind.imaginary64):
+                case X(Type.Kind.complex64,Type.Kind.imaginary80):
                         e = el_una(OPc_i, TYidouble, e);
-                        fty = Timaginary64;
+                        fty = Type.Kind.imaginary64;
                         goto Lagain;
-                case X(Tcomplex64,Tcomplex32):   eop = OPd_f;   goto Leop;
-                case X(Tcomplex64,Tcomplex80):   eop = OPd_ld;  goto Leop;
+                case X(Type.Kind.complex64,Type.Kind.complex32):   eop = OPd_f;   goto Leop;
+                case X(Type.Kind.complex64,Type.Kind.complex80):   eop = OPd_ld;  goto Leop;
 
                 /* ============================= */
 
-                case X(Tcomplex80,Tint8):
-                case X(Tcomplex80,Tuns8):
-                case X(Tcomplex80,Tint16):
-                case X(Tcomplex80,Tuns16):
-                case X(Tcomplex80,Tint32):
-                case X(Tcomplex80,Tuns32):
-                case X(Tcomplex80,Tint64):
-                case X(Tcomplex80,Tuns64):
-                case X(Tcomplex80,Tfloat32):
-                case X(Tcomplex80,Tfloat64):
-                case X(Tcomplex80,Tfloat80):
+                case X(Type.Kind.complex80,Type.Kind.int8):
+                case X(Type.Kind.complex80,Type.Kind.uint8):
+                case X(Type.Kind.complex80,Type.Kind.int16):
+                case X(Type.Kind.complex80,Type.Kind.uint16):
+                case X(Type.Kind.complex80,Type.Kind.int32):
+                case X(Type.Kind.complex80,Type.Kind.uint32):
+                case X(Type.Kind.complex80,Type.Kind.int64):
+                case X(Type.Kind.complex80,Type.Kind.uint64):
+                case X(Type.Kind.complex80,Type.Kind.float32):
+                case X(Type.Kind.complex80,Type.Kind.float64):
+                case X(Type.Kind.complex80,Type.Kind.float80):
                         e = el_una(OPc_r, TYldouble, e);
-                        fty = Tfloat80;
+                        fty = Type.Kind.float80;
                         goto Lagain;
-                case X(Tcomplex80,Timaginary32):
-                case X(Tcomplex80,Timaginary64):
-                case X(Tcomplex80,Timaginary80):
+                case X(Type.Kind.complex80,Type.Kind.imaginary32):
+                case X(Type.Kind.complex80,Type.Kind.imaginary64):
+                case X(Type.Kind.complex80,Type.Kind.imaginary80):
                         e = el_una(OPc_i, TYildouble, e);
-                        fty = Timaginary80;
+                        fty = Type.Kind.imaginary80;
                         goto Lagain;
-                case X(Tcomplex80,Tcomplex32):
-                case X(Tcomplex80,Tcomplex64):
+                case X(Type.Kind.complex80,Type.Kind.complex32):
+                case X(Type.Kind.complex80,Type.Kind.complex64):
                         e = el_una(OPld_d, TYcdouble, e);
-                        fty = Tcomplex64;
+                        fty = Type.Kind.complex64;
                         goto Lagain;
 
                 /* ============================= */
@@ -4773,7 +4773,7 @@ elem *toElem(Expression e, IRState *irs)
         {
             //printf("SliceExp.toElem() se = %s %s\n", se.type.toChars(), se.toChars());
             Type tb = se.type.toBasetype();
-            assert(tb.ty == Tarray || tb.ty == Tsarray);
+            assert(tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray);
             Type t1 = se.e1.type.toBasetype();
             elem *e = toElem(se.e1, irs);
             if (se.lwr)
@@ -4781,7 +4781,7 @@ elem *toElem(Expression e, IRState *irs)
                 uint sz = cast(uint)t1.nextOf().size();
 
                 elem *einit = resolveLengthVar(se.lengthVar, &e, t1);
-                if (t1.ty == Tsarray)
+                if (t1.ty == Type.Kind.staticArray)
                     e = array_toPtr(se.e1.type, e);
                 if (!einit)
                 {
@@ -4789,8 +4789,8 @@ elem *toElem(Expression e, IRState *irs)
                     e = el_same(&einit);
                 }
                 // e is a temporary, typed:
-                //  TYdarray if t.ty == Tarray
-                //  TYptr if t.ty == Tsarray or Tpointer
+                //  TYdarray if t.ty == Type.Kind.array
+                //  TYptr if t.ty == Type.Kind.staticArray or Type.Kind.pointer
 
                 elem *elwr = toElem(se.lwr, irs);
                 elem *eupr = toElem(se.upr, irs);
@@ -4811,12 +4811,12 @@ elem *toElem(Expression e, IRState *irs)
                         eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
                         elem *elen;
-                        if (t1.ty == Tsarray)
+                        if (t1.ty == Type.Kind.staticArray)
                         {
                             TypeSArray tsa = cast(TypeSArray)t1;
                             elen = el_long(TYsize_t, tsa.dim.toInteger());
                         }
-                        else if (t1.ty == Tarray)
+                        else if (t1.ty == Type.Kind.array)
                         {
                             if (se.lengthVar && !(se.lengthVar.storage_class & STC.const_))
                                 elen = el_var(toSymbol(se.lengthVar));
@@ -4856,7 +4856,7 @@ elem *toElem(Expression e, IRState *irs)
                         elwr = el_combine(elwr, eb);
                     }
                 }
-                if (t1.ty != Tsarray)
+                if (t1.ty != Type.Kind.staticArray)
                     e = array_toPtr(se.e1.type, e);
 
                 // Create an array reference where:
@@ -4867,14 +4867,14 @@ elem *toElem(Expression e, IRState *irs)
                 elem *eofs = el_bin(OPmul, TYsize_t, elwr2, el_long(TYsize_t, sz));
                 elem *eptr = el_bin(OPadd, TYnptr, e, eofs);
 
-                if (tb.ty == Tarray)
+                if (tb.ty == Type.Kind.array)
                 {
                     elem *elen = el_bin(OPmin, TYsize_t, eupr2, el_copytree(elwr2));
                     e = el_pair(TYdarray, elen, eptr);
                 }
                 else
                 {
-                    assert(tb.ty == Tsarray);
+                    assert(tb.ty == Type.Kind.staticArray);
                     e = el_una(OPind, totym(se.type), eptr);
                     if (tybasic(e.Ety) == TYstruct)
                         e.ET = Type_toCtype(se.type);
@@ -4883,13 +4883,13 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_combine(einit, e);
                 //elem_print(e);
             }
-            else if (t1.ty == Tsarray && tb.ty == Tarray)
+            else if (t1.ty == Type.Kind.staticArray && tb.ty == Type.Kind.array)
             {
                 e = sarray_toDarray(se.loc, t1, null, e);
             }
             else
             {
-                assert(t1.ty == tb.ty);   // Tarray or Tsarray
+                assert(t1.ty == tb.ty);   // Type.Kind.array or Type.Kind.staticArray
 
                 // https://issues.dlang.org/show_bug.cgi?id=14672
                 // If se is in left side operand of element-wise
@@ -4910,7 +4910,7 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("IndexExp.toElem() %s\n", ie.toChars());
             Type t1 = ie.e1.type.toBasetype();
-            if (t1.ty == Taarray)
+            if (t1.ty == Type.Kind.associativeArray)
             {
                 // set to:
                 //      *aaGetY(aa, aati, valuesize, &key);
@@ -4970,7 +4970,7 @@ elem *toElem(Expression e, IRState *irs)
                 {
                     elem *elength;
 
-                    if (t1.ty == Tsarray)
+                    if (t1.ty == Type.Kind.staticArray)
                     {
                         TypeSArray tsa = cast(TypeSArray)t1;
                         dinteger_t length = tsa.dim.toInteger();
@@ -4978,7 +4978,7 @@ elem *toElem(Expression e, IRState *irs)
                         elength = el_long(TYsize_t, length);
                         goto L1;
                     }
-                    else if (t1.ty == Tarray)
+                    else if (t1.ty == Type.Kind.array)
                     {
                         elength = n1;
                         n1 = el_same(&elength);
@@ -5047,14 +5047,14 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("ArrayLiteralExp.toElem() %s, type = %s\n", ale.toChars(), ale.type.toChars());
             Type tb = ale.type.toBasetype();
-            if (tb.ty == Tsarray && tb.nextOf().toBasetype().ty == Tvoid)
+            if (tb.ty == Type.Kind.staticArray && tb.nextOf().toBasetype().ty == Type.Kind.void_)
             {
                 // Convert void[n] to ubyte[n]
                 tb = Type.tuns8.sarrayOf((cast(TypeSArray)tb).dim.toUInteger());
             }
 
             elem *e;
-            if (tb.ty == Tsarray && dim)
+            if (tb.ty == Type.Kind.staticArray && dim)
             {
                 Symbol *stmp = null;
                 e = ExpressionsToStaticArray(ale.loc, ale.elements, &stmp, 0, ale.basis);
@@ -5090,11 +5090,11 @@ elem *toElem(Expression e, IRState *irs)
                 e = el_long(TYsize_t, 0);
             }
 
-            if (tb.ty == Tarray)
+            if (tb.ty == Type.Kind.array)
             {
                 e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
             }
-            else if (tb.ty == Tpointer)
+            else if (tb.ty == Type.Kind.pointer)
             {
             }
             else
@@ -5294,7 +5294,7 @@ elem *toElem(Expression e, IRState *irs)
                 if (!el)
                     el = basis;
                 if (el.op == TOK.arrayLiteral &&
-                    el.type.toBasetype().ty == Tsarray)
+                    el.type.toBasetype().ty == Type.Kind.staticArray)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)el;
                     if (ale.elements && ale.elements.dim)
@@ -5369,7 +5369,7 @@ elem *toElem(Expression e, IRState *irs)
                 // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
                 // Prefer this to avoid the varargs fiasco in 64 bit code
 
-                assert(t.ty == Taarray);
+                assert(t.ty == Type.Kind.associativeArray);
                 Type ta = t;
 
                 Symbol *skeys = null;
@@ -5404,7 +5404,7 @@ elem *toElem(Expression e, IRState *irs)
             else
             {
                 elem *e = el_long(TYnptr, 0);      // empty associative array is the null pointer
-                if (t.ty != Taarray)
+                if (t.ty != Type.Kind.associativeArray)
                     e = addressElem(e, Type.tvoidptr);
                 result = e;
                 return;
@@ -5627,7 +5627,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
 
             Type t1b = v.type.toBasetype();
             Type t2b = el.type.toBasetype();
-            if (t1b.ty == Tsarray)
+            if (t1b.ty == Type.Kind.staticArray)
             {
                 if (t2b.implicitConvTo(t1b))
                 {

@@ -64,7 +64,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (readonly || !e.type.isMutable())
             return false;
 
-        if (v.type.hasPointers() && v.type.toBasetype().ty != Tstruct)
+        if (v.type.hasPointers() && v.type.toBasetype().ty != Type.Kind.struct_)
         {
             if ((ad.type.alignment() < Target.ptrsize ||
                  (v.offset & (Target.ptrsize - 1))) &&
@@ -110,7 +110,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
     auto tfromb = tfrom.toBasetype();
     auto ttob = tto.toBasetype();
 
-    if (ttob.ty == Tclass && tfromb.ty == Tclass)
+    if (ttob.ty == Type.Kind.class_ && tfromb.ty == Type.Kind.class_)
     {
         ClassDeclaration cdfrom = tfromb.isClassHandle();
         ClassDeclaration cdto = ttob.isClassHandle();
@@ -127,11 +127,11 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
         return true;
     }
 
-    if (ttob.ty == Tarray && tfromb.ty == Tsarray) // https://issues.dlang.org/show_bug.cgi?id=12502
+    if (ttob.ty == Type.Kind.array && tfromb.ty == Type.Kind.staticArray) // https://issues.dlang.org/show_bug.cgi?id=12502
         tfromb = tfromb.nextOf().arrayOf();
 
-    if (ttob.ty == Tarray   && tfromb.ty == Tarray ||
-        ttob.ty == Tpointer && tfromb.ty == Tpointer)
+    if (ttob.ty == Type.Kind.array   && tfromb.ty == Type.Kind.array ||
+        ttob.ty == Type.Kind.pointer && tfromb.ty == Type.Kind.pointer)
     {
         Type ttobn = ttob.nextOf().toBasetype();
         Type tfromn = tfromb.nextOf().toBasetype();
@@ -143,16 +143,16 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
          *  ai[0] = 7;
          *  *api[0] crash!
          */
-        if (tfromn.ty == Tvoid && ttobn.isMutable())
+        if (tfromn.ty == Type.Kind.void_ && ttobn.isMutable())
         {
-            if (ttob.ty == Tarray && e.op == TOK.arrayLiteral)
+            if (ttob.ty == Type.Kind.array && e.op == TOK.arrayLiteral)
                 return true;
             return false;
         }
 
         // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
-        if (ttobn.ty == Tstruct && !(cast(TypeStruct)ttobn).sym.members ||
-            tfromn.ty == Tstruct && !(cast(TypeStruct)tfromn).sym.members)
+        if (ttobn.ty == Type.Kind.struct_ && !(cast(TypeStruct)ttobn).sym.members ||
+            tfromn.ty == Type.Kind.struct_ && !(cast(TypeStruct)tfromn).sym.members)
             return false;
 
         const frompointers = tfromn.hasPointers();
@@ -165,8 +165,8 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
             return false;
 
         if (!topointers &&
-            ttobn.ty != Tfunction && tfromn.ty != Tfunction &&
-            (ttob.ty == Tarray || ttobn.size() <= tfromn.size()) &&
+            ttobn.ty != Type.Kind.function_ && tfromn.ty != Type.Kind.function_ &&
+            (ttob.ty == Type.Kind.array || ttobn.size() <= tfromn.size()) &&
             MODimplicitConv(tfromn.mod, ttobn.mod))
         {
             return true;
