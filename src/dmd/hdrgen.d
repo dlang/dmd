@@ -1227,7 +1227,7 @@ public:
     override void visit(LinkDeclaration d)
     {
         const(char)* p;
-        switch (d.linkage)
+        final switch (d.linkage)
         {
         case LINK.d:
             p = "D";
@@ -1247,7 +1247,8 @@ public:
         case LINK.objc:
             p = "Objective-C";
             break;
-        default:
+        case LINK.default_:
+        case LINK.system:
             assert(0);
         }
         buf.writestring("extern (");
@@ -3279,7 +3280,7 @@ extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
 
 extern (C++) const(char)* trustToChars(TRUST trust)
 {
-    switch (trust)
+    final switch (trust)
     {
     case TRUST.default_:
         return null;
@@ -3289,8 +3290,6 @@ extern (C++) const(char)* trustToChars(TRUST trust)
         return "@trusted";
     case TRUST.safe:
         return "@safe";
-    default:
-        assert(0);
     }
 }
 
