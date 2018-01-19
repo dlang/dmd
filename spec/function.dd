@@ -128,11 +128,61 @@ int foo();
 
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
-        $(P Pure functions are functions that cannot access global/static
-        mutable state, except if their arguments contain pointers to such. This
-        enables optimizations based on the fact that a pure function may at most
-        mutate state reachable through its parameters. To that end, a pure
-        function:)
+        $(P Pure functions are functions that cannot directly access global or static
+            mutable state. `pure` guarantees that a pure function call
+            won't access or modify any implicit state in the program.
+        )
+
+        $(P Unlike other functional programming languages, D's `pure`
+            functions allow modification of the caller state through their mutable
+            parameters.
+        )
+
+            ---
+            pure int foo(int[] arr) { arr[] += 1; return arr.length; }
+            int[] a = [1, 2, 3];
+            foo(a);
+            assert(a == [2, 3, 4]);
+            ---
+
+        $(P A `pure` function accepting parameters with mutable indirections offers
+            what's called "weak purity" because it can change program state
+            transitively through its arguments. A `pure` function that has
+            no parameter with mutable indirections is called "strongly pure"
+            and fulfills the purity definition in traditional functional languages.
+            Weakly `pure` functions are useful as reusable building blocks for strongly pure functions.
+        )
+
+        $(P To control mutations, D has the `immutable` type qualifier. If all of
+            a $(D pure) function's parameters are `immutable` or copied values
+            without any indirections, it can guarantee that the pure function has
+            no side effects.
+        )
+        $(P To prevent mutation, D offers the `immutable` type qualifier.
+            If all of a `pure` function's parameters are `immutable` or
+            copied values without any indirections (e.g. `int`),
+            the type system guarantees no side effects.
+        )
+
+            ---
+            struct S { double x; }
+            pure int foo(immutable(int)[] arr, int num, S val)
+            {
+                //arr[num] = 1; // compile error
+                num = 2;        // has no side effect to the caller side
+                val.x = 3.14;   // ditto
+                return arr.length;
+            }
+            ---
+
+        $(P The maximum guarantee of `pure` is called "strong purity". It can enable
+            optimizations based on the fact
+            that a function is guaranteed to not mutate anything which isn't passed to it.
+            For cases where the compiler can guarantee that a pure function cannot
+            alter its arguments, it can enable full, functional purity (i.e. the guarantee
+            that the function will always return the same result for the same arguments).
+            To that end, a pure function:
+        )
 
         $(UL
         $(LI does not read or write any global or static mutable state)
@@ -427,6 +477,35 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         be matched with inout.
     )
 
+    $(P $(RELATIVE_LINK2 variadicnested, Nested functions) inside pure function are implicitly marked as pure.
+
+        ---
+        pure int foo(int x, immutable int y)
+        {
+            int bar()
+            // implicitly marked as pure, to be "weak purity"
+            // hidden context pointer is mutable
+            {
+                x = 10;     // can access states in enclosing scope
+                            // through the mutable context pointer
+                return x;
+            }
+            pragma(msg, typeof(&bar));  // int delegate() pure
+
+            int baz() immutable
+            // qualify hidden context pointer with immutable,
+            // and has no other parameters, make "strong purity"
+            {
+                //return x; // error, cannot access mutable data
+                            // through the immutable context pointer
+                return y;   // ok
+            }
+
+            // can call pure nested functions
+            return bar() + baz();
+        }
+        ---
+    )
 
 $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
@@ -2101,7 +2180,7 @@ void main()
 
 $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
-    $(P Functions which are both portable and free of side-effects can be
+    $(P Functions which are both portable and free of global side-effects can be
     executed at compile time. This is useful when constant folding
     algorithms need to include recursion and looping. Compile time function
     execution is subject to the following restrictions:
@@ -2169,7 +2248,7 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
         )
 
         $(LI
-        Any pointer may be cast to $(D void *) and from $(D void *) back to
+        Any pointer may be cast to $(D void*) and from $(D void*) back to
         its original type. Casting between pointer and non-pointer types is
         prohibited.
         )
@@ -2188,7 +2267,7 @@ int countTen(int x)
     return x;
 }
 
-static assert(countTen(6) == 6); // OK
+static assert(countTen(6) == 6);    // OK
 static assert(countTen(12) == 12);  // invalid, modifies y.
 ---
     $(P The $(D __ctfe) boolean pseudo-variable, which evaluates to $(D_KEYWORD true)
@@ -2205,7 +2284,7 @@ static assert(countTen(12) == 12);  // invalid, modifies y.
     example:)
 
     $(UL
-    $(LI initialization of a static variable)
+    $(LI initialization of a static variable or a manifest constant)
     $(LI dimension of a static array)
     $(LI argument for a template value parameter)
     )
@@ -2224,9 +2303,9 @@ int square(int i)
 
 void foo()
 {
-    static j = square(3);     // compile time
+    static j = square(3);      // compile time
     writeln(j);
-    writeln(square(4));      // run time
+    writeln(square(4));        // run time
     writeln(eval!(square(5))); // compile time
 }
 ---
@@ -2279,6 +2358,84 @@ const int x = foo("1");
         generated. A function template would be the appropriate
         method to implement this sort of thing.)
 
+$(H3 $(LNAME2 nogc-functions, No-GC Functions))
+
+        $(P No-GC functions are functions marked with the $(D @nogc) attribute.
+            Those functions do not allocate memory on the GC heap,
+            through the following language features:
+        )
+
+        $(UL
+        $(LI $(DDSUBLINK expression, ArrayLiteral, constructing an array) on the heap)
+        $(LI resizing an array by writing to its $(D .length) property)
+        $(LI array $(DDSUBLINK expression, CatExpression, concatenation) and appending)
+        $(LI $(DDSUBLINK expression, AssocArrayLiteral, constructing an associative array) on the heap)
+        $(LI $(DDSUBLINK expression, IndexExpression, indexing) an associative array
+            (because it may throw $(D RangeError) if the specified key is not present))
+        $(LI $(DDSUBLINK expression, NewExpression, allocating an object) on the heap)
+        $(LI $(DDSUBLINK expression, DeleteExpression, deleting an object) on the heap)
+        )
+
+            ---
+            @nogc void foo()
+            {
+                auto a = ['a'];    // error, allocates
+                a.length = 1;      // error, array resizing allocates
+                a = a ~ a;         // error, arrays concatenation allocates
+                a ~= 'c';          // error, appending to arrays allocates
+
+                auto aa = ["x":1]; // error, allocates
+                aa["abc"];         // error, indexing may allocate and throws
+
+                auto p = new int;  // error, operator new allocates
+                delete p;          // error, operator delete deallocates
+            }
+            ---
+
+        $(P No-GC functions cannot call functions that are not $(D @nogc).
+        )
+
+            ---
+            @nogc void foo()
+            {
+                bar();             // error, bar() may allocate
+            }
+
+            void bar() { }
+            ---
+
+        $(P No-GC functions cannot be closures.
+        )
+
+            ---
+            @nogc int delegate() foo()
+            {
+                int n;              // error, variable n cannot be allocated on heap
+                return (){ return n; }
+            }
+            ---
+
+        $(P $(D @nogc) affects the type of the function. A $(D @nogc)
+            function is covariant with a non-$(D @nogc) function.
+        )
+
+            ---
+            void function() fp;
+            void function() @nogc gp;  // pointer to @nogc function
+
+            void foo();
+            @nogc void bar();
+
+            void test()
+            {
+                fp = &foo; // ok
+                fp = &bar; // ok, it's covariant
+                gp = &foo; // error, not contravariant
+                gp = &bar; // ok
+            }
+            ---
+
+
 $(H2 $(LNAME2 function-safety, Function Safety))
 
         $(P $(I Safe functions) are functions that are statically checked
@@ -2310,6 +2467,10 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No explicit casting of shared objects to thread local.)
         $(LI No taking the address of a local variable or function parameter.)
         $(LI Cannot access $(D __gshared) variables.)
+        )
+
+        $(P When indexing and slicing an array, an out of bounds access
+            will cause a runtime error, in order to prevent undefined behavior.
         )
 
         $(P Functions nested inside safe functions default to being
@@ -2361,8 +2522,8 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         $(RELATIVE_LINK2 pure-functions, $(D pure)),
         $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)),
         $(RELATIVE_LINK2 safe-functions, $(D @safe)), and
-        $(LINK2 attribute.html#nogc, $(D @nogc)) attributes unless
-        specifically overridden.
+        $(RELATIVE_LINK2 nogc-functions, $(D @nogc))
+        attributes unless specifically overridden.
         )
 
         $(P Attribute inference is not done for other functions, even if the function
