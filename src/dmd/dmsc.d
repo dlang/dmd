@@ -111,7 +111,7 @@ void backend_init()
         exe,
         false, //params.trace,
         params.nofloat,
-        params.verbose,
+        params.verbose ? true : false,
         params.optimize,
         params.symdebug,
         params.alwaysframe,

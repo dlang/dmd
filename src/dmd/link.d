@@ -671,8 +671,8 @@ public int runLINK()
         {
             // Print it
             for (size_t i = 0; i < argv.dim; i++)
-                fprintf(global.stdmsg, "%s ", argv[i]);
-            fprintf(global.stdmsg, "\n");
+                fprintf(global.params.verbose, "%s ", argv[i]);
+            fprintf(global.params.verbose, "\n");
         }
         argv.push(null);
         // set up pipes
@@ -745,7 +745,7 @@ version (Windows)
         int status;
         size_t len;
         if (global.params.verbose)
-            fprintf(global.stdmsg, "%s %s\n", cmd, args);
+            fprintf(global.params.verbose, "%s %s\n", cmd, args);
         if (!global.params.mscoff)
         {
             if ((len = strlen(args)) > 255)
@@ -808,7 +808,7 @@ version (Windows)
             }
         }
         //if (global.params.verbose)
-        //    fprintf(global.stdmsg, "\n");
+        //    fprintf(global.params.verbose, "\n");
         if (status)
         {
             if (status == -1)
@@ -853,10 +853,10 @@ public int runProgram()
     //printf("runProgram()\n");
     if (global.params.verbose)
     {
-        fprintf(global.stdmsg, "%s", global.params.exefile);
+        fprintf(global.params.verbose, "%s", global.params.exefile);
         for (size_t i = 0; i < global.params.runargs.dim; ++i)
-            fprintf(global.stdmsg, " %s", global.params.runargs[i]);
-        fprintf(global.stdmsg, "\n");
+            fprintf(global.params.verbose, " %s", global.params.runargs[i]);
+        fprintf(global.params.verbose, "\n");
     }
     // Build argv[]
     Strings argv;

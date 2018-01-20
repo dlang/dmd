@@ -323,8 +323,8 @@ void genObjFile(Module m, bool multiobj)
 
     if (m.ident == Id.entrypoint)
     {
-        bool v = global.params.verbose;
-        global.params.verbose = false;
+        auto v = global.params.verbose;
+        global.params.verbose = null;
 
         for (size_t i = 0; i < m.members.dim; i++)
         {
@@ -807,7 +807,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     fd.semanticRun = PASS.obj;
 
     if (global.params.verbose)
-        fprintf(global.stdmsg, "function  %s\n", fd.toPrettyChars());
+        fprintf(global.params.verbose, "function  %s\n", fd.toPrettyChars());
 
     Symbol *s = toSymbol(fd);
     func_t *f = s.Sfunc;

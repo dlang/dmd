@@ -143,8 +143,8 @@ extern (C++) void genCmain(Scope* sc)
     m.members = p.parseModule();
     assert(p.token.value == TOK.endOfFile);
     assert(!p.errors); // shouldn't have failed to parse it
-    bool v = global.params.verbose;
-    global.params.verbose = false;
+    auto v = global.params.verbose;
+    global.params.verbose = null;
     m.importedFrom = m;
     m.importAll(null);
     m.dsymbolSemantic(null);
@@ -474,9 +474,9 @@ private int tryMain(size_t argc, const(char)** argv)
 
     if (global.params.verbose)
     {
-        fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
-        fprintf(global.stdmsg, "version   %s\n", global._version);
-        fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
+        fprintf(global.params.verbose, "binary    %s\n", global.params.argv0);
+        fprintf(global.params.verbose, "version   %s\n", global._version);
+        fprintf(global.params.verbose, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
     }
     //printf("%d source files\n",files.dim);
 
@@ -668,7 +668,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         Module m = modules[modi];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "parse     %s\n", m.toChars());
+            fprintf(global.params.verbose, "parse     %s\n", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
@@ -725,7 +725,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "import    %s\n", m.toChars());
+                fprintf(global.params.verbose, "import    %s\n", m.toChars());
             genhdrfile(m);
         }
     }
@@ -736,7 +736,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "importall %s\n", m.toChars());
+            fprintf(global.params.verbose, "importall %s\n", m.toChars());
         m.importAll(null);
     }
     if (global.errors)
@@ -748,7 +748,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
+            fprintf(global.params.verbose, "semantic  %s\n", m.toChars());
         m.dsymbolSemantic(null);
     }
     //if (global.errors)
@@ -769,7 +769,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
+            fprintf(global.params.verbose, "semantic2 %s\n", m.toChars());
         m.semantic2(null);
     }
     Module.runDeferredSemantic2();
@@ -780,19 +780,19 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+            fprintf(global.params.verbose, "semantic3 %s\n", m.toChars());
         m.semantic3(null);
     }
     if (includeImports)
     {
-        // Note: DO NOT USE foreach here because Module.amodules.dim can
+        // Note: DO NOT USE foreach here because compiledImports.dim can
         //       change on each iteration of the loop
         for (size_t i = 0; i < compiledImports.dim; i++)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
             if (global.params.verbose)
-                fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+                fprintf(global.params.verbose, "semantic3 %s\n", m.toChars());
             m.semantic3(null);
             modules.push(m);
         }
@@ -807,7 +807,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "inline scan %s\n", m.toChars());
+                fprintf(global.params.verbose, "inline scan %s\n", m.toChars());
             inlineScanModule(m);
         }
     }
@@ -926,7 +926,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "code      %s\n", m.toChars());
+                fprintf(global.params.verbose, "code      %s\n", m.toChars());
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
@@ -941,7 +941,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "code      %s\n", m.toChars());
+                fprintf(global.params.verbose, "code      %s\n", m.toChars());
             obj_start(cast(char*)m.srcfile.toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
@@ -1339,11 +1339,11 @@ private void printPredefinedVersions()
 {
     if (global.params.verbose && global.versionids)
     {
-        fprintf(global.stdmsg, "predefs  ");
+        fprintf(global.params.verbose, "predefs  ");
         foreach (const str; *global.versionids)
-            fprintf(global.stdmsg, " %s", str.toChars);
+            fprintf(global.params.verbose, " %s", str.toChars);
 
-        fprintf(global.stdmsg, "\n");
+        fprintf(global.params.verbose, "\n");
     }
 }
 
@@ -1415,9 +1415,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
 {
     bool errors;
 
-    void error(const(char)* format, const(char*) arg = null)
+    void error(T...)(const(char)* format, T args)
     {
-        dmd.errors.error(Loc(), format, arg);
+        dmd.errors.error(Loc(), format, args);
         errors = true;
     }
 
@@ -1630,8 +1630,22 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     params.trace = true;
             }
-            else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
-                params.verbose = true;
+            else if (p[1] == 'v' && (p[2] == '=' || p[2] == '\0')) // https://dlang.org/dmd.html#switch-v
+            {
+                if (p[2] == '\0')
+                    params.verbose = stdout;
+                else
+                {
+                    auto filename = p + 3;
+                    params.verbose = fopen(filename, "w");
+                    if (!params.verbose)
+                    {
+                        import core.stdc.errno : errno;
+                        import core.stdc.string : strerror;
+                        error("failed to open verbose output file '%s' (errno %d: %s)", filename, errno, strerror(errno));
+                    }
+                }
+            }
             else if (arg == "-vcg-ast")
                 params.vcg_ast = true;
             else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
@@ -2175,7 +2189,7 @@ private extern(C++) bool marsOnImport(Module m)
             (m.md && m.md.packages) ? m.md.packages : &empty, m.ident, m.isPackageFile)))
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "compileimport (%s)\n", m.srcfile.toChars);
+                fprintf(global.params.verbose, "compileimport (%s)\n", m.srcfile.toChars);
             compiledImports.push(m);
             return true; // this import will be compiled
         }

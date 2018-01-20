@@ -1,0 +1,7 @@
+Allow verbose output to be redirected to a file
+
+Enhanced the "-v" option to accept a filename to redirect verbose output to a file, i.e.
+---
+dmd -v=info.txt ...
+---
+This is useful for tools that invoke the compiler and use the verbose output but want do not want to redirect stdout/stderr so that error messages and other information can still get to the user.

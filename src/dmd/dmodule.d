@@ -523,16 +523,16 @@ extern (C++) final class Module : Package
             return null;
         if (global.params.verbose)
         {
-            fprintf(global.stdmsg, "import    ");
+            fprintf(global.params.verbose, "import    ");
             if (packages)
             {
                 for (size_t i = 0; i < packages.dim; i++)
                 {
                     Identifier pid = (*packages)[i];
-                    fprintf(global.stdmsg, "%s.", pid.toChars());
+                    fprintf(global.params.verbose, "%s.", pid.toChars());
                 }
             }
-            fprintf(global.stdmsg, "%s\t(%s)\n", ident.toChars(), m.srcfile.toChars());
+            fprintf(global.params.verbose, "%s\t(%s)\n", ident.toChars(), m.srcfile.toChars());
         }
         m = m.parse();
 

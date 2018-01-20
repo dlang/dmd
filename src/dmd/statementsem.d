@@ -2247,7 +2247,7 @@ else
 
                     if (global.params.verbose)
                     {
-                        fprintf(global.stdmsg, "library   %.*s\n", cast(int)se.len, se.string);
+                        fprintf(global.params.verbose, "library   %.*s\n", cast(int)se.len, se.string);
                     }
                 }
             }

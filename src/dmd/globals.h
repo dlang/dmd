@@ -70,7 +70,7 @@ struct Param
     bool oneobj;        // write one object file instead of multiple ones
     bool trace;         // insert profiling hooks
     bool tracegc;       // instrument calls to 'new'
-    bool verbose;       // verbose compile
+    FILE* verbose;      // verbose compile
     bool vcg_ast;       // write-out codegen-ast
     bool showColumns;   // print character (column) numbers in diagnostics
     bool vtls;          // identify thread local variables

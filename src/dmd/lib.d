@@ -103,7 +103,7 @@ class Library
     final void write()
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "library   %s\n", loc.filename);
+            fprintf(global.params.verbose, "library   %s\n", loc.filename);
 
         OutBuffer libbuf;
         WriteLibToBuffer(&libbuf);

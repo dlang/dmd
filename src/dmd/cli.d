@@ -282,8 +282,8 @@ struct Usage
         Option("unittest",
             "compile in unit tests"
         ),
-        Option("v",
-            "verbose"
+        Option("v[=file]",
+            "verbose with option to output to a file (defaults to stdout)"
         ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"

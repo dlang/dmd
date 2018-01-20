@@ -1276,7 +1276,7 @@ public:
             return;
 
         if (global.params.verbose && (eresult || sresult))
-            fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
+            fprintf(global.params.verbose, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
 
         if (eresult && e.type.ty != Type.Kind.void_)
         {
@@ -1706,7 +1706,7 @@ public void inlineScanModule(Module m)
     {
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
-        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s.toChars());
+        //    fprintf(global.params.verbose, "inline scan symbol %s\n", s.toChars());
         scope InlineScanVisitor v = new InlineScanVisitor();
         s.accept(v);
     }

@@ -1358,7 +1358,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 memcpy(name, se.string, se.len);
                 name[se.len] = 0;
                 if (global.params.verbose)
-                    fprintf(global.stdmsg, "library   %s\n", name);
+                    fprintf(global.params.verbose, "library   %s\n", name);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer* ob = global.params.moduleDeps;
@@ -1475,7 +1475,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 /* Print unrecognized pragmas
                  */
-                fprintf(global.stdmsg, "pragma    %s", pd.ident.toChars());
+                fprintf(global.params.verbose, "pragma    %s", pd.ident.toChars());
                 if (pd.args)
                 {
                     for (size_t i = 0; i < pd.args.dim; i++)
@@ -1487,15 +1487,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         sc = sc.endCTFE();
                         e = e.ctfeInterpret();
                         if (i == 0)
-                            fprintf(global.stdmsg, " (");
+                            fprintf(global.params.verbose, " (");
                         else
-                            fprintf(global.stdmsg, ",");
-                        fprintf(global.stdmsg, "%s", e.toChars());
+                            fprintf(global.params.verbose, ",");
+                        fprintf(global.params.verbose, "%s", e.toChars());
                     }
                     if (pd.args.dim)
-                        fprintf(global.stdmsg, ")");
+                        fprintf(global.params.verbose, ")");
                 }
-                fprintf(global.stdmsg, "\n");
+                fprintf(global.params.verbose, "\n");
             }
             goto Lnodecl;
         }
