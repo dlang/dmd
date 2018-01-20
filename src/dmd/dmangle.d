@@ -37,56 +37,56 @@ import dmd.tokens;
 import dmd.utf;
 import dmd.visitor;
 
-private immutable char[Type.Kind.max_] mangleChar =
+private immutable char[TMAX] mangleChar =
 [
-    Type.Kind.char_        : 'a',
-    Type.Kind.bool_        : 'b',
-    Type.Kind.complex80   : 'c',
-    Type.Kind.float64     : 'd',
-    Type.Kind.float80     : 'e',
-    Type.Kind.float32     : 'f',
-    Type.Kind.int8        : 'g',
-    Type.Kind.uint8        : 'h',
-    Type.Kind.int32       : 'i',
-    Type.Kind.imaginary80 : 'j',
-    Type.Kind.uint32       : 'k',
-    Type.Kind.int64       : 'l',
-    Type.Kind.uint64       : 'm',
-    Type.Kind.none        : 'n',
-    Type.Kind.null_        : 'n', // yes, same as TypeNone
-    Type.Kind.imaginary32 : 'o',
-    Type.Kind.imaginary64 : 'p',
-    Type.Kind.complex32   : 'q',
-    Type.Kind.complex64   : 'r',
-    Type.Kind.int16       : 's',
-    Type.Kind.uint16       : 't',
-    Type.Kind.wchar_       : 'u',
-    Type.Kind.void_        : 'v',
-    Type.Kind.dchar_       : 'w',
+    Tchar        : 'a',
+    Tbool        : 'b',
+    Tcomplex80   : 'c',
+    Tfloat64     : 'd',
+    Tfloat80     : 'e',
+    Tfloat32     : 'f',
+    Tint8        : 'g',
+    Tuns8        : 'h',
+    Tint32       : 'i',
+    Timaginary80 : 'j',
+    Tuns32       : 'k',
+    Tint64       : 'l',
+    Tuns64       : 'm',
+    Tnone        : 'n',
+    Tnull        : 'n', // yes, same as TypeNone
+    Timaginary32 : 'o',
+    Timaginary64 : 'p',
+    Tcomplex32   : 'q',
+    Tcomplex64   : 'r',
+    Tint16       : 's',
+    Tuns16       : 't',
+    Twchar       : 'u',
+    Tvoid        : 'v',
+    Tdchar       : 'w',
     //              x   // const
     //              y   // immutable
-    Type.Kind.int128      : 'z', // zi
-    Type.Kind.uint128      : 'z', // zk
+    Tint128      : 'z', // zi
+    Tuns128      : 'z', // zk
 
-    Type.Kind.array       : 'A',
-    Type.Kind.tuple       : 'B',
-    Type.Kind.class_       : 'C',
-    Type.Kind.delegate_    : 'D',
-    Type.Kind.enum_        : 'E',
-    Type.Kind.function_    : 'F', // D function
-    Type.Kind.staticArray      : 'G',
-    Type.Kind.associativeArray      : 'H',
-    Type.Kind.identifier       : 'I',
+    Tarray       : 'A',
+    Ttuple       : 'B',
+    Tclass       : 'C',
+    Tdelegate    : 'D',
+    Tenum        : 'E',
+    Tfunction    : 'F', // D function
+    Tsarray      : 'G',
+    Taarray      : 'H',
+    Tident       : 'I',
     //              J   // out
     //              K   // ref
     //              L   // lazy
     //              M   // has this, or scope
     //              N   // Nh:vector Ng:wild
     //              O   // shared
-    Type.Kind.pointer     : 'P',
+    Tpointer     : 'P',
     //              Q   // Type/symbol/identifier backward reference
-    Type.Kind.reference   : 'R',
-    Type.Kind.struct_      : 'S',
+    Treference   : 'R',
+    Tstruct      : 'S',
     //              T   // Ttypedef
     //              U   // C function
     //              V   // Pascal function
@@ -96,12 +96,12 @@ private immutable char[Type.Kind.max_] mangleChar =
     //              Z   // not variadic, end of parameters
 
     // '@' shouldn't appear anywhere in the deco'd names
-    Type.Kind.instance    : '@',
-    Type.Kind.error       : '@',
-    Type.Kind.typeof_      : '@',
-    Type.Kind.slice       : '@',
-    Type.Kind.return_      : '@',
-    Type.Kind.vector      : '@',
+    Tinstance    : '@',
+    Terror       : '@',
+    Ttypeof      : '@',
+    Tslice       : '@',
+    Treturn      : '@',
+    Tvector      : '@',
 ];
 
 unittest
@@ -125,7 +125,7 @@ private void tyToDecoBuffer(OutBuffer* buf, int ty)
     const c = mangleChar[ty];
     buf.writeByte(c);
     if (c == 'z')
-        buf.writeByte(ty == Type.Kind.int128 ? 'i' : 'k');
+        buf.writeByte(ty == Tint128 ? 'i' : 'k');
 }
 
 /*********************************
@@ -505,7 +505,7 @@ public:
         if (fd.needThis() || fd.isNested())
             buf.writeByte('M');
 
-        if (!fd.type || fd.type.ty == Type.Kind.error)
+        if (!fd.type || fd.type.ty == Terror)
         {
             // never should have gotten here, but could be the result of
             // failed speculative compilation

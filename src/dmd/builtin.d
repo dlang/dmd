@@ -171,7 +171,7 @@ extern (C++) Expression eval_bswap(Loc loc, FuncDeclaration fd, Expressions* arg
     n = ((n >> 16) & SHORTMASK) | ((n & SHORTMASK) << 16);
     TY ty = arg0.type.toBasetype().ty;
     // If 64 bits, we need to swap high and low uints
-    if (ty == Type.Kind.int64 || ty == Type.Kind.uint64)
+    if (ty == Tint64 || ty == Tuns64)
         n = ((n >> 32) & INTMASK) | ((n & INTMASK) << 32);
     return new IntegerExp(loc, n, arg0.type);
 }

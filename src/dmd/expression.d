@@ -100,8 +100,8 @@ L1:
     /* If e1 is not the 'this' pointer for ad
      */
     if (ad &&
-        !(t.ty == Type.Kind.pointer && t.nextOf().ty == Type.Kind.struct_ && (cast(TypeStruct)t.nextOf()).sym == ad) &&
-        !(t.ty == Type.Kind.struct_ && (cast(TypeStruct)t).sym == ad))
+        !(t.ty == Tpointer && t.nextOf().ty == Tstruct && (cast(TypeStruct)t.nextOf()).sym == ad) &&
+        !(t.ty == Tstruct && (cast(TypeStruct)t).sym == ad))
     {
         ClassDeclaration cd = ad.isClassDeclaration();
         ClassDeclaration tcd = t.isClassHandle();
@@ -236,7 +236,7 @@ Lagain:
                 error(loc, "forward reference to %s `%s`", v.kind(), v.toPrettyChars());
             return new ErrorExp();
         }
-        if (v.type.ty == Type.Kind.error)
+        if (v.type.ty == Terror)
             return new ErrorExp();
 
         if ((v.storage_class & STC.manifest) && v._init)
@@ -486,11 +486,11 @@ private bool checkPropertyCall(Expression e, Expression emsg)
                 tf = cast(TypeFunction)ce.f.type;
             }
         }
-        else if (ce.e1.type.ty == Type.Kind.function_)
+        else if (ce.e1.type.ty == Tfunction)
             tf = cast(TypeFunction)ce.e1.type;
-        else if (ce.e1.type.ty == Type.Kind.delegate_)
+        else if (ce.e1.type.ty == Tdelegate)
             tf = cast(TypeFunction)ce.e1.type.nextOf();
-        else if (ce.e1.type.ty == Type.Kind.pointer && ce.e1.type.nextOf().ty == Type.Kind.function_)
+        else if (ce.e1.type.ty == Tpointer && ce.e1.type.nextOf().ty == Tfunction)
             tf = cast(TypeFunction)ce.e1.type.nextOf();
         else
             assert(0);
@@ -575,13 +575,13 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
             }
         }
     }
-    else if (e1.op == TOK.dotVariable && e1.type.ty == Type.Kind.function_)
+    else if (e1.op == TOK.dotVariable && e1.type.ty == Tfunction)
     {
         DotVarExp dve = cast(DotVarExp)e1;
         fd = dve.var.isFuncDeclaration();
         goto Lfd;
     }
-    else if (e1.op == TOK.variable && e1.type.ty == Type.Kind.function_ && (sc.intypeof || !(cast(VarExp)e1).var.needThis()))
+    else if (e1.op == TOK.variable && e1.type.ty == Tfunction && (sc.intypeof || !(cast(VarExp)e1).var.needThis()))
     {
         fd = (cast(VarExp)e1).var.isFuncDeclaration();
     Lfd:
@@ -746,13 +746,13 @@ extern (C++) Expression resolveUFCS(Scope* sc, CallExp ce)
         eleft = die.e1;
 
         Type t = eleft.type.toBasetype();
-        if (t.ty == Type.Kind.array || t.ty == Type.Kind.staticArray || t.ty == Type.Kind.null_ || (t.isTypeBasic() && t.ty != Type.Kind.void_))
+        if (t.ty == Tarray || t.ty == Tsarray || t.ty == Tnull || (t.isTypeBasic() && t.ty != Tvoid))
         {
             /* Built-in types and arrays have no callable properties, so do shortcut.
              * It is necessary in: e.init()
              */
         }
-        else if (t.ty == Type.Kind.associativeArray)
+        else if (t.ty == Taarray)
         {
             if (ident == Id.remove)
             {
@@ -957,7 +957,7 @@ extern (C++) void expandTuples(Expressions* exps)
             if (arg.op == TOK.type)
             {
                 TypeExp e = cast(TypeExp)arg;
-                if (e.type.toBasetype().ty == Type.Kind.tuple)
+                if (e.type.toBasetype().ty == Ttuple)
                 {
                     TypeTuple tt = cast(TypeTuple)e.type.toBasetype();
                     if (!tt.arguments || tt.arguments.dim == 0)
@@ -1139,7 +1139,7 @@ extern (C++) Expression valueNoDtor(Expression e)
 private Expression callCpCtor(Scope* sc, Expression e)
 {
     Type tv = e.type.baseElemOf();
-    if (tv.ty == Type.Kind.struct_)
+    if (tv.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)tv).sym;
         if (sd.postblit)
@@ -1852,7 +1852,7 @@ extern (C++) abstract class Expression : RootObject
      */
     bool checkValue()
     {
-        if (type && type.toBasetype().ty == Type.Kind.void_)
+        if (type && type.toBasetype().ty == Tvoid)
         {
             error("expression `%s` is `void` and has no value", toChars());
             //print(); assert(0);
@@ -1867,7 +1867,7 @@ extern (C++) abstract class Expression : RootObject
     {
         if (op == TOK.error)
             return true;
-        if (type.toBasetype().ty == Type.Kind.error)
+        if (type.toBasetype().ty == Terror)
             return true;
         if (!type.isscalar())
         {
@@ -1881,9 +1881,9 @@ extern (C++) abstract class Expression : RootObject
     {
         if (op == TOK.error)
             return true;
-        if (type.toBasetype().ty == Type.Kind.error)
+        if (type.toBasetype().ty == Terror)
             return true;
-        if (type.toBasetype().ty == Type.Kind.bool_)
+        if (type.toBasetype().ty == Tbool)
         {
             error("operation not allowed on `bool` `%s`", toChars());
             return true;
@@ -1895,7 +1895,7 @@ extern (C++) abstract class Expression : RootObject
     {
         if (op == TOK.error)
             return true;
-        if (type.toBasetype().ty == Type.Kind.error)
+        if (type.toBasetype().ty == Terror)
             return true;
         if (!type.isintegral())
         {
@@ -1909,7 +1909,7 @@ extern (C++) abstract class Expression : RootObject
     {
         if (op == TOK.error)
             return true;
-        if (type.toBasetype().ty == Type.Kind.error)
+        if (type.toBasetype().ty == Terror)
             return true;
         if (!type.isintegral() && !type.isfloating())
         {
@@ -2000,13 +2000,13 @@ extern (C++) abstract class Expression : RootObject
             while (outerfunc.toParent2() && outerfunc.isPureBypassingInference() == PURE.impure && outerfunc.toParent2().isFuncDeclaration())
             {
                 outerfunc = outerfunc.toParent2().isFuncDeclaration();
-                if (outerfunc.type.ty == Type.Kind.error)
+                if (outerfunc.type.ty == Terror)
                     return true;
             }
             while (calledparent.toParent2() && calledparent.isPureBypassingInference() == PURE.impure && calledparent.toParent2().isFuncDeclaration())
             {
                 calledparent = calledparent.toParent2().isFuncDeclaration();
-                if (calledparent.type.ty == Type.Kind.error)
+                if (calledparent.type.ty == Terror)
                     return true;
             }
         }
@@ -2232,7 +2232,7 @@ extern (C++) abstract class Expression : RootObject
     final bool checkPostblit(Scope* sc, Type t)
     {
         t = t.baseElemOf();
-        if (t.ty == Type.Kind.struct_)
+        if (t.ty == Tstruct)
         {
             // https://issues.dlang.org/show_bug.cgi?id=11395
             // Require TypeInfo generation for array concatenation
@@ -2259,7 +2259,7 @@ extern (C++) abstract class Expression : RootObject
     {
         if (op == TOK.error)
             return true;
-        if (op == TOK.variable && type.ty != Type.Kind.error)
+        if (op == TOK.variable && type.ty != Terror)
         {
             VarExp ve = cast(VarExp)this;
             if (isNeedThisScope(sc, ve.var))
@@ -2340,7 +2340,7 @@ extern (C++) abstract class Expression : RootObject
         Type att = null;
     Lagain:
         // Structs can be converted to bool using opCast(bool)()
-        if (tb.ty == Type.Kind.struct_)
+        if (tb.ty == Tstruct)
         {
             AggregateDeclaration ad = (cast(TypeStruct)tb).sym;
             /* Don't really need to check for opCast first, but by doing so we
@@ -2407,7 +2407,7 @@ extern (C++) abstract class Expression : RootObject
     {
         //printf("Expression::deref()\n");
         // type could be null if forward referencing an 'auto' variable
-        if (type && type.ty == Type.Kind.reference)
+        if (type && type.ty == Treference)
         {
             Expression e = new PtrExp(loc, this);
             e.type = (cast(TypeReference)type).next;
@@ -2471,7 +2471,7 @@ extern (C++) final class IntegerExp : Expression
         if (!type.isscalar())
         {
             //printf("%s, loc = %d\n", toChars(), loc.linnum);
-            if (type.ty != Type.Kind.error)
+            if (type.ty != Terror)
                 error("integral constant must be scalar type, not `%s`", type.toChars());
             type = Type.terror;
         }
@@ -2516,7 +2516,7 @@ extern (C++) final class IntegerExp : Expression
     {
         normalize(); // necessary until we fix all the paints of 'type'
         Type t = type.toBasetype();
-        if (t.ty == Type.Kind.uint64)
+        if (t.ty == Tuns64)
             return real_t(cast(d_uns64)value);
         else
             return real_t(cast(d_int64)value);
@@ -2570,46 +2570,46 @@ extern (C++) final class IntegerExp : Expression
          */
         switch (type.toBasetype().ty)
         {
-        case Type.Kind.bool_:
+        case Tbool:
             value = (value != 0);
             break;
 
-        case Type.Kind.int8:
+        case Tint8:
             value = cast(d_int8)value;
             break;
 
-        case Type.Kind.char_:
-        case Type.Kind.uint8:
+        case Tchar:
+        case Tuns8:
             value = cast(d_uns8)value;
             break;
 
-        case Type.Kind.int16:
+        case Tint16:
             value = cast(d_int16)value;
             break;
 
-        case Type.Kind.wchar_:
-        case Type.Kind.uint16:
+        case Twchar:
+        case Tuns16:
             value = cast(d_uns16)value;
             break;
 
-        case Type.Kind.int32:
+        case Tint32:
             value = cast(d_int32)value;
             break;
 
-        case Type.Kind.dchar_:
-        case Type.Kind.uint32:
+        case Tdchar:
+        case Tuns32:
             value = cast(d_uns32)value;
             break;
 
-        case Type.Kind.int64:
+        case Tint64:
             value = cast(d_int64)value;
             break;
 
-        case Type.Kind.uint64:
+        case Tuns64:
             value = cast(d_uns64)value;
             break;
 
-        case Type.Kind.pointer:
+        case Tpointer:
             if (Target.ptrsize == 4)
                 value = cast(d_uns32)value;
             else if (Target.ptrsize == 8)
@@ -2892,12 +2892,12 @@ extern (C++) class ThisExp : Expression
     override final bool isLvalue()
     {
         // Class `this` should be an rvalue; struct `this` should be an lvalue.
-        return type.toBasetype().ty != Type.Kind.class_;
+        return type.toBasetype().ty != Tclass;
     }
 
     override final Expression toLvalue(Scope* sc, Expression e)
     {
-        if (type.toBasetype().ty == Type.Kind.class_)
+        if (type.toBasetype().ty == Tclass)
         {
             // Class `this` is an rvalue; struct `this` is an lvalue.
             return Expression.toLvalue(sc, e);
@@ -3056,9 +3056,9 @@ extern (C++) final class StringExp : Expression
         switch (tynto)
         {
             case 0:      return len;
-            case Type.Kind.char_:  encSize = 1; break;
-            case Type.Kind.wchar_: encSize = 2; break;
-            case Type.Kind.dchar_: encSize = 4; break;
+            case Tchar:  encSize = 1; break;
+            case Twchar: encSize = 2; break;
+            case Tdchar: encSize = 4; break;
             default:
                 assert(0);
         }
@@ -3121,9 +3121,9 @@ extern (C++) final class StringExp : Expression
         switch (tyto)
         {
             case 0:      encSize = sz; break;
-            case Type.Kind.char_:  encSize = 1; break;
-            case Type.Kind.wchar_: encSize = 2; break;
-            case Type.Kind.dchar_: encSize = 4; break;
+            case Tchar:  encSize = 1; break;
+            case Twchar: encSize = 2; break;
+            case Tdchar: encSize = 4; break;
             default:
                 assert(0);
         }
@@ -3280,13 +3280,13 @@ extern (C++) final class StringExp : Expression
         /* string literal is rvalue in default, but
          * conversion to reference of static array is only allowed.
          */
-        return (type && type.toBasetype().ty == Type.Kind.staticArray);
+        return (type && type.toBasetype().ty == Tsarray);
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("StringExp::toLvalue(%s) type = %s\n", toChars(), type ? type.toChars() : NULL);
-        return (type && type.toBasetype().ty == Type.Kind.staticArray) ? this : Expression.toLvalue(sc, e);
+        return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -3579,12 +3579,12 @@ extern (C++) final class ArrayLiteralExp : Expression
     override StringExp toStringExp()
     {
         TY telem = type.nextOf().toBasetype().ty;
-        if (telem == Type.Kind.char_ || telem == Type.Kind.wchar_ || telem == Type.Kind.dchar_ || (telem == Type.Kind.void_ && (!elements || elements.dim == 0)))
+        if (telem == Tchar || telem == Twchar || telem == Tdchar || (telem == Tvoid && (!elements || elements.dim == 0)))
         {
             ubyte sz = 1;
-            if (telem == Type.Kind.wchar_)
+            if (telem == Twchar)
                 sz = 2;
-            else if (telem == Type.Kind.dchar_)
+            else if (telem == Tdchar)
                 sz = 4;
 
             OutBuffer buf;
@@ -3810,7 +3810,7 @@ extern (C++) final class StructLiteralExp : Expression
                 /* If type is a static array, and e is an initializer for that array,
                  * then the field initializer should be an array literal of e.
                  */
-                if (e.type.castMod(0) != type.castMod(0) && type.ty == Type.Kind.staticArray)
+                if (e.type.castMod(0) != type.castMod(0) && type.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)type;
                     size_t length = cast(size_t)tsa.dim.toInteger();
@@ -4398,7 +4398,7 @@ extern (C++) final class FuncExp : Expression
             *presult = null;
 
         TypeFunction tof = null;
-        if (to.ty == Type.Kind.delegate_)
+        if (to.ty == Tdelegate)
         {
             if (tok == TOK.function_)
             {
@@ -4408,7 +4408,7 @@ extern (C++) final class FuncExp : Expression
             }
             tof = cast(TypeFunction)to.nextOf();
         }
-        else if (to.ty == Type.Kind.pointer && to.nextOf().ty == Type.Kind.function_)
+        else if (to.ty == Tpointer && to.nextOf().ty == Tfunction)
         {
             if (tok == TOK.delegate_)
             {
@@ -4449,7 +4449,7 @@ extern (C++) final class FuncExp : Expression
                 for (; u < dim; u++)
                 {
                     Parameter p = Parameter.getNth(tf.parameters, u);
-                    if (p.type.ty == Type.Kind.identifier && (cast(TypeIdentifier)p.type).ident == tp.ident)
+                    if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                     {
                         break;
                     }
@@ -4457,7 +4457,7 @@ extern (C++) final class FuncExp : Expression
                 assert(u < dim);
                 Parameter pto = Parameter.getNth(tof.parameters, u);
                 Type t = pto.type;
-                if (t.ty == Type.Kind.error)
+                if (t.ty == Terror)
                     goto L1;
                 tiargs.push(t);
             }
@@ -4511,7 +4511,7 @@ extern (C++) final class FuncExp : Expression
             tfx = tfy;
         }
         Type tx;
-        if (tok == TOK.delegate_ || tok == TOK.reserved && (type.ty == Type.Kind.delegate_ || type.ty == Type.Kind.pointer && to.ty == Type.Kind.delegate_))
+        if (tok == TOK.delegate_ || tok == TOK.reserved && (type.ty == Tdelegate || type.ty == Tpointer && to.ty == Tdelegate))
         {
             // Allow conversion from implicit function pointer to delegate
             tx = new TypeDelegate(tfx);
@@ -4519,7 +4519,7 @@ extern (C++) final class FuncExp : Expression
         }
         else
         {
-            assert(tok == TOK.function_ || tok == TOK.reserved && type.ty == Type.Kind.pointer);
+            assert(tok == TOK.function_ || tok == TOK.reserved && type.ty == Tpointer);
             tx = tfx.pointerTo();
         }
         //printf("\ttx = %s, to = %s\n", tx.toChars(), to.toChars());
@@ -4932,15 +4932,15 @@ extern (C++) abstract class BinExp : Expression
                     {
                         switch (t1.ty)
                         {
-                        case Type.Kind.imaginary32:
+                        case Timaginary32:
                             t2 = Type.tfloat32;
                             break;
 
-                        case Type.Kind.imaginary64:
+                        case Timaginary64:
                             t2 = Type.tfloat64;
                             break;
 
-                        case Type.Kind.imaginary80:
+                        case Timaginary80:
                             t2 = Type.tfloat80;
                             break;
 
@@ -4971,15 +4971,15 @@ extern (C++) abstract class BinExp : Expression
                     Type t3;
                     switch (t1.ty)
                     {
-                    case Type.Kind.imaginary32:
+                    case Timaginary32:
                         t3 = Type.tfloat32;
                         break;
 
-                    case Type.Kind.imaginary64:
+                    case Timaginary64:
                         t3 = Type.tfloat64;
                         break;
 
-                    case Type.Kind.imaginary80:
+                    case Timaginary80:
                         t3 = Type.tfloat80;
                         break;
 
@@ -5039,7 +5039,7 @@ extern (C++) abstract class BinExp : Expression
         if (be.e1.op != TOK.index)
             return be;
         auto ie = cast(IndexExp)be.e1;
-        if (ie.e1.type.toBasetype().ty != Type.Kind.associativeArray)
+        if (ie.e1.type.toBasetype().ty != Taarray)
             return be;
 
         /* Fix evaluation order of setting AA element
@@ -5062,13 +5062,13 @@ extern (C++) abstract class BinExp : Expression
 
             Expression ie1 = ie.e1;
             if (ie1.op != TOK.index ||
-                (cast(IndexExp)ie1).e1.type.toBasetype().ty != Type.Kind.associativeArray)
+                (cast(IndexExp)ie1).e1.type.toBasetype().ty != Taarray)
             {
                 break;
             }
             ie = cast(IndexExp)ie1;
         }
-        assert(ie.e1.type.toBasetype().ty == Type.Kind.associativeArray);
+        assert(ie.e1.type.toBasetype().ty == Taarray);
 
         Expression de;
         ie.e1 = extractSideEffect(sc, "__aatmp", de, ie.e1);
@@ -5454,9 +5454,9 @@ extern (C++) final class CallExp : UnaExp
     override bool isLvalue()
     {
         Type tb = e1.type.toBasetype();
-        if (tb.ty == Type.Kind.delegate_ || tb.ty == Type.Kind.pointer)
+        if (tb.ty == Tdelegate || tb.ty == Tpointer)
             tb = tb.nextOf();
-        if (tb.ty == Type.Kind.function_ && (cast(TypeFunction)tb).isref)
+        if (tb.ty == Tfunction && (cast(TypeFunction)tb).isref)
         {
             if (e1.op == TOK.dotVariable)
                 if ((cast(DotVarExp)e1).var.isCtorDeclaration())
@@ -5479,7 +5479,7 @@ extern (C++) final class CallExp : UnaExp
          * Use same logic as VarDeclaration::callScopeDtor()
          */
 
-        if (e1.type && e1.type.ty == Type.Kind.function_)
+        if (e1.type && e1.type.ty == Tfunction)
         {
             TypeFunction tf = cast(TypeFunction)e1.type;
             if (tf.isref)
@@ -5487,7 +5487,7 @@ extern (C++) final class CallExp : UnaExp
         }
 
         Type tv = type.baseElemOf();
-        if (tv.ty == Type.Kind.struct_)
+        if (tv.ty == Tstruct)
         {
             TypeStruct ts = cast(TypeStruct)tv;
             StructDeclaration sd = ts.sym;
@@ -5749,7 +5749,7 @@ extern (C++) final class VectorExp : UnaExp
     extern (D) this(Loc loc, Expression e, Type t)
     {
         super(loc, TOK.vector, __traits(classInstanceSize, VectorExp), e);
-        assert(t.ty == Type.Kind.vector);
+        assert(t.ty == Tvector);
         to = cast(TypeVector)t;
     }
 
@@ -5809,7 +5809,7 @@ extern (C++) final class SliceExp : UnaExp
     override int checkModifiable(Scope* sc, int flag)
     {
         //printf("SliceExp::checkModifiable %s\n", toChars());
-        if (e1.type.ty == Type.Kind.staticArray || (e1.op == TOK.index && e1.type.ty != Type.Kind.array) || e1.op == TOK.slice)
+        if (e1.type.ty == Tsarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
         {
             return e1.checkModifiable(sc, flag);
         }
@@ -5821,13 +5821,13 @@ extern (C++) final class SliceExp : UnaExp
         /* slice expression is rvalue in default, but
          * conversion to reference of static array is only allowed.
          */
-        return (type && type.toBasetype().ty == Type.Kind.staticArray);
+        return (type && type.toBasetype().ty == Tsarray);
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
         //printf("SliceExp::toLvalue(%s) type = %s\n", toChars(), type ? type.toChars() : NULL);
-        return (type && type.toBasetype().ty == Type.Kind.staticArray) ? this : Expression.toLvalue(sc, e);
+        return (type && type.toBasetype().ty == Tsarray) ? this : Expression.toLvalue(sc, e);
     }
 
     override Expression modifiableLvalue(Scope* sc, Expression e)
@@ -5933,14 +5933,14 @@ extern (C++) final class ArrayExp : UnaExp
 
     override bool isLvalue()
     {
-        if (type && type.toBasetype().ty == Type.Kind.void_)
+        if (type && type.toBasetype().ty == Tvoid)
             return false;
         return true;
     }
 
     override Expression toLvalue(Scope* sc, Expression e)
     {
-        if (type && type.toBasetype().ty == Type.Kind.void_)
+        if (type && type.toBasetype().ty == Tvoid)
             error("`void`s have no value");
         return this;
     }
@@ -6176,7 +6176,7 @@ extern (C++) final class IndexExp : BinExp
 
     override int checkModifiable(Scope* sc, int flag)
     {
-        if (e1.type.ty == Type.Kind.staticArray || e1.type.ty == Type.Kind.associativeArray || (e1.op == TOK.index && e1.type.ty != Type.Kind.array) || e1.op == TOK.slice)
+        if (e1.type.ty == Tsarray || e1.type.ty == Taarray || (e1.op == TOK.index && e1.type.ty != Tarray) || e1.op == TOK.slice)
         {
             return e1.checkModifiable(sc, flag);
         }
@@ -6205,10 +6205,10 @@ extern (C++) final class IndexExp : BinExp
 
     Expression markSettingAAElem()
     {
-        if (e1.type.toBasetype().ty == Type.Kind.associativeArray)
+        if (e1.type.toBasetype().ty == Taarray)
         {
             Type t2b = e2.type.toBasetype();
-            if (t2b.ty == Type.Kind.array && t2b.nextOf().isMutable())
+            if (t2b.ty == Tarray && t2b.nextOf().isMutable())
             {
                 error("associative arrays can only be assigned values with immutable keys, not `%s`", e2.type.toChars());
                 return new ErrorExp();

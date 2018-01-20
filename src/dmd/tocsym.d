@@ -167,7 +167,7 @@ Symbol *toSymbol(Dsymbol s)
                 if (config.exe == EX_WIN64 && vd.isParameter())
                     t = type_fake(TYnptr);
                 else
-                    t = type_fake(TYdelegate);          // Type.Kind.delegate_ as C type
+                    t = type_fake(TYdelegate);          // Tdelegate as C type
                 t.Tcount++;
             }
             else if (vd.isParameter())
@@ -283,14 +283,14 @@ Symbol *toSymbol(Dsymbol s)
         override void visit(TypeInfoDeclaration tid)
         {
             //printf("TypeInfoDeclaration.toSymbol(%s), linkage = %d\n", tid.toChars(), tid.linkage);
-            assert(tid.tinfo.ty != Type.Kind.error);
+            assert(tid.tinfo.ty != Terror);
             visit(cast(VarDeclaration)tid);
         }
 
         override void visit(TypeInfoClassDeclaration ticd)
         {
             //printf("TypeInfoClassDeclaration.toSymbol(%s), linkage = %d\n", ticd.toChars(), ticd.linkage);
-            assert(ticd.tinfo.ty == Type.Kind.class_);
+            assert(ticd.tinfo.ty == Tclass);
             auto tc = cast(TypeClass)ticd.tinfo;
             tc.sym.accept(this);
         }

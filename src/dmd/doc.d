@@ -1170,7 +1170,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             if (d.type)
             {
                 Type origType = d.originalType ? d.originalType : d.type;
-                if (origType.ty == Type.Kind.function_)
+                if (origType.ty == Tfunction)
                 {
                     functionToBufferFull(cast(TypeFunction)origType, buf, d.ident, &hgs, td);
                 }
@@ -1229,7 +1229,7 @@ private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             else if (Type type = ad.getType()) // type alias
             {
-                if (type.ty == Type.Kind.class_ || type.ty == Type.Kind.struct_ || type.ty == Type.Kind.enum_)
+                if (type.ty == Tclass || type.ty == Tstruct || type.ty == Tenum)
                 {
                     if (Dsymbol s = type.toDsymbol(null)) // elaborate type
                         prettyPrintDsymbol(s, ad.parent);
@@ -1984,7 +1984,7 @@ extern (C++) TypeFunction isTypeFunction(Dsymbol s)
     if (f && f.type)
     {
         Type t = f.originalType ? f.originalType : f.type;
-        if (t.ty == Type.Kind.function_)
+        if (t.ty == Tfunction)
             return cast(TypeFunction)t;
     }
     return null;

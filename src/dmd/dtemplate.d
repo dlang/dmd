@@ -106,10 +106,10 @@ extern (C++) bool isError(RootObject o)
 {
     Type t = isType(o);
     if (t)
-        return (t.ty == Type.Kind.error);
+        return (t.ty == Terror);
     Expression e = isExpression(o);
     if (e)
-        return (e.op == TOK.error || !e.type || e.type.ty == Type.Kind.error);
+        return (e.op == TOK.error || !e.type || e.type.ty == Terror);
     Tuple v = isTuple(o);
     if (v)
         return arrayObjectIsError(&v.objects);
@@ -726,7 +726,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
              * Making parameters is similar to FuncDeclaration.semantic3
              */
             TypeFunction tf = cast(TypeFunction)fd.type;
-            assert(tf.ty == Type.Kind.function_);
+            assert(tf.ty == Tfunction);
 
             scx.parent = fd;
 
@@ -908,7 +908,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             FuncDeclaration fd = onemember ? onemember.isFuncDeclaration() : null;
             if (fd)
             {
-                assert(fd.type.ty == Type.Kind.function_);
+                assert(fd.type.ty == Tfunction);
                 TypeFunction tf = cast(TypeFunction)fd.type.syntaxCopy();
 
                 fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, tf);
@@ -926,10 +926,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 fd.type = tf.typeSemantic(loc, paramscope);
                 if (global.endGagging(olderrors))
                 {
-                    assert(fd.type.ty != Type.Kind.function_);
+                    assert(fd.type.ty != Tfunction);
                     goto Lnomatch;
                 }
-                assert(fd.type.ty == Type.Kind.function_);
+                assert(fd.type.ty == Tfunction);
                 fd.originalType = fd.type; // for mangling
             }
 
@@ -1237,7 +1237,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 for (fptupindex = 0; fptupindex < nfparams; fptupindex++)
                 {
                     Parameter fparam = (*fparameters)[fptupindex];
-                    if (fparam.type.ty != Type.Kind.identifier)
+                    if (fparam.type.ty != Tident)
                         continue;
                     TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
                     if (!tp.ident.equals(tid.ident) || tid.idents.dim)
@@ -1332,7 +1332,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                  */
                 if (fptupindex != IDX_NOTFOUND && parami == fptupindex)
                 {
-                    assert(prmtype.ty == Type.Kind.identifier);
+                    assert(prmtype.ty == Tident);
                     TypeIdentifier tid = cast(TypeIdentifier)prmtype;
                     if (!declaredTuple)
                     {
@@ -1352,7 +1352,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             if (!reliesOnTident(p.type, parameters, inferStart))
                             {
                                 Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
-                                rem += pt.ty == Type.Kind.tuple ? (cast(TypeTuple)pt).arguments.dim : 1;
+                                rem += pt.ty == Ttuple ? (cast(TypeTuple)pt).arguments.dim : 1;
                             }
                             else
                             {
@@ -1368,10 +1368,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             farg = (*fargs)[argi + i];
 
                             // Check invalid arguments to detect errors early.
-                            if (farg.op == TOK.error || farg.type.ty == Type.Kind.error)
+                            if (farg.op == TOK.error || farg.type.ty == Terror)
                                 goto Lnomatch;
 
-                            if (!(fparam.storageClass & STC.lazy_) && farg.type.ty == Type.Kind.void_)
+                            if (!(fparam.storageClass & STC.lazy_) && farg.type.ty == Tvoid)
                                 goto Lnomatch;
 
                             Type tt;
@@ -1392,7 +1392,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             /* Remove top const for dynamic array types and pointer types
                              */
-                            if ((tt.ty == Type.Kind.array || tt.ty == Type.Kind.pointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
+                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
                             {
                                 tt = tt.mutableOf();
                             }
@@ -1423,7 +1423,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     // should copy prmtype to avoid affecting semantic result
                     prmtype = prmtype.syntaxCopy().typeSemantic(fd.loc, paramscope);
 
-                    if (prmtype.ty == Type.Kind.tuple)
+                    if (prmtype.ty == Ttuple)
                     {
                         TypeTuple tt = cast(TypeTuple)prmtype;
                         size_t tt_dim = tt.arguments.dim;
@@ -1476,7 +1476,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         for (size_t i = 0; i < dedtypes.dim; i++)
                         {
                             Type at = isType((*dedtypes)[i]);
-                            if (at && at.ty == Type.Kind.none)
+                            if (at && at.ty == Tnone)
                             {
                                 TypeDeduced xt = cast(TypeDeduced)at;
                                 (*dedtypes)[i] = xt.tded; // 'unbox'
@@ -1558,7 +1558,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
                 {
                     // Check invalid arguments to detect errors early.
-                    if (farg.op == TOK.error || farg.type.ty == Type.Kind.error)
+                    if (farg.op == TOK.error || farg.type.ty == Terror)
                         goto Lnomatch;
 
                     Type att = null;
@@ -1570,7 +1570,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     Type argtype = farg.type;
 
-                    if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Type.Kind.void_ && farg.op != TOK.function_)
+                    if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Tvoid && farg.op != TOK.function_)
                         goto Lnomatch;
 
                     // https://issues.dlang.org/show_bug.cgi?id=12876
@@ -1584,7 +1584,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
                          */
                         Type taai;
-                        if (argtype.ty == Type.Kind.array && (prmtype.ty == Type.Kind.staticArray || prmtype.ty == Type.Kind.associativeArray && (taai = (cast(TypeAArray)prmtype).index).ty == Type.Kind.identifier && (cast(TypeIdentifier)taai).idents.dim == 0))
+                        if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
                         {
                             if (farg.op == TOK.string_)
                             {
@@ -1606,7 +1606,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                         oarg = argtype;
                     }
-                    else if ((fparam.storageClass & STC.out_) == 0 && (argtype.ty == Type.Kind.array || argtype.ty == Type.Kind.pointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
+                    else if ((fparam.storageClass & STC.out_) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
                     {
                         /* The farg passing to the prmtype always make a copy. Therefore,
                          * we can shrink the set of the deduced type arguments for prmtype
@@ -1664,7 +1664,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     {
                         if (!farg.isLvalue())
                         {
-                            if ((farg.op == TOK.string_ || farg.op == TOK.slice) && (prmtype.ty == Type.Kind.staticArray || prmtype.ty == Type.Kind.associativeArray))
+                            if ((farg.op == TOK.string_ || farg.op == TOK.slice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
                             {
                                 // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             }
@@ -1679,7 +1679,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                             goto Lnomatch;
                     }
-                    if (m == MATCH.nomatch && (fparam.storageClass & STC.lazy_) && prmtype.ty == Type.Kind.void_ && farg.type.ty != Type.Kind.void_)
+                    if (m == MATCH.nomatch && (fparam.storageClass & STC.lazy_) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
                         m = MATCH.convert;
                     if (m != MATCH.nomatch)
                     {
@@ -1703,18 +1703,18 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 switch (tb.ty)
                 {
                     // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
-                case Type.Kind.staticArray:
-                case Type.Kind.associativeArray:
+                case Tsarray:
+                case Taarray:
                     {
                         // Perhaps we can do better with this, see TypeFunction.callMatch()
-                        if (tb.ty == Type.Kind.staticArray)
+                        if (tb.ty == Tsarray)
                         {
                             TypeSArray tsa = cast(TypeSArray)tb;
                             dinteger_t sz = tsa.dim.toInteger();
                             if (sz != nfargs - argi)
                                 goto Lnomatch;
                         }
-                        else if (tb.ty == Type.Kind.associativeArray)
+                        else if (tb.ty == Taarray)
                         {
                             TypeAArray taa = cast(TypeAArray)tb;
                             Expression dim = new IntegerExp(instLoc, nfargs - argi, Type.tsize_t);
@@ -1776,9 +1776,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 }
                             }
                         }
-                        goto case Type.Kind.array;
+                        goto case Tarray;
                     }
-                case Type.Kind.array:
+                case Tarray:
                     {
                         TypeArray ta = cast(TypeArray)tb;
                         Type tret = fparam.isLazyArray();
@@ -1802,7 +1802,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                     m = arg.implicitConvTo(tret);
                                     if (m == MATCH.nomatch)
                                     {
-                                        if (tret.toBasetype().ty == Type.Kind.void_)
+                                        if (tret.toBasetype().ty == Tvoid)
                                             m = MATCH.convert;
                                     }
                                 }
@@ -1820,8 +1820,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                         goto Lmatch;
                     }
-                case Type.Kind.class_:
-                case Type.Kind.identifier:
+                case Tclass:
+                case Tident:
                     goto Lmatch;
 
                 default:
@@ -1840,7 +1840,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             Type at = isType((*dedtypes)[i]);
             if (at)
             {
-                if (at.ty == Type.Kind.none)
+                if (at.ty == Tnone)
                 {
                     TypeDeduced xt = cast(TypeDeduced)at;
                     at = xt.tded; // 'unbox'
@@ -2066,7 +2066,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             Type t = ta;
             // consistent with Type.checkDeprecated()
-            while (t.ty != Type.Kind.enum_)
+            while (t.ty != Tenum)
             {
                 if (!t.nextOf())
                     break;
@@ -2112,7 +2112,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, fd.type.syntaxCopy());
         fd.parent = ti;
 
-        assert(fd.type.ty == Type.Kind.function_);
+        assert(fd.type.ty == Tfunction);
         TypeFunction tf = cast(TypeFunction)fd.type;
         tf.fargs = fargs;
 
@@ -2171,7 +2171,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         fd.type = fd.type.typeSemantic(fd.loc, scx);
         scx = scx.pop();
 
-        if (fd.type.ty != Type.Kind.function_)
+        if (fd.type.ty != Tfunction)
             return null;
 
         fd.originalType = fd.type; // for mangling
@@ -2276,7 +2276,7 @@ extern (C++) final class TypeDeduced : Type
 
     extern (D) this(Type tt, Expression e, Type tparam)
     {
-        super(Type.Kind.none);
+        super(Tnone);
         tded = tt;
         argexps.push(e);
         tparams.push(tparam);
@@ -2599,7 +2599,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             if (!fd)
                 return 0;
 
-            if (fd.type.ty != Type.Kind.function_)
+            if (fd.type.ty != Tfunction)
             {
                 m.lastf = fd;   // to propagate "error match"
                 m.count = 1;
@@ -2648,7 +2648,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         //printf("td = %s\n", td.toChars());
         for (size_t ovi = 0; f; f = f.overnext0, ovi++)
         {
-            if (f.type.ty != Type.Kind.function_ || f.errors)
+            if (f.type.ty != Tfunction || f.errors)
                 goto Lerror;
 
             /* This is a 'dummy' instance to evaluate constraint properly.
@@ -2702,9 +2702,9 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             {
                 // Disambiguate by tf.callMatch
                 auto tf1 = cast(TypeFunction)fd.type;
-                assert(tf1.ty == Type.Kind.function_);
+                assert(tf1.ty == Tfunction);
                 auto tf2 = cast(TypeFunction)m.lastf.type;
-                assert(tf2.ty == Type.Kind.function_);
+                assert(tf2.ty == Tfunction);
                 MATCH c1 = tf1.callMatch(tthis_fd, fargs);
                 MATCH c2 = tf2.callMatch(tthis_best, fargs);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
@@ -2807,9 +2807,9 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         tthis_best = m.lastf.needThis() && !m.lastf.isCtorDeclaration() ? tthis : null;
 
         auto tf = cast(TypeFunction)m.lastf.type;
-        if (tf.ty == Type.Kind.error)
+        if (tf.ty == Terror)
             goto Lerror;
-        assert(tf.ty == Type.Kind.function_);
+        assert(tf.ty == Tfunction);
         if (!tf.callMatch(tthis_best, fargs))
             goto Lnomatch;
 
@@ -2860,7 +2860,7 @@ private size_t templateIdentifierLookup(Identifier id, TemplateParameters* param
 
 private size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
 {
-    if (tparam.ty == Type.Kind.identifier)
+    if (tparam.ty == Tident)
     {
         TypeIdentifier tident = cast(TypeIdentifier)tparam;
         //printf("\ttident = '%s'\n", tident.toChars());
@@ -2946,7 +2946,7 @@ private Type rawTypeMerge(Type t1, Type t2)
         return t1b.castMod(MODmerge(t1b.mod, t2b.mod));
 
     auto ty = cast(TY)impcnvResult[t1b.ty][t2b.ty];
-    if (ty != Type.Kind.error)
+    if (ty != Terror)
         return Type.basic[ty];
 
     return null;
@@ -3217,7 +3217,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (t == tparam)
                 goto Lexact;
 
-            if (tparam.ty == Type.Kind.identifier)
+            if (tparam.ty == Tident)
             {
                 // Determine which parameter tparam is
                 size_t i = templateParameterLookup(tparam, parameters);
@@ -3236,10 +3236,10 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
 
                     /* BUG: what if tparam is a template instance, that
-                     * has as an argument another Type.Kind.identifier?
+                     * has as an argument another Tident?
                      */
                     tparam = tparam.typeSemantic(loc, sc);
-                    assert(tparam.ty != Type.Kind.identifier);
+                    assert(tparam.ty != Tident);
                     result = deduceType(t, sc, tparam, parameters, dedtypes, wm);
                     return;
                 }
@@ -3285,7 +3285,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         if (!tt)
                             goto Lnomatch;
                         Type at = cast(Type)(*dedtypes)[i];
-                        if (at && at.ty == Type.Kind.none)
+                        if (at && at.ty == Tnone)
                             at = (cast(TypeDeduced)at).tded;
                         if (!at || tt.equals(at))
                         {
@@ -3323,7 +3323,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
 
                     // type vs expressions
-                    if (at.ty == Type.Kind.none)
+                    if (at.ty == Tnone)
                     {
                         TypeDeduced xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
@@ -3367,7 +3367,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     }
 
                     // type vs expressions
-                    if (at.ty == Type.Kind.none)
+                    if (at.ty == Tnone)
                     {
                         TypeDeduced xt = cast(TypeDeduced)at;
                         result = xt.matchAll(tt);
@@ -3383,12 +3383,12 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     {
                         goto Lexact;
                     }
-                    if (tt.ty == Type.Kind.class_ && at.ty == Type.Kind.class_)
+                    if (tt.ty == Tclass && at.ty == Tclass)
                     {
                         result = tt.implicitConvTo(at);
                         return;
                     }
-                    if (tt.ty == Type.Kind.staticArray && at.ty == Type.Kind.array && tt.nextOf().implicitConvTo(at.nextOf()) >= MATCH.constant)
+                    if (tt.ty == Tsarray && at.ty == Tarray && tt.nextOf().implicitConvTo(at.nextOf()) >= MATCH.constant)
                     {
                         goto Lexact;
                     }
@@ -3396,7 +3396,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 goto Lnomatch;
             }
 
-            if (tparam.ty == Type.Kind.typeof_)
+            if (tparam.ty == Ttypeof)
             {
                 /* Need a loc to go with the semantic routine.
                  */
@@ -3420,7 +3420,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 MATCH m = t.implicitConvTo(tparam);
                 if (m == MATCH.nomatch)
                 {
-                    if (t.ty == Type.Kind.class_)
+                    if (t.ty == Tclass)
                     {
                         TypeClass tc = cast(TypeClass)t;
                         if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
@@ -3433,7 +3433,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                             }
                         }
                     }
-                    else if (t.ty == Type.Kind.struct_)
+                    else if (t.ty == Tstruct)
                     {
                         TypeStruct ts = cast(TypeStruct)t;
                         if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
@@ -3460,7 +3460,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
 
                 Type tpn = tparam.nextOf();
-                if (wm && t.ty == Type.Kind.associativeArray && tparam.isWild())
+                if (wm && t.ty == Taarray && tparam.isWild())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=12403
                     // In IFTI, stop inout matching on transitive part of AA types.
@@ -3493,7 +3493,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 printf("\ttparam = %d, ", tparam.ty);
                 tparam.print();
             }
-            if (tparam.ty == Type.Kind.vector)
+            if (tparam.ty == Tvector)
             {
                 TypeVector tp = cast(TypeVector)tparam;
                 result = deduceType(t.basetype, sc, tp.basetype, parameters, dedtypes, wm);
@@ -3529,7 +3529,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             // Extra check that array dimensions must match
             if (tparam)
             {
-                if (tparam.ty == Type.Kind.array)
+                if (tparam.ty == Tarray)
                 {
                     MATCH m = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
                     result = (m >= MATCH.constant) ? MATCH.convert : MATCH.nomatch;
@@ -3539,7 +3539,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 TemplateParameter tp = null;
                 Expression edim = null;
                 size_t i;
-                if (tparam.ty == Type.Kind.staticArray)
+                if (tparam.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tparam;
                     if (tsa.dim.op == TOK.variable && (cast(VarExp)tsa.dim).var.storage_class & STC.templateparameter)
@@ -3552,7 +3552,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     else
                         edim = tsa.dim;
                 }
-                else if (tparam.ty == Type.Kind.associativeArray)
+                else if (tparam.ty == Taarray)
                 {
                     TypeAArray taa = cast(TypeAArray)tparam;
                     i = templateParameterLookup(taa.index, parameters);
@@ -3588,7 +3588,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             // Extra check that index type must match
-            if (tparam && tparam.ty == Type.Kind.associativeArray)
+            if (tparam && tparam.ty == Taarray)
             {
                 TypeAArray tp = cast(TypeAArray)tparam;
                 if (!deduceType(t.index, sc, tp.index, parameters, dedtypes))
@@ -3607,7 +3607,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             //printf("\ttparam = %d, ", tparam.ty); tparam.print();
 
             // Extra check that function characteristics must match
-            if (tparam && tparam.ty == Type.Kind.function_)
+            if (tparam && tparam.ty == Tfunction)
             {
                 TypeFunction tp = cast(TypeFunction)tparam;
                 if (t.varargs != tp.varargs || t.linkage != tp.linkage)
@@ -3628,7 +3628,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (!reliesOnTident(fparam.type, parameters, inferStart))
                     {
                         auto tx = fparam.type.typeSemantic(Loc(), sc);
-                        if (tx.ty == Type.Kind.error)
+                        if (tx.ty == Terror)
                         {
                             result = MATCH.nomatch;
                             return;
@@ -3652,7 +3652,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     Parameter fparam = Parameter.getNth(tp.parameters, nfparams - 1);
                     assert(fparam);
                     assert(fparam.type);
-                    if (fparam.type.ty != Type.Kind.identifier)
+                    if (fparam.type.ty != Tident)
                         goto L1;
                     TypeIdentifier tid = cast(TypeIdentifier)fparam.type;
                     if (tid.idents.dim)
@@ -3740,7 +3740,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         override void visit(TypeIdentifier t)
         {
             // Extra check
-            if (tparam && tparam.ty == Type.Kind.identifier)
+            if (tparam && tparam.ty == Tident)
             {
                 TypeIdentifier tp = cast(TypeIdentifier)tparam;
                 for (size_t i = 0; i < t.idents.dim; i++)
@@ -3768,7 +3768,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 tparam.print();
             }
             // Extra check
-            if (tparam && tparam.ty == Type.Kind.instance && t.tempinst.tempdecl)
+            if (tparam && tparam.ty == Tinstance && t.tempinst.tempdecl)
             {
                 TemplateDeclaration tempdecl = t.tempinst.tempdecl.isTemplateDeclaration();
                 assert(tempdecl);
@@ -3865,7 +3865,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     RootObject o2 = (*tp.tempinst.tiargs)[i];
                     Type t2 = isType(o2);
 
-                    size_t j = (t2 && t2.ty == Type.Kind.identifier && i == tp.tempinst.tiargs.dim - 1)
+                    size_t j = (t2 && t2.ty == Tident && i == tp.tempinst.tiargs.dim - 1)
                         ? templateParameterLookup(t2, parameters) : IDX_NOTFOUND;
                     if (j != IDX_NOTFOUND && j == parameters.dim - 1 &&
                         (*parameters)[j].isTemplateTupleParameter())
@@ -3973,7 +3973,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                                 goto Lnomatch;
                         }
                     }
-                    else if (e1 && t2 && t2.ty == Type.Kind.identifier)
+                    else if (e1 && t2 && t2.ty == Tident)
                     {
                         j = templateParameterLookup(t2, parameters);
                     L1:
@@ -3993,7 +3993,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         if (!s1.equals(s2))
                             goto Lnomatch;
                     }
-                    else if (s1 && t2 && t2.ty == Type.Kind.identifier)
+                    else if (s1 && t2 && t2.ty == Tident)
                     {
                         j = templateParameterLookup(t2, parameters);
                         if (j == IDX_NOTFOUND)
@@ -4035,7 +4035,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
              */
             TemplateInstance ti = t.sym.parent.isTemplateInstance();
 
-            if (tparam && tparam.ty == Type.Kind.instance)
+            if (tparam && tparam.ty == Tinstance)
             {
                 if (ti && ti.toAlias() == t.sym)
                 {
@@ -4068,7 +4068,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             // Extra check
-            if (tparam && tparam.ty == Type.Kind.struct_)
+            if (tparam && tparam.ty == Tstruct)
             {
                 TypeStruct tp = cast(TypeStruct)tparam;
 
@@ -4087,7 +4087,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         override void visit(TypeEnum t)
         {
             // Extra check
-            if (tparam && tparam.ty == Type.Kind.enum_)
+            if (tparam && tparam.ty == Tenum)
             {
                 TypeEnum tp = cast(TypeEnum)tparam;
                 if (t.sym == tp.sym)
@@ -4097,7 +4097,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 return;
             }
             Type tb = t.toBasetype();
-            if (tb.ty == tparam.ty || tb.ty == Type.Kind.staticArray && tparam.ty == Type.Kind.associativeArray)
+            if (tb.ty == tparam.ty || tb.ty == Tsarray && tparam.ty == Taarray)
             {
                 result = deduceType(tb, sc, tparam, parameters, dedtypes, wm);
                 return;
@@ -4169,7 +4169,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
              */
             TemplateInstance ti = t.sym.parent.isTemplateInstance();
 
-            if (tparam && tparam.ty == Type.Kind.instance)
+            if (tparam && tparam.ty == Tinstance)
             {
                 if (ti && ti.toAlias() == t.sym)
                 {
@@ -4249,7 +4249,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             // Extra check
-            if (tparam && tparam.ty == Type.Kind.class_)
+            if (tparam && tparam.ty == Tclass)
             {
                 TypeClass tp = cast(TypeClass)tparam;
 
@@ -4271,7 +4271,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             size_t i = templateParameterLookup(tparam, parameters);
             if (i == IDX_NOTFOUND || (cast(TypeIdentifier)tparam).idents.dim > 0)
             {
-                if (e == emptyArrayElement && tparam.ty == Type.Kind.array)
+                if (e == emptyArrayElement && tparam.ty == Tarray)
                 {
                     Type tn = (cast(TypeNext)tparam).next;
                     result = deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
@@ -4321,7 +4321,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             TypeDeduced xt = null;
-            if (at.ty == Type.Kind.none)
+            if (at.ty == Tnone)
             {
                 xt = cast(TypeDeduced)at;
                 at = xt.tded;
@@ -4413,7 +4413,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 emptyArrayElement = new IdentifierExp(Loc(), Id.p); // dummy
                 emptyArrayElement.type = Type.tvoid;
             }
-            assert(tparam.ty == Type.Kind.array);
+            assert(tparam.ty == Tarray);
 
             Type tn = (cast(TypeNext)tparam).next;
             return deduceType(emptyArrayElement, sc, tn, parameters, dedtypes, wm);
@@ -4421,7 +4421,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(NullExp e)
         {
-            if (tparam.ty == Type.Kind.array && e.type.ty == Type.Kind.null_)
+            if (tparam.ty == Tarray && e.type.ty == Tnull)
             {
                 // tparam:T[] <- e:null (void[])
                 result = deduceEmptyArrayElement();
@@ -4433,7 +4433,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         override void visit(StringExp e)
         {
             Type taai;
-            if (e.type.ty == Type.Kind.array && (tparam.ty == Type.Kind.staticArray || tparam.ty == Type.Kind.associativeArray && (taai = (cast(TypeAArray)tparam).index).ty == Type.Kind.identifier && (cast(TypeIdentifier)taai).idents.dim == 0))
+            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
                 e.type.nextOf().sarrayOf(e.len).accept(this);
@@ -4444,14 +4444,14 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(ArrayLiteralExp e)
         {
-            if ((!e.elements || !e.elements.dim) && e.type.toBasetype().nextOf().ty == Type.Kind.void_ && tparam.ty == Type.Kind.array)
+            if ((!e.elements || !e.elements.dim) && e.type.toBasetype().nextOf().ty == Tvoid && tparam.ty == Tarray)
             {
                 // tparam:T[] <- e:[] (void[])
                 result = deduceEmptyArrayElement();
                 return;
             }
 
-            if (tparam.ty == Type.Kind.array && e.elements && e.elements.dim)
+            if (tparam.ty == Tarray && e.elements && e.elements.dim)
             {
                 Type tn = (cast(TypeDArray)tparam).next;
                 result = MATCH.exact;
@@ -4476,7 +4476,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
 
             Type taai;
-            if (e.type.ty == Type.Kind.array && (tparam.ty == Type.Kind.staticArray || tparam.ty == Type.Kind.associativeArray && (taai = (cast(TypeAArray)tparam).index).ty == Type.Kind.identifier && (cast(TypeIdentifier)taai).idents.dim == 0))
+            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
                 e.type.nextOf().sarrayOf(e.elements.dim).accept(this);
@@ -4487,7 +4487,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
         override void visit(AssocArrayLiteralExp e)
         {
-            if (tparam.ty == Type.Kind.associativeArray && e.keys && e.keys.dim)
+            if (tparam.ty == Taarray && e.keys && e.keys.dim)
             {
                 TypeAArray taa = cast(TypeAArray)tparam;
                 result = MATCH.exact;
@@ -4515,7 +4515,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             if (e.td)
             {
                 Type to = tparam;
-                if (!to.nextOf() || to.nextOf().ty != Type.Kind.function_)
+                if (!to.nextOf() || to.nextOf().ty != Tfunction)
                     return;
                 TypeFunction tof = cast(TypeFunction)to.nextOf();
 
@@ -4539,7 +4539,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     for (; u < dim; u++)
                     {
                         Parameter p = Parameter.getNth(tf.parameters, u);
-                        if (p.type.ty == Type.Kind.identifier && (cast(TypeIdentifier)p.type).ident == tp.ident)
+                        if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                         {
                             break;
                         }
@@ -4552,7 +4552,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (reliesOnTident(t, parameters, inferStart))
                         return;
                     t = t.typeSemantic(e.loc, sc);
-                    if (t.ty == Type.Kind.error)
+                    if (t.ty == Terror)
                         return;
                     tiargs.push(t);
                 }
@@ -4577,11 +4577,11 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
 
             Type t = e.type;
 
-            if (t.ty == Type.Kind.delegate_ && tparam.ty == Type.Kind.pointer)
+            if (t.ty == Tdelegate && tparam.ty == Tpointer)
                 return;
 
             // Allow conversion from implicit function pointer to delegate
-            if (e.tok == TOK.reserved && t.ty == Type.Kind.pointer && tparam.ty == Type.Kind.delegate_)
+            if (e.tok == TOK.reserved && t.ty == Tpointer && tparam.ty == Tdelegate)
             {
                 TypeFunction tf = cast(TypeFunction)t.nextOf();
                 t = (new TypeDelegate(tf)).merge();
@@ -4593,7 +4593,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         override void visit(SliceExp e)
         {
             Type taai;
-            if (e.type.ty == Type.Kind.array && (tparam.ty == Type.Kind.staticArray || tparam.ty == Type.Kind.associativeArray && (taai = (cast(TypeAArray)tparam).index).ty == Type.Kind.identifier && (cast(TypeIdentifier)taai).idents.dim == 0))
+            if (e.type.ty == Tarray && (tparam.ty == Tsarray || tparam.ty == Taarray && (taai = (cast(TypeAArray)tparam).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
             {
                 // Consider compile-time known boundaries
                 if (Type tsa = toStaticArrayType(e))
@@ -5587,7 +5587,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         Type ta = isType(defaultAlias);
         if (ta)
         {
-            if (ta.ty == Type.Kind.instance)
+            if (ta.ty == Tinstance)
             {
                 // If the default arg is a template, instantiate for each type
                 da = ta.syntaxCopy();
@@ -5642,7 +5642,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                         goto Lnomatch;
                 }
             }
-            else if (ta && ta.ty == Type.Kind.instance && !specAlias)
+            else if (ta && ta.ty == Tinstance && !specAlias)
             {
                 /* Specialized parameter should be preferred
                  * match to the template type parameter.
@@ -6629,7 +6629,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
 
             Ltype:
-                if (ta.ty == Type.Kind.tuple)
+                if (ta.ty == Ttuple)
                 {
                     // Expand tuple
                     TypeTuple tt = cast(TypeTuple)ta;
@@ -6650,7 +6650,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     j--;
                     continue;
                 }
-                if (ta.ty == Type.Kind.error)
+                if (ta.ty == Terror)
                 {
                     err = true;
                     continue;
@@ -6735,7 +6735,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                      * already semanticed as function pointer, never requires
                      * outer frame. So convert it to global function is valid.
                      */
-                    if (fe.fd.tok == TOK.reserved && fe.type.ty == Type.Kind.pointer)
+                    if (fe.fd.tok == TOK.reserved && fe.type.ty == Tpointer)
                     {
                         // change to non-nested
                         fe.fd.tok = TOK.function_;
@@ -7092,7 +7092,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     return 1;
                 }
                 auto fd = td.onemember.isFuncDeclaration();
-                if (!fd || fd.type.ty != Type.Kind.function_)
+                if (!fd || fd.type.ty != Tfunction)
                     return 0;
 
                 foreach (tp; *td.parameters)

@@ -370,11 +370,11 @@ private Identifier opId_r(Expression e)
 extern (C++) AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
-    if (t.ty == Type.Kind.class_)
+    if (t.ty == Tclass)
     {
         return (cast(TypeClass)t).sym;
     }
-    else if (t.ty == Type.Kind.struct_)
+    else if (t.ty == Tstruct)
     {
         return (cast(TypeStruct)t).sym;
     }
@@ -643,8 +643,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 {
                     // If the non-aggregate expression ae.e1 is indexable or sliceable,
                     // convert it to the corresponding concrete expression.
-                    if (t1b.ty == Type.Kind.pointer || t1b.ty == Type.Kind.staticArray || t1b.ty == Type.Kind.array || t1b.ty == Type.Kind.associativeArray ||
-                        t1b.ty == Type.Kind.tuple || t1b.ty == Type.Kind.vector || ae.e1.op == TOK.type)
+                    if (t1b.ty == Tpointer || t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Taarray ||
+                        t1b.ty == Ttuple || t1b.ty == Tvector || ae.e1.op == TOK.type)
                     {
                         // Convert to SliceExp
                         if (maybeSlice)
@@ -1075,16 +1075,16 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             /* Check for array equality.
              */
-            if ((t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray)
-                && (t2.ty == Type.Kind.array || t2.ty == Type.Kind.staticArray))
+            if ((t1.ty == Tarray || t1.ty == Tsarray)
+                && (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 bool needsDirectEq()
                 {
                     Type t1n = t1.nextOf().toBasetype();
                     Type t2n = t2.nextOf().toBasetype();
-                    if (((t1n.ty == Type.Kind.char_ || t1n.ty == Type.Kind.wchar_ || t1n.ty == Type.Kind.dchar_) &&
-                         (t2n.ty == Type.Kind.char_ || t2n.ty == Type.Kind.wchar_ || t2n.ty == Type.Kind.dchar_)) ||
-                        (t1n.ty == Type.Kind.void_ || t2n.ty == Type.Kind.void_))
+                    if (((t1n.ty == Tchar || t1n.ty == Twchar || t1n.ty == Tdchar) &&
+                         (t2n.ty == Tchar || t2n.ty == Twchar || t2n.ty == Tdchar)) ||
+                        (t1n.ty == Tvoid || t2n.ty == Tvoid))
                     {
                         return false;
                     }
@@ -1094,14 +1094,14 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                     Type t = t1n;
                     while (t.toBasetype().nextOf())
                         t = t.nextOf().toBasetype();
-                    if (t.ty != Type.Kind.struct_)
+                    if (t.ty != Tstruct)
                         return false;
 
                     semanticTypeInfo(sc, t);
                     return (cast(TypeStruct)t).sym.hasIdentityEquals;
                 }
 
-                if (needsDirectEq() && !(t1.ty == Type.Kind.array && t2.ty == Type.Kind.array))
+                if (needsDirectEq() && !(t1.ty == Tarray && t2.ty == Tarray))
                 {
                     /* Rewrite as:
                      *      _ArrayEq(e1, e2)
@@ -1122,8 +1122,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             /* Check for class equality with null literal or typeof(null).
              */
-            if (t1.ty == Type.Kind.class_ && e.e2.op == TOK.null_ ||
-                t2.ty == Type.Kind.class_ && e.e1.op == TOK.null_)
+            if (t1.ty == Tclass && e.e2.op == TOK.null_ ||
+                t2.ty == Tclass && e.e1.op == TOK.null_)
             {
                 e.error("use `%s` instead of `%s` when comparing with `null`",
                     Token.toChars(e.op == TOK.equal ? TOK.identity : TOK.notIdentity),
@@ -1131,8 +1131,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 result = new ErrorExp();
                 return;
             }
-            if (t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.null_ ||
-                t1.ty == Type.Kind.null_ && t2.ty == Type.Kind.class_)
+            if (t1.ty == Tclass && t2.ty == Tnull ||
+                t1.ty == Tnull && t2.ty == Tclass)
             {
                 // Comparing a class with typeof(null) should not call opEquals
                 return;
@@ -1140,7 +1140,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             /* Check for class equality.
              */
-            if (t1.ty == Type.Kind.class_ && t2.ty == Type.Kind.class_)
+            if (t1.ty == Tclass && t2.ty == Tclass)
             {
                 ClassDeclaration cd1 = t1.isClassHandle();
                 ClassDeclaration cd2 = t2.isClassHandle();
@@ -1183,12 +1183,12 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
                 return;
             }
 
-            if (t1.ty == Type.Kind.array && t2.ty == Type.Kind.array)
+            if (t1.ty == Tarray && t2.ty == Tarray)
                 return;
 
             /* Check for pointer equality.
              */
-            if (t1.ty == Type.Kind.pointer || t2.ty == Type.Kind.pointer)
+            if (t1.ty == Tpointer || t2.ty == Tpointer)
             {
                 /* Rewrite:
                  *      ptr1 == ptr2
@@ -1206,7 +1206,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             /* Check for struct equality without opEquals.
              */
-            if (t1.ty == Type.Kind.struct_ && t2.ty == Type.Kind.struct_)
+            if (t1.ty == Tstruct && t2.ty == Tstruct)
             {
                 auto sd = (cast(TypeStruct)t1).sym;
                 if (sd != (cast(TypeStruct)t2).sym)
@@ -1420,7 +1420,7 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
             if (result)
                 return;
             // Don't attempt 'alias this' if an error occurred
-            if (e.e1.type.ty == Type.Kind.error || e.e2.type.ty == Type.Kind.error)
+            if (e.e1.type.ty == Terror || e.e2.type.ty == Terror)
             {
                 result = new ErrorExp();
                 return;
@@ -1716,7 +1716,7 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
         Dsymbol s2 = s.toAlias();
         //printf("search_function: s2 = '%s'\n", s2.kind());
         FuncDeclaration fd = s2.isFuncDeclaration();
-        if (fd && fd.type.ty == Type.Kind.function_)
+        if (fd && fd.type.ty == Tfunction)
             return fd;
         TemplateDeclaration td = s2.isTemplateDeclaration();
         if (td)
@@ -1745,15 +1745,15 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
         tab = aggr.type.toBasetype();
         switch (tab.ty)
         {
-        case Type.Kind.array:
-        case Type.Kind.staticArray:
-        case Type.Kind.tuple:
-        case Type.Kind.associativeArray:
+        case Tarray:
+        case Tsarray:
+        case Ttuple:
+        case Taarray:
             break;
-        case Type.Kind.class_:
+        case Tclass:
             ad = (cast(TypeClass)tab).sym;
             goto Laggr;
-        case Type.Kind.struct_:
+        case Tstruct:
             ad = (cast(TypeStruct)tab).sym;
             goto Laggr;
         Laggr:
@@ -1792,13 +1792,13 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                 continue;
             }
             goto Lerr;
-        case Type.Kind.delegate_:
+        case Tdelegate:
             if (aggr.op == TOK.delegate_)
             {
                 sapply = (cast(DelegateExp)aggr).func;
             }
             break;
-        case Type.Kind.error:
+        case Terror:
             break;
         default:
             goto Lerr;
@@ -1833,11 +1833,11 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
         }
         Expression ethis;
         Type tab = fes.aggr.type.toBasetype();
-        if (tab.ty == Type.Kind.class_ || tab.ty == Type.Kind.struct_)
+        if (tab.ty == Tclass || tab.ty == Tstruct)
             ethis = fes.aggr;
         else
         {
-            assert(tab.ty == Type.Kind.delegate_ && fes.aggr.op == TOK.delegate_);
+            assert(tab.ty == Tdelegate && fes.aggr.op == TOK.delegate_);
             ethis = (cast(DelegateExp)fes.aggr).e1;
         }
         /* Look for like an
@@ -1866,9 +1866,9 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
     Type tab = taggr.toBasetype();
     switch (tab.ty)
     {
-    case Type.Kind.array:
-    case Type.Kind.staticArray:
-    case Type.Kind.tuple:
+    case Tarray:
+    case Tsarray:
+    case Ttuple:
         if (fes.parameters.dim == 2)
         {
             if (!p.type)
@@ -1878,13 +1878,13 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             }
             p = (*fes.parameters)[1];
         }
-        if (!p.type && tab.ty != Type.Kind.tuple)
+        if (!p.type && tab.ty != Ttuple)
         {
             p.type = tab.nextOf(); // value type
             p.type = p.type.addStorageClass(p.storageClass);
         }
         break;
-    case Type.Kind.associativeArray:
+    case Taarray:
         {
             TypeAArray taa = cast(TypeAArray)tab;
             if (fes.parameters.dim == 2)
@@ -1905,10 +1905,10 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             }
             break;
         }
-    case Type.Kind.class_:
+    case Tclass:
         ad = (cast(TypeClass)tab).sym;
         goto Laggr;
-    case Type.Kind.struct_:
+    case Tstruct:
         ad = (cast(TypeStruct)tab).sym;
         goto Laggr;
     Laggr:
@@ -1942,7 +1942,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             break;
         }
         break;
-    case Type.Kind.delegate_:
+    case Tdelegate:
         {
             if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
                 return false;
@@ -2015,10 +2015,10 @@ private int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters, int fla
     if (Parameter.dim(tf.parameters) != 1)
         goto Lnomatch;
     p = Parameter.getNth(tf.parameters, 0);
-    if (p.type.ty != Type.Kind.delegate_)
+    if (p.type.ty != Tdelegate)
         goto Lnomatch;
     tf = cast(TypeFunction)p.type.nextOf();
-    assert(tf.ty == Type.Kind.function_);
+    assert(tf.ty == Tfunction);
     /* We now have tf, the type of the delegate. Match it against
      * the parameters, filling in missing parameter types.
      */

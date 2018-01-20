@@ -367,7 +367,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             Dsymbol s = (*members)[i];
             s.setFieldOffset(this, &offset, isunion);
         }
-        if (type.ty == Type.Kind.error)
+        if (type.ty == Terror)
             return;
 
         // 0 sized struct's are set to 1 byte
@@ -483,14 +483,14 @@ extern (C++) class StructDeclaration : AggregateDeclaration
              * Allow this by doing an explicit cast, which will lengthen the string
              * literal.
              */
-            if (e.op == TOK.string_ && tb.ty == Type.Kind.staticArray)
+            if (e.op == TOK.string_ && tb.ty == Tsarray)
             {
                 StringExp se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
                 TY tynto = tb.nextOf().ty;
                 if (!se.committed &&
-                    (typeb.ty == Type.Kind.array || typeb.ty == Type.Kind.staticArray) &&
-                    (tynto == Type.Kind.char_ || tynto == Type.Kind.wchar_ || tynto == Type.Kind.dchar_) &&
+                    (typeb.ty == Tarray || typeb.ty == Tsarray) &&
+                    (tynto == Tchar || tynto == Twchar || tynto == Tdchar) &&
                     se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
                 {
                     e = se.castTo(sc, t);
@@ -498,7 +498,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 }
             }
 
-            while (!e.implicitConvTo(t) && tb.ty == Type.Kind.staticArray)
+            while (!e.implicitConvTo(t) && tb.ty == Tsarray)
             {
                 /* Static array initialization, as in:
                  *  T[3][5] = e;
@@ -555,7 +555,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
 
             Type tv = v.type.baseElemOf();
-            if (tv.ty == Type.Kind.struct_)
+            if (tv.ty == Tstruct)
             {
                 TypeStruct ts = cast(TypeStruct)tv;
                 StructDeclaration sd = ts.sym;

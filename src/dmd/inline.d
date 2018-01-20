@@ -165,7 +165,7 @@ public:
 
                     Expression e = new CondExp(econd.loc, econd, e1, e2);
                     e.type = e1.type;
-                    if (e.type.ty == Type.Kind.tuple)
+                    if (e.type.ty == Ttuple)
                     {
                         e1.type = Type.tvoid;
                         e2.type = Type.tvoid;
@@ -249,7 +249,7 @@ public:
             {
                 result = new CondExp(econd.loc, econd, e1, e2);
                 result.type = e1.type;
-                if (result.type.ty == Type.Kind.tuple)
+                if (result.type.ty == Ttuple)
                 {
                     e1.type = Type.tvoid;
                     e2.type = Type.tvoid;
@@ -580,10 +580,10 @@ public:
             visit(cast(UnaExp)e);
 
             Type tb = e.e1.type.toBasetype();
-            if (tb.ty == Type.Kind.array)
+            if (tb.ty == Tarray)
             {
                 Type tv = tb.nextOf().baseElemOf();
-                if (tv.ty == Type.Kind.struct_)
+                if (tv.ty == Tstruct)
                 {
                     auto ts = cast(TypeStruct)tv;
                     auto sd = ts.sym;
@@ -641,15 +641,15 @@ public:
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
-            if (t1.ty == Type.Kind.array || t1.ty == Type.Kind.staticArray)
+            if (t1.ty == Tarray || t1.ty == Tsarray)
             {
                 Type t = t1.nextOf().toBasetype();
                 while (t.toBasetype().nextOf())
                     t = t.nextOf().toBasetype();
-                if (t.ty == Type.Kind.struct_)
+                if (t.ty == Tstruct)
                     semanticTypeInfo(null, t);
             }
-            else if (t1.ty == Type.Kind.associativeArray)
+            else if (t1.ty == Taarray)
             {
                 semanticTypeInfo(null, t1);
             }
@@ -1195,7 +1195,7 @@ public:
             {
                 // delegate literal call
                 auto v = ve.var.isVarDeclaration();
-                if (v && v._init && v.type.ty == Type.Kind.delegate_ && onlyOneAssign(v, parent))
+                if (v && v._init && v.type.ty == Tdelegate && onlyOneAssign(v, parent))
                 {
                     //printf("init: %s\n", v._init.toChars());
                     auto ei = v._init.isExpInitializer();
@@ -1229,7 +1229,7 @@ public:
             fd = dve.var.isFuncDeclaration();
             if (fd && fd != parent && canInline(fd, true, false, asStatements))
             {
-                if (dve.e1.op == TOK.call && dve.e1.type.toBasetype().ty == Type.Kind.struct_)
+                if (dve.e1.op == TOK.call && dve.e1.type.toBasetype().ty == Tstruct)
                 {
                     /* To create ethis, we'll need to take the address
                      * of dve.e1, but this won't work if dve.e1 is
@@ -1278,7 +1278,7 @@ public:
         if (global.params.verbose && (eresult || sresult))
             fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
 
-        if (eresult && e.type.ty != Type.Kind.void_)
+        if (eresult && e.type.ty != Tvoid)
         {
             Expression ex = eresult;
             while (ex.op == TOK.comma)
@@ -1525,7 +1525,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
 
     if (fd.type)
     {
-        assert(fd.type.ty == Type.Kind.function_);
+        assert(fd.type.ty == Tfunction);
         TypeFunction tf = cast(TypeFunction)fd.type;
 
         // no variadic parameter lists
@@ -1548,7 +1548,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
         static bool hasDtor(Type t)
         {
             auto tv = t.baseElemOf();
-            return tv.ty == Type.Kind.struct_ || tv.ty == Type.Kind.class_; // for now assume these might have a destructor
+            return tv.ty == Tstruct || tv.ty == Tclass; // for now assume these might have a destructor
         }
 
         /* Don't inline a function that returns non-void, but has
@@ -1560,7 +1560,7 @@ bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool statementsTo
          * 2. don't inline when the return value has a destructor, as it doesn't
          *    get handled properly
          */
-        if (tf.next && tf.next.ty != Type.Kind.void_ &&
+        if (tf.next && tf.next.ty != Tvoid &&
             (!(fd.hasReturnExp & 1) ||
              statementsToo && (fd.isArrayOp || hasDtor(tf.next))) &&
             !hdrscan)
@@ -1818,8 +1818,8 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         }
         else
         {
-            //assert(ethis.type.ty != Type.Kind.pointer);
-            if (ethis.type.ty == Type.Kind.pointer)
+            //assert(ethis.type.ty != Tpointer);
+            if (ethis.type.ty == Tpointer)
             {
                 Type t = ethis.type.nextOf();
                 ethis = new PtrExp(ethis.loc, ethis);
@@ -1828,7 +1828,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
             auto ei = new ExpInitializer(fd.loc, ethis);
             vthis = new VarDeclaration(fd.loc, ethis.type, Id.This, ei);
-            if (ethis.type.ty != Type.Kind.class_)
+            if (ethis.type.ty != Tclass)
                 vthis.storage_class = STC.ref_;
             else
                 vthis.storage_class = STC.in_;
@@ -1882,8 +1882,8 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
              * inline scan again because if they are initialized to a symbol,
              * any calls to the fp or dg can be inlined.
              */
-            if (vfrom.type.ty == Type.Kind.delegate_ ||
-                vfrom.type.ty == Type.Kind.pointer && vfrom.type.nextOf().ty == Type.Kind.function_)
+            if (vfrom.type.ty == Tdelegate ||
+                vfrom.type.ty == Tpointer && vfrom.type.nextOf().ty == Tfunction)
             {
                 if (arg.op == TOK.variable)
                 {
@@ -1980,7 +1980,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
          * the returned reference is exactly same as vthis, and the 'this' variable
          * already exists at the caller side.
          */
-        if (tf.next.ty == Type.Kind.struct_ && !fd.nrvo_var && !fd.isCtorDeclaration() &&
+        if (tf.next.ty == Tstruct && !fd.nrvo_var && !fd.isCtorDeclaration() &&
             !isConstruction(e))
         {
             /* Generate a new variable to hold the result and initialize it with the
@@ -2008,7 +2008,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         }
 
         // https://issues.dlang.org/show_bug.cgi?id=15210
-        if (tf.next.ty == Type.Kind.void_ && e && e.type.ty != Type.Kind.void_)
+        if (tf.next.ty == Tvoid && e && e.type.ty != Tvoid)
         {
             e = new CastExp(callLoc, e, Type.tvoid);
             e.type = Type.tvoid;

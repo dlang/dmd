@@ -327,7 +327,7 @@ struct IntRange
         uinteger_t mask = type.sizemask();
         auto lower = SignExtendedNumber(0);
         auto upper = SignExtendedNumber(mask);
-        if (type.toBasetype().ty == Type.Kind.dchar_)
+        if (type.toBasetype().ty == Tdchar)
             upper.value = 0x10FFFFUL;
         else if (!isUnsigned)
         {
@@ -447,7 +447,7 @@ struct IntRange
             return this;
         else if (!type.isunsigned())
             return castSigned(type.sizemask());
-        else if (type.toBasetype().ty == Type.Kind.dchar_)
+        else if (type.toBasetype().ty == Tdchar)
             return castDchar();
         else
             return castUnsigned(type.sizemask());
@@ -457,7 +457,7 @@ struct IntRange
     {
         if (!type.isintegral())
             return castUnsigned(UINT64_MAX);
-        else if (type.toBasetype().ty == Type.Kind.dchar_)
+        else if (type.toBasetype().ty == Tdchar)
             return castDchar();
         else
             return castUnsigned(type.sizemask());

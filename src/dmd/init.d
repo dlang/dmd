@@ -337,7 +337,7 @@ version (all)
             return false;
         }
 
-        if (e.type.ty == Type.Kind.error)
+        if (e.type.ty == Terror)
             return false;
         if (e.op == TOK.null_)
             return false;
@@ -383,7 +383,7 @@ version (all)
             }
             return true;
         }
-        if (e.type.ty == Type.Kind.pointer && e.type.nextOf().ty != Type.Kind.function_)
+        if (e.type.ty == Tpointer && e.type.nextOf().ty != Tfunction)
         {
             if (e.op == TOK.symbolOffset) // address of a global is OK
                 return false;

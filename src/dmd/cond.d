@@ -386,20 +386,20 @@ extern (C++) final class StaticForeach : RootObject
             sc = sc.endCTFE();
             aggrfe.aggr = aggrfe.aggr.optimize(WANTvalue);
             auto tab = aggrfe.aggr.type.toBasetype();
-            if (tab.ty != Type.Kind.tuple)
+            if (tab.ty != Ttuple)
             {
                 aggrfe.aggr = aggrfe.aggr.ctfeInterpret();
             }
         }
 
-        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Type.Kind.error)
+        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
         {
             return;
         }
 
         if (!ready())
         {
-            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Type.Kind.array)
+            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
             {
                 lowerArrayAggregate(sc);
             }
@@ -416,7 +416,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     final extern(D) bool ready()
     {
-        return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Type.Kind.tuple;
+        return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }
 }
 

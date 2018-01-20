@@ -719,7 +719,7 @@ public:
      */
     void typeToBuffer(Type t, Identifier ident)
     {
-        if (t.ty == Type.Kind.function_)
+        if (t.ty == Tfunction)
         {
             visitFuncIdentWithPrefix(cast(TypeFunction)t, ident, null, true);
             return;
@@ -735,7 +735,7 @@ public:
     void visitWithMask(Type t, ubyte modMask)
     {
         // Tuples and functions don't use the type constructor syntax
-        if (modMask == t.mod || t.ty == Type.Kind.function_ || t.ty == Type.Kind.tuple)
+        if (modMask == t.mod || t.ty == Tfunction || t.ty == Ttuple)
         {
             t.accept(this);
         }
@@ -830,7 +830,7 @@ public:
     override void visit(TypePointer t)
     {
         //printf("TypePointer::toCBuffer2() next = %d\n", t.next.ty);
-        if (t.next.ty == Type.Kind.function_)
+        if (t.next.ty == Tfunction)
             visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "function");
         else
         {
@@ -1597,7 +1597,7 @@ public:
             RootObject oarg = (*ti.tiargs)[0];
             if (Type t = isType(oarg))
             {
-                if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Type.Kind.identifier && (cast(TypeIdentifier)t).idents.dim == 0))
+                if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.dim == 0))
                 {
                     buf.writestring(t.toChars());
                     return;
@@ -1806,7 +1806,7 @@ public:
                 buf.writeByte(' ');
             d.aliassym.accept(this);
         }
-        else if (d.type.ty == Type.Kind.function_)
+        else if (d.type.ty == Tfunction)
         {
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
@@ -1942,7 +1942,7 @@ public:
 
     override void visit(FuncLiteralDeclaration f)
     {
-        if (f.type.ty == Type.Kind.error)
+        if (f.type.ty == Terror)
         {
             buf.writestring("__error");
             return;
@@ -2242,7 +2242,7 @@ public:
         L1:
             switch (t.ty)
             {
-            case Type.Kind.enum_:
+            case Tenum:
                 {
                     TypeEnum te = cast(TypeEnum)t;
                     if (hgs.fullDump)
@@ -2264,9 +2264,9 @@ public:
                     t = te.sym.memtype;
                     goto L1;
                 }
-            case Type.Kind.wchar_:
+            case Twchar:
                 // BUG: need to cast(wchar)
-            case Type.Kind.dchar_:
+            case Tdchar:
                 // BUG: need to cast(dchar)
                 if (cast(uinteger_t)v > 0xFF)
                 {
@@ -2274,7 +2274,7 @@ public:
                     break;
                 }
                 goto case;
-            case Type.Kind.char_:
+            case Tchar:
                 {
                     size_t o = buf.offset;
                     if (v == '\'')
@@ -2287,37 +2287,37 @@ public:
                         escapeDdocString(buf, o);
                     break;
                 }
-            case Type.Kind.int8:
+            case Tint8:
                 buf.writestring("cast(byte)");
                 goto L2;
-            case Type.Kind.int16:
+            case Tint16:
                 buf.writestring("cast(short)");
                 goto L2;
-            case Type.Kind.int32:
+            case Tint32:
             L2:
                 buf.printf("%d", cast(int)v);
                 break;
-            case Type.Kind.uint8:
+            case Tuns8:
                 buf.writestring("cast(ubyte)");
                 goto L3;
-            case Type.Kind.uint16:
+            case Tuns16:
                 buf.writestring("cast(ushort)");
                 goto L3;
-            case Type.Kind.uint32:
+            case Tuns32:
             L3:
                 buf.printf("%uu", cast(uint)v);
                 break;
-            case Type.Kind.int64:
+            case Tint64:
                 buf.printf("%lldL", v);
                 break;
-            case Type.Kind.uint64:
+            case Tuns64:
             L4:
                 buf.printf("%lluLU", v);
                 break;
-            case Type.Kind.bool_:
+            case Tbool:
                 buf.writestring(v ? "true" : "false");
                 break;
-            case Type.Kind.pointer:
+            case Tpointer:
                 buf.writestring("cast(");
                 buf.writestring(t.toChars());
                 buf.writeByte(')');
@@ -2375,14 +2375,14 @@ public:
             Type t = type.toBasetype();
             switch (t.ty)
             {
-            case Type.Kind.float32:
-            case Type.Kind.imaginary32:
-            case Type.Kind.complex32:
+            case Tfloat32:
+            case Timaginary32:
+            case Tcomplex32:
                 buf.writeByte('F');
                 break;
-            case Type.Kind.float80:
-            case Type.Kind.imaginary80:
-            case Type.Kind.complex80:
+            case Tfloat80:
+            case Timaginary80:
+            case Tcomplex80:
                 buf.writeByte('L');
                 break;
             default:
@@ -3073,7 +3073,7 @@ public:
             if (p.ident)
                 buf.writestring(p.ident.toString());
         }
-        else if (p.type.ty == Type.Kind.identifier &&
+        else if (p.type.ty == Tident &&
                  (cast(TypeIdentifier)p.type).ident.toString().length > 3 &&
                  strncmp((cast(TypeIdentifier)p.type).ident.toChars(), "__T", 3) == 0)
         {

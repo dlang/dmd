@@ -366,7 +366,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
             if (!m)
                 m = voidInitLiteral(v.type, v).copy();
 
-            if (v.type.ty == Type.Kind.array || v.type.ty == Type.Kind.associativeArray)
+            if (v.type.ty == Tarray || v.type.ty == Taarray)
             {
                 // Don't have to copy array references
             }
@@ -376,7 +376,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
                 m = copyLiteral(m).copy();
 
                 // Block assignment from inside struct literals
-                if (v.type.ty != m.type.ty && v.type.ty == Type.Kind.staticArray)
+                if (v.type.ty != m.type.ty && v.type.ty == Tsarray)
                 {
                     auto tsa = cast(TypeSArray)v.type;
                     auto len = cast(size_t)tsa.dim.toInteger();
@@ -404,7 +404,7 @@ extern (C++) UnionExp copyLiteral(Expression e)
     if (e.op == TOK.slice)
     {
         SliceExp se = cast(SliceExp)e;
-        if (se.type.toBasetype().ty == Type.Kind.staticArray)
+        if (se.type.toBasetype().ty == Tsarray)
         {
             // same with resolveSlice()
             if (se.e1.op == TOK.null_)
@@ -586,7 +586,7 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
  */
 extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type type, Expression elem, size_t dim)
 {
-    if (type.ty == Type.Kind.staticArray && type.nextOf().ty == Type.Kind.staticArray && elem.type.ty != Type.Kind.staticArray)
+    if (type.ty == Tsarray && type.nextOf().ty == Tsarray && elem.type.ty != Tsarray)
     {
         // If it is a multidimensional array literal, do it recursively
         auto tsa = cast(TypeSArray)type.nextOf();
@@ -596,7 +596,7 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type typ
 
     // Buzilla 15681
     auto tb = elem.type.toBasetype();
-    const mustCopy = tb.ty == Type.Kind.struct_ || tb.ty == Type.Kind.staticArray;
+    const mustCopy = tb.ty == Tstruct || tb.ty == Tsarray;
 
     auto elements = new Expressions();
     elements.setDim(dim);
@@ -646,7 +646,7 @@ extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, dc
 extern (C++) bool isAssocArray(Type t)
 {
     t = t.toBasetype();
-    if (t.ty == Type.Kind.associativeArray)
+    if (t.ty == Taarray)
         return true;
     return false;
 }
@@ -655,7 +655,7 @@ extern (C++) bool isAssocArray(Type t)
 extern (C++) TypeAArray toBuiltinAAType(Type t)
 {
     t = t.toBasetype();
-    if (t.ty == Type.Kind.associativeArray)
+    if (t.ty == Taarray)
         return cast(TypeAArray)t;
     assert(0);
 }
@@ -664,7 +664,7 @@ extern (C++) TypeAArray toBuiltinAAType(Type t)
 // Return true if type is TypeInfo_Class
 extern (C++) bool isTypeInfo_Class(Type type)
 {
-    return type.ty == Type.Kind.class_ && (Type.dtypeinfo == (cast(TypeClass)type).sym || Type.dtypeinfo.isBaseOf((cast(TypeClass)type).sym, null));
+    return type.ty == Tclass && (Type.dtypeinfo == (cast(TypeClass)type).sym || Type.dtypeinfo.isBaseOf((cast(TypeClass)type).sym, null));
 }
 
 /************** Pointer operations ************************************/
@@ -672,13 +672,13 @@ extern (C++) bool isTypeInfo_Class(Type type)
 extern (C++) bool isPointer(Type t)
 {
     Type tb = t.toBasetype();
-    return tb.ty == Type.Kind.pointer && tb.nextOf().ty != Type.Kind.function_;
+    return tb.ty == Tpointer && tb.nextOf().ty != Tfunction;
 }
 
 // For CTFE only. Returns true if 'e' is true or a non-null pointer.
 extern (C++) bool isTrueBool(Expression e)
 {
-    return e.isBool(true) || ((e.type.ty == Type.Kind.pointer || e.type.ty == Type.Kind.class_) && e.op != TOK.null_);
+    return e.isBool(true) || ((e.type.ty == Tpointer || e.type.ty == Tclass) && e.op != TOK.null_);
 }
 
 /* Is it safe to convert from srcPointee* to destPointee* ?
@@ -688,7 +688,7 @@ extern (C++) bool isTrueBool(Expression e)
 extern (C++) bool isSafePointerCast(Type srcPointee, Type destPointee)
 {
     // It's safe to cast S** to D** if it's OK to cast S* to D*
-    while (srcPointee.ty == Type.Kind.pointer && destPointee.ty == Type.Kind.pointer)
+    while (srcPointee.ty == Tpointer && destPointee.ty == Tpointer)
     {
         srcPointee = srcPointee.nextOf();
         destPointee = destPointee.nextOf();
@@ -697,18 +697,18 @@ extern (C++) bool isSafePointerCast(Type srcPointee, Type destPointee)
     if (srcPointee.constConv(destPointee))
         return true;
     // It's OK if function pointers differ only in safe/pure/nothrow
-    if (srcPointee.ty == Type.Kind.function_ && destPointee.ty == Type.Kind.function_)
+    if (srcPointee.ty == Tfunction && destPointee.ty == Tfunction)
         return srcPointee.covariant(destPointee) == 1;
     // it's OK to cast to void*
-    if (destPointee.ty == Type.Kind.void_)
+    if (destPointee.ty == Tvoid)
         return true;
     // It's OK to cast from V[K] to void*
-    if (srcPointee.ty == Type.Kind.associativeArray && destPointee == Type.tvoidptr)
+    if (srcPointee.ty == Taarray && destPointee == Type.tvoidptr)
         return true;
     // It's OK if they are the same size (static array of) integers, eg:
     //     int*     --> uint*
     //     int[5][] --> uint[5][]
-    if (srcPointee.ty == Type.Kind.staticArray && destPointee.ty == Type.Kind.staticArray)
+    if (srcPointee.ty == Tsarray && destPointee.ty == Tsarray)
     {
         if (srcPointee.size() != destPointee.size())
             return false;
@@ -743,16 +743,16 @@ extern (C++) Expression getAggregateFromPointer(Expression e, dinteger_t* ofs)
     {
         IndexExp ie = cast(IndexExp)e;
         // Note that each AA element is part of its own memory block
-        if ((ie.e1.type.ty == Type.Kind.array || ie.e1.type.ty == Type.Kind.staticArray || ie.e1.op == TOK.string_ || ie.e1.op == TOK.arrayLiteral) && ie.e2.op == TOK.int64)
+        if ((ie.e1.type.ty == Tarray || ie.e1.type.ty == Tsarray || ie.e1.op == TOK.string_ || ie.e1.op == TOK.arrayLiteral) && ie.e2.op == TOK.int64)
         {
             *ofs = ie.e2.toInteger();
             return ie.e1;
         }
     }
-    if (e.op == TOK.slice && e.type.toBasetype().ty == Type.Kind.staticArray)
+    if (e.op == TOK.slice && e.type.toBasetype().ty == Tsarray)
     {
         SliceExp se = cast(SliceExp)e;
-        if ((se.e1.type.ty == Type.Kind.array || se.e1.type.ty == Type.Kind.staticArray || se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral) && se.lwr.op == TOK.int64)
+        if ((se.e1.type.ty == Tarray || se.e1.type.ty == Tsarray || se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral) && se.lwr.op == TOK.int64)
         {
             *ofs = se.lwr.toInteger();
             return se.e1;
@@ -825,7 +825,7 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
 extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression eptr, Expression e2)
 {
     UnionExp ue;
-    if (eptr.type.nextOf().ty == Type.Kind.void_)
+    if (eptr.type.nextOf().ty == Tvoid)
     {
         error(loc, "cannot perform arithmetic on `void*` pointers at compile time");
     Lcant:
@@ -838,7 +838,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
     Expression agg1 = getAggregateFromPointer(eptr, &ofs1);
     if (agg1.op == TOK.symbolOffset)
     {
-        if ((cast(SymOffExp)agg1).var.type.ty != Type.Kind.staticArray)
+        if ((cast(SymOffExp)agg1).var.type.ty != Tsarray)
         {
             error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
             goto Lcant;
@@ -892,7 +892,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
         error(loc, "CTFE internal error: pointer arithmetic `%s`", agg1.toChars());
         goto Lcant;
     }
-    if (eptr.type.toBasetype().ty == Type.Kind.staticArray)
+    if (eptr.type.toBasetype().ty == Tsarray)
     {
         dinteger_t dim = (cast(TypeSArray)eptr.type.toBasetype()).dim.toInteger();
         // Create a CTFE pointer &agg1[indx .. indx+dim]
@@ -1156,7 +1156,7 @@ private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
  */
 private FuncDeclaration funcptrOf(Expression e)
 {
-    assert(e.type.ty == Type.Kind.delegate_);
+    assert(e.type.ty == Tdelegate);
     if (e.op == TOK.delegate_)
         return (cast(DelegateExp)e).func;
     if (e.op == TOK.function_)
@@ -1194,7 +1194,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
     // null == null, regardless of type
     if (e1.op == TOK.null_ && e2.op == TOK.null_)
         return 0;
-    if (e1.type.ty == Type.Kind.pointer && e2.type.ty == Type.Kind.pointer)
+    if (e1.type.ty == Tpointer && e2.type.ty == Tpointer)
     {
         // Can only be an equality test.
         dinteger_t ofs1, ofs2;
@@ -1207,7 +1207,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
         }
         return 1;
     }
-    if (e1.type.ty == Type.Kind.delegate_ && e2.type.ty == Type.Kind.delegate_)
+    if (e1.type.ty == Tdelegate && e2.type.ty == Tdelegate)
     {
         // If .funcptr isn't the same, they are not equal
         if (funcptrOf(e1) != funcptrOf(e2))
@@ -1569,7 +1569,7 @@ extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
         // necessary not to change e's address for pointer comparisons
         r = e;
     }
-    else if (to.toBasetype().ty == Type.Kind.array && type.toBasetype().ty == Type.Kind.array && to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
+    else if (to.toBasetype().ty == Tarray && type.toBasetype().ty == Tarray && to.toBasetype().nextOf().size() == type.toBasetype().nextOf().size())
     {
         // https://issues.dlang.org/show_bug.cgi?id=12495
         // Array reinterpret casts: eg. string to immutable(ubyte)[]
@@ -1640,7 +1640,7 @@ extern (C++) void assignInPlace(Expression dest, Expression src)
             assert(o.op == e.op);
             assignInPlace(o, e);
         }
-        else if (e.type.ty == Type.Kind.staticArray && e.op != TOK.void_ && o.type.ty == Type.Kind.staticArray)
+        else if (e.type.ty == Tsarray && e.op != TOK.void_ && o.type.ty == Tsarray)
         {
             assignInPlace(o, e);
         }
@@ -1737,7 +1737,7 @@ extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Exp
             for (size_t i = 0; i < copylen; i++)
                 (*elements)[i] = (*ae.elements)[indxlo + i];
         }
-        if (elemType.ty == Type.Kind.struct_ || elemType.ty == Type.Kind.staticArray)
+        if (elemType.ty == Tstruct || elemType.ty == Tsarray)
         {
             /* If it is an aggregate literal representing a value type,
              * we need to create a unique copy for each element
@@ -1768,7 +1768,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     }
     if (newval.op == TOK.null_)
     {
-        return tb.ty == Type.Kind.null_ || tb.ty == Type.Kind.pointer || tb.ty == Type.Kind.array || tb.ty == Type.Kind.associativeArray || tb.ty == Type.Kind.class_ || tb.ty == Type.Kind.delegate_;
+        return tb.ty == Tnull || tb.ty == Tpointer || tb.ty == Tarray || tb.ty == Taarray || tb.ty == Tclass || tb.ty == Tdelegate;
     }
     if (newval.op == TOK.string_)
         return true; // CTFE would directly use the StringExp in AST.
@@ -1806,7 +1806,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
     {
         // e1 should be a CTFE reference
         Expression e1 = (cast(AddrExp)newval).e1;
-        return tb.ty == Type.Kind.pointer && (e1.op == TOK.structLiteral && isCtfeValueValid(e1) || e1.op == TOK.variable || e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) || e1.op == TOK.index && isCtfeReferenceValid(e1) || e1.op == TOK.slice && e1.type.toBasetype().ty == Type.Kind.staticArray);
+        return tb.ty == Tpointer && (e1.op == TOK.structLiteral && isCtfeValueValid(e1) || e1.op == TOK.variable || e1.op == TOK.dotVariable && isCtfeReferenceValid(e1) || e1.op == TOK.index && isCtfeReferenceValid(e1) || e1.op == TOK.slice && e1.type.toBasetype().ty == Tsarray);
     }
     if (newval.op == TOK.slice)
     {
@@ -1814,7 +1814,7 @@ extern (C++) bool isCtfeValueValid(Expression newval)
         SliceExp se = cast(SliceExp)newval;
         assert(se.lwr && se.lwr.op == TOK.int64);
         assert(se.upr && se.upr.op == TOK.int64);
-        return (tb.ty == Type.Kind.array || tb.ty == Type.Kind.staticArray) && (se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral);
+        return (tb.ty == Tarray || tb.ty == Tsarray) && (se.e1.op == TOK.string_ || se.e1.op == TOK.arrayLiteral);
     }
     if (newval.op == TOK.void_)
         return true; // uninitialized value
@@ -1944,7 +1944,7 @@ extern (C++) void showCtfeExpr(Expression e, int level = 0)
             if (v)
             {
                 // If it is a void assignment, use the default initializer
-                if ((v.type.ty != z.type.ty) && v.type.ty == Type.Kind.staticArray)
+                if ((v.type.ty != z.type.ty) && v.type.ty == Tsarray)
                 {
                     for (int j = level; --j;)
                         printf(" ");
@@ -1961,7 +1961,7 @@ extern (C++) void showCtfeExpr(Expression e, int level = 0)
 extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
 {
     UnionExp ue;
-    if (t.ty == Type.Kind.staticArray)
+    if (t.ty == Tsarray)
     {
         TypeSArray tsa = cast(TypeSArray)t;
         Expression elem = voidInitLiteral(tsa.next, var).copy();
@@ -1982,7 +1982,7 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         ae.type = tsa;
         ae.ownedByCtfe = OwnedBy.ctfe;
     }
-    else if (t.ty == Type.Kind.struct_)
+    else if (t.ty == Tstruct)
     {
         TypeStruct ts = cast(TypeStruct)t;
         auto exps = new Expressions();
