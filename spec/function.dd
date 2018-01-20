@@ -2181,15 +2181,14 @@ void main()
 $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
     $(P Functions which are both portable and free of global side-effects can be
-    executed at compile time. This is useful when constant folding
-    algorithms need to include recursion and looping. Compile time function
-    execution is subject to the following restrictions:
+    executed in Compile Time Function Execution. CTFE is subject to the
+    following restrictions:
     )
 
     $(OL
     $(LI The function source code must be available to the compiler. Functions
         which exist in the source code only as $(D_KEYWORD extern) declarations
-        cannot be executed at compile time.)
+        cannot be executed in CTFE.)
 
     $(LI Executed expressions may not reference any global or local
         static variables.)
@@ -2271,15 +2270,15 @@ static assert(countTen(6) == 6);    // OK
 static assert(countTen(12) == 12);  // invalid, modifies y.
 ---
     $(P The $(D __ctfe) boolean pseudo-variable, which evaluates to $(D_KEYWORD true)
-        at compile time, but $(D_KEYWORD false) at run time, can be used to provide
+        in CTFE, but $(D_KEYWORD false) otherwise, can be used to provide
         an alternative execution path to avoid operations which are forbidden
-        at compile time. Every usage of $(D __ctfe) is evaluated before
+        in CTFE. Every usage of $(D __ctfe) is evaluated before
         code generation and therefore has no run-time cost, even if no optimizer
         is used.
     )
 
 
-    $(P In order to be executed at compile time, the function
+    $(P In order to be executed in CTFE, the function
     must appear in a context where it must be so executed, for
     example:)
 
@@ -2311,7 +2310,7 @@ void foo()
 ---
 )
 
-    $(P Executing functions at compile time can take considerably
+    $(P Executing functions via CTFE can take considerably
     longer than executing it at run time.
     If the function goes into an infinite loop, it will hang at
     compile time (rather than hanging at run time).
@@ -2321,7 +2320,7 @@ void foo()
     throw exceptions; instead, they end interpretation immediately.
     )
 
-    $(P Functions executed at compile time can give different results
+    $(P Functions executed via CTFE can give different results
     from run time in the following scenarios:
     )
 
@@ -2339,7 +2338,7 @@ void foo()
 
 $(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
 
-        $(P Any functions that execute at compile time must also
+        $(P Any functions that execute in CTFE must also
         be executable at run time. The compile time evaluation of
         a function does the equivalent of running the function at
         run time. This means that the semantics of a function cannot
