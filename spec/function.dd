@@ -2233,7 +2233,7 @@ void foo()
     $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
         Casts between signed and unsigned types are permitted)
-    $(LI Reinterpretation of overlapped fields in a Union.)
+    $(LI Reinterpretation of overlapped fields in a Union is not permitted.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
@@ -2355,11 +2355,11 @@ int foo(char[] s)
 const int x = foo("1");
 ---
 
-        $(P is illegal, because the runtime code for foo() cannot be
+        $(P is illegal, because the runtime code for `foo` cannot be
         generated. A function template would be the appropriate
         method to implement this sort of thing.)
 
-$(H3 $(LNAME2 nogc-functions, No-GC Functions))
+$(H2 $(LNAME2 nogc-functions, No-GC Functions))
 
         $(P No-GC functions are functions marked with the $(D @nogc) attribute.
             Those functions do not allocate memory on the GC heap,
