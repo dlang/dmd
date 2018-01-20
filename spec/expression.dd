@@ -4,10 +4,6 @@ $(SPEC_S Expressions,
 
 $(HEADERNAV_TOC)
 
-    $(P C and C++ programmers will find the D expressions very familiar,
-        with a few interesting additions.
-    )
-
     $(P Expressions are used to compute values with a resulting type.
         These values can then be assigned,
         tested, or ignored. Expressions can also have side effects.
@@ -16,9 +12,7 @@ $(HEADERNAV_TOC)
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
 $(P Binary expressions and function arguments are evaluated in strictly
-left-to-right order. This is similar to Java but different to C and C++, where
-the evaluation order is unspecified. Thus, the following code is valid and well
-defined.)
+left-to-right order.)
 
         -------------
         import std.conv;
@@ -622,7 +616,7 @@ $(GNAME ComplementExpression):
         All the bits in the value are complemented.
     )
 
-    $(P $(B Note:) unlike in C and C++, the usual integral promotions are not performed
+    $(P $(B Note:) the usual integral promotions are not performed
         prior to the complement operation.
     )
 
@@ -763,9 +757,6 @@ $(GNAME CastExpression):
         derived class reference is done with a runtime check to make sure it
         really is a downcast. $(D null) is the result if it isn't.
     )
-
-    $(P $(B Note:) This is equivalent to the behavior of the
-        $(D dynamic_cast) operator in C++.)
 
         -------------
         class A { ... }

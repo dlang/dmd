@@ -8,7 +8,7 @@ $(HEADERNAV_TOC)
              Any C struct can be exactly represented as a D struct, except non-static
              $(RELATIVE_LINK2 nested, function-nested D structs) which access the context of
              their enclosing scope.
-             Structs and unions are meant as simple aggregations of data, or as a way
+             Structs and unions are simple aggregations of data, or as a way
              to paint a data structure over hardware or an external type. External
              types can be defined by the operating system API, or by a file format.
              Object oriented features are provided with the class data type.
@@ -17,70 +17,6 @@ $(HEADERNAV_TOC)
          $(P A struct is defined to not have an identity; that is,
              the implementation is free to make bit copies of the struct
              as convenient.)
-
-        $(TABLE2 Struct$(COMMA) Class Comparison Table,
-        $(THEAD Feature, $(D struct), $(D class), C $(D struct), C++
-        $(D struct), C++ $(D class))
-
-        $(TROW value type, $(CHECK), $(UNCHECK), $(CHECK), $(CHECK), $(CHECK))
-        $(TROW reference type, $(UNCHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW data members, $(CHECK), $(CHECK), $(CHECK), $(CHECK), $(CHECK))
-        $(TROW hidden members, $(CHECK),
-        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW static members, $(CHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 static_struct_init, default member initializers),
-        $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW bit fields, $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK),
-        $(CHECK))
-        $(TROW non-virtual member functions, $(CHECK), $(CHECK),
-        $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW virtual member functions, $(UNCHECK), $(CHECK),
-        $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-constructor, constructors), $(CHECK),
-        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-postblit, postblit)/copy constructors,
-        $(CHECK), $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-destructor, destructors), $(CHECK),
-        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(GLINK2 class, SharedStaticConstructor)s, $(CHECK),
-        $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW $(GLINK2 class, SharedStaticDestructor)s,  $(CHECK),
-        $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW RAII, $(CHECK), $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 assign-overload, identity assign overload), $(CHECK),
-        $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-literal, literals), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW operator overloading, $(CHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW inheritance, $(UNCHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW invariants, $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
-        $(UNCHECK))
-        $(TROW unit tests, $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
-        $(UNCHECK))
-        $(TROW synchronizable, $(UNCHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
-        $(UNCHECK))
-        $(TROW parameterizable, $(CHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW alignment control, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW member protection, $(CHECK), $(CHECK), $(UNCHECK),$(CHECK),$(CHECK))
-        $(TROW default public, $(CHECK), $(CHECK), $(CHECK),$(CHECK), $(UNCHECK))
-        $(TROW tag name space, $(UNCHECK), $(UNCHECK), $(CHECK),
-        $(CHECK), $(CHECK))
-        $(TROW anonymous, $(CHECK), $(UNCHECK), $(CHECK), $(CHECK), $(CHECK))
-        $(TROW static constructor, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW static destructor, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW const/immutable/shared, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW inner nesting, $(RELATIVE_LINK2 nested, $(CHECK)),
-        $(DDSUBLINK spec/class, nested, $(CHECK)), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        )
 
 $(GRAMMAR
 $(GNAME AggregateDeclaration):
