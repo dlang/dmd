@@ -2410,7 +2410,7 @@ void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
     bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODFlags.shared_);
 
     if (lhsMod & MODFlags.shared_)
-        buf.writestring("shared ");
+        buf.writestring("`shared` ");
     else if (sharedMismatch && !(lhsMod & MODFlags.immutable_))
         buf.writestring("non-shared ");
 
@@ -2418,11 +2418,11 @@ void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
     {
     }
     else if (lhsMod & MODFlags.immutable_)
-        buf.writestring("immutable ");
+        buf.writestring("`immutable` ");
     else if (lhsMod & MODFlags.const_)
-        buf.writestring("const ");
+        buf.writestring("`const` ");
     else if (lhsMod & MODFlags.wild)
-        buf.writestring("inout ");
+        buf.writestring("`inout` ");
     else
         buf.writestring("mutable ");
 }

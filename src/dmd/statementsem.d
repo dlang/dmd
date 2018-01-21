@@ -1465,7 +1465,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         tfront = tfront.toBasetype().nextOf();
                     if (tfront.ty == Tvoid)
                     {
-                        fs.error("`%s.front` is void and has no value", oaggr.toChars());
+                        fs.error("`%s.front` is `void` and has no value", oaggr.toChars());
                         goto case Terror;
                     }
 

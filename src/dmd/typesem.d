@@ -797,7 +797,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             errors |= tf.checkRetType(loc);
             if (tf.next.isscope() && !(sc.flags & SCOPE.ctor))
             {
-                mtype.error(loc, "functions cannot return scope `%s`", tf.next.toChars());
+                mtype.error(loc, "functions cannot return `scope %s`", tf.next.toChars());
                 errors = true;
             }
             if (tf.next.hasWild())
@@ -1064,7 +1064,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
         if (wildreturn && !wildparams)
         {
-            mtype.error(loc, "inout on return means inout must be on a parameter as well for `%s`", mtype.toChars());
+            mtype.error(loc, "`inout` on `return` means `inout` must be on a parameter as well for `%s`", mtype.toChars());
             errors = true;
         }
         tf.iswild = wildparams;

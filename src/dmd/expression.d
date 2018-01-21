@@ -2217,7 +2217,7 @@ extern (C++) abstract class Expression : RootObject
             {
                 if (loc.linnum == 0) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
-                error("`@nogc` %s `%s` cannot call non-`@nogc` %s `%s`",
+                error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
                 return true;
             }

@@ -7,7 +7,7 @@ fail_compilation/diag10319.d(26): Error: `pure` function `D main` cannot call im
 fail_compilation/diag10319.d(26): Error: `@safe` function `D main` cannot call `@system` function `diag10319.bar!int.bar`
 fail_compilation/diag10319.d(25): Error: function `diag10319.foo` is not `nothrow`
 fail_compilation/diag10319.d(26): Error: function `diag10319.bar!int.bar` is not `nothrow`
-fail_compilation/diag10319.d(23): Error: nothrow function `D main` may throw
+fail_compilation/diag10319.d(23): Error: `nothrow` function `D main` may throw
 ---
 */
 

@@ -607,12 +607,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (StorageClass stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
         {
             if (stc == STC.final_)
-                dsym.error("cannot be final, perhaps you meant const?");
+                dsym.error("cannot be `final`, perhaps you meant `const`?");
             else
             {
                 OutBuffer buf;
                 stcToBuffer(&buf, stc);
-                dsym.error("cannot be %s", buf.peekString());
+                dsym.error("cannot be `%s`", buf.peekString());
             }
             dsym.storage_class &= ~stc; // strip off
         }
@@ -692,14 +692,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if ((dsym.storage_class & (STC.ref_ | STC.parameter | STC.foreach_ | STC.temp | STC.result)) == STC.ref_ && dsym.ident != Id.This)
         {
-            dsym.error("only parameters or foreach declarations can be ref");
+            dsym.error("only parameters or `foreach` declarations can be `ref`");
         }
 
         if (dsym.type.hasWild())
         {
             if (dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field) || dsym.isDataseg())
             {
-                dsym.error("only parameters or stack based variables can be inout");
+                dsym.error("only parameters or stack based variables can be `inout`");
             }
             FuncDeclaration func = sc.func;
             if (func)
@@ -717,7 +717,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 if (!isWild)
                 {
-                    dsym.error("inout variables can only be declared inside inout functions");
+                    dsym.error("`inout` variables can only be declared inside `inout` functions");
                 }
             }
         }
@@ -745,12 +745,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             if (dsym.storage_class & (STC.field | STC.out_ | STC.ref_ | STC.static_ | STC.manifest | STC.tls | STC.gshared) || !fd)
             {
-                dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be scope");
+                dsym.error("globals, statics, fields, manifest constants, ref and out parameters cannot be `scope`");
             }
             if (!(dsym.storage_class & STC.scope_))
             {
                 if (!(dsym.storage_class & STC.parameter) && dsym.ident != Id.withSym)
-                    dsym.error("reference to scope class must be scope");
+                    dsym.error("reference to `scope class` must be `scope`");
             }
         }
 
@@ -760,14 +760,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (dsym._init && dsym._init.isVoidInitializer() && dsym.type.hasPointers()) // get type size
             {
                 if (sc.func.setUnsafe())
-                    dsym.error("void initializers for pointers not allowed in safe functions");
+                    dsym.error("`void` initializers for pointers not allowed in safe functions");
             }
             else if (!dsym._init &&
                      !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
                      dsym.type.hasVoidInitPointers())
             {
                 if (sc.func.setUnsafe())
-                    dsym.error("void initializers for pointers not allowed in safe functions");
+                    dsym.error("`void` initializers for pointers not allowed in safe functions");
             }
         }
 
@@ -1423,7 +1423,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (se.sz != 1)
             {
-                pd.error("mangled name characters can only be of type char");
+                pd.error("mangled name characters can only be of type `char`");
                 goto Ldecl;
             }
             version (all)
@@ -1500,7 +1500,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             goto Lnodecl;
         }
         else
-            pd.error("unrecognized `pragma(%s)`", pd.ident.toChars());
+            error(pd.loc, "unrecognized `pragma(%s)`", pd.ident.toChars());
     Ldecl:
         if (pd.decl)
         {
@@ -1530,7 +1530,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     Lnodecl:
         if (pd.decl)
         {
-            pd.error("pragma is missing closing `;`");
+            pd.error("is missing a terminating `;`");
             goto Ldecl;
             // do them anyway, to avoid segfaults.
         }
@@ -1740,7 +1740,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             if (ed.memtype.ty == Tvoid)
             {
-                ed.error("base type must not be void");
+                ed.error("base type must not be `void`");
                 ed.memtype = Type.terror;
             }
             if (ed.memtype.ty == Terror)
@@ -2743,7 +2743,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         if (f.isscope && !funcdecl.isNested() && !ad)
         {
-            funcdecl.error("functions cannot be scope");
+            funcdecl.error("functions cannot be `scope`");
         }
 
         if (f.isreturn && !funcdecl.needThis() && !funcdecl.isNested())
@@ -2751,36 +2751,36 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             /* Non-static nested functions have a hidden 'this' pointer to which
              * the 'return' applies
              */
-            funcdecl.error("static member has no `this` to which `return` can apply");
+            funcdecl.error("`static` member has no `this` to which `return` can apply");
         }
 
         if (funcdecl.isAbstract() && !funcdecl.isVirtual())
         {
             const(char)* sfunc;
             if (funcdecl.isStatic())
-                sfunc = "static";
+                sfunc = "`static`";
             else if (funcdecl.protection.kind == Prot.Kind.private_ || funcdecl.protection.kind == Prot.Kind.package_)
                 sfunc = protectionToChars(funcdecl.protection.kind);
             else
-                sfunc = "non-virtual";
-            funcdecl.error("%s functions cannot be abstract", sfunc);
+                sfunc = "`final`";
+            funcdecl.error("%s functions cannot be `abstract`", sfunc);
         }
 
         if (funcdecl.isOverride() && !funcdecl.isVirtual())
         {
             Prot.Kind kind = funcdecl.prot().kind;
             if ((kind == Prot.Kind.private_ || kind == Prot.Kind.package_) && funcdecl.isMember())
-                funcdecl.error("%s method is not virtual and cannot override", protectionToChars(kind));
+                funcdecl.error("`%s` method is not virtual and cannot override", protectionToChars(kind));
             else
                 funcdecl.error("cannot override a non-virtual function");
         }
 
         if (funcdecl.isAbstract() && funcdecl.isFinalFunc())
-            funcdecl.error("cannot be both final and abstract");
+            funcdecl.error("cannot be both `final` and `abstract`");
         version (none)
         {
             if (funcdecl.isAbstract() && funcdecl.fbody)
-                funcdecl.error("abstract functions cannot have bodies");
+                funcdecl.error("`abstract` functions cannot have bodies");
         }
 
         version (none)
@@ -2802,7 +2802,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (funcdecl.isCtorDeclaration() || funcdecl.isPostBlitDeclaration() || funcdecl.isDtorDeclaration() || funcdecl.isInvariantDeclaration() || funcdecl.isNewDeclaration() || funcdecl.isDelete())
                 funcdecl.error("constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface `%s`", id.toChars());
             if (funcdecl.fbody && funcdecl.isVirtual())
-                funcdecl.error("function body only allowed in final functions in interface `%s`", id.toChars());
+                funcdecl.error("function body only allowed in `final` functions in interface `%s`", id.toChars());
         }
         if (UnionDeclaration ud = parent.isUnionDeclaration())
         {
@@ -2892,7 +2892,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
                             if (f2 && f2.isFinalFunc() && f2.prot().kind != Prot.Kind.private_)
-                                funcdecl.error("cannot override final function `%s`", f2.toPrettyChars());
+                                funcdecl.error("cannot override `final` function `%s`", f2.toPrettyChars());
                         }
                     }
                 }
@@ -2991,13 +2991,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     // This function overrides fdv
                     if (fdv.isFinalFunc())
-                        funcdecl.error("cannot override final function `%s`", fdv.toPrettyChars());
+                        funcdecl.error("cannot override `final` function `%s`", fdv.toPrettyChars());
 
                     if (!funcdecl.isOverride())
                     {
                         if (fdv.isFuture())
                         {
-                            deprecation(funcdecl.loc, "@future base class method %s is being overridden by %s; rename the latter", fdv.toPrettyChars(), funcdecl.toPrettyChars());
+                            deprecation(funcdecl.loc, "`@__future` base class method `%s` is being overridden by `%s`; rename the latter", fdv.toPrettyChars(), funcdecl.toPrettyChars());
                             // Treat 'this' as an introducing function, giving it a separate hierarchy in the vtbl[]
                             goto Lintro;
                         }
@@ -3157,7 +3157,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         {
                             f2 = f2.overloadExactMatch(funcdecl.type);
                             if (f2 && f2.isFinalFunc() && f2.prot().kind != Prot.Kind.private_)
-                                funcdecl.error("cannot override final function `%s.%s`", b.sym.toChars(), f2.toPrettyChars());
+                                funcdecl.error("cannot override `final` function `%s.%s`", b.sym.toChars(), f2.toPrettyChars());
                         }
                     }
                 }
@@ -3177,14 +3177,14 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         }
         else if (funcdecl.isOverride() && !parent.isTemplateInstance())
-            funcdecl.error("override only applies to class member functions");
+            funcdecl.error("`override` only applies to class member functions");
 
         // Reflect this.type to f because it could be changed by findVtblIndex
         f = funcdecl.type.toTypeFunction();
 
     Ldone:
         if (!funcdecl.fbody && !funcdecl.allowsContractWithoutBody())
-            funcdecl.error("in and out contracts can only appear without a body when they are virtual interface functions or abstract");
+            funcdecl.error("`in` and `out` contracts can only appear without a body when they are virtual interface functions or abstract");
 
         /* Do not allow template instances to add virtual functions
          * to a class.
@@ -3305,7 +3305,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     if (ctd.fbody || !(ctd.storage_class & STC.disable))
                     {
                         ctd.error("default constructor for structs only allowed " ~
-                            "with @disable, no body, and no parameters");
+                            "with `@disable`, no body, and no parameters");
                         ctd.storage_class |= STC.disable;
                         ctd.fbody = null;
                     }
@@ -3319,9 +3319,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     // if the first parameter has a default argument, then the rest does as well
                     if (ctd.storage_class & STC.disable)
                     {
-                        ctd.deprecation("@disable'd constructor cannot have default "~
+                        ctd.deprecation("is marked `@disable`, so it cannot have default "~
                                     "arguments for all parameters.");
-                        deprecationSupplemental(ctd.loc, "Use @disable this(); if you want to disable default initialization.");
+                        deprecationSupplemental(ctd.loc, "Use `@disable this();` if you want to disable default initialization.");
                     }
                     else
                         ctd.deprecation("all parameters have default arguments, "~
@@ -3425,7 +3425,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (scd.isSharedStaticCtorDeclaration() ? "shared " : "");
-            error(scd.loc, "%sstatic constructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
+            error(scd.loc, "`%sstatic` constructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
             scd.type = Type.terror;
             scd.errors = true;
             return;
@@ -3492,7 +3492,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (!p.isScopeDsymbol())
         {
             const(char)* s = (sdd.isSharedStaticDtorDeclaration() ? "shared " : "");
-            error(sdd.loc, "%sstatic destructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
+            error(sdd.loc, "`%sstatic` destructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
             sdd.type = Type.terror;
             sdd.errors = true;
             return;
@@ -3562,7 +3562,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         AggregateDeclaration ad = p.isAggregateDeclaration();
         if (!ad)
         {
-            error(invd.loc, "invariant can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
+            error(invd.loc, "`invariant` can only be a member of aggregate, not %s `%s`", p.kind(), p.toChars());
             invd.type = Type.terror;
             invd.errors = true;
             return;
@@ -3608,7 +3608,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Dsymbol p = utd.parent.pastMixin();
         if (!p.isScopeDsymbol())
         {
-            error(utd.loc, "unittest can only be a member of module/aggregate/template, not %s `%s`", p.kind(), p.toChars());
+            error(utd.loc, "`unittest` can only be a member of module/aggregate/template, not %s `%s`", p.kind(), p.toChars());
             utd.type = Type.terror;
             utd.errors = true;
             return;
@@ -3671,13 +3671,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         TypeFunction tf = nd.type.toTypeFunction();
         if (Parameter.dim(tf.parameters) < 1)
         {
-            nd.error("at least one argument of type size_t expected");
+            nd.error("at least one argument of type `size_t` expected");
         }
         else
         {
             Parameter fparam = Parameter.getNth(tf.parameters, 0);
             if (!fparam.type.equals(Type.tsize_t))
-                nd.error("first argument must be type size_t, not `%s`", fparam.type.toChars());
+                nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
         }
 
         funcDeclarationSemantic(nd);
@@ -3712,13 +3712,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         TypeFunction tf = deld.type.toTypeFunction();
         if (Parameter.dim(tf.parameters) != 1)
         {
-            deld.error("one argument of type void* expected");
+            deld.error("one argument of type `void*` expected");
         }
         else
         {
             Parameter fparam = Parameter.getNth(tf.parameters, 0);
             if (!fparam.type.equals(Type.tvoid.pointerTo()))
-                deld.error("one argument of type void* expected, not `%s`", fparam.type.toChars());
+                deld.error("one argument of type `void*` expected, not `%s`", fparam.type.toChars());
         }
 
         funcDeclarationSemantic(deld);
@@ -3775,7 +3775,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (sd.storage_class & STC.deprecated_)
                 sd.isdeprecated = true;
             if (sd.storage_class & STC.abstract_)
-                sd.error("structs, unions cannot be abstract");
+                sd.error("structs, unions cannot be `abstract`");
 
             sd.userAttribDecl = sc.userAttribDecl;
         }
@@ -3908,8 +3908,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 if (fcall && fcall.isStatic())
                 {
-                    sd.error(fcall.loc, "static opCall is hidden by constructors and can never be called");
-                    errorSupplemental(fcall.loc, "Please use a factory method instead, or replace all constructors with static opCall.");
+                    sd.error(fcall.loc, "`static opCall` is hidden by constructors and can never be called");
+                    errorSupplemental(fcall.loc, "Please use a factory method instead, or replace all constructors with `static opCall`.");
                 }
             }
         }
@@ -4095,7 +4095,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!tc)
                 {
                     if (b.type != Type.terror)
-                        cldec.error("base type must be class or interface, not `%s`", b.type.toChars());
+                        cldec.error("base type must be `class` or `interface`, not `%s`", b.type.toChars());
                     cldec.baseclasses.remove(0);
                     goto L7;
                 }
@@ -4152,7 +4152,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     if (b.type != Type.terror)
-                        cldec.error("base type must be interface, not `%s`", b.type.toChars());
+                        cldec.error("base type must be `interface`, not `%s`", b.type.toChars());
                     cldec.baseclasses.remove(i);
                     continue;
                 }
@@ -4535,7 +4535,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!vd.isThisDeclaration() &&
                     !vd.prot().isMoreRestrictiveThan(Prot(Prot.Kind.public_)))
                 {
-                    vd.error("Field members of a synchronized class cannot be `%s`",
+                    vd.error("Field members of a `synchronized` class cannot be `%s`",
                         protectionToChars(vd.prot().kind));
                 }
             }
@@ -4678,7 +4678,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
                     if (b.type != Type.terror)
-                        idec.error("base type must be interface, not `%s`", b.type.toChars());
+                        idec.error("base type must be `interface`, not `%s`", b.type.toChars());
                     idec.baseclasses.remove(i);
                     continue;
                 }
