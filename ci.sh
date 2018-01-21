@@ -153,10 +153,10 @@ activate_d() {
   download_install_sh "$install_sh"
   # DUB isn't needed for gdc
   if [ "${DMD:-dmd}" == "gdc" ] ; then
-      touch "$HOME/dlang/dub"
+      mkdir -p $HOME/dlang/dub
       # Remove the check of the lastest DUB version
       # shellcheck disable=2016
-      sed 's/dub="dub-$(fetch $url)"/dub=dub' -i "$install_sh"
+      sed 's/dub="dub-$(fetch $url)"/dub=dub/' -i "$install_sh"
   fi
   CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1" --activate
 }
