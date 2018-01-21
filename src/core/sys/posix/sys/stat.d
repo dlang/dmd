@@ -1254,6 +1254,70 @@ else version( CRuntime_Bionic )
     int utimensat(int dirfd, const char *pathname,
         ref const(timespec)[2] times, int flags);
 }
+else version (CRuntime_Musl)
+{
+    alias __mode_t = uint;
+    enum {
+        S_IRUSR    = 0x100, // octal 0400
+        S_IWUSR    = 0x080, // octal 0200
+        S_IXUSR    = 0x040, // octal 0100
+        S_IRWXU    = S_IRUSR | S_IWUSR | S_IXUSR,
+
+        S_IRGRP    = S_IRUSR >> 3,
+        S_IWGRP    = S_IWUSR >> 3,
+        S_IXGRP    = S_IXUSR >> 3,
+        S_IRWXG    = S_IRWXU >> 3,
+
+        S_IROTH    = S_IRGRP >> 3,
+        S_IWOTH    = S_IWGRP >> 3,
+        S_IXOTH    = S_IXGRP >> 3,
+        S_IRWXO    = S_IRWXG >> 3,
+
+        S_ISUID    = 0x800, // octal 04000
+        S_ISGID    = 0x400, // octal 02000
+        S_ISVTX    = 0x200, // octal 01000
+    }
+    struct stat_t {
+        dev_t st_dev;
+        ino_t st_ino;
+        nlink_t st_nlink;
+
+        mode_t st_mode;
+        uid_t st_uid;
+        gid_t st_gid;
+        uint    __pad0;
+        dev_t st_rdev;
+        off_t st_size;
+        blksize_t st_blksize;
+        blkcnt_t st_blocks;
+
+        timespec st_atim;
+        timespec st_mtim;
+        timespec st_ctim;
+        extern(D)
+        {
+            @property ref time_t st_atime() return { return st_atim.tv_sec; }
+            @property ref time_t st_mtime() return { return st_mtim.tv_sec; }
+            @property ref time_t st_ctime() return { return st_ctim.tv_sec; }
+        }
+        long[3] __unused;
+    }
+    private
+    {
+        extern (D) bool S_ISTYPE( mode_t mode, uint mask )
+        {
+            return ( mode & S_IFMT ) == mask;
+        }
+    }
+
+    extern (D) bool S_ISBLK( mode_t mode )  { return S_ISTYPE( mode, S_IFBLK );  }
+    extern (D) bool S_ISCHR( mode_t mode )  { return S_ISTYPE( mode, S_IFCHR );  }
+    extern (D) bool S_ISDIR( mode_t mode )  { return S_ISTYPE( mode, S_IFDIR );  }
+    extern (D) bool S_ISFIFO( mode_t mode ) { return S_ISTYPE( mode, S_IFIFO );  }
+    extern (D) bool S_ISREG( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
+    extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
+    extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1367,6 +1431,16 @@ else version( CRuntime_Bionic )
     int   fstat(int, stat_t*) @trusted;
     int   lstat(in char*, stat_t*);
     int   stat(in char*, stat_t*);
+}
+else version( CRuntime_Musl )
+{
+    int stat(in char*, stat_t*);
+    int fstat(int, stat_t*);
+    int lstat(in char*, stat_t*);
+
+    alias fstat fstat64;
+    alias lstat lstat64;
+    alias stat stat64;
 }
 
 //
@@ -1482,6 +1556,21 @@ else version( CRuntime_Bionic )
     enum S_IFDIR    = 0x4000; // octal 0040000
     enum S_IFLNK    = 0xA000; // octal 0120000
     enum S_IFSOCK   = 0xC000; // octal 0140000
+
+    int mknod(in char*, mode_t, dev_t);
+}
+else version( CRuntime_Musl )
+{
+    enum {
+        S_IFMT     = 0xF000, // octal 0170000
+        S_IFBLK    = 0x6000, // octal 0060000
+        S_IFCHR    = 0x2000, // octal 0020000
+        S_IFIFO    = 0x1000, // octal 0010000
+        S_IFREG    = 0x8000, // octal 0100000
+        S_IFDIR    = 0x4000, // octal 0040000
+        S_IFLNK    = 0xA000, // octal 0120000
+        S_IFSOCK   = 0xC000, // octal 0140000
+    }
 
     int mknod(in char*, mode_t, dev_t);
 }

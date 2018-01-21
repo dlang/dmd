@@ -345,7 +345,8 @@ else version( linux )
         IPPROTO_TCP  = 6,
         IPPROTO_PUP  = 12,
         IPPROTO_UDP  = 17,
-        IPPROTO_IDP  = 22
+        IPPROTO_IDP  = 22,
+        IPPROTO_IPV6 = 41
     }
 
     enum : c_ulong
@@ -1332,6 +1333,37 @@ else version( CRuntime_Bionic )
                    IPV6_ADDR_MC_SCOPE(a) == IPV6_ADDR_SCOPE_GLOBAL;
         }
     }
+}
+else version( CRuntime_Musl )
+{
+
+    struct in6_addr {
+        union {
+            uint8_t[16] s6_addr;
+            uint16_t[8] s6_addr16;
+            uint32_t[4] s6_addr32;
+        }
+    }
+    struct sockaddr_in6 {
+        sa_family_t     sin6_family;
+        in_port_t       sin6_port;
+        uint32_t        sin6_flowinfo;
+        in6_addr        sin6_addr;
+        uint32_t        sin6_scope_id;
+    }
+
+    enum : uint
+    {
+        IPV6_UNICAST_HOPS   = 16,
+        IPV6_MULTICAST_IF   = 17,
+        IPV6_MULTICAST_HOPS = 18,
+        IPV6_MULTICAST_LOOP = 19,
+        IPV6_JOIN_GROUP     = 20,
+        IPV6_LEAVE_GROUP    = 21,
+        IPV6_V6ONLY         = 26
+    }
+    extern __gshared immutable in6_addr in6addr_any;
+    extern __gshared immutable in6_addr in6addr_loopback;
 }
 
 

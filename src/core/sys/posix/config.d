@@ -65,6 +65,18 @@ version (CRuntime_Glibc)
     else
         enum __WORDSIZE=32;
 }
+else version (CRuntime_Musl)
+{
+    enum _FILE_OFFSET_BITS   = 64;
+
+    enum __REDIRECT          = false;
+
+    enum __USE_FILE_OFFSET64 = _FILE_OFFSET_BITS == 64;
+    enum __USE_LARGEFILE     = __USE_FILE_OFFSET64 && !__REDIRECT;
+    enum __USE_LARGEFILE64   = __USE_FILE_OFFSET64 && !__REDIRECT;
+
+    enum __WORDSIZE=64;
+}
 else version (Solaris)
 {
     enum _FILE_OFFSET_BITS = 64;

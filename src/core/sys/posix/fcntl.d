@@ -784,6 +784,66 @@ else version( CRuntime_Bionic )
 
     enum AT_FDCWD = -100;
 }
+else version( CRuntime_Musl )
+{
+    enum {
+        O_CREAT         = 0x40,     // octal     0100
+        O_EXCL          = 0x80,     // octal     0200
+        O_NOCTTY        = 0x100,    // octal     0400
+        O_TRUNC         = 0x200,    // octal    01000
+
+        O_APPEND        = 0x400,    // octal    02000
+        O_NONBLOCK      = 0x800,    // octal    04000
+        O_DSYNC         = 0x1000,   // octal   010000
+        O_SYNC          = 0x101000, // octal 04010000
+        O_RSYNC         = O_SYNC,
+        O_DIRECTORY     = 0x10000,
+        O_NOFOLLOW      = 0x20000,
+        O_CLOEXEC       = 0x80000,
+
+        O_ASYNC         = 0x2000,
+        O_DIRECT        = 0x4000,
+        O_LARGEFILE     =      0,
+        O_NOATIME       = 0x40000,
+        O_PATH          = 0x200000,
+        O_TMPFILE       = 0x410000,
+        O_NDELAY        = O_NONBLOCK,
+        O_SEARCH        = O_PATH,
+        O_EXEC          = O_PATH,
+
+        O_ACCMODE       = (03|O_SEARCH),
+        O_RDONLY        = 00,
+        O_WRONLY        = 01,
+        O_RDWR          = 02,
+    }
+    enum {
+        F_DUPFD        = 0,
+        F_GETFD        = 1,
+        F_SETFD        = 2,
+        F_GETFL        = 3,
+        F_SETFL        = 4,
+        F_GETLK        = 5,
+        F_SETLK        = 6,
+        F_SETLKW       = 7,
+        F_SETOWN       = 8,
+        F_GETOWN       = 9,
+    }
+    enum {
+        F_RDLCK        = 0,
+        F_WRLCK        = 1,
+        F_UNLCK        = 2,
+    }
+    struct flock
+    {
+        short   l_type;
+        short   l_whence;
+        off_t   l_start;
+        off_t   l_len;
+        pid_t   l_pid;
+    }
+    enum FD_CLOEXEC     = 1;
+    int open(in char*, int, ...);
+}
 else
 {
     static assert(false, "Unsupported platform");

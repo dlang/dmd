@@ -405,6 +405,10 @@ else version (CRuntime_Bionic)
 {
     int ioctl(int, int, ...);
 }
+else version (CRuntime_Musl)
+{
+
+}
 else
 {
     static assert(false, "Unsupported platform");

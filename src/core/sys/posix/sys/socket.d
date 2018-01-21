@@ -1826,6 +1826,116 @@ else version( CRuntime_Bionic )
     int     sockatmark(int) @safe;
     int     socketpair(int, int, int, ref int[2]) @safe;
 }
+else version( CRuntime_Musl )
+{
+    alias uint socklen_t;
+    alias ubyte sa_family_t;
+
+    struct sockaddr
+    {
+        sa_family_t sa_family;
+        byte[14]    sa_data;
+    }
+    enum {
+        SOCK_STREAM = 1,
+        SOCK_DGRAM = 2,
+        SOCK_RAW = 3,
+        SOCK_RDM = 4,
+        SOCK_SEQPACKET = 5,
+        SOCK_DCCP = 6,
+        SOCK_PACKET = 10
+    }
+    enum
+    {
+        AF_UNSPEC       = 0,
+        AF_LOCAL        = 1,
+        AF_UNIX         = AF_LOCAL,
+        AF_FILE         = AF_LOCAL,
+        AF_INET         = 2,
+        AF_AX25         = 3,
+        AF_IPX          = 4,
+        AF_APPLETALK    = 5,
+        PF_APPLETALK    = AF_APPLETALK,
+        PF_IPX          = AF_IPX
+    }
+
+    enum
+    {
+        SHUT_RD,
+        SHUT_WR,
+        SHUT_RDWR
+    }
+
+    enum
+    {
+        SOL_SOCKET      = 1
+    }
+
+    enum
+    {
+        SO_DEBUG        = 1,
+        SO_REUSEADDR    = 2,
+        SO_TYPE         = 3,
+        SO_ERROR        = 4,
+        SO_DONTROUTE    = 5,
+        SO_BROADCAST    = 6,
+        SO_SNDBUF       = 7,
+        SO_RCVBUF       = 8,
+        SO_KEEPALIVE    = 9,
+        SO_OOBINLINE    = 10,
+        SO_LINGER       = 13,
+        SO_RCVLOWAT     = 18,
+        SO_SNDLOWAT     = 19,
+        SO_RCVTIMEO     = 20,
+        SO_SNDTIMEO     = 21,
+        SO_ACCEPTCONN   = 30
+    }
+
+    enum : uint
+    {
+        MSG_OOB         = 0x01,
+        MSG_PEEK        = 0x02,
+        MSG_DONTROUTE   = 0x04,
+        MSG_CTRUNC      = 0x08,
+        MSG_TRUNC       = 0x20,
+        MSG_EOR         = 0x80,
+        MSG_WAITALL     = 0x100,
+        MSG_NOSIGNAL    = 0x4000
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+    struct msghdr {
+        void *msg_name;
+        socklen_t msg_namelen;
+        iovec *msg_iov;
+        int msg_iovlen, __pad1;
+        void *msg_control;
+        socklen_t msg_controllen, __pad2;
+        int msg_flags;
+    }
+    int     accept(int, sockaddr*, socklen_t*);
+    int     bind(int, in sockaddr*, socklen_t);
+    int     connect(int, in sockaddr*, socklen_t);
+    int     getpeername(int, sockaddr*, socklen_t*);
+    int     getsockname(int, sockaddr*, socklen_t*);
+    int     getsockopt(int, int, int, void*, socklen_t*);
+    int     listen(int, int);
+    ssize_t recv(int, void*, size_t, int);
+    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
+    ssize_t recvmsg(int, msghdr*, int);
+    ssize_t send(int, in void*, size_t, int);
+    ssize_t sendmsg(int, in msghdr*, int);
+    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, in void*, socklen_t);
+    int     shutdown(int, int);
+    int     socket(int, int, int);
+    int     sockatmark(int);
+    int     socketpair(int, int, int, ref int[2]);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1887,6 +1997,10 @@ else version( CRuntime_Bionic )
         AF_INET6    = 10
     }
 }
+else version( CRuntime_Musl )
+{
+    enum AF_INET6 = 10;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1947,6 +2061,9 @@ else version( CRuntime_Bionic )
     {
         SOCK_RAW    = 3
     }
+}
+else version( CRuntime_Musl )
+{
 }
 else
 {

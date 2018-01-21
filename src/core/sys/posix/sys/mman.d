@@ -109,6 +109,9 @@ else version (Solaris)
 else version (CRuntime_Bionic)
 {
 }
+else version (CRuntime_Musl)
+{
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -173,6 +176,13 @@ else version (CRuntime_Bionic)
     enum PROT_WRITE = 0x02;
     enum PROT_EXEC = 0x04;
 }
+else version (CRuntime_Musl)
+{
+    enum PROT_NONE      = 0x0;
+    enum PROT_READ      = 0x1;
+    enum PROT_WRITE     = 0x2;
+    enum PROT_EXEC      = 0x4;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -224,6 +234,16 @@ else version (CRuntime_Bionic)
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
+}
+else version (CRuntime_Musl)
+{
+    static if (__USE_LARGEFILE64) void* mmap64(void*, size_t, int, int, int, off_t);
+    static if (__USE_FILE_OFFSET64)
+        alias mmap = mmap64;
+    else
+        void* mmap(void*, size_t, int, int, int, off_t);
+    int munmap(void*, size_t);
+
 }
 else
 {
@@ -440,6 +460,19 @@ else version (CRuntime_Bionic)
 
     int msync(in void*, size_t, int);
 }
+else version (CRuntime_Musl)
+{
+    enum MAP_SHARED     = 0x01;
+    enum MAP_PRIVATE    = 0x02;
+    enum MAP_FIXED      = 0x10;
+
+    enum MAP_FAILED     = cast(void*) -1;
+    enum MAP_ANON = 0x20;
+    enum MS_ASYNC = 1;
+    enum MS_INVALIDATE = 2;
+    enum MS_SYNC = 4;
+    int msync(void*, size_t, int);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -541,6 +574,9 @@ else version (CRuntime_Bionic)
     int mlockall(int);
     int munlockall();
 }
+else version (CRuntime_Musl)
+{
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -589,6 +625,9 @@ else version (CRuntime_Bionic)
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
+else version (CRuntime_Musl)
+{
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -628,6 +667,10 @@ else version (Solaris)
 else version (CRuntime_Bionic)
 {
     int mprotect(in void*, size_t, int);
+}
+else version (CRuntime_Musl)
+{
+    int mprotect(void*, size_t, int);
 }
 else
 {
@@ -673,6 +716,9 @@ else version (Solaris)
     int shm_unlink(in char*);
 }
 else version (CRuntime_Bionic)
+{
+}
+else version (CRuntime_Musl)
 {
 }
 else

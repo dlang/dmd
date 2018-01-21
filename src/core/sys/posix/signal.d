@@ -596,6 +596,28 @@ version( CRuntime_Glibc )
         void function() sa_restorer;
     }
 }
+else version( CRuntime_Musl )
+{
+    struct sigaction_t
+    {
+        static if( true /* __USE_POSIX199309 */ )
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+        }
+        else
+        {
+            sigfn_t     sa_handler;
+        }
+        sigset_t        sa_mask;
+        int             sa_flags;
+
+        void function() sa_restorer;
+    }
+}
 else version( FreeBSD )
 {
     struct sigaction_t
@@ -1503,6 +1525,86 @@ else version( CRuntime_Bionic )
         return cast(int) ((local_set[signum/LONG_BIT] >> (signum%LONG_BIT)) & 1);
     }
 
+    int sigpending(sigset_t*);
+    int sigprocmask(int, in sigset_t*, sigset_t*);
+    int sigsuspend(in sigset_t*);
+    int sigwait(in sigset_t*, int*);
+}
+else version( CRuntime_Musl )
+{
+    struct sigset_t {
+        ulong[128/long.sizeof] __bits;
+    }
+    struct siginfo_t {
+        int si_signo, si_errno, si_code;
+        union __si_fields_t {
+            char[128 - 2*int.sizeof - long.sizeof] __pad;
+            struct __si_common_t {
+                union __first_t {
+                    struct __piduid_t {
+                        pid_t si_pid;
+                        uid_t si_uid;
+                    }
+                    __piduid_t __piduid;
+
+                    struct __timer_t {
+                        int si_timerid;
+                        int si_overrun;
+                    }
+                    __timer_t __timer;
+                }
+                __first_t __first;
+
+                union __second_t {
+                    sigval si_value;
+                    struct __sigchld_t {
+                        int si_status;
+                        clock_t si_utime, si_stime;
+                    }
+                    __sigchld_t __sigchld;
+                }
+                __second_t __second;
+            }
+            __si_common_t __si_common;
+
+            struct __sigfault_t {
+                void *si_addr;
+                short si_addr_lsb;
+                union __first_t {
+                    struct __addr_bnd_t {
+                        void *si_lower;
+                        void *si_upper;
+                    }
+                    __addr_bnd_t __addr_bnd;
+                    uint si_pkey;
+                }
+                __first_t __first;
+            }
+            __sigfault_t __sigfault;
+
+            struct __sigpoll_t {
+                long si_band;
+                int si_fd;
+            }
+            __sigpoll_t __sigpoll;
+
+            struct __sigsys_t {
+                void *si_call_addr;
+                int si_syscall;
+                uint si_arch;
+            }
+            __sigsys_t __sigsys;
+        }
+        __si_fields_t __si_fields;
+    }
+
+    int kill(pid_t, int);
+    int sigaction(int, in sigaction_t*, sigaction_t*);
+    int sigaddset(sigset_t*, int);
+    int sigdelset(sigset_t*, int);
+    int sigemptyset(sigset_t*);
+    int sigfillset(sigset_t*);
+    int sigismember(in sigset_t*, int);
     int sigpending(sigset_t*);
     int sigprocmask(int, in sigset_t*, sigset_t*);
     int sigsuspend(in sigset_t*);
@@ -2676,6 +2778,9 @@ else version (CRuntime_Bionic)
     int sigaltstack(in stack_t*, stack_t*);
     int siginterrupt(int, int);
 }
+else version( CRuntime_Musl )
+{
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2928,6 +3033,10 @@ else version( CRuntime_Bionic )
         } _sigev_un_t _sigev_un;
     }
 }
+else version( CRuntime_Musl )
+{
+
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2977,6 +3086,11 @@ else version (Solaris)
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
 else version( CRuntime_Bionic )
+{
+    int pthread_kill(pthread_t, int);
+    int pthread_sigmask(int, in sigset_t*, sigset_t*);
+}
+else version( CRuntime_Musl )
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
