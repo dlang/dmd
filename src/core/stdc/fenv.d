@@ -309,6 +309,33 @@ else version( Solaris )
 
     alias int fexcept_t;
 }
+else version( CRuntime_Musl )
+{
+    version (X86_64)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+            uint   __mxcsr;
+        }
+        alias ushort fexcept_t;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -633,6 +660,11 @@ else version( Solaris )
     private extern const fenv_t __fenv_def_env;
     ///
     enum FE_DFL_ENV = &__fenv_def_env;
+}
+else version( CRuntime_Musl )
+{
+    ///
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
 else
 {
