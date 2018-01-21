@@ -544,7 +544,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             }
             Symbol *s = toSymbol(e.fd);
             toObjFile(e.fd, false);
-            if (e.fd.tok == TOKdelegate)
+            if (e.fd.tok == TOK.delegate_)
                 dtb.size(0);
             dtb.xoff(s, 0);
         }
