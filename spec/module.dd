@@ -88,7 +88,7 @@ path and extension) of the source file name.)
 
 $(GRAMMAR
 $(GNAME ModuleDeclaration):
-    $(I ModuleAttributes)$(OPT) $(D module) $(I ModuleFullyQualifiedName) $(D ;)
+    $(GLINK ModuleAttributes)$(OPT) $(D module) $(GLINK ModuleFullyQualifiedName) $(D ;)
 
 $(GNAME ModuleAttributes):
     $(GLINK ModuleAttribute)
@@ -113,10 +113,9 @@ $(GNAME PackageName):
     $(I Identifier)
 )
 
-$(P The $(I Identifiers) preceding the rightmost are the $(I Packages) that the
+$(P The $(I Identifier)s preceding the rightmost are the $(I Packages) that the
 module is in. The packages correspond to directory names in the source file
-path. Package names cannot be keywords, hence the corresponding directory names
-cannot be keywords, either.)
+path. Package and module names cannot be $(GLINK2 lex, Keyword)s.)
 
 $(P If present, the $(I ModuleDeclaration) appears syntactically first in the
 source file, and there can be only one per source file.)
@@ -153,8 +152,9 @@ module bar;
 import foo;  // Deprecated: module foo is deprecated
 ---------
 
-$(P $(I DeprecatedAttribute) can have an optional string argument to provide a
-more expressive message.)
+$(P $(I DeprecatedAttribute) can have an optional $(ASSIGNEXPRESSION) argument to provide a
+more expressive message. The $(I AssignExpression) must evaluate at compile time to
+a string.)
 
 ---------
 deprecated("Please use foo2 instead.")
@@ -166,6 +166,21 @@ module bar;
 import foo;  // Deprecated: module foo is deprecated - Please use foo2 instead.
 ---------
 
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The mapping of package and module identifiers to directory and file names.)
+    $(LI How the deprecation messages are presented to the user.)
+    ))
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI $(GLINK PackageName)s and $(GLINK ModuleName)s should be composed of the ASCII
+    characters lower case letters, digits or `_` to ensure maximum portability and compatibility with
+    various file systems.)
+    $(LI The file names for packages and modules should also be composed of
+    the ASCII characters lower case letters, digits or `_` and should not be a $(GLINK2 lex, Keyword).)
+    ))
+
 $(H2 $(LEGACY_LNAME2 ImportDeclaration, import-declaration, Import Declaration))
 
 $(P Symbols from one module are made available in another module by using the
@@ -173,31 +188,31 @@ $(I ImportDeclaration):)
 
 $(GRAMMAR
 $(GNAME ImportDeclaration):
-    $(D import) $(I ImportList) $(D ;)
-    $(D static import) $(I ImportList) $(D ;)
+    $(D import) $(GLINK ImportList) $(D ;)
+    $(D static import) $(GLINK ImportList) $(D ;)
 
 $(GNAME ImportList):
-    $(I Import)
-    $(I ImportBindings)
-    $(I Import) $(D ,) $(I ImportList)
+    $(GLINK Import)
+    $(GLINK ImportBindings)
+    $(GLINK Import) $(D ,) $(GLINK ImportList)
 
 $(GNAME Import):
-    $(I ModuleFullyQualifiedName)
-    $(I ModuleAliasIdentifier) $(D =) $(I ModuleFullyQualifiedName)
+    $(GLINK ModuleFullyQualifiedName)
+    $(GLINK ModuleAliasIdentifier) $(D =) $(GLINK ModuleFullyQualifiedName)
 
 $(GNAME ImportBindings):
-    $(I Import) $(D :) $(I ImportBindList)
+    $(GLINK Import) $(D :) $(GLINK ImportBindList)
 
 $(GNAME ImportBindList):
-    $(I ImportBind)
-    $(I ImportBind) $(D ,) $(I ImportBindList)
+    $(GLINK ImportBind)
+    $(GLINK ImportBind) $(D ,) $(I ImportBindList)
 
 $(GNAME ImportBind):
-    $(I Identifier)
-    $(I Identifier) = $(I Identifier)
+    $(GLINK2 lex, Identifier)
+    $(GLINK2 lex, Identifier) = $(I Identifier)
 
 $(GNAME ModuleAliasIdentifier):
-    $(I Identifier)
+    $(GLINK2 lex, Identifier)
 )
 
 $(P There are several forms of the $(I ImportDeclaration), from generalized to
@@ -233,19 +248,19 @@ class Foo : BaseClass
 
 $(P When a symbol name is used unqualified, a two-phase lookup will happen.
 First, the module scope will be searched, starting from the innermost scope.
-For example, in the previous example, while looking for $(SINGLEQUOTE writeln),
+For example, in the previous example, while looking for `writeln`,
 the order will be:)
 
 $(UL
-    $(LI Declarations inside $(SINGLEQUOTE bar).)
-    $(LI Declarations inside $(SINGLEQUOTE Foo).)
-    $(LI Declarations inside $(SINGLEQUOTE BaseClass).)
+    $(LI Declarations inside `bar`.)
+    $(LI Declarations inside `Foo`.)
+    $(LI Declarations inside `BaseClass`.)
     $(LI Declarations at module scope.)
 )
 
 $(P If the first lookup wasn't successful, a second one is performed on imports.
 In the second lookup phase inherited scopes are ignored.  This includes scope of
-base classes and interface (in this example, $(SINGLEQUOTE BaseClass)'s imports
+base classes and interface (in this example, `BaseClass`'s imports
 would be ignored), as well as imports in mixed-in $(D template).)
 
 $(P Symbol lookup stops as soon as a symbol is found. If two symbols with the
@@ -304,10 +319,9 @@ $(H2 $(LNAME2 public_imports, Public Imports))
 
 $(P By default, imports are $(I private). This means that if module A imports
 module B, and module B imports module C, then names from C are visible only from
-B and not from A. This prevents surprising name clashes from modules which
-haven't directly been imported.)
+B and not from A.)
 
-$(P An import can be however specifically declared $(I public), which will cause
+$(P An import can be explicitly declared $(I public), which will cause
 names from the imported module to be visible to further imports. So in the above
 example where module A imports module B, if module B $(I publicly) imports
 module C, names from C will be visible in A as well.)
@@ -349,10 +363,7 @@ Y.bar(); // ok, Y.bar() is an alias to X.bar()
 
 $(H2 $(LNAME2 static_imports, Static Imports))
 
-$(P Basic imports work well for programs with relatively few modules and
-imports. If there are a lot of imports, name collisions can start occurring
-between the names in the various imported modules. One way to stop this is by
-using static imports. A static import requires one to use a fully qualified name
+$(P static import requires use of a fully qualified name
 to reference the module's names:)
 
 ---
@@ -383,7 +394,7 @@ void main()
 ---
 )
 
-$(P Renamed imports are handy when dealing with very long import names.)
+    $(BEST_PRACTICE Renamed imports are handy when dealing with very long import names.)
 
 $(H2 $(LNAME2 selective_imports, Selective Imports))
 
@@ -473,9 +484,8 @@ void main()
 
 $(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
 
-$(P Sometimes, it's necessary to override the usual lexical scoping rules to
-access a name hidden by a local name. This is done with the global scope
-operator, which is a leading $(SINGLEQUOTE .):)
+    $(P A leading `.` causes the
+    identifer to be looked up in the module scope.)
 
 ---------
 int x;
@@ -489,47 +499,82 @@ int foo(int x)
 }
 ---------
 
-$(P The leading $(SINGLEQUOTE .) means look up the name at the module scope
-level.)
 
 $(H2 $(LNAME2 staticorder, Static Construction and Destruction))
 
-$(P Static constructors are code that gets executed to initialize a module or a
-class before the main() function gets called. Static destructors are code that
-gets executed after the main() function returns, and are normally used for
-releasing system resources.)
+    $(P Static constructors are executed to initialize a module's state.
+    Static destructors terminate a module's state.
+    )
 
-$(P There can be multiple static constructors and static destructors within one
-module. The static constructors are run in lexical order, the static destructors
-are run in reverse lexical order.)
+    $(P There can be multiple static constructors and static destructors within one
+    module. The static constructors are run in lexical order, the static destructors
+    are run in reverse lexical order.)
 
-$(P Static constructors and static destructors run on thread local data, and are
-run whenever threads are created or destroyed.)
+    $(P Non-shared static constructors and destructors are
+    run whenever threads are created or destroyed, including the main thread.)
 
-$(P Shared static constructors and shared static destructors are run on global
-shared data, and constructors are run once on program startup and destructors
-are run once on program termination.)
+    $(P Shared static constructors are run once on before `main()` is called.
+    Shared static destructors are run after the `main()` returns.
+    )
+
+    ---
+    import resource;
+
+    Resource x;
+    shared Resource y;
+    __gshared Resource z;
+
+    static this()  // non-shared static constructor
+    {
+        x = acquireResource();
+    }
+
+    shared static this()  // shared static constructor
+    {
+        y = acquireSharedResource();
+        z = acquireSharedResource();
+    }
+
+    static ~this()  // non-shared static destructor
+    {
+        releaseResource(x);
+    }
+
+    shared static ~this()   // shared static destructor
+    {
+        releaseSharedResource(y);
+        releaseSharedResource(z);
+    }
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Shared static constructors and destructors are used to initialize and terminate
+    shared global data.)
+    $(LI Non-shared static constructors and destructors are used to initialize and terminate
+    thread local data.)
+    ))
+    ---
 
 $(H2 $(LNAME2 order_of_static_ctor, Order of Static Construction))
 
-$(P Shared static constructors on all modules are run before any static
+$(P Shared static constructors on all modules are run before any non-shared static
 constructors.)
 
 $(P The order of static initialization is implicitly determined by the $(I
 import) declarations in each module. Each module is assumed to depend on any
-imported modules being statically constructed first. Other than following that
-rule, there is no imposed order on executing the module static constructors.)
+imported modules being statically constructed first.
+There is no other imposed order on executing the module static constructors.)
 
 $(P Cycles (circular dependencies) in the import declarations are allowed as
 long as not both of the modules contain static constructors or static
 destructors. Violation of this rule will result in a runtime exception.)
 
-$(H2 $(LNAME2 override_cycle_abort, Overriding Cycle Detection Abort))
-
-$(P You can override the cyclic detection behavior using the D Runtime switch
-`--DRT-oncycle=...` The following behaviors are supported:)
-
-$(OL
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI An implementation may provide a means of overriding the cycle detection abort.
+    A typical method uses the D Runtime switch
+    `--DRT-oncycle=...` where the following behaviors are supported:
+    $(OL
     $(LI `abort` The default behavior. The normal behavior as described
             in the previous section)
     $(LI `deprecate` This functions just like `abort`, but upon cycle
@@ -543,7 +588,18 @@ $(OL
             $(LI `ignore` Do not abort execution or print any cycles. When
             cycles are present, order of static construction is implementation
             defined, and not guaranteed to be valid.)
-)
+    )
+    ))
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Avoid cyclical imports where practical. They can be a sign of poor
+    decomposition of program structure into independent modules. Two modules
+    that import each other can often be reorganized into three modules without
+    cycles, where the third contains declarations needed by the other two.)
+    )
+    )
 
 $(H2 $(LNAME2 order_of_static_ctors, Order of Static Construction within a Module))
 
