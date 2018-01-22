@@ -2186,15 +2186,18 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     The contexts that trigger CTFE are:)
 
     $(UL
-    $(LI initialization of a static variable or a manifest constant)
+    $(LI initialization of a static variable or a
+        $(DDSUBLINK spec/enum, manifest_constants, manifest constant))
     $(LI static initializers of struct/class members)
-    $(LI dimension of a static array)
-    $(LI argument for a template value parameter)
-    $(LI $(D_KEYWORD static if))
-    $(LI $(D_KEYWORD static foreach))
-    $(LI $(D_KEYWORD static assert))
-    $(LI $(D_KEYWORD mixin) statement)
-    $(LI $(D_KEYWORD pragma) argument)
+    $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array))
+    $(LI argument for a $(DDSUBLINK spec/template, template_value_parameter,
+        template value parameter))
+    $(LI $(DDSUBLINK spec/version, staticif, $(D_KEYWORD static if)))
+    $(LI $(DDSUBLINK spec/version, staticforeach, $(D_KEYWORD static foreach)))
+    $(LI $(DDSUBLINK spec/version, static-assert, $(D_KEYWORD static assert)))
+    $(LI $(DDSUBLINK spec/statement, mixin-statement,
+        $(D_KEYWORD mixin) statement))
+    $(LI $(DDLINK spec/pragma, Pragmas, $(D_KEYWORD pragma) argument))
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
