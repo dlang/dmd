@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail241.d(16): Error: mutable method `fail241.Foo.f` is not callable using a const object
-fail_compilation/fail241.d(17): Error: mutable method `fail241.Foo.g` is not callable using a const object
+fail_compilation/fail241.d(16): Error: mutable method `fail241.Foo.f` is not callable using a `const` object
+fail_compilation/fail241.d(17): Error: mutable method `fail241.Foo.g` is not callable using a `const` object
 ---
 */
 

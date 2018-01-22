@@ -3463,7 +3463,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 if (!tf.isnogc && sc.func.setGC())
                 {
-                    exp.error("`@nogc` %s `%s` cannot call non-`@nogc` %s `%s`",
+                    exp.error("`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }

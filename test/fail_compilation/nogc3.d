@@ -25,8 +25,8 @@ void barCall();
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc3.d(35): Error: `@nogc` function `nogc3.testCall` cannot call non-`@nogc` function pointer `fp`
-fail_compilation/nogc3.d(36): Error: `@nogc` function `nogc3.testCall` cannot call non-`@nogc` function `nogc3.barCall`
+fail_compilation/nogc3.d(35): Error: `@nogc` function `nogc3.testCall` cannot call non-@nogc function pointer `fp`
+fail_compilation/nogc3.d(36): Error: `@nogc` function `nogc3.testCall` cannot call non-@nogc function `nogc3.barCall`
 ---
 */
 @nogc void testCall()
