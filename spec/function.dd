@@ -2356,9 +2356,11 @@ int foo(char[] s)
 const int x = foo("1");
 ---
 
-        $(P is illegal, because the runtime code for `foo` cannot be
+        $(COMMENT Intentionally not a $(P ...) so that it doesn't get a
+        paragraph number, because this continues the paragraph above.)
+        is illegal, because the runtime code for `foo` cannot be
         generated. A function template would be the appropriate
-        method to implement this sort of thing.)
+        method to implement this sort of thing.
 
 $(H2 $(LNAME2 nogc-functions, No-GC Functions))
 
