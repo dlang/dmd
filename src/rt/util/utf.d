@@ -723,8 +723,14 @@ wstring toUTF16(in char[] s)
     wchar[] r;
     size_t slen = s.length;
 
-    r.length = slen;
-    r.length = 0;
+    if (!__ctfe)
+    {
+        // Reserve still does a lot if slen is zero.
+        // Return early for that case.
+        if (0 == slen)
+            return ""w;
+        r.reserve(slen);
+    }
     for (size_t i = 0; i < slen; )
     {
         dchar c = s[i];
@@ -750,8 +756,14 @@ wptr toUTF16z(in char[] s)
     wchar[] r;
     size_t slen = s.length;
 
-    r.length = slen + 1;
-    r.length = 0;
+    if (!__ctfe)
+    {
+        // Reserve still does a lot if slen is zero.
+        // Return early for that case.
+        if (0 == slen)
+            return &"\0"w[0];
+        r.reserve(slen + 1);
+    }
     for (size_t i = 0; i < slen; )
     {
         dchar c = s[i];
@@ -789,8 +801,14 @@ wstring toUTF16(in dchar[] s)
     wchar[] r;
     size_t slen = s.length;
 
-    r.length = slen;
-    r.length = 0;
+    if (!__ctfe)
+    {
+        // Reserve still does a lot if slen is zero.
+        // Return early for that case.
+        if (0 == slen)
+            return ""w;
+        r.reserve(slen);
+    }
     for (size_t i = 0; i < slen; i++)
     {
         encode(r, s[i]);
