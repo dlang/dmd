@@ -26,6 +26,7 @@ import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.gluelayer;
 import dmd.builtin;
+import dmd.compiler;
 import dmd.cond;
 import dmd.console;
 import dmd.dinifile;
@@ -1211,143 +1212,6 @@ private void setDefaultLibrary()
         global.params.debuglibname = global.params.defaultlibname;
 }
 
-
-/**
- * Add default `version` identifier for dmd, and set the
- * target platform in `global`.
- * https://dlang.org/spec/version.html#predefined-versions
- *
- * Needs to be run after all arguments parsing (command line, DFLAGS environment
- * variable and config file) in order to add final flags (such as `X86_64` or
- * the `CRuntime` used).
- */
-private void addDefaultVersionIdentifiers()
-{
-    VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    static if (TARGET.Windows)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Windows");
-        global.params.isWindows = true;
-    }
-    else static if (TARGET.Linux)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("linux");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isLinux = true;
-    }
-    else static if (TARGET.OSX)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OSX");
-        global.params.isOSX = true;
-        // For legacy compatibility
-        VersionCondition.addPredefinedGlobalIdent("darwin");
-    }
-    else static if (TARGET.FreeBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("FreeBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isFreeBSD = true;
-    }
-    else static if (TARGET.OpenBSD)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("OpenBSD");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isOpenBSD = true;
-    }
-    else static if (TARGET.Solaris)
-    {
-        VersionCondition.addPredefinedGlobalIdent("Posix");
-        VersionCondition.addPredefinedGlobalIdent("Solaris");
-        VersionCondition.addPredefinedGlobalIdent("ELFv1");
-        global.params.isSolaris = true;
-    }
-    else
-    {
-        static assert(0, "fix this");
-    }
-    VersionCondition.addPredefinedGlobalIdent("LittleEndian");
-    VersionCondition.addPredefinedGlobalIdent("D_Version2");
-    VersionCondition.addPredefinedGlobalIdent("all");
-
-    if (global.params.cpu >= CPU.sse2)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_SIMD");
-        if (global.params.cpu >= CPU.avx)
-            VersionCondition.addPredefinedGlobalIdent("D_AVX");
-        if (global.params.cpu >= CPU.avx2)
-            VersionCondition.addPredefinedGlobalIdent("D_AVX2");
-    }
-
-    if (global.params.is64bit)
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
-        VersionCondition.addPredefinedGlobalIdent("X86_64");
-        static if (TARGET.Windows)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win64");
-        }
-    }
-    else
-    {
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
-        VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
-        VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET.Windows)
-        {
-            VersionCondition.addPredefinedGlobalIdent("Win32");
-        }
-    }
-    static if (TARGET.Windows)
-    {
-        if (global.params.mscoff)
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
-        else
-            VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
-    }
-    else static if (TARGET.Linux)
-    {
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
-    }
-
-    if (global.params.isLP64)
-        VersionCondition.addPredefinedGlobalIdent("D_LP64");
-    if (global.params.doDocComments)
-        VersionCondition.addPredefinedGlobalIdent("D_Ddoc");
-    if (global.params.cov)
-        VersionCondition.addPredefinedGlobalIdent("D_Coverage");
-    if (global.params.pic)
-        VersionCondition.addPredefinedGlobalIdent("D_PIC");
-    if (global.params.useUnitTests)
-        VersionCondition.addPredefinedGlobalIdent("unittest");
-    if (global.params.useAssert == CHECKENABLE.on)
-        VersionCondition.addPredefinedGlobalIdent("assert");
-    if (global.params.useArrayBounds == CHECKENABLE.off)
-        VersionCondition.addPredefinedGlobalIdent("D_NoBoundsChecks");
-    if (global.params.betterC)
-        VersionCondition.addPredefinedGlobalIdent("D_BetterC");
-
-    VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
-
-    printPredefinedVersions();
-}
-
-private void printPredefinedVersions()
-{
-    if (global.params.verbose && global.versionids)
-    {
-        fprintf(global.stdmsg, "predefs  ");
-        foreach (const str; *global.versionids)
-            fprintf(global.stdmsg, " %s", str.toChars);
-
-        fprintf(global.stdmsg, "\n");
-    }
-}
-
-
 /****************************************
  * Determine the instruction set to be used.
  * Params:
@@ -2160,6 +2024,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
     }
     return errors;
 }
+<<<<<<< 1018db023831a8c348bb8f9121b08fabb6e32fc2
 
 
 private __gshared bool includeImports = false;
@@ -2436,3 +2301,5 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
         }
     }
 }
+=======
+>>>>>>> Move addDefaultVersionIdentifiers to frontend.d

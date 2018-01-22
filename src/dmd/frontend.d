@@ -27,24 +27,11 @@ void initDMD()
     import dmd.expression : Expression;
     import dmd.objc : Objc;
     import dmd.builtin : builtin_init;
+    import dmd.compiler : addDefaultVersionIdentifiers, printPredefinedVersions;
 
     global._init;
-
-    version(linux)
-        global.params.isLinux = 1;
-    else version(OSX)
-        global.params.isOSX = 1;
-    else version(FreeBSD)
-        global.params.isFreeBSD = 1;
-    else version(Windows)
-        global.params.isWindows = 1;
-    else version(Solaris)
-        global.params.isSolaris = 1;
-    else version(OpenBSD)
-        global.params.isOpenBSD = 1;
-    else
-        static assert(0, "OS not supported yet.");
-
+    addDefaultVersionIdentifiers();
+    printPredefinedVersions();
     Type._init();
     Id.initialize();
     Module._init();
@@ -53,4 +40,3 @@ void initDMD()
     Objc._init();
     builtin_init();
 }
-
