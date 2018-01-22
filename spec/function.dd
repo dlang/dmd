@@ -2198,10 +2198,7 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-template eval( A... )
-{
-    const typeof(A[0]) eval = A[0];
-}
+enum eval(Args...) = Args[0];
 
 int square(int i)
 {
