@@ -664,12 +664,19 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /***************************************
-     * Search for identifier id as a member of 'this'.
-     * id may be a template instance.
+     * Search for identifier id as a member of `this`.
+     * `id` may be a template instance.
+     *
+     * Params:
+     *  loc = location to print the error messages
+     *  sc = the scope where the symbol is located
+     *  id = the id of the symbol
+     *  flags = the search flags which can be `SearchLocalsOnly` or `IgnorePrivateImports`
+     *
      * Returns:
      *      symbol found, NULL if not
      */
-    final Dsymbol searchX(Loc loc, Scope* sc, RootObject id)
+    final Dsymbol searchX(Loc loc, Scope* sc, RootObject id, int flags)
     {
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         Dsymbol s = toAlias();
@@ -685,7 +692,7 @@ extern (C++) class Dsymbol : RootObject
         switch (id.dyncast())
         {
         case DYNCAST.identifier:
-            sm = s.search(loc, cast(Identifier)id);
+            sm = s.search(loc, cast(Identifier)id, flags);
             break;
         case DYNCAST.dsymbol:
             {

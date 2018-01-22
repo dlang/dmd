@@ -1,0 +1,8 @@
+Fix Issue 18219 - Private import inside struct leaks symbols when used as VarDeclaration types
+
+When implementing a struct which has a local private import
+the imported symbols are leaked if present in a VarDeclaration statement. For more information and examples see : https://issues.dlang.org/show_bug.cgi?id=18219
+
+Symbols from the private import should not visible outside the
+struct scope. A deprecation is now issued when such cases are
+encountered

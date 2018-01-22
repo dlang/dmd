@@ -1236,7 +1236,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
     override void visit(TypeStruct mtype)
     {
-        //printf("TypeStruct::semantic('%s')\n", sym.toChars());
+        //printf("TypeStruct::semantic('%s')\n", mtype.toChars());
         if (mtype.deco)
         {
             if (sc && sc.cppmangle != CPPMANGLE.def)
@@ -1279,7 +1279,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
     override void visit(TypeClass mtype)
     {
-        //printf("TypeClass::semantic(%s)\n", sym.toChars());
+        //printf("TypeClass::semantic(%s)\n", mtype.toChars());
         if (mtype.deco)
         {
             if (sc && sc.cppmangle != CPPMANGLE.def)

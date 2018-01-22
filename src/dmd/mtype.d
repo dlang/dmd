@@ -2558,7 +2558,7 @@ extern (C++) abstract class Type : RootObject
             if (this != Type.terror)
             {
                 if (s)
-                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toChars());
+                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toPrettyChars());
                 else
                     error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
             }
@@ -6545,7 +6545,9 @@ extern (C++) abstract class TypeQualified : Type
 
                 Type t = s.getType(); // type symbol, type alias, or type tuple?
                 uint errorsave = global.errors;
-                Dsymbol sm = s.searchX(loc, sc, id);
+                int flags = t is null ? SearchLocalsOnly : IgnorePrivateImports;
+
+                Dsymbol sm = s.searchX(loc, sc, id, flags);
                 if (sm && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
                 {
                     .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
@@ -6591,9 +6593,18 @@ extern (C++) abstract class TypeQualified : Type
                         sm = t.toDsymbol(sc);
                         if (sm && id.dyncast() == DYNCAST.identifier)
                         {
-                            sm = sm.search(loc, cast(Identifier)id);
+                            sm = sm.search(loc, cast(Identifier)id /*, IgnorePrivateImports*/);
+                            // Deprecated in 2018-01.
+                            // Change to error by deleting the deprecation line and uncommenting
+                            // the above parameter. The error will be issued in Type.getProperty.
+                            // The deprecation is highlighted here to avoid a redundant call to
+                            // ScopeDsymbol.search.
+                            // @@@DEPRECATED_2019-01@@@.
                             if (sm)
+                            {
+                                .deprecation(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
                                 goto L2;
+                            }
                         }
                     L3:
                         Expression e;
@@ -7269,6 +7280,7 @@ extern (C++) final class TypeStruct : Type
         Dsymbol searchSym()
         {
             int flags = sc.flags & SCOPE.ignoresymbolvisibility ? IgnoreSymbolVisibility : 0;
+
             Dsymbol sold = void;
             if (global.params.bug10378 || global.params.check10378)
             {
@@ -7277,7 +7289,7 @@ extern (C++) final class TypeStruct : Type
                     return sold;
             }
 
-            auto s = sym.search(e.loc, ident, flags | SearchLocalsOnly);
+            auto s = sym.search(e.loc, ident, flags | IgnorePrivateImports);
             if (global.params.check10378)
             {
                 alias snew = s;
