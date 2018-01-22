@@ -103,11 +103,11 @@ public:
     {
         if (type.isImmutable() || type.isShared())
         {
-            type.error(Loc(), "Internal Compiler Error: shared or immutable types can not be mapped to C++ (%s)", type.toChars());
+            type.error(Loc(), "Internal Compiler Error: `shared` or `immutable` types can not be mapped to C++ (%s)", type.toChars());
         }
         else
         {
-            type.error(Loc(), "Internal Compiler Error: type %s can not be mapped to C++\n", type.toChars());
+            type.error(Loc(), "Internal Compiler Error: type `%s` can not be mapped to C++\n", type.toChars());
         }
         fatal(); //Fatal, because this error should be handled in frontend
     }
@@ -571,7 +571,7 @@ private:
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
+            d.error("Internal Compiler Error: C++ static non-__gshared non-extern variables not supported");
             fatal();
         }
         buf.writeByte('?');
@@ -716,7 +716,7 @@ private:
                     Expression e = isExpression(o);
                     if (!d && !e)
                     {
-                        sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template", o.toChars());
+                        sym.error("Internal Compiler Error: `%s` is unsupported parameter for C++ template", o.toChars());
                         fatal();
                     }
                     if (d && d.isFuncDeclaration())
@@ -765,7 +765,7 @@ private:
                     }
                     else
                     {
-                        sym.error("Internal Compiler Error: %s is unsupported parameter for C++ template: (%s)", o.toChars());
+                        sym.error("Internal Compiler Error: `%s` is unsupported parameter for C++ template: (%s)", o.toChars());
                         fatal();
                     }
                 }
@@ -1047,7 +1047,7 @@ private:
                 }
                 if (t.ty == Tsarray)
                 {
-                    t.error(Loc(), "Internal Compiler Error: unable to pass static array to extern(C++) function.");
+                    t.error(Loc(), "Internal Compiler Error: unable to pass static array to `extern(C++)` function.");
                     t.error(Loc(), "Use pointer instead.");
                     assert(0);
                 }

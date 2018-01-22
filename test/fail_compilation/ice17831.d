@@ -2,11 +2,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice17831.d(19): Error: case variable `i` declared at fail_compilation/ice17831.d(17) cannot be declared in switch body
-fail_compilation/ice17831.d(33): Error: case variable `i` declared at fail_compilation/ice17831.d(31) cannot be declared in switch body
-fail_compilation/ice17831.d(48): Error: case variable `i` declared at fail_compilation/ice17831.d(45) cannot be declared in switch body
-fail_compilation/ice17831.d(61): Error: case variable `i` declared at fail_compilation/ice17831.d(60) cannot be declared in switch body
-fail_compilation/ice17831.d(73): Error: case variable `i` declared at fail_compilation/ice17831.d(72) cannot be declared in switch body
+fail_compilation/ice17831.d(19): Error: `case` variable `i` declared at fail_compilation/ice17831.d(17) cannot be declared in `switch` body
+fail_compilation/ice17831.d(33): Error: `case` variable `i` declared at fail_compilation/ice17831.d(31) cannot be declared in `switch` body
+fail_compilation/ice17831.d(48): Error: `case` variable `i` declared at fail_compilation/ice17831.d(45) cannot be declared in `switch` body
+fail_compilation/ice17831.d(61): Error: `case` variable `i` declared at fail_compilation/ice17831.d(60) cannot be declared in `switch` body
+fail_compilation/ice17831.d(73): Error: `case` variable `i` declared at fail_compilation/ice17831.d(72) cannot be declared in `switch` body
 ---
  */
 

@@ -1383,7 +1383,7 @@ public:
                     if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
                     {}
                     else
-                        error(loc, "%s `%s` is private", s.kind(), s.toPrettyChars());
+                        error(loc, "%s `%s` is `private`", s.kind(), s.toPrettyChars());
                 }
                 //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
                 return s;

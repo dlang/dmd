@@ -646,7 +646,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         else enum skipCheck = false;
         if (!skipCheck && (dim < 1 || dim > 2))
         {
-            fs.error("only one (value) or two (key,value) arguments for tuple foreach");
+            fs.error("only one (value) or two (key,value) arguments for tuple `foreach`");
             setError();
             return returnEarly();
         }
@@ -731,14 +731,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
                         {
-                            fs.error("foreach: key type must be int or uint, long or ulong, not `%s`", p.type.toChars());
+                            fs.error("`foreach`: key type must be `int` or `uint`, `long` or `ulong`, not `%s`", p.type.toChars());
                             setError();
                             return returnEarly();
                         }
                     }
                     else
                     {
-                        fs.error("foreach: key type must be int or uint, not `%s`", p.type.toChars());
+                        fs.error("`foreach`: key type must be `int` or `uint`, not `%s`", p.type.toChars());
                         setError();
                         return returnEarly();
                     }
@@ -799,7 +799,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                     else if (storageClass & STC.alias_)
                     {
-                        fs.error("foreach loop variable cannot be both enum and alias");
+                        fs.error("`foreach` loop variable cannot be both `enum` and `alias`");
                         setError();
                         return false;
                     }
@@ -809,7 +809,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         var = new AliasDeclaration(loc, ident, ds);
                         if (storageClass & STC.ref_)
                         {
-                            fs.error("symbol `%s` cannot be ref", ds.toChars());
+                            fs.error("symbol `%s` cannot be `ref`", ds.toChars());
                             setError();
                             return false;
                         }
@@ -849,17 +849,17 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             {
                                 static if (!isStatic)
                                 {
-                                    fs.error("constant value `%s` cannot be ref", ie.toChars());
+                                    fs.error("constant value `%s` cannot be `ref`", ie.toChars());
                                 }
                                 else
                                 {
                                     if (!needExpansion)
                                     {
-                                        fs.error("constant value `%s` cannot be ref", ie.toChars());
+                                        fs.error("constant value `%s` cannot be `ref`", ie.toChars());
                                     }
                                     else
                                     {
-                                        fs.error("constant value `%s` cannot be ref", ident.toChars());
+                                        fs.error("constant value `%s` cannot be `ref`", ident.toChars());
                                     }
                                 }
                                 setError();
@@ -1035,9 +1035,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             const(char)* msg = "";
             if (fs.aggr.type && isAggregate(fs.aggr.type))
             {
-                msg = ", define opApply(), range primitives, or use .tupleof";
+                msg = ", define `opApply()`, range primitives, or use `.tupleof`";
             }
-            fs.error("invalid foreach aggregate `%s`%s", oaggr.toChars(), msg);
+            fs.error("invalid `foreach` aggregate `%s`%s", oaggr.toChars(), msg);
             return setError();
         }
 
@@ -1084,7 +1084,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     foreachParamCount, plural, dim);
             }
             else
-                fs.error("cannot uniquely infer foreach argument types");
+                fs.error("cannot uniquely infer `foreach` argument types");
 
             return setError();
         }
@@ -1112,11 +1112,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             Parameter p = (*fs.parameters)[i];
             if (p.storageClass & STC.manifest)
             {
-                fs.error("cannot declare enum loop variables for non-unrolled foreach");
+                fs.error("cannot declare `enum` loop variables for non-unrolled foreach");
             }
             if (p.storageClass & STC.alias_)
             {
-                fs.error("cannot declare alias loop variables for non-unrolled foreach");
+                fs.error("cannot declare `alias` loop variables for non-unrolled foreach");
             }
         }
 
@@ -1133,7 +1133,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                 if (dim < 1 || dim > 2)
                 {
-                    fs.error("only one or two arguments for array foreach");
+                    fs.error("only one or two arguments for array `foreach`");
                     goto case Terror;
                 }
 
@@ -1153,7 +1153,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         if (p.storageClass & STC.ref_)
                         {
-                            fs.error("foreach: value of UTF conversion cannot be ref");
+                            fs.error("`foreach`: value of UTF conversion cannot be `ref`");
                             goto case Terror;
                         }
                         if (dim == 2)
@@ -1161,7 +1161,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             p = (*fs.parameters)[0];
                             if (p.storageClass & STC.ref_)
                             {
-                                fs.error("foreach: key cannot be ref");
+                                fs.error("`foreach`: key cannot be `ref`");
                                 goto case Terror;
                             }
                         }
@@ -1344,7 +1344,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         case Taarray:
             if (fs.op == TOK.foreach_reverse_)
-                fs.warning("cannot use foreach_reverse with an associative array");
+                fs.warning("cannot use `foreach_reverse` with an associative array");
             if (fs.checkForArgTypes())
             {
                 result = fs;
@@ -1354,7 +1354,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             taa = cast(TypeAArray)tab;
             if (dim < 1 || dim > 2)
             {
-                fs.error("only one or two arguments for associative array foreach");
+                fs.error("only one or two arguments for associative array `foreach`");
                 goto case Terror;
             }
             goto Lapply;
@@ -1536,7 +1536,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         case Tdelegate:
             if (fs.op == TOK.foreach_reverse_)
-                fs.deprecation("cannot use foreach_reverse with a delegate");
+                fs.deprecation("cannot use `foreach_reverse` with a delegate");
         Lapply:
             {
                 if (fs.checkForArgTypes())
@@ -1597,7 +1597,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         {
                             if (!stc)
                             {
-                                fs.error("foreach: cannot make `%s` ref", p.ident.toChars());
+                                fs.error("`foreach`: cannot make `%s` `ref`", p.ident.toChars());
                                 goto case Terror;
                             }
                             goto LcopyArg;
@@ -1670,7 +1670,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         Type ti = (isRef ? taa.index.addMod(MODFlags.const_) : taa.index);
                         if (isRef ? !ti.constConv(ta) : !ti.implicitConvTo(ta))
                         {
-                            fs.error("foreach: index must be type `%s`, not `%s`",
+                            fs.error("`foreach`: index must be type `%s`, not `%s`",
                                 ti.toChars(), ta.toChars());
                             goto case Terror;
                         }
@@ -1681,7 +1681,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     Type taav = taa.nextOf();
                     if (isRef ? !taav.constConv(ta) : !taav.implicitConvTo(ta))
                     {
-                        fs.error("foreach: value must be type `%s`, not `%s`",
+                        fs.error("`foreach`: value must be type `%s`, not `%s`",
                             taav.toChars(), ta.toChars());
                         goto case Terror;
                     }
@@ -1807,7 +1807,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         goto case Terror;
                     if (ec.type != Type.tint32)
                     {
-                        fs.error("opApply() function for `%s` must return an int", tab.toChars());
+                        fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
                         goto case Terror;
                     }
                 }
@@ -1843,7 +1843,7 @@ else
                         goto case Terror;
                     if (ec.type != Type.tint32)
                     {
-                        fs.error("opApply() function for `%s` must return an int", tab.toChars());
+                        fs.error("`opApply()` function for `%s` must return an `int`", tab.toChars());
                         goto case Terror;
                     }
                 }
@@ -1884,7 +1884,7 @@ else
             break;
 
         default:
-            fs.error("foreach: `%s` is not an aggregate type", fs.aggr.type.toChars());
+            fs.error("`foreach`: `%s` is not an aggregate type", fs.aggr.type.toChars());
             goto case Terror;
         }
         sc2.noctor--;
@@ -2064,7 +2064,7 @@ else
         {
             if (fs.key.type.constConv(fs.prm.type) <= MATCH.nomatch)
             {
-                fs.error("argument type mismatch, `%s` to ref `%s`", fs.key.type.toChars(), fs.prm.type.toChars());
+                fs.error("argument type mismatch, `%s` to `ref %s`", fs.key.type.toChars(), fs.prm.type.toChars());
                 return setError();
             }
         }
@@ -2229,14 +2229,14 @@ else
             {
                 /* Should this be allowed?
                  */
-                ps.error("pragma(lib) not allowed as statement");
+                ps.error("`pragma(lib)` not allowed as statement");
                 return setError();
             }
             else
             {
                 if (!ps.args || ps.args.dim != 1)
                 {
-                    ps.error("string expected for library name");
+                    ps.error("`string` expected for library name");
                     return setError();
                 }
                 else
@@ -2292,7 +2292,7 @@ else
                 inlining = PINLINE.default_;
             else if (!ps.args || ps.args.dim != 1)
             {
-                ps.error("boolean expression expected for pragma(inline)");
+                ps.error("boolean expression expected for `pragma(inline)`");
                 return setError();
             }
             else
@@ -2312,7 +2312,7 @@ else
                     FuncDeclaration fd = sc.func;
                 if (!fd)
                 {
-                    ps.error("pragma(inline) is not inside a function");
+                    ps.error("`pragma(inline)` is not inside a function");
                     return setError();
                 }
                 fd.inlining = inlining;
@@ -2423,7 +2423,7 @@ else
         {
             if (!gcs.exp)
             {
-                gcs.error("no case statement following goto case;");
+                gcs.error("no `case` statement following `goto case;`");
                 sc.pop();
                 return setError();
             }
@@ -2468,7 +2468,7 @@ else
                             if (cs.exp.equals(em.value) || (!cs.exp.type.isString() && !em.value.type.isString() && cs.exp.toInteger() == em.value.toInteger()))
                                 continue Lmembers;
                         }
-                        ss.error("enum member `%s` not represented in final switch", em.toChars());
+                        ss.error("`enum` member `%s` not represented in `final switch`", em.toChars());
                         sc.pop();
                         return setError();
                     }
@@ -2483,7 +2483,7 @@ else
             ss.hasNoDefault = 1;
 
             if (!ss.isFinal && !ss._body.isErrorStatement())
-                ss.error("switch statement without a default; use `final switch` or add `default: assert(0);` or add `default: break;`");
+                ss.error("`switch` statement without a `default`; use `final switch` or add `default: assert(0);` or add `default: break;`");
 
             // Generate runtime error if the default is hit
             auto a = new Statements();
@@ -2643,12 +2643,12 @@ else
                      */
                     if (!v.isConst() && !v.isImmutable())
                     {
-                        cs.deprecation("case variables have to be const or immutable");
+                        cs.deprecation("`case` variables have to be `const` or `immutable`");
                     }
 
                     if (sw.isFinal)
                     {
-                        cs.error("case variables not allowed in final switch statements");
+                        cs.error("`case` variables not allowed in `final switch` statements");
                         errors = true;
                     }
 
@@ -2663,7 +2663,7 @@ else
 
                         if (!scx.search(cs.exp.loc, v.ident, null))
                         {
-                            cs.error("case variable `%s` declared at %s cannot be declared in switch body",
+                            cs.error("`case` variable `%s` declared at %s cannot be declared in `switch` body",
                                 v.toChars(), v.loc.toChars());
                             errors = true;
                         }
@@ -2679,7 +2679,7 @@ else
                 cs.exp = se;
             else if (cs.exp.op != TOK.int64 && cs.exp.op != TOK.error)
             {
-                cs.error("case must be a string or an integral constant, not `%s`", cs.exp.toChars());
+                cs.error("`case` must be a `string` or an integral constant, not `%s`", cs.exp.toChars());
                 errors = true;
             }
 
@@ -2689,7 +2689,7 @@ else
                 //printf("comparing '%s' with '%s'\n", exp.toChars(), cs.exp.toChars());
                 if (cs2.exp.equals(cs.exp))
                 {
-                    cs.error("duplicate `case %s` in switch statement", cs.exp.toChars());
+                    cs.error("duplicate `case %s` in `switch` statement", cs.exp.toChars());
                     errors = true;
                     break;
                 }
@@ -2712,13 +2712,13 @@ else
 
             if (sc.sw.tf != sc.tf)
             {
-                cs.error("switch and case are in different finally blocks");
+                cs.error("`switch` and `case` are in different `finally` blocks");
                 errors = true;
             }
         }
         else
         {
-            cs.error("case not in switch statement");
+            cs.error("`case` not in `switch` statement");
             errors = true;
         }
 
@@ -2740,7 +2740,7 @@ else
         SwitchStatement sw = sc.sw;
         if (sw is null)
         {
-            crs.error("case range not in switch statement");
+            crs.error("case range not in `switch` statement");
             return setError();
         }
 
@@ -2748,7 +2748,7 @@ else
         bool errors = false;
         if (sw.isFinal)
         {
-            crs.error("case ranges not allowed in final switch");
+            crs.error("case ranges not allowed in `final switch`");
             errors = true;
         }
 
@@ -2825,25 +2825,25 @@ else
         {
             if (sc.sw.sdefault)
             {
-                ds.error("switch statement already has a default");
+                ds.error("`switch` statement already has a default");
                 errors = true;
             }
             sc.sw.sdefault = ds;
 
             if (sc.sw.tf != sc.tf)
             {
-                ds.error("switch and default are in different finally blocks");
+                ds.error("`switch` and `default` are in different `finally` blocks");
                 errors = true;
             }
             if (sc.sw.isFinal)
             {
-                ds.error("default statement not allowed in final switch statement");
+                ds.error("`default` statement not allowed in `final switch` statement");
                 errors = true;
             }
         }
         else
         {
-            ds.error("default not in switch statement");
+            ds.error("`default` not in `switch` statement");
             errors = true;
         }
 
@@ -2860,12 +2860,12 @@ else
         gds.sw = sc.sw;
         if (!gds.sw)
         {
-            gds.error("goto default not in switch statement");
+            gds.error("`goto default` not in `switch` statement");
             return setError();
         }
         if (gds.sw.isFinal)
         {
-            gds.error("goto default not allowed in final switch statement");
+            gds.error("`goto default` not allowed in `final switch` statement");
             return setError();
         }
         result = gds;
@@ -2875,7 +2875,7 @@ else
     {
         if (!sc.sw)
         {
-            gcs.error("goto case not in switch statement");
+            gcs.error("`goto case` not in `switch` statement");
             return setError();
         }
 
@@ -2937,17 +2937,17 @@ else
         bool errors = false;
         if (sc.flags & SCOPE.contract)
         {
-            rs.error("return statements cannot be in contracts");
+            rs.error("`return` statements cannot be in contracts");
             errors = true;
         }
         if (sc.os && sc.os.tok != TOK.onScopeFailure)
         {
-            rs.error("return statements cannot be in `%s` bodies", Token.toChars(sc.os.tok));
+            rs.error("`return` statements cannot be in `%s` bodies", Token.toChars(sc.os.tok));
             errors = true;
         }
         if (sc.tf)
         {
-            rs.error("return statements cannot be in `finally` bodies");
+            rs.error("`return` statements cannot be in `finally` bodies");
             errors = true;
         }
 
@@ -3006,7 +3006,7 @@ else
             {
                 if (rs.exp.type.ty != Tvoid)
                 {
-                    rs.error("cannot return non-void from void function");
+                    rs.error("cannot return non-void from `void` function");
                     errors = true;
                     rs.exp = new CastExp(rs.loc, rs.exp, Type.tvoid);
                     rs.exp = rs.exp.expressionSemantic(sc);
@@ -3140,7 +3140,7 @@ else
             if (tbret.ty != Tvoid) // if non-void return
             {
                 if (tbret.ty != Terror)
-                    rs.error("return expression expected");
+                    rs.error("`return` expression expected");
                 errors = true;
             }
             else if (fd.isMain())
@@ -3153,7 +3153,7 @@ else
         // If any branches have called a ctor, but this branch hasn't, it's an error
         if (sc.callSuper & CSX.any_ctor && !(sc.callSuper & (CSX.this_ctor | CSX.super_ctor)))
         {
-            rs.error("return without calling constructor");
+            rs.error("`return` without calling constructor");
             errors = true;
         }
         sc.callSuper |= CSX.return_;
@@ -3168,7 +3168,7 @@ else
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
                 if (mustInit && !(sc.fieldinit[i] & CSX.this_ctor))
                 {
-                    rs.error("an earlier return statement skips field `%s` initialization", v.toChars());
+                    rs.error("an earlier `return` statement skips field `%s` initialization", v.toChars());
                     errors = true;
                 }
                 sc.fieldinit[i] |= CSX.return_;
@@ -3267,9 +3267,9 @@ else
                 {
                     Statement s = ls.statement;
                     if (!s || !s.hasBreak())
-                        bs.error("label `%s` has no break", bs.ident.toChars());
+                        bs.error("label `%s` has no `break`", bs.ident.toChars());
                     else if (ls.tf != sc.tf)
-                        bs.error("cannot break out of finally block");
+                        bs.error("cannot break out of `finally` block");
                     else
                     {
                         ls.breaks = true;
@@ -3279,14 +3279,14 @@ else
                     return setError();
                 }
             }
-            bs.error("enclosing label `%s` for break not found", bs.ident.toChars());
+            bs.error("enclosing label `%s` for `break` not found", bs.ident.toChars());
             return setError();
         }
         else if (!sc.sbreak)
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
-                bs.error("break is not inside `%s` bodies", Token.toChars(sc.os.tok));
+                bs.error("`break` is not inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
@@ -3295,7 +3295,7 @@ else
                 return;
             }
             else
-                bs.error("break is not inside a loop or switch");
+                bs.error("`break` is not inside a loop or `switch`");
             return setError();
         }
         else if (sc.sbreak.isForwardingStatement())
@@ -3352,9 +3352,9 @@ else
                 {
                     Statement s = ls.statement;
                     if (!s || !s.hasContinue())
-                        cs.error("label `%s` has no continue", cs.ident.toChars());
+                        cs.error("label `%s` has no `continue`", cs.ident.toChars());
                     else if (ls.tf != sc.tf)
-                        cs.error("cannot continue out of finally block");
+                        cs.error("cannot continue out of `finally` block");
                     else
                     {
                         result = cs;
@@ -3363,14 +3363,14 @@ else
                     return setError();
                 }
             }
-            cs.error("enclosing label `%s` for continue not found", cs.ident.toChars());
+            cs.error("enclosing label `%s` for `continue` not found", cs.ident.toChars());
             return setError();
         }
         else if (!sc.scontinue)
         {
             if (sc.os && sc.os.tok != TOK.onScopeFailure)
             {
-                cs.error("continue is not inside `%s` bodies", Token.toChars(sc.os.tok));
+                cs.error("`continue` is not inside `%s` bodies", Token.toChars(sc.os.tok));
             }
             else if (sc.fes)
             {
@@ -3379,7 +3379,7 @@ else
                 return;
             }
             else
-                cs.error("continue is not inside a loop");
+                cs.error("`continue` is not inside a loop");
             return setError();
         }
         else if (sc.scontinue.isForwardingStatement())
@@ -3407,7 +3407,7 @@ else
             ClassDeclaration cd = ss.exp.type.isClassHandle();
             if (!cd)
             {
-                ss.error("can only synchronize on class objects, not `%s`", ss.exp.type.toChars());
+                ss.error("can only `synchronize` on class objects, not `%s`", ss.exp.type.toChars());
                 return setError();
             }
             else if (cd.isInterfaceDeclaration())
@@ -3532,7 +3532,7 @@ else
             Dsymbol s = (cast(TypeExp)ws.exp).type.toDsymbol(sc);
             if (!s || !s.isScopeDsymbol())
             {
-                ws.error("with type `%s` has no members", ws.exp.toChars());
+                ws.error("`with` type `%s` has no members", ws.exp.toChars());
                 return setError();
             }
             sym = new WithScopeSymbol(ws);
@@ -3596,7 +3596,7 @@ else
             }
             else
             {
-                ws.error("with expressions must be aggregate types or pointers to them, not `%s`", olde.type.toChars());
+                ws.error("`with` expressions must be aggregate types or pointers to them, not `%s`", olde.type.toChars());
                 return setError();
             }
         }
@@ -3658,7 +3658,7 @@ else
                 const sj = cj.loc.toChars();
                 if (c.type.toBasetype().implicitConvTo(cj.type.toBasetype()))
                 {
-                    tcs.error("catch at %s hides catch at %s", sj, si);
+                    tcs.error("`catch` at %s hides `catch` at %s", sj, si);
                     catchErrors = true;
                 }
             }
@@ -3764,7 +3764,7 @@ else
             }
             if (sc.tf)
             {
-                oss.error("cannot put `%s` statement inside finally block", Token.toChars(oss.tok));
+                oss.error("cannot put `%s` statement inside `finally` block", Token.toChars(oss.tok));
                 return setError();
             }
         }
@@ -3795,7 +3795,7 @@ else
 
         if (!global.params.useExceptions)
         {
-            ts.error("Cannot use throw statements with -betterC");
+            ts.error("Cannot use `throw` statements with -betterC");
             return setError();
         }
 
@@ -3819,7 +3819,7 @@ else
         ClassDeclaration cd = ts.exp.type.toBasetype().isClassHandle();
         if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))
         {
-            ts.error("can only throw class objects derived from Throwable, not type `%s`", ts.exp.type.toChars());
+            ts.error("can only throw class objects derived from `Throwable`, not type `%s`", ts.exp.type.toChars());
             return setError();
         }
 
@@ -3928,11 +3928,11 @@ else
         // use setImpure/setGC when the deprecation cycle is over
         PURE purity;
         if (!(cas.stc & STC.pure_) && (purity = sc.func.isPureBypassingInference()) != PURE.impure && purity != PURE.fwdref)
-            cas.deprecation("asm statement is assumed to be impure - mark it with 'pure' if it is not");
+            cas.deprecation("`asm` statement is assumed to be impure - mark it with `pure` if it is not");
         if (!(cas.stc & STC.nogc) && sc.func.isNogcBypassingInference())
-            cas.deprecation("asm statement is assumed to use the GC - mark it with '@nogc' if it does not");
+            cas.deprecation("`asm` statement is assumed to use the GC - mark it with `@nogc` if it does not");
         if (!(cas.stc & (STC.trusted | STC.safe)) && sc.func.setUnsafe())
-            cas.error("asm statement is assumed to be @system - mark it with '@trusted' if it is not");
+            cas.error("`asm` statement is assumed to be `@system` - mark it with `@trusted` if it is not");
 
         result = cas;
     }
@@ -3975,7 +3975,7 @@ void catchSemantic(Catch c, Scope* sc)
     if (sc.os && sc.os.tok != TOK.onScopeFailure)
     {
         // If enclosing is scope(success) or scope(exit), this will be placed in finally block.
-        error(c.loc, "cannot put catch statement inside `%s`", Token.toChars(sc.os.tok));
+        error(c.loc, "cannot put `catch` statement inside `%s`", Token.toChars(sc.os.tok));
         c.errors = true;
     }
     if (sc.tf)
@@ -3986,7 +3986,7 @@ void catchSemantic(Catch c, Scope* sc)
          * To fix, have the compiler automatically convert the finally
          * body into a nested function.
          */
-        error(c.loc, "cannot put catch statement inside finally block");
+        error(c.loc, "cannot put `catch` statement inside `finally` block");
         c.errors = true;
     }
 
@@ -3996,8 +3996,8 @@ void catchSemantic(Catch c, Scope* sc)
 
     if (!c.type)
     {
-        deprecation(c.loc, "catch statement without an exception " ~
-            "specification is deprecated; use catch(Throwable) for old behavior");
+        deprecation(c.loc, "`catch` statement without an exception " ~
+            "specification is deprecated; use `catch(Throwable)` for old behavior");
 
         // reference .object.Throwable
         c.type = getThrowable();
@@ -4023,20 +4023,20 @@ void catchSemantic(Catch c, Scope* sc)
             }
             if (sc.func && !sc.intypeof && !c.internalCatch && sc.func.setUnsafe())
             {
-                error(c.loc, "cannot catch C++ class objects in @safe code");
+                error(c.loc, "cannot catch C++ class objects in `@safe` code");
                 c.errors = true;
             }
         }
         else if (cd != ClassDeclaration.throwable && !ClassDeclaration.throwable.isBaseOf(cd, null))
         {
-            error(c.loc, "can only catch class objects derived from Throwable, not `%s`", c.type.toChars());
+            error(c.loc, "can only catch class objects derived from `Throwable`, not `%s`", c.type.toChars());
             c.errors = true;
         }
         else if (sc.func && !sc.intypeof && !c.internalCatch &&
                  cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
                  sc.func.setUnsafe())
         {
-            error(c.loc, "can only catch class objects derived from Exception in @safe code, not `%s`", c.type.toChars());
+            error(c.loc, "can only catch class objects derived from `Exception` in `@safe` code, not `%s`", c.type.toChars());
             c.errors = true;
         }
         else if (global.params.ehnogc)

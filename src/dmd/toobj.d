@@ -1140,7 +1140,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     {
                         objmod.setModuleCtorDtor(s.csym, isCtor);
                         if (f.linkage != LINK.c)
-                            f.error("must be extern(C) for pragma %s", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
+                            f.error("must be `extern(C)` for `pragma(%s)`", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
                         return 1;
                     }
                     else

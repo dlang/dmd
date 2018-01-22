@@ -1859,7 +1859,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         if (em.semanticRun == PASS.semantic)
         {
-            em.error("circular reference to enum member");
+            em.error("circular reference to `enum` member");
             return errorReturn();
         }
         assert(em.ed);
@@ -2758,12 +2758,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         {
             const(char)* sfunc;
             if (funcdecl.isStatic())
-                sfunc = "`static`";
+                sfunc = "static";
             else if (funcdecl.protection.kind == Prot.Kind.private_ || funcdecl.protection.kind == Prot.Kind.package_)
                 sfunc = protectionToChars(funcdecl.protection.kind);
             else
-                sfunc = "`final`";
-            funcdecl.error("%s functions cannot be `abstract`", sfunc);
+                sfunc = "final";
+            funcdecl.error("`%s` functions cannot be `abstract`", sfunc);
         }
 
         if (funcdecl.isOverride() && !funcdecl.isVirtual())
@@ -2788,7 +2788,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (funcdecl.isStaticConstructor() || funcdecl.isStaticDestructor())
             {
                 if (!funcdecl.isStatic() || funcdecl.type.nextOf().ty != Tvoid)
-                    funcdecl.error("static constructors / destructors must be static void");
+                    funcdecl.error("static constructors / destructors must be `static void`");
                 if (f.arguments && f.arguments.dim)
                     funcdecl.error("static constructors / destructors must have empty parameter list");
                 // BUG: check for invalid storage classes

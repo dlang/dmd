@@ -908,7 +908,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                 {
                     if (ubyte m = fparam.type.mod & (MODFlags.immutable_ | MODFlags.const_ | MODFlags.wild))
                     {
-                        mtype.error(loc, "cannot have %s out parameter of type `%s`", MODtoChars(m), t.toChars());
+                        mtype.error(loc, "cannot have `%s out` parameter of type `%s`", MODtoChars(m), t.toChars());
                         errors = true;
                     }
                     else
@@ -918,7 +918,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                             tv = tv.nextOf().toBasetype();
                         if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.noDefaultCtor)
                         {
-                            mtype.error(loc, "cannot have out parameter of type `%s` because the default construction is disabled", fparam.type.toChars());
+                            mtype.error(loc, "cannot have `out` parameter of type `%s` because the default construction is disabled", fparam.type.toChars());
                             errors = true;
                         }
                     }

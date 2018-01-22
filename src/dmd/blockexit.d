@@ -513,7 +513,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             if (!(s.stc & STC.nothrow_))
             {
                 if (mustNotThrow && !(s.stc & STC.nothrow_))
-                    s.deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
+                    s.deprecation("`asm` statement is assumed to throw - mark it with `nothrow` if it does not");
                 else
                     result |= BE.throw_;
             }
