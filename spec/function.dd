@@ -2194,6 +2194,7 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI $(D_KEYWORD static foreach))
     $(LI $(D_KEYWORD static assert))
     $(LI $(D_KEYWORD mixin) statement)
+    $(LI $(D_KEYWORD pragma) argument)
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
