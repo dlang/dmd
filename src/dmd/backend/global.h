@@ -439,7 +439,7 @@ void postoptelem(elem *);
 unsigned swaprel(unsigned);
 int elemisone(elem *);
 
-/* msc.c */
+/* dmsc.d */
 targ_size_t size(tym_t);
 extern "C" { Symbol *symboldata(targ_size_t offset,tym_t ty); }
 bool dom(block *A , block *B);
@@ -491,7 +491,7 @@ void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
 
-// TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+// TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 elem *exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const char *);

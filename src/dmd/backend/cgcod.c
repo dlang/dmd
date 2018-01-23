@@ -2544,7 +2544,7 @@ reload:                                 /* reload result from memory    */
         case OPrelconst:
             cdrelconst(cdb,e,pretregs);
             break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         case OPgot:
             cdgot(cdb,e,pretregs);
             break;

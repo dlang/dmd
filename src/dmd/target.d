@@ -90,7 +90,7 @@ struct Target
             ptrsize = 8;
             classinfosize = 0x98; // 152
         }
-        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+        if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
         {
             realsize = 12;
             realpad = 2;
@@ -123,7 +123,7 @@ struct Target
             assert(0);
         if (global.params.is64bit)
         {
-            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
+            if (global.params.isLinux || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
             {
                 realsize = 16;
                 realpad = 6;
@@ -140,7 +140,7 @@ struct Target
             c_long_doublesize = 8;
 
         cppExceptions = global.params.isLinux || global.params.isFreeBSD ||
-            global.params.isOSX;
+            global.params.isDragonFlyBSD || global.params.isOSX;
 
         int64Mangle  = global.params.isOSX ? 'x' : 'l';
         uint64Mangle = global.params.isOSX ? 'y' : 'm';
@@ -159,7 +159,8 @@ struct Target
         case Tcomplex80:
             return Target.realalignsize;
         case Tcomplex32:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD ||
+                global.params.isDragonFlyBSD || global.params.isSolaris)
                 return 4;
             break;
         case Tint64:
@@ -167,7 +168,8 @@ struct Target
         case Tfloat64:
         case Timaginary64:
         case Tcomplex64:
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris)
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isOpenBSD ||
+                global.params.isDragonFlyBSD || global.params.isSolaris)
                 return global.params.is64bit ? 8 : 4;
             break;
         default:
@@ -220,6 +222,11 @@ struct Target
             // sizeof(pthread_mutex_t) for OpenBSD.
             return global.params.isLP64 ? 8 : 4;
         }
+        else if (global.params.isDragonFlyBSD)
+        {
+            // sizeof(pthread_mutex_t) for DragonFlyBSD.
+            return global.params.isLP64 ? 8 : 4;
+        }
         else if (global.params.isOSX)
         {
             // sizeof(pthread_mutex_t) for OSX.
@@ -244,7 +251,8 @@ struct Target
         {
             return Type.tchar.pointerTo();
         }
-        else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isSolaris || global.params.isOSX)
+        else if (global.params.isLinux || global.params.isFreeBSD || global.params.isOpenBSD || global.params.isDragonFlyBSD ||
+            global.params.isSolaris || global.params.isOSX)
         {
             if (global.params.is64bit)
             {
@@ -452,7 +460,7 @@ struct Target
 
     extern (C++) static const(char)* toCppMangle(Dsymbol s)
     {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.DragonFlyBSD || TARGET.Solaris)
             return toCppMangleItanium(s);
         else static if (TARGET.Windows)
             return toCppMangleMSVC(s);
@@ -462,7 +470,7 @@ struct Target
 
     extern (C++) static const(char)* cppTypeInfoMangle(ClassDeclaration cd)
     {
-        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris)
+        static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
             return cppTypeInfoMangleItanium(cd);
         else static if (TARGET.Windows)
             return cppTypeInfoMangleMSVC(cd);

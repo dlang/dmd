@@ -85,7 +85,7 @@ enum bool HEADER_LIST = true;
 
 // Precompiled header variations
 //#define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-//#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
+//#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)  // if memory mapped files
 //#define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -272,7 +272,7 @@ enum
 {
     CHARSIZE       = 1,
     SHORTSIZE      = 2,
-    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
+    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/DragonFlyBSD/Solaris
     LONGSIZE       = 4,
     LLONGSIZE      = 8,
     CENTSIZE       = 16,
@@ -288,7 +288,7 @@ enum
 //#define REGMASK         0xFFFF
 
 // targ_llong is also used to store host pointers, so it should have at least their size
-//#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || MARS
+//#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX || MARS
 alias targ_ptrdiff_t = targ_llong;  // ptrdiff_t for target machine
 alias targ_size_t = targ_ullong;    // size_t for the target machine
 //#else
@@ -311,14 +311,14 @@ alias targ_size_t = targ_ullong;    // size_t for the target machine
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
 //#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
 //#endif
 //#ifndef MACHOBJ
 //#define MACHOBJ         TARGET_OSX
 //#endif
 
 //#define SYMDEB_CODEVIEW TARGET_WINDOS
-//#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX)
+//#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
 
 //#define TOOLKIT_H
 
@@ -500,6 +500,7 @@ enum
     EX_SOLARIS64    = 0x200000,
     EX_OPENBSD      = 0x400000,
     EX_OPENBSD64    = 0x800000,
+    EX_DRAGONFLYBSD64 = 0x1000000,
 }
 
 
@@ -507,6 +508,7 @@ enum
 enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
                          EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
                          EX_OPENBSD | EX_OPENBSD64 |
+                         EX_DRAGONFLYBSD64 |
                          EX_SOLARIS | EX_SOLARIS64;
 
 // All DOS executable types

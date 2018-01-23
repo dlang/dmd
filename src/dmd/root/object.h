@@ -10,7 +10,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)
 
 #if __DMC__
 #pragma once

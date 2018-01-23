@@ -1165,7 +1165,7 @@ Lnodep:
 
 symbol *el_alloc_localgot()
 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     /* Since localgot is a local variable to each function,
      * localgot must be set back to NULL
      * at the start of code gen for each function.
@@ -1337,7 +1337,7 @@ elem *el_picvar(symbol *s)
     return e;
 }
 #endif
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 
 elem *el_picvar(symbol *s)
 {   elem *e;
@@ -1532,13 +1532,13 @@ elem * el_var(symbol *s)
 
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic &&
         !tyfunc(s->ty()))
         // Position Independent Code
         return el_picvar(s);
 #endif
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && tyfunc(s->ty()))
     {
         switch (s->Sclass)
@@ -1564,7 +1564,7 @@ elem * el_var(symbol *s)
         //printf("thread local %s\n", s->Sident);
 #if TARGET_OSX
         ;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         /* For 32 bit:
          * Generate for var locals:
          *      MOV reg,GS:[00000000]   // add GS: override in back end
@@ -1683,7 +1683,7 @@ elem * el_var(symbol *s)
 {   elem *e;
 
     //printf("el_var(s = '%s')\n", s->Sident);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && !tyfunc(s->ty()))
         return el_picvar(s);
 #endif
@@ -1774,7 +1774,7 @@ elem * el_ptr(symbol *s)
         return e;
     }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic &&
         tyfunc(s->ty()))
         e = el_picvar(s);

@@ -24,7 +24,7 @@ struct seg_data;
 
 #if TARGET_WINDOS
 #define OMF 1
-#elif (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+#elif (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
 #define ELF 1
 #elif TARGET_OSX
 #define MACH 1
@@ -107,7 +107,7 @@ struct seg_data;
 
         static void gotref(symbol *s);
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         static unsigned addstr(Outbuffer *strtab, const char *);
         static symbol *getGOTsym();
         static void refGOTsym();
@@ -193,7 +193,7 @@ class Obj
 
     static void gotref(symbol *s);
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     static unsigned addstr(Outbuffer *strtab, const char *);
     static symbol *getGOTsym();
     static void refGOTsym();

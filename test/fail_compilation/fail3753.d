@@ -37,6 +37,10 @@ void main()
         {
             static assert(0);
         }
+        version (DragonFlyBSD)
+        {
+            static assert(0);
+        }
         version (OSX)
         {
             static assert(0);

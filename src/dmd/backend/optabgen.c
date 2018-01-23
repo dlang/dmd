@@ -1035,7 +1035,7 @@ void dotytab()
             case TYcldouble:
 #if TARGET_OSX
                 sz = 16;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
                 sz = 4;
 #elif TARGET_WINDOS
                 sz = 2;

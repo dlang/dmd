@@ -25,6 +25,7 @@ enum TargetOS
     macOS = 4,
     freeBSD = 8,
     solaris = 16,
+    dragonFlyBSD = 32,
 }
 
 // Detect the current TargetOS
@@ -44,13 +45,17 @@ else version(FreeBSD)
 {
     private enum targetOS = TargetOS.freeBSD;
 }
+else version(DragonFlyBSD)
+{
+    private enum targetOS = TargetOS.dragonFlyBSD;
+}
 else version(Solaris)
 {
     private enum targetOS = TargetOS.solaris;
 }
 else
 {
-    private enum targetOS = TarggetOS.all;
+    private enum targetOS = TargetOS.all;
 }
 
 /**
@@ -212,7 +217,8 @@ struct Usage
             "generate library rather than object files"
         ),
         Option("m32",
-            "generate 32 bit code"
+            "generate 32 bit code",
+            (TargetOS.all & ~TargetOS.dragonFlyBSD)  // available on all OS'es except DragonFly, which does not support 32-bit binaries
         ),
         Option("m32mscoff",
             "generate 32 bit code and write MS-COFF object files",

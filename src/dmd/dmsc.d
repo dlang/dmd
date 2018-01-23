@@ -101,6 +101,7 @@ void backend_init()
              global.params.isOSX     ||
              global.params.isFreeBSD ||
              global.params.isOpenBSD ||
+             global.params.isDragonFlyBSD ||
              global.params.isSolaris)
     {
         exe = params.pic == 0;

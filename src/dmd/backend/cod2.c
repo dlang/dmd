@@ -909,7 +909,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         orth87(cdb,e,pretregs);
 #else
         opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -4145,7 +4145,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     {
       L5:
         if (config.flags3 & CFG3pic)
@@ -4271,7 +4271,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (e->EV.sp.Vsym->ty() & mTYthread)
             goto L5;
 #endif
