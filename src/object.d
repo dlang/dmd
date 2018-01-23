@@ -3010,7 +3010,7 @@ void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
         destroy(e);
 }
 
-version(unittest) unittest
+unittest
 {
     int[2] a;
     a[0] = 1;
