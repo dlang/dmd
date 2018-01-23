@@ -1,6 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/lexer1.d(30): Deprecation: Built-in hex string literals are deprecated, use `std.conv.hexString` instead.
 fail_compilation/lexer1.d(30): Error: declaration expected, not `x"01 02 03"w`
 fail_compilation/lexer1.d(31): Error: declaration expected, not `2147483649U`
 fail_compilation/lexer1.d(32): Error: declaration expected, not `0.1`
@@ -26,7 +27,6 @@ fail_compilation/lexer1.d(52): Error: escape octal sequence \400 is larger than 
 */
 
 // https://dlang.dawg.eu/coverage/src/lexer.c.gcov.html
-
 x"01 02 03"w;
 0x80000001;
 0.1;

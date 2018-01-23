@@ -381,6 +381,7 @@ class Lexer
                     goto case_ident;
                 p++;
                 t.value = hexStringConstant(t);
+                deprecation("Built-in hex string literals are deprecated, use `std.conv.hexString` instead.");
                 return;
             case 'q':
                 if (p[1] == '"')
