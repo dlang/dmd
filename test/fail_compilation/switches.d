@@ -29,7 +29,7 @@ void test1(int i)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/switches.d(205): Error: no case statement following goto case;
+fail_compilation/switches.d(205): Error: no `case` statement following `goto case;`
 ---
 */
 
@@ -50,7 +50,7 @@ void test2(int i)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/switches.d(302): Deprecation: 'switch' skips declaration of variable switches.test3.j at fail_compilation/switches.d(306)
+fail_compilation/switches.d(302): Deprecation: `switch` skips declaration of variable `switches.test3.j` at fail_compilation/switches.d(306)
 ---
 */
 

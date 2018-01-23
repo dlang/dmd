@@ -1,10 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10528.d(23): Error: module fail10528 variable `a10528.a` is private
+fail_compilation/fail10528.d(23): Error: module fail10528 variable `a10528.a` is `private`
 fail_compilation/fail10528.d(23): Deprecation: a10528.a is not visible from module fail10528
 fail_compilation/fail10528.d(24): Error: `a10528.a` is not visible from module `fail10528`
-fail_compilation/fail10528.d(26): Error: module fail10528 enum member `a10528.b` is private
+fail_compilation/fail10528.d(26): Error: module fail10528 enum member `a10528.b` is `private`
 fail_compilation/fail10528.d(26): Deprecation: a10528.b is not visible from module fail10528
 fail_compilation/fail10528.d(27): Error: `a10528.b` is not visible from module `fail10528`
 fail_compilation/fail10528.d(29): Deprecation: `a10528.S.c` is not visible from module `fail10528`

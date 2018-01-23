@@ -1605,12 +1605,12 @@ extern (C++) final class SwitchStatement : Statement
             }
             else if (vd.ident == Id.withSym)
             {
-                deprecation("'switch' skips declaration of 'with' temporary at %s", vd.loc.toChars());
+                deprecation("`switch` skips declaration of `with` temporary at %s", vd.loc.toChars());
                 return true;
             }
             else
             {
-                deprecation("'switch' skips declaration of variable %s at %s", vd.toPrettyChars(), vd.loc.toChars());
+                deprecation("`switch` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
                 return true;
             }
 
@@ -2235,16 +2235,16 @@ extern (C++) final class GotoStatement : Statement
             else
             {
                 if (label.statement.os)
-                    error("cannot goto in to `%s` block", Token.toChars(label.statement.os.tok));
+                    error("cannot `goto` in to `%s` block", Token.toChars(label.statement.os.tok));
                 else
-                    error("cannot goto out of `%s` block", Token.toChars(os.tok));
+                    error("cannot `goto` out of `%s` block", Token.toChars(os.tok));
                 return true;
             }
         }
 
         if (label.statement.tf != tf)
         {
-            error("cannot goto in or out of `finally` block");
+            error("cannot `goto` in or out of `finally` block");
             return true;
         }
 

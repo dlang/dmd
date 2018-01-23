@@ -468,7 +468,7 @@ final class Parser(AST) : Lexer
                         {
                             // mixin(string)
                             nextToken();
-                            check(TOK.leftParentheses, "mixin");
+                            check(TOK.leftParentheses, "`mixin`");
                             AST.Expression e = parseAssignExp();
                             check(TOK.rightParentheses);
                             check(TOK.semicolon);
@@ -1514,7 +1514,7 @@ final class Parser(AST) : Lexer
         nextToken();
         if (token.value != TOK.identifier)
         {
-            error("identifier expected following template");
+            error("identifier expected following `template`");
             goto Lerr;
         }
         id = token.ident;
@@ -1552,7 +1552,7 @@ final class Parser(AST) : Lexer
 
         if (!flag && token.value != TOK.leftParentheses)
         {
-            error("parenthesized TemplateParameterList expected following TemplateIdentifier");
+            error("parenthesized template parameter list expected following template identifier");
             goto Lerr;
         }
         nextToken();
@@ -2042,7 +2042,7 @@ final class Parser(AST) : Lexer
                 break;
             }
         default:
-            error("template argument expected following !");
+            error("template argument expected following `!`");
             break;
         }
         return tiargs;
@@ -3210,7 +3210,7 @@ final class Parser(AST) : Lexer
             nextToken();
             if (token.value != TOK.identifier)
             {
-                error("identifier expected following import");
+                error("identifier expected following `import`");
                 break;
             }
 
@@ -3231,7 +3231,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 if (token.value != TOK.identifier)
                 {
-                    error("identifier expected following package");
+                    error("identifier expected following `package`");
                     break;
                 }
                 id = token.ident;
@@ -3754,7 +3754,7 @@ final class Parser(AST) : Lexer
                     if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild | AST.STC.return_))
                     {
                         if (save == TOK.function_)
-                            error("const/immutable/shared/inout/return attributes are only valid for non-static member functions");
+                            error("`const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions");
                         else
                             tf = cast(AST.TypeFunction)tf.addSTC(stc);
                     }
@@ -5399,7 +5399,7 @@ final class Parser(AST) : Lexer
                 else
                 {
                     condition = parseExpression();
-                    check(TOK.semicolon, "for condition");
+                    check(TOK.semicolon, "`for` condition");
                 }
                 if (token.value == TOK.rightParentheses)
                 {
@@ -5659,7 +5659,7 @@ final class Parser(AST) : Lexer
                 if (token.value == TOK.slice)
                 {
                     if (cases.dim > 1)
-                        error("only one case allowed for start of case range");
+                        error("only one `case` allowed for start of case range");
                     nextToken();
                     check(TOK.case_);
                     last = parseAssignExp();
@@ -5724,7 +5724,7 @@ final class Parser(AST) : Lexer
                     exp = null;
                 else
                     exp = parseExpression();
-                check(TOK.semicolon, "return statement");
+                check(TOK.semicolon, "`return` statement");
                 s = new AST.ReturnStatement(loc, exp);
                 break;
             }
@@ -5739,7 +5739,7 @@ final class Parser(AST) : Lexer
                 }
                 else
                     ident = null;
-                check(TOK.semicolon, "break statement");
+                check(TOK.semicolon, "`break` statement");
                 s = new AST.BreakStatement(loc, ident);
                 break;
             }
@@ -5754,7 +5754,7 @@ final class Parser(AST) : Lexer
                 }
                 else
                     ident = null;
-                check(TOK.semicolon, "continue statement");
+                check(TOK.semicolon, "`continue` statement");
                 s = new AST.ContinueStatement(loc, ident);
                 break;
             }
@@ -5789,7 +5789,7 @@ final class Parser(AST) : Lexer
                     }
                     s = new AST.GotoStatement(loc, ident);
                 }
-                check(TOK.semicolon, "goto statement");
+                check(TOK.semicolon, "`goto` statement");
                 break;
             }
         case TOK.synchronized_:
@@ -5890,7 +5890,7 @@ final class Parser(AST) : Lexer
                 AST.Expression exp;
                 nextToken();
                 exp = parseExpression();
-                check(TOK.semicolon, "throw statement");
+                check(TOK.semicolon, "`throw` statement");
                 s = new AST.ThrowStatement(loc, exp);
                 break;
             }
@@ -5907,7 +5907,7 @@ final class Parser(AST) : Lexer
                 nextToken();
                 StorageClass stc = parsePostfix(AST.STC.undefined_, null);
                 if (stc & (AST.STC.const_ | AST.STC.immutable_ | AST.STC.shared_ | AST.STC.wild))
-                    error("const/immutable/shared/inout attributes are not allowed on `asm` blocks");
+                    error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
 
                 check(TOK.leftCurly);
                 Token* toklist = null;
@@ -7491,7 +7491,7 @@ final class Parser(AST) : Lexer
         case TOK.typeid_:
             {
                 nextToken();
-                check(TOK.leftParentheses, "typeid");
+                check(TOK.leftParentheses, "`typeid`");
                 RootObject o;
                 if (isDeclaration(&token, NeedDeclaratorId.no, TOK.reserved, null))
                 {
@@ -7594,7 +7594,7 @@ final class Parser(AST) : Lexer
                 AST.Expression msg = null;
 
                 nextToken();
-                check(TOK.leftParentheses, "assert");
+                check(TOK.leftParentheses, "`assert`");
                 e = parseAssignExp();
                 if (token.value == TOK.comma)
                 {
@@ -7613,7 +7613,7 @@ final class Parser(AST) : Lexer
         case TOK.mixin_:
             {
                 nextToken();
-                check(TOK.leftParentheses, "mixin");
+                check(TOK.leftParentheses, "`mixin`");
                 e = parseAssignExp();
                 check(TOK.rightParentheses);
                 e = new AST.CompileExp(loc, e);
@@ -7622,7 +7622,7 @@ final class Parser(AST) : Lexer
         case TOK.import_:
             {
                 nextToken();
-                check(TOK.leftParentheses, "import");
+                check(TOK.leftParentheses, "`import`");
                 e = parseAssignExp();
                 check(TOK.rightParentheses);
                 e = new AST.ImportExp(loc, e);
