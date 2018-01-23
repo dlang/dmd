@@ -2213,7 +2213,7 @@ void foo()
 {
     static j = square(3);      // CTFE
     writeln(j);
-    assert(square(4));        // run time
+    assert(square(4));         // run time
     writeln(eval!(square(5))); // CTFE
 }
 ---
