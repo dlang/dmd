@@ -63,7 +63,7 @@ else version (MARS)
     public import dmd.backend.cc : block, Blockx, Symbol;
     public import dmd.backend.type : type;
     public import dmd.backend.el : elem;
-    public import dmd.backend.code : code;
+    public import dmd.backend.code_x86 : code;
 
     extern (C++)
     {
