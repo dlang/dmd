@@ -604,7 +604,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     {
         assert(foo() == 42);
         assert(bar() == 43);
-        assert(bas is null);
+        assert(baz is null);
     }
     ---
     )
