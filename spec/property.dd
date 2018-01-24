@@ -4,7 +4,7 @@ $(SPEC_S Properties,
 
 $(HEADERNAV_TOC)
 
-        $(P Every symbol,type and expression has properties that can be queried:)
+        $(P Every symbol, type, and expression has properties that can be queried:)
 
 $(TABLE2 Property Examples,
 $(THEAD Expression,     Value)
