@@ -34,17 +34,11 @@ coverage:
 
   # Learn more at https://docs.codecov.io/docs/commit-status
   status:
-    project:
-      default:
-        informational: true
-        # Informational doesn't work with project yet
-        threshold: 0.1
+    project: off
     patch:
       default:
-        informational: true
-    changes:
-      default:
-        informational: true
+        threshold: 5
+    changes: off
 
   notify:
     webhook:
