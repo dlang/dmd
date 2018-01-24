@@ -1942,18 +1942,13 @@ class Lexer
         }
         enum FLAGS : int
         {
-            FLAGS_none = 0,
-            FLAGS_decimal = 1, // decimal
-            FLAGS_unsigned = 2, // u or U suffix
-            FLAGS_long = 4, // L suffix
+            none = 0,
+            decimal = 1, // decimal
+            unsigned = 2, // u or U suffix
+            long_ = 4, // L suffix
         }
 
-        alias FLAGS_none = FLAGS.FLAGS_none;
-        alias FLAGS_decimal = FLAGS.FLAGS_decimal;
-        alias FLAGS_unsigned = FLAGS.FLAGS_unsigned;
-        alias FLAGS_long = FLAGS.FLAGS_long;
-
-        FLAGS flags = (base == 10) ? FLAGS_decimal : FLAGS_none;
+        FLAGS flags = (base == 10) ? FLAGS.decimal : FLAGS.none;
         // Parse trailing 'u', 'U', 'l' or 'L' in any combination
         const psuffix = p;
         while (1)
@@ -1963,14 +1958,14 @@ class Lexer
             {
             case 'U':
             case 'u':
-                f = FLAGS_unsigned;
+                f = FLAGS.unsigned;
                 goto L1;
             case 'l':
-                f = FLAGS_long;
+                f = FLAGS.long_;
                 error("lower case integer suffix 'l' is not allowed. Please use 'L' instead");
                 goto L1;
             case 'L':
-                f = FLAGS_long;
+                f = FLAGS.long_;
             L1:
                 p++;
                 if ((flags & f) && !err)
@@ -1990,7 +1985,7 @@ class Lexer
         TOK result;
         switch (flags)
         {
-        case FLAGS_none:
+        case FLAGS.none:
             /* Octal or Hexadecimal constant.
              * First that fits: int, uint, long, ulong
              */
@@ -2003,7 +1998,7 @@ class Lexer
             else
                 result = TOK.int32Literal;
             break;
-        case FLAGS_decimal:
+        case FLAGS.decimal:
             /* First that fits: int, long, long long
              */
             if (n & 0x8000000000000000L)
@@ -2020,8 +2015,8 @@ class Lexer
             else
                 result = TOK.int32Literal;
             break;
-        case FLAGS_unsigned:
-        case FLAGS_decimal | FLAGS_unsigned:
+        case FLAGS.unsigned:
+        case FLAGS.decimal | FLAGS.unsigned:
             /* First that fits: uint, ulong
              */
             if (n & 0xFFFFFFFF00000000L)
@@ -2029,7 +2024,7 @@ class Lexer
             else
                 result = TOK.uns32Literal;
             break;
-        case FLAGS_decimal | FLAGS_long:
+        case FLAGS.decimal | FLAGS.long_:
             if (n & 0x8000000000000000L)
             {
                 if (!err)
@@ -2042,14 +2037,14 @@ class Lexer
             else
                 result = TOK.int64Literal;
             break;
-        case FLAGS_long:
+        case FLAGS.long_:
             if (n & 0x8000000000000000L)
                 result = TOK.uns64Literal;
             else
                 result = TOK.int64Literal;
             break;
-        case FLAGS_unsigned | FLAGS_long:
-        case FLAGS_decimal | FLAGS_unsigned | FLAGS_long:
+        case FLAGS.unsigned | FLAGS.long_:
+        case FLAGS.decimal | FLAGS.unsigned | FLAGS.long_:
             result = TOK.uns64Literal;
             break;
         default:
