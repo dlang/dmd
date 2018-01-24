@@ -109,6 +109,7 @@ struct Usage
             this.os = os;
         }
 
+        /// ditto
         this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all)
         {
             this.flag = flag;
@@ -154,7 +155,7 @@ struct Usage
         ),
         Option("boundscheck=[on|safeonly|off]",
             "bounds checks on, in @safe only, or off",
-            `controls if bounds checking is enabled.
+            `Controls if bounds checking is enabled.
                 $(UL
                     $(LI $(I on): Bounds checks are enabled for all code. This is the default.)
                     $(LI $(I safeonly): Bounds checks are enabled only in $(D @safe) code.
@@ -222,15 +223,15 @@ dmd -cov -unittest myprog.d
         ),
         Option("debug",
             "compile in debug code",
-            `compile in $(LINK2 spec/version.html#debug, debug) code`,
+            `Compile in $(LINK2 spec/version.html#debug, debug) code`,
         ),
         Option("debug=<level>",
             "compile in debug code <= level",
-            `compile in $(LINK2 spec/version.html#debug, debug level) &lt;= $(I level)`,
+            `Compile in $(LINK2 spec/version.html#debug, debug level) &lt;= $(I level)`,
         ),
         Option("debug=<ident>",
             "compile in debug code identified by ident",
-            `compile in $(LINK2 spec/version.html#debug, debug identifier) $(I ident)`,
+            `Compile in $(LINK2 spec/version.html#debug, debug identifier) $(I ident)`,
         ),
         Option("debuglib=<name>",
             "set symbolic debug library to name",
@@ -270,13 +271,13 @@ dmd -cov -unittest myprog.d
         Option("g",
             "add symbolic debug info",
             `$(WINDOWS
-                add CodeView symbolic debug info with
+                Add CodeView symbolic debug info with
                 $(LINK2 $(ROOT_DIR)spec/abi.html#codeview, D extensions)
                 for debuggers such as
                 $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg)
             )
             $(UNIX
-                add symbolic debug info in Dwarf format
+                Add symbolic debug info in Dwarf format
                 for debuggers such as
                 $(D gdb)
             )`,
@@ -292,11 +293,11 @@ dmd -cov -unittest myprog.d
         ),
         Option("H",
             "generate 'header' file",
-            `generate $(RELATIVE_LINK2 $(ROOT_DIR)interface-files, D interface file)`,
+            `Generate $(RELATIVE_LINK2 $(ROOT_DIR)interface-files, D interface file)`,
         ),
         Option("Hd=<directory>",
             "write 'header' file to directory",
-            `write D interface file to $(I dir) directory. $(SWLINK -op)
+            `Write D interface file to $(I dir) directory. $(SWLINK -op)
             can be used if the original package hierarchy should
             be retained.`,
         ),
@@ -320,13 +321,13 @@ dmd -cov -unittest myprog.d
         ),
         Option("inline",
             "do function inlining",
-            `inline expand functions at the discretion of the compiler.
+            `Inline expand functions at the discretion of the compiler.
             This can improve performance, at the expense of making
             it more difficult to use a debugger on it.`,
         ),
         Option("J=<directory>",
             "look for string imports also in directory",
-            `where to look for files for
+            `Where to look for files for
             $(LINK2 $(ROOT_DIR)spec/expression.html#ImportExpression, $(I ImportExpression))s.
             This switch is required in order to use $(I ImportExpression)s.
             $(I path) is a ; separated
@@ -335,7 +336,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("L=<linkerflag>",
             "pass linkerflag to link",
-            `pass $(I linkerflag) to the
+            `Pass $(I linkerflag) to the
             $(WINDOWS linker $(OPTLINK))
             $(UNIX linker), for example,`,
         ),
@@ -353,7 +354,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("m32",
             "generate 32 bit code",
-            `$(UNIX compile a 32 bit executable. This is the default for the 32 bit dmd.)
+            `$(UNIX Compile a 32 bit executable. This is the default for the 32 bit dmd.)
             $(WINDOWS Compile a 32 bit executable. This is the default.
             The generated object code is in OMF and is meant to be used with the
             $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
@@ -365,7 +366,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("m64",
             "generate 64 bit code",
-            `$(UNIX compile a 64 bit executable. This is the default for the 64 bit dmd.)
+            `$(UNIX Compile a 64 bit executable. This is the default for the 64 bit dmd.)
             $(WINDOWS The generated object code is in MS-COFF and is meant to be used with the
             $(LINK2 https://msdn.microsoft.com/en-us/library/dd831853(v=vs.100).aspx, Microsoft Visual Studio 10)
             or later compiler.`,
@@ -379,27 +380,27 @@ dmd -cov -unittest myprog.d
         Option("man",
             "open web browser on manual page",
             `$(WINDOWS
-                open default browser on this page
+                Open default browser on this page
             )
             $(LINUX
-                open browser specified by the $(B BROWSER)
+                Open browser specified by the $(B BROWSER)
                 environment variable on this page. If $(B BROWSER) is
                 undefined, $(B x-www-browser) is assumed.
             )
             $(FREEBSD
-                open browser specified by the $(B BROWSER)
+                Open browser specified by the $(B BROWSER)
                 environment variable on this page. If $(B BROWSER) is
                 undefined, $(B x-www-browser) is assumed.
             )
             $(OSX
-                open browser specified by the $(B BROWSER)
+                Open browser specified by the $(B BROWSER)
                 environment variable on this page. If $(B BROWSER) is
                 undefined, $(B Safari) is assumed.
             )`,
         ),
         Option("map",
             "generate linker .map file",
-            `generate a $(TT .map) file`,
+            `Generate a $(TT .map) file`,
         ),
         Option("mcpu=<id>",
             "generate instructions for architecture identified by 'id'",
@@ -422,7 +423,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("mscrtlib=<name>",
             "MS C runtime library to reference from main/WinMain/DllMain",
-            "if building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
+            "If building MS-COFF object files with -m64 or -m32mscoff, embed a reference to
             the given C runtime library $(I libname) into the object file containing `main`,
             `DllMain` or `WinMain` for automatic linking. The default is $(TT libcmt)
             (release version with static linkage), the other usual alternatives are
@@ -440,7 +441,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("noboundscheck",
             "no array bounds checking (deprecated, use -boundscheck=off)",
-            `turns off all array bounds checking, even for safe functions. $(RED Deprecated
+            `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
         ),
         Option("O",
@@ -470,7 +471,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("op",
             "preserve source path for output files",
-            `normally the path for $(B .d) source files is stripped
+            `Normally the path for $(B .d) source files is stripped
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
@@ -495,31 +496,31 @@ dmd -cov -unittest myprog.d
         ),
         Option("run <srcfile>",
             "compile, link, and run the program srcfile",
-            `compile, link, and run the program $(I srcfile) with the
+            `Compile, link, and run the program $(I srcfile) with the
             rest of the
             command line, $(I args...), as the arguments to the program.
             No .$(OBJEXT) or executable file is left behind.`
         ),
         Option("shared",
             "generate shared library (DLL)",
-            `$(UNIX generated shared library)
-             $(WINDOWS generate DLL library)`,
+            `$(UNIX Generate shared library)
+             $(WINDOWS Generate DLL library)`,
         ),
         Option("transition=<id>",
             "help with language change identified by 'id'",
-            `show additional info about language change identified by $(I id)`,
+            `Show additional info about language change identified by $(I id)`,
         ),
         Option("transition=?",
             "list all language changes"
         ),
         Option("unittest",
             "compile in unit tests",
-            `compile in $(LINK2 spec/unittest.html, unittest) code, turns on asserts, and sets the
+            `Compile in $(LINK2 spec/unittest.html, unittest) code, turns on asserts, and sets the
              $(D unittest) $(LINK2 spec/version.html#PredefinedVersions, version identifier)`,
         ),
         Option("v",
             "verbose",
-            `enable verbose output for each compiler pass`,
+            `Enable verbose output for each compiler pass`,
         ),
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
@@ -535,11 +536,11 @@ dmd -cov -unittest myprog.d
         ),
         Option("version=<level>",
             "compile in version code >= level",
-            `compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version level) >= $(I level)`,
+            `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version level) >= $(I level)`,
         ),
         Option("version=<ident>",
             "compile in version code identified by ident",
-            `compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
+            `Compile in $(LINK2 $(ROOT_DIR)spec/version.html#version, version identifier) $(I ident)`
         ),
         Option("vgc",
             "list all gc allocations including hidden ones"
@@ -549,11 +550,11 @@ dmd -cov -unittest myprog.d
         ),
         Option("w",
             "warnings as errors (compilation will halt)",
-            `enable $(LINK2 $(ROOT_DIR)/warnings.html, warnings)`
+            `Enable $(LINK2 $(ROOT_DIR)/warnings.html, warnings)`
         ),
         Option("wi",
             "warnings as messages (compilation will continue)",
-            `enable $(LINK2 warnings.html, informational warnings (i.e. compilation
+            `Enable $(LINK2 warnings.html, informational warnings (i.e. compilation
             still proceeds normally))`,
         ),
         Option("X",
