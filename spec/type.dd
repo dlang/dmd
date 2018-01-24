@@ -204,8 +204,8 @@ $(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     promotion. For example:)
 
 ---
-ubyte  u1 = -1;           // error, -1 cannot be represented in a ubyte
-ushort u2 = -1;           // error, -1 cannot be represented in a ushort
+ubyte  u1 = -1;       // error, -1 cannot be represented in a ubyte
+ushort u2 = -1;       // error, -1 cannot be represented in a ushort
 uint   u3 = int(-1);  // ok, -1 can be represented in a uint
 ulong  u4 = long(-1); // ok, -1 can be represented in a ulong
 ---
