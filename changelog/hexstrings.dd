@@ -1,0 +1,4 @@
+HexString literals are deprecated.
+
+$(LINK2 http://dlang.org/spec/lex.html#HexString, HexString literals) are deprecated.
+Use $(LINK2 https://dlang.org/phobos/std_conv.html#hexString, `std.conv.hexString`) instead.
