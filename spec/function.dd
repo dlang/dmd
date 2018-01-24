@@ -589,6 +589,25 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     }
     ---
     )
+    
+    $(P Functions and delegates declared at module scope are zero initialised. However both can be initialised
+    to any function initialiser (because there is no context at module scope the delegates context pointer is
+    initialised to null.
+    )
+    
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    int function() foo = { return 42; };
+    int delegate() bar = { return 43; };
+    int delegate() baz;
+    void main()
+    {
+        assert(foo() == 42);
+        assert(bar() == 43);
+        assert(bas is null);
+    }
+    ---
+    )
 
 $(H2 $(LNAME2 property-functions, Property Functions))
 
