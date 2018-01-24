@@ -1156,7 +1156,12 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         {
             if (s)
             {
-                s.error(loc, "is used as a type");
+                auto td = s.isTemplateDeclaration;
+                if (td && td.onemember && td.onemember.isAggregateDeclaration)
+                    mtype.error(loc, "%s template `%s` is used as a type without instantiation",
+                        s.kind, s.toPrettyChars);
+                else
+                    mtype.error(loc, "%s `%s` is used as a type", s.kind, s.toPrettyChars);
                 //assert(0);
             }
             else
