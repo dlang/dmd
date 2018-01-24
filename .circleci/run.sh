@@ -7,7 +7,7 @@ CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
-BUILD="debug"
+BUILD="release"
 
 case $CIRCLE_NODE_INDEX in
     0) MODEL=64 ;;
