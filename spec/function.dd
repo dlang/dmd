@@ -591,7 +591,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     )
     
     $(P Functions and delegates declared at module scope are zero initialised. However both can be initialised
-    to any function initialiser (because there is no context at module scope the delegates context pointer is
+    to any function initialiser, because there is no context at module scope the delegates context pointer is
     initialised to null.
     )
     
