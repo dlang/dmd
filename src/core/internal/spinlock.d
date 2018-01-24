@@ -93,7 +93,7 @@ private:
 // aligned to cacheline to avoid false sharing
 shared align(64) struct AlignedSpinLock
 {
-    this(SpinLock.Contention contention)
+    this(SpinLock.Contention contention) @trusted @nogc nothrow
     {
         impl = shared(SpinLock)(contention);
     }
