@@ -589,7 +589,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     }
     ---
     )
-    
+
     $(P Functions and delegates declared at module scope are zero-initialized by default.
     However both can be initialized to any function pointer (including a function literal).
     For delegates, the context pointer is initialized to null.
