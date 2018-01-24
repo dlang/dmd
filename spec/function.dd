@@ -2192,12 +2192,12 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array))
     $(LI argument for a $(DDSUBLINK spec/template, template_value_parameter,
         template value parameter))
-    $(LI $(DDSUBLINK spec/version, staticif, $(D_KEYWORD static if)))
-    $(LI $(DDSUBLINK spec/version, staticforeach, $(D_KEYWORD static foreach)))
-    $(LI $(DDSUBLINK spec/version, static-assert, $(D_KEYWORD static assert)))
+    $(LI $(DDSUBLINK spec/version, staticif, `static if`))
+    $(LI $(DDSUBLINK spec/version, staticforeach, `static foreach`))
+    $(LI $(DDSUBLINK spec/version, static-assert, `static assert`))
     $(LI $(DDSUBLINK spec/statement, mixin-statement,
-        $(D_KEYWORD mixin) statement))
-    $(LI $(DDLINK spec/pragma, Pragmas, $(D_KEYWORD pragma) argument))
+        `mixin` statement))
+    $(LI $(DDLINK spec/pragma, Pragmas, `pragma` argument))
     )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
