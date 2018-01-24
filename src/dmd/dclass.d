@@ -81,8 +81,11 @@ struct BaseClass
         // first entry is ClassInfo reference
         for (size_t j = sym.vtblOffset(); j < sym.vtbl.dim; j++)
         {
+            // The interface function that needs to be implemented
             FuncDeclaration ifd = sym.vtbl[j].isFuncDeclaration();
+            // The function found in the class that implements the interface
             FuncDeclaration fd;
+            // The type of the function
             TypeFunction tf;
 
             //printf("        vtbl[%d] is '%s'\n", j, ifd ? ifd.toChars() : "null");
@@ -98,12 +101,6 @@ struct BaseClass
                 if (fd.linkage != ifd.linkage)
                     fd.error("linkage doesn't match interface function");
 
-                // Check that it is current
-                //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
-                    //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
-                if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
-                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
-
                 if (fd.toParent() == cd)
                     result = true;
             }
@@ -111,8 +108,9 @@ struct BaseClass
             {
                 //printf("            not found %p\n", fd);
                 // BUG: should mark this class as abstract?
-                if (!cd.isAbstract())
-                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
+                if (newinstance && !cd.isAbstract() /*&& sym == ifd.toParent()*/)
+                    cd.error("interface function `%s`, required by interface `%s` is not implemented",
+                             ifd.toFullSignature(), sym.toChars());
 
                 fd = null;
             }
