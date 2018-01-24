@@ -590,25 +590,6 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     ---
     )
 
-    $(P Functions and delegates declared at module scope are zero-initialized by default.
-    However both can be initialized to any function pointer (including a function literal).
-    For delegates, the context pointer is initialized to null.
-    )
-
-    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
-    ---
-    int function() foo = { return 42; };
-    int delegate() bar = { return 43; };
-    int delegate() baz;
-    void main()
-    {
-        assert(foo() == 42);
-        assert(bar() == 43);
-        assert(baz is null);
-    }
-    ---
-    )
-
 $(H2 $(LNAME2 property-functions, Property Functions))
 
     $(P Properties are functions that can be syntactically treated
@@ -2132,6 +2113,24 @@ void test()
         $(P The $(D .funcptr) property of a delegate will return the
         $(I function pointer) value as a function type.
         )
+        $(P Functions and delegates declared at module scope are zero-initialized by default.
+        However both can be initialized to any function pointer (including a function literal).
+        For delegates, the context pointer $(D .ptr) is initialized to null.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int function() foo = { return 42; };
+int delegate() bar = { return 43; };
+int delegate() baz;
+void main()
+{
+    assert(foo() == 42);
+    assert(bar() == 43);
+    assert(baz is null);
+}
+---
+)
 
         $(P $(B Future directions:) Function pointers and delegates may merge
         into a common syntax and be interchangeable with each other.
