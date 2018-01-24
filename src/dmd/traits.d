@@ -196,6 +196,32 @@ Checks whether a given symbols is `deprecated`.
 enum isDeprecated = "isDeprecated";
 
 /**
+Takes one argument and returns `true` if it's a function declaration
+marked with `@disable`.
+
+---
+struct Foo
+{
+    @disable void foo();
+    void bar(){}
+}
+
+static assert(__traits(isDisabled, Foo.foo));
+static assert(!__traits(isDisabled, Foo.bar));
+---
+
+    $(P For any other declaration even if `@disable` is a syntactically valid
+    attribute `false` is returned because the annotation has no effect.)
+
+---
+@disable struct Bar{}
+
+static assert(!__traits(isDisabled, Bar));
+---
+*/
+enum isDisabled = "isDisabled";
+
+/**
 Takes one argument. It returns `true` if the argument is a symbol
 marked with the `@future` keyword, otherwise `false`. Currently, only
 functions and variable declarations have support for the `@future` keyword.
