@@ -321,7 +321,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("inline",
             "do function inlining",
-            `Inline expand functions at the discretion of the compiler.
+            `Inline functions at the discretion of the compiler.
             This can improve performance, at the expense of making
             it more difficult to use a debugger on it.`,
         ),
