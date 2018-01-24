@@ -523,7 +523,11 @@ public:
             foreach(U; _TypeTuple!(Duration, const Duration, immutable Duration))
             {
                 T t = 42;
-                U u = t;
+                // workaround https://issues.dlang.org/show_bug.cgi?id=18296
+                version (D_Coverage)
+                    U u = T(t._hnsecs);
+                else
+                    U u = t;
                 assert(t == u);
                 assert(copy(t) == u);
                 assert(t == copy(u));
