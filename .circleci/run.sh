@@ -12,7 +12,11 @@ BUILD="debug"
 DMD=dmd
 PIC=1
 
-case $CIRCLE_STAGE in
+case "${CIRCLE_STAGE}" in
+    # Defined by old, existing PRs
+    # Added to avoid needing to rebase them
+    build)
+        ;&
     pic)
         MODEL=64
         PIC=1
