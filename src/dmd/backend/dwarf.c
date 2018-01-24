@@ -104,7 +104,7 @@ bool doUnwindEhFrame()
      */
     assert(!(usednteh & ~(EHtry | EHcleanup)));
     return (usednteh & (EHtry | EHcleanup)) ||
-           (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) && !config.betterC;
+           (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
 }
 
 #if ELFOBJ

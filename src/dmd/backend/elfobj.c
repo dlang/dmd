@@ -1166,7 +1166,7 @@ void Obj::term(const char *objfilename)
     }
 
 #if MARS
-    if (!config.betterC)
+    if (config.useModuleInfo)
         obj_rtinit();
 #endif
 
@@ -3362,7 +3362,6 @@ void Obj::moduleinfo(Symbol *scc)
     SegData[seg]->SDoffset +=
         reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFflags);
 }
-
 
 /***************************************
  * Create startup/shutdown code to register an executable/shared

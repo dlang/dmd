@@ -19,6 +19,7 @@ import core.stdc.stddef;
 extern (C++):
 
 import dmd.globals;
+import dmd.dmodule;
 
 import dmd.root.filename;
 
@@ -58,7 +59,9 @@ void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         ubyte avx,              // use AVX instruction set (0, 1, 2)
-        bool betterC            // implement "Better C"
+        bool useModuleInfo,     // implement ModuleInfo
+        bool useTypeInfo,       // implement TypeInfo
+        bool useExceptions      // implement exception handling
         );
 
 void out_config_debug(
@@ -118,7 +121,9 @@ void backend_init()
         params.alwaysframe,
         params.stackstomp,
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
-        params.betterC
+        params.useModuleInfo && Module.moduleinfo,
+        params.useTypeInfo,
+        params.useExceptions
     );
 
     debug
