@@ -4,7 +4,7 @@ $(SPEC_S Properties,
 
 $(HEADERNAV_TOC)
 
-        $(P Every type and expression has properties that can be queried:)
+        $(P Every symbol,type and expression has properties that can be queried:)
 
 $(TABLE2 Property Examples,
 $(THEAD Expression,     Value)
@@ -24,9 +24,9 @@ $(BR)
 $(TABLE2 Properties for All Types,
 $(THEAD  Property, Description)
 $(TROW $(RELATIVE_LINK2 init, $(D .init)),      initializer)
-$(TROW $(RELATIVE_LINK2 sizeof, $(D .sizeof)), size in bytes (equivalent to C's sizeof(type)))
+$(TROW $(RELATIVE_LINK2 sizeof, $(D .sizeof)), size in bytes)
 $(TROW $(RELATIVE_LINK2 alignof, $(D .alignof)), alignment size)
-$(TROW $(D .mangleof), string representing the $(SINGLEQUOTE mangled) representation of the type)
+$(TROW $(RELATIVE_LINK2 mangleof, $(D .mangleof)), string representing the $(SINGLEQUOTE mangled) representation of the type)
 $(TROW $(RELATIVE_LINK2 stringof, $(D .stringof)), string representing the source representation of the type)
 )
 
@@ -34,7 +34,7 @@ $(BR)
 
 $(TABLE2 Properties for Integral Types,
 $(THEAD Property, Description)
-$(TROW $(D .init),      initializer (0))
+$(TROW $(D .init),      initializer)
 $(TROW $(D .max), maximum value)
 $(TROW $(D .min), minimum value)
 )
@@ -73,22 +73,15 @@ $(H2 $(LNAME2 init, .init Property))
         initializer. If applied to a type, it is the default initializer
         for that type. If applied to a variable or field, it is the
         default initializer for that variable or field's type.
-        For example:
         )
 
 ----------------
 int a;
 int b = 1;
-typedef int t = 2;
-t c;
-t d = cast(t)3;
 
 int.init // is 0
 a.init   // is 0
 b.init   // is 0
-t.init   // is 2
-c.init   // is 2
-d.init   // is 2
 
 struct Foo
 {
@@ -100,8 +93,9 @@ Foo.init.a  // is 0
 Foo.init.b  // is 7
 ----------------
 
-        $(P $(B Note:) $(D .init) produces a default initialized object, not
-        default constructed. That means using $(D .init) is sometimes incorrect.)
+    $(P $(B Note:) $(D .init) produces a default initialized object, not
+    default constructed. If there is a default constructor for an object,
+    it may produce a different value.)
 
     $(OL
         $(LI If $(D T) is a nested struct, the context pointer in $(D T.init)
@@ -110,14 +104,14 @@ Foo.init.b  // is 7
 ----------------
 void main()
 {
-    int a;
+    int x;
     struct S
     {
-        void foo() { a = 1; }  // access a variable in enclosing scope
+        void foo() { x = 1; }  // access x in enclosing scope via context pointer
     }
-    S s1;           // OK. S() correctly initialize its frame pointer.
+    S s1;           // OK. S() correctly initialize its context pointer.
     S s2 = S();     // OK. same as s1
-    S s3 = S.init;  // Bad. the frame pointer in s3 is null
+    S s3 = S.init;  // Bad. the context pointer in s3 is null
     s3.foo();       // Access violation
 }
 ----------------
@@ -128,19 +122,20 @@ void main()
 ----------------
 struct S
 {
-    int a;
+    int x;
     @disable this();
-    this(int n) { a = n; }
-    invariant { assert(a > 0); }
+    this(int n) { x = n; }
+    invariant { assert(x > 0); }
     void check() {}
 }
+
 void main()
 {
   //S s1;           // Error: variable s1 initializer required for type S
   //S s2 = S();     // Error: constructor S.this is not callable
                     // because it is annotated with @disable
-    S s3 = S.init;  // Bad. s3.a == 0, and it violates the invariant of S.
-    s3.check();     // Assertion failure.
+    S s3 = S.init;  // Bad. s3.x == 0, and it violates the invariant of S
+    s3.check();     // Assertion failure
 }
 ----------------
     )
@@ -153,39 +148,35 @@ $(H2 $(LNAME2 stringof, .stringof Property))
         If applied to an expression, it is the source representation
         of that expression. Semantic analysis is not done
         for that expression.
-        For example:
         )
 
-----------------
-module test;
-import std.stdio;
+    ---
+    module test;
+    import std.stdio;
 
-struct Foo { }
+    struct Dog { }
 
-enum Enum { RED }
+    enum Color { Red }
 
-typedef int myint;
+    void main()
+    {
+        writeln((1+2).stringof);       // "1 + 2"
+        writeln(Dog.stringof);         // "Dog"
+        writeln(test.Dog.stringof);    // "Dog"
+        writeln(int.stringof);         // "int"
+        writeln((int*[5][]).stringof); // "int*[5u][]"
+        writeln(Color.Red.stringof);   // "cast(Color)0"
+        writeln((5).stringof);         // "5"
+    }
+    ---
 
-void main()
-{
-    writeln((1+2).stringof);       // "1 + 2"
-    writeln(Foo.stringof);         // "Foo"
-    writeln(test.Foo.stringof);    // "Foo"
-    writeln(int.stringof);         // "int"
-    writeln((int*[5][]).stringof); // "int*[5u][]"
-    writeln(Enum.RED.stringof);    // "cast(enum)0"
-    writeln(test.myint.stringof);  // "myint"
-    writeln((5).stringof);         // "5"
-}
-----------------
+    $(IMPLEMENTATION_DEFINED The string representation for a type or expression
+    can vary.)
 
-$(P $(B Note): Using $(D .stringof) for code generation is not recommended,
-    as the internal representation of a type or expression can change between
-    different compiler versions.)
-
-$(P Instead you should prefer to use the
+    $(BEST_PRACTICE Do not use `.stringof` for code generation.
+    Instead use the
     $(DDSUBLINK spec/traits, identifier, identifier) trait,
-    or one of the Phobos helper functions such as $(PHOBOS traits, fullyQualifiedName, fullyQualifiedName).)
+    or one of the Phobos helper functions such as $(PHOBOS traits, fullyQualifiedName, std.traits.fullyQualifiedName).)
 
 $(H2 $(LNAME2 sizeof, .sizeof Property))
 
@@ -222,6 +213,31 @@ $(H2 $(LNAME2 alignof, .alignof Property))
         For example, an aligned size of 1 means that it is aligned on
         a byte boundary, 4 means it is aligned on a 32 bit boundary.
         )
+
+    $(IMPLEMENTATION_DEFINED the actual aligned size.)
+
+    $(BEST_PRACTICE Be particularly careful when laying out an object that must
+    line up with an externally imposed layout. Data misalignment can result in
+    particularly pernicious bugs. It's often worth putting in an `assert` to assure
+    it is correct.)
+
+$(H2 $(LNAME2 mangleof, .mangleof Property))
+
+    $(P Mangling refers to how a symbol is represented in text form in the
+    generated object file. $(CODE .mangleof) returns a string literal
+    of the representation of the type or symbol it is applied to.
+    The mangling of types and symbols with D linkage is defined by
+    $(DDSUBLINK spec/abi, name_mangling, Name Mangling).
+    )
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI whether a leading underscore is added to a symbol)
+    $(LI the mangling of types and symbols with non-D linkage.
+    For C and C++ linkage, this will typically
+    match what the associated C or C++ compiler does.)
+    )
+    )
 
 $(H2 $(LNAME2 classinfo, .classinfo Property))
 
