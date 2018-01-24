@@ -25,7 +25,7 @@ body
 {
     float f = float.infinity;
     int i = cast(int) f;
-    writeln((i,1),2);
+    writeln(i,1,2);
     writeln(cast(int)float.max);
     assert(i == cast(int)float.max);
     assert(i == 0x80000000);
@@ -546,12 +546,12 @@ struct SafeS
 		return this;
 	}
 
-	SafeS foo() return scope
+	SafeS foo2() return scope
 	{
 		return this;
 	}
 
-	ref SafeS foo() return scope
+	ref SafeS foo3() return scope
 	{
 		return this;
 	}

@@ -159,20 +159,20 @@ ref int* foo(scope return ref int* a) @safe
 struct SafeS
 {
 @safe:
-	ref SafeS foo() return
-	{
-		return this;
-	}
+    ref SafeS foo() return
+    {
+        return this;
+    }
 
-	SafeS foo() return scope
-	{
-		return this;
-	}
+    SafeS foo2() return scope
+    {
+        return this;
+    }
 
-	ref SafeS foo() return scope
-	{
-		return this;
-	}
+    ref SafeS foo3() return scope
+    {
+        return this;
+    }
 
 	int* p;
 }

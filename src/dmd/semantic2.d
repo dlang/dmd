@@ -343,11 +343,96 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(FuncDeclaration fd)
     {
+        import dmd.dmangle : mangleToFuncSignature;
+
         if (fd.semanticRun >= PASS.semantic2done)
             return;
         assert(fd.semanticRun <= PASS.semantic2);
 
         fd.semanticRun = PASS.semantic2;
+
+        //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
+        if (fd.overnext && !fd.errors)
+        {
+            OutBuffer buf1;
+            OutBuffer buf2;
+
+            // Always starts the lookup from 'this', because the conflicts with
+            // previous overloads are already reported.
+            auto f1 = fd;
+            mangleToFuncSignature(buf1, f1);
+
+            overloadApply(f1, (Dsymbol s)
+            {
+                auto f2 = s.isFuncDeclaration();
+                if (!f2 || f1 == f2 || f2.errors)
+                    return 0;
+
+                // Don't have to check conflict between declaration and definition.
+                if ((f1.fbody !is null) != (f2.fbody !is null))
+                    return 0;
+
+                /* Check for overload merging with base class member functions.
+                 *
+                 *  class B { void foo() {} }
+                 *  class D : B {
+                 *    override void foo() {}    // B.foo appears as f2
+                 *    alias foo = B.foo;
+                 *  }
+                 */
+                if (f1.overrides(f2))
+                    return 0;
+
+                // extern (C) functions always conflict each other.
+                if (f1.ident == f2.ident &&
+                    f1.toParent2() == f2.toParent2() &&
+                    (f1.linkage != LINK.d && f1.linkage != LINK.cpp) &&
+                    (f2.linkage != LINK.d && f2.linkage != LINK.cpp))
+                {
+                    /* Allow the hack that is actually used in druntime,
+                     * to ignore function attributes for extern (C) functions.
+                     * TODO: Must be reconsidered in the future.
+                     *  BUG: https://issues.dlang.org/show_bug.cgi?id=18206
+                     *
+                     *  extern(C):
+                     *  alias sigfn_t  = void function(int);
+                     *  alias sigfn_t2 = void function(int) nothrow @nogc;
+                     *  sigfn_t  bsd_signal(int sig, sigfn_t  func);
+                     *  sigfn_t2 bsd_signal(int sig, sigfn_t2 func) nothrow @nogc;  // no error
+                     */
+                    if (f1.fbody is null || f2.fbody is null)
+                        return 0;
+
+                    auto tf1 = cast(TypeFunction)f1.type;
+                    auto tf2 = cast(TypeFunction)f2.type;
+                    f2.error("%s cannot be overloaded with %sextern (%s) function at %s",
+                            parametersTypeToChars(tf2.parameters, tf2.varargs),
+                            (f1.linkage == f2.linkage ? "another " : "").ptr,
+                            linkageToChars(f1.linkage), f1.loc.toChars());
+                    f2.type = Type.terror;
+                    f2.errors = true;
+                    return 0;
+                }
+
+                buf2.reset();
+                mangleToFuncSignature(buf2, f2);
+
+                auto s1 = buf1.peekString();
+                auto s2 = buf2.peekString();
+
+                //printf("+%s\n\ts1 = %s\n\ts2 = %s @ [%s]\n", toChars(), s1, s2, f2.loc.toChars());
+                if (strcmp(s1, s2) == 0)
+                {
+                    auto tf2 = cast(TypeFunction)f2.type;
+                    f2.error("%s conflicts with previous declaration at %s",
+                            parametersTypeToChars(tf2.parameters, tf2.varargs),
+                            f1.loc.toChars());
+                    f2.type = Type.terror;
+                    f2.errors = true;
+                }
+                return 0;
+            });
+        }
 
         objc.setSelector(fd, sc);
         objc.validateSelector(fd);

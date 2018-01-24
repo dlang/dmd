@@ -25,7 +25,7 @@ void test2()
     core.stdc.stdio.printf("");
 }
 
-void test2()
+void test3()
 {
     imports.pkg313.bug();
 }

@@ -772,28 +772,28 @@
       "name" : "foo",
       "kind" : "function",
       "line" : 162,
-      "char" : 12,
+      "char" : 15,
       "deco" : "FNcNjNfZS4json5SafeS",
       "endline" : 165,
-      "endchar" : 2
+      "endchar" : 5
      },
      {
-      "name" : "foo",
+      "name" : "foo2",
       "kind" : "function",
       "line" : 167,
-      "char" : 8,
+      "char" : 11,
       "deco" : "FNjNfZS4json5SafeS",
       "endline" : 170,
-      "endchar" : 2
+      "endchar" : 5
      },
      {
-      "name" : "foo",
+      "name" : "foo3",
       "kind" : "function",
       "line" : 172,
-      "char" : 12,
+      "char" : 15,
       "deco" : "FNcNjNfZS4json5SafeS",
       "endline" : 175,
-      "endchar" : 2
+      "endchar" : 5
      },
      {
       "name" : "p",

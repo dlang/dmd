@@ -8,7 +8,7 @@ fail_compilation/ice13459.d(11):        `ice13459.A.opSlice()`
 */
 struct A
 {
-    auto opSlice() {}
+    auto opSlice() const {}
     auto opSlice() { return B; }
 }
 
