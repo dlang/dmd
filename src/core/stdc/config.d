@@ -138,12 +138,7 @@ else version( DigitalMars )
 else version( GNU )
     alias real c_long_double;
 else version( LDC )
-{
-    version( X86 )
-        alias real c_long_double;
-    else version( X86_64 )
-        alias real c_long_double;
-}
+    alias real c_long_double;
 else version( SDC )
 {
     version( X86 )

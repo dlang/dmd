@@ -220,6 +220,11 @@ else version( GNU )
 {
     void* alloca(size_t size) pure; // compiler intrinsic
 }
+else version( LDC )
+{
+    pragma(LDC_alloca)
+    void* alloca(size_t size) pure;
+}
 
 version( CRuntime_Microsoft )
 {

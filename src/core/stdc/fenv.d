@@ -28,6 +28,11 @@ extern (C):
 nothrow:
 @nogc:
 
+version (PPC)
+    version = PPC_Any;
+else version (PPC64)
+    version = PPC_Any;
+
 version( MinGW )
     version = GNUFP;
 version( CRuntime_Glibc )
@@ -120,7 +125,7 @@ version( GNUFP )
         alias fexcept_t = uint;
     }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/fenv.h
-    else version (PPC64)
+    else version (PPC_Any)
     {
         alias fenv_t = double;
         alias fexcept_t = uint;
