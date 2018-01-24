@@ -91,6 +91,7 @@ $(H2 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
     type, but going the other way requires an explicit
     conversion. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 -------------------
 int i;
 
@@ -102,6 +103,7 @@ f = cast(Foo)i;  // OK
 f = 0;           // error
 f = Foo.E;       // OK
 -------------------
+)
 
 $(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
@@ -203,12 +205,14 @@ $(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     type that cannot represent the integer bit pattern after integral
     promotion. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 ubyte  u1 = -1;       // error, -1 cannot be represented in a ubyte
 ushort u2 = -1;       // error, -1 cannot be represented in a ushort
 uint   u3 = int(-1);  // ok, -1 can be represented in a uint
 ulong  u4 = long(-1); // ok, -1 can be represented in a ulong
 ---
+)
 
     $(P Floating point types cannot be implicitly converted to
     integral types. Complex or imaginary floating point types cannot be implicitly converted
@@ -243,10 +247,12 @@ a closure and a pointer to a nested function. The object reference forms the
 
 $(P Delegates are declared similarly to function pointers:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------------
 int function(int) fp; // fp is pointer to a function
 int delegate(int) dg; // dg is a delegate to a function
 -------------------
+)
 
     $(P A delegate is initialized analogously to function pointers:
     )
@@ -278,6 +284,7 @@ dg(3);   // call o.member(3)
     $(P The equivalent of member function pointers can be constructed
     using anonymous lambda functions:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 class C
 {
@@ -290,6 +297,7 @@ auto mfp = function(C self, int i) { return self.foo(i); };
 auto c = new C();  // create an instance of C
 mfp(c, 1);  // and call c.foo(1)
 ---
+)
 
 $(P The C style syntax for declaring pointers to functions is deprecated:)
 
