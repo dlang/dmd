@@ -2406,6 +2406,7 @@ void Obj::pubdef(int seg, Symbol *s, targ_size_t offset)
 void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
 {
     int bind;
+    unsigned char visibility = STV_DEFAULT;
     switch (s->Sclass)
     {
         case SCglobal:
@@ -2416,6 +2417,14 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
         case SCcomdef:
             bind = STB_WEAK;
             break;
+        case SCstatic:
+            if (s->Sflags & SFLhidden)
+            {
+                visibility = STV_HIDDEN;
+                bind = STB_GLOBAL;
+                break;
+            }
+            // fallthrough
         default:
             bind = STB_LOCAL;
             break;
@@ -2433,13 +2442,13 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
     if (tyfunc(s->ty()))
     {
         s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
-            STT_FUNC, bind, MAP_SEG2SECIDX(seg));
+            STT_FUNC, bind, MAP_SEG2SECIDX(seg), visibility);
     }
     else
     {
         const unsigned typ = (s->ty() & mTYthread) ? STT_TLS : STT_OBJECT;
         s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
-            typ, bind, MAP_SEG2SECIDX(seg));
+            typ, bind, MAP_SEG2SECIDX(seg), visibility);
     }
 }
 

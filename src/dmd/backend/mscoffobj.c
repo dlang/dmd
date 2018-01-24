@@ -639,11 +639,15 @@ void build_syment_table(bool bigobj)
         switch (s->Sclass)
         {
             case SCstatic:
+                if (s->Sflags & SFLhidden)
+                    goto Ldefault;
+                // fall-through
             case SClocstat:
                 sym.StorageClass = IMAGE_SYM_CLASS_STATIC;
                 sym.Value = s->Soffset;
                 break;
 
+            Ldefault:
             default:
                 sym.StorageClass = IMAGE_SYM_CLASS_EXTERNAL;
                 if (sym.SectionNumber != IMAGE_SYM_UNDEFINED)
