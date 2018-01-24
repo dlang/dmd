@@ -2895,7 +2895,7 @@ void destroy(T)(T obj) if (is(T == interface))
     destroy(cast(Object)obj);
 }
 
-version(unittest) unittest
+unittest
 {
    interface I { }
    {
@@ -2964,7 +2964,7 @@ void destroy(T)(ref T obj) if (is(T == struct))
     } ();
 }
 
-version(unittest) nothrow @safe @nogc unittest
+nothrow @safe @nogc unittest
 {
    {
        struct A { string s = "A";  }
@@ -3010,7 +3010,7 @@ void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
         destroy(e);
 }
 
-version(unittest) unittest
+unittest
 {
     int[2] a;
     a[0] = 1;
@@ -3084,7 +3084,7 @@ template _isStaticArray(T)
     enum bool _isStaticArray = false;
 }
 
-version(unittest) unittest
+unittest
 {
    {
        int a = 42;
