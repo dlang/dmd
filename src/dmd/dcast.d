@@ -366,7 +366,20 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             }
 
             // Only allow conversion if no change in value
-            dinteger_t value = e.toInteger();
+            immutable dinteger_t value = e.toInteger();
+
+            bool isLosslesslyConvertibleToFP(T)()
+            {
+                if (e.type.isunsigned())
+                {
+                    const f = cast(T) value;
+                    return cast(dinteger_t) f == value;
+                }
+
+                const f = cast(T) cast(sinteger_t) value;
+                return cast(sinteger_t) f == cast(sinteger_t) value;
+            }
+
             switch (toty)
             {
             case Tbool:
@@ -431,57 +444,19 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
                 break;
 
             case Tfloat32:
-                {
-                    float f;
-                    if (e.type.isunsigned())
-                    {
-                        f = cast(float)value;
-                        if (f != value)
-                            return;
-                    }
-                    else
-                    {
-                        f = cast(float)cast(sinteger_t)value;
-                        if (f != cast(sinteger_t)value)
-                            return;
-                    }
-                    break;
-                }
+                if (!isLosslesslyConvertibleToFP!float)
+                    return;
+                break;
 
             case Tfloat64:
-                {
-                    double f;
-                    if (e.type.isunsigned())
-                    {
-                        f = cast(double)value;
-                        if (f != value)
-                            return;
-                    }
-                    else
-                    {
-                        f = cast(double)cast(sinteger_t)value;
-                        if (f != cast(sinteger_t)value)
-                            return;
-                    }
-                    break;
-                }
+                if (!isLosslesslyConvertibleToFP!double)
+                    return;
+                break;
 
             case Tfloat80:
-                {
-                    if (e.type.isunsigned())
-                    {
-                        const f = real_t(value);
-                        if (cast(dinteger_t)f != value) // isn't this a noop, because the compiler prefers ld
-                            return;
-                    }
-                    else
-                    {
-                        const f = real_t(cast(sinteger_t)value);
-                        if (cast(sinteger_t)f != cast(sinteger_t)value)
-                            return;
-                    }
-                    break;
-                }
+                if (!isLosslesslyConvertibleToFP!real_t)
+                    return;
+                break;
 
             case Tpointer:
                 //printf("type = %s\n", type.toBasetype()->toChars());
