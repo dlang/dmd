@@ -512,6 +512,20 @@ extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
 extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
 {
     s = mostVisibleOverload(s);
+    return checkSymbolAccess(sc, s);
+}
+
+/**
+ * Check if a symbol is visible from a given scope without taking
+ * into account the most visible overload.
+ *
+ * Params:
+ *  sc = lookup scope
+ *  s = symbol to check for visibility
+ * Returns: true if s is visible by origin
+ */
+extern (C++) bool checkSymbolAccess(Scope *sc, Dsymbol s)
+{
     final switch (s.prot().kind)
     {
     case Prot.Kind.undefined: return true;

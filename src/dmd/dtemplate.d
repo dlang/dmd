@@ -2766,7 +2766,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (auto td = s.isTemplateDeclaration())
             return applyTemplate(td);
         return 0;
-    });
+    }, sc);
 
     //printf("td_best = %p, m.lastf = %p\n", td_best, m.lastf);
     if (td_best && ti_best && m.count == 1)

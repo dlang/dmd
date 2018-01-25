@@ -2326,11 +2326,17 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
 /***************************************************
  * Visit each overloaded function/template in turn, and call dg(s) on it.
  * Exit when no more, or dg(s) returns nonzero.
+ *
+ * Params:
+ *  fstart = symbol to start from
+ *  dg = the delegate to be called on the overload
+ *  sc = the initial scope from the calling context
+ *
  * Returns:
  *      ==0     continue
  *      !=0     done
  */
-extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
+extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc = null)
 {
     Dsymbol next;
     for (Dsymbol d = fstart; d; d = next)
@@ -2339,7 +2345,22 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
         {
             if (od.hasOverloads)
             {
-                if (int r = overloadApply(od.aliassym, dg))
+                /* The scope is needed here to check whether a function in
+                   an overload set was added by means of a private alias (or a
+                   selective import). If the scope where the alias is created
+                   is imported somewhere, the overload set is visible, but the private
+                   alias is not.
+                 */
+                if (sc)
+                {
+                    import dmd.access : checkSymbolAccess;
+                    if (checkSymbolAccess(sc, od))
+                    {
+                        if (int r = overloadApply(od.aliassym, dg, sc))
+                            return r;
+                    }
+                }
+                else if (int r = overloadApply(od.aliassym, dg, sc))
                     return r;
             }
             else
@@ -2353,7 +2374,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
         {
             if (fa.hasOverloads)
             {
-                if (int r = overloadApply(fa.funcalias, dg))
+                if (int r = overloadApply(fa.funcalias, dg, sc))
                     return r;
             }
             else if (auto fd = fa.toAliasFunc())
@@ -2370,7 +2391,14 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg)
         }
         else if (auto ad = d.isAliasDeclaration())
         {
-            next = ad.toAlias();
+            if (sc)
+            {
+                import dmd.access : checkSymbolAccess;
+                if (checkSymbolAccess(sc, ad))
+                    next = ad.toAlias();
+            }
+            else
+               next = ad.toAlias();
             if (next == ad)
                 break;
             if (next == fstart)
@@ -2631,7 +2659,7 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                 if (num > 0)
                     .errorSupplemental(loc, "... (%d more, -v to show) ...", num);
                 return 1;   // stop iterating
-            });
+            }, sc);
         }
     }
     else if (m.nextf)
