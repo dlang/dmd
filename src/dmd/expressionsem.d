@@ -3264,7 +3264,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (sc.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");
                 if ((sc.callSuper & CSX.return_) && !(sc.callSuper & CSX.any_ctor))
-                    exp.error("an earlier return statement skips constructor");
+                    exp.error("an earlier `return` statement skips constructor");
                 sc.callSuper |= CSX.any_ctor | CSX.super_ctor;
             }
 
@@ -3301,7 +3301,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (sc.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");
                 if ((sc.callSuper & CSX.return_) && !(sc.callSuper & CSX.any_ctor))
-                    exp.error("an earlier return statement skips constructor");
+                    exp.error("an earlier `return` statement skips constructor");
                 sc.callSuper |= CSX.any_ctor | CSX.this_ctor;
             }
 

@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail190.d(9): Error: cannot have pointer to `(int, int, int)`
-fail_compilation/fail190.d(16): Error: template instance fail190.f!(int, int, int) error instantiating
+fail_compilation/fail190.d(16): Error: template instance `fail190.f!(int, int, int)` error instantiating
 ---
 */
 

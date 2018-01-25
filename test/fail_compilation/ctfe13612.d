@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ctfe13612.d(15): Error: function ctfe13612.S.recurse CTFE recursion limit exceeded
+fail_compilation/ctfe13612.d(15): Error: function `ctfe13612.S.recurse` CTFE recursion limit exceeded
 fail_compilation/ctfe13612.d(20):        called from here: `s.recurse()`
 fail_compilation/ctfe13612.d(15):        1000 recursive calls to function `recurse`
 fail_compilation/ctfe13612.d(23):        called from here: `(new S).recurse()`

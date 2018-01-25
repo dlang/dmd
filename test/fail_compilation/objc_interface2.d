@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/objc_interface2.d(12): Error: function objc_interface2.A.test number of colons in Objective-C selector must match number of parameters
+fail_compilation/objc_interface2.d(12): Error: function `objc_interface2.A.test` number of colons in Objective-C selector must match number of parameters
 ---
 */
 

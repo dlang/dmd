@@ -511,7 +511,7 @@ struct Scope
                         ident == Id.length && sc.scopesym.isArrayScopeSymbol() &&
                         sc.enclosing && sc.enclosing.search(loc, ident, null, flags))
                     {
-                        warning(s.loc, "array 'length' hides other 'length' name in outer scope");
+                        warning(s.loc, "array `length` hides other `length` name in outer scope");
                     }
                     //printMsg("\tfound local", s);
                     if (pscopesym)
@@ -561,7 +561,7 @@ struct Scope
                     s = searchScopes(flags | SearchImportsOnly | IgnoreSymbolVisibility);
 
                 if (s && !(flags & IgnoreErrors))
-                    .deprecation(loc, "%s is not visible from module %s", s.toPrettyChars(), _module.toChars());
+                    .deprecation(loc, "`%s` is not visible from module `%s`", s.toPrettyChars(), _module.toChars());
                 version (LOGSEARCH) if (s) printMsg("-Scope.search() found imported private symbol", s);
             }
         }
@@ -595,16 +595,16 @@ struct Scope
         OutBuffer buf;
         buf.writestring("local import search method found ");
         if (osold)
-            buf.printf("%s %s (%d overloads)", sold.kind(), sold.toPrettyChars(), cast(int) osold.a.dim);
+            buf.printf("%s `%s` (%d overloads)", sold.kind(), sold.toPrettyChars(), cast(int) osold.a.dim);
         else if (sold)
-            buf.printf("%s %s", sold.kind(), sold.toPrettyChars());
+            buf.printf("%s `%s`", sold.kind(), sold.toPrettyChars());
         else
             buf.writestring("nothing");
         buf.writestring(" instead of ");
         if (osnew)
-            buf.printf("%s %s (%d overloads)", snew.kind(), snew.toPrettyChars(), cast(int) osnew.a.dim);
+            buf.printf("%s `%s` (%d overloads)", snew.kind(), snew.toPrettyChars(), cast(int) osnew.a.dim);
         else if (snew)
-            buf.printf("%s %s", snew.kind(), snew.toPrettyChars());
+            buf.printf("%s `%s`", snew.kind(), snew.toPrettyChars());
         else
             buf.writestring("nothing");
 

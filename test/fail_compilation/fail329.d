@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail329.d(28): Error: variable fail329.A.foo.__ensure.result cannot modify result `result` in contract
+fail_compilation/fail329.d(28): Error: variable `fail329.A.foo.__ensure.result` cannot modify result `result` in contract
 ---
 */
 
