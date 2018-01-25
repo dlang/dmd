@@ -1228,7 +1228,7 @@ private void setDefaultLibrary()
  * variable and config file) in order to add final flags (such as `X86_64` or
  * the `CRuntime` used).
  */
-private void addDefaultVersionIdentifiers()
+void addDefaultVersionIdentifiers()
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
     static if (TARGET.Windows)
