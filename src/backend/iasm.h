@@ -378,7 +378,7 @@ int asm_state(int iFlags);
 void asm_process_fixup( block **ppblockLabels );
 
 typedef struct _PTRNTAB4 {
-        unsigned usOpcode;
+        int opcode;
         unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
@@ -387,7 +387,7 @@ typedef struct _PTRNTAB4 {
 } PTRNTAB4, * PPTRNTAB4, ** PPPTRNTAB4;
 
 typedef struct _PTRNTAB3 {
-        unsigned usOpcode;
+        int opcode;
         unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
@@ -395,20 +395,20 @@ typedef struct _PTRNTAB3 {
 } PTRNTAB3, * PPTRNTAB3, ** PPPTRNTAB3;
 
 typedef struct _PTRNTAB2 {
-        unsigned usOpcode;
+        int opcode;
         unsigned usFlags;
         opflag_t usOp1;
         opflag_t usOp2;
 } PTRNTAB2, * PPTRNTAB2, ** PPPTRNTAB2;
 
 typedef struct _PTRNTAB1 {
-        unsigned usOpcode;
+        int opcode;
         unsigned usFlags;
         opflag_t usOp1;
 } PTRNTAB1, * PPTRNTAB1, ** PPPTRNTAB1;
 
 typedef struct _PTRNTAB0 {
-        unsigned usOpcode;
+        int opcode;
         #define ASM_END 0xffff          // special opcode meaning end of table
         unsigned usFlags;
 } PTRNTAB0, * PPTRNTAB0, ** PPPTRNTAB0;
