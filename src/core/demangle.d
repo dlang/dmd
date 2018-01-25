@@ -227,8 +227,7 @@ pure @safe:
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if( &dst[len] == &val[0] &&
-                dst.length - len >= val.length )
+            if( dst.length - len >= val.length && &dst[len] == &val[0] )
             {
                 // data is already in place
                 auto t = dst[len .. len + val.length];
