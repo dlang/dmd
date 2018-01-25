@@ -557,7 +557,7 @@ $(H3 $(LNAME2 urls, URLs))
 $(P
 URLs are sequences of characters starting with 'http://' or 'https://',
 continue with one or more characters from the set of letters, digits and
-`-_?=%&/+#~.`, and contain at least one `.`.
+`-_?=%&/+#~.`, and contain at least one period.
 URL recognition happens before all macro text substitution.
 The URL is wrapped with a `$(DOLLAR)(LINK)` macro.
 The $(LINK2 #emphasis, underscore prefix processing) is not done for URL text.
