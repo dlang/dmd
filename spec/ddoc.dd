@@ -204,6 +204,10 @@ a line immediately followed by a ':'. This name forms the section name.
 The section name is not case sensitive.
 )
 
+$(P
+Section names starting with 'http://' or 'https://' are not recognized as section names.
+)
+
 $(H4 $(LNAME2 summary, Summary))
 
 $(P
@@ -544,10 +548,21 @@ Identifiers in documentation comments that are function parameters or are
 names that are in scope at the associated declaration are emphasized in
 the output.
 This emphasis can take the form of italics, boldface, a hyperlink, etc.
-How it is emphasized depends on what it is - a function parameter, type,
+How it is emphasized depends on what it is $(MDASH) a function parameter, type,
 D keyword, etc.
 To prevent unintended emphasis of an identifier, it can be preceded by
 an underscore ($(UNDERSCORE)). The underscore will be stripped from the output.
+)
+
+$(H3 $(LNAME2 urls, URLs))
+
+$(P
+URLs are sequences of characters starting with 'http://' or 'https://',
+continue with one or more characters from the set of letters, digits and
+`-_?=%&/+#~.`, and contain at least one period.
+URL recognition happens before all macro text substitution.
+The URL is wrapped with a `$(DOLLAR)(LINK)` macro.
+The $(LINK2 #emphasis, underscore prefix processing) is not done for URL text.
 )
 
 $(H3 $(LNAME2 character_entities, Character Entities))
