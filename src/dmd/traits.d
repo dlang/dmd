@@ -542,13 +542,10 @@ tuple(3)
 tuple("string", 7)
 tuple((Foo))
 )
-)
 */
 enum getAttributes = "getAttributes";
 
 /**
-$(SECTION2 $(GNAME getFunctionVariadicStyle),
-
 Takes one argument which must either be a function symbol, or a type
  is a function, delegate or a function pointer.
 
@@ -582,7 +579,6 @@ static assert(__traits(getFunctionVariadicStyle, typesafe) == "typesafe");
 static assert(__traits(getFunctionVariadicStyle, (int[] a...) {}) == "typesafe");
 static assert(__traits(getFunctionVariadicStyle, typeof(cstyle)) == "stdarg");
 ---
-)
 */
 enum getFunctionVariadicStyle = "getFunctionVariadicStyle";
 
@@ -629,7 +625,6 @@ pragma(msg, __traits(getFunctionAttributes, S.test));
 // prints ("pure", "nothrow", "@nogc", "@trusted")
 pragma(msg, __traits(getFunctionAttributes, (int x) @trusted { return x * 2; }));
 ---
-)
 */
 enum getFunctionAttributes = "getFunctionAttributes";
 
