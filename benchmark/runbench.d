@@ -17,13 +17,13 @@ struct Config
     uint repeat = 10;
 }
 
-string runCmd(string cmd, bool verbose)
+string runCmd(string cmd, bool verbose, in char[] workDir = null)
 {
     import std.exception : enforce;
-    import std.process : executeShell;
+    import std.process : executeShell, Config;
 
     if (verbose) writeln(cmd);
-    auto res = executeShell(cmd);
+    auto res = executeShell(cmd, null, Config.none, size_t.max, workDir);
     enforce(res.status == 0, res.output);
     return res.output;
 }
@@ -72,13 +72,15 @@ void runTests(Config cfg)
 
     import std.parallelism : parallel;
     immutable bindir = absolutePath("bin", cwd);
+    immutable objdir = absolutePath("obj", cwd);
 
     foreach(ref src; sources.parallel(1))
     {
         writeln("COMPILING ", src);
         version (Windows) enum exe = "exe"; else enum exe = "";
         auto bin = buildPath(bindir, src.relativePath(cwd).setExtension(exe));
-        auto cmd = std.string.format("%s %s -op -odobj -of%s %s", cfg.dmd, cfg.dflags, bin, src);
+        auto obj = buildPath(objdir, src.relativePath(cwd).setExtension(exe));
+        auto cmd = std.string.format("%s %s -op -od%s -of%s %s", cfg.dmd, cfg.dflags, obj, bin, src);
         if (auto ex = src in extra_sources)
             cmd ~= " -I" ~ src[0..$-2] ~ ".extra" ~ *ex;
         runCmd(cmd, cfg.verbose);
@@ -109,7 +111,7 @@ void runTests(Config cfg)
         foreach (_; 0 .. cfg.repeat)
         {
             sw.reset;
-            auto output = runCmd(cmd, cfg.verbose);
+            auto output = runCmd(cmd, cfg.verbose, cwd);
             auto dur = cast(Duration)sw.peek;
 
             auto parts = dur.split!("seconds", "msecs");
