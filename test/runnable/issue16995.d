@@ -7,8 +7,8 @@ import core.exception: AssertError;
 
 shared static this()
 {
-    import core.runtime: Runtime;
-    Runtime.moduleUnitTester = () => true;
+    import core.runtime: Runtime, UnitTestResult;
+    Runtime.extendedModuleUnitTester = () => UnitTestResult.pass;
 }
 
 void main()
