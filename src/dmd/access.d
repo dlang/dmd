@@ -529,7 +529,7 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
  * but doesn't recurse nor resolve aliases because protection/visibility is an
  * attribute of the alias not the aliasee.
  */
-private Dsymbol mostVisibleOverload(Dsymbol s)
+public Dsymbol mostVisibleOverload(Dsymbol s)
 {
     if (!s.isOverloadable())
         return s;
