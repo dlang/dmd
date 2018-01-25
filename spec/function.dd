@@ -1180,7 +1180,7 @@ int foo(in int x, out int y, ref int z, int q);
     $(THEAD Storage Class, Description)
     $(TROW $(I none), parameter becomes a mutable copy of its argument)
 
-    $(TROW $(D in), equivalent to $(D const scope))
+    $(TROW $(D in), equivalent to $(D const))
     $(TROW $(D out), parameter is initialized upon function entry with the default value
     for its type)
 
