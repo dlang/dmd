@@ -2458,9 +2458,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             i = k - 1;
                         else
                         {
-                            /* Replace URL with '$(LINK URL)'
+                            /* Replace URL with '$(DDOC_LINK_AUTODETECT URL)'
                              */
-                            i = buf.bracket(i, "$(LINK ", k, ")") - 1;
+                            i = buf.bracket(i, "$(DDOC_LINK_AUTODETECT ", k, ")") - 1;
                         }
                         break;
                     }
