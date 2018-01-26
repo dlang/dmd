@@ -3430,7 +3430,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (!tf.callMatch(null, exp.arguments))
+            const(char)* failMessage;
+            if (!tf.callMatch(null, exp.arguments, 0, &failMessage))
             {
                 OutBuffer buf;
                 buf.writeByte('(');
@@ -3440,7 +3441,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     tthis.modToBuffer(&buf);
 
                 //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`", p, exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
+                    p, exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                if (failMessage)
+                    errorSupplemental(exp.loc, failMessage);
                 return setError();
             }
             // Purity and safety check should run after testing arguments matching
@@ -3494,13 +3498,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             assert(exp.f);
             tiargs = null;
 
-            if (ve.hasOverloads)
+            if (exp.f.overnext)
                 exp.f = resolveFuncCall(exp.loc, sc, exp.f, tiargs, null, exp.arguments, 2);
             else
             {
                 exp.f = exp.f.toAliasFunc();
                 TypeFunction tf = cast(TypeFunction)exp.f.type;
-                if (!tf.callMatch(null, exp.arguments))
+                const(char)* failMessage;
+                if (!tf.callMatch(null, exp.arguments, 0, &failMessage))
                 {
                     OutBuffer buf;
                     buf.writeByte('(');
@@ -3508,8 +3513,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     buf.writeByte(')');
 
                     //printf("tf = %s, args = %s\n", tf.deco, (*arguments)[0].type.deco);
-                    .error(exp.loc, "`%s%s` is not callable using argument types `%s`", exp.e1.toChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
-
+                    .error(exp.loc, "%s `%s%s` is not callable using argument types `%s`",
+                        exp.f.kind(), exp.f.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs), buf.peekString());
+                    if (failMessage)
+                        errorSupplemental(exp.loc, failMessage);
                     exp.f = null;
                 }
             }

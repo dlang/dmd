@@ -3421,11 +3421,41 @@ extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
     }
 }
 
+/*************************************************************
+ * Pretty print function parameters.
+ * Params:
+ *  parameters = parameters to print, such as TypeFunction.parameters.
+ *  varargs = kind of varargs, see TypeFunction.varargs.
+ * Returns: Null-terminated string representing parameters.
+ */
 extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int varargs)
 {
     OutBuffer buf;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
     v.parametersToBuffer(parameters, varargs);
+    return buf.extractString();
+}
+
+/*************************************************************
+ * Pretty print function parameter.
+ * Params:
+ *  parameter = parameter to print.
+ *  tf = TypeFunction which holds parameter.
+ *  fullQual = whether to fully qualify types.
+ * Returns: Null-terminated string representing parameters.
+ */
+extern (C++) const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    hgs.fullQual = fullQual;
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
+
+    parameter.accept(v);
+    if (tf.varargs == 2 && parameter == Parameter.getNth(tf.parameters, tf.parameters.dim - 1))
+    {
+        buf.writestring("...");
+    }
     return buf.extractString();
 }

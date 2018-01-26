@@ -2509,7 +2509,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
     Match m;
     m.last = MATCH.nomatch;
 
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
+    const(char)* failMessage;
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &failMessage);
 
     if (m.last > MATCH.nomatch && m.lastf)
     {
@@ -2627,6 +2628,8 @@ extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                         fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
+                    if (failMessage)
+                        errorSupplemental(loc, failMessage);
                 }
             }
 
@@ -3660,3 +3663,4 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
         v.visit(this);
     }
 }
+
