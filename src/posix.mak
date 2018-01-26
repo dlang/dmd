@@ -615,7 +615,8 @@ DOC_OUTPUT_DIR=$(DOCDIR)
 ifneq ($(DOCSRC),)
 
 # list all files for which documentation should be generated, use sort to remove duplicates
-SRC_DOCUMENTABLES = $(sort $(ROOT_SRCS) $(DMD_SRCS) $(LEXER_SRCS) $(LEXER_ROOT) $(PARSER_SRCS))
+SRC_DOCUMENTABLES = $(sort $(ROOT_SRCS) $(DMD_SRCS) $(LEXER_SRCS) $(LEXER_ROOT) $(PARSER_SRCS) \
+                           $D/frontend.d)
 
 D2HTML=$(foreach p,$1,$(if $(subst package.d,,$(notdir $p)),$(subst /,_,$(subst .d,.html,$p)),$(subst /,_,$(subst /package.d,.html,$p))))
 HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
