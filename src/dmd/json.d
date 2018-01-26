@@ -246,7 +246,7 @@ public:
 
     void property(const(char)* name, TRUST trust)
     {
-        switch (trust)
+        final switch (trust)
         {
         case TRUST.default_:
             // Should not be printed
@@ -261,14 +261,12 @@ public:
         case TRUST.safe:
             property(name, "safe");
             break;
-        default:
-            assert(false);
         }
     }
 
     void property(const(char)* name, PURE purity)
     {
-        switch (purity)
+        final switch (purity)
         {
         case PURE.impure:
             // Should not be printed
@@ -286,8 +284,6 @@ public:
         case PURE.fwdref:
             property(name, "fwdref");
             break;
-        default:
-            assert(false);
         }
     }
 
