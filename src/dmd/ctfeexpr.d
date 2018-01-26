@@ -186,7 +186,7 @@ extern (C++) final class ThrownExceptionExp : Expression
          * in the case where the ThrowStatement is generated internally
          * (eg, in ScopeStatement)
          */
-        if (loc.filename && !loc.equals(thrown.loc))
+        if (loc.isValid() && !loc.equals(thrown.loc))
             errorSupplemental(loc, "thrown from here");
     }
 

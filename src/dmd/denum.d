@@ -282,7 +282,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
 
     Type getMemtype(Loc loc)
     {
-        if (loc.linnum == 0)
+        if (!loc.isValid())
             loc = this.loc;
         if (_scope)
         {

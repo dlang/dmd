@@ -225,7 +225,7 @@ extern (C++) class Dsymbol : RootObject
 
     final ref Loc getLoc()
     {
-        if (!loc.filename) // avoid bug 5861.
+        if (!loc.isValid()) // avoid bug 5861.
         {
             auto m = getModule();
             if (m && m.srcfile)
@@ -1502,7 +1502,7 @@ public:
             printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1.toChars(), s1.kind(), s1.parent ? s1.parent.toChars() : "");
             printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2.toChars(), s2.kind(), s2.parent ? s2.parent.toChars() : "");
         }
-        if (loc.filename)
+        if (loc.isValid())
         {
             .error(loc, "`%s` at %s conflicts with `%s` at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
         }
