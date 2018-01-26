@@ -103,7 +103,7 @@ test_dub_package() {
             # build with host compiler
             dub --single "$file"
             # build with built compiler (~master)
-            dub --single --compiler="${abs_build_path}" "$file"
+            DFLAGS="-de" dub --single --compiler="${abs_build_path}/dmd" "$file"
         done
         popd
     fi

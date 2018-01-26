@@ -60,7 +60,6 @@ subPackage {
   versions "GC"
   versions "NoMain"
   sourcePaths "src/dmd"
-  buildRequirements "disallowDeprecations"
   excludedSourceFiles "src/dmd/backend/*"
   excludedSourceFiles "src/dmd/{e2ir,eh,glue,iasm,objc_glue,s2ir,tocsym,toctype,toobj,todt,toir}.d"
 }

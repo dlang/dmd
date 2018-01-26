@@ -223,7 +223,7 @@ Module parseModule(string fileName, string code = null)
     import dmd.astcodegen : ASTCodegen;
     import dmd.globals : Loc;
     import dmd.parse : Parser;
-    import dmd.statement : Identifier;
+    import dmd.identifier : Identifier;
     import dmd.tokens : TOK;
     import std.string : toStringz;
 
