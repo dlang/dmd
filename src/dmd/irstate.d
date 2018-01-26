@@ -16,6 +16,7 @@ import dmd.root.array;
 
 import dmd.arraytypes;
 import dmd.backend.type;
+import dmd.dclass;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.func;
@@ -88,8 +89,9 @@ struct IRState
         this.varsInScope = varsInScope;
         this.deferToObj = deferToObj;
         this.labels = labels;
-        mayThrow = global.params.useExceptions &&
-                !(fd && fd.eh_none);
+        mayThrow = global.params.useExceptions
+            && ClassDeclaration.throwable
+            && !(fd && fd.eh_none);
     }
 
     /****
