@@ -27,6 +27,7 @@ This needs to be done $(I before) calling any function.
 */
 void initDMD()
 {
+    import std.concurrency : initOnce;
     import dmd.builtin : builtin_init;
     import dmd.dmodule : Module;
     import dmd.expression : Expression;
@@ -37,16 +38,21 @@ void initDMD()
     import dmd.objc : Objc;
     import dmd.target : Target;
 
-    global._init();
-    addDefaultVersionIdentifiers();
+    static shared bool initialized;
+    initOnce!initialized((){
+        global._init();
+        addDefaultVersionIdentifiers();
 
-    Type._init();
-    Id.initialize();
-    Module._init();
-    Target._init();
-    Expression._init();
-    Objc._init();
-    builtin_init();
+        Type._init();
+        Id.initialize();
+        Module._init();
+        Target._init();
+        Expression._init();
+        Objc._init();
+        builtin_init();
+
+        return true;
+    }());
 }
 
 /**
@@ -59,6 +65,8 @@ void addImport(string path)
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
     import std.string : toStringz;
+
+    initDMD;
 
     if (global.path is null)
         global.path = new Strings();
@@ -78,6 +86,8 @@ string findDMDConfig(string dmdFilePath)
 {
     import dmd.dinifile : findConfFile;
     import std.string : fromStringz, toStringz;
+
+    initDMD;
 
     auto f = findConfFile(dmdFilePath.toStringz, "dmd.conf");
     if (f is null)
@@ -226,6 +236,8 @@ Module parseModule(string fileName, string code = null)
     import dmd.statement : Identifier;
     import dmd.tokens : TOK;
     import std.string : toStringz;
+
+    initDMD;
 
     auto parse(Module m, string code)
     {
