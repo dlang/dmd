@@ -411,9 +411,20 @@ nothrow:
         return buf.extractString();
     }
 
-    extern (C++) bool equals(ref const(Loc) loc)
+    extern (C++) bool equals(ref const(Loc) loc) const
     {
-        return (!global.params.showColumns || charnum == loc.charnum) && linnum == loc.linnum && FileName.equals(filename, loc.filename);
+        return (!global.params.showColumns || charnum == loc.charnum) &&
+               linnum == loc.linnum &&
+               FileName.equals(filename, loc.filename);
+    }
+
+    /******************
+     * Returns:
+     *   true if Loc has been set to other than the default initialization
+     */
+    bool isValid() const pure
+    {
+        return filename !is null;
     }
 }
 

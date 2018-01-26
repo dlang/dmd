@@ -1760,7 +1760,7 @@ extern (C++) abstract class Expression : RootObject
     {
         if (!e)
             e = this;
-        else if (!loc.filename)
+        else if (!loc.isValid())
             loc = e.loc;
 
         if (e.op == TOK.type)
@@ -2184,7 +2184,7 @@ extern (C++) abstract class Expression : RootObject
         {
             if (sc.flags & SCOPE.compile ? sc.func.isSafeBypassingInference() : sc.func.setUnsafe())
             {
-                if (loc.linnum == 0) // e.g. implicitly generated dtor
+                if (!loc.isValid()) // e.g. implicitly generated dtor
                     loc = sc.func.loc;
                 error("`@safe` %s `%s` cannot call `@system` %s `%s`",
                     sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
@@ -2542,7 +2542,7 @@ extern (C++) final class IntegerExp : Expression
     {
         if (!e)
             e = this;
-        else if (!loc.filename)
+        else if (!loc.isValid())
             loc = e.loc;
         e.error("constant `%s` is not an lvalue", e.toChars());
         return new ErrorExp();
@@ -7073,7 +7073,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
     override Expression resolveLoc(Loc loc, Scope* sc)
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
-        const(char)* s = loc.filename ? loc.filename : sc._module.ident.toChars();
+        const(char)* s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
         if (subop == TOK.fileFullPath)
             s = FileName.combine(sc._module.srcfilePath, s);
         Expression e = new StringExp(loc, cast(char*)s);

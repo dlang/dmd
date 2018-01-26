@@ -1541,7 +1541,7 @@ extern (C++) class VarDeclaration : Declaration
 
         //printf("\tfdv = %s\n", fdv.toChars());
         //printf("\tfdthis = %s\n", fdthis.toChars());
-        if (loc.filename)
+        if (loc.isValid())
         {
             int lv = fdthis.getLevel(loc, sc, fdv);
             if (lv == -2) // error
