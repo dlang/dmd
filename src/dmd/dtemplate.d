@@ -50,6 +50,8 @@ import dmd.visitor;
 
 import dmd.templateparamsem;
 
+import dmd.trace;
+
 //debug = FindExistingInstance; // print debug stats of findExistingInstance
 private enum LOG = false;
 
@@ -677,6 +679,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
+        mixin(traceString("ti"));
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
          *  void foo(T)(T x) if (is(typeof(foo(x)))) { }

@@ -73,6 +73,8 @@ import dmd.visitor;
 
 enum LOG = false;
 
+import dmd.trace;
+
 private uint setMangleOverride(Dsymbol s, char* sym)
 {
     AttribDeclaration ad = s.isAttribDeclaration();
@@ -1070,6 +1072,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Import imp)
     {
+        mixin(traceString("imp"));
         //printf("Import::semantic('%s') %s\n", toPrettyChars(), id.toChars());
         if (imp.semanticRun > PASS.init)
             return;
@@ -1640,6 +1643,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         if (m.semanticRun != PASS.init)
             return;
+
+        mixin(traceString("m"));
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         m.semanticRun = PASS.semantic;
         // Note that modules get their own scope, from scratch.
@@ -2080,6 +2085,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(TemplateDeclaration tempdecl)
     {
+        mixin(traceString("tempdecl"));
         static if (LOG)
         {
             printf("TemplateDeclaration.dsymbolSemantic(this = %p, id = '%s')\n", this, tempdecl.ident.toChars());
@@ -2507,6 +2513,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     void funcDeclarationSemantic(FuncDeclaration funcdecl)
     {
+        mixin(traceString("funcdecl"));
         TypeFunction f;
         AggregateDeclaration ad;
         InterfaceDeclaration id;
@@ -3736,6 +3743,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(StructDeclaration sd)
     {
+        mixin(traceString("sd", "semantic"));
         //printf("StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toPrettyChars(), sizeok);
 
         //static int count; if (++count == 20) assert(0);
@@ -3963,6 +3971,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(ClassDeclaration cldec)
     {
+        mixin(traceString("cldec", "dsymbolSemantic"));
         //printf("ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
         //printf("\tparent = %p, '%s'\n", sc.parent, sc.parent ? sc.parent.toChars() : "");
         //printf("sc.stc = %x\n", sc.stc);
@@ -4561,6 +4570,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(InterfaceDeclaration idec)
     {
+        mixin(traceString("idec", "semantic"));
         //printf("InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
         if (idec.semanticRun >= PASS.semanticdone)
             return;
@@ -4879,6 +4889,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions* fargs)
 {
+    mixin(traceString("tempinst"));
     //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", loc.toChars(), toChars(), this, global.gag, sc);
     version (none)
     {
@@ -5556,3 +5567,4 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             ScopeDsymbol.multiplyDefined(Loc(), sx, ds);
     }
 }
+
