@@ -188,8 +188,13 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string file = cast(string)std.file.read(input_file);
 
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
-    if(envData.required_args.length)
-        testArgs.requiredArgs ~= " " ~ envData.required_args;
+    if (envData.required_args.length)
+    {
+        if (testArgs.requiredArgs.length)
+            testArgs.requiredArgs ~= " " ~ envData.required_args;
+        else
+            testArgs.requiredArgs = envData.required_args;
+    }
     replaceResultsDir(testArgs.requiredArgs, envData);
 
     if (! findTestParameter(envData, file, "PERMUTE_ARGS", testArgs.permuteArgs))
@@ -202,6 +207,16 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
+
+    // remove permute args enforced as required anyway
+    if (testArgs.requiredArgs.length && testArgs.permuteArgs.length)
+    {
+        const required = split(testArgs.requiredArgs);
+        const newPermuteArgs = split(testArgs.permuteArgs)
+            .filter!(a => !required.canFind(a))
+            .join(" ");
+        testArgs.permuteArgs = newPermuteArgs;
+    }
 
     {
         string argSetsStr;
