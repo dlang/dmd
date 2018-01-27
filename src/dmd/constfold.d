@@ -115,7 +115,7 @@ private UnionExp Bool(Type type, Expression e1)
     return ue;
 }
 
-extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Add(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     static if (LOG)
@@ -222,7 +222,7 @@ extern (C++) UnionExp Add(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Min(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     if (type.isreal())
@@ -321,7 +321,7 @@ extern (C++) UnionExp Min(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Mul(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     if (type.isfloating())
@@ -370,7 +370,7 @@ extern (C++) UnionExp Mul(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Div(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     if (type.isfloating())
@@ -461,7 +461,7 @@ extern (C++) UnionExp Div(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Mod(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     if (type.isfloating())
@@ -526,7 +526,7 @@ extern (C++) UnionExp Mod(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Pow(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     // Handle integer power operations.
@@ -605,14 +605,14 @@ extern (C++) UnionExp Pow(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Shl(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Shl(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() << e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Shr(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     dinteger_t value = e1.toInteger();
@@ -658,7 +658,7 @@ extern (C++) UnionExp Shr(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Ushr(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     dinteger_t value = e1.toInteger();
@@ -698,21 +698,21 @@ extern (C++) UnionExp Ushr(Loc loc, Type type, Expression e1, Expression e2)
     return ue;
 }
 
-extern (C++) UnionExp And(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp And(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() & e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Or(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Or(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     emplaceExp!(IntegerExp)(&ue, loc, e1.toInteger() | e2.toInteger(), type);
     return ue;
 }
 
-extern (C++) UnionExp Xor(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Xor(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     //printf("Xor(linnum = %d, e1 = %s, e2 = %s)\n", loc.linnum, e1.toChars(), e2.toChars());
     UnionExp ue;
@@ -722,7 +722,7 @@ extern (C++) UnionExp Xor(Loc loc, Type type, Expression e1, Expression e2)
 
 /* Also returns TOK.cantExpression if cannot be computed.
  */
-extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Equal(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     int cmp = 0;
@@ -922,7 +922,7 @@ extern (C++) UnionExp Equal(TOK op, Loc loc, Type type, Expression e1, Expressio
     return ue;
 }
 
-extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Identity(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     int cmp;
@@ -968,7 +968,7 @@ extern (C++) UnionExp Identity(TOK op, Loc loc, Type type, Expression e1, Expres
     return ue;
 }
 
-extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp Cmp(TOK op, const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     dinteger_t n;
@@ -1030,7 +1030,7 @@ extern (C++) UnionExp Cmp(TOK op, Loc loc, Type type, Expression e1, Expression 
  *  to: type to cast to
  *  type: type to paint the result
  */
-extern (C++) UnionExp Cast(Loc loc, Type type, Type to, Expression e1)
+extern (C++) UnionExp Cast(const ref Loc loc, Type type, Type to, Expression e1)
 {
     UnionExp ue;
     Type tb = to.toBasetype();

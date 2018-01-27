@@ -57,7 +57,7 @@ extern (C++) final class ClassReferenceExp : Expression
 {
     StructLiteralExp value;
 
-    extern (D) this(Loc loc, StructLiteralExp lit, Type type)
+    extern (D) this(const ref Loc loc, StructLiteralExp lit, Type type)
     {
         super(loc, TOK.classReference, __traits(classInstanceSize, ClassReferenceExp));
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
@@ -164,7 +164,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 {
     ClassReferenceExp thrown;   // the thing being tossed
 
-    extern (D) this(Loc loc, ClassReferenceExp victim)
+    extern (D) this(const ref Loc loc, ClassReferenceExp victim)
     {
         super(loc, TOK.thrownException, __traits(classInstanceSize, ThrownExceptionExp));
         this.thrown = victim;
@@ -186,7 +186,7 @@ extern (C++) final class ThrownExceptionExp : Expression
          * in the case where the ThrowStatement is generated internally
          * (eg, in ScopeStatement)
          */
-        if (loc.filename && !loc.equals(thrown.loc))
+        if (loc.isValid() && !loc.equals(thrown.loc))
             errorSupplemental(loc, "thrown from here");
     }
 
@@ -584,7 +584,7 @@ extern (C++) uinteger_t resolveArrayLength(Expression e)
  * Returns:
  *      Constructed ArrayLiteralExp
  */
-extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type type, Expression elem, size_t dim)
+extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(const ref Loc loc, Type type, Expression elem, size_t dim)
 {
     if (type.ty == Tsarray && type.nextOf().ty == Tsarray && elem.type.ty != Tsarray)
     {
@@ -614,7 +614,7 @@ extern (C++) ArrayLiteralExp createBlockDuplicatedArrayLiteral(Loc loc, Type typ
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-extern (C++) StringExp createBlockDuplicatedStringLiteral(Loc loc, Type type, dchar value, size_t dim, ubyte sz)
+extern (C++) StringExp createBlockDuplicatedStringLiteral(const ref Loc loc, Type type, dchar value, size_t dim, ubyte sz)
 {
     auto s = cast(char*)mem.xcalloc(dim, sz);
     foreach (elemi; 0 .. dim)
@@ -787,7 +787,7 @@ extern (C++) bool pointToSameMemoryBlock(Expression agg1, Expression agg2)
 }
 
 // return e1 - e2 as an integer, or error if not possible
-extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp pointerDifference(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     UnionExp ue;
     dinteger_t ofs1, ofs2;
@@ -822,7 +822,7 @@ extern (C++) UnionExp pointerDifference(Loc loc, Type type, Expression e1, Expre
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOK.add or TOK.min
-extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression eptr, Expression e2)
+extern (C++) UnionExp pointerArithmetic(const ref Loc loc, TOK op, Type type, Expression eptr, Expression e2)
 {
     UnionExp ue;
     if (eptr.type.nextOf().ty == Tvoid)
@@ -913,7 +913,7 @@ extern (C++) UnionExp pointerArithmetic(Loc loc, TOK op, Type type, Expression e
 
 // Return 1 if true, 0 if false
 // -1 if comparison is illegal because they point to non-comparable memory blocks
-extern (C++) int comparePointers(Loc loc, TOK op, Type type, Expression agg1, dinteger_t ofs1, Expression agg2, dinteger_t ofs2)
+extern (C++) int comparePointers(const ref Loc loc, TOK op, Type type, Expression agg1, dinteger_t ofs1, Expression agg2, dinteger_t ofs2)
 {
     if (pointToSameMemoryBlock(agg1, agg2))
     {
@@ -1097,7 +1097,7 @@ extern (C++) int realCmp(TOK op, real_t r1, real_t r2)
  * For string types, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
  */
-private int ctfeCmpArrays(Loc loc, Expression e1, Expression e2, uinteger_t len)
+private int ctfeCmpArrays(const ref Loc loc, Expression e1, Expression e2, uinteger_t len)
 {
     // Resolve slices, if necessary
     uinteger_t lo1 = 0;
@@ -1173,7 +1173,7 @@ private bool isArray(Expression e)
 /* For strings, return <0 if e1 < e2, 0 if e1==e2, >0 if e1 > e2.
  * For all other types, return 0 if e1 == e2, !=0 if e1 != e2.
  */
-private int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
+private int ctfeRawCmp(const ref Loc loc, Expression e1, Expression e2)
 {
     if (e1.op == TOK.classReference || e2.op == TOK.classReference)
     {
@@ -1336,7 +1336,7 @@ private int ctfeRawCmp(Loc loc, Expression e1, Expression e2)
 }
 
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
-extern (C++) int ctfeEqual(Loc loc, TOK op, Expression e1, Expression e2)
+extern (C++) int ctfeEqual(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     int cmp = !ctfeRawCmp(loc, e1, e2);
     if (op == TOK.notEqual)
@@ -1345,7 +1345,7 @@ extern (C++) int ctfeEqual(Loc loc, TOK op, Expression e1, Expression e2)
 }
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
-extern (C++) int ctfeIdentity(Loc loc, TOK op, Expression e1, Expression e2)
+extern (C++) int ctfeIdentity(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     //printf("ctfeIdentity op = '%s', e1 = %s %s, e2 = %s %s\n", Token::toChars(op),
     //    Token::toChars(e1.op), e1.toChars(), Token::toChars(e2.op), e1.toChars());
@@ -1382,7 +1382,7 @@ extern (C++) int ctfeIdentity(Loc loc, TOK op, Expression e1, Expression e2)
 }
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
-extern (C++) int ctfeCmp(Loc loc, TOK op, Expression e1, Expression e2)
+extern (C++) int ctfeCmp(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
@@ -1399,7 +1399,7 @@ extern (C++) int ctfeCmp(Loc loc, TOK op, Expression e1, Expression e2)
         return intSignedCmp(op, e1.toInteger(), e2.toInteger());
 }
 
-extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
+extern (C++) UnionExp ctfeCat(const ref Loc loc, Type type, Expression e1, Expression e2)
 {
     Type t1 = e1.type.toBasetype();
     Type t2 = e2.type.toBasetype();
@@ -1493,7 +1493,7 @@ extern (C++) UnionExp ctfeCat(Loc loc, Type type, Expression e1, Expression e2)
 /*  Given an AA literal 'ae', and a key 'e2':
  *  Return ae[e2] if present, or NULL if not found.
  */
-extern (C++) Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression e2)
+extern (C++) Expression findKeyInAA(const ref Loc loc, AssocArrayLiteralExp ae, Expression e2)
 {
     /* Search the keys backwards, in case there are duplicate keys
      */
@@ -1514,7 +1514,7 @@ extern (C++) Expression findKeyInAA(Loc loc, AssocArrayLiteralExp ae, Expression
  * dynamic arrays, and strings. We know that e1 is an
  * interpreted CTFE expression, so it cannot have side-effects.
  */
-extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t indx)
+extern (C++) Expression ctfeIndex(const ref Loc loc, Type type, Expression e1, uinteger_t indx)
 {
     //printf("ctfeIndex(e1 = %s)\n", e1.toChars());
     assert(e1.type);
@@ -1541,7 +1541,7 @@ extern (C++) Expression ctfeIndex(Loc loc, Type type, Expression e1, uinteger_t 
     }
 }
 
-extern (C++) Expression ctfeCast(Loc loc, Type type, Type to, Expression e)
+extern (C++) Expression ctfeCast(const ref Loc loc, Type type, Type to, Expression e)
 {
     if (e.op == TOK.null_)
         return paintTypeOntoLiteral(to, e);
@@ -1652,7 +1652,7 @@ extern (C++) void assignInPlace(Expression dest, Expression src)
 }
 
 // Given an AA literal aae,  set aae[index] = newval and return newval.
-extern (C++) Expression assignAssocArrayElement(Loc loc, AssocArrayLiteralExp aae, Expression index, Expression newval)
+extern (C++) Expression assignAssocArrayElement(const ref Loc loc, AssocArrayLiteralExp aae, Expression index, Expression newval)
 {
     /* Create new associative array literal reflecting updated key/value
      */
@@ -1682,7 +1682,7 @@ extern (C++) Expression assignAssocArrayElement(Loc loc, AssocArrayLiteralExp aa
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-extern (C++) UnionExp changeArrayLiteralLength(Loc loc, TypeArray arrayType, Expression oldval, size_t oldlen, size_t newlen)
+extern (C++) UnionExp changeArrayLiteralLength(const ref Loc loc, TypeArray arrayType, Expression oldval, size_t oldlen, size_t newlen)
 {
     UnionExp ue;
     Type elemType = arrayType.next;
