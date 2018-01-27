@@ -11,6 +11,8 @@ if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 
+build_path=generated/$OS_NAME/release/$MODEL
+
 # use faster ld.gold linker on linux
 if [ "$OS_NAME" == "linux" ]; then
     mkdir -p linker
@@ -50,7 +52,6 @@ build() {
 
 # self-compile dmd
 rebuild() {
-    local build_path=generated/$OS_NAME/release/$MODEL
     local compare=${1:-0}
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
@@ -102,6 +103,8 @@ test_dub_package() {
             dub --single "$file"
         done
         popd
+        # Test rdmd build
+        "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jres -Isrc -i -run test/dub_package/frontend.d
     fi
     deactivate
 }
