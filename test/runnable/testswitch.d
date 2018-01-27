@@ -729,6 +729,20 @@ void test15538()
     assert(f15538(s) == 10); /* fails */
 }
 
+// https://issues.dlang.org/show_bug.cgi?id=16739
+
+void test16739()
+{
+    int result = 0;
+    switch ("a"d)
+    {
+      case "\u0100"d: result = 1; break;
+      case "a"d: result = 2; break;
+      default: result = 3; break;
+    }
+    assert(result == 2);
+}
+
 /*****************************************/
 
 int main()
@@ -761,6 +775,7 @@ int main()
     test14587();
     test15396();
     test15538();
+    test16739();
 
     printf("Success\n");
     return 0;
