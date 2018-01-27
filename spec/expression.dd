@@ -22,11 +22,14 @@ left-to-right order.)
         assert(text(++i, ++i) == "1415"); // left to right evaluation of arguments
         -------------
 
-    $(P But even though the order of evaluation is well defined, writing code that
-        depends on it is rarely recommended.
-        $(B Note that dmd currently does not comply with left to right evaluation of
-        function arguments and AssignExpression.)
-    )
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The order of evaluation of the operands of $(GLINK AssignExpression).)
+    $(LI The order of evaluation of function arguments.)
+    ))
+
+    $(BEST_PRACTICE Even though the order of evaluation is well defined, writing code that
+    depends on it is rarely recommended.)
 
 $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
 
@@ -42,7 +45,7 @@ $(GNAME CommaExpression):
     $(P The left operand of the $(D ,) is evaluated, then the right operand
         is evaluated. The type of the expression is the type of the right
         operand, and the result is the result of the right operand. Using
-        the result is derecated.
+        the result is deprecated.
     )
 
 $(H2 $(LNAME2 assign_expressions, Assign Expressions))
@@ -66,13 +69,41 @@ $(GNAME AssignExpression):
     $(GLINK ConditionalExpression) $(D ^^=) $(I AssignExpression)
 )
 
-    $(P The right operand is implicitly converted to the type of the
-        left operand, and assigned to it. The result type is the type
-        of the left operand, and the result value is the value of the left
-        operand after the assignment.
+    $(P For all assign expressions, the left operand must be a modifiable
+    lvalue. The type of the assign expression is the type of the left
+    operand, and the value is the value of the left operand after assignment
+    occurs. The resulting expression is a modifiable lvalue.
     )
 
-    $(P The left operand must be an lvalue.)
+    $(UNDEFINED_BEHAVIOR
+    $(OL
+    $(LI if the lvalue and rvalue have partially overlapping storage)
+    $(LI if the lvalue and rvalue's storage overlaps exactly but the types are different)
+    ))
+
+$(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
+
+    $(P If the operator is $(D =) then it is simple assignment.
+    The right operand is implicitly converted to the type of the
+    left operand, and assigned to it.)
+
+    $(P If the left and right operands are of the same struct type, and the struct
+    type has a $(GLINK2 struct, Postblit), then the copy operation is
+    as described in $(DDSUBLINK spec/struct, struct-postblit, Struct Postblit).
+    )
+
+    $(P If the lvalue is the `.length` property of a dynamic array, the behavior is
+    as described in $(DDSUBLINK spec/array, resize, Setting Dynamic Array Length).
+    )
+
+    $(P If the lvalue is a static array or a slice, the behavior is as
+    described in $(DDSUBLINK spec/array, array-copying, Array Copying) and
+    $(DDSUBLINK spec/array, array-setting, Array Setting).
+    )
+
+    $(P If the lvalue is a user-defined property, the behavior is as
+    described in $(DDSUBLINK spec/function, property-functions, Property Functions).
+    )
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
