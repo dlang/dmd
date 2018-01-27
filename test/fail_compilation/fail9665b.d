@@ -49,7 +49,7 @@ fail_compilation/fail9665b.d(68): Error: one path skips field `x5`
 fail_compilation/fail9665b.d(69): Error: one path skips field `x6`
 fail_compilation/fail9665b.d(63): Error: field `x1` must be initialized in constructor, because it is nested struct
 fail_compilation/fail9665b.d(63): Error: field `x4` must be initialized in constructor, because it is nested struct
-fail_compilation/fail9665b.d(76): Error: template instance fail9665b.S2!(X) error instantiating
+fail_compilation/fail9665b.d(76): Error: template instance `fail9665b.S2!(X)` error instantiating
 ---
 +/
 struct S2(X)

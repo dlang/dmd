@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/checkimports1a.d(16): Deprecation: local import search method found struct imports.diag12598a.lines instead of variable checkimports1a.C.lines
+fail_compilation/checkimports1a.d(16): Deprecation: local import search method found struct `imports.diag12598a.lines` instead of variable `checkimports1a.C.lines`
 ---
 */
 

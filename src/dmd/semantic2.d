@@ -122,13 +122,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 {
                     // same with pragma(msg)
                     se = se.toUTF8(sc);
-                    sa.error("\"%.*s\"", cast(int)se.len, se.string);
+                    error(sa.loc, "static assert:  \"%.*s\"", cast(int)se.len, se.string);
                 }
                 else
-                    sa.error("%s", sa.msg.toChars());
+                    error(sa.loc, "static assert:  %s", sa.msg.toChars());
             }
             else
-                sa.error("`%s` is false", sa.exp.toChars());
+                error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
             if (sc.tinst)
                 sc.tinst.printInstantiationTrace();
             if (!global.gag)
@@ -405,7 +405,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
                     auto tf1 = cast(TypeFunction)f1.type;
                     auto tf2 = cast(TypeFunction)f2.type;
-                    f2.error("%s cannot be overloaded with %sextern (%s) function at %s",
+                    error(f2.loc, "%s `%s%s` cannot be overloaded with %s`extern(%s)` function at %s",
+                            f2.kind(),
+                            f2.toPrettyChars(),
                             parametersTypeToChars(tf2.parameters, tf2.varargs),
                             (f1.linkage == f2.linkage ? "another " : "").ptr,
                             linkageToChars(f1.linkage), f1.loc.toChars());
@@ -424,7 +426,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 if (strcmp(s1, s2) == 0)
                 {
                     auto tf2 = cast(TypeFunction)f2.type;
-                    f2.error("%s conflicts with previous declaration at %s",
+                    error(f2.loc, "%s `%s%s` conflicts with previous declaration at %s",
+                            f2.kind(),
+                            f2.toPrettyChars(),
                             parametersTypeToChars(tf2.parameters, tf2.varargs),
                             f1.loc.toChars());
                     f2.type = Type.terror;

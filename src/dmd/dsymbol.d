@@ -259,7 +259,9 @@ extern (C++) class Dsymbol : RootObject
     {
         va_list ap;
         va_start(ap, format);
-        .verror(loc, format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .verror(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -267,7 +269,9 @@ extern (C++) class Dsymbol : RootObject
     {
         va_list ap;
         va_start(ap, format);
-        .verror(getLoc(), format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .verror(getLoc(), format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -275,7 +279,9 @@ extern (C++) class Dsymbol : RootObject
     {
         va_list ap;
         va_start(ap, format);
-        .vdeprecation(loc, format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .vdeprecation(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -283,7 +289,9 @@ extern (C++) class Dsymbol : RootObject
     {
         va_list ap;
         va_start(ap, format);
-        .vdeprecation(getLoc(), format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .vdeprecation(getLoc(), format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 

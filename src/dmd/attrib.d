@@ -586,9 +586,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
     {
         assert(protection.kind > Prot.Kind.undefined);
         OutBuffer buf;
-        buf.writeByte('\'');
         protectionToBuffer(&buf, protection);
-        buf.writeByte('\'');
         return buf.extractString();
     }
 

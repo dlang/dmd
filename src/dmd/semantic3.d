@@ -763,7 +763,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         Expression e;
                         if (!funcdecl.hasReturnExp)
-                            funcdecl.error("has no return statement, but is expected to return a value of type `%s`", f.next.toChars());
+                            funcdecl.error("has no `return` statement, but is expected to return a value of type `%s`", f.next.toChars());
                         else
                             funcdecl.error("no `return exp;` or `assert(0);` at end of function");
                         if (global.params.useAssert == CHECKENABLE.on && !global.params.useInline)
@@ -902,7 +902,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 /* fensure is composed of the [out] contracts
                  */
                 if (f.next.ty == Tvoid && funcdecl.outId)
-                    funcdecl.error("void functions have no result");
+                    funcdecl.error("`void` functions have no result");
 
                 sc2 = scout; //push
                 sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.ensure;

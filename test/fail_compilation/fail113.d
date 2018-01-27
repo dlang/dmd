@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail113.d(10): Error: forward reference to 'test'
+fail_compilation/fail113.d(10): Error: forward reference to `test`
 ---
 */
 

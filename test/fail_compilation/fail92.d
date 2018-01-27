@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail92.d(15): Error: invalid `foreach` aggregate `t`
-fail_compilation/fail92.d(23): Error: template instance fail92.crash!(typeof(null)) error instantiating
+fail_compilation/fail92.d(23): Error: template instance `fail92.crash!(typeof(null))` error instantiating
 ---
 */
 

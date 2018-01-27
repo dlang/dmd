@@ -2,7 +2,7 @@
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-compilable/test15925.d(17): Deprecation: local import search method found variable imp15925.X instead of nothing
+compilable/test15925.d(17): Deprecation: local import search method found variable `imp15925.X` instead of nothing
 ---
 */
 

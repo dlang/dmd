@@ -1819,7 +1819,7 @@ version (none)
                     {
                         fprintf(
                             global.stdmsg,
-                            "%s: To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'\n",
+                            "%s: To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`\n",
                             loc.toChars()
                         );
                         fflush(global.stdmsg);

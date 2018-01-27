@@ -383,7 +383,7 @@ extern (C++) class FuncDeclaration : Declaration
         if (!type.deco)
         {
             bool inSemantic3 = (inferRetType && semanticRun >= PASS.semantic3);
-            .error(loc, "forward reference to %s'%s'",
+            .error(loc, "forward reference to %s`%s`",
                 (inSemantic3 ? "inferred return type of function " : "").ptr,
                 toChars());
             return true;
@@ -1809,7 +1809,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (setGC())
         {
-            error("is @nogc yet allocates closures with the GC");
+            error("is `@nogc` yet allocates closures with the GC");
             if (global.gag)     // need not report supplemental errors
                 return true;
         }
@@ -2249,11 +2249,11 @@ extern (C++) class FuncDeclaration : Declaration
         }
 
         if (!tf.nextOf())
-            error("must return int or void");
+            error("must return `int` or `void`");
         else if (tf.nextOf().ty != Tint32 && tf.nextOf().ty != Tvoid)
-            error("must return int or void, not %s", tf.nextOf().toChars());
+            error("must return `int` or `void`, not `%s`", tf.nextOf().toChars());
         else if (tf.varargs || nparams >= 2 || argerr)
-            error("parameters must be main() or main(string[] args)");
+            error("parameters must be `main()` or `main(string[] args)`");
     }
 
     override final inout(FuncDeclaration) isFuncDeclaration() inout

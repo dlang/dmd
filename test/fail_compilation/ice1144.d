@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/ice1144.d(14): Error: undefined identifier `a`
-fail_compilation/ice1144.d(23): Error: template instance ice1144.testHelper!("hello", "world") error instantiating
+fail_compilation/ice1144.d(23): Error: template instance `ice1144.testHelper!("hello", "world")` error instantiating
 ---
 */
 
