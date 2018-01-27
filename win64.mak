@@ -1295,6 +1295,13 @@ druntime32mscoff:
 unittest32mscoff:
 	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=32mscoff "CC=\$(CC32)"\"" "AR=\$(AR)"\"" "VCDIR=$(VCDIR)" "SDKDIR=$(SDKDIR)" unittest
 
+################### tests ######################################
+
+test_uuid:
+	cd test\uuid
+	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) test
+	cd ..\..
+
 ################### zip/install/clean ##########################
 
 zip: druntime.zip
@@ -1314,4 +1321,4 @@ clean:
 
 auto-tester-build: target
 
-auto-tester-test: unittest
+auto-tester-test: unittest test_uuid
