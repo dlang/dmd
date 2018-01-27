@@ -10,6 +10,7 @@ if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
 if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
+build_path=generated/$OS_NAME/release/$MODEL
 
 build_path=generated/$OS_NAME/release/$MODEL
 
@@ -98,9 +99,13 @@ test_dub_package() {
     if [ "${DMD:-dmd}" == "gdmd" ] ; then
         echo "Skipping DUB examples on GDC."
     else
+        local abs_build_path="$PWD/$build_path"
         pushd test/dub_package
         for file in *.d ; do
+            # build with host compiler
             dub --single "$file"
+            # build with built compiler (~master)
+            DFLAGS="-de" dub --single --compiler="${abs_build_path}/dmd" "$file"
         done
         popd
         # Test rdmd build
