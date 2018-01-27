@@ -2878,12 +2878,12 @@ unittest
     assert(postblitRecurseOrder == order);
 }
 
-/++
-    Destroys the given object and puts it in an invalid state. It's used to
-    _destroy an object so that any cleanup which its destructor or finalizer
-    does is done and so that it no longer references any other objects. It does
-    $(I not) initiate a GC cycle or free any GC memory.
-  +/
+/********
+Destroys the given object and sets it back to its initial state. It's used to
+_destroy an object, calling its destructor or finalizer so it no longer
+references any other objects. It does $(I not) initiate a GC cycle or free
+any GC memory.
+*/
 void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
@@ -2893,6 +2893,38 @@ void destroy(T)(T obj) if (is(T == class))
 void destroy(T)(T obj) if (is(T == interface))
 {
     destroy(cast(Object)obj);
+}
+
+/// Reference type demonstration
+unittest
+{
+    class C
+    {
+        static int dtorCount;
+
+        string s = "S";
+        ~this() { dtorCount++; }
+    }
+
+    C c = new C();
+    assert(c.dtorCount == 0); // destructor not yet called
+    assert(c.s == "S");       // initial state `c.s` is `"S"`
+    c.s = "T";
+    assert(c.s == "T");       // `c.s` is `"T"`
+    destroy(c);
+    assert(c.dtorCount == 1); // `c`'s destructor was called
+    assert(c.s == "S");       // `c.s` is back to its inital state, `"S"`
+}
+
+/// Value type demonstration
+unittest
+{
+    int i;
+    assert(i == 0);           // `i`'s initial state is `0`
+    i = 1;
+    assert(i == 1);           // `i` changed to `1`
+    destroy(i);
+    assert(i == 0);           // `i` is back to its initial state `0`
 }
 
 unittest
