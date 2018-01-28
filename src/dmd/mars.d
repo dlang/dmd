@@ -1214,6 +1214,9 @@ private void setDefaultLibrary()
             static assert(0, "fix this");
         }
     }
+    else if (!global.params.defaultlibname[0])  // if `-defaultlib=` (i.e. an empty defaultlib)
+        global.params.defaultlibname = null;
+
     if (global.params.debuglibname is null)
         global.params.debuglibname = global.params.defaultlibname;
 }

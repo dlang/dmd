@@ -19,6 +19,7 @@ import core.stdc.stddef;
 extern (C++):
 
 import dmd.globals;
+import dmd.dclass;
 import dmd.dmodule;
 
 import dmd.root.filename;
@@ -123,7 +124,7 @@ void backend_init()
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo,
-        params.useExceptions
+        params.useExceptions && ClassDeclaration.throwable
     );
 
     debug

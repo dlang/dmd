@@ -904,7 +904,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 objmod.external_def("_main");
                 objmod.external_def("__acrtused_con");
             }
-            objmod.includelib(libname);
+            if (libname)
+                objmod.includelib(libname);
             s.Sclass = SCglobal;
         }
         else if (fd.isRtInit())
@@ -944,7 +945,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             {
                 objmod.external_def("__acrtused");
             }
-            objmod.includelib(libname);
+            if (libname)
+                objmod.includelib(libname);
             s.Sclass = SCglobal;
         }
 
@@ -962,7 +964,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             {
                 objmod.external_def("__acrtused_dll");
             }
-            objmod.includelib(libname);
+            if (libname)
+                objmod.includelib(libname);
             s.Sclass = SCglobal;
         }
     }

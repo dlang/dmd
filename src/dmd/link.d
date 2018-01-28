@@ -623,7 +623,7 @@ public int runLINK()
          * passed with -l.
          */
         const(char)* libname = global.params.symdebug ? global.params.debuglibname : global.params.defaultlibname;
-        size_t slen = strlen(libname);
+        size_t slen = libname ? strlen(libname) : 0;
         if (!global.params.betterC && slen)
         {
             char* buf = cast(char*)malloc(3 + slen + 1);

@@ -3629,6 +3629,12 @@ else
             return setError();
         }
 
+        if (!ClassDeclaration.throwable)
+        {
+            tcs.error("Cannot use try-catch statements because `object.Throwable` was not declared");
+            return setError();
+        }
+
         uint flags;
         enum FLAGcpp = 1;
         enum FLAGd = 2;
@@ -3737,7 +3743,8 @@ else
 
         auto blockexit = tfs._body.blockExit(sc.func, false);
 
-        if (!global.params.useExceptions)       // if not worrying about exceptions
+        // if not worrying about exceptions
+        if (!(global.params.useExceptions && ClassDeclaration.throwable))
             blockexit &= ~BE.throw_;            // don't worry about paths that otherwise may throw
 
         // Don't care about paths that halt, either
@@ -3796,6 +3803,12 @@ else
         if (!global.params.useExceptions)
         {
             ts.error("Cannot use `throw` statements with -betterC");
+            return setError();
+        }
+
+        if (!ClassDeclaration.throwable)
+        {
+            ts.error("Cannot use `throw` statements because `object.Throwable` was not declared");
             return setError();
         }
 
