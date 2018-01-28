@@ -112,8 +112,8 @@ class Library
         File* libfile = File.create(loc.filename);
         libfile.setbuffer(libbuf.data, libbuf.offset);
         libbuf.extractData();
-        ensurePathToNameExists(Loc(), libfile.name.toChars());
-        writeFile(Loc(), libfile);
+        ensurePathToNameExists(Loc.initial, libfile.name.toChars());
+        writeFile(Loc.initial, libfile);
     }
 
     final void error(const(char)* format, ...)

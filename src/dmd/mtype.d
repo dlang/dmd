@@ -1006,7 +1006,7 @@ extern (C++) abstract class Type : RootObject
 
     final d_uns64 size()
     {
-        return size(Loc());
+        return size(Loc.initial);
     }
 
     d_uns64 size(Loc loc)
@@ -1017,7 +1017,7 @@ extern (C++) abstract class Type : RootObject
 
     uint alignsize()
     {
-        return cast(uint)size(Loc());
+        return cast(uint)size(Loc.initial);
     }
 
     final Type trySemantic(Loc loc, Scope* sc)
@@ -2109,7 +2109,7 @@ extern (C++) abstract class Type : RootObject
     final Type sarrayOf(dinteger_t dim)
     {
         assert(deco);
-        Type t = new TypeSArray(this, new IntegerExp(Loc(), dim, Type.tsize_t));
+        Type t = new TypeSArray(this, new IntegerExp(Loc.initial, dim, Type.tsize_t));
         // according to TypeSArray::semantic()
         t = t.addMod(mod);
         t = t.merge();
@@ -2138,7 +2138,7 @@ extern (C++) abstract class Type : RootObject
         }
         if (auto fd = s.isFuncDeclaration())
         {
-            fd = resolveFuncCall(Loc(), null, fd, null, this, null, 1);
+            fd = resolveFuncCall(Loc.initial, null, fd, null, this, null, 1);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2160,7 +2160,7 @@ extern (C++) abstract class Type : RootObject
         if (auto td = s.isTemplateDeclaration())
         {
             assert(td._scope);
-            auto fd = resolveFuncCall(Loc(), null, td, null, this, null, 1);
+            auto fd = resolveFuncCall(Loc.initial, null, td, null, this, null, 1);
             if (!fd || fd.errors || !fd.functionSemantic())
                 return Type.terror;
 
@@ -2759,7 +2759,7 @@ extern (C++) abstract class Type : RootObject
         return returnExp(Type.dotExp(sc, e, ident, flag));
     }
 
-    Expression defaultInit(Loc loc = Loc())
+    Expression defaultInit(Loc loc = Loc.initial)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -2782,7 +2782,7 @@ extern (C++) abstract class Type : RootObject
     }
 
     // if initializer is 0
-    bool isZeroInit(Loc loc = Loc())
+    bool isZeroInit(Loc loc = Loc.initial)
     {
         return false; // assume not
     }
@@ -4219,8 +4219,8 @@ extern (C++) final class TypeBasic : Type
             // If converting from integral to integral
             if (tob.flags & TFlags.integral)
             {
-                d_uns64 sz = size(Loc());
-                d_uns64 tosz = tob.size(Loc());
+                d_uns64 sz = size(Loc.initial);
+                d_uns64 tosz = tob.size(Loc.initial);
 
                 /* Can't convert to smaller size
                  */
@@ -4363,7 +4363,7 @@ extern (C++) final class TypeVector : Type
 
     override Type syntaxCopy()
     {
-        return new TypeVector(Loc(), basetype.syntaxCopy());
+        return new TypeVector(Loc.initial, basetype.syntaxCopy());
     }
 
     override d_uns64 size(Loc loc)
@@ -4800,7 +4800,7 @@ extern (C++) final class TypeSArray : TypeArray
         elements.setDim(d);
         for (size_t i = 0; i < d; i++)
             (*elements)[i] = null;
-        auto ae = new ArrayLiteralExp(Loc(), elementinit, elements);
+        auto ae = new ArrayLiteralExp(Loc.initial, elementinit, elements);
         ae.type = this;
         return ae;
     }
@@ -7244,7 +7244,7 @@ extern (C++) final class TypeStruct : Type
 
     override uint alignsize()
     {
-        sym.size(Loc()); // give error for forward references
+        sym.size(Loc.initial); // give error for forward references
         return sym.alignsize;
     }
 
@@ -7645,7 +7645,7 @@ extern (C++) final class TypeStruct : Type
         // Probably should cache this information in sym rather than recompute
         StructDeclaration s = sym;
 
-        sym.size(Loc()); // give error for forward references
+        sym.size(Loc.initial); // give error for forward references
         foreach (VarDeclaration v; s.fields)
         {
             if (v.storage_class & STC.ref_ || v.hasPointers())
@@ -7659,7 +7659,7 @@ extern (C++) final class TypeStruct : Type
         // Probably should cache this information in sym rather than recompute
         StructDeclaration s = sym;
 
-        sym.size(Loc()); // give error for forward references
+        sym.size(Loc.initial); // give error for forward references
         foreach (VarDeclaration v; s.fields)
         {
             if (v._init && v._init.isVoidInitializer() && v.type.hasPointers())
@@ -7811,7 +7811,7 @@ extern (C++) final class TypeEnum : Type
 
     override uint alignsize()
     {
-        Type t = sym.getMemtype(Loc());
+        Type t = sym.getMemtype(Loc.initial);
         if (t.ty == Terror)
             return 4;
         return t.alignsize();
@@ -7854,7 +7854,7 @@ extern (C++) final class TypeEnum : Type
                 return getProperty(e.loc, ident, flag & 1);
             }
 
-            Expression res = sym.getMemtype(Loc()).dotExp(sc, e, ident, 1);
+            Expression res = sym.getMemtype(Loc.initial).dotExp(sc, e, ident, 1);
             if (!(flag & 1) && !res)
             {
                 if (auto ns = sym.search_correct(ident))
@@ -7903,62 +7903,62 @@ extern (C++) final class TypeEnum : Type
 
     override bool isintegral()
     {
-        return sym.getMemtype(Loc()).isintegral();
+        return sym.getMemtype(Loc.initial).isintegral();
     }
 
     override bool isfloating()
     {
-        return sym.getMemtype(Loc()).isfloating();
+        return sym.getMemtype(Loc.initial).isfloating();
     }
 
     override bool isreal()
     {
-        return sym.getMemtype(Loc()).isreal();
+        return sym.getMemtype(Loc.initial).isreal();
     }
 
     override bool isimaginary()
     {
-        return sym.getMemtype(Loc()).isimaginary();
+        return sym.getMemtype(Loc.initial).isimaginary();
     }
 
     override bool iscomplex()
     {
-        return sym.getMemtype(Loc()).iscomplex();
+        return sym.getMemtype(Loc.initial).iscomplex();
     }
 
     override bool isscalar()
     {
-        return sym.getMemtype(Loc()).isscalar();
+        return sym.getMemtype(Loc.initial).isscalar();
     }
 
     override bool isunsigned()
     {
-        return sym.getMemtype(Loc()).isunsigned();
+        return sym.getMemtype(Loc.initial).isunsigned();
     }
 
     override bool isBoolean()
     {
-        return sym.getMemtype(Loc()).isBoolean();
+        return sym.getMemtype(Loc.initial).isBoolean();
     }
 
     override bool isString()
     {
-        return sym.getMemtype(Loc()).isString();
+        return sym.getMemtype(Loc.initial).isString();
     }
 
     override bool isAssignable()
     {
-        return sym.getMemtype(Loc()).isAssignable();
+        return sym.getMemtype(Loc.initial).isAssignable();
     }
 
     override bool needsDestruction()
     {
-        return sym.getMemtype(Loc()).needsDestruction();
+        return sym.getMemtype(Loc.initial).needsDestruction();
     }
 
     override bool needsNested()
     {
-        return sym.getMemtype(Loc()).needsNested();
+        return sym.getMemtype(Loc.initial).needsNested();
     }
 
     override MATCH implicitConvTo(Type to)
@@ -7967,7 +7967,7 @@ extern (C++) final class TypeEnum : Type
         //printf("TypeEnum::implicitConvTo()\n");
         if (ty == to.ty && sym == (cast(TypeEnum)to).sym)
             m = (mod == to.mod) ? MATCH.exact : MATCH.constant;
-        else if (sym.getMemtype(Loc()).implicitConvTo(to))
+        else if (sym.getMemtype(Loc.initial).implicitConvTo(to))
             m = MATCH.convert; // match with conversions
         else
             m = MATCH.nomatch; // no match
@@ -7987,7 +7987,7 @@ extern (C++) final class TypeEnum : Type
     {
         if (!sym.members && !sym.memtype)
             return this;
-        auto tb = sym.getMemtype(Loc()).toBasetype();
+        auto tb = sym.getMemtype(Loc.initial).toBasetype();
         return tb.castMod(mod);         // retain modifier bits from 'this'
     }
 
@@ -8012,17 +8012,17 @@ extern (C++) final class TypeEnum : Type
 
     override bool hasPointers()
     {
-        return sym.getMemtype(Loc()).hasPointers();
+        return sym.getMemtype(Loc.initial).hasPointers();
     }
 
     override bool hasVoidInitPointers()
     {
-        return sym.getMemtype(Loc()).hasVoidInitPointers();
+        return sym.getMemtype(Loc.initial).hasVoidInitPointers();
     }
 
     override Type nextOf()
     {
-        return sym.getMemtype(Loc()).nextOf();
+        return sym.getMemtype(Loc.initial).nextOf();
     }
 
     override void accept(Visitor v)
@@ -8969,7 +8969,7 @@ extern (C++) final class TypeNull : Type
 
     override Expression defaultInit(Loc loc) const
     {
-        return new NullExp(Loc(), Type.tnull);
+        return new NullExp(Loc.initial, Type.tnull);
     }
 
     override void accept(Visitor v)

@@ -199,7 +199,7 @@ public int runLINK()
                 global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc(), global.params.exefile);
+            ensurePathToNameExists(Loc.initial, global.params.exefile);
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -267,7 +267,7 @@ public int runLINK()
                 flnk.setbuffer(p, plen);
                 flnk._ref = 1;
                 if (flnk.write())
-                    error(Loc(), "error writing file %s", lnkfilename);
+                    error(Loc.initial, "error writing file %s", lnkfilename);
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
@@ -319,7 +319,7 @@ public int runLINK()
                 global.params.exefile = cast(char*)FileName.forceExt(n, "exe");
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc(), global.params.exefile);
+            ensurePathToNameExists(Loc.initial, global.params.exefile);
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
@@ -395,7 +395,7 @@ public int runLINK()
                 flnk.setbuffer(p, plen);
                 flnk._ref = 1;
                 if (flnk.write())
-                    error(Loc(), "error writing file %s", lnkfilename);
+                    error(Loc.initial, "error writing file %s", lnkfilename);
                 if (strlen(lnkfilename) < plen)
                     sprintf(p, "@%s", lnkfilename);
             }
@@ -464,7 +464,7 @@ public int runLINK()
                 int fd = mkstemp(name.ptr);
                 if (fd == -1)
                 {
-                    error(Loc(), "error creating temporary file");
+                    error(Loc.initial, "error creating temporary file");
                     return 1;
                 }
                 else
@@ -511,7 +511,7 @@ public int runLINK()
             global.params.exefile = ex;
         }
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc(), global.params.exefile);
+        ensurePathToNameExists(Loc.initial, global.params.exefile);
         if (global.params.symdebug)
             argv.push("-g");
         if (global.params.is64bit)
@@ -712,22 +712,22 @@ public int runLINK()
                 }
                 else
                 {
-                    error(Loc(), "linker exited with status %d", status);
+                    error(Loc.initial, "linker exited with status %d", status);
                     if (nme == 1)
-                        error(Loc(), "no main function specified");
+                        error(Loc.initial, "no main function specified");
                 }
             }
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc(), "linker killed by signal %d", WTERMSIG(status));
+            error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
     }
     else
     {
-        error(Loc(), "linking is not yet supported for this version of DMD.");
+        error(Loc.initial, "linking is not yet supported for this version of DMD.");
         return -1;
     }
 }
@@ -759,7 +759,7 @@ version (Windows)
                 }
                 else
                 {
-                    error(Loc(), "command line length of %d is too long", len);
+                    error(Loc.initial, "command line length of %d is too long", len);
                 }
             }
         }
@@ -812,9 +812,9 @@ version (Windows)
         if (status)
         {
             if (status == -1)
-                error(Loc(), "can't run '%s', check PATH", cmd);
+                error(Loc.initial, "can't run '%s', check PATH", cmd);
             else
-                error(Loc(), "linker exited with status %d", status);
+                error(Loc.initial, "linker exited with status %d", status);
         }
         return status;
     }
@@ -912,7 +912,7 @@ public int runProgram()
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc(), "program killed by signal %d", WTERMSIG(status));
+            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;

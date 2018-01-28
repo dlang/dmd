@@ -1053,7 +1053,7 @@ extern (C++) final class Module : Package
         // would fail inside object.d.
         if (members.dim == 0 || (*members)[0].ident != Id.object)
         {
-            auto im = new Import(Loc(), null, Id.object, null, 0);
+            auto im = new Import(Loc.initial, null, Id.object, null, 0);
             members.shift(im);
         }
         if (!symtab)

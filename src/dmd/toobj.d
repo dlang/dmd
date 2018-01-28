@@ -256,11 +256,11 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
         return;
 
     Array!(d_uns64) data;
-    d_uns64 sz = getTypePointerBitmap(Loc(), type, &data);
+    d_uns64 sz = getTypePointerBitmap(Loc.initial, type, &data);
     if (sz == d_uns64.max)
         return;
 
-    const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc());
+    const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
     for (size_t i = 0; i < data.dim; i++)

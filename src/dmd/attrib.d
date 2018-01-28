@@ -1296,8 +1296,8 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
              * (do not append to left operand, as this is a copy-on-write operation)
              */
             udas = new Expressions();
-            udas.push(new TupleExp(Loc(), udas1));
-            udas.push(new TupleExp(Loc(), udas2));
+            udas.push(new TupleExp(Loc.initial, udas1));
+            udas.push(new TupleExp(Loc.initial, udas2));
         }
         return udas;
     }
@@ -1311,9 +1311,9 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         }
         auto exps = new Expressions();
         if (userAttribDecl)
-            exps.push(new TupleExp(Loc(), userAttribDecl.getAttributes()));
+            exps.push(new TupleExp(Loc.initial, userAttribDecl.getAttributes()));
         if (atts && atts.dim)
-            exps.push(new TupleExp(Loc(), atts));
+            exps.push(new TupleExp(Loc.initial, atts));
         return exps;
     }
 

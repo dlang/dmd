@@ -291,10 +291,10 @@ void obj_end(Library library, File *objfile)
         objfile.setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = null;
 
-        ensurePathToNameExists(Loc(), objfilename);
+        ensurePathToNameExists(Loc.initial, objfilename);
 
         //printf("write obj %s\n", objfilename);
-        writeFile(Loc(), objfile);
+        writeFile(Loc.initial, objfile);
     }
     objbuf.pend = null;
     objbuf.p = null;
@@ -1188,29 +1188,29 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
              *   finally
              *     _c_trace_epi();
              */
-            StringExp se = StringExp.create(Loc(), s.Sident.ptr);
+            StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
             se.type = Type.tstring;
-            se.type = se.type.typeSemantic(Loc(), null);
+            se.type = se.type.typeSemantic(Loc.initial, null);
             Expressions *exps = new Expressions();
             exps.push(se);
             FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
-            Expression ec = VarExp.create(Loc(), fdpro);
-            Expression e = CallExp.create(Loc(), ec, exps);
+            Expression ec = VarExp.create(Loc.initial, fdpro);
+            Expression e = CallExp.create(Loc.initial, ec, exps);
             e.type = Type.tvoid;
             Statement sp = ExpStatement.create(fd.loc, e);
 
             FuncDeclaration fdepi = FuncDeclaration.genCfunc(null, Type.tvoid, "_c_trace_epi");
-            ec = VarExp.create(Loc(), fdepi);
-            e = CallExp.create(Loc(), ec);
+            ec = VarExp.create(Loc.initial, fdepi);
+            e = CallExp.create(Loc.initial, ec);
             e.type = Type.tvoid;
             Statement sf = ExpStatement.create(fd.loc, e);
 
             Statement stf;
             if (sbody.blockExit(fd, false) == BE.fallthru)
-                stf = CompoundStatement.create(Loc(), sbody, sf);
+                stf = CompoundStatement.create(Loc.initial, sbody, sf);
             else
-                stf = TryFinallyStatement.create(Loc(), sbody, sf);
-            sbody = CompoundStatement.create(Loc(), sp, stf);
+                stf = TryFinallyStatement.create(Loc.initial, sbody, sf);
+            sbody = CompoundStatement.create(Loc.initial, sp, stf);
         }
 
         if (fd.interfaceVirtual)
@@ -1423,7 +1423,7 @@ uint totym(Type tx)
         case Tident:
         case Ttypeof:
             //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc(), "forward reference of `%s`", tx.toChars());
+            error(Loc.initial, "forward reference of `%s`", tx.toChars());
             t = TYint;
             break;
 

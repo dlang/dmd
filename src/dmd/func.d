@@ -919,11 +919,11 @@ extern (C++) class FuncDeclaration : Declaration
             Expression e;
             if (p.storageClass & (STC.ref_ | STC.out_))
             {
-                e = new IdentifierExp(Loc(), p.ident);
+                e = new IdentifierExp(Loc.initial, p.ident);
                 e.type = p.type;
             }
             else
-                e = p.type.defaultInitLiteral(Loc());
+                e = p.type.defaultInitLiteral(Loc.initial);
             args[u] = e;
         }
 
@@ -2143,12 +2143,12 @@ extern (C++) class FuncDeclaration : Declaration
                          * https://issues.dlang.org/show_bug.cgi?id=5204
                          * https://issues.dlang.org/show_bug.cgi?id=10479
                          */
-                        auto ei = new ExpInitializer(Loc(), eresult);
-                        auto v = new VarDeclaration(Loc(), t1, Identifier.generateId("__covres"), ei);
+                        auto ei = new ExpInitializer(Loc.initial, eresult);
+                        auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), ei);
                         v.storage_class |= STC.temp;
-                        auto de = new DeclarationExp(Loc(), v);
-                        auto ve = new VarExp(Loc(), v);
-                        eresult = new CommaExp(Loc(), de, ve);
+                        auto de = new DeclarationExp(Loc.initial, v);
+                        auto ve = new VarExp(Loc.initial, v);
+                        eresult = new CommaExp(Loc.initial, de, ve);
                     }
                 }
                 Expression e = new CallExp(loc, new VarExp(loc, fdv.fdensure, false), eresult);
@@ -2217,7 +2217,7 @@ extern (C++) class FuncDeclaration : Declaration
         else
         {
             tf = new TypeFunction(fparams, treturn, 0, LINK.c, stc);
-            fd = new FuncDeclaration(Loc(), Loc(), id, STC.static_, tf);
+            fd = new FuncDeclaration(Loc.initial, Loc.initial, id, STC.static_, tf);
             fd.protection = Prot(Prot.Kind.public_);
             fd.linkage = LINK.c;
 
@@ -2304,8 +2304,8 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
             inv.functionSemantic();
         }
 
-        //e = new DsymbolExp(Loc(), inv);
-        //e = new CallExp(Loc(), e);
+        //e = new DsymbolExp(Loc.initial, inv);
+        //e = new CallExp(Loc.initial, e);
         //e = e.semantic(sc2);
 
         /* https://issues.dlang.org/show_bug.cgi?id=13113
@@ -2313,11 +2313,11 @@ extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad
          * bypass attribute enforcement.
          * Change the behavior of pre-invariant call by following it.
          */
-        e = new ThisExp(Loc());
+        e = new ThisExp(Loc.initial);
         e.type = vthis.type;
-        e = new DotVarExp(Loc(), e, inv, false);
+        e = new DotVarExp(Loc.initial, e, inv, false);
         e.type = inv.type;
-        e = new CallExp(Loc(), e);
+        e = new CallExp(Loc.initial, e);
         e.type = Type.tvoid;
     }
     return e;

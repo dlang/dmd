@@ -54,7 +54,7 @@ import dmd.visitor;
  */
 TypeIdentifier getThrowable()
 {
-    auto tid = new TypeIdentifier(Loc(), Id.empty);
+    auto tid = new TypeIdentifier(Loc.initial, Id.empty);
     tid.addIdent(Id.object);
     tid.addIdent(Id.Throwable);
     return tid;
@@ -485,7 +485,7 @@ extern (C++) Statement toStatement(Dsymbol s)
 
         override void visit(Dsymbol s)
         {
-            .error(Loc(), "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
+            .error(Loc.initial, "Internal Compiler Error: cannot mixin %s `%s`\n", s.kind(), s.toChars());
             result = new ErrorStatement();
         }
 
@@ -2107,16 +2107,16 @@ extern (C++) final class OnScopeStatement : Statement
                  *  sexception:    x = true;
                  *  sfinally: if (!x) statement;
                  */
-                auto v = copyToTemp(0, "__os", new IntegerExp(Loc(), 0, Type.tbool));
+                auto v = copyToTemp(0, "__os", new IntegerExp(Loc.initial, 0, Type.tbool));
                 v.dsymbolSemantic(sc);
                 *sentry = new ExpStatement(loc, v);
 
-                Expression e = new IntegerExp(Loc(), 1, Type.tbool);
-                e = new AssignExp(Loc(), new VarExp(Loc(), v), e);
+                Expression e = new IntegerExp(Loc.initial, 1, Type.tbool);
+                e = new AssignExp(Loc.initial, new VarExp(Loc.initial, v), e);
                 *sexception = new ExpStatement(Loc.initial, e);
 
-                e = new VarExp(Loc(), v);
-                e = new NotExp(Loc(), e);
+                e = new VarExp(Loc.initial, v);
+                e = new NotExp(Loc.initial, e);
                 *sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
 
                 break;

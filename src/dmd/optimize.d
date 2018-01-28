@@ -995,8 +995,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 else
                     return; // we don't know the length yet
             }
-            Expression dollar = new IntegerExp(Loc(), len, Type.tsize_t);
-            lengthVar._init = new ExpInitializer(Loc(), dollar);
+            Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+            lengthVar._init = new ExpInitializer(Loc.initial, dollar);
             lengthVar.storage_class |= STC.static_ | STC.const_;
         }
 

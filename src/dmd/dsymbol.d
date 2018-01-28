@@ -594,7 +594,7 @@ extern (C++) class Dsymbol : RootObject
                 Dsymbol s2 = sds.symtabLookup(this,ident);
                 if (!s2.overloadInsert(this))
                 {
-                    sds.multiplyDefined(Loc(), this, s2);
+                    sds.multiplyDefined(Loc.initial, this, s2);
                     errors = true;
                 }
             }
@@ -663,7 +663,7 @@ extern (C++) class Dsymbol : RootObject
             cost = 0;
             Dsymbol s = this;
             Module.clearCache();
-            return cast(void*)s.search(Loc(), id, IgnoreErrors);
+            return cast(void*)s.search(Loc.initial, id, IgnoreErrors);
         }
 
         if (global.gag)
@@ -1546,7 +1546,7 @@ public:
                 parameters.push(p);
                 Type tret = null;
                 tfgetmembers = new TypeFunction(parameters, tret, 0, LINK.d);
-                tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc(), &sc);
+                tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc.initial, &sc);
             }
             if (fdx)
                 fdx = fdx.overloadExactMatch(tfgetmembers);
@@ -1781,8 +1781,8 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 /* $ gives the number of elements in the tuple
                  */
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc(), e);
+                Expression e = new IntegerExp(Loc.initial, td.objects.dim, Type.tsize_t);
+                v._init = new ExpInitializer(Loc.initial, e);
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 v.dsymbolSemantic(sc);
                 return v;
@@ -1792,8 +1792,8 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 /* $ gives the number of type entries in the type tuple
                  */
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc(), e);
+                Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
+                v._init = new ExpInitializer(Loc.initial, e);
                 v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 v.dsymbolSemantic(sc);
                 return v;
@@ -1858,8 +1858,8 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     /* It is for an expression tuple, so the
                      * length will be a const.
                      */
-                    Expression e = new IntegerExp(Loc(), (cast(TupleExp)ce).exps.dim, Type.tsize_t);
-                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
+                    Expression e = new IntegerExp(Loc.initial, (cast(TupleExp)ce).exps.dim, Type.tsize_t);
+                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
                     v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 }
                 else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
@@ -1890,7 +1890,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                             assert(0);
                         }
                         auto tiargs = new Objects();
-                        Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
+                        Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
                         edim = edim.expressionSemantic(sc);
                         tiargs.push(edim);
                         e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
@@ -1917,7 +1917,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     t = e.type.toBasetype();
                     if (t && t.ty == Tfunction)
                         e = new CallExp(e.loc, e);
-                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
+                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
                     v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
                 }
                 else
@@ -1927,7 +1927,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      * or a variable (in which case an expression is created in
                      * toir.c).
                      */
-                    auto e = new VoidInitializer(Loc());
+                    auto e = new VoidInitializer(Loc.initial);
                     e.type = Type.tsize_t;
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
                     v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable

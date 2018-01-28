@@ -139,7 +139,7 @@ extern (C++) final class ErrorInitializer : Initializer
 {
     extern (D) this()
     {
-        super(Loc());
+        super(Loc.initial);
     }
 
     override Initializer syntaxCopy()

@@ -155,20 +155,20 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
-                result = v.checkNestedReference(sc, Loc());
+                result = v.checkNestedReference(sc, Loc.initial);
         }
 
         override void visit(VarExp e)
         {
             VarDeclaration v = e.var.isVarDeclaration();
             if (v)
-                result = v.checkNestedReference(sc, Loc());
+                result = v.checkNestedReference(sc, Loc.initial);
         }
 
         override void visit(ThisExp e)
         {
             if (e.var)
-                result = e.var.checkNestedReference(sc, Loc());
+                result = e.var.checkNestedReference(sc, Loc.initial);
         }
 
         override void visit(DeclarationExp e)
@@ -176,7 +176,7 @@ extern (C++) bool lambdaCheckForNestedRef(Expression e, Scope* sc)
             VarDeclaration v = e.declaration.isVarDeclaration();
             if (v)
             {
-                result = v.checkNestedReference(sc, Loc());
+                result = v.checkNestedReference(sc, Loc.initial);
                 if (result)
                     return;
                 /* Some expressions cause the frontend to create a temporary.

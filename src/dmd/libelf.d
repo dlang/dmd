@@ -86,7 +86,7 @@ final class LibElf : Library
         {
             assert(module_name[0]);
             File* file = File.create(cast(char*)module_name);
-            readFile(Loc(), file);
+            readFile(Loc.initial, file);
             buf = file.buffer;
             buflen = file.len;
             file._ref = 1;

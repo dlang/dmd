@@ -198,8 +198,8 @@ TypeTuple toArgTypes(Type t)
             }
             if (!t2)
                 return t1;
-            const sz1 = t1.size(Loc());
-            const sz2 = t2.size(Loc());
+            const sz1 = t1.size(Loc.initial);
+            const sz2 = t2.size(Loc.initial);
             assert(sz1 != SIZE_INVALID && sz2 != SIZE_INVALID);
             if (t1.ty != t2.ty && (t1.ty == Tfloat80 || t2.ty == Tfloat80))
                 return null;
@@ -249,7 +249,7 @@ TypeTuple toArgTypes(Type t)
             if (global.params.is64bit && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
-                uint offset = cast(uint)Type.tsize_t.size(Loc());
+                uint offset = cast(uint)Type.tsize_t.size(Loc.initial);
                 Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {
@@ -268,7 +268,7 @@ TypeTuple toArgTypes(Type t)
             if (global.params.is64bit && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, delegates fit into a single integer register.
-                uint offset = cast(uint)Type.tsize_t.size(Loc());
+                uint offset = cast(uint)Type.tsize_t.size(Loc.initial);
                 Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {
@@ -291,7 +291,7 @@ TypeTuple toArgTypes(Type t)
             }
             Type t1 = null;
             Type t2 = null;
-            const sz = t.size(Loc());
+            const sz = t.size(Loc.initial);
             assert(sz < 0xFFFFFFFF);
             switch (cast(uint)sz)
             {
@@ -371,7 +371,7 @@ TypeTuple toArgTypes(Type t)
                             if (f.offset & (alignsz - 1))
                                 goto Lmemory;
                             // Fields that overlap the 8byte boundary goto Lmemory
-                            const fieldsz = f.type.size(Loc());
+                            const fieldsz = f.type.size(Loc.initial);
                             assert(fieldsz != SIZE_INVALID && fieldsz < fieldsz.max - f.offset.max);
                             if (f.offset < 8 && (f.offset + fieldsz) > 8)
                                 goto Lmemory;

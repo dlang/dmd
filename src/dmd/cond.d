@@ -430,7 +430,7 @@ extern (C++) class DVCondition : Condition
 
     final extern (D) this(Module mod, uint level, Identifier ident)
     {
-        super(Loc());
+        super(Loc.initial);
         this.mod = mod;
         this.level = level;
         this.ident = ident;
@@ -714,7 +714,7 @@ extern (C++) final class VersionCondition : DVCondition
     /// Ditto
     extern(D) static void addGlobalIdent(const(char)[] ident)
     {
-        checkReserved(Loc(), ident);
+        checkReserved(Loc.initial, ident);
         addPredefinedGlobalIdent(ident);
     }
 

@@ -85,7 +85,7 @@ public:
         static __gshared const(int) nestLimit = 1000;
         if (nest > nestLimit)
         {
-            error(Loc(), "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
+            error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
             return;
         }
         nest++;

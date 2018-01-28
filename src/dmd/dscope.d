@@ -635,7 +635,7 @@ struct Scope
             Scope* sc = &this;
             Module.clearCache();
             Dsymbol scopesym = null;
-            Dsymbol s = sc.search(Loc(), id, &scopesym, IgnoreErrors);
+            Dsymbol s = sc.search(Loc.initial, id, &scopesym, IgnoreErrors);
             if (s)
             {
                 for (cost = 0; sc; sc = sc.enclosing, ++cost)

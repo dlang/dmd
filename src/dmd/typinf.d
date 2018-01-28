@@ -31,7 +31,7 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
     if (!Type.dtypeinfo)
     {
-        torig.error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+        torig.error(Loc.initial, "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
 

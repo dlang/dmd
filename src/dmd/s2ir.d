@@ -1164,11 +1164,11 @@ private extern (C++) class S2irVisitor : Visitor
                          * At some point should try to do better.
                          */
                         FuncDeclaration fdend = FuncDeclaration.genCfunc(null, Type.tvoid, "__cxa_end_catch");
-                        Expression ec = VarExp.create(Loc(), fdend);
-                        Expression ecc = CallExp.create(Loc(), ec);
+                        Expression ec = VarExp.create(Loc.initial, fdend);
+                        Expression ecc = CallExp.create(Loc.initial, ec);
                         ecc.type = Type.tvoid;
-                        Statement sf = ExpStatement.create(Loc(), ecc);
-                        Statement stf = TryFinallyStatement.create(Loc(), cs.handler, sf);
+                        Statement sf = ExpStatement.create(Loc.initial, ecc);
+                        Statement stf = TryFinallyStatement.create(Loc.initial, cs.handler, sf);
                         Statement_toIR(stf, &catchState);
                     }
                     else

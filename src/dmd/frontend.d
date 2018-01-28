@@ -243,7 +243,7 @@ Module parseModule(string fileName, string code = null)
         m.members = parse(m, code);
     else
     {
-        m.read(Loc());
+        m.read(Loc.initial);
         m.parse();
     }
 

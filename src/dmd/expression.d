@@ -2481,7 +2481,7 @@ extern (C++) final class IntegerExp : Expression
 
     extern (D) this(dinteger_t value)
     {
-        super(Loc(), TOK.int64, __traits(classInstanceSize, IntegerExp));
+        super(Loc.initial, TOK.int64, __traits(classInstanceSize, IntegerExp));
         this.type = Type.tint32;
         this.value = cast(d_int32)value;
     }
@@ -2632,7 +2632,7 @@ extern (C++) final class ErrorExp : Expression
 {
     extern (D) this()
     {
-        super(Loc(), TOK.error, __traits(classInstanceSize, ErrorExp));
+        super(Loc.initial, TOK.error, __traits(classInstanceSize, ErrorExp));
         type = Type.terror;
     }
 
