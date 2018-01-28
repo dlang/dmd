@@ -8449,6 +8449,7 @@ extern (C++) final class TypeClass : Type
 
             // If static function, get the most visible overload.
             // Later on the call is checked for correctness.
+            // https://issues.dlang.org/show_bug.cgi?id=12511
             if (auto fd = d.isFuncDeclaration())
             {
                 import dmd.access : mostVisibleOverload;
