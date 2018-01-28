@@ -2564,6 +2564,17 @@ version(unittest)
     }
 }
 
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=18300
+    string s = demangle.mangleof;
+    foreach(i; 1..77)
+    {
+        char[] buf = new char[i];
+        auto ds = demangle(s, buf);
+        assert(ds == "pure nothrow @safe char[] core.demangle.demangle(const(char)[], char[])");
+    }
+}
 
 /*
  *
