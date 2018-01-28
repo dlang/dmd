@@ -10,7 +10,6 @@ void main()
     import dmd.frontend;
     import std.algorithm : each;
 
-    initDMD;
     findImportPaths.each!addImport;
 
     auto m = parseModule("test.d", q{

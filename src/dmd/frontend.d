@@ -21,6 +21,11 @@ import std.traits : isNarrowString;
 version (Windows) private enum sep = ";", exe = ".exe";
 version (Posix) private enum sep = ":", exe = "";
 
+shared static this()
+{
+    initDMD();
+}
+
 /*
 Initializes the global variables of the DMD compiler.
 This needs to be done $(I before) calling any function.
