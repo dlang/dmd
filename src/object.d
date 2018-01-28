@@ -4000,6 +4000,19 @@ unittest
         assert(binarySearch("") == -1);
         assert(binarySearch("sth.") == -1);
         assert(binarySearch(null) == -1);
+
+        static int bug16739(immutable(T)[] s)
+        {
+            switch (s)
+            {
+                case "\u0100": return 1;
+                case "a": return 2;
+                default: return 3;
+            }
+        }
+        assert(bug16739("\u0100") == 1);
+        assert(bug16739("a") == 2);
+        assert(bug16739("foo") == 3);
     }
     testSwitch!char;
     testSwitch!wchar;
