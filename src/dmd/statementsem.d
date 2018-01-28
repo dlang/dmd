@@ -263,27 +263,27 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             {
                                 a.push((*cs.statements)[j]);
                             }
-                            Statement _body = new CompoundStatement(Loc(), a);
-                            _body = new ScopeStatement(Loc(), _body, Loc());
+                            Statement _body = new CompoundStatement(Loc.initial, a);
+                            _body = new ScopeStatement(Loc.initial, _body, Loc.initial);
 
                             Identifier id = Identifier.generateId("__o");
 
                             Statement handler = new PeelStatement(sexception);
                             if (sexception.blockExit(sc.func, false) & BE.fallthru)
                             {
-                                auto ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
+                                auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
                                 ts.internalThrow = true;
-                                handler = new CompoundStatement(Loc(), handler, ts);
+                                handler = new CompoundStatement(Loc.initial, handler, ts);
                             }
 
                             auto catches = new Catches();
-                            auto ctch = new Catch(Loc(), getThrowable(), id, handler);
+                            auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
                             ctch.internalCatch = true;
                             catches.push(ctch);
 
-                            s = new TryCatchStatement(Loc(), _body, catches);
+                            s = new TryCatchStatement(Loc.initial, _body, catches);
                             if (sfinally)
-                                s = new TryFinallyStatement(Loc(), s, sfinally);
+                                s = new TryFinallyStatement(Loc.initial, s, sfinally);
                             s = s.statementSemantic(sc);
 
                             cs.statements.setDim(i + 1);
@@ -309,8 +309,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                             {
                                 a.push((*cs.statements)[j]);
                             }
-                            Statement _body = new CompoundStatement(Loc(), a);
-                            s = new TryFinallyStatement(Loc(), _body, sfinally);
+                            Statement _body = new CompoundStatement(Loc.initial, a);
+                            s = new TryFinallyStatement(Loc.initial, _body, sfinally);
                             s = s.statementSemantic(sc);
                             cs.statements.setDim(i + 1);
                             cs.statements.push(s);
@@ -743,7 +743,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         return returnEarly();
                     }
                 }
-                Initializer ie = new ExpInitializer(Loc(), new IntegerExp(k));
+                Initializer ie = new ExpInitializer(Loc.initial, new IntegerExp(k));
                 auto var = new VarDeclaration(loc, p.type, p.ident, ie);
                 var.storage_class |= STC.manifest;
                 static if(isStatic) var.storage_class |= STC.local;
@@ -836,7 +836,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         type = e.type;
                         if (paramtype)
                             type = paramtype;
-                        Initializer ie = new ExpInitializer(Loc(), e);
+                        Initializer ie = new ExpInitializer(Loc.initial, e);
                         auto v = new VarDeclaration(loc, type, ident, ie);
                         if (storageClass & STC.ref_)
                             v.storage_class |= STC.ref_ | STC.foreach_;
@@ -1390,7 +1390,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     idfront = Id.Fback;
                     idpopFront = Id.FpopBack;
                 }
-                auto sfront = ad.search(Loc(), idfront);
+                auto sfront = ad.search(Loc.initial, idfront);
                 if (!sfront)
                     goto Lapply;
 
@@ -1616,10 +1616,10 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     LcopyArg:
                         id = Identifier.generateId("__applyArg", cast(int)i);
 
-                        Initializer ie = new ExpInitializer(Loc(), new IdentifierExp(Loc(), id));
-                        auto v = new VarDeclaration(Loc(), p.type, p.ident, ie);
+                        Initializer ie = new ExpInitializer(Loc.initial, new IdentifierExp(Loc.initial, id));
+                        auto v = new VarDeclaration(Loc.initial, p.type, p.ident, ie);
                         v.storage_class |= STC.temp;
-                        s = new ExpStatement(Loc(), v);
+                        s = new ExpStatement(Loc.initial, v);
                         fs._body = new CompoundStatement(loc, s, fs._body);
                     }
                     params.push(new Parameter(stc, p.type, id, null));
@@ -1630,7 +1630,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 tfld = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
                 fs.cases = new Statements();
                 fs.gotos = new ScopeStatements();
-                auto fld = new FuncLiteralDeclaration(loc, Loc(), tfld, TOK.delegate_, fs);
+                auto fld = new FuncLiteralDeclaration(loc, Loc.initial, tfld, TOK.delegate_, fs);
                 fld.fbody = fs._body;
                 Expression flde = new FuncExp(loc, fld);
                 flde = flde.expressionSemantic(sc2);
@@ -1644,7 +1644,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     {
                         // 'Promote' it to this scope, and replace with a return
                         fs.cases.push(gs);
-                        s = new ReturnStatement(Loc(), new IntegerExp(fs.cases.dim + 1));
+                        s = new ReturnStatement(Loc.initial, new IntegerExp(fs.cases.dim + 1));
                         (*fs.gotos)[i].statement = s;
                     }
                 }
@@ -1725,9 +1725,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         flde = new CastExp(loc, flde, flde.type);
                         flde.type = fldeTy[i];
                     }
-                    exps.push(new IntegerExp(Loc(), keysize, Type.tsize_t));
+                    exps.push(new IntegerExp(Loc.initial, keysize, Type.tsize_t));
                     exps.push(flde);
-                    ec = new VarExp(Loc(), fdapply[i], false);
+                    ec = new VarExp(Loc.initial, fdapply[i], false);
                     ec = new CallExp(loc, ec, exps);
                     ec.type = Type.tint32; // don't run semantic() on ec
                 }
@@ -1787,7 +1787,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         flde = new CastExp(loc, flde, flde.type);
                         flde.type = dgty;
                     }
-                    ec = new VarExp(Loc(), fdapply, false);
+                    ec = new VarExp(Loc.initial, fdapply, false);
                     ec = new CallExp(loc, ec, fs.aggr, flde);
                     ec.type = Type.tint32; // don't run semantic() on ec
                 }
@@ -1862,14 +1862,14 @@ else
                     auto a = new Statements();
 
                     // default: break; takes care of cases 0 and 1
-                    s = new BreakStatement(Loc(), null);
-                    s = new DefaultStatement(Loc(), s);
+                    s = new BreakStatement(Loc.initial, null);
+                    s = new DefaultStatement(Loc.initial, s);
                     a.push(s);
 
                     // cases 2...
                     foreach (i, c; *fs.cases)
                     {
-                        s = new CaseStatement(Loc(), new IntegerExp(i + 2), c);
+                        s = new CaseStatement(Loc.initial, new IntegerExp(i + 2), c);
                         a.push(s);
                     }
 
@@ -2512,7 +2512,7 @@ else
             sc.sw.sdefault = new DefaultStatement(ss.loc, s);
             a.push(ss._body);
             if (ss._body.blockExit(sc.func, false) & BE.fallthru)
-                a.push(new BreakStatement(Loc(), null));
+                a.push(new BreakStatement(Loc.initial, null));
             a.push(sc.sw.sdefault);
             cs = new CompoundStatement(ss.loc, a);
             ss._body = cs;
@@ -2910,7 +2910,7 @@ else
             {
                 assert(rs.caseDim == 0);
                 sc.fes.cases.push(rs);
-                result = new ReturnStatement(Loc(), new IntegerExp(sc.fes.cases.dim + 1));
+                result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
                 return;
             }
             if (fd.returnLabel)
@@ -2961,7 +2961,7 @@ else
 
             // Constructors implicitly do:
             //      return this;
-            rs.exp = new ThisExp(Loc());
+            rs.exp = new ThisExp(Loc.initial);
             rs.exp.type = tret;
         }
         else if (rs.exp)
@@ -3184,7 +3184,7 @@ else
             {
                 // Send out "case receiver" statement to the foreach.
                 //  return exp;
-                Statement s = new ReturnStatement(Loc(), rs.exp);
+                Statement s = new ReturnStatement(Loc.initial, rs.exp);
                 sc.fes.cases.push(s);
 
                 // Immediately rewrite "this" return statement as:
@@ -3201,12 +3201,12 @@ else
             else
             {
                 fd.buildResultVar(null, rs.exp.type);
-                bool r = fd.vresult.checkNestedReference(sc, Loc());
+                bool r = fd.vresult.checkNestedReference(sc, Loc.initial);
                 assert(!r); // vresult should be always accessible
 
                 // Send out "case receiver" statement to the foreach.
                 //  return vresult;
-                Statement s = new ReturnStatement(Loc(), new VarExp(Loc(), fd.vresult));
+                Statement s = new ReturnStatement(Loc.initial, new VarExp(Loc.initial, fd.vresult));
                 sc.fes.cases.push(s);
 
                 // Save receiver index for the later rewriting from:
@@ -3256,7 +3256,7 @@ else
                          * and 1 is break.
                          */
                         sc.fes.cases.push(bs);
-                        result = new ReturnStatement(Loc(), new IntegerExp(sc.fes.cases.dim + 1));
+                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
                         return;
                     }
                     break; // can't break to it
@@ -3291,7 +3291,7 @@ else
             else if (sc.fes)
             {
                 // Replace break; with return 1;
-                result = new ReturnStatement(Loc(), new IntegerExp(1));
+                result = new ReturnStatement(Loc.initial, new IntegerExp(1));
                 return;
             }
             else
@@ -3328,7 +3328,7 @@ else
                             if (ls && ls.ident == cs.ident && ls.statement == sc.fes)
                             {
                                 // Replace continue ident; with return 0;
-                                result = new ReturnStatement(Loc(), new IntegerExp(0));
+                                result = new ReturnStatement(Loc.initial, new IntegerExp(0));
                                 return;
                             }
                         }
@@ -3341,7 +3341,7 @@ else
                          * and 1 is break.
                          */
                         sc.fes.cases.push(cs);
-                        result = new ReturnStatement(Loc(), new IntegerExp(sc.fes.cases.dim + 1));
+                        result = new ReturnStatement(Loc.initial, new IntegerExp(sc.fes.cases.dim + 1));
                         return;
                     }
                     break; // can't continue to it
@@ -3375,7 +3375,7 @@ else
             else if (sc.fes)
             {
                 // Replace continue; with return 0;
-                result = new ReturnStatement(Loc(), new IntegerExp(0));
+                result = new ReturnStatement(Loc.initial, new IntegerExp(0));
                 return;
             }
             else
@@ -3422,7 +3422,7 @@ else
                 }
 
                 Type t = ClassDeclaration.object.type;
-                t = t.typeSemantic(Loc(), sc).toBasetype();
+                t = t.typeSemantic(Loc.initial, sc).toBasetype();
                 assert(t.ty == Tclass);
 
                 ss.exp = new CastExp(ss.loc, ss.exp, t);

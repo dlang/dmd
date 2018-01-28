@@ -382,6 +382,8 @@ struct Loc
     uint linnum;
     uint charnum;
 
+    static immutable Loc initial;       /// use for default initialization of const ref Loc's
+
 nothrow:
     extern (D) this(const(char)* filename, uint linnum, uint charnum)
     {

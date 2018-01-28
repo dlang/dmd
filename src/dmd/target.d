@@ -522,7 +522,7 @@ private void encodeInteger(Expression e, ubyte* buffer)
 
 // Write the bytes encoded in 'buffer' into an integer and returns
 // the value as a new IntegerExp.
-private Expression decodeInteger(Loc loc, Type type, ubyte* buffer)
+private Expression decodeInteger(const ref Loc loc, Type type, ubyte* buffer)
 {
     dinteger_t value = 0;
     int size = cast(int)type.size();
@@ -558,7 +558,7 @@ private void encodeReal(Expression e, ubyte* buffer)
 
 // Write the bytes encoded in 'buffer' into a real_t and returns
 // the value as a new RealExp.
-private Expression decodeReal(Loc loc, Type type, ubyte* buffer)
+private Expression decodeReal(const ref Loc loc, Type type, ubyte* buffer)
 {
     real_t value;
     switch (type.ty)

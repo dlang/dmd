@@ -4778,7 +4778,7 @@ final class Parser(AST) : Lexer
         if (literal && !f.fbody)
         {
             // Set empty function body for error recovery
-            f.fbody = new AST.CompoundStatement(Loc(), cast(AST.Statement)null);
+            f.fbody = new AST.CompoundStatement(Loc.initial, cast(AST.Statement)null);
         }
 
         linkage = linksave;

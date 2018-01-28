@@ -3455,23 +3455,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * Note that this is not thread safe; should not have threads
              * during static construction.
              */
-            auto v = new VarDeclaration(Loc(), Type.tint32, Id.gate, null);
+            auto v = new VarDeclaration(Loc.initial, Type.tint32, Id.gate, null);
             v.storage_class = STC.temp | (scd.isSharedStaticCtorDeclaration() ? STC.static_ : STC.tls);
 
             auto sa = new Statements();
-            Statement s = new ExpStatement(Loc(), v);
+            Statement s = new ExpStatement(Loc.initial, v);
             sa.push(s);
 
-            Expression e = new IdentifierExp(Loc(), v.ident);
-            e = new AddAssignExp(Loc(), e, new IntegerExp(1));
-            e = new EqualExp(TOK.notEqual, Loc(), e, new IntegerExp(1));
-            s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
+            Expression e = new IdentifierExp(Loc.initial, v.ident);
+            e = new AddAssignExp(Loc.initial, e, new IntegerExp(1));
+            e = new EqualExp(TOK.notEqual, Loc.initial, e, new IntegerExp(1));
+            s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);
             if (scd.fbody)
                 sa.push(scd.fbody);
 
-            scd.fbody = new CompoundStatement(Loc(), sa);
+            scd.fbody = new CompoundStatement(Loc.initial, sa);
         }
 
         funcDeclarationSemantic(scd);
@@ -3523,23 +3523,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * Note that this is not thread safe; should not have threads
              * during static destruction.
              */
-            auto v = new VarDeclaration(Loc(), Type.tint32, Id.gate, null);
+            auto v = new VarDeclaration(Loc.initial, Type.tint32, Id.gate, null);
             v.storage_class = STC.temp | (sdd.isSharedStaticDtorDeclaration() ? STC.static_ : STC.tls);
 
             auto sa = new Statements();
-            Statement s = new ExpStatement(Loc(), v);
+            Statement s = new ExpStatement(Loc.initial, v);
             sa.push(s);
 
-            Expression e = new IdentifierExp(Loc(), v.ident);
-            e = new AddAssignExp(Loc(), e, new IntegerExp(-1));
-            e = new EqualExp(TOK.notEqual, Loc(), e, new IntegerExp(0));
-            s = new IfStatement(Loc(), null, e, new ReturnStatement(Loc(), null), null, Loc());
+            Expression e = new IdentifierExp(Loc.initial, v.ident);
+            e = new AddAssignExp(Loc.initial, e, new IntegerExp(-1));
+            e = new EqualExp(TOK.notEqual, Loc.initial, e, new IntegerExp(0));
+            s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);
             if (sdd.fbody)
                 sa.push(sdd.fbody);
 
-            sdd.fbody = new CompoundStatement(Loc(), sa);
+            sdd.fbody = new CompoundStatement(Loc.initial, sa);
 
             sdd.vgate = v;
         }
@@ -3876,8 +3876,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         /* Look for special member functions.
          */
-        sd.aggNew = cast(NewDeclaration)sd.search(Loc(), Id.classNew);
-        sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc(), Id.classDelete);
+        sd.aggNew = cast(NewDeclaration)sd.search(Loc.initial, Id.classNew);
+        sd.aggDelete = cast(DeleteDeclaration)sd.search(Loc.initial, Id.classDelete);
 
         // Look for the constructor
         sd.ctor = sd.searchCtor();
@@ -3905,7 +3905,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sd.ctor)
         {
-            Dsymbol scall = sd.search(Loc(), Id.call);
+            Dsymbol scall = sd.search(Loc.initial, Id.call);
             if (scall)
             {
                 uint xerrors = global.startGagging();
@@ -4433,8 +4433,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          * They must be in this class, not in a base class.
          */
         // Can be in base class
-        cldec.aggNew = cast(NewDeclaration)cldec.search(Loc(), Id.classNew);
-        cldec.aggDelete = cast(DeleteDeclaration)cldec.search(Loc(), Id.classDelete);
+        cldec.aggNew = cast(NewDeclaration)cldec.search(Loc.initial, Id.classNew);
+        cldec.aggDelete = cast(DeleteDeclaration)cldec.search(Loc.initial, Id.classDelete);
 
         // Look for the constructor
         cldec.ctor = cldec.searchCtor();
@@ -4468,8 +4468,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 tf.isnogc    = btf.isnogc;
                 tf.trust     = btf.trust;
 
-                auto ctor = new CtorDeclaration(cldec.loc, Loc(), 0, tf);
-                ctor.fbody = new CompoundStatement(Loc(), new Statements());
+                auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, 0, tf);
+                ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
 
                 cldec.members.push(ctor);
                 ctor.addMember(sc, cldec);
@@ -5553,6 +5553,6 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     {
         ds.overnext = null;
         if (!ds.overloadInsert(sx))
-            ScopeDsymbol.multiplyDefined(Loc(), sx, ds);
+            ScopeDsymbol.multiplyDefined(Loc.initial, sx, ds);
     }
 }
