@@ -1298,9 +1298,7 @@ unittest32mscoff:
 ################### tests ######################################
 
 test_uuid:
-	cd test\uuid
-	$(MAKE) -f win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) test
-	cd ..\..
+	$(MAKE) -f test\uuid\win64.mak "DMD=$(DMD)" MODEL=$(MODEL) "VCDIR=$(VCDIR)" DRUNTIMELIB=$(DRUNTIME) test
 
 ################### zip/install/clean ##########################
 
