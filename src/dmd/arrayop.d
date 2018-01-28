@@ -220,7 +220,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 buf.writestring("u");
                 buf.writestring(Token.toString(e.op));
                 e.e1.accept(this);
-                tiargs.push(new StringExp(Loc(), buf.extractString()).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, buf.extractString()).expressionSemantic(sc));
             }
         }
 
@@ -236,7 +236,7 @@ private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions*
                 // RPN
                 e.e1.accept(this);
                 e.e2.accept(this);
-                tiargs.push(new StringExp(Loc(), cast(char*) Token.toChars(e.op)).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, cast(char*) Token.toChars(e.op)).expressionSemantic(sc));
             }
         }
     }

@@ -54,7 +54,7 @@ struct PushAttributes
     extern (C++) static int fp(void* param, const(char)* str)
     {
         PushAttributes* p = cast(PushAttributes*)param;
-        p.mods.push(new StringExp(Loc(), cast(char*)str));
+        p.mods.push(new StringExp(Loc.initial, cast(char*)str));
         return 0;
     }
 }
@@ -936,8 +936,8 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
                 fa.protection = fd.protection;
 
-                auto e = ex ? new DotVarExp(Loc(), ex, fa, false)
-                            : new DsymbolExp(Loc(), fa, false);
+                auto e = ex ? new DotVarExp(Loc.initial, ex, fa, false)
+                            : new DsymbolExp(Loc.initial, fa, false);
 
                 exps.push(e);
                 return 0;
@@ -1520,7 +1520,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                         auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
                         ad.protection = ud.protection;
 
-                        auto e = new DsymbolExp(Loc(), ad, false);
+                        auto e = new DsymbolExp(Loc.initial, ad, false);
                         exps.push(e);
 
                         uniqueUnitTests[cast(void*)ud] = true;

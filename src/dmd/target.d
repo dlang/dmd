@@ -175,7 +175,7 @@ struct Target
         default:
             break;
         }
-        return cast(uint)type.size(Loc());
+        return cast(uint)type.size(Loc.initial);
     }
 
     /******************************
@@ -256,7 +256,7 @@ struct Target
         {
             if (global.params.is64bit)
             {
-                return (new TypeIdentifier(Loc(), Identifier.idPool("__va_list_tag"))).pointerTo();
+                return (new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag"))).pointerTo();
             }
             else
             {
@@ -343,9 +343,9 @@ struct Target
 
         case TOK.mul, TOK.mulAssign:
             // only floats and short[8]/ushort[8] (PMULLW)
-            if (tvec.isfloating() || tvec.elementType().size(Loc()) == 2 ||
+            if (tvec.isfloating() || tvec.elementType().size(Loc.initial) == 2 ||
                 // int[4]/uint[4] with SSE4.1 (PMULLD)
-                global.params.cpu >= CPU.sse4_1 && tvec.elementType().size(Loc()) == 4)
+                global.params.cpu >= CPU.sse4_1 && tvec.elementType().size(Loc.initial) == 4)
                 supported = true;
             else
                 supported = false;

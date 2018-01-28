@@ -480,7 +480,7 @@ extern (C++) void gendocfile(Module m)
         assert(m.docfile);
         m.docfile.setbuffer(cast(void*)buf.peekSlice().ptr, buf.peekSlice().length);
         m.docfile._ref = 1;
-        ensurePathToNameExists(Loc(), m.docfile.toChars());
+        ensurePathToNameExists(Loc.initial, m.docfile.toChars());
         writeFile(m.loc, m.docfile);
     }
     else
@@ -505,7 +505,7 @@ extern (C++) void gendocfile(Module m)
         // Transfer image to file
         m.docfile.setbuffer(buf2.data, buf2.offset);
         m.docfile._ref = 1;
-        ensurePathToNameExists(Loc(), m.docfile.toChars());
+        ensurePathToNameExists(Loc.initial, m.docfile.toChars());
         writeFile(m.loc, m.docfile);
     }
 }
@@ -2497,7 +2497,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
     }
     if (inCode)
-        error(s ? s.loc : Loc(), "unmatched `---` in DDoc comment");
+        error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
 }
 
 /**************************************************

@@ -593,7 +593,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
             if (!ClassDeclaration.object)
             {
-                mtype.error(Loc(), "missing or corrupt object.d");
+                mtype.error(Loc.initial, "missing or corrupt object.d");
                 fatal();
             }
 

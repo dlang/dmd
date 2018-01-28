@@ -1019,7 +1019,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             tiargs.push(p);
         }
-        scope TemplateInstance ti = new TemplateInstance(Loc(), ident, tiargs); // create dummy template instance
+        scope TemplateInstance ti = new TemplateInstance(Loc.initial, ident, tiargs); // create dummy template instance
 
         // Temporary Array to hold deduced types
         Objects dedtypes;
@@ -1267,7 +1267,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 {
                     hasttp = true;
 
-                    Type t = new TypeIdentifier(Loc(), ttp.ident);
+                    Type t = new TypeIdentifier(Loc.initial, ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCH.nomatch)
                         goto Lnomatch;
@@ -1768,7 +1768,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 }
                                 else
                                 {
-                                    Type vt = tvp.valType.typeSemantic(Loc(), sc);
+                                    Type vt = tvp.valType.typeSemantic(Loc.initial, sc);
                                     MATCH m = dim.implicitConvTo(vt);
                                     if (m <= MATCH.nomatch)
                                         goto Lnomatch;
@@ -2030,12 +2030,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (ta)
         {
             //printf("type %s\n", ta.toChars());
-            d = new AliasDeclaration(Loc(), tp.ident, ta);
+            d = new AliasDeclaration(Loc.initial, tp.ident, ta);
         }
         else if (sa)
         {
             //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
-            d = new AliasDeclaration(Loc(), tp.ident, sa);
+            d = new AliasDeclaration(Loc.initial, tp.ident, sa);
         }
         else if (ea)
         {
@@ -3260,7 +3260,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         {
                             if (!s || !s.parent)
                                 goto Lnomatch;
-                            Dsymbol s2 = s.parent.search(Loc(), cast(Identifier)id);
+                            Dsymbol s2 = s.parent.search(Loc.initial, cast(Identifier)id);
                             if (!s2)
                                 goto Lnomatch;
                             s2 = s2.toAlias();
@@ -3565,7 +3565,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         Expression e;
                         Type tx;
                         Dsymbol s;
-                        taa.index.resolve(Loc(), sc, &e, &tx, &s);
+                        taa.index.resolve(Loc.initial, sc, &e, &tx, &s);
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }
@@ -3629,7 +3629,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     // Resolve parameter type if it's not related with template parameters
                     if (!reliesOnTident(fparam.type, parameters, inferStart))
                     {
-                        auto tx = fparam.type.typeSemantic(Loc(), sc);
+                        auto tx = fparam.type.typeSemantic(Loc.initial, sc);
                         if (tx.ty == Terror)
                         {
                             result = MATCH.nomatch;
@@ -4041,7 +4041,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             {
                 if (ti && ti.toAlias() == t.sym)
                 {
-                    auto tx = new TypeInstance(Loc(), ti);
+                    auto tx = new TypeInstance(Loc.initial, ti);
                     result = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
                     return;
                 }
@@ -4135,7 +4135,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 tmpdedtypes.setDim(dedtypes.dim);
                 memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.dim * (void*).sizeof);
 
-                auto t = new TypeInstance(Loc(), parti);
+                auto t = new TypeInstance(Loc.initial, parti);
                 MATCH m = deduceType(t, sc, tparam, parameters, tmpdedtypes);
                 if (m > MATCH.nomatch)
                 {
@@ -4175,7 +4175,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             {
                 if (ti && ti.toAlias() == t.sym)
                 {
-                    auto tx = new TypeInstance(Loc(), ti);
+                    auto tx = new TypeInstance(Loc.initial, ti);
                     MATCH m = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
                     // Even if the match fails, there is still a chance it could match
                     // a base class.
@@ -4412,7 +4412,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         {
             if (!emptyArrayElement)
             {
-                emptyArrayElement = new IdentifierExp(Loc(), Id.p); // dummy
+                emptyArrayElement = new IdentifierExp(Loc.initial, Id.p); // dummy
                 emptyArrayElement.type = Type.tvoid;
             }
             assert(tparam.ty == Tarray);
@@ -5686,7 +5686,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 if (!ti)
                     goto Lnomatch;
 
-                Type t = new TypeInstance(Loc(), ti);
+                Type t = new TypeInstance(Loc.initial, ti);
                 MATCH m2 = deduceType(t, sc, talias, parameters, dedtypes);
                 if (m2 <= MATCH.nomatch)
                     goto Lnomatch;

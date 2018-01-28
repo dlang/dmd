@@ -172,7 +172,7 @@ Symbol *toSymbol(Dsymbol s)
             }
             else if (vd.isParameter())
             {
-                if (config.exe == EX_WIN64 && vd.type.size(Loc()) > _tysize[TYnptr])
+                if (config.exe == EX_WIN64 && vd.type.size(Loc.initial) > _tysize[TYnptr])
                 {
                     t = type_allocn(TYnref, Type_toCtype(vd.type));
                     t.Tcount++;

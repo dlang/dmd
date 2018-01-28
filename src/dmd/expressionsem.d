@@ -350,7 +350,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
 
     //printf("arrayExpressionToCommonType()\n");
     scope IntegerExp integerexp = new IntegerExp(0);
-    scope CondExp condexp = new CondExp(Loc(), integerexp, null, null);
+    scope CondExp condexp = new CondExp(Loc.initial, integerexp, null, null);
 
     Type t0 = null;
     Expression e0 = null;
@@ -1149,7 +1149,7 @@ private Module loadStdMath()
     {
         auto a = new Identifiers();
         a.push(Id.std);
-        auto s = new Import(Loc(), a, Id.math, null, false);
+        auto s = new Import(Loc.initial, a, Id.math, null, false);
         s.load(null);
         if (s.mod)
         {
@@ -5192,7 +5192,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (fd)
                 {
                     Expression e = ea ? new VarExp(exp.loc, v) : exp.e1;
-                    e = new DotVarExp(Loc(), e, fd, false);
+                    e = new DotVarExp(Loc.initial, e, fd, false);
                     eb = new CallExp(exp.loc, e);
                     eb = eb.expressionSemantic(sc);
                 }
@@ -7442,7 +7442,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (tb2.ty == Tarray || tb2.ty == Tsarray) &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
-              (tb2.nextOf().size(Loc()) == tb1next.size(Loc())))))
+              (tb2.nextOf().size(Loc.initial) == tb1next.size(Loc.initial)))))
         {
             // TOK.concatenateAssign
             assert(exp.op == TOK.concatenateAssign);
@@ -7669,7 +7669,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 else
                 {
-                    e = new DivExp(exp.loc, exp, new IntegerExp(Loc(), stride, Type.tptrdiff_t));
+                    e = new DivExp(exp.loc, exp, new IntegerExp(Loc.initial, stride, Type.tptrdiff_t));
                     e.type = Type.tptrdiff_t;
                 }
             }
@@ -9314,7 +9314,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = Type.tstring;
         if (sc.func)
         {
-            result = e.resolveLoc(Loc(), sc);
+            result = e.resolveLoc(Loc.initial, sc);
             return;
         }
         result = e;
@@ -9326,7 +9326,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = Type.tstring;
         if (sc.func)
         {
-            result = e.resolveLoc(Loc(), sc);
+            result = e.resolveLoc(Loc.initial, sc);
             return;
         }
 

@@ -211,7 +211,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.loc;
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
+    Loc loc; // internal code should have no loc to prevent coverage
 
     // One of our sub-field might have `@disable opAssign` so we need to
     // check for it.
@@ -243,7 +243,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     auto fparams = new Parameters();
     fparams.push(new Parameter(STC.nodtor, sd.type, Id.p, null));
     auto tf = new TypeFunction(fparams, sd.handleType(), 0, LINK.d, stc | STC.ref_);
-    auto fop = new FuncDeclaration(declLoc, Loc(), Id.assign, stc, tf);
+    auto fop = new FuncDeclaration(declLoc, Loc.initial, Id.assign, stc, tf);
     fop.storage_class |= STC.inference;
     fop.generated = true;
     Expression e = null;
@@ -489,7 +489,7 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
                 tfeqptr = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
                 tfeqptr.mod = MODFlags.const_;
-                tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc(), &scx);
+                tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
             }
             fd = fd.overloadExactMatch(tfeqptr);
             if (fd)
@@ -508,14 +508,14 @@ extern (C++) FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
         assert(s);
         sd.xerreq = s.isFuncDeclaration();
     }
-    Loc declLoc = Loc(); // loc is unnecessary so __xopEquals is never called directly
-    Loc loc = Loc(); // loc is unnecessary so errors are gagged
+    Loc declLoc; // loc is unnecessary so __xopEquals is never called directly
+    Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null));
     auto tf = new TypeFunction(parameters, Type.tbool, 0, LINK.d);
     Identifier id = Id.xopEquals;
-    auto fop = new FuncDeclaration(declLoc, Loc(), id, STC.static_, tf);
+    auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
@@ -559,7 +559,7 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, null, null));
                 tfcmpptr = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
                 tfcmpptr.mod = MODFlags.const_;
-                tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc(), &scx);
+                tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
             }
             fd = fd.overloadExactMatch(tfcmpptr);
             if (fd)
@@ -628,14 +628,14 @@ extern (C++) FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
         assert(s);
         sd.xerrcmp = s.isFuncDeclaration();
     }
-    Loc declLoc = Loc(); // loc is unnecessary so __xopCmp is never called directly
-    Loc loc = Loc(); // loc is unnecessary so errors are gagged
+    Loc declLoc; // loc is unnecessary so __xopCmp is never called directly
+    Loc loc; // loc is unnecessary so errors are gagged
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.q, null));
     auto tf = new TypeFunction(parameters, Type.tint32, 0, LINK.d);
     Identifier id = Id.xopCmp;
-    auto fop = new FuncDeclaration(declLoc, Loc(), id, STC.static_, tf);
+    auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
     Expression e1 = new IdentifierExp(loc, Id.p);
     Expression e2 = new IdentifierExp(loc, Id.q);
@@ -736,13 +736,13 @@ extern (C++) FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         return null;
 
     //printf("StructDeclaration::buildXtoHash() %s\n", sd.toPrettyChars());
-    Loc declLoc = Loc(); // loc is unnecessary so __xtoHash is never called directly
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
+    Loc declLoc; // loc is unnecessary so __xtoHash is never called directly
+    Loc loc; // internal code should have no loc to prevent coverage
     auto parameters = new Parameters();
     parameters.push(new Parameter(STC.ref_ | STC.const_, sd.type, Id.p, null));
     auto tf = new TypeFunction(parameters, Type.thash_t, 0, LINK.d, STC.nothrow_ | STC.trusted);
     Identifier id = Id.xtoHash;
-    auto fop = new FuncDeclaration(declLoc, Loc(), id, STC.static_, tf);
+    auto fop = new FuncDeclaration(declLoc, Loc.initial, id, STC.static_, tf);
     fop.generated = true;
 
     /* Do memberwise hashing.
@@ -782,7 +782,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
+    Loc loc; // internal code should have no loc to prevent coverage
 
     for (size_t i = 0; i < sd.postblits.dim; i++)
     {
@@ -927,7 +927,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     if (a.dim || (stc & STC.disable))
     {
         //printf("Building __fieldPostBlit()\n");
-        auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__fieldPostblit);
+        auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
         dd.storage_class |= STC.inference;
         dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, a);
@@ -963,7 +963,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
             ex = new CallExp(loc, ex);
             e = Expression.combine(e, ex);
         }
-        auto dd = new PostBlitDeclaration(declLoc, Loc(), stc, Id.__aggrPostblit);
+        auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__aggrPostblit);
         dd.generated = true;
         dd.storage_class |= STC.inference;
         dd.fbody = new ExpStatement(loc, e);
@@ -976,7 +976,7 @@ extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     // Add an __xpostblit alias to make the inclusive postblit accessible
     if (xpostblit)
     {
-        auto _alias = new AliasDeclaration(Loc(), Id.__xpostblit, xpostblit);
+        auto _alias = new AliasDeclaration(Loc.initial, Id.__xpostblit, xpostblit);
         _alias.dsymbolSemantic(sc);
         sd.members.push(_alias);
         _alias.addMember(sc, sd); // add to symbol table
@@ -1005,7 +1005,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
 
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.dtors.dim ? ad.dtors[0].loc : ad.loc;
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
+    Loc loc; // internal code should have no loc to prevent coverage
 
     Expression e = null;
     for (size_t i = 0; i < ad.fields.dim; i++)
@@ -1086,7 +1086,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     if (e || (stc & STC.disable))
     {
         //printf("Building __fieldDtor(), %s\n", e.toChars());
-        auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__fieldDtor);
+        auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__fieldDtor);
         dd.generated = true;
         dd.storage_class |= STC.inference;
         dd.fbody = new ExpStatement(loc, e);
@@ -1122,7 +1122,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             ex = new CallExp(loc, ex);
             e = Expression.combine(ex, e);
         }
-        auto dd = new DtorDeclaration(declLoc, Loc(), stc, Id.__aggrDtor);
+        auto dd = new DtorDeclaration(declLoc, Loc.initial, stc, Id.__aggrDtor);
         dd.generated = true;
         dd.storage_class |= STC.inference;
         dd.fbody = new ExpStatement(loc, e);
@@ -1135,7 +1135,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
     // Add an __xdtor alias to make the inclusive dtor accessible
     if (xdtor)
     {
-        auto _alias = new AliasDeclaration(Loc(), Id.__xdtor, xdtor);
+        auto _alias = new AliasDeclaration(Loc.initial, Id.__xdtor, xdtor);
         _alias.dsymbolSemantic(sc);
         ad.members.push(_alias);
         _alias.addMember(sc, ad); // add to symbol table
@@ -1156,7 +1156,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.loc;
-    Loc loc = Loc(); // internal code should have no loc to prevent coverage
+    Loc loc; // internal code should have no loc to prevent coverage
     switch (ad.invs.dim)
     {
     case 0:
@@ -1189,7 +1189,7 @@ extern (C++) FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
             }
             e = Expression.combine(e, new CallExp(loc, new VarExp(loc, ad.invs[i], false)));
         }
-        auto inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
+        auto inv = new InvariantDeclaration(declLoc, Loc.initial, stc | stcx, Id.classInvariant, new ExpStatement(loc, e));
         ad.members.push(inv);
         inv.dsymbolSemantic(sc);
         return inv;

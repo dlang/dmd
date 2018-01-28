@@ -680,7 +680,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     final Dsymbol searchCtor()
     {
-        auto s = search(Loc(), Id.ctor);
+        auto s = search(Loc.initial, Id.ctor);
         if (s)
         {
             if (!(s.isCtorDeclaration() ||

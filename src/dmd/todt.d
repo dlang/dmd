@@ -889,7 +889,7 @@ extern (C++) void Type_toDt(Type t, DtBuilder dtb)
 private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
 {
     //printf("TypeSArray.toDtElem() tsa = %s\n", tsa.toChars());
-    if (tsa.size(Loc()) == 0)
+    if (tsa.size(Loc.initial) == 0)
     {
         dtb.nzeros(0);
     }
@@ -906,7 +906,7 @@ private void toDtElem(TypeSArray tsa, DtBuilder dtb, Expression e)
             tbn = tnext.toBasetype();
         }
         if (!e)                             // if not already supplied
-            e = tsa.defaultInit(Loc());    // use default initializer
+            e = tsa.defaultInit(Loc.initial);    // use default initializer
 
         if (!e.type.implicitConvTo(tnext))    // https://issues.dlang.org/show_bug.cgi?id=14996
         {

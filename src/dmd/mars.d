@@ -138,7 +138,7 @@ extern (C++) void genCmain(Scope* sc)
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
     scope p = new Parser!ASTCodegen(m, cmaincode, false);
-    p.scanloc = Loc();
+    p.scanloc = Loc.initial;
     p.nextToken();
     m.members = p.parseModule();
     assert(p.token.value == TOK.endOfFile);
@@ -183,7 +183,7 @@ private int tryMain(size_t argc, const(char)** argv)
     if (argc < 1 || !argv)
     {
     Largs:
-        error(Loc(), "missing or null command line arguments");
+        error(Loc.initial, "missing or null command line arguments");
         fatal();
     }
     // Convert argc/argv into arguments[] for easier handling
@@ -196,7 +196,7 @@ private int tryMain(size_t argc, const(char)** argv)
         arguments[i] = argv[i];
     }
     if (response_expand(&arguments)) // expand response files
-        error(Loc(), "can't open response file");
+        error(Loc.initial, "can't open response file");
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
@@ -211,7 +211,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         // can be empty as in -conf=
         if (strlen(global.inifilename) && !FileName.exists(global.inifilename))
-            error(Loc(), "Config file '%s' does not exist.", global.inifilename);
+            error(Loc.initial, "Config file '%s' does not exist.", global.inifilename);
     }
     else
     {
@@ -334,7 +334,7 @@ private int tryMain(size_t argc, const(char)** argv)
 
     global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
-        error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+        error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
     if (global.params.enforcePropertySyntax)
     {
         /*NOTE: -property used to disallow calling non-properties
@@ -370,7 +370,7 @@ private int tryMain(size_t argc, const(char)** argv)
     static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
     {
         if (global.params.lib && global.params.dll)
-            error(Loc(), "cannot mix -lib and -shared");
+            error(Loc.initial, "cannot mix -lib and -shared");
     }
     static if (TARGET.Windows)
     {
@@ -435,7 +435,7 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     else if (global.params.run)
     {
-        error(Loc(), "flags conflict with -run");
+        error(Loc.initial, "flags conflict with -run");
         fatal();
     }
     else if (global.params.lib)
@@ -602,13 +602,13 @@ private int tryMain(size_t argc, const(char)** argv)
                 if (name[0] == 0 || strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error(Loc(), "invalid file name '%s'", files[i]);
+                    error(Loc.initial, "invalid file name '%s'", files[i]);
                     fatal();
                 }
             }
             else
             {
-                error(Loc(), "unrecognized file extension %s", ext);
+                error(Loc.initial, "unrecognized file extension %s", ext);
                 fatal();
             }
         }
@@ -665,7 +665,7 @@ private int tryMain(size_t argc, const(char)** argv)
         // Single threaded
         foreach (m; modules)
         {
-            m.read(Loc());
+            m.read(Loc.initial);
         }
     }
     // Parse files
@@ -685,7 +685,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             if (aw.read(filei))
             {
-                error(Loc(), "cannot read file %s", m.srcfile.name.toChars());
+                error(Loc.initial, "cannot read file %s", m.srcfile.name.toChars());
                 fatal();
             }
         }
@@ -716,7 +716,7 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     if (anydocfiles && modules.dim && (global.params.oneobj || global.params.objname))
     {
-        error(Loc(), "conflicting Ddoc and obj generation options");
+        error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
     }
     if (global.errors)
@@ -834,7 +834,7 @@ private int tryMain(size_t argc, const(char)** argv)
         {
             auto deps = File(global.params.moduleDepsFile);
             deps.setbuffer(cast(void*)ob.data, ob.offset);
-            writeFile(Loc(), &deps);
+            writeFile(Loc.initial, &deps);
         }
         else
             printf("%.*s", cast(int)ob.offset, ob.data);
@@ -885,11 +885,11 @@ private int tryMain(size_t argc, const(char)** argv)
                 //    name = FileName::combine(dir, name);
                 jsonfilename = FileName.forceExt(n, global.json_ext);
             }
-            ensurePathToNameExists(Loc(), jsonfilename);
+            ensurePathToNameExists(Loc.initial, jsonfilename);
             auto jsonfile = new File(jsonfilename);
             jsonfile.setbuffer(buf.data, buf.offset);
             jsonfile._ref = 1;
-            writeFile(Loc(), jsonfile);
+            writeFile(Loc.initial, jsonfile);
         }
     }
     if (!global.errors && global.params.doDocComments)
@@ -968,7 +968,7 @@ private int tryMain(size_t argc, const(char)** argv)
     if (!global.params.objfiles.dim)
     {
         if (global.params.link)
-            error(Loc(), "no object files to link");
+            error(Loc.initial, "no object files to link");
     }
     else
     {
@@ -1431,7 +1431,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
 
     void error(const(char)* format, const(char*) arg = null)
     {
-        dmd.errors.error(Loc(), format, arg);
+        dmd.errors.error(Loc.initial, format, arg);
         errors = true;
     }
 

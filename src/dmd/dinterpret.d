@@ -3072,7 +3072,7 @@ public:
             ae.type = e.newtype.arrayOf();
             ae.ownedByCtfe = OwnedBy.ctfe;
 
-            result = new IndexExp(e.loc, ae, new IntegerExp(Loc(), 0, Type.tsize_t));
+            result = new IndexExp(e.loc, ae, new IntegerExp(Loc.initial, 0, Type.tsize_t));
             result.type = e.newtype;
             result = new AddrExp(e.loc, result);
             result.type = e.type;

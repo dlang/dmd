@@ -203,7 +203,7 @@ extern (C++) final class CTFEExp : Expression
 {
     extern (D) this(TOK tok)
     {
-        super(Loc(), tok, __traits(classInstanceSize, CTFEExp));
+        super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
         type = Type.tvoid;
     }
 
@@ -500,12 +500,12 @@ private UnionExp paintTypeOntoLiteralCopy(Type type, Expression lit)
     }
     else if (lit.op == TOK.arrayLiteral)
     {
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc(), 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (lit.op == TOK.string_)
     {
         // For strings, we need to introduce another level of indirection
-        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc(), 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
+        emplaceExp!(SliceExp)(&ue, lit.loc, lit, new IntegerExp(Loc.initial, 0, Type.tsize_t), ArrayLength(Type.tsize_t, lit).copy());
     }
     else if (lit.op == TOK.assocArrayLiteral)
     {

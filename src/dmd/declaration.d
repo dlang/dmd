@@ -182,7 +182,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
  */
 extern (C++) void ObjectNotFound(Identifier id)
 {
-    Type.error(Loc(), "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
+    Type.error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
 
@@ -613,7 +613,7 @@ extern (C++) final class TupleDeclaration : Declaration
 
             tupletype = new TypeTuple(args);
             if (hasdeco)
-                return tupletype.typeSemantic(Loc(), null);
+                return tupletype.typeSemantic(Loc.initial, null);
         }
         return tupletype;
     }
@@ -1654,7 +1654,7 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
 
     final extern (D) this(Type tinfo)
     {
-        super(Loc(), Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
+        super(Loc.initial, Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
         this.tinfo = tinfo;
         storage_class = STC.static_ | STC.gshared;
         protection = Prot(Prot.Kind.public_);

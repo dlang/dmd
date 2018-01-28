@@ -90,7 +90,7 @@ void* mem_malloc2(uint);
 bool ISREF(Declaration var)
 {
     return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc()) > REGSIZE || var.storage_class & STC.lazy_))
+            (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))
             || var.isOut() || var.isRef();
 }
 
@@ -99,7 +99,7 @@ bool ISREF(Declaration var)
 bool ISWIN64REF(Declaration var)
 {
     return (config.exe == EX_WIN64 && var.isParameter() &&
-            (var.type.size(Loc()) > REGSIZE || var.storage_class & STC.lazy_))
+            (var.type.size(Loc.initial) > REGSIZE || var.storage_class & STC.lazy_))
             && !(var.isOut() || var.isRef());
 }
 
@@ -5841,7 +5841,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             import dmd.root.outbuffer : OutBuffer;
             import dmd.dmangle;
 
-            scope StringExp se = new StringExp(Loc(), cast(void*)str, len, 'c');
+            scope StringExp se = new StringExp(Loc.initial, cast(void*)str, len, 'c');
             se.sz = cast(ubyte)sz;
             /* VC++ uses a name mangling scheme, for example, "hello" is mangled to:
              * ??_C@_05CJBACGMB@hello?$AA@

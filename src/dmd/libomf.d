@@ -79,7 +79,7 @@ final class LibOMF : Library
         {
             assert(module_name);
             File* file = File.create(cast(char*)module_name);
-            readFile(Loc(), file);
+            readFile(Loc.initial, file);
             buf = file.buffer;
             buflen = file.len;
             file._ref = 1;

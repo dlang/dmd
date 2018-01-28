@@ -2369,7 +2369,7 @@ final class Parser(AST) : Lexer
             if (stc & AST.STC.static_)
                 error(loc, "postblit cannot be static");
 
-            auto f = new AST.PostBlitDeclaration(loc, Loc(), stc, Id.postblit);
+            auto f = new AST.PostBlitDeclaration(loc, Loc.initial, stc, Id.postblit);
             AST.Dsymbol s = parseContracts(f);
             if (udas)
             {
@@ -2413,7 +2413,7 @@ final class Parser(AST) : Lexer
         AST.Type tf = new AST.TypeFunction(parameters, null, varargs, linkage, stc); // RetrunType -> auto
         tf = tf.addSTC(stc);
 
-        auto f = new AST.CtorDeclaration(loc, Loc(), stc, tf);
+        auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
         AST.Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2458,7 +2458,7 @@ final class Parser(AST) : Lexer
                 error(loc, "use `shared static ~this()` to declare a shared static destructor");
         }
 
-        auto f = new AST.DtorDeclaration(loc, Loc(), stc, Id.dtor);
+        auto f = new AST.DtorDeclaration(loc, Loc.initial, stc, Id.dtor);
         AST.Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2498,7 +2498,7 @@ final class Parser(AST) : Lexer
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
-        auto f = new AST.StaticCtorDeclaration(loc, Loc(), stc);
+        auto f = new AST.StaticCtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2533,7 +2533,7 @@ final class Parser(AST) : Lexer
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
-        auto f = new AST.StaticDtorDeclaration(loc, Loc(), stc);
+        auto f = new AST.StaticDtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2572,7 +2572,7 @@ final class Parser(AST) : Lexer
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
-        auto f = new AST.SharedStaticCtorDeclaration(loc, Loc(), stc);
+        auto f = new AST.SharedStaticCtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2606,7 +2606,7 @@ final class Parser(AST) : Lexer
         }
         stc &= ~(AST.STC.static_ | AST.STC.TYPECTOR);
 
-        auto f = new AST.SharedStaticDtorDeclaration(loc, Loc(), stc);
+        auto f = new AST.SharedStaticDtorDeclaration(loc, Loc.initial, stc);
         AST.Dsymbol s = parseContracts(f);
         if (udas)
         {
@@ -2695,7 +2695,7 @@ final class Parser(AST) : Lexer
 
         int varargs;
         AST.Parameters* parameters = parseParameters(&varargs);
-        auto f = new AST.NewDeclaration(loc, Loc(), stc, parameters, varargs);
+        auto f = new AST.NewDeclaration(loc, Loc.initial, stc, parameters, varargs);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }
@@ -2716,7 +2716,7 @@ final class Parser(AST) : Lexer
         AST.Parameters* parameters = parseParameters(&varargs);
         if (varargs)
             error("`...` not allowed in delete function parameter list");
-        auto f = new AST.DeleteDeclaration(loc, Loc(), stc, parameters);
+        auto f = new AST.DeleteDeclaration(loc, Loc.initial, stc, parameters);
         AST.Dsymbol s = parseContracts(f);
         return s;
     }
@@ -4439,7 +4439,7 @@ final class Parser(AST) : Lexer
                 }
 
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
-                auto f = new AST.FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? AST.STC.disable : 0), t);
+                auto f = new AST.FuncDeclaration(loc, Loc.initial, ident, storage_class | (disable ? AST.STC.disable : 0), t);
                 if (pAttrs)
                     pAttrs.storageClass = AST.STC.undefined_;
                 if (tpl)
@@ -4629,7 +4629,7 @@ final class Parser(AST) : Lexer
             parameters = new AST.Parameters();
         auto tf = new AST.TypeFunction(parameters, tret, varargs, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
-        auto fd = new AST.FuncLiteralDeclaration(loc, Loc(), tf, save, null);
+        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null);
 
         if (token.value == TOK.goesTo)
         {
@@ -5302,7 +5302,7 @@ final class Parser(AST) : Lexer
         case TOK.leftCurly:
             {
                 const lookingForElseSave = lookingForElse;
-                lookingForElse = Loc();
+                lookingForElse = Loc.initial;
 
                 nextToken();
                 //if (token.value == TOK.semicolon)
@@ -5357,7 +5357,7 @@ final class Parser(AST) : Lexer
 
                 nextToken();
                 const lookingForElseSave = lookingForElse;
-                lookingForElse = Loc();
+                lookingForElse = Loc.initial;
                 _body = parseStatement(ParseStatementFlags.scope_);
                 lookingForElse = lookingForElseSave;
                 check(TOK.while_);
@@ -5387,7 +5387,7 @@ final class Parser(AST) : Lexer
                 else
                 {
                     const lookingForElseSave = lookingForElse;
-                    lookingForElse = Loc();
+                    lookingForElse = Loc.initial;
                     _init = parseStatement(0);
                     lookingForElse = lookingForElseSave;
                 }
@@ -5836,7 +5836,7 @@ final class Parser(AST) : Lexer
 
                 nextToken();
                 const lookingForElseSave = lookingForElse;
-                lookingForElse = Loc();
+                lookingForElse = Loc.initial;
                 _body = parseStatement(ParseStatementFlags.scope_);
                 lookingForElse = lookingForElseSave;
                 while (token.value == TOK.catch_)

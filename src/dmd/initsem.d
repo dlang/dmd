@@ -233,7 +233,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
              */
             auto parameters = new Parameters();
             Type tf = new TypeFunction(parameters, null, 0, LINK.d);
-            auto fd = new FuncLiteralDeclaration(i.loc, Loc(), tf, tok, null);
+            auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
             fd.fbody = new CompoundStatement(i.loc, new Statements());
             fd.endloc = i.loc;
             Expression e = new FuncExp(i.loc, fd);

@@ -1205,8 +1205,8 @@ struct ASTBase
             else
             {
                 udas = new Expressions();
-                udas.push(new TupleExp(Loc(), udas1));
-                udas.push(new TupleExp(Loc(), udas2));
+                udas.push(new TupleExp(Loc.initial, udas1));
+                udas.push(new TupleExp(Loc.initial, udas2));
             }
             return udas;
         }
@@ -3559,7 +3559,7 @@ struct ASTBase
 
         override Type syntaxCopy()
         {
-            return new TypeVector(Loc(), basetype.syntaxCopy());
+            return new TypeVector(Loc.initial, basetype.syntaxCopy());
         }
 
         override void accept(Visitor v)
@@ -5917,7 +5917,7 @@ struct ASTBase
 
         final extern (D) this(Module mod, uint level, Identifier ident)
         {
-            super(Loc());
+            super(Loc.initial);
             this.mod = mod;
             this.ident = ident;
         }
@@ -6312,7 +6312,7 @@ struct ASTBase
             {
                 if (global.params.is64bit)
                 {
-                    return (new TypeIdentifier(Loc(), Identifier.idPool("__va_list_tag"))).pointerTo();
+                    return (new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag"))).pointerTo();
                 }
                 else
                 {

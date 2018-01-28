@@ -432,7 +432,7 @@ extern (C++) Objects* opToArg(Scope* sc, TOK op)
     default:
         break;
     }
-    Expression e = new StringExp(Loc(), cast(char*)Token.toChars(op));
+    Expression e = new StringExp(Loc.initial, cast(char*)Token.toChars(op));
     e = e.expressionSemantic(sc);
     auto tiargs = new Objects();
     tiargs.push(e);
@@ -1709,7 +1709,7 @@ extern (C++) Expression build_overload(const ref Loc loc, Scope* sc, Expression 
  */
 extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
 {
-    Dsymbol s = ad.search(Loc(), funcid);
+    Dsymbol s = ad.search(Loc.initial, funcid);
     if (s)
     {
         //printf("search_function: s = '%s'\n", s.kind());
@@ -1777,7 +1777,7 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                     }
                 }
             }
-            if (ad.search(Loc(), idfront))
+            if (ad.search(Loc.initial, idfront))
             {
                 // range aggregate
                 break;
@@ -1919,7 +1919,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
                 /* Look for a front() or back() overload
                  */
                 Identifier id = (fes.op == TOK.foreach_) ? Id.Ffront : Id.Fback;
-                Dsymbol s = ad.search(Loc(), id);
+                Dsymbol s = ad.search(Loc.initial, id);
                 FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
                 if (fd)
                 {
