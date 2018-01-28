@@ -8480,6 +8480,16 @@ extern (C++) final class TypeClass : Type
             //printf("e = %s, d = %s\n", e.toChars(), d.toChars());
             if (d.semanticRun == PASS.init)
                 d.dsymbolSemantic(null);
+
+            // If static function, get the most visible overload.
+            // Later on the call is checked for correctness.
+            // https://issues.dlang.org/show_bug.cgi?id=12511
+            if (auto fd = d.isFuncDeclaration())
+            {
+                import dmd.access : mostVisibleOverload;
+                d = cast(Declaration)mostVisibleOverload(fd);
+            }
+
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
             if (d.isVarDeclaration() && d.needThis())
