@@ -126,7 +126,7 @@ extern (C++) void Initializer_toDt(Initializer init, DtBuilder dtb)
                 length++;
             }
 
-            Expression edefault = tb.nextOf().defaultInit();
+            Expression edefault = tb.nextOf().defaultInit(Loc.initial);
 
             size_t n = 1;
             for (Type tbn = tn; tbn.ty == Tsarray; tbn = tbn.nextOf().toBasetype())
@@ -861,7 +861,7 @@ extern (C++) void Type_toDt(Type t, DtBuilder dtb)
         override void visit(Type t)
         {
             //printf("Type.toDt()\n");
-            Expression e = t.defaultInit();
+            Expression e = t.defaultInit(Loc.initial);
             Expression_toDt(e, dtb);
         }
 
@@ -1078,7 +1078,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(d.csym, Type.typeinfoenum.structsize);
 
         // void[] init;
-        if (!sd.members || d.tinfo.isZeroInit())
+        if (!sd.members || d.tinfo.isZeroInit(Loc.initial))
         {
             // 0 initializer, or the same as the base type
             dtb.size(0);                     // init.length

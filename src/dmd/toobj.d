@@ -1007,7 +1007,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 genTypeInfo(ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
-            if (!tc.sym.members || ed.type.isZeroInit())
+            if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
             else

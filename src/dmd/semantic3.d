@@ -775,7 +775,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         }
                         else
                             e = new HaltExp(funcdecl.endloc);
-                        e = new CommaExp(Loc.initial, e, f.next.defaultInit());
+                        e = new CommaExp(Loc.initial, e, f.next.defaultInit(Loc.initial));
                         e = e.expressionSemantic(sc2);
                         Statement s = new ExpStatement(Loc.initial, e);
                         funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);

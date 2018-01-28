@@ -5517,7 +5517,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             auto pe = cast(void*)valType in edummies;
             if (!pe)
             {
-                e = valType.defaultInit();
+                e = valType.defaultInit(Loc.initial);
                 edummies[cast(void*)valType] = e;
             }
             else

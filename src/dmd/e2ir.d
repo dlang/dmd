@@ -1724,7 +1724,7 @@ elem *toElem(Expression e, IRState *irs)
                     // call _d_newitemT(ti)
                     e = getTypeInfo(ne.newtype, irs);
 
-                    int rtl = t.isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+                    int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                     ex = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, ex, ne.loc);
 
@@ -1782,7 +1782,7 @@ elem *toElem(Expression e, IRState *irs)
 
                     // call _d_newT(ti, arg)
                     e = el_param(e, getTypeInfo(ne.type, irs));
-                    int rtl = tda.next.isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
+                    int rtl = tda.next.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, e, ne.loc);
                 }
@@ -1804,7 +1804,7 @@ elem *toElem(Expression e, IRState *irs)
                     if (config.exe == EX_WIN64)
                         e = addressElem(e, Type.tsize_t.arrayOf());
                     e = el_param(e, getTypeInfo(ne.type, irs));
-                    int rtl = t.isZeroInit() ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
+                    int rtl = t.isZeroInit(Loc.initial) ? RTLSYM_NEWARRAYMTX : RTLSYM_NEWARRAYMITX;
                     e = el_bin(OPcall,TYdarray,el_var(getRtlsym(rtl)),e);
                     toTraceGC(irs, e, ne.loc);
 
@@ -1820,7 +1820,7 @@ elem *toElem(Expression e, IRState *irs)
                 // call _d_newitemT(ti)
                 e = getTypeInfo(ne.newtype, irs);
 
-                int rtl = tp.next.isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+                int rtl = tp.next.isZeroInit(Loc.initial) ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
                 e = el_bin(OPcall,TYnptr,el_var(getRtlsym(rtl)),e);
                 toTraceGC(irs, e, ne.loc);
 
@@ -2610,7 +2610,7 @@ elem *toElem(Expression e, IRState *irs)
                 // call _d_arraysetlengthT(ti, e2, &ale.e1);
                 elem *p2 = getTypeInfo(t1, irs);
                 elem *ep = el_params(p3, p1, p2, null); // c function
-                int r = t1.nextOf().isZeroInit() ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
+                int r = t1.nextOf().isZeroInit(Loc.initial) ? RTLSYM_ARRAYSETLENGTHT : RTLSYM_ARRAYSETLENGTHIT;
 
                 e = el_bin(OPcall, totym(ae.type), el_var(getRtlsym(r)), ep);
                 toTraceGC(irs, e, ae.loc);

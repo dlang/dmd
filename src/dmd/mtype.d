@@ -1009,7 +1009,7 @@ extern (C++) abstract class Type : RootObject
         return size(Loc.initial);
     }
 
-    d_uns64 size(Loc loc)
+    d_uns64 size(const ref Loc loc)
     {
         error(loc, "no size for type `%s`", toChars());
         return SIZE_INVALID;
@@ -1020,7 +1020,7 @@ extern (C++) abstract class Type : RootObject
         return cast(uint)size(Loc.initial);
     }
 
-    final Type trySemantic(Loc loc, Scope* sc)
+    final Type trySemantic(const ref Loc loc, Scope* sc)
     {
         //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
         uint errors = global.startGagging();
@@ -1167,7 +1167,7 @@ extern (C++) abstract class Type : RootObject
     /*********************************
      * Check type to see if it is based on a deprecated symbol.
      */
-    void checkDeprecated(Loc loc, Scope* sc)
+    void checkDeprecated(const ref Loc loc, Scope* sc)
     {
         if (Dsymbol s = toDsymbol(sc))
         {
@@ -2492,7 +2492,7 @@ extern (C++) abstract class Type : RootObject
      *
      * If flag & 1, don't report "not a property" error and just return NULL.
      */
-    Expression getProperty(Loc loc, Identifier ident, int flag)
+    Expression getProperty(const ref Loc loc, Identifier ident, int flag)
     {
         Expression e;
         static if (LOGDOTEXP)
@@ -2759,7 +2759,7 @@ extern (C++) abstract class Type : RootObject
         return returnExp(Type.dotExp(sc, e, ident, flag));
     }
 
-    Expression defaultInit(Loc loc = Loc.initial)
+    Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -2772,7 +2772,7 @@ extern (C++) abstract class Type : RootObject
      * Use when we prefer the default initializer to be a literal,
      * rather than a global immutable variable.
      */
-    Expression defaultInitLiteral(Loc loc)
+    Expression defaultInitLiteral(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -2782,7 +2782,7 @@ extern (C++) abstract class Type : RootObject
     }
 
     // if initializer is 0
-    bool isZeroInit(Loc loc = Loc.initial)
+    bool isZeroInit(const ref Loc loc)
     {
         return false; // assume not
     }
@@ -2824,7 +2824,7 @@ extern (C++) abstract class Type : RootObject
      * Resolve 'this' type to either type, symbol, or expression.
      * If errors happened, resolved to Type.terror.
      */
-    void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("Type::resolve() %s, %d\n", toChars(), ty);
         Type t = typeSemantic(this, loc, sc);
@@ -3007,7 +3007,7 @@ extern (C++) abstract class Type : RootObject
      *  loc = The source location.
      *  sc = scope of the type
      */
-    final bool checkComplexTransition(Loc loc, Scope* sc)
+    final bool checkComplexTransition(const ref Loc loc, Scope* sc)
     {
         if (sc.isDeprecated())
             return false;
@@ -3059,7 +3059,7 @@ extern (C++) abstract class Type : RootObject
         return false;
     }
 
-    static void error(Loc loc, const(char)* format, ...)
+    static void error(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -3067,7 +3067,7 @@ extern (C++) abstract class Type : RootObject
         va_end(ap);
     }
 
-    static void warning(Loc loc, const(char)* format, ...)
+    static void warning(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -3109,12 +3109,12 @@ extern (C++) final class TypeError : Type
         return this;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         return SIZE_INVALID;
     }
 
-    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
     {
         return new ErrorExp();
     }
@@ -3124,12 +3124,12 @@ extern (C++) final class TypeError : Type
         return new ErrorExp();
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         return new ErrorExp();
     }
 
-    override Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(const ref Loc loc)
     {
         return new ErrorExp();
     }
@@ -3152,7 +3152,7 @@ extern (C++) abstract class TypeNext : Type
         this.next = next;
     }
 
-    override final void checkDeprecated(Loc loc, Scope* sc)
+    override final void checkDeprecated(const ref Loc loc, Scope* sc)
     {
         Type.checkDeprecated(loc, sc);
         if (next) // next can be NULL if TypeFunction and auto return type
@@ -3591,7 +3591,7 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         uint size;
         //printf("TypeBasic::size()\n");
@@ -3673,7 +3673,7 @@ extern (C++) final class TypeBasic : Type
         return Target.alignsize(this);
     }
 
-    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
     {
         Expression e;
         dinteger_t ivalue;
@@ -4255,7 +4255,7 @@ extern (C++) final class TypeBasic : Type
         return MATCH.convert;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4301,7 +4301,7 @@ extern (C++) final class TypeBasic : Type
         return new IntegerExp(loc, value, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         switch (ty)
         {
@@ -4345,13 +4345,13 @@ extern (C++) final class TypeVector : Type
 {
     Type basetype;
 
-    extern (D) this(Loc loc, Type basetype)
+    extern (D) this(const ref Loc loc, Type basetype)
     {
         super(Tvector);
         this.basetype = basetype;
     }
 
-    static TypeVector create(Loc loc, Type basetype)
+    static TypeVector create(const ref Loc loc, Type basetype)
     {
         return new TypeVector(loc, basetype);
     }
@@ -4366,7 +4366,7 @@ extern (C++) final class TypeVector : Type
         return new TypeVector(Loc.initial, basetype.syntaxCopy());
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         return basetype.size();
     }
@@ -4376,7 +4376,7 @@ extern (C++) final class TypeVector : Type
         return cast(uint)basetype.size();
     }
 
-    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
     {
         return Type.getProperty(loc, ident, flag);
     }
@@ -4452,7 +4452,7 @@ extern (C++) final class TypeVector : Type
         return MATCH.nomatch;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         //printf("TypeVector::defaultInit()\n");
         assert(basetype.ty == Tsarray);
@@ -4463,7 +4463,7 @@ extern (C++) final class TypeVector : Type
         return ve;
     }
 
-    override Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(const ref Loc loc)
     {
         //printf("TypeVector::defaultInitLiteral()\n");
         assert(basetype.ty == Tsarray);
@@ -4483,7 +4483,7 @@ extern (C++) final class TypeVector : Type
         return tb;
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(const ref Loc loc)
     {
         return basetype.isZeroInit(loc);
     }
@@ -4551,7 +4551,7 @@ extern (C++) final class TypeSArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         //printf("TypeSArray::size()\n");
         dinteger_t sz;
@@ -4578,7 +4578,7 @@ extern (C++) final class TypeSArray : TypeArray
         return next.alignsize();
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeSArray::resolve() %s\n", toChars());
         next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4703,7 +4703,7 @@ extern (C++) final class TypeSArray : TypeArray
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(const ref Loc loc)
     {
         return next.isZeroInit(loc);
     }
@@ -4772,7 +4772,7 @@ extern (C++) final class TypeSArray : TypeArray
         return MATCH.nomatch;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4784,7 +4784,7 @@ extern (C++) final class TypeSArray : TypeArray
             return next.defaultInit(loc);
     }
 
-    override Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -4871,7 +4871,7 @@ extern (C++) final class TypeDArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         //printf("TypeDArray::size()\n");
         return Target.ptrsize * 2;
@@ -4884,7 +4884,7 @@ extern (C++) final class TypeDArray : TypeArray
         return Target.ptrsize;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeDArray::resolve() %s\n", toChars());
         next.resolve(loc, sc, pe, pt, ps, intypeid);
@@ -4963,7 +4963,7 @@ extern (C++) final class TypeDArray : TypeArray
         return nty == Tchar || nty == Twchar || nty == Tdchar;
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return true;
     }
@@ -5004,7 +5004,7 @@ extern (C++) final class TypeDArray : TypeArray
         return Type.implicitConvTo(to);
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5062,12 +5062,12 @@ extern (C++) final class TypeAArray : TypeArray
         return t;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         return Target.ptrsize;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeAArray::resolve() %s\n", toChars());
         // Deal with the case where we thought the index was a type, but
@@ -5122,7 +5122,7 @@ extern (C++) final class TypeAArray : TypeArray
         return e;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5131,7 +5131,7 @@ extern (C++) final class TypeAArray : TypeArray
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return true;
     }
@@ -5223,7 +5223,7 @@ extern (C++) final class TypePointer : TypeNext
         return t;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         return Target.ptrsize;
     }
@@ -5314,7 +5314,7 @@ extern (C++) final class TypePointer : TypeNext
         return true;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5323,7 +5323,7 @@ extern (C++) final class TypePointer : TypeNext
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return true;
     }
@@ -5367,7 +5367,7 @@ extern (C++) final class TypeReference : TypeNext
         return t;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         return Target.ptrsize;
     }
@@ -5382,7 +5382,7 @@ extern (C++) final class TypeReference : TypeNext
         return next.dotExp(sc, e, ident, flag);
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -5391,7 +5391,7 @@ extern (C++) final class TypeReference : TypeNext
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return true;
     }
@@ -6189,7 +6189,7 @@ extern (C++) final class TypeFunction : TypeNext
         return MATCH.nomatch;
     }
 
-    bool checkRetType(Loc loc)
+    bool checkRetType(const ref Loc loc)
     {
         Type tb = next.toBasetype();
         if (tb.ty == Tfunction)
@@ -6216,7 +6216,7 @@ extern (C++) final class TypeFunction : TypeNext
         return false;
     }
 
-    override Expression defaultInit(Loc loc) const
+    override Expression defaultInit(const ref Loc loc) const
     {
         error(loc, "`function` does not have a default initializer");
         return new ErrorExp();
@@ -6285,7 +6285,7 @@ extern (C++) final class TypeDelegate : TypeNext
         return t;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         return Target.ptrsize * 2;
     }
@@ -6329,7 +6329,7 @@ extern (C++) final class TypeDelegate : TypeNext
         return MATCH.nomatch;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -6338,7 +6338,7 @@ extern (C++) final class TypeDelegate : TypeNext
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return true;
     }
@@ -6447,7 +6447,7 @@ extern (C++) abstract class TypeQualified : Type
         idents.push(e);
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         error(this.loc, "size of type `%s` is not known", toChars());
         return SIZE_INVALID;
@@ -6456,7 +6456,7 @@ extern (C++) abstract class TypeQualified : Type
     /*************************************
      * Resolve a tuple index.
      */
-    final void resolveTupleIndex(Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
+    final void resolveTupleIndex(const ref Loc loc, Scope* sc, Dsymbol s, Expression* pe, Type* pt, Dsymbol* ps, RootObject oindex)
     {
         *pt = null;
         *ps = null;
@@ -6525,7 +6525,7 @@ extern (C++) abstract class TypeQualified : Type
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    final void resolveHelper(Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
+    final void resolveHelper(const ref Loc loc, Scope* sc, Dsymbol s, Dsymbol scopesym,
         Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         version (none)
@@ -6790,7 +6790,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
     // The symbol representing this identifier, before alias resolution
     Dsymbol originalSymbol;
 
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(Tident, loc);
         this.ident = ident;
@@ -6816,7 +6816,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
      *      if expression, *pe is set
      *      if type, *pt is set
      */
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
         if ((ident.equals(Id._super) || ident.equals(Id.This)) && !hasThis(sc))
@@ -6910,7 +6910,7 @@ extern (C++) final class TypeInstance : TypeQualified
 {
     TemplateInstance tempinst;
 
-    extern (D) this(Loc loc, TemplateInstance tempinst)
+    extern (D) this(const ref Loc loc, TemplateInstance tempinst)
     {
         super(Tinstance, loc);
         this.tempinst = tempinst;
@@ -6930,7 +6930,7 @@ extern (C++) final class TypeInstance : TypeQualified
         return t;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         // Note close similarity to TypeIdentifier::resolve()
         *pe = null;
@@ -6976,7 +6976,7 @@ extern (C++) final class TypeTypeof : TypeQualified
     Expression exp;
     int inuse;
 
-    extern (D) this(Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp)
     {
         super(Ttypeof, loc);
         this.exp = exp;
@@ -7006,7 +7006,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         return s;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         *pe = null;
         *pt = null;
@@ -7105,7 +7105,7 @@ extern (C++) final class TypeTypeof : TypeQualified
         return;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         if (exp.type)
             return exp.type.size(loc);
@@ -7123,7 +7123,7 @@ extern (C++) final class TypeTypeof : TypeQualified
  */
 extern (C++) final class TypeReturn : TypeQualified
 {
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(Treturn, loc);
     }
@@ -7150,7 +7150,7 @@ extern (C++) final class TypeReturn : TypeQualified
         return s;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         *pe = null;
         *pt = null;
@@ -7237,7 +7237,7 @@ extern (C++) final class TypeStruct : Type
         return "struct";
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         return sym.size(loc);
     }
@@ -7506,7 +7506,7 @@ extern (C++) final class TypeStruct : Type
         return sym.alignment;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -7523,7 +7523,7 @@ extern (C++) final class TypeStruct : Type
      * Use when we prefer the default initializer to be a literal,
      * rather than a global immutable variable.
      */
-    override Expression defaultInitLiteral(Loc loc)
+    override Expression defaultInitLiteral(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -7574,7 +7574,7 @@ extern (C++) final class TypeStruct : Type
         return structinit;
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return sym.zeroInit != 0;
     }
@@ -7804,7 +7804,7 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    override d_uns64 size(Loc loc)
+    override d_uns64 size(const ref Loc loc)
     {
         return sym.getMemtype(loc).size(loc);
     }
@@ -7872,7 +7872,7 @@ extern (C++) final class TypeEnum : Type
         return m.getVarExp(e.loc, sc);
     }
 
-    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
     {
         Expression e;
         if (ident == Id.max || ident == Id.min)
@@ -7991,7 +7991,7 @@ extern (C++) final class TypeEnum : Type
         return tb.castMod(mod);         // retain modifier bits from 'this'
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -8005,7 +8005,7 @@ extern (C++) final class TypeEnum : Type
         return e;
     }
 
-    override bool isZeroInit(Loc loc)
+    override bool isZeroInit(const ref Loc loc)
     {
         return sym.getDefaultValue(loc).isBool(false);
     }
@@ -8050,7 +8050,7 @@ extern (C++) final class TypeClass : Type
         return "class";
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         return Target.ptrsize;
     }
@@ -8613,7 +8613,7 @@ extern (C++) final class TypeClass : Type
         return this;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         static if (LOGDEFAULTINIT)
         {
@@ -8622,7 +8622,7 @@ extern (C++) final class TypeClass : Type
         return new NullExp(loc, this);
     }
 
-    override bool isZeroInit(Loc loc) const
+    override bool isZeroInit(const ref Loc loc) const
     {
         return true;
     }
@@ -8763,7 +8763,7 @@ extern (C++) final class TypeTuple : Type
         return false;
     }
 
-    override Expression getProperty(Loc loc, Identifier ident, int flag)
+    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
     {
         Expression e;
         static if (LOGDOTEXP)
@@ -8790,7 +8790,7 @@ extern (C++) final class TypeTuple : Type
         return e;
     }
 
-    override Expression defaultInit(Loc loc)
+    override Expression defaultInit(const ref Loc loc)
     {
         auto exps = new Expressions();
         exps.setDim(arguments.dim);
@@ -8840,7 +8840,7 @@ extern (C++) final class TypeSlice : TypeNext
         return t;
     }
 
-    override void resolve(Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
     {
         next.resolve(loc, sc, pe, pt, ps, intypeid);
         if (*pe)
@@ -8962,12 +8962,12 @@ extern (C++) final class TypeNull : Type
         return true;
     }
 
-    override d_uns64 size(Loc loc) const
+    override d_uns64 size(const ref Loc loc) const
     {
         return tvoidptr.size(loc);
     }
 
-    override Expression defaultInit(Loc loc) const
+    override Expression defaultInit(const ref Loc loc) const
     {
         return new NullExp(Loc.initial, Type.tnull);
     }
