@@ -377,7 +377,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (f.linkage == LINK.d)
                 {
                     // Declare _arguments[]
-                    funcdecl.v_arguments = new VarDeclaration(Loc(), Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
+                    funcdecl.v_arguments = new VarDeclaration(Loc.initial, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
                     funcdecl.v_arguments.storage_class |= STC.temp | STC.parameter;
                     funcdecl.v_arguments.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_arguments);
@@ -385,7 +385,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                     //Type *t = Type::typeinfo.type.constOf().arrayOf();
                     Type t = Type.dtypeinfo.type.arrayOf();
-                    _arguments = new VarDeclaration(Loc(), t, Id._arguments, null);
+                    _arguments = new VarDeclaration(Loc.initial, t, Id._arguments, null);
                     _arguments.storage_class |= STC.temp;
                     _arguments.dsymbolSemantic(sc2);
                     sc2.insert(_arguments);
@@ -396,7 +396,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     // Declare _argptr
                     Type t = Type.tvalist;
                     // Init is handled in FuncDeclaration_toObjFile
-                    funcdecl.v_argptr = new VarDeclaration(Loc(), t, Id._argptr, new VoidInitializer(funcdecl.loc));
+                    funcdecl.v_argptr = new VarDeclaration(Loc.initial, t, Id._argptr, new VoidInitializer(funcdecl.loc));
                     funcdecl.v_argptr.storage_class |= STC.temp;
                     funcdecl.v_argptr.dsymbolSemantic(sc2);
                     sc2.insert(funcdecl.v_argptr);
@@ -470,7 +470,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         {
                             Parameter narg = Parameter.getNth(t.arguments, j);
                             assert(narg.ident);
-                            VarDeclaration v = sc2.search(Loc(), narg.ident, null).isVarDeclaration();
+                            VarDeclaration v = sc2.search(Loc.initial, narg.ident, null).isVarDeclaration();
                             assert(v);
                             Expression e = new VarExp(v.loc, v);
                             (*exps)[j] = e;
@@ -493,7 +493,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
                 if (e)
-                    fpreinv = new ExpStatement(Loc(), e);
+                    fpreinv = new ExpStatement(Loc.initial, e);
             }
 
             // Postcondition invariant
@@ -502,7 +502,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 Expression e = addInvariant(funcdecl.loc, sc, ad, funcdecl.vthis);
                 if (e)
-                    fpostinv = new ExpStatement(Loc(), e);
+                    fpostinv = new ExpStatement(Loc.initial, e);
             }
 
             // Pre/Postcondition contract
@@ -561,7 +561,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
-                    funcdecl.fbody = new CompoundStatement(Loc(), new Statements());
+                    funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
 
                 if (funcdecl.naked)
                 {
@@ -669,7 +669,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         sc2.callSuper = 0;
 
                         // Insert implicit super() at start of fbody
-                        FuncDeclaration fd = resolveFuncCall(Loc(), sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
+                        FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
                         if (!fd)
                         {
                             funcdecl.error("no match for implicit `super()` call in constructor");
@@ -680,11 +680,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         }
                         else
                         {
-                            Expression e1 = new SuperExp(Loc());
-                            Expression e = new CallExp(Loc(), e1);
+                            Expression e1 = new SuperExp(Loc.initial);
+                            Expression e = new CallExp(Loc.initial, e1);
                             e = e.expressionSemantic(sc2);
-                            Statement s = new ExpStatement(Loc(), e);
-                            funcdecl.fbody = new CompoundStatement(Loc(), s, funcdecl.fbody);
+                            Statement s = new ExpStatement(Loc.initial, e);
+                            funcdecl.fbody = new CompoundStatement(Loc.initial, s, funcdecl.fbody);
                         }
                     }
                     //printf("callSuper = x%x\n", sc2.callSuper);
@@ -750,8 +750,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (blockexit & BE.fallthru)
                     {
                         Expression e = new IntegerExp(0);
-                        Statement s = new ReturnStatement(Loc(), e);
-                        funcdecl.fbody = new CompoundStatement(Loc(), funcdecl.fbody, s);
+                        Statement s = new ReturnStatement(Loc.initial, e);
+                        funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
                         funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
                     }
                     assert(!funcdecl.returnLabel);
@@ -775,10 +775,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         }
                         else
                             e = new HaltExp(funcdecl.endloc);
-                        e = new CommaExp(Loc(), e, f.next.defaultInit());
+                        e = new CommaExp(Loc.initial, e, f.next.defaultInit());
                         e = e.expressionSemantic(sc2);
-                        Statement s = new ExpStatement(Loc(), e);
-                        funcdecl.fbody = new CompoundStatement(Loc(), funcdecl.fbody, s);
+                        Statement s = new ExpStatement(Loc.initial, e);
+                        funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
                     }
                 }
 
@@ -941,7 +941,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             assert(ie);
                             if (ie.exp.op == TOK.construct)
                                 ie.exp.op = TOK.assign; // construction occurred in parameter processing
-                            a.push(new ExpStatement(Loc(), ie.exp));
+                            a.push(new ExpStatement(Loc.initial, ie.exp));
                         }
                     }
                 }
@@ -951,14 +951,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     /* Advance to elements[] member of TypeInfo_Tuple with:
                      *  _arguments = v_arguments.elements;
                      */
-                    Expression e = new VarExp(Loc(), funcdecl.v_arguments);
-                    e = new DotIdExp(Loc(), e, Id.elements);
-                    e = new ConstructExp(Loc(), _arguments, e);
+                    Expression e = new VarExp(Loc.initial, funcdecl.v_arguments);
+                    e = new DotIdExp(Loc.initial, e, Id.elements);
+                    e = new ConstructExp(Loc.initial, _arguments, e);
                     e = e.expressionSemantic(sc2);
 
-                    _arguments._init = new ExpInitializer(Loc(), e);
-                    auto de = new DeclarationExp(Loc(), _arguments);
-                    a.push(new ExpStatement(Loc(), de));
+                    _arguments._init = new ExpInitializer(Loc.initial, e);
+                    auto de = new DeclarationExp(Loc.initial, _arguments);
+                    a.push(new ExpStatement(Loc.initial, de));
                 }
 
                 // Merge contracts together with body into one compound statement
@@ -968,7 +968,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!freq)
                         freq = fpreinv;
                     else if (fpreinv)
-                        freq = new CompoundStatement(Loc(), freq, fpreinv);
+                        freq = new CompoundStatement(Loc.initial, freq, fpreinv);
 
                     a.push(freq);
                 }
@@ -981,33 +981,33 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!fens)
                         fens = fpostinv;
                     else if (fpostinv)
-                        fens = new CompoundStatement(Loc(), fpostinv, fens);
+                        fens = new CompoundStatement(Loc.initial, fpostinv, fens);
 
-                    auto ls = new LabelStatement(Loc(), Id.returnLabel, fens);
+                    auto ls = new LabelStatement(Loc.initial, Id.returnLabel, fens);
                     funcdecl.returnLabel.statement = ls;
                     a.push(funcdecl.returnLabel.statement);
 
                     if (f.next.ty != Tvoid && funcdecl.vresult)
                     {
                         // Create: return vresult;
-                        Expression e = new VarExp(Loc(), funcdecl.vresult);
+                        Expression e = new VarExp(Loc.initial, funcdecl.vresult);
                         if (funcdecl.tintro)
                         {
                             e = e.implicitCastTo(sc, funcdecl.tintro.nextOf());
                             e = e.expressionSemantic(sc);
                         }
-                        auto s = new ReturnStatement(Loc(), e);
+                        auto s = new ReturnStatement(Loc.initial, e);
                         a.push(s);
                     }
                 }
                 if (funcdecl.isMain() && f.next.ty == Tvoid)
                 {
                     // Add a return 0; statement
-                    Statement s = new ReturnStatement(Loc(), new IntegerExp(0));
+                    Statement s = new ReturnStatement(Loc.initial, new IntegerExp(0));
                     a.push(s);
                 }
 
-                Statement sbody = new CompoundStatement(Loc(), a);
+                Statement sbody = new CompoundStatement(Loc.initial, a);
 
                 /* Append destructor calls for parameters as finally blocks.
                  */
@@ -1020,7 +1020,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         if (v.needsScopeDtor())
                         {
                             // same with ExpStatement.scopeCode()
-                            Statement s = new DtorExpStatement(Loc(), v.edtor, v);
+                            Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
                             v.storage_class |= STC.nodtor;
 
                             s = s.statementSemantic(sc2);
@@ -1035,9 +1035,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 f.isnothrow = false;
 
                             if (sbody.blockExit(funcdecl, f.isnothrow) == BE.fallthru)
-                                sbody = new CompoundStatement(Loc(), sbody, s);
+                                sbody = new CompoundStatement(Loc.initial, sbody, s);
                             else
-                                sbody = new TryFinallyStatement(Loc(), sbody, s);
+                                sbody = new TryFinallyStatement(Loc.initial, sbody, s);
                         }
                     }
                 }
@@ -1281,7 +1281,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             ti.dsymbolSemantic(sc3);
             ti.semantic2(sc3);
             ti.semantic3(sc3);
-            auto e = resolve(Loc(), sc3, ti.toAlias(), false);
+            auto e = resolve(Loc.initial, sc3, ti.toAlias(), false);
 
             sc3.endCTFE();
 

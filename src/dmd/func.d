@@ -112,24 +112,24 @@ public:
              *      // equivalent with:
              *      //    s.body; scope(failure) nrvo_var.edtor;
              */
-            Statement sexception = new DtorExpStatement(Loc(), fd.nrvo_var.edtor, fd.nrvo_var);
+            Statement sexception = new DtorExpStatement(Loc.initial, fd.nrvo_var.edtor, fd.nrvo_var);
             Identifier id = Identifier.generateId("__o");
 
             Statement handler = new PeelStatement(sexception);
             if (sexception.blockExit(fd, false) & BE.fallthru)
             {
-                auto ts = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
+                auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
                 ts.internalThrow = true;
-                handler = new CompoundStatement(Loc(), handler, ts);
+                handler = new CompoundStatement(Loc.initial, handler, ts);
             }
 
             auto catches = new Catches();
-            auto ctch = new Catch(Loc(), getThrowable(), id, handler);
+            auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
             ctch.internalCatch = true;
             ctch.catchSemantic(sc); // Run semantic to resolve identifier '__o'
             catches.push(ctch);
 
-            Statement s2 = new TryCatchStatement(Loc(), s._body, catches);
+            Statement s2 = new TryCatchStatement(Loc.initial, s._body, catches);
             fd.eh_none = false;
             replaceCurrent(s2);
             s2.accept(this);

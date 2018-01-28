@@ -109,7 +109,7 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
  * of fd's 'this' variable.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
+elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -315,7 +315,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
  * Returns:
  *      *(ey + ad.vthis.offset) = this;
  */
-elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad)
+elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();

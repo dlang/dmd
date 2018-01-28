@@ -30,7 +30,7 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
-    extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
     {
         super(ident);
         //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
