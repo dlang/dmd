@@ -1182,7 +1182,7 @@ public:
      may already be stored in members of classes, arrays, or AAs which
      were passed as mutable function parameters).
      */
-    static bool stopPointersEscaping(Loc loc, Expression e)
+    static bool stopPointersEscaping(const ref Loc loc, Expression e)
     {
         if (!e.type.hasPointers())
             return true;
@@ -1232,7 +1232,7 @@ public:
     }
 
     // Check all members of an array for escaping local variables. Return false if error
-    static bool stopPointersEscapingFromArray(Loc loc, Expressions* elems)
+    static bool stopPointersEscapingFromArray(const ref Loc loc, Expressions* elems)
     {
         for (size_t i = 0; i < elems.dim; i++)
         {
@@ -2236,7 +2236,7 @@ public:
         }
     }
 
-    static Expression getVarExp(Loc loc, InterState* istate, Declaration d, CtfeGoal goal)
+    static Expression getVarExp(const ref Loc loc, InterState* istate, Declaration d, CtfeGoal goal)
     {
         Expression e = CTFEExp.cantexp;
         if (VarDeclaration v = d.isVarDeclaration())
@@ -2880,7 +2880,7 @@ public:
 
     // Create an array literal of type 'newtype' with dimensions given by
     // 'arguments'[argnum..$]
-    static Expression recursivelyCreateArrayLiteral(Loc loc, Type newtype, InterState* istate, Expressions* arguments, int argnum)
+    static Expression recursivelyCreateArrayLiteral(const ref Loc loc, Type newtype, InterState* istate, Expressions* arguments, int argnum)
     {
         Expression lenExpr = interpret((*arguments)[argnum], istate);
         if (exceptionOrCantInterpret(lenExpr))
@@ -6250,7 +6250,7 @@ private Expression interpret(Statement s, InterState* istate)
  * features removed.
  * In particular, all slices must be resolved.
  */
-private Expression scrubReturnValue(Loc loc, Expression e)
+private Expression scrubReturnValue(const ref Loc loc, Expression e)
 {
     if (e.op == TOK.classReference)
     {
@@ -6328,7 +6328,7 @@ private bool isEntirelyVoid(Expressions* elems)
 }
 
 // Scrub all members of an array. Return false if error
-private Expression scrubArray(Loc loc, Expressions* elems, bool structlit = false)
+private Expression scrubArray(const ref Loc loc, Expressions* elems, bool structlit = false)
 {
     for (size_t i = 0; i < elems.dim; i++)
     {
@@ -6355,7 +6355,7 @@ private Expression scrubArray(Loc loc, Expressions* elems, bool structlit = fals
     return null;
 }
 
-private Expression scrubCacheValue(Loc loc, Expression e)
+private Expression scrubCacheValue(const ref Loc loc, Expression e)
 {
     if (e.op == TOK.classReference)
     {
@@ -6405,7 +6405,7 @@ private Expression scrubCacheValue(Loc loc, Expression e)
     return e;
 }
 
-private Expression scrubArrayCache(Loc loc, Expressions* elems)
+private Expression scrubArrayCache(const ref Loc loc, Expressions* elems)
 {
     for (size_t i = 0; i < elems.dim; i++)
     {
@@ -6824,7 +6824,7 @@ private Expression foreachApplyUtf(InterState* istate, Expression str, Expressio
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
-private Expression evaluateIfBuiltin(InterState* istate, Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
+private Expression evaluateIfBuiltin(InterState* istate, const ref Loc loc, FuncDeclaration fd, Expressions* arguments, Expression pthis)
 {
     Expression e = null;
     size_t nargs = arguments ? arguments.dim : 0;

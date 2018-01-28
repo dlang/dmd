@@ -123,7 +123,7 @@ private elem *useOPstrpar(elem *e)
  * Call a function.
  */
 
-private elem *callfunc(Loc loc,
+private elem *callfunc(const ref Loc loc,
         IRState *irs,
         int directcall,         // 1: don't do virtual call
         Type tret,              // return type
@@ -795,7 +795,7 @@ elem *array_toDarray(Type t, elem *e)
 /************************************
  */
 
-elem *sarray_toDarray(Loc loc, Type tfrom, Type tto, elem *e)
+elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
 {
     //printf("sarray_toDarray()\n");
     //elem_print(e);
@@ -5225,7 +5225,7 @@ elem *toElem(Expression e, IRState *irs)
          * Allocate a static array, and initialize its members with elems[].
          * Return the initialization expression, and the symbol for the static array in *psym.
          */
-        elem *ElemsToStaticArray(Loc loc, Type telem, Elems *elems, Symbol **psym)
+        elem *ElemsToStaticArray(const ref Loc loc, Type telem, Elems *elems, Symbol **psym)
         {
             // Create a static array of type telem[dim]
             size_t dim = elems.dim;
@@ -5270,7 +5270,7 @@ elem *toElem(Expression e, IRState *irs)
          * exps[].
          * Return the initialization expression, and the symbol for the static array in *psym.
          */
-        elem *ExpressionsToStaticArray(Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
+        elem *ExpressionsToStaticArray(const ref Loc loc, Expressions *exps, Symbol **psym, size_t offset = 0, Expression basis = null)
         {
             // Create a static array of type telem[dim]
             size_t dim = exps.dim;
@@ -6041,7 +6041,7 @@ void toTraceGC(IRState *irs, elem *e, const ref Loc loc)
  * Returns:
  *      generated call
  */
-elem *callCAssert(IRState *irs, Loc loc, Expression exp, Expression emsg, const(char)* str)
+elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression emsg, const(char)* str)
 {
     //printf("callCAssert.toElem() %s\n", e.toChars());
     Module m = cast(Module)irs.blx._module;
