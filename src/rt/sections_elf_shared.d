@@ -11,6 +11,7 @@
 module rt.sections_elf_shared;
 
 version (CRuntime_Glibc) enum SharedELF = true;
+else version (CRuntime_Musl) enum SharedELF = true;
 else version (FreeBSD) enum SharedELF = true;
 else version (NetBSD) enum SharedELF = true;
 else enum SharedELF = false;
