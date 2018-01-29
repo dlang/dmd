@@ -827,7 +827,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                     if (!init.type)
                         goto Lno;
                     if (!_init)
-                        _init = (cast(TypeNext)t).next.defaultInit();
+                        _init = (cast(TypeNext)t).next.defaultInit(Loc.initial);
                     (*elements)[i] = _init;
                 }
             }
