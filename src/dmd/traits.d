@@ -1419,8 +1419,50 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 0))
             return new ErrorExp();
 
+
         auto o1 = (*e.args)[0];
         auto o2 = (*e.args)[1];
+
+        FuncLiteralDeclaration isLambda(RootObject oarg)
+        {
+            if (auto t = isDsymbol(oarg))
+            {
+                if (auto td = t.isTemplateDeclaration())
+                {
+                    if (td.members && td.members.dim == 1)
+                    {
+                        if (auto fd = (*td.members)[0].isFuncLiteralDeclaration())
+                            return fd;
+                    }
+                }
+            }
+            else if (auto ea = isExpression(oarg))
+            {
+                if (ea.op == TOK.function_)
+                {
+                    if (auto fe = cast(FuncExp)ea)
+                        return fe.fd;
+                }
+            }
+
+            return null;
+        }
+
+        auto l1 = isLambda(o1);
+        auto l2 = isLambda(o2);
+
+        if (l1 && l2)
+        {
+            import core.stdc.string;
+
+            if (strcmp(l1.serialization, l2.serialization) == 0 &&
+                strcmp(l1.serialization, "uncomparable") != 0)
+            {
+                return True();
+            }
+            return False();
+        }
+
         auto s1 = getDsymbol(o1);
         auto s2 = getDsymbol(o2);
         //printf("isSame: %s, %s\n", o1.toChars(), o2.toChars());
@@ -1451,6 +1493,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         if (!s1 || !s2)
             return False();
+
         s1 = s1.toAlias();
         s2 = s2.toAlias();
 
