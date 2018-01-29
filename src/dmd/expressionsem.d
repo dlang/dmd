@@ -23,6 +23,7 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
 import dmd.canthrow;
+import dmd.dcache;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.declaration;
@@ -2962,6 +2963,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (!sd.ctor)
                     sd.ctor = sd.searchCtor();
 
+                // A cached value is a literal
+                if (cachedSemantics) goto Lx;
                 // First look for constructor
                 if (exp.e1.op == TOK.type && sd.ctor)
                 {

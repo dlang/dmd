@@ -101,6 +101,9 @@ struct Usage
         Option("c",
             "do not link"
         ),
+        Option("cache=mmap",
+            "use persistent cache for CTFE evaluations"
+        ),
         Option("color",
             "turn colored console output on"
         ),

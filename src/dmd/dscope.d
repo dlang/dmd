@@ -16,10 +16,12 @@ import core.stdc.stdio;
 import core.stdc.string;
 import dmd.aggregate;
 import dmd.attrib;
+import dmd.dcache;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.doc;
+import dmd.dimport;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
@@ -554,7 +556,7 @@ struct Scope
              * checked by the compiler remain usable.  Once the deprecation is over,
              * this should be moved to search_correct instead.
              */
-            if (!s && !(flags & IgnoreSymbolVisibility))
+            if (!cachedSemantics && !s && !(flags & IgnoreSymbolVisibility))
             {
                 s = searchScopes(flags | SearchLocalsOnly | IgnoreSymbolVisibility);
                 if (!s)

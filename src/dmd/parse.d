@@ -237,7 +237,12 @@ final class Parser(AST) : Lexer
     Loc endloc; // set to location of last right curly
     int inBrackets; // inside [] of array index or slice
     Loc lookingForElse; // location of lonely if looking for an else
-
+    enum withSignature = __traits(hasMember, typeof(mod), "signature");
+    static if (withSignature)
+    {
+        import dmd.root.sha;
+        SHA1 hasher;
+    }
     /*********************
      * Use this constructor for string mixins.
      * Input:
@@ -246,8 +251,14 @@ final class Parser(AST) : Lexer
     extern (D) this(Loc loc, AST.Module _module, const(char)[] input, bool doDocComment)
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
-
         //printf("Parser::Parser()\n");
+        static if (withSignature)
+        {
+            hasher.start();
+            hasher.put(_module.signature[]);
+            hasher.put(cast(ubyte[])input);
+            _module.signature = hasher.finish();
+        }
         scanloc = loc;
 
         if (loc.filename)
@@ -268,7 +279,12 @@ final class Parser(AST) : Lexer
     extern (D) this(AST.Module _module, const(char)[] input, bool doDocComment)
     {
         super(_module ? _module.srcfile.toChars() : null, input.ptr, 0, input.length, doDocComment, false);
-
+        static if (withSignature)
+        {
+            hasher.start();
+            hasher.put(cast(ubyte[])input);
+            _module.signature = hasher.finish();
+        }
         //printf("Parser::Parser()\n");
         mod = _module;
         linkage = LINK.d;

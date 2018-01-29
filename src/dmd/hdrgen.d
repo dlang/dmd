@@ -1530,7 +1530,10 @@ public:
 
     override void visit(TemplateInstance ti)
     {
-        buf.writestring(ti.name.toChars());
+        if (ti.aliasdecl)
+            buf.writestring(ti.aliasdecl.toChars());
+        else
+            buf.writestring(ti.name.toChars());
         tiargsToBuffer(ti);
 
         if (hgs.fullDump)
@@ -2497,7 +2500,7 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        buf.writestring(e.sd.toChars());
+        buf.writestring(e.sd.type.toChars());
         buf.writeByte('(');
         // CTFE can generate struct literals that contain an AddrExp pointing
         // to themselves, need to avoid infinite recursion:
