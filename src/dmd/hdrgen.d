@@ -1281,7 +1281,11 @@ public:
     {
         protectionToBuffer(buf, d.protection);
         buf.writeByte(' ');
-        visit(cast(AttribDeclaration)d);
+        AttribDeclaration ad = cast(AttribDeclaration)d;
+        if (ad.decl.dim == 1 && (*ad.decl)[0].isProtDeclaration)
+            visit(cast(AttribDeclaration)(*ad.decl)[0]);
+        else
+            visit(cast(AttribDeclaration)d);
     }
 
     override void visit(AlignDeclaration d)

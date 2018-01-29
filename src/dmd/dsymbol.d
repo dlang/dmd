@@ -1212,6 +1212,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(ProtDeclaration) isProtDeclaration() inout
+    {
+        return null;
+    }
+
     inout(OverloadSet) isOverloadSet() inout
     {
         return null;

@@ -115,6 +115,7 @@ public:
     void addMember(Scope *sc, ScopeDsymbol *sds);
     const char *kind() const;
     const char *toPrettyChars(bool unused);
+    ProtDeclaration *isProtDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
 };
 

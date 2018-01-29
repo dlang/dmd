@@ -131,3 +131,6 @@ const levar = new class LeClass, LeInterface
 {
 }
 ;
+private struct Export
+{
+}

@@ -590,6 +590,11 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         return buf.extractString();
     }
 
+    override final inout(ProtDeclaration) isProtDeclaration() inout
+    {
+        return this;
+    }
+
     override void accept(Visitor v)
     {
         v.visit(this);

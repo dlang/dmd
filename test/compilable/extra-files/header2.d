@@ -170,3 +170,7 @@ class LeClass
     }
 }
 const levar = new class LeClass, LeInterface {};
+
+// 17663
+private:
+public struct Export {}
