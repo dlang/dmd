@@ -5,7 +5,8 @@ $(SPEC_S Statements,
 $(HEADERNAV_TOC)
 
     $(P The order of execution within a function is controlled by $(GLINK Statement)s.
-    A $(I Statement) is composed of $(GLINK2 expression, Expression)s and other $(I Statement)s.
+    A function's body consists of a sequence of zero or more $(I Statement)s.
+    Execution occurs in lexical order, though certain statements may have deferred effects.
     A $(I Statement) has no value; it is executed for its effects.
     )
 
