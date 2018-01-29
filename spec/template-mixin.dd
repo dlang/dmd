@@ -10,10 +10,10 @@ $(HEADERNAV_TOC)
 
 $(GRAMMAR
 $(GNAME TemplateMixinDeclaration):
-    $(D mixin) $(D template) $(I Identifier) $(TEMPLATEPARAMETERS) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+    $(D mixin) $(D template) $(I Identifier) $(GLINK2 template, TemplateParameters) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 
 $(GNAME TemplateMixin):
-    $(D mixin) $(GLINK MixinTemplateName) $(TEMPLATEARGUMENTS)$(OPT) $(I Identifier)$(OPT) $(D ;)
+    $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(I Identifier)$(OPT) $(D ;)
 
 $(GNAME MixinTemplateName):
     $(D .) $(GLINK QualifiedIdentifierList)
@@ -339,6 +339,4 @@ $(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 Macros:
         CHAPTER=22
         TITLE=Template Mixins
-        TEMPLATEPARAMETERS=$(GLINK2 template, TemplateParameters)
-        TEMPLATEARGUMENTS=$(GLINK2 template, TemplateArguments)
         _=
