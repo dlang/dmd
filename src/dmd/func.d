@@ -244,7 +244,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     uint flags;                        /// FUNCFLAG.xxxxx
 
-    final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         super(id);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -265,7 +265,7 @@ extern (C++) class FuncDeclaration : Declaration
         inferRetType = (type && type.nextOf() is null);
     }
 
-    static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
+    static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         return new FuncDeclaration(loc, endloc, id, storage_class, type);
     }
@@ -372,7 +372,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Check that this function type is properly resolved.
      * If not, report "forward reference error" and return true.
      */
-    final bool checkForwardRef(Loc loc)
+    final bool checkForwardRef(const ref Loc loc)
     {
         if (!functionSemantic())
             return true;
@@ -743,7 +743,7 @@ extern (C++) class FuncDeclaration : Declaration
      * 4. If there's no candidates, it's "no match" and returns null with error report.
      *      e.g. If 'tthis' is const but there's no const methods.
      */
-    final FuncDeclaration overloadModMatch(Loc loc, Type tthis, ref bool hasOverloads)
+    final FuncDeclaration overloadModMatch(const ref Loc loc, Type tthis, ref bool hasOverloads)
     {
         //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
         Match m;
@@ -977,7 +977,7 @@ extern (C++) class FuncDeclaration : Declaration
      *      -1      increase nesting by 1 (fd is nested within 'this')
      *      -2      error
      */
-    final int getLevel(Loc loc, Scope* sc, FuncDeclaration fd)
+    final int getLevel(const ref Loc loc, Scope* sc, FuncDeclaration fd)
     {
         int level;
         Dsymbol s;
@@ -1327,7 +1327,7 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
     }
 
-    final void printGCUsage(Loc loc, const(char)* warn)
+    final void printGCUsage(const ref Loc loc, const(char)* warn)
     {
         if (!global.params.vgc)
             return;
@@ -1632,7 +1632,7 @@ extern (C++) class FuncDeclaration : Declaration
      *    then mark it as a delegate.
      * Returns true if error occurs.
      */
-    final bool checkNestedReference(Scope* sc, Loc loc)
+    final bool checkNestedReference(Scope* sc, const ref Loc loc)
     {
         //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
 
@@ -2280,7 +2280,7 @@ extern (C++) class FuncDeclaration : Declaration
  * Returns:
  *      void expression that calls the invariant
  */
-extern (C++) Expression addInvariant(Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
+extern (C++) Expression addInvariant(const ref Loc loc, Scope* sc, AggregateDeclaration ad, VarDeclaration vthis)
 {
     Expression e = null;
     // Call invariant directly only if it exists
@@ -2477,7 +2477,7 @@ private const(char)* prependSpace(const(char)* str)
  * Returns:
  *      if match is found, then function symbol, else null
  */
-extern (C++) FuncDeclaration resolveFuncCall(Loc loc, Scope* sc, Dsymbol s,
+extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     Objects* tiargs, Type tthis, Expressions* fargs, int flags = 0)
 {
     if (!s)
@@ -2950,7 +2950,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     // backend
     bool deferToObj;
 
-    extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {
         super(loc, endloc, null, STC.undefined_, type);
         this.ident = id ? id : Id.empty;
@@ -3078,7 +3078,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
  */
 extern (C++) final class CtorDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
         //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
@@ -3131,7 +3131,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
  */
 extern (C++) final class PostBlitDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
     }
@@ -3178,12 +3178,12 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
  */
 extern (C++) final class DtorDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc)
     {
         super(loc, endloc, Id.dtor, STC.undefined_, null);
     }
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
     }
@@ -3241,12 +3241,12 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
  */
 extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
-    final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId("_staticCtor"), STC.static_ | stc, null);
     }
 
-    final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, const(char)* name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
     }
@@ -3298,7 +3298,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
  */
 extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticCtor", stc);
     }
@@ -3327,12 +3327,12 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
 {
     VarDeclaration vgate; // 'gate' variable
 
-    final extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId("_staticDtor"), STC.static_ | stc, null);
     }
 
-    final extern (D) this(Loc loc, Loc endloc, const(char)* name, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, const(char)* name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
     }
@@ -3384,7 +3384,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
  */
 extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticDtor", stc);
     }
@@ -3411,7 +3411,7 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
  */
 extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Identifier id, Statement fbody)
     {
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
         this.fbody = fbody;
@@ -3460,7 +3460,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, char* codedoc)
     {
         // Id.empty can cause certain things to fail, so we create a
         // temporary one here that serves for most purposes with
@@ -3491,7 +3491,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
      * Generate unique unittest function Id so we can have multiple
      * instances per module.
      */
-    private static Identifier createIdentifier(Loc loc, Scope* sc)
+    private static Identifier createIdentifier(const ref Loc loc, Scope* sc)
     {
         OutBuffer buf;
         writeModuleNameOrFileName(buf, loc, sc);
@@ -3516,7 +3516,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
      *    loc = The location of the unit test declaration.
      *    scope = The scope of the unit test declaration.
      */
-    private static void writeModuleNameOrFileName(ref OutBuffer buf, Loc loc, Scope* scope_)
+    private static void writeModuleNameOrFileName(ref OutBuffer buf, const ref Loc loc, Scope* scope_)
     {
         if (scope_ is null || scope_._module is null || scope_._module.ident is null)
         {
@@ -3564,7 +3564,7 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     Parameters* parameters;
     int varargs;
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams, int varargs)
     {
         super(loc, endloc, Id.classNew, STC.static_ | stc, null);
         this.parameters = fparams;
@@ -3615,7 +3615,7 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
 {
     Parameters* parameters;
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Parameters* fparams)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Parameters* fparams)
     {
         super(loc, endloc, Id.classDelete, STC.static_ | stc, null);
         this.parameters = fparams;

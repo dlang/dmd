@@ -250,7 +250,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    final extern (D) this(Loc loc, Identifier id, bool inObject)
+    extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
         super(loc, id);
         zeroInit = 0; // assume false until we do semantic processing
@@ -439,7 +439,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
      *      false if any errors occur,
      *      otherwise true and elements[] are rewritten for the output.
      */
-    final bool fit(Loc loc, Scope* sc, Expressions* elements, Type stype)
+    final bool fit(const ref Loc loc, Scope* sc, Expressions* elements, Type stype)
     {
         if (!elements)
             return true;
@@ -586,7 +586,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
  */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
-    extern (D) this(Loc loc, Identifier id)
+    extern (D) this(const ref Loc loc, Identifier id)
     {
         super(loc, id, false);
     }

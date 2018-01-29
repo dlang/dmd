@@ -47,7 +47,7 @@ extern (C++) class Initializer : RootObject
 {
     Loc loc;
 
-    final extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         this.loc = loc;
     }
@@ -112,7 +112,7 @@ extern (C++) final class VoidInitializer : Initializer
 {
     Type type;      // type that this will initialize to
 
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(loc);
     }
@@ -165,7 +165,7 @@ extern (C++) final class StructInitializer : Initializer
     Identifiers field;      // of Identifier *'s
     Initializers value;     // parallel array of Initializer *'s
 
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(loc);
     }
@@ -212,7 +212,7 @@ extern (C++) final class ArrayInitializer : Initializer
     Type type;              // type that array will be used to initialize
     bool sem;               // true if semantic() is run
 
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(loc);
     }
@@ -301,7 +301,7 @@ extern (C++) final class ExpInitializer : Initializer
     Expression exp;
     bool expandTuples;
 
-    extern (D) this(Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp)
     {
         super(loc);
         this.exp = exp;
