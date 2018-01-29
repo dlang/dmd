@@ -120,6 +120,7 @@ public:
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
+    char signature[20];         // SHA1 signature of contents
 
     static Module* create(const char *arg, Identifier *ident, int doDocComment, int doHdrGen);
 
