@@ -2341,6 +2341,7 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
     Dsymbol next;
     for (Dsymbol d = fstart; d; d = next)
     {
+        import dmd.access : checkSymbolAccess;
         if (auto od = d.isOverDeclaration())
         {
             if (od.hasOverloads)
@@ -2353,7 +2354,6 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
                  */
                 if (sc)
                 {
-                    import dmd.access : checkSymbolAccess;
                     if (checkSymbolAccess(sc, od))
                     {
                         if (int r = overloadApply(od.aliassym, dg, sc))
@@ -2393,7 +2393,6 @@ extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Sco
         {
             if (sc)
             {
-                import dmd.access : checkSymbolAccess;
                 if (checkSymbolAccess(sc, ad))
                     next = ad.toAlias();
             }

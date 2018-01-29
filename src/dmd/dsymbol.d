@@ -1362,9 +1362,15 @@ public:
                             /* If both s2 and s are overloadable (though we only
                              * need to check s once)
                              */
+
                             if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
                             {
-                                a = mergeOverloadSet(ident, a, s2);
+                                if (symbolIsVisible(this, s2))
+                                {
+                                    a = mergeOverloadSet(ident, a, s2);
+                                }
+                                if (!symbolIsVisible(this, s))
+                                    s = s2;
                                 continue;
                             }
                             if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
