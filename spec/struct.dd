@@ -4,19 +4,10 @@ $(SPEC_S Structs and Unions,
 
 $(HEADERNAV_TOC)
 
-         $(P Whereas classes are reference types, structs are value types.
-             Any C struct can be exactly represented as a D struct, except non-static
-             $(RELATIVE_LINK2 nested, function-nested D structs) which access the context of
-             their enclosing scope.
-             Structs and unions are simple aggregations of data, or as a way
-             to paint a data structure over hardware or an external type. External
-             types can be defined by the operating system API, or by a file format.
-             Object oriented features are provided with the class data type.
-             )
-
-         $(P A struct is defined to not have an identity; that is,
-             the implementation is free to make bit copies of the struct
-             as convenient.)
+    $(P Whereas classes are reference types, structs are value types.
+    Structs and unions are simple aggregations of data and their
+    associated operations on that data.
+    )
 
 $(GRAMMAR
 $(GNAME AggregateDeclaration):
@@ -47,27 +38,64 @@ $(GNAME AggregateBody):
     $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 )
 
-$(P They work like they do in C, with the following exceptions:)
+    $(P A struct is defined to not have an identity; that is,
+    the implementation is free to make bit copies of the struct
+    as convenient.)
 
-$(UL
-        $(LI no bit fields)
-        $(LI alignment can be explicitly specified)
-        $(LI no separate tag name space - tag names go into the current scope)
-        $(LI declarations like:
+    $(P Structs and unions may not contain an instance of themselves,
+    however, they may contain a pointer to the same type.
+    )
 
-------
-struct ABC x;
-------
-        are not allowed, replace with:
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Bit fields are supported with the
+    $(LINK2 https://dlang.org/phobos/std_bitmanip.html#bitfields, bitfields) template.)
+    ))
 
-------
-ABC x;
-------
-        )
-        $(LI anonymous structs/unions are allowed as members of other structs/unions)
-        $(LI Default initializers for members can be supplied.)
-        $(LI Member functions and static members are allowed.)
-)
+
+$(H2 $(LNAME2 struct_layout, Struct Layout))
+
+    $(P The non-static data members of a struct are called $(I fields). Fields are laid
+    out in lexical order. Fields are aligned according to the $(DDSUBLINK spec/attribute, align, Align Attribute)
+    in effect.
+    Unnamed padding is inserted between fields to align fields. There is no padding between
+    the first field and the start of the object.
+    )
+
+    $(P Non-static $(RELATIVE_LINK2 nested, function-nested D structs), which access the context of
+    their enclosing scope, have an extra field.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The default layout of the fields of a struct is an exact
+    match with the $(I associated C compiler).)
+    ))
+
+    $(UNDEFINED_BEHAVIOR
+    $(OL
+    $(LI The padding data can be accessed, but its contents are undefined.)
+    ))
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI When laying out a struct to match an externally defined layout, use align
+    attributes to describe an exact match. Using a $(DDSUBLINK spec/version, static-assert, Static Assert)
+    to ensure the result is as expected.)
+    $(LI Although the contents of the padding are often zero, do not rely on that.)
+    ))
+
+$(H2 $(LNAME2 POD, Plain Old Data))
+
+    $(P A struct or union is $(I Plain Old Data) (POD) if it meets the following criteria:)
+
+    $(OL
+    $(LI it is not nested)
+    $(LI it has no postblits, destructors, or assignment operators)
+    $(LI it has no `ref` fields or fields that are themselves non-POD)
+    )
+
+    $(BEST_PRACTICE Structs or unions that interface with C code should be POD.)
 
 
 $(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
