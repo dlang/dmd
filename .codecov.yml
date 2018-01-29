@@ -6,7 +6,7 @@ codecov:
     # We don't want to wait for the CodeCov report
     # See https://github.com/codecov/support/issues/312
     require_ci_to_pass: false
-    after_n_builds: 1  # send notifications after the first upload
+    after_n_builds: 3  # send notifications after all CircleCi builds
     wait_for_ci: false
 
   bot: dlang-bot
