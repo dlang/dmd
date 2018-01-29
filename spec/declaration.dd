@@ -301,7 +301,7 @@ $(GNAME AutoDeclarationY):
 static x = 3;      // x is type int
 auto y = 4u;       // y is type uint
 
-auto s = "string"; // s is type immutable(char)[]
+auto s = "Apollo"; // s is type immutable(char)[]
 
 class C { ... }
 
@@ -318,11 +318,9 @@ auto c = new C();  // c is a handle to an instance of class C
         is inferred to be a dynamic array
         type rather than a static array:)
 
----
-auto v = ["hello", "world"]; // type is string[], not string[2]
----
-
-
+        ---
+        auto v = ["resistance", "is", "useless"]; // type is string[], not string[3]
+        ---
 
 
 $(H2 $(LNAME2 alias, Alias Declarations))
@@ -367,13 +365,13 @@ void foo(myint m) { ... } // error, multiply defined function foo
         For example:
     )
 
---------------------
-import string;
+        ---
+        import planets;
 
-alias mylen = string.strlen;
-...
-int len = mylen("hello"); // actually calls string.strlen()
---------------------
+        alias myAlbedo = planets.albedo;
+        ...
+        int len = myAlbedo("Saturn"); // actually calls planets.albedo()
+        ---
 
         $(P
         The following alias declarations are valid:
@@ -410,7 +408,7 @@ version (linux)
 --------------------
 
         $(P
-        Aliasing can be used to $(SINGLEQUOTE import) a symbol from an import into the
+        Aliasing can be used to `import` a symbol from an import into the
         current scope:
         )
 
@@ -419,7 +417,7 @@ alias strlen = string.strlen;
 --------------------
 
         $(P
-        Aliases can also $(SINGLEQUOTE import) a set of overloaded functions, that can
+        Aliases can also `import` a set of overloaded functions, that can
         be overloaded with functions in the current scope:
         )
 
@@ -482,8 +480,7 @@ $(H2 $(LNAME2 extern, Extern Declarations))
 
 $(P Variable declarations with the storage class $(D extern) are not allocated
 storage within the module. They must be defined in some other object file with a
-matching name which is then linked in. The primary usefulness of this is to
-connect with global variable declarations in C files.)
+matching name which is then linked in.)
 
 $(P An $(D extern) declaration can optionally be followed by an $(D extern)
 $(LINK2 attribute.html$(HASH)linkage, linkage attribute). If there is no linkage
@@ -496,6 +493,12 @@ extern(C) int foo;
 // (e.g. in a statically linked C library or another module)
 extern extern(C) int bar;
 ---------------
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI The primary usefulness of $(I Extern Declarations) is to
+        connect with global variables declarations and functions in C or C++ files.)
+        ))
 
 $(H2 $(LNAME2 typeof, $(D typeof)))
 
@@ -537,7 +540,7 @@ $(GNAME Typeof):
         }
         --------------------
 
-        $(P There are  three special cases: )
+        $(P Special cases: )
     $(OL
         $(LI $(D typeof(this)) will generate the type of what $(D this)
         would be in a non-static member function, even if not in a member
@@ -582,9 +585,11 @@ $(GNAME Typeof):
         typeof(S.foo) n;  // n is declared to be an int
         --------------------
 
-        $(P
-        Where $(I Typeof) is most useful is in writing generic
-        template code.
+        $(BEST_PRACTICE
+        $(OL
+        $(LI $(I Typeof) is most useful in writing generic
+        template code.)
+        )
         )
 
 $(H2 $(LNAME2 void_init, Void Initializations))
@@ -595,36 +600,55 @@ $(GNAME VoidInitializer):
 )
 
         $(P Normally, variables are initialized either with an explicit
-        $(I Initializer) or are set to the default value for the
+        $(GLINK Initializer) or are set to the default value for the
         type of the variable. If the $(I Initializer) is $(D void),
         however, the variable is not initialized. If its value is
         used before it is set, undefined program behavior will result.
         )
 
--------------------------
-void foo()
-{
-    int x = void;
-    writeln(x);  // will print garbage
-}
--------------------------
+        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
+        used before it is set, the behavior is undefined.
 
-        $(P Therefore, one should only use $(D void) initializers as a
-        last resort when optimizing critical code.
+        ---
+        void foo()
+        {
+            int x = void;
+            writeln(x);  // will print garbage
+        }
+        ---
+        )
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Void initializers are useful when a static array is on the stack,
+        but may only be partially used, such as as a temporary buffer.
+        Void initializers will speed up the code, but of course one must be careful
+        that array elements are actually set before read.)
+        $(LI The same is true for structs.)
+        $(LI Use of void initializers is rarely useful for individual local variables,
+        as a modern optimizer will remove the dead store of its initialization if it is
+        initialized later.)
+        $(LI For hot code paths, it is worthwhile to check to see if the void initializer
+        actually improves results before using it.)
+        )
         )
 
 $(H2 $(LNAME2 global_static_init, Global and Static Initializers))
 
         $(P The $(GLINK Initializer) for a global or static variable must be
         evaluatable at compile time.
-        Whether some pointers can be initialized with the addresses of other
-        functions or data is implementation defined.
-        Runtime initialization can be done with static constructors.
+        Runtime initialization is done with static constructors.
         )
+
+        $(IMPLEMENTATION_DEFINED
+        $(OL
+        $(LI Whether some pointers can be initialized with the addresses of other
+        functions or data.)
+        ))
 
 $(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 
-        $(P D draws a distinction between a type qualifer and a storage class.)
+        $(P Type qualifer and storage classes are distinct.)
 
         $(P A $(I type qualifier) creates a derived type from an existing base
         type, and the resulting type may be used to create multiple instances
@@ -644,7 +668,7 @@ ImmutableInt z;     // typeof(z) == immutable(int)
 --------
 
         $(P A $(I storage class), on the other hand, does not create a new
-        type, but describes only the type of storage used by the variable or
+        type, but describes only the kind of storage used by the variable or
         function being declared. For example, a member function can be declared
         with the $(D const) storage class to indicate that it does not modify
         its implicit $(D this) argument:)
@@ -663,7 +687,7 @@ struct S
 
         $(P Although some keywords can be used both as a type qualifier and a
         storage class, there are some storage classes that cannot be used to
-        construct new types. One example is $(D ref):)
+        construct new types, such as $(D ref):)
 
 --------
 // ref declares the parameter x to be passed by reference
@@ -683,9 +707,9 @@ void main()
 }
 --------
 
+        $(P Functions can also be declared as `ref`, meaning their return value is
+        passed by reference:)
 --------
-// Functions can also be declared as 'ref', meaning their return value is
-// passed by reference:
 ref int func2()
 {
     static int y = 0;
@@ -710,36 +734,50 @@ void main()
 }
 --------
 
-        $(P Due to the fact that some keywords, such as $(D const), can be used
-        both as a type qualifier and a storage class, it may sometimes result
-        in ambiguous-looking code:)
+        $(P Some keywords, such as $(D const), can be used
+        both as a type qualifier and a storage class.
+        The distinction is determined by the syntax where it appears.)
 
---------
-struct S
-{
-    // Is const here a type qualifier or a storage class?
-    // Is the return value const(int), or is this a const function that returns
-    // (mutable) int?
-    const int func() { return 1; }
-}
---------
+        ---
+        struct S
+        {
+            /* Is const here a type qualifier or a storage class?
+             * Is the return value const(int), or is this a const function that returns
+             * (mutable) int?
+             */
+            const int* func() // a const function
+            {
+                ++p;          // error, this.p is const
+                return p;     // error, cannot convert const(int)* to int*
+            }
 
-        $(P To avoid such confusion, it is recommended that type qualifier
-        syntax with parentheses always be used for return types, and that
-        function storage classes be written on the right-hand side of the
+            const(int)* func() // a function returning a pointer to a const int
+            {
+                ++p;          // ok, this.p is mutable
+                return p;     // ok, int* can be implicitly converted to const(int)*
+            }
+
+            int* p;
+        }
+        ---
+
+        $(BEST_PRACTICE To avoid confusion, the type qualifier
+        syntax with parentheses should be used for return types,
+        and function storage classes should be written on the right-hand side of the
         declaration instead of the left-hand side where it may be visually
-        confused with the return type:)
+        confused with the return type:
 
---------
-struct S
-{
-    // Now it is clear that the 'const' here applies to the return type:
-    const(int) func1() { return 1; }
+        ---
+        struct S
+        {
+            // Now it is clear that the 'const' here applies to the return type:
+            const(int) func1() { return 1; }
 
-    // And it is clear that the 'const' here applies to the function:
-    int func2() const { return 1; }
-}
---------
+            // And it is clear that the 'const' here applies to the function:
+            int func2() const { return 1; }
+        }
+        ---
+        )
 
 $(SPEC_SUBNAV_PREV_NEXT module, Modules, type, Types)
 )
