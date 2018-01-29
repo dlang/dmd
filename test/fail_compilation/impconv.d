@@ -9,10 +9,14 @@ DISABLED: win32 win64 linux osx freebsd
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/impconv.d(26): Error: function `impconv.foo_float(float)` is not callable using argument types `(int)`
-fail_compilation/impconv.d(27): Error: function `impconv.foo_float(float)` is not callable using argument types `(uint)`
-fail_compilation/impconv.d(30): Error: function `impconv.foo_double(double)` is not callable using argument types `(long)`
-fail_compilation/impconv.d(31): Error: function `impconv.foo_double(double)` is not callable using argument types `(ulong)`
+fail_compilation/impconv.d(30): Error: function `impconv.foo_float(float)` is not callable using argument types `(int)`
+fail_compilation/impconv.d(30):        cannot pass argument `-2147483647` of type `int` to parameter `float`
+fail_compilation/impconv.d(31): Error: function `impconv.foo_float(float)` is not callable using argument types `(uint)`
+fail_compilation/impconv.d(31):        cannot pass argument `4294967295u` of type `uint` to parameter `float`
+fail_compilation/impconv.d(34): Error: function `impconv.foo_double(double)` is not callable using argument types `(long)`
+fail_compilation/impconv.d(34):        cannot pass argument `-9223372036854775807L` of type `long` to parameter `double`
+fail_compilation/impconv.d(35): Error: function `impconv.foo_double(double)` is not callable using argument types `(ulong)`
+fail_compilation/impconv.d(35):        cannot pass argument `18446744073709551615LU` of type `ulong` to parameter `double`
 ---
 */
 
