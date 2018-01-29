@@ -127,7 +127,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return "enum";
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident.toChars());
         if (_scope)

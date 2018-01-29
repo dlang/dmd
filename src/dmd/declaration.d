@@ -288,7 +288,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return "declaration";
     }
 
-    override final d_uns64 size(Loc loc)
+    override final d_uns64 size(const ref Loc loc)
     {
         assert(type);
         return type.size();
@@ -388,7 +388,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return 1;
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         Dsymbol s = Dsymbol.search(loc, ident, flags);
         if (!s && type)
