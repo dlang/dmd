@@ -523,7 +523,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
-    extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
+    extern (D) this(const ref Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
         super(id);
         static if (LOG)
@@ -5016,7 +5016,7 @@ extern (C++) class TemplateParameter
     bool dependent;
 
     /* ======================== TemplateParameter =============================== */
-    final extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         this.loc = loc;
         this.ident = ident;
@@ -5119,7 +5119,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
     extern (C++) static __gshared Type tdummy = null;
 
-    final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
+    extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident);
         this.ident = ident;
@@ -5282,7 +5282,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
-    extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
+    extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident, specType, defaultType);
     }
@@ -5315,7 +5315,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
 
     extern (D) static __gshared Expression[void*] edummies;
 
-    extern (D) this(Loc loc, Identifier ident, Type valType,
+    extern (D) this(const ref Loc loc, Identifier ident, Type valType,
         Expression specValue, Expression defaultValue)
     {
         super(loc, ident);
@@ -5544,7 +5544,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
     extern (C++) static __gshared Dsymbol sdummy = null;
 
-    extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
+    extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
     {
         super(loc, ident);
         this.ident = ident;
@@ -5756,7 +5756,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(loc, ident);
         this.ident = ident;
@@ -5926,7 +5926,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    final extern (D) this(Loc loc, Identifier ident, Objects* tiargs)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
     {
         super(null);
         static if (LOG)
@@ -5942,7 +5942,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * This constructor is only called when we figured out which function
      * template to instantiate.
      */
-    final extern (D) this(Loc loc, TemplateDeclaration td, Objects* tiargs)
+    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs)
     {
         super(null);
         static if (LOG)
@@ -6600,7 +6600,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Returns:
      *      false if one or more arguments have errors.
      */
-    static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
+    static bool semanticTiargs(const ref Loc loc, Scope* sc, Objects* tiargs, int flags)
     {
         // Run semantic on each argument, place results in tiargs[]
         //printf("+TemplateInstance.semanticTiargs()\n");
@@ -7613,7 +7613,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
 {
     TypeQualified tqual;
 
-    extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
+    extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
     {
         super(loc,
               tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident,

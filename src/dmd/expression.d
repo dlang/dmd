@@ -90,7 +90,7 @@ void emplaceExp(T : UnionExp)(T* p, Expression e)
  * Returns:
  *      Expression representing the `this` for the var
  */
-extern (C++) Expression getRightThis(Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
+extern (C++) Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDeclaration ad, Expression e1, Declaration var, int flag = 0)
 {
     //printf("\ngetRightThis(e1 = %s, ad = %s, var = %s)\n", e1.toChars(), ad.toChars(), var.toChars());
 L1:
@@ -180,7 +180,7 @@ L1:
  * Returns:
  *      `s` turned into an expression, `ErrorExp` if an error occurred
  */
-Expression resolve(Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
+Expression resolve(const ref Loc loc, Scope *sc, Dsymbol s, bool hasOverloads)
 {
     static if (LOGSEMANTIC)
     {
@@ -1263,12 +1263,12 @@ extern (C++) int RealEquals(real_t x1, real_t x2)
  *      (foo).size
  *      cast(foo).size
  */
-extern (C++) DotIdExp typeDotIdExp(Loc loc, Type type, Identifier ident)
+extern (C++) DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident)
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
 
-private Expression opAssignToOp(Loc loc, TOK op, Expression e1, Expression e2)
+private Expression opAssignToOp(const ref Loc loc, TOK op, Expression e1, Expression e2)
 {
     Expression e;
     switch (op)
@@ -1825,7 +1825,7 @@ extern (C++) abstract class Expression : RootObject
     /****************************************
      * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
      */
-    Expression resolveLoc(Loc loc, Scope* sc)
+    Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         this.loc = loc;
         return this;
@@ -4783,7 +4783,7 @@ extern (C++) class UnaExp : Expression
 
     }
 
-    override final Expression resolveLoc(Loc loc, Scope* sc)
+    override final Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         e1 = e1.resolveLoc(loc, sc);
         return this;
@@ -6237,7 +6237,7 @@ extern (C++) final class IndexExp : BinExp
  */
 extern (C++) final class PostExp : BinExp
 {
-    extern (D) this(TOK op, Loc loc, Expression e)
+    extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
     }
@@ -6253,7 +6253,7 @@ extern (C++) final class PostExp : BinExp
  */
 extern (C++) final class PreExp : UnaExp
 {
-    extern (D) this(TOK op, Loc loc, Expression e)
+    extern (D) this(TOK op, const ref Loc loc, Expression e)
     {
         super(loc, op, __traits(classInstanceSize, PreExp), e);
     }
@@ -6823,7 +6823,7 @@ extern (C++) final class LogicalExp : BinExp
  */
 extern (C++) final class CmpExp : BinExp
 {
-    extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
+    extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
     }
@@ -6875,7 +6875,7 @@ extern (C++) final class RemoveExp : BinExp
  */
 extern (C++) final class EqualExp : BinExp
 {
-    extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
+    extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, EqualExp), e1, e2);
         assert(op == TOK.equal || op == TOK.notEqual);
@@ -6896,7 +6896,7 @@ extern (C++) final class EqualExp : BinExp
  */
 extern (C++) final class IdentityExp : BinExp
 {
-    extern (D) this(TOK op, Loc loc, Expression e1, Expression e2)
+    extern (D) this(TOK op, const ref Loc loc, Expression e1, Expression e2)
     {
         super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
     }
@@ -7070,7 +7070,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         super(loc, tok, __traits(classInstanceSize, FileInitExp));
     }
 
-    override Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
         const(char)* s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
@@ -7097,7 +7097,7 @@ extern (C++) final class LineInitExp : DefaultInitExp
         super(loc, TOK.line, __traits(classInstanceSize, LineInitExp));
     }
 
-    override Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         Expression e = new IntegerExp(loc, loc.linnum, Type.tint32);
         e = e.castTo(sc, type);
@@ -7119,7 +7119,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
         super(loc, TOK.moduleString, __traits(classInstanceSize, ModuleInitExp));
     }
 
-    override Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         const(char)* s;
         if (sc.callsc)
@@ -7147,7 +7147,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
         super(loc, TOK.functionString, __traits(classInstanceSize, FuncInitExp));
     }
 
-    override Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         const(char)* s;
         if (sc.callsc && sc.callsc.func)
@@ -7177,7 +7177,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         super(loc, TOK.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
     }
 
-    override Expression resolveLoc(Loc loc, Scope* sc)
+    override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         FuncDeclaration fd;
         if (sc.callsc && sc.callsc.func)

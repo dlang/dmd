@@ -38,7 +38,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 {
     Dsymbols* decl;     // array of Dsymbol's
 
-    final extern (D) this(Dsymbols* decl)
+    extern (D) this(Dsymbols* decl)
     {
         this.decl = decl;
     }
@@ -278,7 +278,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
     StorageClass stc;
 
-    final extern (D) this(StorageClass stc, Dsymbols* decl)
+    extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
         this.stc = stc;
@@ -519,7 +519,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
      *  p = protection attribute data
      *  decl = declarations which are affected by this protection attribute
      */
-    extern (D) this(Loc loc, Prot p, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Prot p, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -533,7 +533,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
      *  pkg_identifiers = list of identifiers for a qualified package name
      *  decl = declarations which are affected by this protection attribute
      */
-    extern (D) this(Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -605,7 +605,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
     structalign_t salign = UNKNOWN;
 
-    extern (D) this(Loc loc, Expression ealign, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -640,7 +640,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
     uint anonstructsize;    // size of anonymous struct
     uint anonalignsize;     // size of anonymous struct for alignment purposes
 
-    extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -758,7 +758,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
     Expressions* args;      // array of Expression's
 
-    extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -825,7 +825,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;
     Dsymbols* elsedecl;     // array of Dsymbol's for else block
 
-    final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
@@ -1205,7 +1205,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp)
     {
         super(null);
         //printf("CompileDeclaration(loc = %d)\n", loc.linnum);

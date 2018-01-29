@@ -32,13 +32,13 @@ extern (C++) final class DebugSymbol : Dsymbol
 {
     uint level;
 
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(ident);
         this.loc = loc;
     }
 
-    extern (D) this(Loc loc, uint level)
+    extern (D) this(const ref Loc loc, uint level)
     {
         this.level = level;
         this.loc = loc;
@@ -121,13 +121,13 @@ extern (C++) final class VersionSymbol : Dsymbol
 {
     uint level;
 
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(ident);
         this.loc = loc;
     }
 
-    extern (D) this(Loc loc, uint level)
+    extern (D) this(const ref Loc loc, uint level)
     {
         this.level = level;
         this.loc = loc;
