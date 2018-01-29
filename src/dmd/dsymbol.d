@@ -223,7 +223,7 @@ extern (C++) class Dsymbol : RootObject
         return toChars();
     }
 
-    final ref Loc getLoc()
+    final ref const(Loc) getLoc()
     {
         if (!loc.isValid()) // avoid bug 5861.
         {
@@ -255,7 +255,7 @@ extern (C++) class Dsymbol : RootObject
         return ident is null;
     }
 
-    final void error(Loc loc, const(char)* format, ...)
+    final void error(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -275,7 +275,7 @@ extern (C++) class Dsymbol : RootObject
         va_end(ap);
     }
 
-    final void deprecation(Loc loc, const(char)* format, ...)
+    final void deprecation(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -295,7 +295,7 @@ extern (C++) class Dsymbol : RootObject
         va_end(ap);
     }
 
-    final bool checkDeprecated(Loc loc, Scope* sc)
+    final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
         if (global.params.useDeprecated != 1 && isDeprecated())
         {
@@ -638,7 +638,7 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *  null if not found
      */
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         return null;
@@ -684,7 +684,7 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *      symbol found, NULL if not
      */
-    final Dsymbol searchX(Loc loc, Scope* sc, RootObject id, int flags)
+    final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
     {
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         Dsymbol s = toAlias();
@@ -749,7 +749,7 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *  SIZE_INVALID when the size cannot be determined
      */
-    d_uns64 size(Loc loc)
+    d_uns64 size(const ref Loc loc)
     {
         error("Dsymbol `%s` has no size", toChars());
         return SIZE_INVALID;
@@ -1265,7 +1265,7 @@ public:
      * This function is #1 on the list of functions that eat cpu time.
      * Be very, very careful about slowing it down.
      */
-    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
@@ -1502,7 +1502,7 @@ public:
         return (members is null);
     }
 
-    static void multiplyDefined(Loc loc, Dsymbol s1, Dsymbol s2)
+    static void multiplyDefined(const ref Loc loc, Dsymbol s1, Dsymbol s2)
     {
         version (none)
         {
@@ -1694,7 +1694,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         this.withstate = withstate;
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("WithScopeSymbol.search(%s)\n", ident.toChars());
         if (flags & SearchImportsOnly)
@@ -1768,7 +1768,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         this.sc = sc;
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident.toChars(), flags);
         if (ident == Id.dollar)
