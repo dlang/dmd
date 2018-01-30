@@ -598,8 +598,44 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 }
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
-                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
-                arg = arg.resolveLoc(loc, sc);
+
+                if(auto argexp=arg.isArgnameInitExp())
+                {
+                  if(argexp.ident is null)
+                  {
+                    error(argexp.loc, "argexp.ident null");
+                    return true;
+                  }
+                  assert(nargs>0);
+                  bool found=false;
+                  // TODO: should Parameters._foreach be used?
+                  for(int u=0;u<nparams;u++)
+                  {
+                    Parameter pu = Parameter.getNth(tf.parameters, u);
+                    if(pu.ident==argexp.ident)
+                    {
+                      assert(u < nargs);
+                      auto argu=(*arguments)[u];
+                      // D20180130T161632 NOTE: argu.toChars would do some partial constant folding
+                      auto argname=argu.stringified;
+                      arg=argexp.resolveArgname(loc, sc, argname);
+                      found=true;
+                      break;
+                    }
+                  }
+
+                  if(!found)
+                  {
+                    error(argexp.loc, "unable to resolve %s", argexp.ident.toChars);
+                    return true;
+                  }
+                }
+                else
+                {
+                  // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+                  arg = arg.resolveLoc(loc, sc);
+                }
+
                 arguments.push(arg);
                 nargs++;
             }
@@ -2767,6 +2803,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        for(int i=0;i<(exp.arguments ? exp.arguments.dim : 0) ; i++){
+          Expression earg = (*exp.arguments)[i];
+          // TODO: can we avoid computing this ? (ie, who can we tell whether it won't be needed?)
+          earg.stringified = earg.toChars;
+        }
+
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */
@@ -3352,6 +3394,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (t1.ty != Tfunction)
         {
+
             TypeFunction tf;
             const(char)* p;
             Dsymbol s;
@@ -3560,6 +3603,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             t1 = exp.f.type;
         }
+
         assert(t1.ty == Tfunction);
 
         Expression argprefix;
@@ -9291,6 +9335,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(FileInitExp e)
     {
         //printf("FileInitExp::semantic()\n");
+        e.type = Type.tstring;
+        result = e;
+    }
+
+    override void visit(ArgnameInitExp e)
+    {
+        //printf("ArgnameInitExp::semantic()\n");
         e.type = Type.tstring;
         result = e;
     }

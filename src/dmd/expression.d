@@ -1538,6 +1538,8 @@ extern (C++) abstract class Expression : RootObject
     TOK op;         // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
     ubyte parens;   // if this is a parenthesized expression
+    // NOTE: I'm assuming it's not needed in dmd.astbase
+    const(char)* stringified;  // for function calls (in case of __ARG_STRING__)
 
     extern (D) this(const ref Loc loc, TOK op, int size)
     {
@@ -2439,6 +2441,12 @@ extern (C++) abstract class Expression : RootObject
     bool isBool(bool result)
     {
         return false;
+    }
+
+    // TODO: can we avoid this?
+    ArgnameInitExp isArgnameInitExp()
+    {
+      return null;
     }
 
     final Expression op_overload(Scope* sc)
@@ -7085,6 +7093,42 @@ extern (C++) final class FileInitExp : DefaultInitExp
         if (subop == TOK.fileFullPath)
             s = FileName.combine(sc._module.srcfilePath, s);
         Expression e = new StringExp(loc, cast(char*)s);
+        e = e.expressionSemantic(sc);
+        e = e.castTo(sc, type);
+        return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class ArgnameInitExp : DefaultInitExp
+{
+    // function parameter we want stringified
+    Identifier ident;
+
+    extern (D) this(const ref Loc loc)
+    {
+        super(loc, TOK.argumentName, __traits(classInstanceSize, ArgnameInitExp));
+    }
+
+    void setIdent(Identifier ident)
+    {
+      this.ident = ident;
+    }
+
+    override ArgnameInitExp isArgnameInitExp()
+    {
+      return this;
+    }
+
+    Expression resolveArgname(const ref Loc loc, Scope* sc, const(char)* argname)
+    {
+        Expression e = new StringExp(loc, cast(char*) argname);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;

@@ -291,6 +291,7 @@ enum TOK : int
     line,
     file,
     fileFullPath,
+    argumentName,
     moduleString,
     functionString,
     prettyFunction,
@@ -302,7 +303,7 @@ enum TOK : int
     vector,
     pound,
 
-    // 239
+    // 241
     interval,
     voidExpression,
     cantExpression,
@@ -447,6 +448,7 @@ extern (C++) struct Token
         TOK.overloadSet: "__overloadset",
         TOK.file: "__FILE__",
         TOK.fileFullPath: "__FILE_FULL_PATH__",
+        TOK.argumentName: "__ARG_STRING__",
         TOK.line: "__LINE__",
         TOK.moduleString: "__MODULE__",
         TOK.functionString: "__FUNCTION__",
@@ -941,6 +943,7 @@ private immutable TOK[] keywords =
     TOK.overloadSet,
     TOK.file,
     TOK.fileFullPath,
+    TOK.argumentName,
     TOK.line,
     TOK.moduleString,
     TOK.functionString,
