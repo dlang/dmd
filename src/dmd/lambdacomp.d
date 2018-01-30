@@ -1,3 +1,20 @@
+/***
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * This modules implements the serialization of a lambda function. The serialization
+ * is computed by visiting the abstract syntax subtree of the given lambda function.
+ * The serialization is a string which contains the type of the parameters and the
+ * string represantation of the lambda expression.
+ *
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lamdbacomp.d, _lambdacomp.d)
+ * Documentation:  https://dlang.org/phobos/dmd_lambdacomp.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/lambdacomp.d
+ */
+
 module dmd.lambdacomp;
 
 import core.stdc.stdio;
@@ -17,51 +34,83 @@ import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
 
-enum ExpType
+/**
+ * The type of the visited expression.
+ */
+private enum ExpType
 {
     None,
     EnumDecl,
     Arg
 }
 
+/**
+ * The serialize visitor computes the string representation of a
+ * lambda function described by the subtree starting from a
+ * $(REF dmd, func, FuncLiteralDeclaration).
+ *
+ * Limitations: only IntegerExps, Enums and function
+ * arguments are supported in the lambda function body. The
+ * arguments may be of any type (basic types, user defined types),
+ * except template instantiations. If a function call, a local
+ * variable or a template instance is encountered, the
+ * serialization is dropped and the function is considered
+ * uncomparable.
+ */
 extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
 {
-    alias visit = SemanticTimeTransitiveVisitor.visit;
-    OutBuffer buf;
+private:
     StringTable arg_hash;
     Scope* sc;
     ExpType et;
     Dsymbol d;
+
+public:
+    OutBuffer buf;
+    alias visit = SemanticTimeTransitiveVisitor.visit;
 
     this(Scope* sc)
     {
         this.sc = sc;
     }
 
+    /**
+     * Entrypoint of the SerializeVisitor.
+     *
+     * Params:
+     *     fld = the lambda function for which the serialization is computed
+     */
     override void visit(FuncLiteralDeclaration fld)
     {
-        if (fld.type.ty == Terror)
-            return;
+        assert(fld.type.ty != Terror);
 
         TypeFunction tf = cast(TypeFunction)fld.type;
         uint dim = cast(uint)Parameter.dim(tf.parameters);
+        // Start the serialization by printing the number of
+        // arguments the lambda has.
         buf.printf("%d:", dim);
 
         arg_hash._init(dim + 1);
+        // For each argument
         foreach (i; 0 .. dim)
         {
             auto fparam = Parameter.getNth(tf.parameters, i);
             if (fparam.ident !is null)
             {
-                auto key = fparam.ident.toString().ptr;
+                // the variable name is introduced into a hashtable
+                // where the key is the user defined name and the
+                // value is the cannonically name (arg0, arg1 ...)
+                auto key = fparam.ident.toString();
                 OutBuffer value;
                 value.writestring("arg");
                 value.print(i);
-                arg_hash.insert(key, strlen(key), value.extractString);
+                arg_hash.insert(&key[0], key.length, value.extractString);
+                // and the type of the variable is serialized.
                 fparam.accept(this);
             }
         }
 
+        // Now the function body can be serialized.
         CompoundStatement cs = fld.fbody.isCompoundStatement();
         Statement s = !cs ? fld.fbody : null;
         ReturnStatement rs = s ? s.isReturnStatement() : null;
@@ -76,6 +125,10 @@ extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
         if (buf.offset == 0)
             return;
 
+        // First we need to see what kind of expression e1 is.
+        // It might an enum member (enum.value)  or the field of
+        // an argument (argX.value) if the argument is an aggregate
+        // type. This is reported through the et variable.
         exp.e1.accept(this);
         if (buf.offset == 0)
             return;
@@ -108,10 +161,12 @@ extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
         if (buf.offset == 0)
             return;
 
+        // The identifier may be an argument
         auto id = exp.ident.toChars;
         auto stringtable_value = arg_hash.lookup(id, strlen(id));
         if (stringtable_value)
         {
+            // In which case we need to update the serialization accordingly
             const(char)* gen_id = cast(const(char)*)stringtable_value.ptrvalue;
             buf.writestring(gen_id);
             buf.writeByte('_');
@@ -119,24 +174,23 @@ extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
         }
         else
         {
+            // Or it may be something else
             Dsymbol scopesym;
             Dsymbol s = sc.search(exp.loc, exp.ident, &scopesym);
             if (s)
             {
-                if (auto v = s.isVarDeclaration)
+                auto v = s.isVarDeclaration();
+                // If it's a VarDeclaration, it must be a manifest constant
+                if (v && (v.storage_class & STC.manifest))
                 {
-                    if (v.storage_class & STC.manifest)
-                    {
-                        v.getConstInitializer.accept(this);
-                    }
-                    else
-                        buf.reset();
+                    v.getConstInitializer.accept(this);
                 }
-                else if (auto em = s.isEnumDeclaration)
+                else if (auto em = s.isEnumDeclaration())
                 {
                     d = em;
                     et = ExpType.EnumDecl;
                 }
+                // For anything else, the function is deemed uncomparable
                 else
                 {
                     buf.reset();

@@ -2946,9 +2946,15 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     TOK tok;        // TOK.function_ or TOK.delegate_
     Type treq;      // target of return type inference
 
+    /**
+     * The serialization of this. It is used to compare
+     * lambda functions.
+     * != null only if tok == TOK.reserved.
+     */
+    const(char)* serialization;
+
     // backend
     bool deferToObj;
-    const(char)* serialization;
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null)
     {
