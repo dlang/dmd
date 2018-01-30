@@ -1823,7 +1823,7 @@ extern (C++) abstract class Expression : RootObject
     }
 
     /****************************************
-     * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
+     * Resolve __FILE__, __FILE_FULL_PATH__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
      */
     Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
