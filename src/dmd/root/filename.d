@@ -30,6 +30,8 @@ version (Windows) extern (C) int stricmp(const char*, const char*) pure;
 version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
 version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
 version (Posix) extern (C) char* canonicalize_file_name(const char*);
+version (Posix) import core.sys.posix.unistd : getcwd;
+version (Windows) extern (C) char* getcwd(char* buffer, size_t maxlen);
 }
 
 alias Strings = Array!(const(char)*);
@@ -97,6 +99,21 @@ nothrow:
             assert(0);
         }
     }
+
+    /**
+    Return the given name as an absolute path
+
+    Params:
+        name = path
+        base = the absolute base to prefix name with if it is relative
+
+    Returns: name as an absolute path relative to base
+    */
+    static const(char)* toAbsolute(const(char)* name, const(char)* base = getcwd(null, 0))
+    {
+        return absolute(name) ? name : combine(base, name);
+    }
+
 
     /********************************
      * Determine file name extension as slice of input.

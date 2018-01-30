@@ -7081,9 +7081,13 @@ extern (C++) final class FileInitExp : DefaultInitExp
     override Expression resolveLoc(const ref Loc loc, Scope* sc)
     {
         //printf("FileInitExp::resolve() %s\n", toChars());
-        const(char)* s = loc.isValid() ? loc.filename : sc._module.ident.toChars();
-        if (subop == TOK.fileFullPath)
-            s = FileName.combine(sc._module.srcfilePath, s);
+        auto mod = sc.callsc ? sc.callsc._module : sc._module;
+        // CHECKME: mod.ident.toChars() or sc._module.ident.toChars()?
+        const(char)* s = loc.isValid() ? loc.filename : mod.ident.toChars();
+        if (subop == TOK.fileFullPath){
+          s = mod.srcfile.toChars();
+          s = FileName.toAbsolute(s);
+        }
         Expression e = new StringExp(loc, cast(char*)s);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
