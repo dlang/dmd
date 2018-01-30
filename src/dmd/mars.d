@@ -479,6 +479,8 @@ private int tryMain(size_t argc, const(char)** argv)
     Objc._init();
     builtin_init();
 
+    printPredefinedVersions();
+
     if (global.params.verbose)
     {
         fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
@@ -1348,8 +1350,6 @@ void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_BetterC");
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
-
-    printPredefinedVersions();
 }
 
 private void printPredefinedVersions()
