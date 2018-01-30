@@ -601,6 +601,136 @@ else version( CRuntime_Glibc )
     }
   }
 }
+else version( CRuntime_Musl )
+{
+    enum
+    {
+        ///
+        FP_NAN,
+        ///
+        FP_INFINITE,
+        ///
+        FP_ZERO,
+        ///
+        FP_SUBNORMAL,
+        ///
+        FP_NORMAL,
+    }
+
+    enum
+    {
+        ///
+        FP_FAST_FMA  = 0,
+        ///
+        FP_FAST_FMAF = 0,
+        ///
+        FP_FAST_FMAL = 0,
+    }
+
+    int __fpclassifyf(float x);
+    int __fpclassify(double x);
+    int __fpclassifyl(real x);
+
+    int __signbitf(float x);
+    int __signbit(double x);
+    int __signbitl(real x);
+
+  extern (D)
+  {
+    //int fpclassify(real-floating x);
+      ///
+    int fpclassify(float x)     { return __fpclassifyf(x); }
+    ///
+    int fpclassify(double x)    { return __fpclassify(x);  }
+    ///
+    int fpclassify(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? __fpclassify(x)
+            : __fpclassifyl(x);
+    }
+    private uint __FLOAT_BITS(float __f)
+    {
+        union __u_t {
+            float __f;
+            uint __i;
+        }
+        __u_t __u;
+        __u.__f = __f;
+        return __u.__i;
+    }
+    private ulong __DOUBLE_BITS(double __f)
+    {
+        union __u_t {
+            double __f;
+            ulong __i;
+        }
+        __u_t __u;
+        __u.__f = __f;
+        return __u.__i;
+    }
+
+    //int isfinite(real-floating x);
+    ///
+    int isfinite(float x)       { return (__FLOAT_BITS(x) & 0x7fffffff) < 0x7f800000; }
+    ///
+    int isfinite(double x)      { return (__DOUBLE_BITS(x) & -1UL>>1) < 0x7ffUL<<52;  }
+    ///
+    int isfinite(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? isfinite(cast(double)x)
+            : __fpclassifyl(x) > FP_INFINITE;
+    }
+
+    //int isinf(real-floating x);
+    ///
+    int isinf(float x)          { return (__FLOAT_BITS(x) & 0x7fffffff) == 0x7f800000;  }
+    ///
+    int isinf(double x)         { return (__DOUBLE_BITS(x) & -1UL>>1) == 0x7ffUL<<52;   }
+    ///
+    int isinf(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? isinf(cast(double)x)
+            : __fpclassifyl(x) == FP_INFINITE;
+    }
+
+    //int isnan(real-floating x);
+    ///
+    int isnan(float x)          { return (__FLOAT_BITS(x) & 0x7fffffff) > 0x7f800000;  }
+    ///
+    int isnan(double x)         { return (__DOUBLE_BITS(x) & -1UL>>1) > 0x7ffUL<<52;   }
+    ///
+    int isnan(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? isnan(cast(double)x)
+            : __fpclassifyl(x) == FP_NAN;
+    }
+
+    //int isnormal(real-floating x);
+    ///
+    int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
+    ///
+    int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
+    ///
+    int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+
+    //int signbit(real-floating x);
+    ///
+    int signbit(float x)     { return __signbitf(x); }
+    ///
+    int signbit(double x)    { return __signbit(x);  }
+    ///
+    int signbit(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? __signbit(x)
+            : __signbitl(x);
+    }
+  }
+}
 else version( MinGW )
 {
     enum
