@@ -110,6 +110,23 @@ version( CRuntime_Glibc )
     alias slong_t   time_t;
     alias uint      uid_t;
 }
+else version( CRuntime_Musl )
+{
+    alias long      blksize_t;
+    alias ulong     nlink_t;
+    alias long      dev_t;
+    alias long      blkcnt_t;
+    alias ulong     ino_t;
+    alias long      off_t;
+    alias long      _Addr;
+    alias int       pid_t;
+    alias uint      uid_t;
+    alias uint      gid_t;
+    alias long      time_t;
+    alias long      clock_t;
+    alias ulong     pthread_t;
+    alias _Addr     ssize_t;
+}
 else version( Darwin )
 {
     alias long      blkcnt_t;
@@ -359,6 +376,22 @@ else version( CRuntime_Bionic )
     alias int      key_t;
     alias c_long   suseconds_t;
     alias c_long   useconds_t;
+}
+else version( CRuntime_Musl )
+{
+  static if( __USE_FILE_OFFSET64 )
+  {
+    alias ulong     fsblkcnt_t;
+    alias ulong     fsfilcnt_t;
+  }
+  else
+  {
+    alias ulong_t   fsblkcnt_t;
+    alias ulong_t   fsfilcnt_t;
+  }
+    alias uint mode_t;
+    alias uint id_t;
+    alias long suseconds_t;
 }
 else
 {
@@ -628,6 +661,43 @@ version (CRuntime_Glibc)
     }
 
     alias c_ulong pthread_t;
+}
+else version( CRuntime_Musl )
+{
+    version(X86_64) {
+        union pthread_attr_t
+        {
+            int[14] __i;
+            ulong[7] __s;
+        }
+        union pthread_cond_t
+        {
+            int[12] __i;
+            void*[6] __p;
+        }
+        union pthread_mutex_t
+        {
+            int[10] __i;
+            void*[5] __p;
+        }
+        union pthread_rwlock_t
+        {
+            int[14] __i;
+            void*[7] __p;
+        }
+        struct pthread_rwlockattr_t
+        {
+            uint[2] __attr;
+        }
+        alias uint pthread_key_t;
+        alias uint pthread_condattr_t;
+        alias uint pthread_mutexattr_t;
+        alias int pthread_once_t;
+    }
+    else
+    {
+        static assert (false, "Architecture unsupported");
+    }
 }
 else version( Darwin )
 {
@@ -1015,6 +1085,9 @@ else version (Solaris)
     }
 }
 else version( CRuntime_Bionic )
+{
+}
+else version( CRuntime_Musl )
 {
 }
 else

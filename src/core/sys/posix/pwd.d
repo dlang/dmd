@@ -170,6 +170,18 @@ else version( CRuntime_Bionic )
         char*   pw_shell;
     }
 }
+else version( CRuntime_Musl )
+{
+    struct passwd {
+        char *pw_name;
+        char *pw_passwd;
+        uid_t pw_uid;
+        gid_t pw_gid;
+        char *pw_gecos;
+        char *pw_dir;
+        char *pw_shell;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -228,6 +240,9 @@ else version (Solaris)
     int __posix_getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else version( CRuntime_Bionic )
+{
+}
+else version( CRuntime_Musl )
 {
 }
 else
@@ -289,6 +304,11 @@ else version (Solaris)
 else version ( CRuntime_Bionic )
 {
     void    endpwent();
+}
+else version( CRuntime_Musl )
+{
+    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else
 {

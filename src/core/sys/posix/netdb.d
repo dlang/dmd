@@ -866,6 +866,81 @@ else version( CRuntime_Bionic )
     enum EAI_SYSTEM         = 11;
     enum EAI_OVERFLOW       = 14;
 }
+else version( CRuntime_Musl )
+{
+    struct hostent
+    {
+        char*   h_name;
+        char**  h_aliases;
+        int     h_addrtype;
+        int     h_length;
+        char**  h_addr_list;
+        char*   h_addr() @property { return h_addr_list[0]; } // non-standard
+    }
+
+    struct netent
+    {
+        char*     n_name;
+        char**    n_aliases;
+        int       n_addrtype;
+        uint32_t n_net;
+    }
+
+    struct protoent
+    {
+        char*   p_name;
+        char**  p_aliases;
+        int     p_proto;
+    }
+
+    struct servent
+    {
+        char*     s_name;
+        char**    s_aliases;
+        int       s_port;
+        char*     s_proto;
+    }
+
+    struct addrinfo
+    {
+        int         ai_flags;
+        int         ai_family;
+        int         ai_socktype;
+        int         ai_protocol;
+        socklen_t   ai_addrlen;
+        sockaddr*   ai_addr;
+        char*       ai_canonname;
+        addrinfo*   ai_next;
+    }
+
+    enum {
+        AI_PASSIVE         = 0x1,
+        AI_CANONNAME       = 0x2,
+        AI_NUMERICHOST     = 0x4,
+        AI_NUMERICSERV     = 0x8
+    }
+    enum {
+        NI_NUMERICHOST     = 1,
+        NI_NUMERICSERV     = 2,
+        NI_NOFQDN          = 4,
+        NI_NAMEREQD        = 8,
+        NI_DGRAM           = 16,
+        NI_MAXSERV         = 32,
+        NI_MAXHOST         = 255,
+    }
+    enum {
+        EAI_BADFLAGS       = -1,
+        EAI_NONAME         = -2,
+        EAI_AGAIN          = -3,
+        EAI_FAIL           = -4,
+        EAI_FAMILY         = -6,
+        EAI_SOCKTYPE       = -7,
+        EAI_SERVICE        = -8,
+        EAI_MEMORY         = -10,
+        EAI_SYSTEM         = -11,
+        EAI_OVERFLOW       = -12,
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");

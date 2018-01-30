@@ -191,6 +191,19 @@ else version( CRuntime_Bionic )
     extern (D) int  WSTOPSIG( int status ) { return WEXITSTATUS(status); }
     extern (D) int  WTERMSIG( int status ) { return status & 0x7F; }
 }
+else version( CRuntime_Musl )
+{
+    enum WNOHANG        = 1;
+    enum WUNTRACED      = 2;
+
+    extern (D) int  WEXITSTATUS( int status ) { return ( status & 0xFF00 ) >> 8; }
+    extern (D) int  WIFCONTINUED( int status ) { return status == 0xffff; }
+    extern (D) bool WIFEXITED( int status ) { return WTERMSIG( status ) == 0; }
+    extern (D) bool WIFSIGNALED( int status ) { return (status&0xffff)-1U < 0xffU; }
+    extern (D) bool WIFSTOPPED( int status ) { return cast(short)(((status&0xffff)*0x10001)>>8) > 0x7f00; }
+    extern (D) int  WTERMSIG( int status ) { return status & 0x7F; }
+    alias WEXITSTATUS WSTOPSIG;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -311,6 +324,9 @@ else version( CRuntime_Bionic )
     alias int idtype_t;
 
     int waitid(idtype_t, id_t, siginfo_t*, int);
+}
+else version( CRuntime_Musl )
+{
 }
 else
 {
