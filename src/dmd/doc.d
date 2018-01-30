@@ -2524,7 +2524,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
     bool leadingBlank = true;
-    bool newParagraph = true;
+    bool atNewParagraph = true;
+    size_t iParagraphStart = offset;
+    size_t iPreceedingBlankLine = 0;
     int headingLevel = 0;
     size_t iHeadingStart = 0;
     int headingMacroLevel = 0;
@@ -2552,7 +2554,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '\t':
             break;
         case '\n':
-            newParagraph = leadingBlank;
             if (inBacktick)
             {
                 // `inline code` is only valid if contained on a single line
@@ -2569,7 +2570,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (endMarkdownHeading(buf, i, headingLevel, iHeadingStart))
             {
                 ++i;
-                newParagraph = true;
+                iParagraphStart = skipchars(buf, i, " \t\r\n");
             }
             if (!inCode && nestedLists.length)
             {
@@ -2583,7 +2584,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // end a sibling list item
                     buf.insert(iBeforeNewline, ")");
                     ++i;
-                    newParagraph = true;
+                    iParagraphStart = skipchars(buf, i, " \t\r\n");
                 }
                 else
                 {
@@ -2596,25 +2597,30 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             buf.insert(iBeforeNewline, ")\n)");
                             i += 3;
                             --nestedLists.length;
-                            newParagraph = true;
+                            iParagraphStart = skipchars(buf, i, " \t\r\n");
                         }
                     }
                 }
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
-
                 inlineDelimiters.length = 0;
 
                 for (; nestedQuotes.length; --nestedQuotes.length)
                     i = buf.insert(i, ")");
                 quoteLevel = 0;
 
-                i = buf.insert(i, "$(DDOC_BLANKLINE)");
+                if (iParagraphStart <= i)
+                {
+                    i = buf.insert(i, "$(DDOC_BLANKLINE)");
+                    iParagraphStart = i + 1;
+                }
 
-                newParagraph = true;
-// TODO: markdowny paragraphy things
+                iPreceedingBlankLine = i;
+                atNewParagraph = true;
             }
+            else
+                atNewParagraph = false;
             leadingBlank = true;
             iHeadingStart = iLineStart;
             iLineStart = i + 1;
@@ -2631,7 +2637,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     else if (slice[j] != ' ' && slice[j] != '\t')
                         break;
                 }
-                newParagraph = quoteLevel != nestedQuotes.length;
                 if (quoteLevel)
                 {
                     for (; quoteLevel < nestedQuotes.length; --nestedQuotes.length)
@@ -2714,7 +2719,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     {
                         i = buf.insert(i, "$(QUOTE\n");
                         iLineStart = i;
-                        newParagraph = true;
                         nestedQuotes ~= MarkdownQuote(macroLevel);
                     }
                     --i;
@@ -2886,7 +2890,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (eollen)
                 {
                     leadingBlank = true;
-                    // previousQuoteLevel = quoteLevel;
                     quoteLevel = 0;
                 }
                 if (inCode && (i <= iCodeStart))
@@ -2930,7 +2933,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
                     i = buf.insert(i, ")\n");
                     i -= 2; // in next loop, c should be '\n'
-                    newParagraph = true;
                 }
                 else
                 {
@@ -3056,6 +3058,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 i = iLineStart = iBeforeNewline;
                 headingLevel = c == '=' ? 1 : 2;
                 endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+                iParagraphStart = skipchars(buf, i+1, " \t\r\n");
             }
             break;
         }
@@ -3076,7 +3079,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     size_t iStrictAfterUnderline = skipchars(buf, i, "*");
                     iStrictAfterUnderline = skipchars(buf, iStrictAfterUnderline, " \t\r");
 
-                    if (newParagraph || iStrictAfterUnderline != iAfterUnderline)
+                    if (atNewParagraph || iStrictAfterUnderline != iAfterUnderline)
                     {
                         // if in a new paragraph then treat it as a thematic break
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
