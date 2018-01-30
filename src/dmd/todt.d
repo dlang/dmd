@@ -1345,9 +1345,6 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         // xgetRTInfo
-        if(!sd.getRTInfo)
-            error(sd.loc, "ICE: RTInfo not evaluated for %s", sd.toChars());
-
         if (sd.getRTInfo)
         {
             Expression_toDt(sd.getRTInfo, *dtb);

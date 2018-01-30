@@ -72,7 +72,7 @@ void genTypeInfo(Loc loc, Type torig, Scope* sc)
          * do not generate a COMDAT for it.
          */
         if (t.ty == Terror)
-            t.vtinfo.errors = 1;
+            t.vtinfo.errors = true;
         else if (!builtinTypeInfo(t))
         {
             // Generate COMDAT

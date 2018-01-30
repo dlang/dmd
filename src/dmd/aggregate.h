@@ -57,6 +57,13 @@ enum Abstract
 };
 
 FuncDeclaration *search_toString(StructDeclaration *sd);
+enum ZeroInit
+{
+    ZEROINITunknown = -1,  // not computed yet
+    ZEROINITno = 0,        // struct is not all zeroes
+    ZEROINITyes = 1        // struct is all zeroes
+};
+
 
 struct ClassKind
 {
@@ -160,7 +167,7 @@ struct StructFlags
 class StructDeclaration : public AggregateDeclaration
 {
 public:
-    byte zeroInit;              // -1 if still unknown, 1 if initialize with 0 fill, 0 otherwise
+    ZeroInit zeroInit;          // if struct is initialized to all zeroes
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasBlitAssign;         // true if opAssign is a blit
     bool hasIdentityEquals;     // true if has identity opEquals
@@ -195,7 +202,7 @@ public:
     bool fit(const Loc &loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
     bool isZeroInit();
-    int calcZeroInit();
+    ZeroInit calcZeroInit();
 
     StructDeclaration *isStructDeclaration() { return this; }
     void accept(Visitor *v) { v->visit(this); }
