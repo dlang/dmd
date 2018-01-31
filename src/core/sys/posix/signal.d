@@ -3035,7 +3035,15 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_Musl )
 {
-
+    struct sigevent
+    {
+        sigval sigev_value;
+        int sigev_signo;
+        int sigev_notify;
+        void function(sigval) sigev_notify_function;
+        pthread_attr_t *sigev_notify_attributes;
+        char[56-3*long.sizeof] __pad;
+    }
 }
 else
 {
