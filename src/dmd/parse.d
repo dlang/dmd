@@ -3394,7 +3394,19 @@ final class Parser(AST) : Lexer
 
         case TOK.int64:
             t = AST.Type.tint64;
-            goto LabelX;
+            nextToken();
+            if (token.value == TOK.int64)   // if `long long`
+            {
+                error("use `long` for a 64 bit integer instead of `long long`");
+                nextToken();
+            }
+            else if (token.value == TOK.float64)   // if `long double`
+            {
+                error("use `real` instead of `long double`");
+                t = AST.Type.tfloat80;
+                nextToken();
+            }
+            break;
 
         case TOK.uns64:
             t = AST.Type.tuns64;
