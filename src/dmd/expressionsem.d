@@ -2803,12 +2803,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        for(int i=0;i<(exp.arguments ? exp.arguments.dim : 0) ; i++){
-          Expression earg = (*exp.arguments)[i];
-          // TODO: can we avoid computing this ? (ie, who can we tell whether it won't be needed?)
-          earg.stringified = earg.toChars;
-        }
-
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
          */

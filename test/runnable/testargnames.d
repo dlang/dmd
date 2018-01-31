@@ -57,6 +57,11 @@ void main()
 
   // Checks that no constant folding happens, cf D20180130T161632.
   fun1(1+1+2, `1 + 1 + 2`);
+
+  static const int x=44;
+  fun1(x+x+x, `x + x + x`);
+
+  // TODO: we'd like to have `t + t` instead; the conversion happens in arrayExpressionSemantic before we can tell whether candidate matching function has argument stringification (cf callMatch)
   enum t=44;
-  fun1(t+t+t, `t + t + t`); // want: t+t+t
+  fun1(t+t, `44 + 44`);
 }
