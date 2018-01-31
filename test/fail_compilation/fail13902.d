@@ -4,9 +4,11 @@ struct S1 { int v; }
 struct S2 { int* p; }
 class C { int v; }
 
+#line 6
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/fail13902.d(45): Error: Using the result of a comma expression is not allowed
 fail_compilation/fail13902.d(32): Error: returning `& x` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(33): Error: returning `&s1.v` escapes a reference to local variable `s1`
 fail_compilation/fail13902.d(38): Error: returning `& sa1` escapes a reference to local variable `sa1`
@@ -47,9 +49,11 @@ int* testEscape1()
     return null;    // ok
 }
 
+#line 49
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/fail13902.d(88): Error: Using the result of a comma expression is not allowed
 fail_compilation/fail13902.d(75): Error: returning `& x` escapes a reference to parameter `x`, perhaps annotate with `return`
 fail_compilation/fail13902.d(76): Error: returning `&s1.v` escapes a reference to parameter `s1`, perhaps annotate with `return`
 fail_compilation/fail13902.d(81): Error: returning `& sa1` escapes a reference to parameter `sa1`, perhaps annotate with `return`
@@ -90,9 +94,11 @@ int* testEscape2(
     return null;    // ok
 }
 
+#line 92
 /*
 TEST_OUTPUT:
 ---
+fail_compilation/fail13902.d(123): Error: Using the result of a comma expression is not allowed
 ---
 */
 int* testEscape3(

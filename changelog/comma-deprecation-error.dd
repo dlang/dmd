@@ -1,0 +1,63 @@
+The deprecation period of using the result of comma expression has ended
+
+Comma expressions have proven to be a frequent source of confusion, and bugs.
+Using their result will now trigger an error message.
+
+$(P The comma operator (`,`) allows executing multiple expressions and
+    discards the result of them except for the last which is returned.
+
+    ---
+    int a = 1;
+    int b = 2;
+    bool ret = a == 2, b == 2; // true
+    ---
+
+    It's also common to use the comma operator in for-loop increment
+    statements to allow multiple expressions.
+
+    ---
+    for (; !a.empty && !b.empty; a.popFront, b.popFront)
+    ---
+
+    Hence, using the comma operator in for-loop increment statements is still allowed.
+)
+$(H4 Corrective Action)
+$(P If possible, split the comma operator in two statements. Otherwise use
+    lambdas.
+
+    ---
+    auto result = foo(), bar();
+
+    // split off in two statements
+    foo();
+    auto result = bar();
+
+    // or use lambdas
+    auto result = {foo(); return bar();}();
+    ---
+)
+$(H4 Rationale)
+$(P The comma operator leads to unintended behavior (see below for a selection)
+    Moreover it is not commonly used and it blocks the ability to implement tuples
+    as a language features using commas.
+
+    A selection of problems through the accidental use of the comma operator:
+    ---
+    writeln( 6, mixin("7,8"), 9 ); // 6, 8, 9
+
+    template vec(T...)(T args) { ... }
+    vec v = (0, 0, 3); // 3, because vec is variadic
+
+    int a = 0;
+    int b = 2;
+    if (a == 1, b == 2) {
+        // will always be reached
+    }
+
+    void foo(int x, int y=0) {}
+    foo((a, b)); // Oops, foo is called with x=b
+
+    synchronized (lockA, lockB) {}
+    // isn't currently implemented, but still compiles due to the comma operator
+    ---
+)

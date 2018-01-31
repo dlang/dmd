@@ -5844,7 +5844,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         e.type = e.e2.type;
         if (e.type !is Type.tvoid && !e.allowCommaExp && !e.isGenerated)
-            e.deprecation("Using the result of a comma expression is deprecated");
+            e.error("Using the result of a comma expression is not allowed");
         result = e;
     }
 
@@ -6272,7 +6272,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* Rewrite to get rid of the comma from rvalue
              */
             if (!(cast(CommaExp)exp.e2).isGenerated)
-                exp.deprecation("Using the result of a comma expression is deprecated");
+                exp.error("Using the result of a comma expression is not allowed");
             Expression e0;
             exp.e2 = Expression.extractLast(exp.e2, &e0);
             Expression e = Expression.combine(e0, exp);
