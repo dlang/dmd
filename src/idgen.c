@@ -378,6 +378,7 @@ Msgtable msgtable[] =
     { "C_TRUE", "TRUE" },
     { "C_FALSE", "FALSE" },
     { "C_unsigned", "unsigned" },
+    { "C_wchar_t", "wchar_t" },
 };
 
 

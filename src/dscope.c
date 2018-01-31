@@ -693,6 +693,8 @@ const char *Scope::search_correct_C(Identifier *ident)
         tok = TOKfalse;
     else if (ident == Id::C_unsigned)
         tok = TOKuns32;
+    else if (ident == Id::C_wchar_t)
+        tok = global.params.isWindows ? TOKwchar : TOKdchar;
     else
         return NULL;
     return Token::toChars(tok);
