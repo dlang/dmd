@@ -23,10 +23,7 @@ case "${CIRCLE_STAGE}" in
         ;;
     no_pic)
         PIC=0
-        case $CIRCLE_NODE_INDEX in
-            0) MODEL=64 ;;
-            1) MODEL=32 ;;
-        esac
+        MODEL=32
 esac
 
 # clone druntime and phobos
