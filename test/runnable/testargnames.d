@@ -38,6 +38,15 @@ void fun_template(T)(T a, string expected, string name=__ARG_STRING__!a)
   check(name, expected);
 }
 
+struct A{
+  int x = 1;
+
+  int myfun()
+  {
+    return x * x;
+  }
+}
+
 void main()
 {
   int a = 42;
@@ -61,6 +70,8 @@ void main()
 
   static const int x = 44;
   fun1(x + x + x, `x + x + x`);
+
+  fun1(A.init.x + A(a).myfun(), `A(1).x + A(a).myfun()`);
 
   // TODO: we'd like to have `t + t` instead; the conversion happens in arrayExpressionSemantic before we can tell whether candidate matching function has argument stringification (cf callMatch)
   enum t = 44;
