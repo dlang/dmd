@@ -3107,8 +3107,16 @@ extern (C++) final class ArrayLiteralExp : Expression
     }
 }
 
-// verify that TypeInfo for the expression type exists or is generated if necessary
-// (needed by the code generation later)
+/***********************************************************
+ * verify that TypeInfo for the expression type exists or generate it
+ * if necessary, i.e. the current scope is not during CTFE, but
+ * the type info will be needed by the code generation later.
+ *
+ * Params:
+ *        ae = the array literal to verify
+ *        sc = the scope in which the type info should be analyzed. If null,
+ *             the global scope of Module.rootModule is used
+ */
 void verifyTypeInfo(ArrayLiteralExp ae, Scope* sc)
 {
     if (ae.elements && !ae.type.vtinfo)
@@ -3182,6 +3190,15 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     }
 }
 
+/***********************************************************
+ * verify that TypeInfo for a non-empty associative array
+ * literal expression exists
+ *
+ * Params:
+ *        aae = the associative array literal to verify
+ *        sc = the scope in which the type info should be analyzed. If null,
+ *             the global scope of Module.rootModule is used
+ */
 void verifyTypeInfo(AssocArrayLiteralExp aae, Scope* sc)
 {
     if (aae.keys.dim)
@@ -6322,6 +6339,13 @@ extern (C++) final class CatExp : BinExp
     }
 }
 
+/***********************************************************
+ * verify that TypeInfo for a CatExp expression exists
+ *
+ * Params:
+ *        ce = the expression to verify
+ *        sc = the scope in which the type info should be analyzed.
+ */
 void verifyTypeInfo(CatExp ce, Scope* sc)
 {
     Type tb1 = ce.e1.type.toBasetype();
@@ -6585,6 +6609,13 @@ extern (C++) final class EqualExp : BinExp
     }
 }
 
+/***********************************************************
+ * verify that TypeInfo for an EqualExp expression exists
+ *
+ * Params:
+ *        ee = the expression to verify
+ *        sc = the scope in which the type info should be analyzed.
+ */
 void verifyTypeInfo(EqualExp ee, Scope* sc)
 {
     Type t1 = ee.e1.type.toBasetype();

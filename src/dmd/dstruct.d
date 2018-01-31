@@ -194,7 +194,7 @@ enum StructPOD : int
     fwd,   // POD not yet computed
 }
 
-enum ZeroInit : int
+private enum ZeroInit : int
 {
     unknown = -1,  // not computed yet
     no = 0,        // struct is not all zeroes
@@ -564,6 +564,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return (ispod == StructPOD.yes);
     }
 
+    /***************************************
+     * Lazily determine whether a struct init value is a chunk of zeroes
+     *
+     * Returns:
+     *     true if struct is all zeroes
+     */
     final bool isZeroInit()
     {
         if (zeroInit == ZeroInit.unknown)
@@ -574,7 +580,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return zeroInit == ZeroInit.yes;
     }
 
-    final ZeroInit calcZeroInit()
+    private final ZeroInit calcZeroInit()
     {
         // Determine if struct is all zeros or not
         foreach (vd; fields)
