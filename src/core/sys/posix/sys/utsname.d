@@ -134,6 +134,22 @@ else version(CRuntime_Bionic)
 
     int uname(utsname*);
 }
+else version(CRuntime_Musl)
+{
+    private enum SYS_NMLN = 65;
+
+    struct utsname
+    {
+        char[SYS_NMLN] sysname;
+        char[SYS_NMLN] nodename;
+        char[SYS_NMLN] release;
+        char[SYS_NMLN] _version;
+        char[SYS_NMLN] machine;
+        char[SYS_NMLN] domainname;
+    }
+
+    int uname(utsname*);
+}
 else
 {
     static assert(false, "unsupported system");
