@@ -37,12 +37,14 @@ struct Loc
     char *filename;
     unsigned linnum;
     unsigned charnum;
+    unsigned bytes;  // TODO: needed?
 
     Loc(int y, int x)
     {
         linnum = y;
         charnum = x;
         filename = NULL;
+        bytes = 0;
     }
 };
 

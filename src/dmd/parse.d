@@ -69,6 +69,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.classReference : PREC.primary,
     TOK.file : PREC.primary,
     TOK.fileFullPath : PREC.primary,
+    TOK.argString : PREC.primary,
     TOK.line : PREC.primary,
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
@@ -2041,6 +2042,9 @@ final class Parser(AST) : Lexer
                 tiargs.push(ea);
                 break;
             }
+        case TOK.argString:
+            error("illegal use of " ~TOK.argString);
+            break;
         default:
             error("template argument expected following `!`");
             break;
@@ -6249,7 +6253,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __ARG_STRING__.
      */
     AST.Expression parseDefaultInitExp()
     {
@@ -6278,6 +6282,36 @@ final class Parser(AST) : Lexer
                 return e;
             }
         }
+
+        if(token.value == TOK.argString)
+        {
+          AST.ArgStringInitExp e = new AST.ArgStringInitExp(token.loc);
+          nextToken();
+          if(token.value == TOK.not)
+          {
+            if(peekNext() != TOK.identifier)
+            {
+              error("identifier expected following `__ARG_STRING__!`");
+              return null;
+            }
+
+            nextToken();
+            e.setIdent(token.ident);
+            nextToken();
+          } else {
+            error("expected !");
+            return null;
+          }
+
+          if (token.value == TOK.comma || token.value == TOK.rightParentheses)
+          {
+            return e;
+          } else {
+            error("expected , or )");
+            return null;
+          }
+        }
+
         AST.Expression e = parseAssignExp();
         return e;
     }

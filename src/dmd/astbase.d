@@ -5248,6 +5248,19 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class ArgStringInitExp : DefaultInitExp
+    {
+        extern (D) this(Loc loc)
+        {
+            super(loc, TOK.argString, __traits(classInstanceSize, ArgStringInitExp));
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class LineInitExp : DefaultInitExp
     {
         extern (D) this(Loc loc)

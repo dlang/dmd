@@ -1305,6 +1305,13 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class ArgnameInitExp : public DefaultInitExp
+{
+public:
+    Expression *resolveArgname(Loc loc, Scope* sc, const(char)* argname);
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class LineInitExp : public DefaultInitExp
 {
 public:

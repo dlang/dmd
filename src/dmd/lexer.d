@@ -228,7 +228,7 @@ class Lexer
      */
     this(const(char)* filename, const(char)* base, size_t begoffset, size_t endoffset, bool doDocComment, bool commentToken)
     {
-        scanloc = Loc(filename, 1, 1);
+        scanloc = Loc(filename, 1, 1, 0);
         //printf("Lexer::Lexer(%p,%d)\n",base,length);
         //printf("lexer.filename = %s\n", filename);
         token = Token.init;
@@ -2227,6 +2227,7 @@ class Lexer
     final Loc loc()
     {
         scanloc.charnum = cast(uint)(1 + p - line);
+        scanloc.bytes = cast(uint)(p - base);
         return scanloc;
     }
 

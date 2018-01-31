@@ -73,6 +73,7 @@ struct Param
     bool verbose;       // verbose compile
     bool vcg_ast;       // write-out codegen-ast
     bool showColumns;   // print character (column) numbers in diagnostics
+    bool showBytes;         // print bytes offset in diagnostics
     bool vtls;          // identify thread local variables
     char vgc;           // identify gc usage
     bool vfield;        // identify non-mutable field variables
@@ -300,15 +301,17 @@ struct Loc
     const char *filename;
     unsigned linnum;
     unsigned charnum;
+    unsigned bytes;
 
     Loc()
     {
         linnum = 0;
         charnum = 0;
         filename = NULL;
+        bytes = 0;
     }
 
-    Loc(const char *filename, unsigned linnum, unsigned charnum);
+    Loc(const char *filename, unsigned linnum, unsigned charnum, uint bytes);
 
     const char *toChars() const;
     bool equals(const Loc& loc);

@@ -84,6 +84,8 @@ struct Param
     bool verbose;           // verbose compile
     bool vcg_ast;           // write-out codegen-ast
     bool showColumns;       // print character (column) numbers in diagnostics
+    bool showBytes;         // print bytes offset in diagnostics
+    bool disposeSrcContent; // dispose of source file contents after parsing
     bool vtls;              // identify thread local variables
     bool vgc;               // identify gc usage
     bool vfield;            // identify non-mutable field variables
@@ -378,15 +380,18 @@ struct Loc
     const(char)* filename;
     uint linnum;
     uint charnum;
+    // 0-based offset from origin in bytes (allows O(1) access)
+    uint bytes;
 
     static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
 nothrow:
-    extern (D) this(const(char)* filename, uint linnum, uint charnum)
+    extern (D) this(const(char)* filename, uint linnum, uint charnum, uint bytes)
     {
         this.linnum = linnum;
         this.charnum = charnum;
         this.filename = filename;
+        this.bytes = bytes;
     }
 
     extern (C++) const(char)* toChars() const
@@ -405,6 +410,12 @@ nothrow:
                 buf.writeByte(',');
                 buf.print(charnum);
             }
+            if (global.params.showBytes)
+            {
+                // instead of ',' to avoid confusing with charnum if !showColumns
+                buf.writeByte(':');
+                buf.print(bytes);
+            }
             buf.writeByte(')');
         }
         return buf.extractString();
@@ -412,6 +423,7 @@ nothrow:
 
     extern (C++) bool equals(ref const(Loc) loc) const
     {
+      // TODO: how about: `return (bytes == loc.bytes) && FileName.equals(filename, loc.filename);` ?
         return (!global.params.showColumns || charnum == loc.charnum) &&
                linnum == loc.linnum &&
                FileName.equals(filename, loc.filename);

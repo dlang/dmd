@@ -2441,6 +2441,12 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
+    // TODO: can we avoid this?
+    ArgStringInitExp isArgStringInitExp()
+    {
+      return null;
+    }
+
     final Expression op_overload(Scope* sc)
     {
         return .op_overload(this, sc);
@@ -7085,6 +7091,42 @@ extern (C++) final class FileInitExp : DefaultInitExp
         if (subop == TOK.fileFullPath)
             s = FileName.combine(sc._module.srcfilePath, s);
         Expression e = new StringExp(loc, cast(char*)s);
+        e = e.expressionSemantic(sc);
+        e = e.castTo(sc, type);
+        return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/***********************************************************
+ */
+extern (C++) final class ArgStringInitExp : DefaultInitExp
+{
+    // function parameter we want stringified
+    Identifier ident;
+
+    extern (D) this(const ref Loc loc)
+    {
+        super(loc, TOK.argString, __traits(classInstanceSize, ArgStringInitExp));
+    }
+
+    void setIdent(Identifier ident)
+    {
+      this.ident = ident;
+    }
+
+    override ArgStringInitExp isArgStringInitExp()
+    {
+      return this;
+    }
+
+    extern (D) Expression resolveArgString(const ref Loc loc, Scope* sc, const(char)[] value)
+    {
+        Expression e = new StringExp(loc, cast(void*)value.ptr, value.length);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
