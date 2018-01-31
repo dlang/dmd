@@ -267,13 +267,23 @@ $(TABLE2 Struct Properties,
 $(THEAD Name, Description)
 $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
-$(TROW $(D .tupleof), Gets type tuple of fields))
+)
+
+$(H2 $(LNAME2 struct_instance_properties, Struct Instance Properties))
+
+$(TABLE2 Struct Instance Properties,
+$(THEAD Name, Description)
+$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, variadic-templates, expression sequence)
+    of all struct fields - see
+    $(DDSUBLINK spec/class, class_properties, Class Properties) for a class-based example.)
+)
 
 $(H2 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
-$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct))
+$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct)
+)
 
 $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs))
 

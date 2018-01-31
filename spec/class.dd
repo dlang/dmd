@@ -167,15 +167,19 @@ void test(Foo foo)
 
 $(H2 $(LNAME2 class_properties, Class Properties))
 
-        $(P The $(D .tupleof) property returns an $(I ExpressionTuple)
-        of all the fields
-        in the class, excluding the hidden fields and the fields in the
-        base class.
+        $(P The $(D .tupleof) property is an
+        $(DDSUBLINK spec/template, variadic-templates, expression sequence)
+        of all the fields in the class, excluding the hidden fields and
+        the fields in the base class.
         )
 ---
 class Foo { int x; long y; }
+
 void test(Foo foo)
 {
+    import std.stdio;
+    static assert(typeof(foo.tupleof).stringof == `(int, long)`);
+
     foo.tupleof[0] = 1; // set foo.x to 1
     foo.tupleof[1] = 2; // set foo.y to 2
     foreach (x; foo.tupleof)
