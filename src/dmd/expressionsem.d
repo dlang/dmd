@@ -599,27 +599,27 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
 
-                if(auto argexp=arg.isArgnameInitExp())
+                if(auto argexp = arg.isArgnameInitExp())
                 {
                   if(argexp.ident is null)
                   {
                     error(argexp.loc, "argexp.ident null");
                     return true;
                   }
-                  assert(nargs>0);
-                  bool found=false;
+                  assert(nargs > 0);
+                  bool found = false;
                   // TODO: should Parameters._foreach be used?
-                  for(int u=0;u<nparams;u++)
+                  foreach(u; 0..nparams)
                   {
                     Parameter pu = Parameter.getNth(tf.parameters, u);
-                    if(pu.ident==argexp.ident)
+                    if(pu.ident == argexp.ident)
                     {
                       assert(u < nargs);
-                      auto argu=(*arguments)[u];
+                      auto argu = (*arguments)[u];
                       // D20180130T161632 NOTE: argu.toChars would do some partial constant folding
-                      auto argname=argu.stringified;
+                      auto argname = argu.stringified;
                       arg=argexp.resolveArgname(loc, sc, argname);
-                      found=true;
+                      found = true;
                       break;
                     }
                   }

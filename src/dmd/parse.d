@@ -69,7 +69,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.classReference : PREC.primary,
     TOK.file : PREC.primary,
     TOK.fileFullPath : PREC.primary,
-    TOK.argumentName : PREC.primary,
+    TOK.argumentString : PREC.primary,
     TOK.line : PREC.primary,
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
@@ -2042,8 +2042,8 @@ final class Parser(AST) : Lexer
                 tiargs.push(ea);
                 break;
             }
-        case TOK.argumentName:
-            error("illegal use of " ~TOK.argumentName);
+        case TOK.argumentString:
+            error("illegal use of " ~TOK.argumentString);
             break;
         default:
             error("template argument expected following `!`");
@@ -6253,7 +6253,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __ARG_NAMES__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __ARG_STRING__.
      */
     AST.Expression parseDefaultInitExp()
     {
@@ -6283,7 +6283,7 @@ final class Parser(AST) : Lexer
             }
         }
 
-        if(token.value == TOK.argumentName)
+        if(token.value == TOK.argumentString)
         {
           AST.ArgnameInitExp e = new AST.ArgnameInitExp(token.loc);
           nextToken();
@@ -6291,7 +6291,7 @@ final class Parser(AST) : Lexer
           {
             if(peekNext() != TOK.identifier)
             {
-              error("identifier expected following `__ARG_NAMES__!`");
+              error("identifier expected following `__ARG_STRING__!`");
               return null;
             }
 
