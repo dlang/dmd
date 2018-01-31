@@ -1617,13 +1617,13 @@ extern (C++) final class SwitchStatement : Statement
             }
             else if (vd.ident == Id.withSym)
             {
-                deprecation("`switch` skips declaration of `with` temporary at %s", vd.loc.toChars());
+                error("`switch` skips declaration of `with` temporary at %s", vd.loc.toChars());
                 return true;
             }
             else
             {
                 if (!vd._init.isVoidInitializer)
-                    deprecation("`switch` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
+                error("`switch` skips declaration of variable `%s` at %s", vd.toPrettyChars(), vd.loc.toChars());
 
                 return true;
             }
