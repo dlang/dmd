@@ -4283,7 +4283,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (global.params.verbose)
-            fprintf(global.stdmsg, "file      %.*s\t(%s)\n", cast(int)se.len, se.string, name);
+            message("file      %.*s\t(%s)", cast(int)se.len, se.string, name);
         if (global.params.moduleDeps !is null)
         {
             OutBuffer* ob = global.params.moduleDeps;

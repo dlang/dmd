@@ -648,7 +648,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     const(char)* p = dsym.loc.toChars();
                     const(char)* s = (dsym.storage_class & STC.immutable_) ? "immutable" : "const";
-                    fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad.toPrettyChars(), dsym.toChars(), s);
+                    message("%s: %s.%s is %s field", p ? p : "", ad.toPrettyChars(), dsym.toChars(), s);
                 }
                 dsym.storage_class |= STC.field;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
@@ -1368,7 +1368,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 memcpy(name, se.string, se.len);
                 name[se.len] = 0;
                 if (global.params.verbose)
-                    fprintf(global.stdmsg, "library   %s\n", name);
+                    message("library   %s", name);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer* ob = global.params.moduleDeps;
@@ -1485,7 +1485,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 /* Print unrecognized pragmas
                  */
-                fprintf(global.stdmsg, "pragma    %s", pd.ident.toChars());
+                OutBuffer buf;
+                buf.writestring(pd.ident.toChars());
                 if (pd.args)
                 {
                     for (size_t i = 0; i < pd.args.dim; i++)
@@ -1497,15 +1498,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         sc = sc.endCTFE();
                         e = e.ctfeInterpret();
                         if (i == 0)
-                            fprintf(global.stdmsg, " (");
+                            buf.writestring(" (");
                         else
-                            fprintf(global.stdmsg, ",");
-                        fprintf(global.stdmsg, "%s", e.toChars());
+                            buf.writeByte(',');
+                        buf.writestring(e.toChars());
                     }
                     if (pd.args.dim)
-                        fprintf(global.stdmsg, ")");
+                        buf.writeByte(')');
                 }
-                fprintf(global.stdmsg, "\n");
+                message("pragma    %s", buf.peekString());
             }
             goto Lnodecl;
         }
@@ -3250,7 +3251,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 printedMain = true;
                 const(char)* name = FileName.searchPath(global.path, mod.srcfile.toChars(), true);
-                fprintf(global.stdmsg, "entry     %-10s\t%s\n", type, name);
+                message("entry     %-10s\t%s", type, name);
             }
         }
 

@@ -24,6 +24,7 @@ import dmd.dimport;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dtemplate;
+import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -799,7 +800,7 @@ extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
     {
         Module m = (*modules)[i];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "json gen %s\n", m.toChars());
+            message("json gen %s", m.toChars());
         m.accept(json);
     }
     json.arrayEnd();

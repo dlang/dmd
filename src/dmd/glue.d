@@ -807,7 +807,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     fd.semanticRun = PASS.obj;
 
     if (global.params.verbose)
-        fprintf(global.stdmsg, "function  %s\n", fd.toPrettyChars());
+        message("function  %s", fd.toPrettyChars());
 
     Symbol *s = toSymbol(fd);
     func_t *f = s.Sfunc;
