@@ -2444,7 +2444,7 @@ extern (C++) abstract class Expression : RootObject
     }
 
     // TODO: can we avoid this?
-    ArgnameInitExp isArgnameInitExp()
+    ArgStringInitExp isArgStringInitExp()
     {
       return null;
     }
@@ -7106,14 +7106,14 @@ extern (C++) final class FileInitExp : DefaultInitExp
 
 /***********************************************************
  */
-extern (C++) final class ArgnameInitExp : DefaultInitExp
+extern (C++) final class ArgStringInitExp : DefaultInitExp
 {
     // function parameter we want stringified
     Identifier ident;
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc, TOK.argumentString, __traits(classInstanceSize, ArgnameInitExp));
+        super(loc, TOK.argumentString, __traits(classInstanceSize, ArgStringInitExp));
     }
 
     void setIdent(Identifier ident)
@@ -7121,12 +7121,12 @@ extern (C++) final class ArgnameInitExp : DefaultInitExp
       this.ident = ident;
     }
 
-    override ArgnameInitExp isArgnameInitExp()
+    override ArgStringInitExp isArgStringInitExp()
     {
       return this;
     }
 
-    Expression resolveArgname(const ref Loc loc, Scope* sc, const(char)* argname)
+    Expression resolveArgString(const ref Loc loc, Scope* sc, const(char)* argname)
     {
         Expression e = new StringExp(loc, cast(char*) argname);
         e = e.expressionSemantic(sc);

@@ -599,7 +599,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
 
-                if(auto argexp = arg.isArgnameInitExp())
+                if(auto argexp = arg.isArgStringInitExp())
                 {
                   if(argexp.ident is null)
                   {
@@ -618,7 +618,7 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                       auto argu = (*arguments)[u];
                       // D20180130T161632 NOTE: argu.toChars would do some partial constant folding
                       auto argname = argu.stringified;
-                      arg=argexp.resolveArgname(loc, sc, argname);
+                      arg=argexp.resolveArgString(loc, sc, argname);
                       found = true;
                       break;
                     }
@@ -9333,9 +9333,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = e;
     }
 
-    override void visit(ArgnameInitExp e)
+    override void visit(ArgStringInitExp e)
     {
-        //printf("ArgnameInitExp::semantic()\n");
+        //printf("ArgStringInitExp::semantic()\n");
         e.type = Type.tstring;
         result = e;
     }

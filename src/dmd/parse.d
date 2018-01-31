@@ -6285,7 +6285,7 @@ final class Parser(AST) : Lexer
 
         if(token.value == TOK.argumentString)
         {
-          AST.ArgnameInitExp e = new AST.ArgnameInitExp(token.loc);
+          AST.ArgStringInitExp e = new AST.ArgStringInitExp(token.loc);
           nextToken();
           if(token.value == TOK.not)
           {

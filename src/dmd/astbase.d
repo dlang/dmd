@@ -5248,11 +5248,11 @@ struct ASTBase
         }
     }
 
-    extern (C++) final class ArgnameInitExp : DefaultInitExp
+    extern (C++) final class ArgStringInitExp : DefaultInitExp
     {
         extern (D) this(Loc loc)
         {
-            super(loc, TOK.argumentString, __traits(classInstanceSize, ArgnameInitExp));
+            super(loc, TOK.argumentString, __traits(classInstanceSize, ArgStringInitExp));
         }
 
         override void accept(Visitor v)

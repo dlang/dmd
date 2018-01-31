@@ -5967,7 +5967,7 @@ extern (C++) final class TypeFunction : TypeNext
               Parameter p = Parameter.getNth(parameters, u);
               assert(p);
               if(auto arg=p.defaultArg){
-                if(auto argexp=arg.isArgnameInitExp()){
+                if(auto argexp=arg.isArgStringInitExp()){
                   // TODO: more fine-grained, eg to just stringify 1 arg
                   isArgStringify=true;
                 }
