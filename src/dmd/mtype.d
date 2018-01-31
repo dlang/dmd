@@ -5916,7 +5916,7 @@ extern (C++) final class TypeFunction : TypeNext
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
         ubyte wildmatch = 0;
-        bool isArgStringify=false;
+        bool isArgStringify = false;
 
         if (tthis)
         {

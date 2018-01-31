@@ -3388,7 +3388,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (t1.ty != Tfunction)
         {
-
             TypeFunction tf;
             const(char)* p;
             Dsymbol s;
@@ -3597,7 +3596,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             t1 = exp.f.type;
         }
-
         assert(t1.ty == Tfunction);
 
         Expression argprefix;
