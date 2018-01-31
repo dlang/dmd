@@ -69,7 +69,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.classReference : PREC.primary,
     TOK.file : PREC.primary,
     TOK.fileFullPath : PREC.primary,
-    TOK.argumentString : PREC.primary,
+    TOK.argString : PREC.primary,
     TOK.line : PREC.primary,
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
@@ -2042,8 +2042,8 @@ final class Parser(AST) : Lexer
                 tiargs.push(ea);
                 break;
             }
-        case TOK.argumentString:
-            error("illegal use of " ~TOK.argumentString);
+        case TOK.argString:
+            error("illegal use of " ~TOK.argString);
             break;
         default:
             error("template argument expected following `!`");
@@ -6283,7 +6283,7 @@ final class Parser(AST) : Lexer
             }
         }
 
-        if(token.value == TOK.argumentString)
+        if(token.value == TOK.argString)
         {
           AST.ArgStringInitExp e = new AST.ArgStringInitExp(token.loc);
           nextToken();
