@@ -163,6 +163,21 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
 }
 
 /**
+ * Print a verbose message.
+ * Doesn't prefix or highlight messages.
+ * Params:
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+extern (C++) void message(const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vmessage(format, ap);
+    va_end(ap);
+}
+
+/**
  * Just print to stderr, doesn't care about gagging.
  * (format,ap) text within backticks gets syntax highlighted.
  * Params:
@@ -307,6 +322,21 @@ extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list a
         verror(loc, format, ap, p1, p2, header);
     else if (global.params.useDeprecated == 2 && !global.gag)
         verrorPrint(loc, Classification.deprecation, header, format, ap, p1, p2);
+}
+
+/**
+ * Same as $(D message), but takes a va_list parameter.
+ * Params:
+ *      format = printf-style format specification
+ *      ap     = printf-style variadic arguments
+ */
+extern (C++) void vmessage(const(char)* format, va_list ap)
+{
+    OutBuffer tmp;
+    tmp.vprintf(format, ap);
+    fputs(tmp.peekString(), stdout);
+    fputc('\n', stdout);
+    fflush(stdout);     // ensure it gets written out in case of compiler aborts
 }
 
 /**

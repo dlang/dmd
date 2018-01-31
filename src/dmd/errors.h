@@ -39,6 +39,8 @@ D_ATTRIBUTE_FORMAT(2, 0) void vwarning(const Loc& loc, const char *format, va_li
 D_ATTRIBUTE_FORMAT(2, 0) void vwarningSupplemental(const Loc& loc, const char *format, va_list ap);
 D_ATTRIBUTE_FORMAT(2, 0) void vdeprecation(const Loc& loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 D_ATTRIBUTE_FORMAT(2, 0) void vdeprecationSupplemental(const Loc& loc, const char *format, va_list ap);
+D_ATTRIBUTE_FORMAT(1, 2) void message(const char *format, ...);
+D_ATTRIBUTE_FORMAT(1, 0) void vmessage(const char *format, va_list);
 
 #if defined(__GNUC__) || defined(__clang__)
 #define D_ATTRIBUTE_NORETURN __attribute__((noreturn))
