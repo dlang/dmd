@@ -27,6 +27,7 @@ import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
+import dmd.graphql.core;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -791,17 +792,65 @@ public:
     }
 }
 
-extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
+extern (C++) void json_generate(OutBuffer* buf, Modules* modules, const(QuerySelectionSet) selectionSet)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
-    json.arrayStart();
-    for (size_t i = 0; i < modules.dim; i++)
+
+    // if there is no selection set, output the original JSON
+    // format, which is an array of module syntax objects
+    if (selectionSet.selections is null)
     {
-        Module m = (*modules)[i];
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "json gen %s\n", m.toChars());
-        m.accept(json);
+        json.arrayStart();
+        for (size_t i = 0; i < modules.dim; i++)
+        {
+            Module m = (*modules)[i];
+            if (global.params.verbose)
+                fprintf(global.stdmsg, "json gen %s\n", m.toChars());
+            m.accept(json);
+        }
+        json.arrayEnd();
+        json.removeComma();
     }
-    json.arrayEnd();
-    json.removeComma();
+    else
+    {
+        json.objectStart();
+        scope(exit)json.objectEnd();
+
+        //scope handler = new MyQueryDataHandler();
+        //query(selectionSet, handler, modules);
+        //json.generate();
+    }
 }
+
+__gshared immutable graphQLRootType = immutable graphql.Type(TypeFlags.none, [
+    immutable graphql.Field("compilerInfo", immutable graphql.Type(TypeFlags.none, [
+        immutable graphql.Field("binary", graphql.Type.string_),
+        immutable graphql.Field("version", graphql.Type.string_),
+    ])),
+]);
+
+/+
+
+auto resolveTypeField(Type type, string field)
+{
+    if (field == "compilerInfo")
+    {
+        // return compilerInfoType
+    }
+    else if (field == "buildInfo")
+    {
+        // return buildInfoType
+    }
+    else if (field == "modules")
+    {
+        // return modulesType
+    }
+    else if (field == "semantics")
+    {
+        // return semantics object
+    }
+}
+
+class MyQueryDataHandler : IQueryDataHandler
+{
+}+/

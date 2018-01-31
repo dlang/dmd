@@ -38,6 +38,7 @@ import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.globals;
+import dmd.graphql.core;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
@@ -858,7 +859,7 @@ private int tryMain(size_t argc, const(char)** argv)
     if (global.params.doJsonGeneration)
     {
         OutBuffer buf;
-        json_generate(&buf, &modules);
+        json_generate(&buf, &modules, QuerySelectionSet());
         // Write buf to file
         const(char)* name = global.params.jsonfilename;
         if (name && name[0] == '-' && name[1] == 0)
