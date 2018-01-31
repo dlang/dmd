@@ -3042,7 +3042,7 @@ else version( CRuntime_Musl )
         int sigev_notify;
         void function(sigval) sigev_notify_function;
         pthread_attr_t *sigev_notify_attributes;
-        char[56-3*long.sizeof] __pad;
+        char[56 - 3 * long.sizeof] __pad;
     }
 }
 else
