@@ -4,7 +4,7 @@ NOTE: it also works with UFCS.
 
 Eg:
 ---
-string log(T)(T a, string name=__ARG_NAME__!a)
+string log(T)(T a, string name=__ARG_STRING__!a)
 {
   import std.conv;
   return text(name, ":", a);

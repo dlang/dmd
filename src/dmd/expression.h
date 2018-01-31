@@ -129,7 +129,7 @@ public:
     TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
-    const(char)* stringified;  // for function calls (in case of __ARG_NAME__)
+    const(char)* stringified;   // for function calls (in case of __ARG_STRING__)
 
     static void _init();
     Expression *copy();
