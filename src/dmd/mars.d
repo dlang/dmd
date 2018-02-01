@@ -1573,19 +1573,22 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.link = false;
             else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
             {
-                params.color = true;
                 // Parse:
                 //      -color
                 //      -color=on|off
                 if (p[6] == '=')
                 {
-                    if (strcmp(p + 7, "off") == 0)
+                    if (strcmp(p + 7, "on") == 0)
+                        params.color = true;
+                    else if (strcmp(p + 7, "off") == 0)
                         params.color = false;
-                    else if (strcmp(p + 7, "on") != 0)
+                    else if (strcmp(p + 7, "auto") != 0)
                         goto Lerror;
                 }
                 else if (p[6])
                     goto Lerror;
+                else
+                    params.color = true;
             }
             else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
             {

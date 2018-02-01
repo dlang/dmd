@@ -57,6 +57,35 @@ struct Console
 
         @property FILE* fp() { return _fp; }
 
+        /**
+        Tries to detect whether DMD has been invoked from a terminal.
+        Returns: `true` if a terminal has been detected, `false` otherwise
+        */
+        static bool detectTerminal()
+        {
+            auto h = GetStdHandle(STD_OUTPUT_HANDLE);
+            CONSOLE_SCREEN_BUFFER_INFO sbi;
+            if (GetConsoleScreenBufferInfo(h, &sbi) == 0) // get initial state of console
+                return false; // no terminal detected
+
+            version (CRuntime_DigitalMars)
+            {
+                if (!isatty(stdout._file))
+                    return false; // no terminal detected
+            }
+            else version (CRuntime_Microsoft)
+            {
+                if (!isatty(fileno(stdout)))
+                    return false; // no terminal detected
+            }
+            else
+            {
+                static assert(0, "Unsupported Windows runtime.");
+            }
+
+            return true; // terminal detected
+        }
+
         /*********************************
          * Create an instance of Console connected to stream fp.
          * Params:
@@ -67,23 +96,6 @@ struct Console
          */
         static Console* create(FILE* fp)
         {
-            /* Determine if stream fp is a console
-             */
-            version (CRuntime_DigitalMars)
-            {
-                if (!isatty(fp._file))
-                    return null;
-            }
-            else version (CRuntime_Microsoft)
-            {
-                if (!isatty(fileno(fp)))
-                    return null;
-            }
-            else
-            {
-                return null;
-            }
-
             DWORD nStdHandle;
             if (fp == stdout)
                 nStdHandle = STD_OUTPUT_HANDLE;
@@ -167,14 +179,23 @@ struct Console
 
         @property FILE* fp() { return _fp; }
 
-        static Console* create(FILE* fp)
+        /**
+        Tries to detect whether DMD has been invoked from a terminal.
+        Returns: `true` if a terminal has been detect, `false` otherwise
+        */
+        static bool detectTerminal()
         {
             import core.stdc.stdlib : getenv;
             const(char)* term = getenv("TERM");
             import core.stdc.string : strcmp;
             if (!(isatty(STDERR_FILENO) && term && term[0] && 0 != strcmp(term, "dumb")))
-                return null;
+                return false; // no terminal detected
 
+            return true; // terminal detected
+        }
+
+        static Console* create(FILE* fp)
+        {
             auto c = new Console();
             c._fp = fp;
             return c;

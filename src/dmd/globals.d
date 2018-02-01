@@ -134,7 +134,7 @@ struct Param
     // 2: informational warnings (no errors)
     byte warnings;
     bool pic;               // generate position-independent-code for shared libs
-    bool color = true;      // use ANSI colors in console output
+    bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool nofloat;           // code should not pull in floating point support
@@ -360,6 +360,11 @@ struct Global
         }
         _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
+
+        // -color=auto is the default value
+        import dmd.console : Console;
+        if (Console.detectTerminal())
+            params.color = true;
     }
 
     /**
