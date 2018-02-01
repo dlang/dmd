@@ -86,12 +86,6 @@ public:
     int isDocFile;      // if it is a documentation input file, not D source
     bool isPackageFile; // if it is a package.d
     int needmoduleinfo;
-    /**
-       How many unit tests have been seen so far in this module. Makes it so the
-       unit test name is reproducible regardless of whether it's compiled
-       separately or all at once.
-     */
-    unsigned unitTestCounter;
     int selfimports;            // 0: don't know, 1: does not, 2: does
     bool selfImports();         // returns true if module imports itself
 

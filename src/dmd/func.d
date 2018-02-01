@@ -3462,10 +3462,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
 
     extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, char* codedoc)
     {
-        // Id.empty can cause certain things to fail, so we create a
-        // temporary one here that serves for most purposes with
-        // createIdentifier. There is no scope to pass so we pass null.
-        super(loc, endloc, createIdentifier(loc, null), stc, null);
+        super(loc, endloc, createIdentifier(loc), stc, null);
         this.codedoc = codedoc;
     }
 
@@ -3476,54 +3473,15 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(utd);
     }
 
-    /**
-       Sets the "real" identifier, replacing the one created in the contructor.
-       The reason for this is that the "real" identifier can only be generated
-       properly in the semantic pass. See:
-       https://issues.dlang.org/show_bug.cgi?id=16995
-     */
-    final void setIdentifier()
-    {
-        ident = createIdentifier(loc, _scope);
-    }
-
     /***********************************************************
      * Generate unique unittest function Id so we can have multiple
      * instances per module.
      */
-    private static Identifier createIdentifier(const ref Loc loc, Scope* sc)
+    private static Identifier createIdentifier(const ref Loc loc)
     {
         OutBuffer buf;
-        writeModuleNameOrFileName(buf, loc, sc);
-        buf.prependstring("__unittest_");
-        const index = sc ? sc._module.unitTestCounter++ : 0;
-        buf.printf("_%u_%d", loc.linnum, index);
-
-        // replace characters that demangle can't handle
-        auto str = buf.peekString;
-        for(int i = 0; str[i] != 0; ++i)
-            if(str[i] == '/' || str[i] == '\\' || str[i] == '.') str[i] = '_';
-
+        buf.printf("__unittest_L%u_C%u", loc.linnum, loc.charnum);
         return Identifier.idPool(buf.peekSlice());
-    }
-
-    /*************************************************************************
-     * Writes a module name to name a unittest. Tries to use the fully
-     * qualified name if possible to avoid mismatches when compiling separately.
-     * Otherwise uses the file name.
-     * Params:
-     *    buf = The buffer to write to.
-     *    loc = The location of the unit test declaration.
-     *    scope = The scope of the unit test declaration.
-     */
-    private static void writeModuleNameOrFileName(ref OutBuffer buf, const ref Loc loc, Scope* scope_)
-    {
-        if (scope_ is null || scope_._module is null || scope_._module.ident is null)
-        {
-            buf.writestring(loc.filename);
-            return;
-        }
-        scope_._module.fullyQualifiedName(buf);
     }
 
     override AggregateDeclaration isThis()
