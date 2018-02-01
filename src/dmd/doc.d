@@ -2564,7 +2564,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     Dsymbol s = a.dim ? (*a)[0] : null; // test
     //printf("highlightText()\n");
     bool leadingBlank = true;
-    bool atNewParagraph = true;
     size_t iParagraphStart = offset;
     size_t iPreceedingBlankLine = 0;
     int headingLevel = 0;
@@ -2642,6 +2641,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     }
                 }
             }
+            iPreceedingBlankLine = 0;
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
                 inlineDelimiters.length = 0;
@@ -2652,15 +2652,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 if (iParagraphStart <= i)
                 {
+                    iPreceedingBlankLine = i;
                     i = buf.insert(i, "$(DDOC_BLANKLINE)");
                     iParagraphStart = i + 1;
                 }
-
-                iPreceedingBlankLine = i;
-                atNewParagraph = true;
             }
-            else
-                atNewParagraph = false;
             leadingBlank = true;
             iHeadingStart = iLineStart;
             iLineStart = i + 1;
@@ -3119,7 +3115,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     size_t iStrictAfterUnderline = skipChars(buf, i, "*");
                     iStrictAfterUnderline = skipChars(buf, iStrictAfterUnderline, " \t\r");
 
-                    if (atNewParagraph || iStrictAfterUnderline != iAfterUnderline)
+                    if (iPreceedingBlankLine || iStrictAfterUnderline != iAfterUnderline)
                     {
                         // if in a new paragraph then treat it as a thematic break
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
