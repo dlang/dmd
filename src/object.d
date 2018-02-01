@@ -3513,6 +3513,11 @@ bool __equals(T1, T2)(T1[] lhs, T2[] rhs)
                 if (at(lhs, u) != at(rhs, u))
                     return false;
             }
+            else static if (__traits(isAssociativeArray, U1))
+            {
+                if (at(lhs, u) != at(rhs, u))
+                    return false;
+            }
             else
             {
                 if (at(lhs, u).tupleof != at(rhs, u).tupleof)
@@ -3563,6 +3568,21 @@ unittest
 
     assert(arr1 != arr2);
     assert(arr2 == arr3);
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=18252
+unittest
+{
+    string[int][] a1, a2;
+    assert(__equals(a1, a2));
+    assert(a1 == a2);
+    a1 ~= [0: "zero"];
+    a2 ~= [0: "zero"];
+    assert(__equals(a1, a2));
+    assert(a1 == a2);
+    a2[0][1] = "one";
+    assert(!__equals(a1, a2));
+    assert(a1 != a2);
 }
 
 // Compare class and interface objects for ordering.
