@@ -1,0 +1,9 @@
+The deprecation period of the `-dylib` flag on OSX has ended. Use `-shared`
+
+The deprecation period of the `-dylib` flag on OSX has ended.
+
+$(CONSOLE dmd -dylib awesome_d_library.d)
+
+Use the `-shared` flag to generate a shared library:
+
+$(CONSOLE dmd -shared awesome_d_library.d)

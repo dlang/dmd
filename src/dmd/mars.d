@@ -1545,19 +1545,6 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-shared")
                 params.dll = true;
-            else if (arg == "-dylib")
-            {
-                static if (TARGET.OSX)
-                {
-                    Loc loc;
-                    deprecation(loc, "use -shared instead of -dylib");
-                    params.dll = true;
-                }
-                else
-                {
-                    goto Lerror;
-                }
-            }
             else if (arg == "-fPIC")
             {
                 static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
