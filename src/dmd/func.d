@@ -1335,7 +1335,7 @@ extern (C++) class FuncDeclaration : Declaration
         Module m = getModule();
         if (m && m.isRoot() && !inUnittest())
         {
-            fprintf(global.stdmsg, "%s: vgc: %s\n", loc.toChars(), warn);
+            message("%s: vgc: %s", loc.toChars(), warn);
         }
     }
 

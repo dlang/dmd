@@ -206,7 +206,7 @@ Symbol *toSymbol(Dsymbol s)
                     if (global.params.vtls)
                     {
                         const(char)* p = vd.loc.toChars();
-                        fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", vd.toChars());
+                        message("%s: %s is thread local", p ? p : "", vd.toChars());
                         if (p)
                             mem.xfree(cast(void*)p);
                     }

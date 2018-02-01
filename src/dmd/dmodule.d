@@ -523,16 +523,18 @@ extern (C++) final class Module : Package
             return null;
         if (global.params.verbose)
         {
-            fprintf(global.stdmsg, "import    ");
+            OutBuffer buf;
             if (packages)
             {
                 for (size_t i = 0; i < packages.dim; i++)
                 {
                     Identifier pid = (*packages)[i];
-                    fprintf(global.stdmsg, "%s.", pid.toChars());
+                    buf.writestring(pid.toChars());
+                    buf.writeByte('.');
                 }
             }
-            fprintf(global.stdmsg, "%s\t(%s)\n", ident.toChars(), m.srcfile.toChars());
+            buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
+            message("import    %s", buf.peekString());
         }
         m = m.parse();
 
@@ -553,12 +555,7 @@ extern (C++) final class Module : Package
         {
             if (!m.isRoot() && onImport)
             {
-                static __gshared bool bodge = false;
-                if(bodge)
-                    fprintf(global.stdmsg, "onImport\n");
                 auto onImportResult = onImport(m);
-                if(bodge)
-                    fprintf(global.stdmsg, "onImport %d\n", onImportResult);
                 if(onImportResult)
                 {
                     m.importedFrom = m;

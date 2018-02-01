@@ -1817,12 +1817,7 @@ version (none)
 {
                     if (global.params.vsafe)
                     {
-                        fprintf(
-                            global.stdmsg,
-                            "%s: To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`\n",
-                            loc.toChars()
-                        );
-                        fflush(global.stdmsg);
+                        message("%s: To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`", loc.toChars());
                     }
                     fld.tookAddressOf = 1;
 }
@@ -2247,7 +2242,7 @@ else
 
                     if (global.params.verbose)
                     {
-                        fprintf(global.stdmsg, "library   %.*s\n", cast(int)se.len, se.string);
+                        message("library   %.*s", cast(int)se.len, se.string);
                     }
                 }
             }

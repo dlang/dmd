@@ -13,7 +13,6 @@
 module dmd.globals;
 
 import core.stdc.stdint;
-import core.stdc.stdio;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
@@ -251,7 +250,6 @@ struct Global
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
-    FILE* stdmsg;           // where to send verbose messages
     uint gag;               // !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      // number of errors reported while gagged
 
@@ -350,7 +348,6 @@ struct Global
         }
         _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
-        stdmsg = stdout;
     }
 }
 

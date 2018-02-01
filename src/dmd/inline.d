@@ -26,6 +26,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.errors;
 import dmd.func;
 import dmd.globals;
 import dmd.id;
@@ -1276,7 +1277,7 @@ public:
             return;
 
         if (global.params.verbose && (eresult || sresult))
-            fprintf(global.stdmsg, "inlined   %s =>\n          %s\n", fd.toPrettyChars(), parent.toPrettyChars());
+            message("inlined   %s =>\n          %s", fd.toPrettyChars(), parent.toPrettyChars());
 
         if (eresult && e.type.ty != Tvoid)
         {
@@ -1706,7 +1707,7 @@ public void inlineScanModule(Module m)
     {
         Dsymbol s = (*m.members)[i];
         //if (global.params.verbose)
-        //    fprintf(global.stdmsg, "inline scan symbol %s\n", s.toChars());
+        //    message("inline scan symbol %s", s.toChars());
         scope InlineScanVisitor v = new InlineScanVisitor();
         s.accept(v);
     }

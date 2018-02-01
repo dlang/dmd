@@ -483,9 +483,9 @@ private int tryMain(size_t argc, const(char)** argv)
 
     if (global.params.verbose)
     {
-        fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
-        fprintf(global.stdmsg, "version   %s\n", global._version);
-        fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
+        message("binary    %s", global.params.argv0);
+        message("version   %s", global._version);
+        message("config    %s", global.inifilename ? global.inifilename : "(none)");
     }
     //printf("%d source files\n",files.dim);
 
@@ -677,7 +677,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         Module m = modules[modi];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "parse     %s\n", m.toChars());
+            message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
@@ -734,7 +734,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "import    %s\n", m.toChars());
+                message("import    %s", m.toChars());
             genhdrfile(m);
         }
     }
@@ -745,7 +745,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "importall %s\n", m.toChars());
+            message("importall %s", m.toChars());
         m.importAll(null);
     }
     if (global.errors)
@@ -757,7 +757,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
+            message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
     //if (global.errors)
@@ -778,7 +778,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
+            message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
     Module.runDeferredSemantic2();
@@ -789,7 +789,7 @@ private int tryMain(size_t argc, const(char)** argv)
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+            message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
     if (includeImports)
@@ -801,7 +801,7 @@ private int tryMain(size_t argc, const(char)** argv)
             auto m = compiledImports[i];
             assert(m.isRoot);
             if (global.params.verbose)
-                fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+                message("semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
         }
@@ -816,7 +816,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "inline scan %s\n", m.toChars());
+                message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
     }
@@ -935,7 +935,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "code      %s\n", m.toChars());
+                message("code      %s", m.toChars());
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
@@ -950,7 +950,7 @@ private int tryMain(size_t argc, const(char)** argv)
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "code      %s\n", m.toChars());
+                message("code      %s", m.toChars());
             obj_start(cast(char*)m.srcfile.toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
@@ -1356,11 +1356,13 @@ private void printPredefinedVersions()
 {
     if (global.params.verbose && global.versionids)
     {
-        fprintf(global.stdmsg, "predefs  ");
+        OutBuffer buf;
         foreach (const str; *global.versionids)
-            fprintf(global.stdmsg, " %s", str.toChars);
-
-        fprintf(global.stdmsg, "\n");
+        {
+            buf.writeByte(' ');
+            buf.writestring(str.toChars());
+        }
+        message("predefs  %s", buf.peekString());
     }
 }
 
@@ -2196,7 +2198,7 @@ private extern(C++) bool marsOnImport(Module m)
             (m.md && m.md.packages) ? m.md.packages : &empty, m.ident, m.isPackageFile)))
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "compileimport (%s)\n", m.srcfile.toChars);
+                message("compileimport (%s)", m.srcfile.toChars);
             compiledImports.push(m);
             return true; // this import will be compiled
         }
@@ -2341,7 +2343,7 @@ private void createMatchNodes()
             // changes the default behavior from inclusion to exclusion.
             if (includeByDefault && !matchNodes[entryIndex].isExclude)
             {
-                //fprintf(global.stdmsg, "Matcher: found 'include pattern', switching default behavior to exclusion\n");
+                //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
                 includeByDefault = false;
             }
         }
