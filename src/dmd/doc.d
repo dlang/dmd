@@ -1838,12 +1838,15 @@ private bool isWhitespace(const(char) c)
 private bool isPunctuation(const(char) c)
 {
 // TODO: unicode punctuation: Pc, Pd, Pe, Pf, Pi, Po, or Ps.
-    return c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&' ||
-            c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' ||
-            c == '-' || c == '.' || c == '/' || c == ':' || c == ';' || c == '<' ||
-            c == '=' || c == '>' || c == '?' || c == '@' || c == '[' || c == '\\' ||
-            c == ']' || c == '^' || c == '_' || c == '`' || c == '{' || c == '|' ||
-            c == '}' || c == '~';
+// However, unicode punctuation should not be included for Markdown backslash
+// escapes, so when it's implemented be sure to make the unicode punctuation
+// check optional via a parameter
+    return c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&'
+        || c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ','
+        || c == '-' || c == '.' || c == '/' || c == ':' || c == ';' || c == '<'
+        || c == '=' || c == '>' || c == '?' || c == '@' || c == '[' || c == '\\'
+        || c == ']' || c == '^' || c == '_' || c == '`' || c == '{' || c == '|'
+        || c == '}' || c == '~';
 }
 
 /**********************************************
@@ -1910,9 +1913,9 @@ private int getMarkdownIndent(OutBuffer* buf, size_t from, size_t to)
     if (to > slice.length)
         to = slice.length;
     int indent = 0;
-    for (; from < to; from++)
+    foreach (char c; slice[from..to])
     {
-        switch (slice[from])
+        switch (c)
         {
         case '\t':
             indent += (4 - (indent % 4));
@@ -2227,9 +2230,9 @@ private bool endMarkdownHeading(OutBuffer *buf, ref size_t i, ref int headingLev
     if (!headingLevel)
         return false;
 
-    char* heading = cast(char*) "$(H0 ".dup;
+    static char[5] heading = "$(H0 ";
     heading[3] = cast(char) ('0' + headingLevel);
-    buf.insert(iHeadingStart, heading, 5);
+    buf.insert(iHeadingStart, heading);
     i += 5;
     size_t iBeforeNewline = i;
     while (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n')
@@ -3245,38 +3248,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode || i+1 >= buf.offset)
                 break;
             char c1 = buf.data[i+1];
-            if ((c1 == '!')
-                || (c1 == '"')
-                || (c1 == '#')
-                || (c1 == '$')
-                || (c1 == '%')
-                || (c1 == '&')
-                || (c1 == '\'')
-                || (c1 == '(')
-                || (c1 == ')')
-                || (c1 == '*')
-                || (c1 == '+')
-                || (c1 == ',')
-                || (c1 == '-')
-                || (c1 == '.')
-                || (c1 == '/')
-                || (c1 == '\\')
-                || (c1 == ':')
-                || (c1 == ';')
-                || (c1 == '<')
-                || (c1 == '=')
-                || (c1 == '>')
-                || (c1 == '?')
-                || (c1 == '@')
-                || (c1 == '[')
-                || (c1 == ']')
-                || (c1 == '^')
-                || (c1 == '_')
-                || (c1 == '`')
-                || (c1 == '{')
-                || (c1 == '|')
-                || (c1 == '}')
-                || (c1 == '~'))
+            if (isPunctuation(c1))
             {
                 buf.remove(i, 1);
 
