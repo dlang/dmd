@@ -1823,16 +1823,27 @@ extern (C++) bool isDitto(const(char)* comment)
     return false;
 }
 
-bool isWhitespace(const(char) c)
+/*****************************************
+ * Return true if the given character is white space.
+ */
+private bool isWhitespace(const(char) c)
 {
 // TODO: unicode whitespace: Zs.
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-bool isPunctuation(const(char) c)
+/*****************************************
+ * Return true if the given character is punctuation.
+ */
+private bool isPunctuation(const(char) c)
 {
 // TODO: unicode punctuation: Pc, Pd, Pe, Pf, Pi, Po, or Ps.
-    return c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' || c == '-' || c == '.' || c == '/' || c == ':' || c == ';' || c == '<' || c == '=' || c == '>' || c == '?' || c == '@' || c == '[' || c == '\\' || c == ']' || c == '^' || c == '_' || c == '`' || c == '{' || c == '|' || c == '}' || c == '~';
+    return c == '!' || c == '"' || c == '#' || c == '$' || c == '%' || c == '&' ||
+            c == '\'' || c == '(' || c == ')' || c == '*' || c == '+' || c == ',' ||
+            c == '-' || c == '.' || c == '/' || c == ':' || c == ';' || c == '<' ||
+            c == '=' || c == '>' || c == '?' || c == '@' || c == '[' || c == '\\' ||
+            c == ']' || c == '^' || c == '_' || c == '`' || c == '{' || c == '|' ||
+            c == '}' || c == '~';
 }
 
 /**********************************************
@@ -1858,8 +1869,13 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
 
 /************************************************
  * Scan past the given characters.
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  i =             the index within `buf` to start scanning from
+ *  chars =         the characters to skip
+ * Returns: the index after skipping characters.
  */
-size_t skipchars(OutBuffer* buf, size_t i, string chars)
+private size_t skipChars(OutBuffer* buf, size_t i, string chars)
 {
     const slice = buf.peekSlice();
     for (; i < slice.length; i++)
@@ -1880,14 +1896,20 @@ size_t skipchars(OutBuffer* buf, size_t i, string chars)
 }
 
 /************************************************
- * Get the indent from one index to another, counting a tab as four spaces.
+ * Get the indent from one index to another, counting tab stops as four spaces wide
+ * per the Markdown spec.
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  from =          the index within `buf` to start counting from, inclusive
+ *  to =            the index within `buf` to stop counting at, exclusive
+ * Returns: the indent
  */
-size_t getIndent(OutBuffer* buf, size_t from, size_t to)
+private int getMarkdownIndent(OutBuffer* buf, size_t from, size_t to)
 {
     const slice = buf.peekSlice();
     if (to > slice.length)
         to = slice.length;
-    size_t indent = 0;
+    int indent = 0;
     for (; from < to; from++)
     {
         switch (slice[from])
@@ -2009,154 +2031,164 @@ Lno:
 
 /****************************************************
  * Replace the inline link portion (the part in parentheses) of a Markdown link.
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  i =             the index within `buf` to replace the Markdown inline link at
+ *  delimiter =     information about the inline link
+ * Returns: the index after replacing the link
  */
-size_t replaceMarkdownInlineLink(OutBuffer* buf, size_t i, MarkdownDelimiter delimiter)
+private size_t replaceMarkdownInlineLink(OutBuffer* buf, size_t i, MarkdownDelimiter delimiter)
 {
-    if (buf.data[i+1] == '(')
-    {
-        size_t j = skipchars(buf, i + 2, " \t");
+    if (buf.data[i+1] != '(')
+        return i;
 
-        // look ahead for the close of a link
-        const (char)[] href, title;
-        size_t iHrefStart = j;
-        size_t iTitleStart = 0;
-        size_t parenDepth = 0;
-        size_t iLinkNewline = 0;
-        bool inPointy = false;
-        const slice = buf.peekSlice();
-        for (; j < slice.length; j++)
+    size_t j = skipChars(buf, i + 2, " \t");
+
+    // look ahead for the close of a link
+    const (char)[] href, title;
+    size_t iHrefStart = j;
+    size_t iTitleStart = 0;
+    size_t parenDepth = 0;
+    size_t iLinkNewline = 0;
+    bool inPointy = false;
+    const slice = buf.peekSlice();
+    for (; j < slice.length; j++)
+    {
+        switch (slice[j])
         {
-            switch (slice[j])
+        case '<':
+            if (!inPointy && j == iHrefStart)
             {
-            case '<':
-                if (!inPointy && j == iHrefStart)
+                inPointy = true;
+                ++iHrefStart;
+            }
+            break;
+        case '>':
+            if (inPointy && slice[j-1] != '\\')
+            {
+                inPointy = false;
+                href = (cast(const char*) buf.data)[iHrefStart .. j];
+            }
+            break;
+        case '(':
+            if (!inPointy && slice[j-1] != '\\')
+            {
+                ++parenDepth;
+                if (href.length)
+                    iTitleStart = j + 1;
+            }
+            break;
+        case ')':
+            if (slice[j-1] != '\\')
+            {
+                if (parenDepth)
+                    --parenDepth;
+                if (!parenDepth)
                 {
-                    inPointy = true;
-                    ++iHrefStart;
-                }
-                break;
-            case '>':
-                if (inPointy && slice[j-1] != '\\')
-                {
-                    inPointy = false;
-                    href = (cast(const char*) buf.data)[iHrefStart .. j];
-                }
-                break;
-            case '(':
-                if (!inPointy && slice[j-1] != '\\')
-                {
-                    ++parenDepth;
                     if (href.length)
-                        iTitleStart = j + 1;
-                }
-                break;
-            case ')':
-                if (slice[j-1] != '\\')
-                {
-                    if (parenDepth)
-                        --parenDepth;
-                    if (!parenDepth)
+                        goto case '"';
+                    else
                     {
-                        if (href.length)
-                            goto case '"';
-                        else
-                        {
-                            href = (cast(const char*) buf.data)[iHrefStart .. j];
-                        }
+                        href = (cast(const char*) buf.data)[iHrefStart .. j];
+                    }
+                    goto LEndInlineLink;
+                }
+            }
+            break;
+        case '"':
+        case '\'':
+            if (href.length && slice[j-1] != '\\')
+            {
+                if (iTitleStart)
+                {
+                    if (title.length)
+                    {
+                        // missplaced quote
+                        href.length = 0;
                         goto LEndInlineLink;
                     }
-                }
-                break;
-            case '"':
-            case '\'':
-                if (href.length && slice[j-1] != '\\')
-                {
-                    if (iTitleStart)
-                    {
-                        if (title.length)
-                        {
-                            // missplaced quote
-                            href.length = 0;
-                            goto LEndInlineLink;
-                        }
 
-                        char titleQuote = slice[iTitleStart - 1];
-                        if (slice[j] == titleQuote)
-                            title = (cast(const char*) buf.data)[iTitleStart .. j];
-                    }
-                    else
-                        iTitleStart = j + 1;
+                    char titleQuote = slice[iTitleStart - 1];
+                    if (slice[j] == titleQuote)
+                        title = (cast(const char*) buf.data)[iTitleStart .. j];
                 }
-                break;
-            case ' ':
-            case '\t':
-                if (inPointy)
-                {
-                    // invalid link
-                    href.length = 0;
-                    goto LEndInlineLink;
-                }
-                if (!href.length)
-                    href = (cast(const char*) buf.data)[iHrefStart .. j];
-                break;
-            case '\r':
-            case '\n':
-                if (iLinkNewline == j || !href.length)
-                {
-                    // no blank lines or newlines in hrefs
-                    href.length = 0;
-                    goto LEndInlineLink;
-                }
-                iLinkNewline = j + 1;
-                break;
-            default:
-                break;
+                else
+                    iTitleStart = j + 1;
             }
+            break;
+        case ' ':
+        case '\t':
+            if (inPointy)
+            {
+                // invalid link
+                href.length = 0;
+                goto LEndInlineLink;
+            }
+            if (!href.length)
+                href = (cast(const char*) buf.data)[iHrefStart .. j];
+            break;
+        case '\r':
+        case '\n':
+            if (iLinkNewline == j || !href.length)
+            {
+                // no blank lines or newlines in hrefs
+                href.length = 0;
+                goto LEndInlineLink;
+            }
+            iLinkNewline = j + 1;
+            break;
+        default:
+            break;
         }
-    LEndInlineLink:
-        if (href.length)
+    }
+LEndInlineLink:
+    if (href.length)
+    {
+        size_t iAfterLink = i - delimiter.count;
+        string macroName;
+        href = href.dup;
+        if (title.length)
         {
-            size_t iAfterLink = i - delimiter.count;
-            string macroName;
-            href = href.dup;
-            if (title.length)
-            {
-                title = title.dup;
-                if (delimiter.type == '[')
-                    macroName = "$(LINK_TITLE ";
-                else
-                    macroName = "$(IMAGE_TITLE ";
-            }
+            title = title.dup;
+            if (delimiter.type == '[')
+                macroName = "$(LINK_TITLE ";
             else
-            {
-                if (delimiter.type == '[')
-                    macroName = "$(LINK2 ";
-                else
-                    macroName = "$(IMAGE ";
-            }
-            buf.remove(delimiter.iStart, delimiter.count);
-            buf.remove(i - 1, j - i + 1);
-            j = buf.insert(delimiter.iStart, macroName);
-            j = buf.insert(j, href);
-            j = buf.insert(j, ", ");
-            iAfterLink += macroName.length + href.length + 2;
-            if (title.length)
-            {
-                j = buf.insert(j, title);
-                j = buf.insert(j, ", ");
-                iAfterLink += title.length + 2;
-            }
-            buf.insert(iAfterLink, ")");
-            return iAfterLink;
+                macroName = "$(IMAGE_TITLE ";
         }
+        else
+        {
+            if (delimiter.type == '[')
+                macroName = "$(LINK2 ";
+            else
+                macroName = "$(IMAGE ";
+        }
+        buf.remove(delimiter.iStart, delimiter.count);
+        buf.remove(i - 1, j - i + 1);
+        j = buf.insert(delimiter.iStart, macroName);
+        j = buf.insert(j, href);
+        j = buf.insert(j, ", ");
+        iAfterLink += macroName.length + href.length + 2;
+        if (title.length)
+        {
+            j = buf.insert(j, title);
+            j = buf.insert(j, ", ");
+            iAfterLink += title.length + 2;
+        }
+        buf.insert(iAfterLink, ")");
+        return iAfterLink;
     }
     return i;
 }
 
 /****************************************************
  * Replace a Markdown thematic break (HR).
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  i =             the index within `buf` to replace the Markdown thematic break at. Its value changes if the function succeeds.
+ *  iLineStart =    the index within `buf` that the thematic break's line starts at
+ * Returns: whether a thematic break was replaced
  */
-bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStart)
+private bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStart)
 {
     const slice = buf.peekSlice();
     char c = buf.data[i];
@@ -2183,23 +2215,28 @@ bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t iLineStar
 
 /****************************************************
  * End a Markdown heading, if inside one.
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  i =             the index within `buf` to end the Markdown heading at. Its value changes if the function succeeds.
+ *  headingLevel =  the level (1-6) of heading to end. Is set to `0` when this function ends.
+ *  iHeadingStart = the index within `buf` that the Markdown heading starts at
+ * Returns: whether a heading was replaced
  */
-bool endMarkdownHeading(OutBuffer *buf, ref size_t i, ref int headingLevel, size_t iHeadingStart)
+private bool endMarkdownHeading(OutBuffer *buf, ref size_t i, ref int headingLevel, size_t iHeadingStart)
 {
-    if (headingLevel)
-    {
-        char* heading = cast(char*) "$(H0 ".dup;
-        heading[3] = cast(char) ('0' + headingLevel);
-        buf.insert(iHeadingStart, heading, 5);
-        i += 5;
-        size_t iBeforeNewline = i;
-        while (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n')
-            --iBeforeNewline;
-        buf.insert(iBeforeNewline, ")");
-        headingLevel = 0;
-        return true;
-    }
-    return false;
+    if (!headingLevel)
+        return false;
+
+    char* heading = cast(char*) "$(H0 ".dup;
+    heading[3] = cast(char) ('0' + headingLevel);
+    buf.insert(iHeadingStart, heading, 5);
+    i += 5;
+    size_t iBeforeNewline = i;
+    while (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n')
+        --iBeforeNewline;
+    buf.insert(iBeforeNewline, ")");
+    headingLevel = 0;
+    return true;
 }
 
 /****************************************************
@@ -2402,35 +2439,35 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
 /****************************************************
 * A delimiter for Markdown block quotes.
 */
-struct MarkdownQuote
+private struct MarkdownQuote
 {
-    int macroLevel;
+    int macroLevel; /// the count of nested DDoc macros when the quote is started
 }
 
 /****************************************************
 * A delimiter for Markdown inline content like emphasis and links.
 */
-struct MarkdownDelimiter
+private struct MarkdownDelimiter
 {
-    size_t iStart;
-    char type;
-    int count;
-    int macroLevel;
-    bool leftFlanking;
-    bool rightFlanking;
+    size_t iStart;  /// the index where this delimiter starts
+    int count;      /// the length of this delimeter's start sequence
+    int macroLevel; /// the count of nested DDoc macros when the delimiter is started
+    bool leftFlanking;  /// whether the delimiter is left-flanking, as defined by the CommonMark spec
+    bool rightFlanking; /// whether the delimiter is right-flanking, as defined by the CommonMark spec
+    char type;      /// the type of delimiter, defined by its starting character
 }
 
 /****************************************************
 * Info about a Markdown list.
 */
-struct MarkdownList
+private struct MarkdownList
 {
-    size_t iStart;
-    size_t iContentStart;
-    size_t indent;
-    int macroLevel;
-    char type;
-    string orderedStart;
+    string orderedStart;    /// an optional start number--if present then the list starts at this number
+    size_t iStart;          /// the index where the list item starts
+    size_t iContentStart;   /// the index where the content starts after the list delimiter
+    int indent;             /// the level of indent the content starts at
+    int macroLevel;         /// the count of nested DDoc macros when the list is started
+    char type;              /// the type of list, defined by its starting character
 
     /****************************************************
     * Return whether the context is at a list item of the same type as this list.
@@ -2439,7 +2476,7 @@ struct MarkdownList
     {
         MarkdownList item = (type == '.' || type == ')') ? parseOrderedListItem(buf, iLineStart, i, 0) : parseUnorderedListItem(buf, iLineStart, i, 0);
         if (item.type == type)
-            return getIndent(buf, iLineStart, i) < indent;
+            return getMarkdownIndent(buf, iLineStart, i) < indent;
         return false;
     }
 
@@ -2457,7 +2494,7 @@ struct MarkdownList
         if (!list.type)
             return false;
 
-        size_t itemIndent = getIndent(buf, iLineStart, i);
+        const itemIndent = getMarkdownIndent(buf, iLineStart, i);
 
         buf.remove(list.iStart, list.iContentStart - list.iStart);
 
@@ -2495,24 +2532,24 @@ struct MarkdownList
     {
         if (i < buf.offset-1 && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t'))
         {
-            size_t iContentStart = skipchars(buf, i + 1, " \t");
-            size_t indent = getIndent(buf, iLineStart, iContentStart);
-            auto list = MarkdownList(iLineStart, iContentStart, indent, macroLevel, buf.data[i]);
+            size_t iContentStart = skipChars(buf, i + 1, " \t");
+            const indent = getMarkdownIndent(buf, iLineStart, iContentStart);
+            auto list = MarkdownList(null, iLineStart, iContentStart, indent, macroLevel, buf.data[i]);
             return list;
         }
-        return MarkdownList(0, 0, 0, 0, 0);
+        return MarkdownList(null, 0, 0, 0, 0, 0);
     }
 
     private static MarkdownList parseOrderedListItem(OutBuffer *buf, size_t iLineStart, size_t i, int macroLevel)
     {
-        size_t iAfterNumbers = skipchars(buf, i, "0123456789");
+        size_t iAfterNumbers = skipChars(buf, i, "0123456789");
         if (iAfterNumbers - i <= 10 && iAfterNumbers < buf.offset && (buf.data[iAfterNumbers] == '.' || buf.data[iAfterNumbers] == ')'))
         {
-            size_t iContentStart = skipchars(buf, iAfterNumbers + 1, " \t");
-            size_t indent = getIndent(buf, iLineStart, iContentStart);
-            return MarkdownList(iLineStart, iContentStart, indent, macroLevel, buf.data[iAfterNumbers], cast(string) buf.data[i..iAfterNumbers].idup);
+            size_t iContentStart = skipChars(buf, iAfterNumbers + 1, " \t");
+            const indent = getMarkdownIndent(buf, iLineStart, iContentStart);
+            return MarkdownList(cast(string) buf.data[i..iAfterNumbers].idup, iLineStart, iContentStart, indent, macroLevel, buf.data[iAfterNumbers]);
         }
-        return MarkdownList(0, 0, 0, 0, 0);
+        return MarkdownList(null, 0, 0, 0, 0, 0);
     }
 }
 
@@ -2570,11 +2607,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (endMarkdownHeading(buf, i, headingLevel, iHeadingStart))
             {
                 ++i;
-                iParagraphStart = skipchars(buf, i, " \t\r\n");
+                iParagraphStart = skipChars(buf, i, " \t\r\n");
             }
             if (!inCode && nestedLists.length)
             {
-                size_t iAfterSpaces = skipchars(buf, i + 1, " \t");
+                size_t iAfterSpaces = skipChars(buf, i + 1, " \t");
                 size_t iBeforeNewline = i;
                 if (iBeforeNewline > offset && buf.data[iBeforeNewline] == '\r')
                     --iBeforeNewline;
@@ -2584,11 +2621,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     // end a sibling list item
                     buf.insert(iBeforeNewline, ")");
                     ++i;
-                    iParagraphStart = skipchars(buf, i, " \t\r\n");
+                    iParagraphStart = skipChars(buf, i, " \t\r\n");
                 }
                 else
                 {
-                    size_t indent = getIndent(buf, i + 1, iAfterSpaces);
+                    int indent = getMarkdownIndent(buf, i + 1, iAfterSpaces);
                     if (iAfterSpaces >= buf.offset || (buf.data[iAfterSpaces] != '\r' && buf.data[iAfterSpaces] != '\n'))
                     {
                         // end nested lists that are indented more than this content
@@ -2597,7 +2634,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             buf.insert(iBeforeNewline, ")\n)");
                             i += 3;
                             --nestedLists.length;
-                            iParagraphStart = skipchars(buf, i, " \t\r\n");
+                            iParagraphStart = skipChars(buf, i, " \t\r\n");
                         }
                     }
                 }
@@ -2713,7 +2750,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (leadingBlank && (!inCode || nestedQuotes.length > quoteLevel))
                 {
                     ++quoteLevel;
-                    size_t iQuotedStart = skipchars(buf, i + 1, " \t");
+                    size_t iQuotedStart = skipChars(buf, i + 1, " \t");
                     buf.remove(i, iQuotedStart - i);
                     if (quoteLevel > nestedQuotes.length)
                     {
@@ -2781,7 +2818,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (leadingBlank)
                 {
                     // Perhaps we're starting or ending a Markdown code block
-                    size_t iAfterDelimiter = skipchars(buf, i, "`");
+                    size_t iAfterDelimiter = skipChars(buf, i, "`");
                     if (iAfterDelimiter - i >= 3)
                         goto case '-';
                 }
@@ -2803,7 +2840,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (leadingBlank)
                 {
                     // Perhaps we're starting or ending a Markdown code block
-                    size_t iAfterDelimiter = skipchars(buf, i, "~");
+                    size_t iAfterDelimiter = skipChars(buf, i, "~");
                     if (iAfterDelimiter - i >= 3)
                         goto case '-';
                 }
@@ -2859,7 +2896,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         {
                             // Start a Markdown info string, like ```ruby
                             codeFenceLength = i - istart;
-                            i = iInfoString = skipchars(buf, i, " \t");
+                            i = iInfoString = skipChars(buf, i, " \t");
                         }
                         else if (iInfoString && c != '`')
                         {
@@ -2960,14 +2997,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 iHeadingStart = i;
                 leadingBlank = false;
-                size_t iSkipped = skipchars(buf, i, "#");
+                size_t iSkipped = skipChars(buf, i, "#");
                 headingLevel = cast(int) (iSkipped - iHeadingStart);
                 if (headingLevel > 6)
                 {
                     headingLevel = 0;
                     break;
                 }
-                i = skipchars(buf, iSkipped, " \t");
+                i = skipChars(buf, iSkipped, " \t");
                 bool emptyHeading = buf.data[i] == '\r' || buf.data[i] == '\n';
 
                 // require whitespace
@@ -3047,8 +3084,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (leadingBlank && !inCode)
             {
                 leadingBlank = false;
-                size_t iAfterUnderline = skipchars(buf, i, "=");
-                iAfterUnderline = skipchars(buf, iAfterUnderline, " \t\r");
+                size_t iAfterUnderline = skipChars(buf, i, "=");
+                iAfterUnderline = skipChars(buf, iAfterUnderline, " \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] != '\n')
                     break;
                 size_t iBeforeNewline = iLineStart;
@@ -3058,7 +3095,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 i = iLineStart = iBeforeNewline;
                 headingLevel = c == '=' ? 1 : 2;
                 endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
-                iParagraphStart = skipchars(buf, i+1, " \t\r\n");
+                iParagraphStart = skipChars(buf, i+1, " \t\r\n");
             }
             break;
         }
@@ -3072,12 +3109,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 /* A line consisting solely of ** indicates a Markdown heading on the previous line, or a thematic break after an empty line. */
                 leadingBlank = false;
-                size_t iAfterUnderline = skipchars(buf, i, "* \t\r");
+                size_t iAfterUnderline = skipChars(buf, i, "* \t\r");
                 if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
                 {
                     // see if there was whitespace within the ** line
-                    size_t iStrictAfterUnderline = skipchars(buf, i, "*");
-                    iStrictAfterUnderline = skipchars(buf, iStrictAfterUnderline, " \t\r");
+                    size_t iStrictAfterUnderline = skipChars(buf, i, "*");
+                    iStrictAfterUnderline = skipChars(buf, iStrictAfterUnderline, " \t\r");
 
                     if (atNewParagraph || iStrictAfterUnderline != iAfterUnderline)
                     {
@@ -3085,7 +3122,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
                         break;
                     }
-                    else if (skipchars(buf, i, "*") - i >= 2)
+                    else if (skipChars(buf, i, "*") - i >= 2)
                     {
                         // otherwise treat it as a 2nd-level heading
                         leadingBlank = true;
@@ -3101,12 +3138,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
             // Markdown emphasis
             char leftC = i > offset ? buf.data[i-1] : '\0';
-            size_t iAfterEmphasis = skipchars(buf, i+1, "*");
+            size_t iAfterEmphasis = skipChars(buf, i+1, "*");
             char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
             int count = cast(int) (iAfterEmphasis - i);
             bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
             bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
-            auto emphasis = MarkdownDelimiter(i, c, count, macroLevel, leftFlanking, rightFlanking);
+            auto emphasis = MarkdownDelimiter(i, count, macroLevel, leftFlanking, rightFlanking, c);
 
             if (!emphasis.leftFlanking && !emphasis.rightFlanking)
             {
@@ -3159,7 +3196,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
             if (i < buf.offset-1 && buf.data[i+1] == '[')
             {
-                auto imageStart = MarkdownDelimiter(i, c, 2, macroLevel, false, false);
+                auto imageStart = MarkdownDelimiter(i, 2, macroLevel, false, false, c);
                 inlineDelimiters ~= imageStart;
                 ++i;
             }
@@ -3170,7 +3207,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            auto linkStart = MarkdownDelimiter(i, c, 1, macroLevel, false, false);
+            auto linkStart = MarkdownDelimiter(i, 1, macroLevel, false, false, c);
             inlineDelimiters ~= linkStart;
             break;
         }
