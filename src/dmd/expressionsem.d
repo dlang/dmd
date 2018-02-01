@@ -598,8 +598,44 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                 }
                 arg = p.defaultArg;
                 arg = inlineCopy(arg, sc);
-                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
-                arg = arg.resolveLoc(loc, sc);
+
+                if(auto argexp = arg.isArgStringInitExp())
+                {
+                  if(argexp.ident is null)
+                  {
+                    error(argexp.loc, "argexp.ident null");
+                    return true;
+                  }
+                  assert(nargs > 0);
+                  bool found = false;
+                  // TODO: should Parameters._foreach be used?
+                  foreach(u; 0..nparams)
+                  {
+                    Parameter pu = Parameter.getNth(tf.parameters, u);
+                    if(pu.ident == argexp.ident)
+                    {
+                      assert(u < nargs);
+                      auto argu = (*arguments)[u];
+                      // D20180130T161632 NOTE: argu.toChars would do some partial constant folding
+                      auto argname = argu.stringified;
+                      arg=argexp.resolveArgString(loc, sc, argname);
+                      found = true;
+                      break;
+                    }
+                  }
+
+                  if(!found)
+                  {
+                    error(argexp.loc, "unable to resolve %s", argexp.ident.toChars);
+                    return true;
+                  }
+                }
+                else
+                {
+                  // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+                  arg = arg.resolveLoc(loc, sc);
+                }
+
                 arguments.push(arg);
                 nargs++;
             }
@@ -9291,6 +9327,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(FileInitExp e)
     {
         //printf("FileInitExp::semantic()\n");
+        e.type = Type.tstring;
+        result = e;
+    }
+
+    override void visit(ArgStringInitExp e)
+    {
+        //printf("ArgStringInitExp::semantic()\n");
         e.type = Type.tstring;
         result = e;
     }

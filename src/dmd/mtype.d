@@ -5916,6 +5916,7 @@ extern (C++) final class TypeFunction : TypeNext
         //printf("TypeFunction::callMatch() %s\n", toChars());
         MATCH match = MATCH.exact; // assume exact match
         ubyte wildmatch = 0;
+        bool isArgStringify = false;
 
         if (tthis)
         {
@@ -5959,6 +5960,22 @@ extern (C++) final class TypeFunction : TypeNext
             match = MATCH.convert; // match ... with a "conversion" match level
         }
 
+
+        {
+          for (size_t u = 0; u < nparams; u++)
+          {
+              Parameter p = Parameter.getNth(parameters, u);
+              assert(p);
+              if(auto arg=p.defaultArg){
+                if(auto argexp=arg.isArgStringInitExp()){
+                  // TODO: more fine-grained, eg to just stringify 1 arg
+                  isArgStringify=true;
+                }
+              }
+          }
+        }
+
+
         for (size_t u = 0; u < nargs; u++)
         {
             if (u >= nparams)
@@ -5966,6 +5983,11 @@ extern (C++) final class TypeFunction : TypeNext
             Parameter p = Parameter.getNth(parameters, u);
             Expression arg = (*args)[u];
             assert(arg);
+
+            if(isArgStringify && !arg.stringified){
+              arg.stringified=arg.toChars;
+            }
+
             Type tprm = p.type;
             Type targ = arg.type;
 

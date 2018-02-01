@@ -1,0 +1,13 @@
+Stringify caller's function argument, analog to C's `#` stringification macro (except it's type safe).
+
+NOTE: it also works with UFCS.
+
+Eg:
+---
+string log(T)(T a, string name=__ARG_STRING__!a)
+{
+  import std.conv;
+  return text(name, ":", a);
+}
+assert(log(1+2) == "1 + 2:3");
+---
