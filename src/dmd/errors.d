@@ -511,13 +511,6 @@ private void writeHighlights(Console* con, const OutBuffer *buf)
                 colors = false;
             }
             else
-            if (color == Color.white)
-            {
-                con.resetColor();
-                con.setColorBright(true);
-                colors = true;
-            }
-            else
             {
                 con.setColor(cast(Color)color);
                 colors = true;
