@@ -1,3 +1,8 @@
-Deprecate the use of private selectively imported members
+Deprecate the use of selectively imported private members
 
-$(LINK2 $(ROOT_DIR)spec/attribute.html#visibility_attributes, The specification states) that a private member is visible only from within the same module. Prior to this release, due to a bug, some imported private members were visible from other modules, violating the specification. Beginning with this release, accessing said private members from outside the module in which they are declared will result in a deprecation message which has been scheduled to be changed to an error in approximately 1 year.
+$(LINK2 $(ROOT_DIR)spec/attribute.html#visibility_attributes, The specification states) that a private member
+is visible only from within the same module.
+Prior to this release, due to a bug, private members
+were visible through selective imports from other modules, violating the specification.
+Beginning with this release, accessing private members from outside the module
+in which they are declared will result in a deprecation message.
