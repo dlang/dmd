@@ -628,9 +628,11 @@ extern (C++) final class Module : Package
         {
             if (!strcmp(srcfile.toChars(), "object.d"))
             {
-                .error(loc, "cannot find source code for runtime library file 'object.d'");
-                errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-                errorSupplemental(loc, "config file: %s", FileName.canonicalName(global.inifilename));
+                // object.d is automatically imported.  If object.d doesn't exist, it's not necessarily an error.
+                // For example, the user could be creating a library in D that is intened to be called from
+                // another language and, therefore, does not wish to use features of the D runtime.  We
+                // return `false` here and rely on future semantic processing to catch any errors.
+                return false;
             }
             else
             {
