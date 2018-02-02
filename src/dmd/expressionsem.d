@@ -4282,6 +4282,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
+        sc._module.contentImportedFiles.push(name);
         if (global.params.verbose)
             message("file      %.*s\t(%s)", cast(int)se.len, se.string, name);
         if (global.params.moduleDeps !is null)
