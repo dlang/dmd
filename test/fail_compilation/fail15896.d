@@ -3,8 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15896.d(11): Deprecation: module `imports.imp15896` member `thebar` is not accessible
-fail_compilation/fail15896.d(11): Deprecation: module `imports.imp15896` member `packagebar` is not accessible
+fail_compilation/fail15896.d(11): Deprecation: module `imports.imp15896` member `thebar` is not visible from module `fail15896`
+fail_compilation/fail15896.d(11): Deprecation: module `imports.imp15896` member `packagebar` is not visible from module `fail15896`
 ---
 */
 
