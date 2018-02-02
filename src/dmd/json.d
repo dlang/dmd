@@ -34,6 +34,12 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.visitor;
 
+version(Windows) {
+    extern (C) char* getcwd(char* buffer, size_t maxlen);
+} else {
+    import core.sys.posix.unistd : getcwd;
+}
+
 private extern (C++) final class ToJsonVisitor : Visitor
 {
     alias visit = Visitor.visit;
@@ -789,12 +795,70 @@ public:
         jsonProperties(d);
         objectEnd();
     }
+
+    private void generateCompilerInfo()
+    {
+        objectStart();
+        property("kind", "compilerInfo");
+        property("binary", global.params.argv0);
+        property("version", global._version);
+        propertyBool("supportsIncludeImports", true);
+        objectEnd();
+    }
+    private void generateBuildInfo()
+    {
+        objectStart();
+        property("kind", "buildInfo");
+        property("cwd", getcwd(null, 0));
+        property("config", global.inifilename ? global.inifilename : null);
+        if (global.params.lib) {
+            property("library", global.params.libname);
+        }
+        propertyStart("importPaths");
+        arrayStart();
+        foreach (importPath; *global.params.imppath)
+        {
+            item(importPath);
+        }
+        arrayEnd();
+        objectEnd();
+    }
+    private void generateSemantics()
+    {
+        objectStart();
+        property("kind", "semantics");
+        propertyStart("modules");
+        arrayStart();
+        foreach (m; Module.amodules)
+        {
+            objectStart();
+            if(m.md)
+                property("name", m.md.toChars());
+            property("file", m.srcfile.toChars());
+            propertyBool("isRoot", m.isRoot());
+            if(m.contentImportedFiles.dim > 0)
+            {
+                propertyStart("contentImports");
+                arrayStart();
+                foreach (file; m.contentImportedFiles)
+                {
+                    item(file);
+                }
+                arrayEnd();
+            }
+            objectEnd();
+        }
+        arrayEnd();
+        objectEnd();
+    }
 }
 
 extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
     json.arrayStart();
+    json.generateCompilerInfo();
+    json.generateBuildInfo();
     for (size_t i = 0; i < modules.dim; i++)
     {
         Module m = (*modules)[i];
@@ -802,6 +866,7 @@ extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
             fprintf(global.stdmsg, "json gen %s\n", m.toChars());
         m.accept(json);
     }
+    json.generateSemantics();
     json.arrayEnd();
     json.removeComma();
 }
