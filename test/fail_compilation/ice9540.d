@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9540.d(40): Error: function `ice9540.A.test.AddFront!(this, f).AddFront.dg(int _param_0)` is not callable using argument types `()`
-fail_compilation/ice9540.d(40):        expected 1 argument(s), not 0
-fail_compilation/ice9540.d(31): Error: template instance `ice9540.A.test.AddFront!(this, f)` error instantiating
+fail_compilation/ice9540.d(35): Error: function `ice9540.A.test.AddFront!(this, f).AddFront.dg(int _param_0)` is not callable using argument types `()`
+fail_compilation/ice9540.d(35):        missing argument for parameter #1: `int _param_0`
+fail_compilation/ice9540.d(26): Error: template instance `ice9540.A.test.AddFront!(this, f)` error instantiating
 ---
 */
 

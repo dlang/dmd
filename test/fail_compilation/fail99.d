@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail99.d(13): Error: delegate `dg(int)` is not callable using argument types `()`
-fail_compilation/fail99.d(13):        expected 1 argument(s), not 0
+fail_compilation/fail99.d(13):        missing argument for parameter #1: `int`
 ---
 */
 

@@ -4514,8 +4514,10 @@ extern (C++) final class TypeFunction : TypeNext
         return buf.extractString();
     }
 
-    private const(char)* getMatchError(A...)(const(char)* format, A args)
+    private extern(D) const(char)* getMatchError(A...)(const(char)* format, A args)
     {
+        if (global.gag && !global.params.showGaggedErrors)
+            return null;
         OutBuffer buf;
         buf.printf(format, args);
         return buf.extractString();
@@ -4744,9 +4746,10 @@ extern (C++) final class TypeFunction : TypeNext
                         if (sz != nargs - u)
                         {
                             if (pMessage)
-                            {
                                 // Windows (Vista) OutBuffer.vprintf issue? 2nd argument always zero
                                 //*pMessage = getMatchError("expected %d variadic argument(s), not %d", sz, nargs - u);
+                            if (!global.gag || global.params.showGaggedErrors)
+                            {
                                 OutBuffer buf;
                                 buf.printf("expected %d variadic argument(s)", sz);
                                 buf.printf(", not %d", nargs - u);
@@ -4805,7 +4808,8 @@ extern (C++) final class TypeFunction : TypeNext
                 if (pMessage && u < nargs)
                     *pMessage = getParamError((*args)[u], p);
                 else if (pMessage)
-                    *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+                    *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+                        u + 1, parameterToChars(p, this, false));
                 goto Nomatch;
             }
             if (m < match)
