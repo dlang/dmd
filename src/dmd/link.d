@@ -1046,7 +1046,7 @@ version (Windows)
             if (WindowsSdkDir is null)
             {
                 WindowsSdkDir = GetRegistryString(r"Microsoft\Windows Kits\Installed Roots", "KitsRoot10");
-                if (WindowsSdkDir && !FileName.exists(FileName.combine(WindowsSdkDir, "Lib")))
+                if (WindowsSdkDir && !findLatestSDKDir(FileName.combine(WindowsSdkDir, "Include"), r"um\windows.h"))
                     WindowsSdkDir = null;
             }
             if (WindowsSdkDir is null)
