@@ -379,6 +379,15 @@ void bug1513b()
         assert(e.msg == "d");
         assert(e.next.msg == "f");
         assert(!e.next.next);
+        int i;
+        foreach (u; e)
+        {
+            if (i)
+                assert(u.msg == "f");
+            else
+                assert(u.msg == "d");
+            ++i;
+        }
     }
 }
 
