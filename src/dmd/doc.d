@@ -2477,18 +2477,18 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 if (isIdentifier(a, start, len))
                 {
-                    i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
                     break;
                 }
                 if (isKeyword(start, len))
                 {
-                    i = buf.bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
                     break;
                 }
                 if (isFunctionParameter(a, start, len))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
-                    i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
                     break;
                 }
                 i = j - 1;
