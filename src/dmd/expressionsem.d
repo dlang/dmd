@@ -5706,6 +5706,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.type.equals(t1b))
             exp.type = exp.e1.type;
 
+        // We might know $ now
+        setLengthVarIfKnown(exp.lengthVar, t1b);
+
         if (exp.lwr && exp.upr)
         {
             exp.lwr = exp.lwr.optimize(WANTvalue);
@@ -5735,7 +5738,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             exp.lowerIsLessThanUpper = (lwrRange.imax <= uprRange.imin);
 
-            //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", upperIsInBounds, lowerIsLessThanUpper);
+            //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", exp.upperIsInBounds, exp.lowerIsLessThanUpper);
         }
 
         result = exp;
@@ -6114,6 +6117,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.error("`%s` must be an array or pointer type, not `%s`", exp.e1.toChars(), exp.e1.type.toChars());
             return setError();
         }
+
+        // We might know $ now
+        setLengthVarIfKnown(exp.lengthVar, t1b);
 
         if (t1b.ty == Tsarray || t1b.ty == Tarray)
         {
