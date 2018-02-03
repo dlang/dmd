@@ -2614,15 +2614,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (!inCode && nestedLists.length)
             {
                 size_t iAfterSpaces = skipChars(buf, i + 1, " \t");
-                size_t iBeforeNewline = i;
-                if (iBeforeNewline > offset && buf.data[iBeforeNewline] == '\r')
-                    --iBeforeNewline;
-
                 if (nestedLists[$-1].atSameListItem(buf, i + 1, iAfterSpaces))
                 {
                     // end a sibling list item
-                    buf.insert(iBeforeNewline, ")");
-                    ++i;
+                    i = buf.insert(i, ")");
                     iParagraphStart = skipChars(buf, i, " \t\r\n");
                 }
                 else
@@ -2633,8 +2628,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         // end nested lists that are indented more than this content
                         while (nestedLists.length && nestedLists[$-1].indent > indent)
                         {
-                            buf.insert(iBeforeNewline, ")\n)");
-                            i += 3;
+                            i = buf.insert(i, ")\n)");
                             --nestedLists.length;
                             iParagraphStart = skipChars(buf, i, " \t\r\n");
                         }
