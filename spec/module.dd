@@ -408,11 +408,12 @@ all `import`s are selective, or when the imported module has a qualified name:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
-import std.stdio : writeln, std.file : write, std.ascii;
+import std.stdio : writeln, writefln, std.file : write, std.ascii;
 
 void main()
 {
     writeln("hello!");           // ok, writeln from std.stdio
+    writefln("%s!", "hello");    // ok, writefln from std.stdio
     write("world.txt", "hello"); // ok, write from std.file
     writeln(digits);             // ok, digits from std.ascii
 }
