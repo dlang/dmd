@@ -16,6 +16,7 @@ DOCS=\
 	$(DOCDIR)\core_vararg.html \
 	\
 	$(DOCDIR)\core_stdc_assert_.html \
+	$(DOCDIR)\core_stdc_config.html \
 	$(DOCDIR)\core_stdc_complex.html \
 	$(DOCDIR)\core_stdc_ctype.html \
 	$(DOCDIR)\core_stdc_errno.html \
