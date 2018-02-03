@@ -1342,13 +1342,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         declaredTuple = new Tuple();
                         (*dedargs)[parameters.dim - 1] = declaredTuple;
 
-                        /* Count function parameters following a tuple parameter.
-                         * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
+                        /* Count function parameters with no defaults following a tuple parameter.
+                         * void foo(U, T...)(int y, T, U, double, int bar = 0) {}  // rem == 2 (U, double)
                          */
                         size_t rem = 0;
                         for (size_t j = parami + 1; j < nfparams; j++)
                         {
                             Parameter p = Parameter.getNth(fparameters, j);
+                            if(p.defaultArg)
+                            {
+                               break;
+                            }
                             if (!reliesOnTident(p.type, parameters, inferStart))
                             {
                                 Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
