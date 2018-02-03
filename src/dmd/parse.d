@@ -69,7 +69,7 @@ __gshared PREC[TOK.max_] precedence =
     TOK.classReference : PREC.primary,
     TOK.file : PREC.primary,
     TOK.fileFullPath : PREC.primary,
-    TOK.argString : PREC.primary,
+    TOK.getSource : PREC.primary,
     TOK.line : PREC.primary,
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
@@ -2042,8 +2042,8 @@ final class Parser(AST) : Lexer
                 tiargs.push(ea);
                 break;
             }
-        case TOK.argString:
-            error("illegal use of " ~TOK.argString);
+        case TOK.getSource:
+            error("illegal use of " ~TOK.getSource);
             break;
         default:
             error("template argument expected following `!`");
@@ -6253,7 +6253,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__, __ARG_STRING__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__.
      */
     AST.Expression parseDefaultInitExp()
     {
@@ -6283,36 +6283,15 @@ final class Parser(AST) : Lexer
             }
         }
 
-        if(token.value == TOK.argString)
-        {
-          AST.ArgStringInitExp e = new AST.ArgStringInitExp(token.loc);
-          nextToken();
-          if(token.value == TOK.not)
-          {
-            if(peekNext() != TOK.identifier)
-            {
-              error("identifier expected following `__ARG_STRING__!`");
-              return null;
-            }
-
-            nextToken();
-            e.setIdent(token.ident);
-            nextToken();
-          } else {
-            error("expected !");
-            return null;
-          }
-
-          if (token.value == TOK.comma || token.value == TOK.rightParentheses)
-          {
-            return e;
-          } else {
-            error("expected , or )");
-            return null;
-          }
-        }
-
         AST.Expression e = parseAssignExp();
+        if(auto e2=cast(AST.TraitsExp)e)// TODO: why not just TraitsExp?
+        {
+            if(e2.ident==Id.getSource)
+            {
+                import dmd.traits:traitsGetSource;
+                return traitsGetSource(e2);
+            }
+        }
         return e;
     }
 

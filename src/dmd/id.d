@@ -395,6 +395,7 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "getSource" },
 
     // For C++ mangling
     { "allocator" },

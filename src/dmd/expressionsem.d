@@ -606,59 +606,79 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
                     error(argexp.loc, "argexp.ident null");
                     return true;
                   }
-                  assert(nargs > 0);
+                  //assert(nargs > 0);
                   bool found = false;
-                  // TODO: should Parameters._foreach be used?
-                  foreach(u; 0..nparams)
-                  {
-                    Parameter pu = Parameter.getNth(tf.parameters, u);
-                    if(pu.ident == argexp.ident)
-                    {
-                      assert(u < nargs);
-                      auto argu = (*arguments)[u];
-                      const(char)[] argname;
-                      if(global.params.disposeSrcContent)
-                      {
-                        // D20180130T161632 NOTE: this does some partial constant folding, not 100% faithful to source code; also, doens't this expands special tokens like __FILE__
-                        auto temp = argu.toChars();
-                        argname = temp[0..temp.strlen()];
-                      }
-                      else
-                      {
-                        auto temp = sc._module.srcfile;
-                        assert(temp.buffer !is null);
-                        auto arg_loc = argu.loc;
-                        auto txt = cast(char[]) temp.buffer[arg_loc.bytes..temp.len];
-                        scope parser = new Parser!ASTCodegen(sc._module, txt, false);
-                        parser.nextToken();
-                        // NOTE: parseExpression() would match `a, b` instead of just `a` in `fun(a, b)`
-                        auto expr = parser.parseAssignExp();
-                        assert(!parser.errors);
 
-                        // strip trailing whitespace
-                        auto end = parser.token.loc.bytes;
-                        while(end > 0)
+                  TypeFunction orig = cast(TypeFunction)fd.originalType;
+                  TypeFunction temp2 = cast(TypeFunction)fd.type;
+                  assert(orig);
+                  string[]values;
+                  for(int u=0, u2=0; u<orig.parameters.dim; u++)
+                  {
+                    Parameter pu = Parameter.getNth(orig.parameters, u);
+                    bool is_variadic_param=true;
+                    int u2_begin=u2;
+                    for(;u2<fd.parameters.dim; u2++)
+                    {
+                        auto ident2 = (*fd.parameters)[u2].ident;
+                        if(ident2==pu.ident)
                         {
-                          auto c = txt.ptr[end-1];
-                          if(c == ' ' || c == '\n' || c == '\r')
-                            end--;
-                          else
+                            u2++;
+                            is_variadic_param=false;
                             break;
                         }
-
-                        // CHECKME: we keep files contenst in memory until end of semantic analysis so should be fine to use a slice; if not, use `OutBuffer`
-                        argname = txt[0..end];
-                      }
-
-                      arg=argexp.resolveArgString(loc, sc, argname);
-                      found = true;
-                      break;
+                        else
+                        {
+                            // TODO: factor with where this magic string is defined
+                            enum vararg_name = "_param_";
+                            // TODO: define/use startsWith
+                            auto ident2b=ident2.toString;
+                            if(ident2b.length>vararg_name.length && ident2b[0..vararg_name.length]==vararg_name)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
                     }
+
+                    if(pu.ident != argexp.ident) continue;
+                    if(u2 > nargs){
+                        error(argexp.loc, "cannot refer to param `%s`", argexp.ident.toChars);
+                        return true;
+                    }
+
+                    // take care of variadics
+                    foreach(u2i ; u2_begin..u2)
+                    {
+                        assert(u2i < nargs);
+                        auto argu = (*arguments)[u2i];
+
+                        // CHECKME: is that the simplest way to distinguish whether or not argument was explicitly given by caller (via explicit template instantiation in case of variadics)?
+                        if(argu.loc==loc){
+                            assert(pu.defaultArg);
+                            error(argexp.loc, "cannot refer to default arg  `%s` not explicitly set by caller", argexp.ident.toChars);
+                            return true;
+                        }
+
+                        auto argname = getArgSring(argu, sc).idup;
+                        values~=argname;
+                    }
+                    if(is_variadic_param){
+                        arg=argexp.resolveArgStrings(loc, sc, values);
+                    } else{
+                        assert(values.length==1);
+                        arg=argexp.resolveArgString(loc, sc, values[0]);
+                    }
+                    found = true;
+                    break;
                   }
 
                   if(!found)
                   {
-                    error(argexp.loc, "unable to resolve %s", argexp.ident.toChars);
+                    error(argexp.loc, "unable to resolve `%s`", argexp.ident.toChars);
                     return true;
                   }
                 }
@@ -9366,8 +9386,44 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ArgStringInitExp e)
     {
-        //printf("ArgStringInitExp::semantic()\n");
-        e.type = Type.tstring;
+        Parameter findParamByName(){
+            // CHECKME: do we need to go all way up?
+            for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
+            {
+                if (!sc2.scopesym) continue;
+                auto s=sc2.scopesym;
+                auto s2=cast(ScopeDsymbol)s;
+                if(!s2) continue;
+                if(!s2.members) continue;
+                foreach(i; 0..s2.members.dim)
+                {
+                    auto s2i=(*s2.members)[i];
+                    auto fdx=s2i.isFuncDeclaration();
+                    if(!fdx) continue;
+                    auto t2=cast(TypeFunction)fdx.type;
+                    assert(t2);
+                    auto param=t2.searchByName(e.ident.toString);
+                    if(!param) continue;
+                    return param;
+                }
+            }
+            return null;
+        }
+
+        auto param=findParamByName();
+        assert(param); // CHECKME
+        auto type=param.type;
+        auto type2=type.trySemantic(e.loc, sc);
+        if(type2.ty == Ttuple)
+        {
+            TypeTuple type3 = cast(TypeTuple)type2;
+            auto dim=type3.arguments?type3.arguments.dim:0;
+            e.type = Type.tstring.sarrayOf(dim);
+        }
+        else
+        {
+            e.type = Type.tstring;
+        }
         result = e;
     }
 
@@ -10135,5 +10191,40 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
         error |= checkSafety(sc, f);
         error |= checkNogc(sc, f);
         return error;
+    }
+}
+
+// Get source code for `expr`
+private const(char)[] getArgSring(ref Expression expr, Scope* sc){
+    if(global.params.disposeSrcContent)
+    {
+      // NOTE: this does some partial constant folding (eg: 1+1+1 => 2+1), not 100% faithful to source code; also, doens't this expands special tokens like __FILE__
+      auto temp = expr.toChars();
+      // TODO: see if prettystring works?
+      return temp[0..temp.strlen()];
+    }
+    else
+    {
+      auto temp = sc._module.srcfile;
+      assert(temp.buffer !is null);
+      auto arg_loc = expr.loc;
+      auto txt = cast(char[]) temp.buffer[arg_loc.bytes..temp.len];
+      scope parser = new Parser!ASTCodegen(sc._module, txt, false);
+      parser.nextToken();
+      // NOTE: parseExpression() would match `a, b` instead of just `a` in `fun(a, b)`
+      auto expr_parsed = parser.parseAssignExp();
+      assert(!parser.errors);
+      // strip trailing whitespace; TODO: stripRight
+      auto end = parser.token.loc.bytes;
+      while(end > 0)
+      {
+        auto c = txt.ptr[end-1];
+        if(c == ' ' || c == '\n' || c == '\r')
+          end--;
+        else
+          break;
+      }
+      // CHECKME: we keep files contenst in memory until end of semantic analysis so should be fine to use a slice; if not, use `OutBuffer`
+      return txt[0..end];
     }
 }

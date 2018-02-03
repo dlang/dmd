@@ -1604,6 +1604,8 @@ extern (C++) abstract class Expression : RootObject
         return buf.extractString();
     }
 
+    // TODO: https://issues.dlang.org/show_bug.cgi?id=18371 Issue 18371 - allow default parameters after `...` (not just template variadics, which are ok now)
+    version(all)
     final void error(const(char)* format, ...) const
     {
         if (type != Type.terror)
@@ -1614,6 +1616,26 @@ extern (C++) abstract class Expression : RootObject
             va_end(ap);
         }
     }
+    else
+    {
+        pragma(inline, true)
+        extern(D)
+        final void error(string file=__FILE__, int line=__LINE__)(const(char)* format, ...) const
+        {
+            version(with_debug){
+                import std.conv:text;
+                writelnL(file, ":", line);
+            }
+            if (type != Type.terror)
+            {
+                va_list ap;
+                va_start(ap, format);
+                .verror(loc, format, ap);
+                va_end(ap);
+            }
+        }
+    }
+
 
     final void warning(const(char)* format, ...) const
     {
@@ -7107,11 +7129,13 @@ extern (C++) final class FileInitExp : DefaultInitExp
 extern (C++) final class ArgStringInitExp : DefaultInitExp
 {
     // function parameter we want stringified
+    // NOTE: redundant with exp.args[0],toChars
     Identifier ident;
+    TraitsExp exp;
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc, TOK.argString, __traits(classInstanceSize, ArgStringInitExp));
+        super(loc, TOK.getSource, __traits(classInstanceSize, ArgStringInitExp));
     }
 
     void setIdent(Identifier ident)
@@ -7124,9 +7148,22 @@ extern (C++) final class ArgStringInitExp : DefaultInitExp
       return this;
     }
 
-    extern (D) Expression resolveArgString(const ref Loc loc, Scope* sc, const(char)[] value)
+    extern (D) Expression resolveArgString(const ref Loc loc, Scope* sc, string value)
     {
         Expression e = new StringExp(loc, cast(void*)value.ptr, value.length);
+        e = e.expressionSemantic(sc);
+        e = e.castTo(sc, type);
+        return e;
+    }
+
+    extern (D) Expression resolveArgStrings(const ref Loc loc, Scope* sc, string[] values)
+    {
+        auto elements = new Expressions();
+        elements.setDim(values.length);
+        foreach(j, value; values){
+            (*elements)[j] = new StringExp(loc, cast(void*)value.ptr, value.length);
+        }
+        Expression e = new ArrayLiteralExp(loc, elements);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;

@@ -143,6 +143,7 @@ shared static this()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
+        "getSource",
     ];
 
     traitsStringTable._init(40);
@@ -412,6 +413,31 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
     return ale;
 }
 
+/**
+* __traits(getSource, symbol) => get symbol source code (string[T.length] or string)
+*/
+extern (C++) Expression traitsGetSource(TraitsExp e)
+{
+    if (!e.args || e.args.dim < 1|| e.args.dim > 2)
+    {
+        error(e.loc, "TODO");
+        return new ErrorExp();
+    }
+    auto ret = new ArgStringInitExp(e.loc);
+    auto ident_expr=(*e.args)[0];
+    auto t=isType(ident_expr);
+    if(!t){
+        error(e.loc, "TODO.2");
+        return new ErrorExp();
+    }
+    auto name=ident_expr.toChars();
+    // TODO: lookup?
+    auto id = Identifier.idPool(name, name.strlen);
+    ret.setIdent(id);
+    ret.exp=e;
+    return ret;
+}
+
 extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 {
     static if (LOGSEMANTIC)
@@ -422,6 +448,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
+        e.ident != Id.getSource &&
         e.ident != Id.getProtection)
     {
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
@@ -1597,6 +1624,12 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident == Id.getPointerBitmap)
     {
         return pointerBitmap(e);
+    }
+
+    if (e.ident == Id.getSource)
+    {
+        e.error("`%s` unexpected in this context", Id.getSource);
+        return new ErrorExp();
     }
 
     extern (D) void* trait_search_fp(const(char)* seed, ref int cost)

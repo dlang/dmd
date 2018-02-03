@@ -5252,7 +5252,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc)
         {
-            super(loc, TOK.argString, __traits(classInstanceSize, ArgStringInitExp));
+            super(loc, TOK.getSource, __traits(classInstanceSize, ArgStringInitExp));
         }
 
         override void accept(Visitor v)

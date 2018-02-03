@@ -3,7 +3,10 @@ PERMUTE_ARGS:
 */
 
 // to optionally avoid depending on phobos
-enum easy_debug = true;
+version (easy_debug)
+    enum easy_debug = true;
+else
+    enum easy_debug = false;
 
 static if (easy_debug)
 {
@@ -18,41 +21,60 @@ else
     }
 }
 
+string getLoc(string file = __FILE__, int line = __LINE__)
+{
+    return text(file, ":", line, " ");
+}
+
+void check(string[] name, string[] expected, string file = __FILE__, int line = __LINE__)
+{
+    assert(name.length == expected.length, text(getLoc(file, line), name, " ", expected));
+    foreach (i; 0 .. name.length)
+        check(name[i], expected[i], file, line);
+}
+
 void check(string name, string expected, string file = __FILE__, int line = __LINE__)
 {
     if (name == expected)
         return;
-    assert(0, text("expected {", expected, "} got {", name, "} at ", file, ":", line));
+    assert(0, text(getLoc(file, line), "expected {", expected, "} got {", name, "}"));
 }
 
-// Simple yet useful log function
-string log(T)(T a, string name = __ARG_STRING__!a)
-{
-    return text(name, ":", a);
-}
-
-void fun1(int a, string expected, string name = __ARG_STRING__!a,
+void fun1(int a, string expected, string name = __traits(getSource, a),
         string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
 void fun2(int a, string b, double c, string expected,
-        string name = __ARG_STRING__!b, string file = __FILE__, int line = __LINE__)
+        string name = __traits(getSource, b), string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
-void fun_UFCS(int a, string expected, string name = __ARG_STRING__!a,
+void fun_UFCS(int a, string expected, string name = __traits(getSource, a),
         string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
-void fun_template(T)(T a, string expected, string name = __ARG_STRING__!a,
+void fun_template(T)(T a, string expected, string name = __traits(getSource, a),
         string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
+}
+
+auto fun_variadic(T...)(T a_var, string[T.length] names = __traits(getSource, a_var))
+{
+    return names;
+}
+
+// more complex variadic
+auto fun_variadic2(T...)(int a0, T a1, int a2, int a3 = 1000,
+        string[T.length] names = __traits(getSource, a1),
+        string name_a2 = __traits(getSource, a2), int a6 = 10000)
+{
+    return names ~ "-" ~ name_a2;
 }
 
 struct A
@@ -65,11 +87,46 @@ struct A
     }
 }
 
+// Simple yet useful log function
+static if (easy_debug)
+{
+
+    string log(T...)(T a, string[T.length] names = __traits(getSource, a),
+            string file = __FILE__, int line = __LINE__)
+    {
+        string ret = getLoc(file, line);
+        static foreach (i; 0 .. T.length)
+                {
+                ret ~= text(" ", names[i], ":", a[i]);
+            }
+        return ret;
+    }
+
+    string logSimple(T...)(T a, string[T.length] names = __traits(getSource, a))
+    {
+        import std.conv;
+
+        return text(names, ": ", a);
+    }
+
+}
+
 void main()
 {
     int a = 42;
 
-    check(log(1 + a), `1 + a:43`);
+    static if (easy_debug)
+    {
+        {
+            check(log(a), text(getLoc, ` a:42`));
+            string b = "bar";
+            check(log(a + 1, b), text(getLoc, ` a + 1:43 b:bar`));
+
+            double x = 1.5;
+            check(logSimple(x * 2, 'a'), `["x * 2", "'a'"]: 3a`);
+            check(logSimple(__LINE__), text(`["__LINE__"]: `, __LINE__));
+        }
+    }
 
     fun1(41 + a, `41 + a`);
 
@@ -82,7 +139,7 @@ void main()
 
     fun1(a + a + a, `a + a + a`);
 
-    // Checks that no constant folding happens, cf D20180130T161632.
+    // Checks that no constant folding happens
     fun1(1 + 1 + 2, `1 + 1 + 2`);
 
     static const int x = 44;
@@ -99,6 +156,36 @@ void main()
     // Check that special tokens dont't get expanded
     fun1(__LINE__, "__LINE__");
     fun_template(__FILE__, "__FILE__");
+
+    // variadic test
+    {
+        auto ret = fun_variadic(1 + 1 + 1, "foo");
+        static assert(ret.length == 2);
+        check(ret, [`1 + 1 + 1`, `"foo"`]);
+    }
+    {
+        auto ret = fun_variadic(1 + 1 + 1);
+        static assert(ret.length == 1);
+        check(ret, [`1 + 1 + 1`]);
+    }
+    {
+        auto ret = fun_variadic();
+        static assert(ret.length == 0);
+        check(ret, []);
+    }
+    // complex variadic test
+    {
+        check(fun_variadic2(-0, 11, 12, 13, 100), ["11", "12", "13", "-", "100"]);
+        check(fun_variadic2(-0, 11, 12, 100), ["11", "12", "-", "100"]);
+        check(fun_variadic2(-0, 11, 100), ["11", "-", "100"]);
+        // UFCS
+        check(0.fun_variadic2(11, 100), ["11", "-", "100"]);
+        // empty tuple
+        check(fun_variadic2(0, 100), ["-", "100"]);
+
+        // explicit instantiation
+        check(fun_variadic2!int(0, 11, 100), ["11", "-", "100"]);
+    }
 
     // Formatting intentionally bad to test behavior
     {
