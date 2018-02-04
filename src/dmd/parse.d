@@ -744,6 +744,10 @@ final class Parser(AST) : Lexer
                 stc = AST.STC.gshared;
                 goto Lstc;
 
+            case TOK.return_:
+                stc = AST.STC.return_;
+                goto Lstc;
+
             //case TOK.manifest:   stc = STC.manifest;     goto Lstc;
 
             case TOK.at:
