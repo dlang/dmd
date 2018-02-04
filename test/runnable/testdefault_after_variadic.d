@@ -45,7 +45,7 @@ string log(T...)(T a, string file = __FILE__, int line = __LINE__)
     return text(file, ":", line, " ", a);
 }
 
-void foo_error(T...)(T a, string b = "bar") if (T.length == 1)
+void fun_constraint(T...)(T a, string b = "bar") if (T.length == 1)
 {
 }
 
@@ -64,6 +64,6 @@ void main()
 
     assert(log(10, "abc") == text(__FILE__, ":", __LINE__, " 10abc"));
 
-    // these should not compile, by design
-    assert(!__traits(compiles, foo_error(1, "baz")));
+    fun_constraint(1);
+    assert(!__traits(compiles, fun_constraint(1, "baz")));
 }
