@@ -360,8 +360,33 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     if (files.dim == 0)
     {
-        usage();
-        return EXIT_FAILURE;
+        // -X without arguments is the JSON analog of --version
+        if (global.params.doJsonGeneration)
+        {
+            OutBuffer buf;
+            json_info(&buf);
+            buf.writestring("\n");
+            // write to stdout for -X and -Xf=-
+            if (!global.params.jsonfilename || strcmp(global.params.jsonfilename, "-") == 0)
+            {
+                fputs(buf.peekString(), stdout);
+                fflush(stdout);
+            }
+            else
+            {
+                ensurePathToNameExists(Loc.initial, global.params.jsonfilename);
+                auto jsonfile = new File(global.params.jsonfilename);
+                jsonfile.setbuffer(buf.data, buf.offset);
+                jsonfile._ref = 1;
+                writeFile(Loc.initial, jsonfile);
+            }
+            return EXIT_SUCCESS;
+        }
+        else
+        {
+            usage();
+            return EXIT_FAILURE;
+        }
     }
     static if (TARGET.OSX)
     {

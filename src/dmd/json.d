@@ -806,3 +806,12 @@ extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
     json.arrayEnd();
     json.removeComma();
 }
+
+extern (C++) void json_info(OutBuffer* buf)
+{
+    scope ToJsonVisitor json = new ToJsonVisitor(buf);
+    json.objectStart();
+    json.property("compilerVendor", global.compiler.vendor);
+    json.objectEnd();
+    json.removeComma();
+}
