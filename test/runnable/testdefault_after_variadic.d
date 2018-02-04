@@ -39,6 +39,12 @@ void fun3(int[] gold, int[] a...)
     assert(gold == a);
 }
 
+void fun4(T...)(size_t length_gold, int b_gold, T a, int b = 1)
+{
+    assert(T.length == length_gold);
+    assert(b == b_gold);
+}
+
 /+
 NOTE: this is disallowed by the parser:
 
@@ -77,4 +83,17 @@ void main()
 
     version (with_phobos)
         assert(log(10, "abc") == text(__FILE__, ":", __LINE__, " 10abc"));
+
+    // IFTI: `b` is always default-set
+    fun4(0, 1);
+    fun4(1, 1, 10);
+    fun4(2, 1, 10, 11);
+
+    // with explicit instantiation, and default-set `b`
+    fun4!int(1, 1, 10);
+    fun4!(int, int)(2, 1, 10, 11);
+
+    // with explicit instantiation, and over-ridden `b`
+    fun4!int(1, 100, 10, 100);
+    fun4!(int, int)(2, 100, 10, 11, 100);
 }
