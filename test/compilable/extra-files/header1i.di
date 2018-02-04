@@ -587,7 +587,7 @@ class TestClass
 	{
 		return aa;
 	}
-	ref return retFunc()
+	ref retFunc() return
 	{
 		return aa;
 	}
@@ -650,15 +650,15 @@ struct SafeS
 {
 	@safe 
 	{
-		ref return SafeS foo()
+		ref SafeS foo() return
 		{
 			return this;
 		}
-		return scope SafeS foo2()
+		scope SafeS foo2() return
 		{
 			return this;
 		}
-		ref return scope SafeS foo3()
+		ref scope SafeS foo3() return
 		{
 			return this;
 		}

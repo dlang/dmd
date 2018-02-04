@@ -921,6 +921,12 @@ public:
         }
         t.inuse++;
         PrePostAppendStrings pas;
+        extern(C++) int ignoreReturn(void* param, const(char)* name)
+        {
+            if (strcmp(name, "return") != 0)
+                PrePostAppendStrings.fp(param, name);
+            return 0;
+        }
         pas.buf = buf;
         pas.isCtor = (ident == Id.ctor);
         pas.isPostfixStyle = false;
@@ -931,7 +937,7 @@ public:
             MODtoBuffer(buf, t.mod);
             buf.writeByte(' ');
         }
-        t.attributesApply(&pas, &PrePostAppendStrings.fp);
+        t.attributesApply(&pas, &ignoreReturn);
         if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
@@ -963,6 +969,11 @@ public:
             buf.writeByte(')');
         }
         parametersToBuffer(t.parameters, t.varargs);
+        if (t.isreturn)
+        {
+            PrePostAppendStrings.fp(&pas, " return");
+            pas.buf.offset -= 1; // remove final whitespace
+        }
         t.inuse--;
     }
 
