@@ -45,6 +45,10 @@ string log(T...)(T a, string file = __FILE__, int line = __LINE__)
     return text(file, ":", line, " ", a);
 }
 
+void foo_error(T...)(T a, string b = "bar") if (T.length == 1)
+{
+}
+
 void main()
 {
     fun0(tuple(10), 7, 10, 7);
@@ -59,4 +63,7 @@ void main()
     // fun4([1,2,3], 1,2,3);
 
     assert(log(10, "abc") == text(__FILE__, ":", __LINE__, " 10abc"));
+
+    // these should not compile, by design
+    assert(!__traits(compiles, foo_error(1, "baz")));
 }
