@@ -1,4 +1,4 @@
-Function parameters with default values are now allowed after variadic template parameters, and always take their default values. This allows using special tokens (eg __FILE__) after variadic parameters, which was previously impossible
+Function parameters with default values are now allowed after variadic template parameters, and when IFTI is used, always take their default values. This allows using special tokens (eg __FILE__) after variadic parameters, which was previously impossible. See also test/runnable/testdefault_after_variadic.d
 
 Eg:
 ---
