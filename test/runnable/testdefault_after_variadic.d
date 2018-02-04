@@ -33,7 +33,6 @@ void fun2(U, V, T...)(U gold, V gold2, T a, string file = __FILE__, int line = _
     assert(tuple(file, line) == gold2);
 }
 
-// 
 void fun3(int[] gold, int[] a...)
 {
     assert(gold == a);
@@ -45,16 +44,6 @@ void fun4(T...)(size_t length_gold, int b_gold, T a, int b = 1)
     assert(b == b_gold);
 }
 
-/+
-NOTE: this is disallowed by the parser:
-
-void fun4(int[] gold, int[] a ..., int b = 1)
-{
-    assert(gold==a);
-    assert(b==1);
-}
-+/
-
 // Example in changelog
 string log(T...)(T a, string file = __FILE__, int line = __LINE__)
 {
@@ -64,6 +53,15 @@ string log(T...)(T a, string file = __FILE__, int line = __LINE__)
 void fun_constraint(T...)(T a, string b = "bar") if (T.length == 1)
 {
 }
+
+/+
+NOTE: this is disallowed by the parser:
+void fun5(int[] gold, int[] a ..., int b = 1)
+{
+    assert(gold==a);
+    assert(b==1);
+}
++/
 
 void main()
 {
@@ -76,7 +74,6 @@ void main()
     fun2(tuple(10), tuple(__FILE__, __LINE__), 10);
 
     fun3([1, 2, 3], 1, 2, 3);
-    // fun4([1,2,3], 1,2,3);
 
     fun_constraint(1);
     assert(!__traits(compiles, fun_constraint(1, "baz")));
@@ -96,4 +93,6 @@ void main()
     // with explicit instantiation, and over-ridden `b`
     fun4!int(1, 100, 10, 100);
     fun4!(int, int)(2, 100, 10, 11, 100);
+
+    // fun5([1,2,3], 1,2,3);
 }
