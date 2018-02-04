@@ -1349,7 +1349,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         for (size_t j = parami + 1; j < nfparams; j++)
                         {
                             Parameter p = Parameter.getNth(fparameters, j);
-                            if(p.defaultArg)
+                            if (p.defaultArg)
                             {
                                break;
                             }
