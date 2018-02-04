@@ -1,0 +1,38 @@
+
+Fix issue 18361 - Ddoc ability to opt-out of automatic keyword highlighting in running text
+
+Currently, ddoc automatically highlights all occurrences of words in running
+text that coincide with the symbol or module being documented, or a parameter
+name of a function being documented.  While convenient, it often caused
+unintended highlighting of normal words in text when module, function, or
+parameter identifiers coincide with normal words.  This led to a proliferation
+of prefixing words with `_` in order to suppress this behaviour.
+
+Now a better solution has been implemented to completely opt-out of this
+feature via the `DDOC_AUTO_PSYMBOL`, `DDOC_AUTO_KEYWORD`, and `DDOC_AUTO_PARAM`
+macros, which are used for all such automatically-highlighted words in running
+text. Occurrences of module, function, or parameter names inside code blocks
+are not included. By default, these macros simply redirect to `DDOC_PSYMBOL`,
+`DDOC_KEYWORD`, and `DDOC_PARAM`, but the user can now redefine these macros so
+that they simply expand to the word itself without any highlighting:
+
+----
+DDOC_AUTO_PSYMBOL = $0
+DDOC_AUTO_KEYWORD = $0
+DDOC_AUTO_PARAM = $0
+----
+
+Furthermore, whenever a word is prefixed with `_` to suppress automatic
+highlighting, it is now wrapped in the `DDOC_AUTO_PSYMBOL_SUPPRESS` macro. This
+is to provide users who wish to opt out of automatic highlighting an easy way
+to find all occurrences of these underscore prefixes so that they can be
+removed from the text.  For example, they can redefine this macro to something
+highly-visible and easily searched for, such as:
+
+----
+DDOC_AUTO_PSYMBOL_SUPPRESS = FIXME_UNDERSCORE_PREFIX $0
+----
+
+and then search the generated documentation for the string
+`FIXME_UNDERSCORE_PREFIX` and delete the `_` prefix from all corresponding
+parts of the documentation comment text.
