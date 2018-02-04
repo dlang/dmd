@@ -2,8 +2,18 @@
 PERMUTE_ARGS:
 */
 
-import std.typecons : tuple;
-import std.conv : text;
+version (with_phobos) import std.conv : text;
+
+struct Tuple(T...)
+{
+    T expand;
+    alias expand this;
+}
+
+auto tuple(T...)(T t)
+{
+    return Tuple!T(t);
+}
 
 void fun0(U, T...)(U gold, int b_gold, T a, int b)
 {
@@ -62,8 +72,9 @@ void main()
     fun3([1, 2, 3], 1, 2, 3);
     // fun4([1,2,3], 1,2,3);
 
-    assert(log(10, "abc") == text(__FILE__, ":", __LINE__, " 10abc"));
-
     fun_constraint(1);
     assert(!__traits(compiles, fun_constraint(1, "baz")));
+
+    version (with_phobos)
+        assert(log(10, "abc") == text(__FILE__, ":", __LINE__, " 10abc"));
 }
