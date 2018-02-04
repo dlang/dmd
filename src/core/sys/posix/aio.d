@@ -10,8 +10,8 @@ module core.sys.posix.aio;
 
 private import core.sys.posix.signal;
 
-version (linux):
-version(X86_64):
+version (CRuntime_Glibc):
+version (X86_64):
 
 extern (C):
 @system:
@@ -30,7 +30,6 @@ struct aiocb
     ubyte[24] internal_members_padding;
     off_t aio_offset;
     ubyte[32] __glibc_reserved;
-
 }
 
 /* Return values of cancelation function.  */
