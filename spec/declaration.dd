@@ -74,7 +74,7 @@ $(GNAME AltDeclaratorSuffixes):
 
 $(GNAME AltDeclaratorSuffix):
     $(D [ ])
-    $(D [) $($(GLINK2 expression, AssignExpression)) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
     $(D [) $(GLINK Type) $(D ])
 
 $(GNAME AltFuncDeclaratorSuffix):
@@ -135,8 +135,8 @@ $(GNAME BasicType2):
 $(GNAME BasicType2X):
     $(D *)
     $(D [ ])
-    $(D [) $($(GLINK2 expression, AssignExpression)) $(D ])
-    $(D [) $($(GLINK2 expression, AssignExpression)) .. $($(GLINK2 expression, AssignExpression)) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) $(D ])
+    $(D [) $(GLINK2 expression, AssignExpression) .. $(GLINK2 expression, AssignExpression) $(D ])
     $(D [) $(GLINK Type) $(D ])
     $(D delegate) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
     $(D function) $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
@@ -146,7 +146,7 @@ $(GNAME IdentifierList):
     $(I Identifier) $(D .) $(I IdentifierList)
     $(GLINK2 template, TemplateInstance)
     $(GLINK2 template, TemplateInstance) $(D .) $(I IdentifierList)
-    $(I Identifier) $(D [) $($(GLINK2 expression, AssignExpression)) $(D].) $(I IdentifierList)
+    $(I Identifier) $(D [) $(GLINK2 expression, AssignExpression) $(D].) $(I IdentifierList)
 )
 
 $(GRAMMAR
@@ -189,7 +189,7 @@ $(GNAME NonVoidInitializer):
     $(GLINK StructInitializer)
 
 $(GNAME ExpInitializer):
-    $($(GLINK2 expression, AssignExpression))
+    $(GLINK2 expression, AssignExpression)
 
 $(GNAME ArrayInitializer):
     $(D [) $(GLINK ArrayMemberInitializations)$(OPT) $(D ])
@@ -201,7 +201,7 @@ $(GNAME ArrayMemberInitializations):
 
 $(GNAME ArrayMemberInitialization):
     $(GLINK NonVoidInitializer)
-    $($(GLINK2 expression, AssignExpression)) $(D :) $(GLINK NonVoidInitializer)
+    $(GLINK2 expression, AssignExpression) $(D :) $(GLINK NonVoidInitializer)
 
 $(GNAME StructInitializer):
     $(D {) $(GLINK StructMemberInitializers)$(OPT) $(D })

@@ -502,13 +502,13 @@ $(P
 
 $(P
     Text inside these sections will be escaped according to the rules described above,
-    then wrapped in a `$(RAW_DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
+    then wrapped in a `$(DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
     to be displayed as an inline text span, formatted as code.
 )
 
 $(P
     A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
-    line or by using the `$(RAW_DOLLAR)(BACKTICK)` macro.
+    line or by using the `$(DOLLAR)(BACKTICK)` macro.
 )
 
 ---
@@ -979,4 +979,3 @@ $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing 
 Macros:
     CHAPTER=31
     TITLE=Documentation Generator
-    RAW_DOLLAR=$
