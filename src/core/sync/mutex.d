@@ -377,6 +377,7 @@ unittest
     // For example, Bionic doesn't appear to do so, so this test is
     // not run on Android.
     version (CRuntime_Bionic) {} else
+    version (CRuntime_Musl) {} else
     assert(!mtx.tryLock_nothrow());
 
     free(cast(void*) mtx);
