@@ -12,16 +12,23 @@
 
 module dmd.dinterpret;
 
+import core.stdc.stdlib;
 import core.stdc.stdio;
 import core.stdc.string;
+import core.stdc.time;
 import dmd.apply;
 import dmd.arraytypes;
+import dmd.astcodegen;
 import dmd.attrib;
 import dmd.builtin;
 import dmd.constfold;
 import dmd.ctfeexpr;
+import dmd.dcache;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dimport;
+import dmd.dmodule;
+import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -30,14 +37,18 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.hdrgen;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
+import dmd.parse;
 import dmd.root.array;
+import dmd.root.outbuffer;
 import dmd.root.rootobject;
+import dmd.root.sha;
 import dmd.statement;
 import dmd.tokens;
 import dmd.utf;
@@ -720,6 +731,161 @@ extern (C++) Expression ctfeInterpretForPragmaMsg(Expression e)
     return e;
 }
 
+ubyte[20] ctfeHashingSeed()
+{
+    static ubyte[20] hash;
+    static bool inited;
+
+    if (inited) return hash;
+    else
+    {
+        SHA1 hasher;
+        hasher.start();
+        // predefined versions indicate target, bitness and asserts
+        if (global.versionids)
+        {
+            foreach (id; *global.versionids)
+            {
+                const(char)* s = id.toChars();
+                hasher.put(cast(ubyte[])s[0..strlen(s)]);
+            }
+        }
+        if (global.debugids)
+        {
+            foreach (id; *global.debugids)
+            {
+                const(char)* s = id.toChars();
+                hasher.put(cast(ubyte[])s[0 .. strlen(s)]);
+            }
+        }
+        hash = hasher.finish();
+        inited = true;
+        return hash;
+    }
+}
+
+ubyte[20] generateCtfeCacheKey(FuncDeclaration fd, ref Expressions eargs)
+{
+    SHA1 hasher;
+    hasher.start();
+    auto signature = fd.toFullSignature();
+    // Add in a hash of compilation parameters
+    hasher.put(ctfeHashingSeed);
+    debug(DCACHE) printf("Func's parent %s \n", fd.parent.toChars());
+    // Include modules of type arguments
+    if (TemplateInstance ti = fd.parent.isTemplateInstance())
+    {
+        if (ti.tiargs)
+        {
+            foreach (arg; *ti.tiargs)
+            {
+                Dsymbol sym = getDsymbol(arg);
+                if (sym)
+                {
+                    /*if (ScopeDsymbol sd = sym.isScopeDsymbol())
+                    {
+                        foreach(sc; *sd.importedScopes)
+                        {
+                            if (Module md = sc.isModule())
+                            {
+                                debug(DCACHE) auto str = toHexString(md.signature[]);
+                                debug(DCACHE) printf("\tmod %s sig: %.*s\n", 
+                                    md.toChars(), str.length, str.ptr);
+                                hasher.put(md.signature[]);
+                            }
+                        }
+                    }*/
+                    Dsymbol last;
+                    while (sym)
+                    {
+                        last = sym;
+                        sym = sym.parent;
+                    }
+                    if (Module md = last.isModule())
+                    {
+                        foreach (imp; fd._scope._module.aimports)
+                        {
+                            hasher.put(imp.signature[]);
+                        }
+                        debug(DCACHE) auto str = toHexString(md.signature[]);
+                        debug(DCACHE) printf("\tmod %s sig: %.*s\n",
+                            md.toChars(), str.length, str.ptr);
+                        hasher.put(md.signature[]);
+                    }
+                }
+            }
+        }
+    }
+    debug(DCACHE) printf("Imports from function's module:\n");
+    foreach (imp; fd._scope._module.aimports)
+    {
+        hasher.put(imp.signature[]);
+        auto str = toHexString(imp.signature[]);
+        debug(DCACHE) printf("\tmod %s sig: %.*s\n", imp.toChars(), str.length, str.ptr);
+    }
+    hasher.put(fd._scope._module.signature);
+    hasher.put(0x0); // separator
+    hasher.put(cast(ubyte[])signature[0 .. strlen(signature)]);
+    foreach(i, earg; eargs)
+    {
+        hasher.put(0x0); // separator
+        auto argument = earg.toChars();
+        hasher.put(cast(ubyte[])argument[0 .. strlen(argument)]);
+    }
+    return hasher.finish();
+}
+
+extern(C++) class ExtractSymbols : StoppableVisitor {
+    Scope* _sc;
+    Dsymbol[] symbols;
+
+    this(Scope* sc)
+    {
+        _sc = sc;
+    }
+
+    override void visit(Expression e)
+    {
+        if (!e.type.isscalar())
+        {
+            Dsymbol sym = e.type.toDsymbol(_sc);
+            if (sym)
+                symbols ~= sym;
+        }
+    }
+    alias visit = Visitor.visit;
+}
+
+void writeModuleName(Dsymbol sym, ref OutBuffer dest)
+{
+    const(char)*[] parts;
+    sym = sym.getModule();
+    while (sym)
+    {
+        parts ~= sym.toChars();
+        sym = sym.parent;
+    }
+    for (size_t i = 0; i < parts.length; i++)
+    {
+        if (i != 0)
+            dest.writestring(cast(char*)".");
+        dest.writestring(parts[$ - i - 1]);
+    }
+}
+
+void uniqueInPlace(T)(ref T[] args)
+{
+    size_t i = 0;
+    for (size_t j = 0; j < args.length; j++)
+    {
+        if (args[i] != args[j])
+        {
+            args[i++] = args[j];
+        }
+    }
+    args.length = i;
+}
+
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -835,6 +1001,51 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
             return CTFEExp.cantexp;
         }
         eargs[i] = earg;
+    }
+ 
+    // Skip generated symbols and only permit caching of top-level CTFE calls
+    bool cacheable = (istate == null || istate.caller == null)
+        && strncmp(fd.ident.toChars(), "__", 2) != 0;
+    clock_t ctfeStart = clock();
+    ubyte[20] cacheKey = void;
+    if (global.params.cache && cacheable)
+    {
+        cacheKey = generateCtfeCacheKey(fd, eargs);
+        auto value = dcache.get(cacheKey[]);
+        if (value != null)
+        {
+            clock_t startMixin = clock();
+            debug (DCACHE)
+            {
+                printf("interpreting global %s: %s\n", fd.loc.toChars(), fd.toFullSignature());
+                foreach (i, earg; eargs[])
+                {
+                    printf("\targ %d : %s\n", i, earg.toChars());
+                }
+                printf("\tFound in cache\n");
+                printf("BODY %*s\n", value.length, value.ptr);
+            }
+            scope p = new Parser!ASTCodegen(fd.loc, fd._scope._module, cast(string)value ~ "\0", false);
+            p.nextToken();
+            Expression e = p.parseExpression();
+            if (p.errors)
+            {
+                return new ErrorExp();
+            }
+            if (p.token.value != TOK.endOfFile)
+            {
+                e.error("incomplete mixin expression (%s)", e.toChars());
+                return new ErrorExp();
+            }
+            cachedSemantics = true;
+            e = expressionSemantic(e, fd._scope);
+            cachedSemantics = false;
+            clock_t endMixin = clock();
+            double delta = 1.0*(endMixin - startMixin) / CLOCKS_PER_SEC;
+            debug(DCACHE) printf("\tSuccessfully mixed in!\n\n");
+            version(DCACHE_STATS) printf("Mixed in %s from cache in %lf\n", fd.toFullSignature(), delta);
+            return e;
+        }
     }
 
     // Now that we've evaluated all the arguments, we can start the frame
@@ -978,7 +1189,48 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
         (cast(ThrownExceptionExp)e).generateUncaughtError();
         e = CTFEExp.cantexp;
     }
-
+    if (global.params.cache && cacheable)
+    {
+        clock_t ctfeEnd = clock();
+        double delta = 1.0*(ctfeEnd - ctfeStart) / CLOCKS_PER_SEC;
+        if (delta > 0.0)
+        {
+            debug(DCACHE)
+            {
+                printf("interpreting global %s: %s\n", fd.loc.toChars(), fd.toFullSignature());
+                foreach (i, earg; eargs[])
+                {
+                    printf("\targ %d : %s\n", i, earg.toChars());
+                }
+            }
+            OutBuffer buf;
+            scope extractor = new ExtractSymbols(fd._scope);
+            walkPostorder(e, extractor);
+            extern(C) static int comp(scope const(void*) *a , scope const(void*)* b)
+            {
+                return a > b ? 1 : (a == b ? 0 : -1);
+            }
+            qsort(extractor.symbols.ptr, extractor.symbols.length, Dsymbol.sizeof, cast(_compare_fp_t)&comp);
+            uniqueInPlace(extractor.symbols);
+            buf.writestring("(){\n");
+            foreach (t; extractor.symbols)
+            {
+                buf.writestring("import ");
+                writeModuleName(t, buf);
+                buf.writestring(" : ");
+                buf.writestring(t.toChars());
+                buf.writestring(";\n");
+            }
+            buf.writestring("return ");
+            buf.writestring(e.toChars());
+            buf.writestring(";\n");
+            buf.writestring("}()\n");
+            auto value = buf.extractString();
+            dcache.put(cacheKey[], cast(ubyte[])value[0 .. strlen(value)]);
+            debug(DCACHE) printf("\treturns (%lf) CACHED %s\n", delta, value);
+            version(DCACHE_STATS) printf("Recomputed %s in %lf\n", fd.toFullSignature(), delta);
+        }
+    }
     return e;
 }
 

@@ -32,6 +32,7 @@ import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.doc;
+import dmd.dcache;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -478,6 +479,8 @@ private int tryMain(size_t argc, const(char)** argv)
     Expression._init();
     Objc._init();
     builtin_init();
+    if (global.params.cache)
+        dcache.initialize(global._version[0..strlen(global._version)]);
 
     printPredefinedVersions();
 
@@ -1542,6 +1545,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 }
                 else if (p[4])
                     goto Lerror;
+            }
+            else if (strcmp(p + 1, cast(char*)"cache=mmap") == 0)
+            {
+                params.cache = true;
             }
             else if (arg == "-shared")
                 params.dll = true;

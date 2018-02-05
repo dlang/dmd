@@ -22,6 +22,7 @@ import dmd.aliasthis;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.gluelayer;
+import dmd.dcache;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -1399,7 +1400,7 @@ public:
                     AliasDeclaration ad = void;
                     // accessing private selective and renamed imports is
                     // deprecated by restricting the symbol visibility
-                    if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
+                    if (cachedSemantics || s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
                     {}
                     else
                         error(loc, "%s `%s` is `private`", s.kind(), s.toPrettyChars());

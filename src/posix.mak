@@ -287,12 +287,16 @@ D_OBJC := 1
 endif
 endif
 
+# Enable stats for DCache
+#DFLAGS += -version=DCACHE_STATS
+# Enable debug for DCache
+#DFLAGS += -debug=DCACHE
 
 ######## DMD frontend source files
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
 	arraytypes astcodegen attrib builtin canthrow cli clone compiler complex cond constfold	\
-	cppmangle cppmanglewin ctfeexpr dcast dclass declaration delegatize denum dimport	\
+	cppmangle cppmanglewin ctfeexpr dcache dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
@@ -304,7 +308,7 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
 LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename outbuffer port rmem \
-	rootobject stringtable hash))
+	rootobject stringtable hash sha sha_SSSE3))
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
