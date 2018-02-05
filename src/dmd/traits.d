@@ -1423,7 +1423,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         auto o1 = (*e.args)[0];
         auto o2 = (*e.args)[1];
 
-        FuncLiteralDeclaration isLambda(RootObject oarg)
+        static FuncLiteralDeclaration isLambda(RootObject oarg)
         {
             if (auto t = isDsymbol(oarg))
             {
