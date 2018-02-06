@@ -307,7 +307,7 @@ enum TOK : int
     voidExpression,
     cantExpression,
 
-    getSource,
+    getCallerSource,
 
     max_,
 }
@@ -594,7 +594,7 @@ extern (C++) struct Token
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
 
-        TOK.getSource: "getSource",
+        TOK.getCallerSource: "getCallerSource",
     ];
 
     static assert(() {

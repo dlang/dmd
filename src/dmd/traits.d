@@ -143,7 +143,7 @@ shared static this()
         "getUnitTests",
         "getVirtualIndex",
         "getPointerBitmap",
-        "getSource",
+        "getCallerSource",
     ];
 
     traitsStringTable._init(40);
@@ -414,7 +414,7 @@ extern (C++) Expression pointerBitmap(TraitsExp e)
 }
 
 /**
-* __traits(getSource, symbol) => get symbol source code (string[T.length] or string)
+* __traits(getCallerSource, symbol) => get symbol source code (string[T.length] or string)
 */
 extern (C++) Expression traitsGetSource(TraitsExp e)
 {
@@ -448,7 +448,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     if (e.ident != Id.compiles &&
         e.ident != Id.isSame &&
         e.ident != Id.identifier &&
-        e.ident != Id.getSource &&
+        e.ident != Id.getCallerSource &&
         e.ident != Id.getProtection)
     {
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
@@ -1626,9 +1626,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         return pointerBitmap(e);
     }
 
-    if (e.ident == Id.getSource)
+    if (e.ident == Id.getCallerSource)
     {
-        e.error("`%s` unexpected in this context", Id.getSource);
+        e.error("`%s` unexpected in this context", Id.getCallerSource);
         return new ErrorExp();
     }
 

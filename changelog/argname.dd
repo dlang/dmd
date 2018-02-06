@@ -4,7 +4,7 @@ NOTE: it also works with UFCS, with tuples (string static array) and non-tuples 
 
 Eg:
 ---
-string logSimple(T...)(T a, string[T.length] names = __traits(getSource, a))
+string logSimple(T...)(T a, string[T.length] names = __traits(getCallerSource, a))
 {
   import std.conv;
   return text(names, ": ", a);  // see testargnames for a better log function

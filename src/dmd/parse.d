@@ -6282,7 +6282,7 @@ final class Parser(AST) : Lexer
         AST.Expression e = parseAssignExp();
         if(auto e2=cast(AST.TraitsExp)e)// TODO: why not just TraitsExp?
         {
-            if(e2.ident==Id.getSource)
+            if(e2.ident==Id.getCallerSource)
             {
                 import dmd.traits:traitsGetSource;
                 return traitsGetSource(e2);

@@ -40,39 +40,39 @@ void check(string name, string expected, string file = __FILE__, int line = __LI
     assert(0, text(getLoc(file, line), "expected {", expected, "} got {", name, "}"));
 }
 
-void fun1(int a, string expected, string name = __traits(getSource, a),
+void fun1(int a, string expected, string name = __traits(getCallerSource, a),
         string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
 void fun2(int a, string b, double c, string expected,
-        string name = __traits(getSource, b), string file = __FILE__, int line = __LINE__)
+        string name = __traits(getCallerSource, b), string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
-void fun_UFCS(int a, string expected, string name = __traits(getSource, a),
+void fun_UFCS(int a, string expected, string name = __traits(getCallerSource, a),
         string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
-void fun_template(T)(T a, string expected, string name = __traits(getSource, a),
+void fun_template(T)(T a, string expected, string name = __traits(getCallerSource, a),
         string file = __FILE__, int line = __LINE__)
 {
     check(name, expected, file, line);
 }
 
-auto fun_variadic(T...)(T a_var, string[T.length] names = __traits(getSource, a_var))
+auto fun_variadic(T...)(T a_var, string[T.length] names = __traits(getCallerSource, a_var))
 {
     return names;
 }
 
 // more complex variadic
 auto fun_variadic2(T...)(int a0, T a1, int a2, int a3 = 1000,
-        string[T.length] names = __traits(getSource, a1),
-        string name_a2 = __traits(getSource, a2), int a6 = 10000)
+        string[T.length] names = __traits(getCallerSource, a1),
+        string name_a2 = __traits(getCallerSource, a2), int a6 = 10000)
 {
     return names ~ "-" ~ name_a2;
 }
@@ -91,7 +91,7 @@ struct A
 static if (easy_debug)
 {
 
-    string log(T...)(T a, string[T.length] names = __traits(getSource, a),
+    string log(T...)(T a, string[T.length] names = __traits(getCallerSource, a),
             string file = __FILE__, int line = __LINE__)
     {
         string ret = getLoc(file, line);
@@ -102,7 +102,7 @@ static if (easy_debug)
         return ret;
     }
 
-    string logSimple(T...)(T a, string[T.length] names = __traits(getSource, a))
+    string logSimple(T...)(T a, string[T.length] names = __traits(getCallerSource, a))
     {
         import std.conv;
 

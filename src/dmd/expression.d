@@ -7135,7 +7135,7 @@ extern (C++) final class ArgStringInitExp : DefaultInitExp
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc, TOK.getSource, __traits(classInstanceSize, ArgStringInitExp));
+        super(loc, TOK.getCallerSource, __traits(classInstanceSize, ArgStringInitExp));
     }
 
     void setIdent(Identifier ident)
