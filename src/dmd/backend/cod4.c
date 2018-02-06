@@ -2068,8 +2068,8 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         Also sets the carry bit when the value is not 0. */
                     code_orflag(cdb.last(), CFpsw);
                     cdb.genc2(0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
-                        /* Subtracts the carry bit. This turns int.min into 0,
-                        flipping the sign bit.
+                        /* Subtracts the carry bit. This turns int.min into
+                        int.max, flipping the sign bit.
                         For other negative and positive values, subtracting 1
                         doesn't affect the sign bit.
                         For 0, the carry bit is not set, so this does nothing
