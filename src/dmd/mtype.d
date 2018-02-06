@@ -4567,15 +4567,14 @@ extern (C++) final class TypeFunction : TypeNext
 
         size_t nparams = Parameter.dim(parameters);
         size_t nargs = args ? args.dim : 0;
-        if (nparams == nargs)
-        {
-        }
-        else if (nargs > nparams)
+        if (nargs > nparams)
         {
             if (varargs == 0)
             {
-                if (pMessage) *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
-                goto Nomatch;
+                // suppress early exit if an error message is wanted,
+                // so we can check any matching args are valid
+                if (!pMessage)
+                    goto Nomatch;
             }
             // too many args; no match
             match = MATCH.convert; // match ... with a "conversion" match level
@@ -4624,8 +4623,8 @@ extern (C++) final class TypeFunction : TypeNext
             {
                 if (p.defaultArg)
                     continue;
-                goto L1;
                 // try typesafe variadics
+                goto L1;
             }
             {
                 Expression arg = (*args)[u];
@@ -4814,6 +4813,12 @@ extern (C++) final class TypeFunction : TypeNext
         }
 
     Ldone:
+        if (pMessage && !varargs && nargs > nparams)
+        {
+            // all parameters had a match, but there are surplus args
+            *pMessage = getMatchError("expected %d argument(s), not %d", nparams, nargs);
+            goto Nomatch;
+        }
         //printf("match = %d\n", match);
         return match;
 
