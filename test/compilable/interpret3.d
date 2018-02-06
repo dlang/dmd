@@ -1,4 +1,4 @@
-﻿// PERMUTE_ARGS: -inline
+// PERMUTE_ARGS: -inline
 
 template compiles(int T)
 {
@@ -6288,7 +6288,7 @@ static assert(ctfe7784());
     7781
 **************************************************/
 
-static assert(({ return; }(), true));
+static assert(({ return true; }()));
 
 /**************************************************
     7785

@@ -22,7 +22,7 @@ bool startsWithConsume(alias pred = "a == b", R1, R2)(ref R1 r1, R2 r2)
         r.popFront();
         r2.popFront();
     }
-    return r2.empty ? (r1 = r, true) : false;
+    return r2.empty ? (){ r1 = r; return true;}() : false;
 }
 
 

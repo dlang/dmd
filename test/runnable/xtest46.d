@@ -4684,7 +4684,8 @@ void test10626()
     double[2] a = v[] * ++z;
     double[2] b = v[] * --z;
     double[2] c = v[] * y.u;
-    double[2] d = v[] * (x[] = 3, x[0]);
+    x[] = 3;
+    double[2] d = v[] * x[0];
     double[2] e = v[] * (v[] ~ z)[0];
 }
 
@@ -7866,7 +7867,7 @@ bool test16022()
 {
     enum Type { Colon, Comma }
     Type type;
-    return type == Type.Colon, type == Type.Comma;
+    return type == Type.Comma;
 }
 
 bool test16022_structs()
@@ -7879,7 +7880,7 @@ bool test16022_structs()
 
     enum Type { Colon = A(0, "zero"), Comma = A(1, "one") }
     Type type;
-    return type == Type.Colon, type == Type.Comma;
+    return type == Type.Comma;
 }
 
 /***************************************************/
