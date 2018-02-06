@@ -44,8 +44,8 @@ $(GNAME CommaExpression):
 
     $(P The left operand of the $(D ,) is evaluated, then the right operand
         is evaluated. The type of the expression is the type of the right
-        operand, and the result is the result of the right operand. Using
-        the result is deprecated.
+        operand, and the result is the result of the right operand.
+        Using the result of comma expressions isn't allowed.
     )
 
 $(H2 $(LNAME2 assign_expressions, Assign Expressions))
