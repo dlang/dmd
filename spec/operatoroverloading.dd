@@ -285,6 +285,8 @@ T opBinary(string op)(T rhs)
 }
 ---
 
+        $(P Note that `opIn` and `opIn_r` have been deprecated in favor of
+        `opBinary!"in"` and `opBinaryRight!"in"` respectively.)
 
 $(H2 $(LNAME2 eqcmp, Overloading the Comparison Operators))
 
