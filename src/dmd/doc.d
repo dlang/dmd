@@ -2033,157 +2033,6 @@ Lno:
 }
 
 /****************************************************
- * Replace the inline link portion (the part in parentheses) of a Markdown link.
- * Params:
- *  buf =           an OutputBuffer containing the DDoc
- *  i =             the index within `buf` to replace the Markdown inline link at
- *  delimiter =     information about the inline link
- * Returns: the index after replacing the link
- */
-private size_t replaceMarkdownInlineLink(OutBuffer* buf, size_t i, MarkdownDelimiter delimiter)
-{
-    if (buf.data[i+1] != '(')
-        return i;
-
-    size_t j = skipChars(buf, i + 2, " \t");
-
-    // look ahead for the close of a link
-    const (char)[] href, title;
-    size_t iHrefStart = j;
-    size_t iTitleStart = 0;
-    size_t parenDepth = 0;
-    size_t iLinkNewline = 0;
-    bool inPointy = false;
-    const slice = buf.peekSlice();
-    for (; j < slice.length; j++)
-    {
-        switch (slice[j])
-        {
-        case '<':
-            if (!inPointy && j == iHrefStart)
-            {
-                inPointy = true;
-                ++iHrefStart;
-            }
-            break;
-        case '>':
-            if (inPointy && slice[j-1] != '\\')
-            {
-                inPointy = false;
-                href = (cast(const char*) buf.data)[iHrefStart .. j];
-            }
-            break;
-        case '(':
-            if (!inPointy && slice[j-1] != '\\')
-            {
-                ++parenDepth;
-                if (href.length)
-                    iTitleStart = j + 1;
-            }
-            break;
-        case ')':
-            if (slice[j-1] != '\\')
-            {
-                if (parenDepth)
-                    --parenDepth;
-                if (!parenDepth)
-                {
-                    if (href.length)
-                        goto case '"';
-                    else
-                    {
-                        href = (cast(const char*) buf.data)[iHrefStart .. j];
-                    }
-                    goto LEndInlineLink;
-                }
-            }
-            break;
-        case '"':
-        case '\'':
-            if (href.length && slice[j-1] != '\\')
-            {
-                if (iTitleStart)
-                {
-                    if (title.length)
-                    {
-                        // missplaced quote
-                        href.length = 0;
-                        goto LEndInlineLink;
-                    }
-
-                    char titleQuote = slice[iTitleStart - 1];
-                    if (slice[j] == titleQuote)
-                        title = (cast(const char*) buf.data)[iTitleStart .. j];
-                }
-                else
-                    iTitleStart = j + 1;
-            }
-            break;
-        case ' ':
-        case '\t':
-            if (inPointy)
-            {
-                // invalid link
-                href.length = 0;
-                goto LEndInlineLink;
-            }
-            if (!href.length)
-                href = (cast(const char*) buf.data)[iHrefStart .. j];
-            break;
-        case '\r':
-        case '\n':
-            if (iLinkNewline == j || !href.length)
-            {
-                // no blank lines or newlines in hrefs
-                href.length = 0;
-                goto LEndInlineLink;
-            }
-            iLinkNewline = j + 1;
-            break;
-        default:
-            break;
-        }
-    }
-LEndInlineLink:
-    if (href.length)
-    {
-        size_t iAfterLink = i - delimiter.count;
-        string macroName;
-        href = href.dup;
-        if (title.length)
-        {
-            title = title.dup;
-            if (delimiter.type == '[')
-                macroName = "$(LINK_TITLE ";
-            else
-                macroName = "$(IMAGE_TITLE ";
-        }
-        else
-        {
-            if (delimiter.type == '[')
-                macroName = "$(LINK2 ";
-            else
-                macroName = "$(IMAGE ";
-        }
-        buf.remove(delimiter.iStart, delimiter.count);
-        buf.remove(i - 1, j - i + 1);
-        j = buf.insert(delimiter.iStart, macroName);
-        j = buf.insert(j, href);
-        j = buf.insert(j, ", ");
-        iAfterLink += macroName.length + href.length + 2;
-        if (title.length)
-        {
-            j = buf.insert(j, title);
-            j = buf.insert(j, ", ");
-            iAfterLink += title.length + 2;
-        }
-        buf.insert(iAfterLink, ")");
-        return iAfterLink;
-    }
-    return i;
-}
-
-/****************************************************
  * Replace a Markdown thematic break (HR).
  * Params:
  *  buf =           an OutputBuffer containing the DDoc
@@ -2553,6 +2402,202 @@ private struct MarkdownList
             return MarkdownList(cast(string) buf.data[i..iAfterNumbers].idup, iLineStart, iContentStart, indent, macroLevel, buf.data[iAfterNumbers]);
         }
         return MarkdownList(null, 0, 0, 0, 0, 0);
+    }
+}
+
+/****************************************************
+* A Markdown link.
+*/
+private struct MarkdownLink
+{
+    string href;    /// the link destination
+    string label;   /// an optional normalized label of the link reference
+    string title;   /// an optional title for the link
+
+    static MarkdownLink parseInlineReference(OutBuffer *buf, ref size_t i)
+    {
+        MarkdownLink reference;
+        if (buf.data[i] != '(')
+            return reference;
+        size_t iEnd = i + 1;
+        if (!reference.parseHref(buf, iEnd))
+            return reference;
+        iEnd = skipChars(buf, iEnd, " \t\r\n");
+        if (buf.data[iEnd] != ')')
+        {
+            if (reference.parseTitle(buf, iEnd))
+                iEnd = skipChars(buf, iEnd, " \t\r\n");
+        }
+        if (buf.data[iEnd] == ')')
+            i = iEnd;
+        else
+            reference.href.length = 0;
+        return reference;
+    }
+
+    private bool parseLabel(OutBuffer *buf, ref size_t i)
+    {
+        if (buf.data[i] != '[')
+            return false;
+        const slice = buf.peekSlice();
+        for (size_t j = i; j < slice.length; ++j)
+        {
+            char c = slice[j];
+            switch (c)
+            {
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+                if (label.length && label[$-1] != ' ')
+                    label ~= ' ';
+                break;
+            case '\\':
+                label ~= slice[j..j+2];
+                ++j;
+                break;
+            case ']':
+                if (label[$-1] == ' ')
+                    --label.length;
+                if (label.length)
+                {
+                    i = j + 1;
+                    return true;
+                }
+                return false;
+            default:
+                // TODO: unicode case-insensitive matching
+                if (c >= 'A' && c <= 'Z')
+                    c += 'a' - 'A';
+                label ~= c;
+                break;
+            }
+        }
+        return false;
+    }
+
+    private bool parseHref(OutBuffer* buf, ref size_t i)
+    {
+        size_t j = skipChars(buf, i, " \t");
+
+        size_t iHrefStart = j;
+        size_t parenDepth = 1;
+        bool inPointy = false;
+        const slice = buf.peekSlice();
+        for (; j < slice.length; j++)
+        {
+            switch (slice[j])
+            {
+            case '<':
+                if (!inPointy && j == iHrefStart)
+                {
+                    inPointy = true;
+                    ++iHrefStart;
+                }
+                break;
+            case '>':
+                if (inPointy && slice[j-1] != '\\')
+                    goto LReturnHref;
+                break;
+            case '(':
+                if (!inPointy && slice[j-1] != '\\')
+                    ++parenDepth;
+                break;
+            case ')':
+                if (!inPointy && slice[j-1] != '\\')
+                {
+                    --parenDepth;
+                    if (!parenDepth)
+                        goto LReturnHref;
+                }
+                break;
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+                if (inPointy)
+                {
+                    // invalid link
+                    return false;
+                }
+                goto LReturnHref;
+            default:
+                break;
+            }
+        }
+        return false;
+    LReturnHref:
+        href = slice[iHrefStart .. j].idup;
+        href = removeEscapes(href);
+        i = j;
+        if (buf.data[j] != ')')
+            ++i;
+        return true;
+    }
+
+    private bool parseTitle(OutBuffer* buf, ref size_t i)
+    {
+        size_t j = skipChars(buf, i, " \t");
+        if (j >= buf.offset)
+            return false;
+
+        char type = buf.data[j];
+        if (type != '"' && type != '\'' && type != '(')
+            return false;
+
+        size_t iTitleStart = j + 1;
+        size_t iNewLine = 0;
+        const slice = buf.peekSlice();
+        for (j = iTitleStart; j < slice.length; j++)
+        {
+            char c = slice[j];
+            switch (c)
+            {
+            case ')':
+            case '"':
+            case '\'':
+                if (type == c && slice[j-1] != '\\')
+                    goto LEndTitle;
+                iNewLine = 0;
+                break;
+            case ' ':
+            case '\t':
+            case '\r':
+                break;
+            case '\n':
+                if (iNewLine)
+                {
+                    // no blank lines in titles
+                    return false;
+                }
+                iNewLine = j;
+                break;
+            default:
+                iNewLine = 0;
+                break;
+            }
+        }
+        return false;
+    LEndTitle:
+        title = slice[iTitleStart .. j].idup;
+        title = removeEscapes(title);
+        i = j + 1;
+        return true;
+    }
+
+    private static string removeEscapes(string s)
+    {
+        if (!s.length)
+            return s;
+        for (size_t i = 0; i < s.length-1; ++i)
+        {
+            if (s[i] == '\\' && isPunctuation(s[i+1]))
+            {
+                s = s[0..i] ~ s[i+1..$];
+                --i;
+            }
+        }
+        return s;
     }
 }
 
@@ -3214,9 +3259,39 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 auto delimiter = inlineDelimiters[d];
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
-                    size_t iAfterLink = replaceMarkdownInlineLink(buf, i, delimiter);
-                    if (iAfterLink > i)
+                    size_t iLinkEnd = i + 1;
+                    MarkdownLink reference = MarkdownLink.parseInlineReference(buf, iLinkEnd);
+                    if (reference.href.length)
                     {
+                        size_t iAfterLink = i - delimiter.count;
+                        string macroName;
+                        if (reference.title.length)
+                        {
+                            if (delimiter.type == '[')
+                                macroName = "$(LINK_TITLE ";
+                            else
+                                macroName = "$(IMAGE_TITLE ";
+                        }
+                        else
+                        {
+                            if (delimiter.type == '[')
+                                macroName = "$(LINK2 ";
+                            else
+                                macroName = "$(IMAGE ";
+                        }
+                        buf.remove(delimiter.iStart, delimiter.count);
+                        buf.remove(i - 1, iLinkEnd - i + 1);
+                        iLinkEnd = buf.insert(delimiter.iStart, macroName);
+                        iLinkEnd = buf.insert(iLinkEnd, reference.href);
+                        iLinkEnd = buf.insert(iLinkEnd, ", ");
+                        iAfterLink += macroName.length + reference.href.length + 2;
+                        if (reference.title.length)
+                        {
+                            iLinkEnd = buf.insert(iLinkEnd, reference.title);
+                            iLinkEnd = buf.insert(iLinkEnd, ", ");
+                            iAfterLink += reference.title.length + 2;
+                        }
+                        buf.insert(iAfterLink, ")");
                         i = iAfterLink;
                         inlineDelimiters.length = d;
                     }
