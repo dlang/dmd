@@ -2064,16 +2064,20 @@ void cdcmp(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     goto oplt;
                 case OPgt:
                     cdb.gen2(0xF7,grex | modregrmx(3,3,reg));         // NEG reg
-#if TARGET_WINDOS
-                    // What does the Windows platform do?
-                    //  lower INT_MIN by 1?   See test exe9.c
-                    // BUG: fix later
+                        /* Flips the sign bit unless the value is 0 or int.min.
+                        Also sets the carry bit when the value is not 0. */
                     code_orflag(cdb.last(), CFpsw);
                     cdb.genc2(0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
-#endif
+                        /* Subtracts the carry bit. This turns int.min into 0,
+                        flipping the sign bit.
+                        For other negative and positive values, subtracting 1
+                        doesn't affect the sign bit.
+                        For 0, the carry bit is not set, so this does nothing
+                        and the sign bit is not affected. */
                     goto oplt;
                 case OPlt:
                 oplt:
+                    // Get the sign bit, i.e. 1 if the value is negative.
                     if (!I16)
                         cdb.genc2(0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                     else
