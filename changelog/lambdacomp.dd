@@ -9,7 +9,6 @@ $(UL
     $(LI the lambda function arguments must not have a template instantiation
     as an explicit argument type. Any other argument types (basic,
     user-defined, template) are supported.)
-
     $(LI the lambda function body must contain a single expression (no return statement)
     which contains only numeric values, manifest constants, enum values and arguments.
     If the expression contains local variables, function calls or return statements,
