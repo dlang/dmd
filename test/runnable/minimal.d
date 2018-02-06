@@ -1,3 +1,4 @@
+// DFLAGS:
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -defaultlib= runnable/extra-files/minimal/object.d
 
