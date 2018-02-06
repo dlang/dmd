@@ -46,7 +46,7 @@ ifeq ($(findstring win,$(OS)),win)
 
     DRUNTIME_PATH=..\..\druntime
     PHOBOS_PATH=..\..\phobos
-    export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
+    export DFLAGS=-conf= -I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
     export LIB=$(PHOBOS_PATH)
 
     # auto-tester might run the testsuite with a different $(MODEL) than DMD
@@ -94,7 +94,7 @@ else
     PHOBOS_PATH=../../phobos
     # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
     SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-    DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+    DFLAGS=-conf= -I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
     ifeq (1,$(SHARED))
         DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
     endif

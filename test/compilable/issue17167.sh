@@ -14,6 +14,6 @@ src="$bin_base.d"
 echo 'void main() {}' > "${src}"
 
 # Only compile, not link, since optlink can't handle long file names
-$DMD -m"${MODEL}" "${DFLAGS}" -c -of"${bin}" "${src}"
+$DMD -m"${MODEL}" -c -of"${bin}" "${src}"
 
 rm -rf "${OUTPUT_BASE}"
