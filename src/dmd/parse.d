@@ -69,7 +69,6 @@ __gshared PREC[TOK.max_] precedence =
     TOK.classReference : PREC.primary,
     TOK.file : PREC.primary,
     TOK.fileFullPath : PREC.primary,
-    TOK.getSource : PREC.primary,
     TOK.line : PREC.primary,
     TOK.moduleString : PREC.primary,
     TOK.functionString : PREC.primary,
@@ -2042,9 +2041,6 @@ final class Parser(AST) : Lexer
                 tiargs.push(ea);
                 break;
             }
-        case TOK.getSource:
-            error("illegal use of " ~TOK.getSource);
-            break;
         default:
             error("template argument expected following `!`");
             break;

@@ -81,7 +81,7 @@ enum TOK : int
     delegatePointer,
     delegateFunctionPointer,
 
-    // 54
+    // 54 // TODO: instead of these non robust numbers, use `cast(TOK) number`
     // Operators
     lessThan,
     greaterThan,
@@ -291,7 +291,6 @@ enum TOK : int
     line,
     file,
     fileFullPath,
-    getSource,
     moduleString,
     functionString,
     prettyFunction,
@@ -303,10 +302,12 @@ enum TOK : int
     vector,
     pound,
 
-    // 241
+    // 240
     interval,
     voidExpression,
     cantExpression,
+
+    getSource,
 
     max_,
 }
@@ -448,7 +449,6 @@ extern (C++) struct Token
         TOK.overloadSet: "__overloadset",
         TOK.file: "__FILE__",
         TOK.fileFullPath: "__FILE_FULL_PATH__",
-        TOK.getSource: "__getSource",  // TODO: do we need this or can we reuse TOK.traits?
         TOK.line: "__LINE__",
         TOK.moduleString: "__MODULE__",
         TOK.functionString: "__FUNCTION__",
@@ -593,6 +593,8 @@ extern (C++) struct Token
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
+
+        TOK.getSource: "getSource",
     ];
 
     static assert(() {
@@ -943,7 +945,6 @@ private immutable TOK[] keywords =
     TOK.overloadSet,
     TOK.file,
     TOK.fileFullPath,
-    TOK.getSource,
     TOK.line,
     TOK.moduleString,
     TOK.functionString,
