@@ -50,17 +50,17 @@ extern (C)
 
     void gc_init()
     {
-        import core.atomic : atomicLoad, atomicStore;
+        import core.atomic : atomicLoad, atomicStore, MemoryOrder;
 
         auto pinstance = cast(shared(GC)*) &instance;
 
         // using double-checked locking
-        if (atomicLoad(*pinstance) is null)
+        if (atomicLoad!(MemoryOrder.acq)(*pinstance) is null)
         {
             instanceLock.lock();
             scope(exit) instanceLock.unlock();
 
-            if (atomicLoad(*pinstance) is null)
+            if (atomicLoad!(MemoryOrder.raw)(*pinstance) is null)
             {
                 config.initialize();
                 ManualGC.initialize(tlsInstance);
@@ -83,7 +83,7 @@ extern (C)
                 //       before its first collection.
                 thread_init();
 
-                atomicStore(*pinstance, cast(shared GC) tlsInstance);
+                atomicStore!(MemoryOrder.rel)(*pinstance, cast(shared GC) tlsInstance);
             }
         }
     }
