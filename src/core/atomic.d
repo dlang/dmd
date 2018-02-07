@@ -1677,7 +1677,10 @@ version( unittest )
         static assert(is(typeof(atomicLoad(p)) == shared(int)*));
 
         shared int[] a;
-        static assert(is(typeof(atomicLoad(a)) == shared(int)[]));
+        static if (__traits(compiles, atomicLoad(a)))
+        {
+            static assert(is(typeof(atomicLoad(a)) == shared(int)[]));
+        }
 
         static struct S { int* _impl; }
         shared S s;
