@@ -966,21 +966,23 @@ version (Windows)
         const(char)* linkOptions(bool x64)
         {
             OutBuffer cmdbuf;
-            if (auto p = getVCDir(VCDir.Lib, x64))
+            if (auto vclibdir = getVCDir(VCDir.Lib, x64))
             {
                 cmdbuf.writestring(" /LIBPATH:\"");
-                cmdbuf.writestring(p);
+                cmdbuf.writestring(vclibdir);
                 cmdbuf.writeByte('\"');
-            }
-            if (VisualStudioVersion && strcmp(VisualStudioVersion, "14") >= 0)
-            {
-                if (auto p = getUCRTLibPath(x64))
+
+                if (FileName.exists(FileName.combine(vclibdir, "legacy_stdio_definitions.lib")))
                 {
-                    cmdbuf.writestring(" /LIBPATH:\"");
-                    cmdbuf.writestring(p);
-                    cmdbuf.writeByte('\"');
+                    // VS2015 or later use UCRT
+                    cmdbuf.writestring(" legacy_stdio_definitions.lib");
+                    if (auto p = getUCRTLibPath(x64))
+                    {
+                        cmdbuf.writestring(" /LIBPATH:\"");
+                        cmdbuf.writestring(p);
+                        cmdbuf.writeByte('\"');
+                    }
                 }
-                cmdbuf.writestring(" legacy_stdio_definitions.lib");
             }
             const(char)* windowssdkdir = getenv("WindowsSdkDir");
             if (auto p = getSDKLibPath(x64))
@@ -1052,7 +1054,7 @@ version (Windows)
             if (WindowsSdkDir is null)
             {
                 WindowsSdkDir = GetRegistryString(r"Microsoft\Windows Kits\Installed Roots", "KitsRoot10");
-                if (WindowsSdkDir && !FileName.exists(FileName.combine(WindowsSdkDir, "Lib")))
+                if (WindowsSdkDir && !findLatestSDKDir(FileName.combine(WindowsSdkDir, "Include"), r"um\windows.h"))
                     WindowsSdkDir = null;
             }
             if (WindowsSdkDir is null)
