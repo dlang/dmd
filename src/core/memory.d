@@ -919,3 +919,236 @@ extern (C) private pure @system @nogc nothrow
 
     pragma(mangle, "free") void fakePureFree(void* ptr);
 }
+
+extern(C) private @system nothrow @nogc
+{
+    pragma(mangle, "_d_delinterface") void _d_delinterface(void**);
+    pragma(mangle, "_d_delclass") void _d_delclass(Object*);
+    pragma(mangle, "_d_delstruct") void _d_delstruct(void**, TypeInfo_Struct);
+    pragma(mangle, "_d_delmemory") void _d_delmemory(void**);
+    pragma(mangle, "_d_delarray_t") void _d_delarray_t(void**, TypeInfo_Struct);
+}
+
+/**
+Destroys and then deallocates an object.
+
+In detail, `__delete(x)` returns with no effect if `x` is `null`. Otherwise, it
+performs the following actions in sequence:
+$(UL
+    $(LI
+        Calls the destructor `~this()` for the object referred to by `x`
+        (if `x` is a class or interface reference) or
+        for the object pointed to by `x` (if `x` is a pointer to a `struct`).
+        Arrays of structs call the destructor, if defined, for each element in the array.
+        If no destructor is defined, this step has no effect.
+    )
+    $(LI
+        Frees the memory allocated for `x`. If `x` is a reference to a class
+        or interface, the memory allocated for the underlying instance is freed. If `x` is
+        a pointer, the memory allocated for the pointed-to object is freed. If `x` is a
+        built-in array, the memory allocated for the array is freed.
+        If `x` does not refer to memory previously allocated with `new` (or the lower-level
+        equivalents in the GC API), the behavior is undefined.
+    )
+    $(LI
+        Lastly, `x` is set to `null`. Any attempt to read or write the freed memory via
+        other references will result in undefined behavior.
+    )
+)
+
+Note: Users should prefer $(REF destroy, object)` to explicitly finalize objects,
+and only resort to $(REF __delete, core,memory) when $(REF destroy, object)
+wouldn't be a feasible option.
+
+Params:
+    x = aggregate object that should be destroyed
+
+See_Also: $(REF destroy, object), $(REF free, core,GC)
+
+History:
+
+The `delete` keyword allowed to free GC-allocated memory.
+As this is inherently not `@safe`, it has been deprecated.
+This function has been added to provide an easy transition from `delete`.
+It performs the same functionality as the former `delete` keyword.
+*/
+void __delete(T)(ref T x) @system
+{
+    static void _destructRecurse(S)(ref S s)
+    if (is(S == struct))
+    {
+        static if (__traits(hasMember, S, "__xdtor") &&
+                   // Bugzilla 14746: Check that it's the exact member of S.
+                   __traits(isSame, S, __traits(parent, s.__xdtor)))
+            s.__xdtor();
+    }
+
+    // See also: https://github.com/dlang/dmd/blob/v2.078.0/src/dmd/e2ir.d#L3886
+    static if (is(T == interface))
+    {
+        .object.destroy(x);
+    }
+    else static if (is(T == class))
+    {
+        .object.destroy(x);
+    }
+    else static if (is(T == U*, U))
+    {
+        static if (is(U == struct))
+            _destructRecurse(*x);
+    }
+    else static if (is(T : E[], E))
+    {
+        static if (is(E == struct))
+        {
+            foreach (ref e; x)
+                _destructRecurse(e);
+        }
+    }
+    else
+    {
+        static assert(0, "It is not possible to delete: `" ~ T.stringof ~ "`");
+    }
+
+    static if (is(T == interface) || is(T == class))
+    {
+        GC.free(cast(void*) x);
+        x = null;
+    }
+    else static if (is(T == U2*, U2) || is(T : E2[], E2))
+    {
+        GC.free(&x);
+        x = null;
+    }
+}
+
+/// Deleting classes
+unittest
+{
+    bool dtorCalled;
+    class B
+    {
+        int test;
+        ~this()
+        {
+            dtorCalled = true;
+        }
+    }
+    B b = new B();
+    B a = b;
+    b.test = 10;
+
+    assert(GC.addrOf(cast(void*) b) != null);
+    __delete(b);
+    assert(b is null);
+    assert(dtorCalled);
+    assert(GC.addrOf(cast(void*) b) == null);
+    // but be careful, a still points to it
+    assert(a !is null);
+    assert(GC.addrOf(cast(void*) a) !is null);
+}
+
+/// Deleting interfaces
+unittest
+{
+    bool dtorCalled;
+    interface A
+    {
+        int quack();
+    }
+    class B : A
+    {
+        int a;
+        int quack()
+        {
+            a++;
+            return a;
+        }
+        ~this()
+        {
+            dtorCalled = true;
+        }
+    }
+    A a = new B();
+    a.quack();
+
+    assert(GC.addrOf(cast(void*) a) != null);
+    __delete(a);
+    assert(a is null);
+    assert(dtorCalled);
+    assert(GC.addrOf(cast(void*) a) == null);
+}
+
+/// Deleting structs
+unittest
+{
+    bool dtorCalled;
+    struct A
+    {
+        string test;
+        ~this()
+        {
+            dtorCalled = true;
+        }
+    }
+    auto a = new A("foo");
+
+    assert(GC.addrOf(cast(void*) a) != null);
+    __delete(a);
+    assert(a is null);
+    assert(dtorCalled);
+    assert(GC.addrOf(cast(void*) a) == null);
+}
+
+/// Deleting arrays
+unittest
+{
+    int[] a = [1, 2, 3];
+    auto b = a;
+
+    assert(GC.addrOf(b.ptr) != null);
+    __delete(b);
+    assert(b is null);
+    assert(GC.addrOf(b.ptr) == null);
+    // but be careful, a still points to it
+    assert(a !is null);
+    assert(GC.addrOf(a.ptr) !is null);
+}
+
+/// Deleting arrays of structs
+unittest
+{
+    int dtorCalled;
+    struct A
+    {
+        int a;
+        ~this()
+        {
+            dtorCalled++;
+        }
+    }
+    auto arr = [A(1), A(2), A(3)];
+
+    assert(GC.addrOf(arr.ptr) != null);
+    __delete(arr);
+    assert(dtorCalled == 3);
+    assert(GC.addrOf(arr.ptr) == null);
+}
+
+// Deleting raw memory
+unittest
+{
+    import core.memory : GC;
+    auto a = GC.malloc(5);
+    assert(GC.addrOf(cast(void*) a) != null);
+    __delete(a);
+    assert(a is null);
+    assert(GC.addrOf(cast(void*) a) == null);
+}
+
+// __delete returns with no effect if x is null
+unittest
+{
+    Object x = null;
+    __delete(x);
+}

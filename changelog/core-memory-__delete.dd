@@ -1,0 +1,35 @@
+`core.memory.__delete` has been added
+
+$(REF __delete, core, memory) allows easy migration from the deprecated `delete`.
+`__delete` behaves exactly like `delete`:
+
+---
+bool dtorCalled;
+class B
+{
+    int test;
+    ~this()
+    {
+        dtorCalled = true;
+    }
+}
+B b = new B();
+B a = b;
+b.test = 10;
+
+__delete(b);
+assert(b is null);
+assert(dtorCalled);
+// but be careful, a still points to it
+assert(a !is null);
+---
+
+For example, on a Posix platform you can simply run:
+
+$(CONSOLE
+sed "s/delete \(.*\);/__delete(\1);/" -i **/*.d
+)
+
+Users should prefer $(REF destroy, object)` to explicitly finalize objects,
+and only resort to $(REF __delete, core,memory) when $(REF destroy, object)
+would not be a feasible option.
