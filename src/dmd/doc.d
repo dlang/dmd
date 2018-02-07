@@ -2411,34 +2411,65 @@ private struct MarkdownList
 private struct MarkdownLink
 {
     string href;    /// the link destination
-    string label;   /// an optional normalized label of the link reference
     string title;   /// an optional title for the link
+    int macroLevel; /// the count of nested DDoc macros when the quote is started
 
-    static MarkdownLink parseInlineReference(OutBuffer *buf, ref size_t i)
+    static bool replaceInlineLink(OutBuffer *buf, ref size_t i, MarkdownDelimiter delimiter)
     {
-        MarkdownLink reference;
-        if (buf.data[i] != '(')
-            return reference;
         size_t iEnd = i + 1;
-        if (!reference.parseHref(buf, iEnd))
-            return reference;
+        if (iEnd >= buf.offset || buf.data[iEnd] != '(')
+            return false;
+        ++iEnd;
+        MarkdownLink link;
+        if (!link.parseHref(buf, iEnd))
+            return false;
         iEnd = skipChars(buf, iEnd, " \t\r\n");
         if (buf.data[iEnd] != ')')
         {
-            if (reference.parseTitle(buf, iEnd))
+            if (link.parseTitle(buf, iEnd))
                 iEnd = skipChars(buf, iEnd, " \t\r\n");
         }
-        if (buf.data[iEnd] == ')')
-            i = iEnd;
-        else
-            reference.href.length = 0;
-        return reference;
+        if (buf.data[iEnd] != ')')
+            return false;
+
+        link.replaceLink(buf, i, iEnd, delimiter);
+        return true;
     }
 
-    private bool parseLabel(OutBuffer *buf, ref size_t i)
+    static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, MarkdownDelimiter delimiter, int macroLevel, ref MarkdownLinkReferences linkReferences)
     {
-        if (buf.data[i] != '[')
+        size_t iStart = i + 1;
+        size_t iEnd = iStart;
+        if (iEnd >= buf.offset || buf.data[iEnd] != '[' || (iEnd+1 < buf.offset && buf.data[iEnd+1] == ']'))
+        {
+            // collapsed reference [foo][] or shortcut reference [foo]:
+            iStart = delimiter.iStart + delimiter.count - 1;
+            if (buf.data[iEnd] == '[')
+                iEnd += 2;
+        }
+
+        string label = parseLabel(buf, iStart);
+        if (!label.length)
             return false;
+        if (label !in linkReferences.references && linkReferences.iParsedUntil < i)
+            linkReferences.extractReferences(buf, i, macroLevel);
+        if (label !in linkReferences.references)
+            return false;
+
+        if (iEnd < iStart)
+            iEnd = iStart;
+        --iEnd;
+
+        MarkdownLink reference = linkReferences.references[label];
+        reference.replaceLink(buf, i, iEnd, delimiter);
+        return true;
+    }
+
+    private static string parseLabel(OutBuffer *buf, ref size_t i)
+    {
+        string label;
+        if (buf.data[i] != '[')
+            return label;
         const slice = buf.peekSlice();
         for (size_t j = i; j < slice.length; ++j)
         {
@@ -2460,11 +2491,8 @@ private struct MarkdownLink
                 if (label[$-1] == ' ')
                     --label.length;
                 if (label.length)
-                {
                     i = j + 1;
-                    return true;
-                }
-                return false;
+                return label;
             default:
                 // TODO: unicode case-insensitive matching
                 if (c >= 'A' && c <= 'Z')
@@ -2473,7 +2501,7 @@ private struct MarkdownLink
                 break;
             }
         }
-        return false;
+        return label;
     }
 
     private bool parseHref(OutBuffer* buf, ref size_t i)
@@ -2527,10 +2555,13 @@ private struct MarkdownLink
         }
         return false;
     LReturnHref:
+        if (iHrefStart == j)
+            return false;
         href = slice[iHrefStart .. j].idup;
-        href = removeEscapes(href);
+        href = removeEscapeBackslashes(href);
+// TODO: percent-encode href
         i = j;
-        if (buf.data[j] != ')')
+        if (inPointy)
             ++i;
         return true;
     }
@@ -2544,9 +2575,11 @@ private struct MarkdownLink
         char type = buf.data[j];
         if (type != '"' && type != '\'' && type != '(')
             return false;
+        if (type == '(')
+            type = ')';
 
         size_t iTitleStart = j + 1;
-        size_t iNewLine = 0;
+        size_t iNewline = 0;
         const slice = buf.peekSlice();
         for (j = iTitleStart; j < slice.length; j++)
         {
@@ -2558,34 +2591,68 @@ private struct MarkdownLink
             case '\'':
                 if (type == c && slice[j-1] != '\\')
                     goto LEndTitle;
-                iNewLine = 0;
+                iNewline = 0;
                 break;
             case ' ':
             case '\t':
             case '\r':
                 break;
             case '\n':
-                if (iNewLine)
+                if (iNewline)
                 {
                     // no blank lines in titles
                     return false;
                 }
-                iNewLine = j;
+                iNewline = j;
                 break;
             default:
-                iNewLine = 0;
+                iNewline = 0;
                 break;
             }
         }
         return false;
     LEndTitle:
         title = slice[iTitleStart .. j].idup;
-        title = removeEscapes(title);
+        title = removeEscapeBackslashes(title);
         i = j + 1;
         return true;
     }
 
-    private static string removeEscapes(string s)
+    private void replaceLink(OutBuffer *buf, ref size_t i, size_t iLinkEnd, MarkdownDelimiter delimiter)
+    {
+        size_t iAfterLink = i - delimiter.count;
+        string macroName;
+        if (title.length)
+        {
+            if (delimiter.type == '[')
+                macroName = "$(LINK_TITLE ";
+            else
+                macroName = "$(IMAGE_TITLE ";
+        }
+        else
+        {
+            if (delimiter.type == '[')
+                macroName = "$(LINK2 ";
+            else
+                macroName = "$(IMAGE ";
+        }
+        buf.remove(delimiter.iStart, delimiter.count);
+        buf.remove(i - 1, iLinkEnd - i + 1);
+        iLinkEnd = buf.insert(delimiter.iStart, macroName);
+        iLinkEnd = buf.insert(iLinkEnd, href);
+        iLinkEnd = buf.insert(iLinkEnd, ", ");
+        iAfterLink += macroName.length + href.length + 2;
+        if (title.length)
+        {
+            iLinkEnd = buf.insert(iLinkEnd, title);
+            iLinkEnd = buf.insert(iLinkEnd, ", ");
+            iAfterLink += title.length + 2;
+        }
+        buf.insert(iAfterLink, ")");
+        i = iAfterLink;
+    }
+
+    private static string removeEscapeBackslashes(string s)
     {
         if (!s.length)
             return s;
@@ -2598,6 +2665,184 @@ private struct MarkdownLink
             }
         }
         return s;
+    }
+}
+
+/**************************************************
+ * A set of Markdown link references.
+ */
+private struct MarkdownLinkReferences
+{
+    MarkdownLink[string] references;    // link references keyed by normalized label
+    size_t iParsedUntil;    // the index into the buffer of the last-parsed reference
+
+    bool extractReference(OutBuffer *buf, size_t i, int macroLevel)
+    {
+        size_t iEnd = i;
+        string label = MarkdownLink.parseLabel(buf, iEnd);
+        if (!label.length)
+            return false;
+        if (iEnd >= buf.offset || buf.data[iEnd] != ':')
+            return false;
+        ++iEnd;
+        iEnd = skipChars(buf, iEnd, " \t");
+        skipOneNewline(buf, iEnd);
+
+        MarkdownLink reference;
+        if (!reference.parseHref(buf, iEnd))
+            return false;
+        iEnd = skipChars(buf, iEnd, " \t");
+        bool requireNewline = !skipOneNewline(buf, iEnd);
+        immutable iBeforeTitle = iEnd;
+
+        if (reference.parseTitle(buf, iEnd))
+        {
+            iEnd = skipChars(buf, iEnd, " \t");
+            if (iEnd < buf.offset && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
+            {
+                // the title must end with a newline
+                reference.title.length = 0;
+                iEnd = iBeforeTitle;
+            }
+        }
+
+        iEnd = skipChars(buf, iEnd, " \t");
+        if (requireNewline && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
+            return false;
+        iEnd = skipChars(buf, iEnd, " \t\r\n");
+        buf.remove(i, iEnd - i);
+
+        if (label !in references)
+        {
+            reference.macroLevel = macroLevel;
+            references[label] = reference;
+            iParsedUntil = i;
+        }
+        return true;
+    }
+
+    void extractReferences(OutBuffer *buf, size_t i, int macroLevel)
+    {
+        static bool isFollowedBySpace(OutBuffer *buf, size_t i)
+        {
+            return i+1 < buf.offset && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t');
+        }
+
+        bool leadingBlank = false;
+        bool inCode = false;
+        bool newParagraph = true;
+        int parenLevel = 0;
+        for (; i < buf.offset; ++i)
+        {
+            char c = buf.data[i];
+            switch (c)
+            {
+            case ' ':
+            case '\t':
+                break;
+            case '\n':
+                if (leadingBlank && !inCode)
+                    newParagraph = true;
+                leadingBlank = true;
+                break;
+            case '\\':
+                ++i;
+                break;
+            case '#':
+                if (leadingBlank && !inCode)
+                    newParagraph = true;
+                leadingBlank = false;
+                break;
+            case '>':
+                if (leadingBlank && !inCode)
+                    newParagraph = true;
+                break;
+            case '+':
+                if (leadingBlank && !inCode && isFollowedBySpace(buf, i))
+                    newParagraph = true;
+                else
+                    leadingBlank = false;
+                break;
+            case '0':
+            ..
+            case '9':
+                if (leadingBlank && !inCode)
+                {
+                    i = skipChars(buf, i, "0123456789");
+                    if (i < buf.offset &&
+                        (buf.data[i] == '.' || buf.data[i] == ')') &&
+                        isFollowedBySpace(buf, i))
+                        newParagraph = true;
+                    else
+                        leadingBlank = false;
+                }
+                break;
+            case '*':
+                if (leadingBlank && !inCode)
+                {
+                    newParagraph = true;
+                    if (!isFollowedBySpace(buf, i))
+                        leadingBlank = false;
+                }
+                break;
+            case '`':
+            case '~':
+                if (leadingBlank && i+2 < buf.offset && buf.data[i+1] == c && buf.data[i+2] == c)
+                {
+                    inCode = !inCode;
+                    i += 2;
+                    newParagraph = true;
+                }
+                leadingBlank = false;
+                break;
+            case '-':
+                if (leadingBlank && !inCode && isFollowedBySpace(buf, i))
+                    goto case '+';
+                else
+                    goto case '`';
+            case '(':
+                if (!inCode)
+                    ++parenLevel;
+                break;
+            case ')':
+                if (inCode)
+                    break;
+                if (parenLevel)
+                {
+                    --parenLevel;
+                    break;
+                }
+                else
+                {
+                    // we're ending a macro we didn't enter; return
+                    iParsedUntil = i;
+                    return;
+                }
+            case '[':
+                if (leadingBlank && !inCode && newParagraph &&
+                    extractReference(buf, i, macroLevel))
+                    --i;
+                break;
+            default:
+                if (leadingBlank)
+                    newParagraph = false;
+                leadingBlank = false;
+                break;
+            }
+        }
+    }
+
+    private static bool skipOneNewline(OutBuffer *buf, ref size_t i)
+    {
+        bool skipped = false;
+        if (i < buf.offset && buf.data[i] == '\r')
+            ++i;
+        if (i < buf.offset && buf.data[i] == '\n')
+        {
+            ++i;
+            skipped = true;
+        }
+        return skipped;
     }
 }
 
@@ -2618,10 +2863,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     MarkdownQuote[] nestedQuotes;
     MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
+    MarkdownLinkReferences linkReferences;
     int inCode = 0;
     int inBacktick = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
     int macroLevel = 0;
+    int previousMacroLevel = 0;
     int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeFenceLength = 0;
@@ -2699,6 +2946,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             leadingBlank = true;
             iHeadingStart = iLineStart;
             iLineStart = i + 1;
+
+            if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
+                iParagraphStart = iLineStart;
+            previousMacroLevel = macroLevel;
 
             if (nestedQuotes.length)
             {
@@ -3094,6 +3345,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             LendHeadingSuffix:
                 if (iSuffixStart)
                     buf.remove(iWhitespaceStart, j - iWhitespaceStart);
+                --i;
             }
             break;
         }
@@ -3245,8 +3497,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            auto linkStart = MarkdownDelimiter(i, 1, macroLevel, false, false, c);
-            inlineDelimiters ~= linkStart;
+            if (leadingBlank && iParagraphStart >= iLineStart && linkReferences.extractReference(buf, i, macroLevel))
+            {
+                --i;
+            }
+            else
+            {
+                auto linkStart = MarkdownDelimiter(i, 1, macroLevel, false, false, c);
+                inlineDelimiters ~= linkStart;
+            }
             break;
         }
         case ']':
@@ -3259,40 +3518,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 auto delimiter = inlineDelimiters[d];
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
-                    size_t iLinkEnd = i + 1;
-                    MarkdownLink reference = MarkdownLink.parseInlineReference(buf, iLinkEnd);
-                    if (reference.href.length)
+                    if (MarkdownLink.replaceInlineLink(buf, i, delimiter) ||
+                        MarkdownLink.replaceReferenceLink(buf, i, delimiter, macroLevel, linkReferences))
                     {
-                        size_t iAfterLink = i - delimiter.count;
-                        string macroName;
-                        if (reference.title.length)
-                        {
-                            if (delimiter.type == '[')
-                                macroName = "$(LINK_TITLE ";
-                            else
-                                macroName = "$(IMAGE_TITLE ";
-                        }
-                        else
-                        {
-                            if (delimiter.type == '[')
-                                macroName = "$(LINK2 ";
-                            else
-                                macroName = "$(IMAGE ";
-                        }
-                        buf.remove(delimiter.iStart, delimiter.count);
-                        buf.remove(i - 1, iLinkEnd - i + 1);
-                        iLinkEnd = buf.insert(delimiter.iStart, macroName);
-                        iLinkEnd = buf.insert(iLinkEnd, reference.href);
-                        iLinkEnd = buf.insert(iLinkEnd, ", ");
-                        iAfterLink += macroName.length + reference.href.length + 2;
-                        if (reference.title.length)
-                        {
-                            iLinkEnd = buf.insert(iLinkEnd, reference.title);
-                            iLinkEnd = buf.insert(iLinkEnd, ", ");
-                            iAfterLink += reference.title.length + 2;
-                        }
-                        buf.insert(iAfterLink, ")");
-                        i = iAfterLink;
                         inlineDelimiters.length = d;
                     }
                     else
@@ -3317,12 +3545,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 buf.remove(i, 1);
 
-                if (c1 == '<' || c1 == '>')
+                const se = sc._module.escapetable.escapeChar(c1);
+                if (se)
                 {
-                    const se = sc._module.escapetable.escapeChar(c1);
                     const len = strlen(se);
                     buf.remove(i, 1);
-                    i = buf.insert(i, se, len) - 1;
+                    i = buf.insert(i, se, len);
+                    i--; // point to ';'
                 }
             }
             else if (!headingLevel && (c1 == '\r' || c1 == '\n'))
@@ -3380,6 +3609,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 while (inlineDelimiters.length && inlineDelimiters[$-1].macroLevel >= macroLevel)
                     --inlineDelimiters.length;
+                foreach (label; linkReferences.references.keys)
+                    if (linkReferences.references[label].macroLevel >= macroLevel)
+		                linkReferences.references.remove(label);
+                if (linkReferences.iParsedUntil <= i)
+                    linkReferences.iParsedUntil = i + 1;
 
                 --macroLevel;
             }
