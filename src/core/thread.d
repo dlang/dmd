@@ -1727,7 +1727,7 @@ private:
 
     __gshared align(Mutex.alignof) void[__traits(classInstanceSize, Mutex)][2] _locks;
 
-    static void initLocks()
+    static void initLocks() @nogc
     {
         foreach (ref lock; _locks)
         {
@@ -2020,7 +2020,7 @@ version( Posix )
  * garbage collector on startup and before any other thread routines
  * are called.
  */
-extern (C) void thread_init()
+extern (C) void thread_init() @nogc
 {
     // NOTE: If thread_init itself performs any allocations then the thread
     //       routines reserved for garbage collector use may be called while
@@ -2090,7 +2090,10 @@ extern (C) void thread_init()
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
     }
-    Thread.sm_main = thread_attachThis();
+    __gshared align(Thread.alignof) void[__traits(classInstanceSize, Thread)] mainThread;
+    if (typeid(Thread).initializer.ptr)
+        mainThread[] = typeid(Thread).initializer[];
+    Thread.sm_main = attachThread((cast(Thread)mainThread.ptr).__ctor());
 }
 
 
@@ -2135,12 +2138,14 @@ extern (C) bool thread_isMainThread() nothrow @nogc
  */
 extern (C) Thread thread_attachThis()
 {
-    GC.disable(); scope(exit) GC.enable();
-
     if (auto t = Thread.getThis())
         return t;
 
-    Thread          thisThread  = new Thread();
+    return attachThread(new Thread());
+}
+
+private Thread attachThread(Thread thisThread) @nogc
+{
     Thread.Context* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 
