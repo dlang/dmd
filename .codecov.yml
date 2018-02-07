@@ -37,7 +37,7 @@ coverage:
     project: off
     patch:
       default:
-        threshold: 5
+        informational: true
     changes: off
 
   notify:
