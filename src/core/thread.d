@@ -1736,7 +1736,7 @@ private:
         }
     }
 
-    static void termLocks()
+    static void termLocks() @nogc
     {
         foreach (ref lock; _locks)
             (cast(Mutex)lock.ptr).__dtor();
@@ -2090,20 +2090,28 @@ extern (C) void thread_init() @nogc
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
     }
-    __gshared align(Thread.alignof) void[__traits(classInstanceSize, Thread)] mainThread;
     if (typeid(Thread).initializer.ptr)
-        mainThread[] = typeid(Thread).initializer[];
-    Thread.sm_main = attachThread((cast(Thread)mainThread.ptr).__ctor());
+        _mainThreadStore[] = typeid(Thread).initializer[];
+    Thread.sm_main = attachThread((cast(Thread)_mainThreadStore.ptr).__ctor());
 }
 
+private __gshared align(Thread.alignof) void[__traits(classInstanceSize, Thread)] _mainThreadStore;
+
+extern (C) void _d_monitordelete_nogc(Object h) @nogc;
 
 /**
  * Terminates the thread module. No other thread routine may be called
  * afterwards.
  */
-extern (C) void thread_term()
+extern (C) void thread_term() @nogc
 {
-    destroy(Thread.sm_main);
+    assert(_mainThreadStore.ptr is cast(void*) Thread.sm_main);
+
+    // destruct manually as object.destroy is not @nogc
+    Thread.sm_main.__dtor();
+    _d_monitordelete_nogc(Thread.sm_main);
+    if (typeid(Thread).initializer.ptr)
+        _mainThreadStore[] = typeid(Thread).initializer[];
     Thread.sm_main = null;
 
     assert(Thread.sm_tbeg && Thread.sm_tlen == 1);
