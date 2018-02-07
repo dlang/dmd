@@ -2431,6 +2431,7 @@ private struct MarkdownLink
         }
         if (buf.data[iEnd] != ')')
             return false;
+        ++iEnd;
 
         link.replaceLink(buf, i, iEnd, delimiter);
         return true;
@@ -2442,7 +2443,7 @@ private struct MarkdownLink
         size_t iEnd = iStart;
         if (iEnd >= buf.offset || buf.data[iEnd] != '[' || (iEnd+1 < buf.offset && buf.data[iEnd+1] == ']'))
         {
-            // collapsed reference [foo][] or shortcut reference [foo]:
+            // collapsed reference [foo][] or shortcut reference [foo]
             iStart = delimiter.iStart + delimiter.count - 1;
             if (buf.data[iEnd] == '[')
                 iEnd += 2;
@@ -2458,7 +2459,6 @@ private struct MarkdownLink
 
         if (iEnd < iStart)
             iEnd = iStart;
-        --iEnd;
 
         MarkdownLink reference = linkReferences.references[label];
         reference.replaceLink(buf, i, iEnd, delimiter);
@@ -2637,7 +2637,7 @@ private struct MarkdownLink
                 macroName = "$(IMAGE ";
         }
         buf.remove(delimiter.iStart, delimiter.count);
-        buf.remove(i - 1, iLinkEnd - i + 1);
+        buf.remove(i - 1, iLinkEnd - i);
         iLinkEnd = buf.insert(delimiter.iStart, macroName);
         iLinkEnd = buf.insert(iLinkEnd, href);
         iLinkEnd = buf.insert(iLinkEnd, ", ");
