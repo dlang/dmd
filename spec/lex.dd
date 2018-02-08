@@ -407,11 +407,11 @@ $(H3 $(LNAME2 hex_strings, Hex Strings))
         The hex data need not form valid UTF characters.
         )
 
---------------
+$(D_CODE
 x"0A"              // same as "\x0A"
 x"00 FBCD 32FD 0A" // same as
                    // "\x00\xFB\xCD\x32\xFD\x0A"
---------------
+)
 
 $(P Whitespace and newlines are ignored, so the hex data can be easily
 formatted. The number of hex characters must be a multiple of 2.)
