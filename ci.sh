@@ -31,7 +31,7 @@ clone() {
     local path="$2"
     local branch="$3"
     for i in {0..4}; do
-        if git clone --depth=1 --branch "$branch" "$url" "$path"; then
+        if git clone --depth=1 --branch "$branch" "$url" "$path" --quiet; then
             break
         elif [ $i -lt 4 ]; then
             sleep $((1 << $i))
