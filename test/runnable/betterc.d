@@ -21,8 +21,7 @@ struct S
 
 /*******************************************/
 
-extern (C) int main()
+extern (C) void main()
 {
     test(1);
-    return 0;
 }

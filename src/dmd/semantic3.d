@@ -208,6 +208,16 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
     override void visit(FuncDeclaration funcdecl)
     {
+        /* Determine if function should add `return 0;`
+         */
+        bool addReturn0()
+        {
+            TypeFunction f = cast(TypeFunction)funcdecl.type;
+
+            return f.next.ty == Tvoid &&
+                (funcdecl.isMain() || global.params.betterC && funcdecl.isCMain());
+        }
+
         VarDeclaration _arguments = null;
 
         if (!funcdecl.parent)
@@ -590,7 +600,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Expression exp = (*funcdecl.returns)[i].exp;
                         if (exp.op == TOK.variable && (cast(VarExp)exp).var == funcdecl.vresult)
                         {
-                            if (f.next.ty == Tvoid && funcdecl.isMain())
+                            if (addReturn0())
                                 exp.type = Type.tint32;
                             else
                                 exp.type = f.next;
@@ -784,7 +794,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 if (funcdecl.returns)
                 {
-                    bool implicit0 = (f.next.ty == Tvoid && funcdecl.isMain());
+                    bool implicit0 = addReturn0();
                     Type tret = implicit0 ? Type.tint32 : f.next;
                     assert(tret.ty != Tvoid);
                     if (funcdecl.vresult || funcdecl.returnLabel)
@@ -1000,7 +1010,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         a.push(s);
                     }
                 }
-                if (funcdecl.isMain() && f.next.ty == Tvoid)
+                if (addReturn0())
                 {
                     // Add a return 0; statement
                     Statement s = new ReturnStatement(Loc.initial, new IntegerExp(0));
