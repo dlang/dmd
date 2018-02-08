@@ -416,7 +416,7 @@ x"00 FBCD 32FD 0A" // same as
 $(P Whitespace and newlines are ignored, so the hex data can be easily
 formatted. The number of hex characters must be a multiple of 2.)
 
-        ---
+$(P Note: Hex Strings are $(B deprecated). Please use $(REF hexString, std,conv) instead.)
 
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
