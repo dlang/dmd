@@ -64,6 +64,15 @@ else version (Solaris)
         }
     }
 }
+else version( CRuntime_UClibc )
+{
+    ///
+    struct mbstate_t
+    {
+        wchar_t __mask;
+        wchar_t __wc;
+    }
+}
 else
 {
     ///
