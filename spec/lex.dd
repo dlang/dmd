@@ -321,6 +321,18 @@ $(GNAME EscapeSequence):
     $(D \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(D \) $(GLINK2 entity, NamedCharacterEntity)
 
+$(GNAME HexString):
+    $(D x") $(GLINK HexStringChars) $(D ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME HexStringChars):
+    $(GLINK HexStringChar)
+    $(GLINK HexStringChar) $(I HexStringChars)
+
+$(GNAME HexStringChar):
+    $(GLINK HexDigit)
+    $(GLINK WhiteSpace)
+    $(GLINK EndOfLine)
+
 $(GNAME StringPostfix):
     $(B c)
     $(B w)
@@ -388,6 +400,23 @@ $(H3 $(LNAME2 double_quoted_strings, Double Quoted Strings))
         "        // string is 3 characters,
                  // 'a', 'b', and a linefeed
         ---
+
+$(H3 $(LNAME2 hex_strings, Hex Strings))
+
+        $(P Hex strings allow string literals to be created using hex data.
+        The hex data need not form valid UTF characters.
+        )
+
+$(D_CODE
+x"0A"              // same as "\x0A"
+x"00 FBCD 32FD 0A" // same as
+                   // "\x00\xFB\xCD\x32\xFD\x0A"
+)
+
+$(P Whitespace and newlines are ignored, so the hex data can be easily
+formatted. The number of hex characters must be a multiple of 2.)
+
+$(P Note: Hex Strings are $(B deprecated). Please use $(REF hexString, std,conv) instead.)
 
 $(H3 $(LNAME2 delimited_strings, Delimited Strings))
 
@@ -683,6 +712,10 @@ $(GNAME HexLetter):
         by a $(SINGLEQUOTE 0b) or $(SINGLEQUOTE 0B).
         )
 
+        $(P C-style octal integer notation was deemed too easy to mix up with decimal notation;
+        it is only fully supported in string literals.
+        D still supports octal integer literals interpreted at compile time through the $(REF octal, std,conv)
+        template, as in $(D octal!167).)
         $(P Hexadecimal integers are a sequence of hexadecimal digits preceded
         by a $(SINGLEQUOTE 0x) or $(SINGLEQUOTE 0X).
         )
