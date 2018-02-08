@@ -761,7 +761,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is a 'this' required to access the member
-    AggregateDeclaration isThis()
+    inout(AggregateDeclaration) isThis() inout
     {
         return null;
     }
@@ -796,7 +796,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /// Returns an AggregateDeclaration when toParent() is that.
-    final AggregateDeclaration isMember()
+    final inout(AggregateDeclaration) isMember() inout
     {
         //printf("Dsymbol::isMember() %s\n", toChars());
         auto p = toParent();
@@ -805,7 +805,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /// Returns an AggregateDeclaration when toParent2() is that.
-    final AggregateDeclaration isMember2()
+    final inout(AggregateDeclaration) isMember2() inout
     {
         //printf("Dsymbol::isMember2() '%s'\n", toChars());
         auto p = toParent2();

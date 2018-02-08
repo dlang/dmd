@@ -1202,21 +1202,22 @@ extern (C++) class VarDeclaration : Declaration
         return "variable";
     }
 
-    override final AggregateDeclaration isThis()
+    override final inout(AggregateDeclaration) isThis() inout
     {
-        AggregateDeclaration ad = null;
         if (!(storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.tls | STC.gshared | STC.ctfe)))
         {
-            for (Dsymbol s = this; s; s = s.parent)
+            /* The casting is necessary because `s = s.parent` is otherwise rejected
+             */
+            for (auto s = cast(Dsymbol)this; s; s = s.parent)
             {
-                ad = s.isMember();
+                auto ad = (cast(inout)s).isMember();
                 if (ad)
-                    break;
+                    return ad;
                 if (!s.parent || !s.parent.isTemplateMixin())
                     break;
             }
         }
-        return ad;
+        return null;
     }
 
     override final bool needThis()
