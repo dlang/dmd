@@ -7,7 +7,7 @@ clone() {
     local path="$2"
     local branch="$3"
     for i in {0..4}; do
-        if git clone --branch "$branch" "$url" "$path" "${@:4}"; then
+        if git clone --branch "$branch" "$url" "$path" "${@:4}" --quiet; then
             break
         elif [ $i -lt 4 ]; then
             sleep $((1 << $i))
@@ -81,4 +81,3 @@ export MODEL_FLAG="-m64"
 
 cd /c/projects/dmd/test
 ../../gnumake/make -j3 all MODEL=$MODEL ARGS="-O -inline -g" MODEL_FLAG=$MODEL_FLAG LIB="../../phobos;$LIB"
-
