@@ -75,6 +75,10 @@ else version (CRuntime_Musl)
      */
     void __assert_fail(const(char)* exp, const(char)* file, uint line, const(char)* func);
 }
+else version (Solaris)
+{
+    void __assert_c99(const(char)* exp, const(char)* file, uint line, const(char)* func);
+}
 else
 {
     static assert(0);
