@@ -47,7 +47,7 @@ version (update)
         auto sink = appender!string();
         foreach (arch; [EnumMembers!Arch])
         {
-            auto args = [dmd, "-c", "-O", "-mcpu=" ~ arch.to!string, __FILE__];
+            auto args = [dmd, "-c", "-O", "-fPIC", "-mcpu=" ~ arch.to!string, __FILE__];
             auto rc = execute(args);
             enforce(rc.status == 0, rc.output);
             formattedWrite(sink, "alias %sCases = AliasSeq!(\n", arch);
@@ -233,7 +233,7 @@ alias testCases = AliasSeq!(baselineCases);
 void main()
 {
     foreach (tc; testCases)
-    {
+    (){ // workaround Issue 7157
         auto code = (cast(ubyte*)&testee!(tc.T, tc.N))[0 .. tc.code.length];
         bool failure;
         if (!code.matches(tc.code))
@@ -260,5 +260,5 @@ void main()
             failure = true;
         }
         assert(!failure);
-    }
+    }();
 }
