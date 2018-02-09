@@ -880,6 +880,12 @@ private int tryMain(size_t argc, const(char)** argv)
             }
             else
             {
+                if (global.params.objfiles.dim == 0)
+                {
+                    error(Loc.initial, "-X requires source files");
+                    fatal();
+                }
+
                 // Generate json file name from first obj name
                 const(char)* n = global.params.objfiles[0];
                 n = FileName.name(n);
