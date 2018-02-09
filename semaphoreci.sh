@@ -22,16 +22,13 @@ export FULL_BUILD="${PULL_REQUEST_NUMBER+false}"
 source ci.sh
 
 ################################################################################
-# Always source a DMD instance
-################################################################################
-
-source "$(activate_d "$DMD")"
-
-################################################################################
 # Define commands
 ################################################################################
 
 case $1 in
-    setup) setup_repos ;;
+    setup)
+        setup_repos
+        install_d "$DMD"
+        ;;
     testsuite) testsuite ;;
 esac
