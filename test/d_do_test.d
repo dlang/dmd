@@ -126,7 +126,8 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter)) {
+    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter))
+    {
         if(result2.length > 0)
             result ~= multiLineDelimiter ~ result2;
     }
