@@ -242,7 +242,6 @@ _=
 
 P= $0 \par
 PERCENT=\%
-PHOBOS=$(LINK2 phobos/std_$1.html\#$2, $3)
 _=
 
 RAWHTML=\begin{lstlisting}[language=html,breaklines=true,breakatwhitespace=true]$0\end{lstlisting}

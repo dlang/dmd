@@ -919,8 +919,8 @@ $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
         primitives it's assumed to be enforced by the user.
         )
         $(P The standard library lends a hand for comparing strings with mixed encodings
-        (by transparently decoding, see $(PHOBOS algorithm, cmp, std.algorithm.cmp)),
-        $(PHOBOS uni, icmp, case-insensitive comparison) and $(PHOBOS uni, normalize, normalization).
+        (by transparently decoding, see $(REF cmp, std,algorithm)),
+        $(REF_ALTTEXT case-insensitive comparison icmp, std,uni) and $(REF_ALTTEXT normalization, normalize, std,uni).
         )
         $(P Last but not least, a desired string sorting order differs
         by culture and language and is usually nothing like code point

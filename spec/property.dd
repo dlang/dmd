@@ -176,7 +176,7 @@ $(H2 $(LNAME2 stringof, .stringof Property))
     $(BEST_PRACTICE Do not use `.stringof` for code generation.
     Instead use the
     $(DDSUBLINK spec/traits, identifier, identifier) trait,
-    or one of the Phobos helper functions such as $(PHOBOS traits, fullyQualifiedName, std.traits.fullyQualifiedName).)
+    or one of the Phobos helper functions such as $(REF fullyQualifiedName, std,traits).)
 
 $(H2 $(LNAME2 sizeof, .sizeof Property))
 
