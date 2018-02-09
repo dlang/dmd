@@ -2076,9 +2076,6 @@ private bool replaceMarkdownThematicBreak(OutBuffer *buf, ref size_t i, size_t i
  */
 private bool endMarkdownHeading(OutBuffer *buf, ref size_t i, ref int headingLevel, size_t iHeadingStart)
 {
-    if (!headingLevel)
-        return false;
-
     static char[5] heading = "$(H0 ";
     heading[3] = cast(char) ('0' + headingLevel);
     buf.insert(iHeadingStart, heading);
@@ -2089,6 +2086,92 @@ private bool endMarkdownHeading(OutBuffer *buf, ref size_t i, ref int headingLev
     buf.insert(iBeforeNewline, ")");
     headingLevel = 0;
     return true;
+}
+
+/****************************************************
+ * Process Markdown emphasis
+ * Params:
+ *  buf =               an OutputBuffer containing the DDoc
+ *  i =                 the index within `buf` to end the Markdown heading at. Its value changes if any emphasis was replaced.
+ *  inlineDelimiters =  the collection of delimiters found within a paragraph. When this function returns its length will be reduced to `downToLevel`.
+ *  downToLevel =       the length within `inlineDelimiters`` to reduce emphasis to
+ * Returns: the amount `i` was moved
+ */
+private size_t replaceMarkdownEmphasis(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int downToLevel = 0)
+{
+    size_t replaceEmphasisPair(ref MarkdownDelimiter start, ref MarkdownDelimiter end)
+    {
+        int count = end.count == 1 ? 1 : 2;
+        if (start.count < count)
+            count = start.count;
+
+        size_t iStart = start.iStart;
+        size_t iEnd = end.iStart;
+        end.count -= count;
+        start.count -= count;
+        iStart += start.count;
+
+        if (!start.count)
+            start.type = 0;
+        if (!end.count)
+            end.type = 0;
+
+        buf.remove(iStart, count);
+        iEnd -= count;
+        buf.remove(iEnd, count);
+
+        string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
+        buf.insert(iEnd, ")");
+        buf.insert(iStart, macroName);
+
+        size_t delta = 1 + macroName.length - (count + count);
+        end.iStart += count;
+        return delta;
+    }
+
+    size_t iStart = i;
+    int start = (cast(int) inlineDelimiters.length) - 1;
+    while (start >= downToLevel)
+    {
+        // find start emphasis
+        while (start >= downToLevel &&
+            (inlineDelimiters[start].type != '*' || !inlineDelimiters[start].leftFlanking))
+            --start;
+        if (start < downToLevel)
+            break;
+
+        // find the nearest end emphasis
+        int end = start + 1;
+        while (end < inlineDelimiters.length &&
+            (inlineDelimiters[end].type != inlineDelimiters[start].type || !inlineDelimiters[end].rightFlanking))
+            ++end;
+        if (end == inlineDelimiters.length)
+        {
+            // the start emphasis has no matching end; if it isn't an end itself then kill it
+            if (!inlineDelimiters[start].rightFlanking)
+                inlineDelimiters[start].type = 0;
+            --start;
+            continue;
+        }
+
+        // multiple-of-3 rule
+        if (((inlineDelimiters[start].leftFlanking && inlineDelimiters[start].rightFlanking) ||
+                (inlineDelimiters[end].leftFlanking && inlineDelimiters[end].rightFlanking)) &&
+            (inlineDelimiters[start].count + inlineDelimiters[end].count) % 3 == 0)
+        {
+            --start;
+            continue;
+        }
+
+        immutable delta = replaceEmphasisPair(inlineDelimiters[start], inlineDelimiters[end]);
+
+        for (; end < inlineDelimiters.length; ++end)
+            inlineDelimiters[end].iStart += delta;
+        i += delta;
+    }
+
+    inlineDelimiters.length = downToLevel;
+    return i - iStart;
 }
 
 /****************************************************
@@ -2414,7 +2497,7 @@ private struct MarkdownLink
     string title;   /// an optional title for the link
     int macroLevel; /// the count of nested DDoc macros when the quote is started
 
-    static bool replaceInlineLink(OutBuffer *buf, ref size_t i, MarkdownDelimiter delimiter)
+    static bool replaceInlineLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex)
     {
         size_t iEnd = i + 1;
         if (iEnd >= buf.offset || buf.data[iEnd] != '(')
@@ -2433,12 +2516,18 @@ private struct MarkdownLink
             return false;
         ++iEnd;
 
+        MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
+
+        iEnd += replaceMarkdownEmphasis(buf, i, inlineDelimiters, delimiterIndex);
+
         link.replaceLink(buf, i, iEnd, delimiter);
         return true;
     }
 
-    static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, MarkdownDelimiter delimiter, int macroLevel, ref MarkdownLinkReferences linkReferences)
+    static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, int macroLevel, ref MarkdownLinkReferences linkReferences)
     {
+        MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
+
         size_t iStart = i + 1;
         size_t iEnd = iStart;
         if (iEnd >= buf.offset || buf.data[iEnd] != '[' || (iEnd+1 < buf.offset && buf.data[iEnd+1] == ']'))
@@ -2459,6 +2548,8 @@ private struct MarkdownLink
 
         if (iEnd < iStart)
             iEnd = iStart;
+
+        iEnd += replaceMarkdownEmphasis(buf, i, inlineDelimiters, delimiterIndex);
 
         MarkdownLink reference = linkReferences.references[label];
         reference.replaceLink(buf, i, iEnd, delimiter);
@@ -2898,8 +2989,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 // inserted lazily at the close quote, meaning the rest of the
                 // text is already OK.
             }
-            if (endMarkdownHeading(buf, i, headingLevel, iHeadingStart))
+            if (headingLevel)
             {
+                replaceMarkdownEmphasis(buf, i, inlineDelimiters);
+                endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
                 ++i;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
             }
@@ -2950,6 +3043,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
                 iParagraphStart = iLineStart;
             previousMacroLevel = macroLevel;
+
+            if (inlineDelimiters.length && iParagraphStart == i + 1)
+                replaceMarkdownEmphasis(buf, i, inlineDelimiters);
 
             if (nestedQuotes.length)
             {
@@ -3384,7 +3480,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 buf.remove(iBeforeNewline, iAfterUnderline - iBeforeNewline);
                 i = iLineStart = iBeforeNewline;
                 headingLevel = c == '=' ? 1 : 2;
+
+                replaceMarkdownEmphasis(buf, i, inlineDelimiters);
                 endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+
                 iParagraphStart = skipChars(buf, i+1, " \t\r\n");
             }
             break;
@@ -3441,39 +3540,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 break;
             }
 
-            if (emphasis.rightFlanking)
-            {
-                count = emphasis.count == 1 ? 1 : 2;
-                while (count && inlineDelimiters.length && emphasis.type == inlineDelimiters[$-1].type)
-                {
-                    auto start = &inlineDelimiters[$-1];
-                    if (start.count < count)
-                        count = start.count;
-
-                    size_t iStart = start.iStart;
-                    emphasis.count -= count;
-                    start.count -= count;
-                    iStart += start.count;
-
-                    if (!start.count)
-                        --inlineDelimiters.length;
-
-                    buf.remove(iStart, count);
-                    i -= count;
-                    buf.remove(i, count);
-
-                    i = buf.insert(i, ")");
-                    string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
-                    iStart = buf.insert(iStart, macroName);
-                    i += macroName.length;
-
-                    count = emphasis.count > 2 ? 2 : emphasis.count;
-                }
-            }
-
-            if (emphasis.count && emphasis.leftFlanking)
-                inlineDelimiters ~= emphasis;
-
+            inlineDelimiters ~= emphasis;
             i += emphasis.count;
             --i;
             break;
@@ -3518,15 +3585,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 auto delimiter = inlineDelimiters[d];
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
-                    if (MarkdownLink.replaceInlineLink(buf, i, delimiter) ||
-                        MarkdownLink.replaceReferenceLink(buf, i, delimiter, macroLevel, linkReferences))
+                    if (!MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) &&
+                        !MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, macroLevel, linkReferences))
                     {
-                        inlineDelimiters.length = d;
-                    }
-                    else
-                    {
-                        // TODO: reference links/images
-
                         // nothing found, so kill the delimiter
                         inlineDelimiters = inlineDelimiters[0..d] ~ inlineDelimiters[d+1..$];
                     }
@@ -3595,7 +3656,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 --parenLevel;
             else if (macroLevel)
             {
-                if (headingMacroLevel >= macroLevel)
+                replaceMarkdownEmphasis(buf, i, inlineDelimiters);
+                if (headingLevel && headingMacroLevel >= macroLevel)
                     endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
                 while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= macroLevel)
                 {
@@ -3685,11 +3747,13 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     else if (inCode)
         buf.insert(buf.offset, ")");
 
-    endMarkdownHeading(buf, buf.offset, headingLevel, iHeadingStart);
+    size_t i = buf.offset;
+    replaceMarkdownEmphasis(buf, i, inlineDelimiters);
+    endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
     for (; nestedQuotes.length; --nestedQuotes.length)
-        buf.insert(buf.offset, ")");
+        buf.insert(i, ")");
     for (; nestedLists.length; --nestedLists.length)
-        buf.insert(buf.offset, ")\n)");
+        buf.insert(i, ")\n)");
 }
 
 /**************************************************
