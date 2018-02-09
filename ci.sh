@@ -44,11 +44,12 @@ clone() {
 
 # build dmd, druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler
-    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
+    local HOST_DMD
+    HOST_DMD=$(find_d "$DMD")
+    echo "DMD: $HOST_DMD"
+    make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD="$HOST_DMD" ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
     make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
-    deactivate # deactivate host compiler
 }
 
 # self-compile dmd
@@ -156,7 +157,7 @@ download_install_sh() {
   done
 }
 
-activate_d() {
+install_d() {
   local install_sh="install.sh"
   download_install_sh "$install_sh"
   # DUB isn't needed for gdc
@@ -166,5 +167,12 @@ activate_d() {
       # shellcheck disable=2016
       sed 's/dub="dub-$(fetch $url)"/dub=dub/' -i "$install_sh"
   fi
-  CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1" --activate
+  CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
+}
+
+find_d() {
+  install_d "$DMD" 1>&2
+  DMD=$(find ~/dlang -name "*dmd" -a -wholename "*/bin*" -not -name "*rdmd" | head -n1)
+  # Try to find the installed host compiler
+  echo "$DMD"
 }
