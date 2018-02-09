@@ -156,7 +156,7 @@ download_install_sh() {
   done
 }
 
-activate_d() {
+install_d() {
   local install_sh="install.sh"
   download_install_sh "$install_sh"
   # DUB isn't needed for gdc
@@ -166,5 +166,5 @@ activate_d() {
       # shellcheck disable=2016
       sed 's/dub="dub-$(fetch $url)"/dub=dub/' -i "$install_sh"
   fi
-  CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1" --activate
+  CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
 }
