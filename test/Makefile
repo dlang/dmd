@@ -74,9 +74,12 @@
 #                        note: the make variable REQUIRED_ARGS is also added to the $(DMD)
 #                              command line (see below)
 #
-#   DISABLED:            text describing why the test is disabled (if empty, the test is
-#                        considered to be enabled).
+#   DISABLED:            selectively disable the test on specific platforms (if empty, the test is
+#                        considered to be enabled on all platform).
 #                        default: (none, enabled)
+#                        Valid platforms: win linux osx freebsd dragonflybsd netbsd
+#                        Optionally a MODEL suffix can used for further filtering, e.g.
+#                        win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
 
 ifeq (Windows_NT,$(OS))
     ifeq ($(findstring WOW64, $(shell uname)),WOW64)
