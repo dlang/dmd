@@ -1,4 +1,3 @@
-
 Fix issue 18361 - Ddoc ability to opt-out of automatic keyword highlighting in running text
 
 Currently, ddoc automatically highlights all occurrences of words in running
