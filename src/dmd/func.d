@@ -463,13 +463,13 @@ extern (C++) class FuncDeclaration : Declaration
         Dsymbol s = isDsymbol(o);
         if (s)
         {
-            FuncDeclaration fd1 = this;
-            FuncDeclaration fd2 = s.isFuncDeclaration();
+            alias fd1 = this;
+            auto  fd2 = s.isFuncDeclaration();
             if (!fd2)
                 return false;
 
-            FuncAliasDeclaration fa1 = fd1.isFuncAliasDeclaration();
-            FuncAliasDeclaration fa2 = fd2.isFuncAliasDeclaration();
+            auto fa1 = fd1.isFuncAliasDeclaration();
+            auto fa2 = fd2.isFuncAliasDeclaration();
             if (fa1 && fa2)
             {
                 return fa1.toAliasFunc().equals(fa2.toAliasFunc()) && fa1.hasOverloads == fa2.hasOverloads;
@@ -1497,7 +1497,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Contracts:
      *  If isNested() returns true, isThis() should return false.
      */
-    bool isNested()
+    bool isNested() const
     {
         auto f = toAliasFunc();
         //printf("\ttoParent2() = '%s'\n", f.toParent2().toChars());
@@ -1514,7 +1514,7 @@ extern (C++) class FuncDeclaration : Declaration
      * Contracts:
      *  If isThis() returns true, isNested() should return false.
      */
-    override AggregateDeclaration isThis()
+    override inout(AggregateDeclaration) isThis() inout
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
         auto ad = (storage_class & STC.static_) ? null : isMember2();
@@ -1580,14 +1580,14 @@ extern (C++) class FuncDeclaration : Declaration
 
     bool addPreInvariant()
     {
-        AggregateDeclaration ad = isThis();
+        auto ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
         return (ad && !(cd && cd.isCPPclass()) && global.params.useInvariants && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
     }
 
     bool addPostInvariant()
     {
-        AggregateDeclaration ad = isThis();
+        auto ad = isThis();
         ClassDeclaration cd = ad ? ad.isClassDeclaration() : null;
         return (ad && !(cd && cd.isCPPclass()) && ad.inv && global.params.useInvariants && (protection.kind == Prot.Kind.protected_ || protection.kind == Prot.Kind.public_ || protection.kind == Prot.Kind.export_) && !naked);
     }
@@ -2261,7 +2261,7 @@ extern (C++) class FuncDeclaration : Declaration
         return this;
     }
 
-    FuncDeclaration toAliasFunc()
+    inout(FuncDeclaration) toAliasFunc() inout
     {
         return this;
     }
@@ -2928,7 +2928,7 @@ extern (C++) final class FuncAliasDeclaration : FuncDeclaration
         return "function alias";
     }
 
-    override FuncDeclaration toAliasFunc()
+    override inout(FuncDeclaration) toAliasFunc() inout
     {
         return funcalias.toAliasFunc();
     }
@@ -2974,13 +2974,13 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(f);
     }
 
-    override bool isNested()
+    override bool isNested() const
     {
         //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
         return (tok != TOK.function_) && !isThis();
     }
 
-    override AggregateDeclaration isThis()
+    override inout(AggregateDeclaration) isThis() inout
     {
         return tok == TOK.delegate_ ? super.isThis() : null;
     }
@@ -3264,7 +3264,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(scd);
     }
 
-    override final AggregateDeclaration isThis()
+    override final inout(AggregateDeclaration) isThis() inout
     {
         return null;
     }
@@ -3350,7 +3350,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(sdd);
     }
 
-    override final AggregateDeclaration isThis()
+    override final inout(AggregateDeclaration) isThis() inout
     {
         return null;
     }
@@ -3490,7 +3490,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return Identifier.idPool(buf.peekSlice());
     }
 
-    override AggregateDeclaration isThis()
+    override inout(AggregateDeclaration) isThis() inout
     {
         return null;
     }
