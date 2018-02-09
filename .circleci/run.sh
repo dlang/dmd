@@ -120,6 +120,15 @@ coverage()
     make -j$N -C ../phobos -f posix.mak MODEL=$MODEL PIC="$PIC"
 
     # FIXME
+    # Building d_do_test currently uses the host library for linking
+    # Remove me after https://github.com/dlang/dmd/pull/7846 has been merged (-conf=)
+    if [ -f ~/dlang/install.sh ] ; then
+        deactivate
+    else
+        sudo rm -rf /dlang
+    fi
+
+    # FIXME
     # Temporarily the failing long file name test has been removed
     rm -rf test/compilable/issue17167.sh
 
