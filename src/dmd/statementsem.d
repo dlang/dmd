@@ -3448,11 +3448,13 @@ else
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
                 Expression e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), new VarExp(ss.loc, tmp));
+                (cast(CallExp)e).f = fdenter;
                 e.type = Type.tvoid; // do not run semantic on e
 
                 cs.push(new ExpStatement(ss.loc, e));
                 FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
                 e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), new VarExp(ss.loc, tmp));
+                (cast(CallExp)e).f = fdexit;
                 e.type = Type.tvoid; // do not run semantic on e
                 Statement s = new ExpStatement(ss.loc, e);
                 s = new TryFinallyStatement(ss.loc, ss._body, s);
@@ -3491,6 +3493,7 @@ else
             Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), e);
+            (cast(CallExp)e).f = fdenter;
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
@@ -3498,6 +3501,7 @@ else
             e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), e);
+            (cast(CallExp)e).f = fdexit;
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(ss.loc, e);
             s = new TryFinallyStatement(ss.loc, ss._body, s);
