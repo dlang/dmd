@@ -16,12 +16,14 @@ import dmd.argtypes;
 import dmd.cppmangle;
 import dmd.cppmanglewin;
 import dmd.dclass;
+import dmd.declaration;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.tokens : TOK;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
@@ -543,6 +545,29 @@ struct Target
     extern (C++) static const(char)* cppTypeMangle(Type t)
     {
         return null;
+    }
+
+    /**
+     * Get the type that will really be used for passing the given argument
+     * to an `extern(C++)` function.
+     * Params:
+     *      p = parameter to be passed.
+     * Returns:
+     *      `Type` to use for parameter `p`.
+     */
+    extern (C++) static Type cppParameterType(Parameter p)
+    {
+        Type t = p.type.merge2();
+        if (p.storageClass & (STC.out_ | STC.ref_))
+            t = t.referenceTo();
+        else if (p.storageClass & STC.lazy_)
+        {
+            // Mangle as delegate
+            Type td = new TypeFunction(null, t, 0, LINK.d);
+            td = new TypeDelegate(td);
+            t = merge(t);
+        }
+        return t;
     }
 
     /**
