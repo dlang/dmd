@@ -206,6 +206,52 @@ private Expression fromConstInitializer(int result, Expression e1)
     return e;
 }
 
+/* It is possible for constant folding to change an array expression of
+ * unknown length, into one where the length is known.
+ * If the expression 'arr' is a literal, set lengthVar to be its length.
+ */
+package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
+{
+    if (!lengthVar)
+        return;
+    if (lengthVar._init && !lengthVar._init.isVoidInitializer())
+        return; // we have previously calculated the length
+    size_t len;
+    if (arr.op == TOK.string_)
+        len = (cast(StringExp)arr).len;
+    else if (arr.op == TOK.arrayLiteral)
+        len = (cast(ArrayLiteralExp)arr).elements.dim;
+    else
+    {
+        Type t = arr.type.toBasetype();
+        if (t.ty == Tsarray)
+            len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+        else
+            return; // we don't know the length yet
+    }
+    Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+    lengthVar._init = new ExpInitializer(Loc.initial, dollar);
+    lengthVar.storage_class |= STC.static_ | STC.const_;
+}
+
+/* Same as above, but determines the length from 'type'. */
+package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
+{
+    if (!lengthVar)
+        return;
+    if (lengthVar._init && !lengthVar._init.isVoidInitializer())
+        return; // we have previously calculated the length
+    size_t len;
+    Type t = type.toBasetype();
+    if (t.ty == Tsarray)
+        len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+    else
+        return; // we don't know the length yet
+    Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+    lengthVar._init = new ExpInitializer(Loc.initial, dollar);
+    lengthVar.storage_class |= STC.static_ | STC.const_;
+}
+
 /*********************************
  * Constant fold an Expression.
  * Params:
@@ -999,34 +1045,6 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 if (CTFEExp.isCantExp(ret))
                     ret = e;
             }
-        }
-
-        /* It is possible for constant folding to change an array expression of
-         * unknown length, into one where the length is known.
-         * If the expression 'arr' is a literal, set lengthVar to be its length.
-         */
-        static void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
-        {
-            if (!lengthVar)
-                return;
-            if (lengthVar._init && !lengthVar._init.isVoidInitializer())
-                return; // we have previously calculated the length
-            size_t len;
-            if (arr.op == TOK.string_)
-                len = (cast(StringExp)arr).len;
-            else if (arr.op == TOK.arrayLiteral)
-                len = (cast(ArrayLiteralExp)arr).elements.dim;
-            else
-            {
-                Type t = arr.type.toBasetype();
-                if (t.ty == Tsarray)
-                    len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                else
-                    return; // we don't know the length yet
-            }
-            Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
-            lengthVar._init = new ExpInitializer(Loc.initial, dollar);
-            lengthVar.storage_class |= STC.static_ | STC.const_;
         }
 
         override void visit(IndexExp e)
