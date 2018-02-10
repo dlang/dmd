@@ -2927,7 +2927,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t iParagraphStart = offset;
     size_t iPreceedingBlankLine = 0;
     int headingLevel = 0;
-    size_t iHeadingStart = 0;
     int headingMacroLevel = 0;
     int quoteLevel = 0;
     MarkdownQuote[] nestedQuotes;
@@ -2971,7 +2970,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (headingLevel)
             {
                 replaceMarkdownEmphasis(buf, i, inlineDelimiters);
-                endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+                endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
                 ++i;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
             }
@@ -3016,7 +3015,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             leadingBlank = true;
-            iHeadingStart = iLineStart;
             iLineStart = i + 1;
 
             if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
@@ -3119,7 +3117,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     if (quoteLevel > nestedQuotes.length)
                     {
                         i = buf.insert(i, "$(QUOTE\n");
-                        iLineStart = i;
+                        iLineStart = iParagraphStart = i;
                         nestedQuotes ~= MarkdownQuote(macroLevel);
                     }
                     --i;
@@ -3359,7 +3357,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             /* A line beginning with # indicates a Markdown heading. */
             if (leadingBlank && !inCode)
             {
-                iHeadingStart = i;
+                size_t iHeadingStart = i;
                 leadingBlank = false;
                 size_t iSkipped = skipChars(buf, i, "#");
                 headingLevel = cast(int) (iSkipped - iHeadingStart);
@@ -3381,7 +3379,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
                 // remove the ### prefix
                 buf.remove(iLineStart, i - iLineStart);
-                i = iHeadingStart = iLineStart;
+                i = iParagraphStart = iLineStart;
 
                 headingMacroLevel = macroLevel;
 
@@ -3456,12 +3454,17 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 size_t iBeforeNewline = iLineStart;
                 while (iBeforeNewline > offset && (buf.data[iBeforeNewline-1] == '\r' || buf.data[iBeforeNewline-1] == '\n'))
                     --iBeforeNewline;
+                if (iBeforeNewline <= iParagraphStart)
+                {
+                    iParagraphStart = iAfterUnderline;
+                    break;
+                }
                 buf.remove(iBeforeNewline, iAfterUnderline - iBeforeNewline);
                 i = iLineStart = iBeforeNewline;
                 headingLevel = c == '=' ? 1 : 2;
 
                 replaceMarkdownEmphasis(buf, i, inlineDelimiters);
-                endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+                endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
 
                 iParagraphStart = skipChars(buf, i+1, " \t\r\n");
             }
@@ -3637,7 +3640,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 replaceMarkdownEmphasis(buf, i, inlineDelimiters);
                 if (headingLevel && headingMacroLevel >= macroLevel)
-                    endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+                    endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
                 while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")");
@@ -3726,7 +3729,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t i = buf.offset;
     replaceMarkdownEmphasis(buf, i, inlineDelimiters);
     if (headingLevel)
-        endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+        endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
     for (; nestedQuotes.length; --nestedQuotes.length)
         i = buf.insert(i, ")");
     nestedQuotes.length = 0;
