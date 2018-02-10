@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -x # debug windows issues
 set -ueo pipefail
 
 src=runnable${SEP}extra-files
