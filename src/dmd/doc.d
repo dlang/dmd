@@ -2472,23 +2472,23 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start, len)))
                 {
                     buf.remove(i, 1);
-                    i = j - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
                     break;
                 }
                 if (isIdentifier(a, start, len))
                 {
-                    i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
                     break;
                 }
                 if (isKeyword(start, len))
                 {
-                    i = buf.bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
                     break;
                 }
                 if (isFunctionParameter(a, start, len))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
-                    i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
                     break;
                 }
                 i = j - 1;
