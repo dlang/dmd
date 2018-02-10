@@ -49,7 +49,6 @@ const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
-    Target.prefixName(&buf, LINK.cpp);
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.mangleOf(s);
     return buf.extractString();

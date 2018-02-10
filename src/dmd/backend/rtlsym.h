@@ -56,8 +56,7 @@ SYMBOL_MARS(DUNITTESTP,      FLfunc,FREGSAVED,"_d_unittestp", 0, t) \
 SYMBOL_MARS(DUNITTEST_MSG,   FLfunc,FREGSAVED,"_d_unittest_msg", 0, t) \
 SYMBOL_MARS(DARRAY,          FLfunc,FREGSAVED,"_d_arraybounds", SFLexit, t) \
 SYMBOL_MARS(DARRAYP,         FLfunc,FREGSAVED,"_d_arrayboundsp", SFLexit, t) \
-SYMBOL_MARS(DINVARIANT,      FLfunc,FREGSAVED,"D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib) \
-SYMBOL_MARS(_DINVARIANT,     FLfunc,FREGSAVED,"_D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib) \
+SYMBOL_MARS(DINVARIANT,      FLfunc,FREGSAVED,"_D9invariant12_d_invariantFC6ObjectZv", 0, tsdlib) \
 SYMBOL_MARS(MEMCPY,          FLfunc,FREGSAVED,"memcpy",    0, t) \
 SYMBOL_MARS(MEMSET8,         FLfunc,FREGSAVED,"memset",    0, t) \
 SYMBOL_MARS(MEMSET16,        FLfunc,FREGSAVED,"_memset16", 0, t) \

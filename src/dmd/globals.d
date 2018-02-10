@@ -24,8 +24,6 @@ template xversion(string s)
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
-enum IN_GCC      = xversion!`IN_GCC`;
-
 enum TARGET : bool
 {
     Linux        = xversion!`linux`,

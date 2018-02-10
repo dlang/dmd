@@ -1982,13 +1982,7 @@ elem *toElem(Expression e, IRState *irs)
                     !(cast(TypeClass)t1).sym.isCPPclass())
                 {
                     ts = symbol_genauto(Type_toCtype(t1));
-                    int rtl;
-                    if (global.params.isLinux || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
-                        global.params.is64bit && global.params.isWindows)
-                        rtl = RTLSYM__DINVARIANT;
-                    else
-                        rtl = RTLSYM_DINVARIANT;
-                    einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(rtl)), el_var(ts));
+                    einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM_DINVARIANT)), el_var(ts));
                 }
                 else if (global.params.useInvariants &&
                     t1.ty == Tpointer &&
