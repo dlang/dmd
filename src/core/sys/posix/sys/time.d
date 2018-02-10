@@ -90,6 +90,7 @@ else version( CRuntime_Musl )
         suseconds_t tv_usec;
     }
     int gettimeofday(timeval*, void*);
+    int utimes(in char*, ref const(timeval)[2]);
 }
 else version( Darwin )
 {

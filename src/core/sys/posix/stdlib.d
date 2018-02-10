@@ -125,6 +125,10 @@ else version( CRuntime_Bionic )
     // Added since Lollipop
     int posix_memalign(void**, size_t, size_t);
 }
+else version( CRuntime_Musl )
+{
+    int posix_memalign(void**, size_t, size_t);
+}
 
 //
 // C Extension (CX)

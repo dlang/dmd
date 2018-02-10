@@ -383,7 +383,20 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_Musl )
 {
+    enum
+    {
+        PTHREAD_CREATE_JOINABLE = 0,
+        PTHREAD_CREATE_DETACHED = 1
+    }
 
+    enum PTHREAD_MUTEX_INITIALIZER = pthread_mutex_t.init;
+    enum PTHREAD_ONCE_INIT = pthread_once_t.init;
+
+    enum
+    {
+        PTHREAD_PROCESS_PRIVATE = 0,
+        PTHREAD_PROCESS_SHARED = 1
+    }
 }
 else
 {

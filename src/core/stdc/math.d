@@ -627,6 +627,7 @@ else version( CRuntime_Musl )
         FP_FAST_FMAL = 0,
     }
 
+  pure {
     int __fpclassifyf(float x);
     int __fpclassify(double x);
     int __fpclassifyl(real x);
@@ -634,8 +635,9 @@ else version( CRuntime_Musl )
     int __signbitf(float x);
     int __signbit(double x);
     int __signbitl(real x);
+  }
 
-  extern (D)
+  extern (D) pure
   {
     //int fpclassify(real-floating x);
       ///
@@ -711,19 +713,19 @@ else version( CRuntime_Musl )
 
     //int isnormal(real-floating x);
     ///
-    pure int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
+    int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
     ///
-    pure int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
+    int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
     ///
-    pure int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+    int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
 
     //int signbit(real-floating x);
     ///
-    pure int signbit(float x)     { return __signbitf(x); }
+    int signbit(float x)     { return __signbitf(x); }
     ///
-    pure int signbit(double x)    { return __signbit(x);  }
+    int signbit(double x)    { return __signbit(x);  }
     ///
-    pure int signbit(real x)
+    int signbit(real x)
     {
         return (real.sizeof == double.sizeof)
             ? __signbit(x)

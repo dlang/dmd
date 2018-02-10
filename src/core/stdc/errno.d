@@ -51,6 +51,14 @@ else version (CRuntime_Glibc)
         alias errno = __errno_location;
     }
 }
+else version (CRuntime_Musl)
+{
+    extern (C)
+    {
+        ref int __errno_location();
+        alias errno = __errno_location;
+    }
+}
 else version (FreeBSD)
 {
     extern (C)

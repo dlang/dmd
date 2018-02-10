@@ -402,7 +402,6 @@ else version( CRuntime_Musl )
     enum TIMER_ABSTIME = 1;
 
     enum CLOCK_REALTIME = 0;
-    enum CLOCK_MONOTONIC = 1;
     enum CLOCK_PROCESS_CPUTIME_ID = 2;
     enum CLOCK_THREAD_CPUTIME_ID = 3;
     enum CLOCK_MONOTONIC_RAW = 4;

@@ -1294,11 +1294,11 @@ else version (CRuntime_Musl)
         timespec st_atim;
         timespec st_mtim;
         timespec st_ctim;
-        extern(D)
+        extern(D) @safe @property
         {
-            @property ref time_t st_atime() return { return st_atim.tv_sec; }
-            @property ref time_t st_mtime() return { return st_mtim.tv_sec; }
-            @property ref time_t st_ctime() return { return st_ctim.tv_sec; }
+            ref time_t st_atime() return { return st_atim.tv_sec; }
+            ref time_t st_mtime() return { return st_mtim.tv_sec; }
+            ref time_t st_ctime() return { return st_ctim.tv_sec; }
         }
         long[3] __unused;
     }
