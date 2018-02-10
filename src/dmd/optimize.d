@@ -42,24 +42,44 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
 
+    /********
+     * Params:
+     *  e = initializer expression
+     */
+    Expression initializerReturn(Expression e)
+    {
+        if (e.type != v.type)
+        {
+            e = e.castTo(null, v.type);
+        }
+        v.inuse++;
+        e = e.optimize(result);
+        v.inuse--;
+        //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
+        return e;
+    }
+
+    static Expression nullReturn()
+    {
+        return null;
+    }
+
     static Expression errorReturn()
     {
         return new ErrorExp();
     }
 
-    Expression e = null;
     if (!v)
-        return e;
+        return nullReturn();
     if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
         v.dsymbolSemantic(null);
-    if (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest)
+    if (v.type &&
+        (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest))
     {
-        if (!v.type)
-        {
-            return e;
-        }
         Type tb = v.type.toBasetype();
-        if (v.storage_class & STC.manifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
+        if (v.storage_class & STC.manifest ||
+            tb.isscalar() ||
+            ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
             {
@@ -70,7 +90,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                         v.error("recursive initialization of constant");
                         return errorReturn();
                     }
-                    goto L1;
+                    return nullReturn();
                 }
                 Expression ei = v.getConstInitializer();
                 if (!ei)
@@ -80,7 +100,7 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                         v.error("enum cannot be initialized with `%s`", v._init.toChars());
                         return errorReturn();
                     }
-                    goto L1;
+                    return nullReturn();
                 }
                 if (ei.op == TOK.construct || ei.op == TOK.blit)
                 {
@@ -96,10 +116,10 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                         // if it's typed as a C string, because the value expansion
                         // will drop the pointer identity.
                         if (!(result & WANTexpand) && ei.type.toBasetype().ty == Tpointer)
-                            goto L1;
+                            return nullReturn();
                     }
                     else
-                        goto L1;
+                        return nullReturn();
                     if (ei.type == v.type)
                     {
                         // const variable initialized with const expression
@@ -111,51 +131,49 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                         ei = ei.expressionSemantic(null);
                     }
                     else
-                        goto L1;
+                        return nullReturn();
                 }
-                else if (!(v.storage_class & STC.manifest) && ei.isConst() != 1 && ei.op != TOK.string_ && ei.op != TOK.address)
+                else if (!(v.storage_class & STC.manifest) &&
+                         ei.isConst() != 1 &&
+                         ei.op != TOK.string_ &&
+                         ei.op != TOK.address)
                 {
-                    goto L1;
+                    return nullReturn();
                 }
+
                 if (!ei.type)
                 {
-                    goto L1;
+                    return nullReturn();
                 }
                 else
                 {
                     // Should remove the copy() operation by
                     // making all mods to expressions copy-on-write
-                    e = ei.copy();
+                    return initializerReturn(ei.copy());
                 }
             }
             else
             {
+                // v does not have an initializer
                 version (all)
                 {
-                    goto L1;
+                    return nullReturn();
                 }
                 else
                 {
                     // BUG: what if const is initialized in constructor?
-                    e = v.type.defaultInit();
+                    auto e = v.type.defaultInit();
                     e.loc = e1.loc;
+                    return initializerReturn(e);
                 }
             }
-            if (e.type != v.type)
-            {
-                e = e.castTo(null, v.type);
-            }
-            v.inuse++;
-            e = e.optimize(result);
-            v.inuse--;
+            assert(0);
         }
     }
-L1:
-    //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
-    return e;
+    return nullReturn();
 }
 
-extern (C++) Expression fromConstInitializer(int result, Expression e1)
+private Expression fromConstInitializer(int result, Expression e1)
 {
     //printf("fromConstInitializer(result = %x, %s)\n", result, e1.toChars());
     //static int xx; if (xx++ == 10) assert(0);
@@ -188,18 +206,29 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
     return e;
 }
 
+/*********************************
+ * Constant fold an Expression.
+ * Params:
+ *      e = expression to const fold; this may get modified in-place
+ *      result = WANTvalue, WANTexpand, or both
+ *      keepLvalue = `e` is an lvalue, and keep it as an lvalue since it is
+ *                   an argument to a `ref` or `out` parameter, or the operand of `&` operator
+ * Returns:
+ *      Constant folded version of `e`
+ */
 extern (C++) Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
     extern (C++) final class OptimizeVisitor : Visitor
     {
         alias visit = Visitor.visit;
-    public:
-        int result;
-        bool keepLvalue;
-        Expression ret;
 
-        extern (D) this(int result, bool keepLvalue)
+        Expression ret;
+        private const int result;
+        private const bool keepLvalue;
+
+        extern (D) this(Expression e, int result, bool keepLvalue)
         {
+            this.ret = e;               // default result is original expression
             this.result = result;
             this.keepLvalue = keepLvalue;
         }
@@ -213,7 +242,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             if (!e)
                 return false;
-            Expression ex = e.optimize(flags, keepLvalue);
+            Expression ex = Expression_optimize(e, flags, keepLvalue);
             if (ex.op == TOK.error)
             {
                 ret = ex; // store error result
@@ -1076,7 +1105,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     ret = new CastExp(e.loc, ret, Type.tvoid);
                     ret.type = e.type;
                 }
-                ret = ret.optimize(result);
+                ret = Expression_optimize(ret, result, false);
                 return;
             }
             if (expOptimize(e.e2, WANTvalue))
@@ -1126,7 +1155,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 CatExp ce1 = cast(CatExp)e.e1;
                 scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
                 cex.type = e.type;
-                Expression ex = cex.optimize(result);
+                Expression ex = Expression_optimize(cex, result, false);
                 if (ex != cex)
                 {
                     e.e1 = ce1.e1;
@@ -1156,9 +1185,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (expOptimize(e.econd, WANTvalue))
                 return;
             if (e.econd.isBool(true))
-                ret = e.e1.optimize(result, keepLvalue);
+                ret = Expression_optimize(e.e1, result, keepLvalue);
             else if (e.econd.isBool(false))
-                ret = e.e2.optimize(result, keepLvalue);
+                ret = Expression_optimize(e.e2, result, keepLvalue);
             else
             {
                 expOptimize(e.e1, result, keepLvalue);
@@ -1167,15 +1196,15 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         }
     }
 
-    scope OptimizeVisitor v = new OptimizeVisitor(result, keepLvalue);
-    Expression ex = null;
-    v.ret = e;
+    scope OptimizeVisitor v = new OptimizeVisitor(e, result, keepLvalue);
 
     // Optimize the expression until it can no longer be simplified.
-    while (ex != v.ret)
+    while (1)
     {
-        ex = v.ret;
+        auto ex = v.ret;
         ex.accept(v);
+        if (ex == v.ret)
+            break;
     }
-    return ex;
+    return v.ret;
 }
