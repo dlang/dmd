@@ -1,0 +1,2 @@
+module foolib;
+void foolibfunc() { }
