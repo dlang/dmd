@@ -5724,9 +5724,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 el = el.optimize(WANTvalue);
                 if (el.op == TOK.int64)
                 {
+                    // Array length is known at compile-time. Upper is in bounds if it fits length.
                     dinteger_t length = el.toInteger();
                     auto bounds = IntRange(SignExtendedNumber(0), SignExtendedNumber(length));
                     exp.upperIsInBounds = bounds.contains(uprRange);
+                }
+                else if (exp.upr.op == TOK.int64 && exp.upr.toInteger() == 0)
+                {
+                    // Upper slice expression is '0'. Value is always in bounds.
+                    exp.upperIsInBounds = true;
+                }
+                else if (exp.upr.op == TOK.variable && (cast(VarExp)exp.upr).var.ident == Id.dollar)
+                {
+                    // Upper slice expression is '$'. Value is always in bounds.
+                    exp.upperIsInBounds = true;
                 }
             }
             else if (t1b.ty == Tpointer)
