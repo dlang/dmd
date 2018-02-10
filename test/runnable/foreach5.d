@@ -1,6 +1,8 @@
 
 extern(C) int printf(const char* fmt, ...);
 
+alias AliasSeq(X...) = X;
+
 /***************************************/
 
 void test1()
@@ -1082,6 +1084,46 @@ void test14653()
         result14653 ~= "b";
     }
     assert(result14653 == "cefbpefbped", result14653);
+}
+
+/***************************************/
+// 15777
+
+template funA15777()
+{
+    import imports.test15777a;
+    alias funA15777 = fun;
+}
+
+template funB15777()
+{
+    import imports.test15777b;
+    alias funB15777 = fun;
+}
+
+template funAB15777()
+{
+    import imports.test15777a;
+    import imports.test15777b;
+    alias funAB15777 = fun;
+}
+
+void foo15777(alias tpl)()
+{
+    alias seq = AliasSeq!(tpl!());
+    // Make alias of 'overload set' in tuple elements
+    static assert(seq.length == 1);
+    foreach (i, n; seq)
+    {
+        static assert(__traits(identifier, seq[i]) == "fun");
+    }
+}
+
+void test15777()
+{
+    foo15777!funA15777;
+    foo15777!funB15777;
+    foo15777!funAB15777;
 }
 
 /***************************************/
