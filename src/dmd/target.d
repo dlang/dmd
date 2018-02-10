@@ -26,50 +26,66 @@ import dmd.tokens : TOK;
 import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 
-/***********************************************************
+/**
+ * Describes a back-end target. At present it is incomplete, but in the future
+ * it should grow to contain most or all target machine and target O/S specific
+ * information.
+ *
+ * In many cases, calls to sizeof() can't be used directly for getting data type
+ * sizes since cross compiling is supported and would end up using the host
+ * sizes rather than the target sizes.
  */
 struct Target
 {
     extern (C++) __gshared
     {
-        int ptrsize;
+        int ptrsize;              /// size of a pointer in bytes
         int realsize;             /// size a real consumes in memory
-        int realpad;              /// 'padding' added to the CPU real size to bring it up to realsize
+        int realpad;              /// padding added to the CPU real size to bring it up to realsize
         int realalignsize;        /// alignment for reals
-        bool reverseCppOverloads; /// with dmc and cl, overloaded functions are grouped and in reverse order
+        bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
         bool cppExceptions;       /// set if catching C++ exceptions is supported
         char int64Mangle;         /// mangling character for C++ int64_t
         char uint64Mangle;        /// mangling character for C++ uint64_t
-        int c_longsize;           /// size of a C 'long' or 'unsigned long' type
-        int c_long_doublesize;    /// size of a C 'long double'
-        int classinfosize;        /// size of 'ClassInfo'
+        int c_longsize;           /// size of a C `long` or `unsigned long` type
+        int c_long_doublesize;    /// size of a C `long double`
+        int classinfosize;        /// size of `ClassInfo`
         ulong maxStaticDataSize;  /// maximum size of static data
     }
 
+    /**
+     * Values representing all properties for floating point types
+     */
     extern (C++) struct FPTypeProperties(T)
     {
         static __gshared
         {
-            real_t max = T.max;
-            real_t min_normal = T.min_normal;
-            real_t nan = T.nan;
-            real_t snan = T.init;
-            real_t infinity = T.infinity;
-            real_t epsilon = T.epsilon;
+            real_t max = T.max;                 /// largest representable value that's not infinity
+            real_t min_normal = T.min_normal;   /// smallest representable normalized value that's not 0
+            real_t nan = T.nan;                 /// NaN value
+            real_t snan = T.init;               /// signalling NaN value
+            real_t infinity = T.infinity;       /// infinity value
+            real_t epsilon = T.epsilon;         /// smallest increment to the value 1
 
-            d_int64 dig = T.dig;
-            d_int64 mant_dig = T.mant_dig;
-            d_int64 max_exp = T.max_exp;
-            d_int64 min_exp = T.min_exp;
-            d_int64 max_10_exp = T.max_10_exp;
-            d_int64 min_10_exp = T.min_10_exp;
+            d_int64 dig = T.dig;                /// number of decimal digits of precision
+            d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
+            d_int64 max_exp = T.max_exp;        /// maximum int value such that 2$(SUPERSCRIPT `max_exp-1`) is representable
+            d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
+            d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
+            d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
         }
     }
 
+    ///
     alias FloatProperties = FPTypeProperties!float;
+    ///
     alias DoubleProperties = FPTypeProperties!double;
+    ///
     alias RealProperties = FPTypeProperties!real_t;
 
+    /**
+     * Initialize the Target
+     */
     extern (C++) static void _init()
     {
         // These have default values for 32 bit code, they get
@@ -146,8 +162,12 @@ struct Target
         uint64Mangle = global.params.isOSX ? 'y' : 'm';
     }
 
-    /******************************
-     * Return memory alignment size of type.
+    /**
+     * Requested target memory alignment size of the given type.
+     * Params:
+     *      type = type to inspect
+     * Returns:
+     *      alignment in bytes
      */
     extern (C++) static uint alignsize(Type type)
     {
@@ -178,8 +198,12 @@ struct Target
         return cast(uint)type.size(Loc.initial);
     }
 
-    /******************************
-     * Return field alignment size of type.
+    /**
+     * Requested target field alignment size of the given type.
+     * Params:
+     *      type = type to inspect
+     * Returns:
+     *      alignment in bytes
      */
     extern (C++) static uint fieldalign(Type type)
     {
@@ -191,11 +215,10 @@ struct Target
         return (8 < size) ? 8 : size;
     }
 
-    /***********************************
-     * Return size of OS critical section.
-     * NOTE: can't use the sizeof() calls directly since cross compiling is
-     * supported and would end up using the host sizes rather than the target
-     * sizes.
+    /**
+     * Size of the target OS critical section.
+     * Returns:
+     *      size in bytes
      */
     extern (C++) static uint critsecsize()
     {
@@ -240,10 +263,12 @@ struct Target
         assert(0);
     }
 
-    /***********************************
-     * Returns a Type for the va_list type of the target.
+    /**
+     * Type for the `va_list` type for the target.
      * NOTE: For Posix/x86_64 this returns the type which will really
      * be used for passing an argument of type va_list.
+     * Returns:
+     *      `Type` that represents `va_list`.
      */
     extern (C++) static Type va_listType()
     {
@@ -270,12 +295,15 @@ struct Target
     }
 
     /**
-     * Checks whether the target supports a vector type with total size `sz`
-     * (in bytes) and element type `type`.
-     *
-     * Returns: 0 if the type is supported, or else: 1 if vector types are not
-     *     supported on the target at all, 2 if the element type isn't, or 3 if
-     *     the given size isn't.
+     * Checks whether the target supports a vector type.
+     * Params:
+     *      sz   = vector type size in bytes
+     *      type = vector element type
+     * Returns:
+     *      0   vector type is supported,
+     *      1   vector type is not supported on the target at all
+     *      2   vector element type is not supported
+     *      3   vector size is not supported
      */
     extern (C++) static int isVectorTypeSupported(int sz, Type type)
     {
@@ -304,9 +332,11 @@ struct Target
     }
 
     /**
-     * Checks whether the target supports operation `op` for vectors of type `type`.
-     * For binary ops `t2` is the type of the 2nd operand.
-     *
+     * Checks whether the target supports the given operation for vectors.
+     * Params:
+     *      type = target type of operation
+     *      op   = the unary or binary op being done on the `type`
+     *      t2   = type of second operand if `op` is a binary operation
      * Returns:
      *      true if the operation is supported or type is not a vector
      */
@@ -383,10 +413,15 @@ struct Target
         return supported;
     }
 
-    /******************************
+    /**
      * Encode the given expression, which is assumed to be an rvalue literal
      * as another type for use in CTFE.
-     * This corresponds roughly to the idiom *(Type *)&e.
+     * This corresponds roughly to the idiom `*cast(T*)&e`.
+     * Params:
+     *      e    = literal constant expression
+     *      type = target type of the result
+     * Returns:
+     *      resulting `Expression` re-evaluated as `type`
      */
     extern (C++) static Expression paintAsType(Expression e, Type type)
     {
@@ -425,19 +460,24 @@ struct Target
         }
     }
 
-    /******************************
-     * For the given module, perform any post parsing analysis.
+    /**
+     * Perform any post parsing analysis on the given module.
      * Certain compiler backends (ie: GDC) have special placeholder
      * modules whose source are empty, but code gets injected
      * immediately after loading.
+     * Params:
+     *      m = module to inspect
      */
     extern (C++) static void loadModule(Module m)
     {
     }
 
-    /******************************
+    /**
      * For the given symbol written to the OutBuffer, apply any
      * target-specific prefixes based on the given linkage.
+     * Params:
+     *      buf     = buffer to write into
+     *      linkage = extern linkage of decl
      */
     extern (C++) static void prefixName(OutBuffer* buf, LINK linkage)
     {
@@ -458,6 +498,13 @@ struct Target
         }
     }
 
+    /**
+     * Mangle the given symbol for C++ ABI.
+     * Params:
+     *      s = declaration with C++ linkage
+     * Returns:
+     *      string mangling of symbol
+     */
     extern (C++) static const(char)* toCppMangle(Dsymbol s)
     {
         static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.DragonFlyBSD || TARGET.Solaris)
@@ -468,6 +515,13 @@ struct Target
             static assert(0, "fix this");
     }
 
+    /**
+     * Get RTTI mangling of the given class declaration for C++ ABI.
+     * Params:
+     *      cd = class with C++ linkage
+     * Returns:
+     *      string mangling of C++ typeinfo
+     */
     extern (C++) static const(char)* cppTypeInfoMangle(ClassDeclaration cd)
     {
         static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
@@ -479,8 +533,12 @@ struct Target
     }
 
     /**
-     * For a vendor-specific type, return a string containing the C++ mangling.
-     * In all other cases, return null.
+     * Gets vendor-specific type mangling for C++ ABI.
+     * Params:
+     *      t = type to inspect
+     * Returns:
+     *      string if type is mangled specially on target
+     *      null if unhandled
      */
     extern (C++) static const(char)* cppTypeMangle(Type t)
     {
@@ -488,7 +546,9 @@ struct Target
     }
 
     /**
-     * Return the default system linkage for the target.
+     * Default system linkage for the target.
+     * Returns:
+     *      `LINK` to use for `extern(System)`
      */
     extern (C++) static LINK systemLinkage()
     {
@@ -496,8 +556,12 @@ struct Target
     }
 
     /**
-     * Return a tuple describing how argument type is put to a function.
-     * Value is an empty tuple if type is always passed on the stack.
+     * Describes how an argument type is passed to a function on target.
+     * Params:
+     *      t = type to break down
+     * Returns:
+     *      tuple of types if type is passed in one or more registers
+     *      empty tuple if type is always passed on the stack
      */
     extern (C++) static TypeTuple toArgTypes(Type t)
     {
