@@ -378,7 +378,7 @@ alias d_uns64 = uint64_t;
 // file location
 struct Loc
 {
-    const(char)* filename;
+    const(char)* filename; // either absolute or relative to cwd
     uint linnum;
     uint charnum;
 
