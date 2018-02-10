@@ -2495,7 +2495,6 @@ private struct MarkdownLink
 {
     string href;    /// the link destination
     string title;   /// an optional title for the link
-    int macroLevel; /// the count of nested DDoc macros when the quote is started
 
     static bool replaceInlineLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex)
     {
@@ -2524,7 +2523,7 @@ private struct MarkdownLink
         return true;
     }
 
-    static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, int macroLevel, ref MarkdownLinkReferences linkReferences)
+    static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, ref MarkdownLinkReferences linkReferences)
     {
         MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
 
@@ -2542,7 +2541,7 @@ private struct MarkdownLink
         if (!label.length)
             return false;
         if (label !in linkReferences.references && linkReferences.iParsedUntil < i)
-            linkReferences.extractReferences(buf, i, macroLevel);
+            linkReferences.extractReferences(buf, i);
         if (label !in linkReferences.references)
             return false;
 
@@ -2767,7 +2766,7 @@ private struct MarkdownLinkReferences
     MarkdownLink[string] references;    // link references keyed by normalized label
     size_t iParsedUntil;    // the index into the buffer of the last-parsed reference
 
-    bool extractReference(OutBuffer *buf, size_t i, int macroLevel)
+    bool extractReference(OutBuffer *buf, size_t i)
     {
         size_t iEnd = i;
         string label = MarkdownLink.parseLabel(buf, iEnd);
@@ -2805,14 +2804,13 @@ private struct MarkdownLinkReferences
 
         if (label !in references)
         {
-            reference.macroLevel = macroLevel;
             references[label] = reference;
             iParsedUntil = i;
         }
         return true;
     }
 
-    void extractReferences(OutBuffer *buf, size_t i, int macroLevel)
+    void extractReferences(OutBuffer *buf, size_t i)
     {
         static bool isFollowedBySpace(OutBuffer *buf, size_t i)
         {
@@ -2822,7 +2820,6 @@ private struct MarkdownLinkReferences
         bool leadingBlank = false;
         bool inCode = false;
         bool newParagraph = true;
-        int parenLevel = 0;
         for (; i < buf.offset; ++i)
         {
             char c = buf.data[i];
@@ -2891,27 +2888,9 @@ private struct MarkdownLinkReferences
                     goto case '+';
                 else
                     goto case '`';
-            case '(':
-                if (!inCode)
-                    ++parenLevel;
-                break;
-            case ')':
-                if (inCode)
-                    break;
-                if (parenLevel)
-                {
-                    --parenLevel;
-                    break;
-                }
-                else
-                {
-                    // we're ending a macro we didn't enter; return
-                    iParsedUntil = i;
-                    return;
-                }
             case '[':
                 if (leadingBlank && !inCode && newParagraph &&
-                    extractReference(buf, i, macroLevel))
+                    extractReference(buf, i))
                     --i;
                 break;
             default:
@@ -3564,7 +3543,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            if (leadingBlank && iParagraphStart >= iLineStart && linkReferences.extractReference(buf, i, macroLevel))
+            if (leadingBlank && iParagraphStart >= iLineStart && linkReferences.extractReference(buf, i))
             {
                 --i;
             }
@@ -3586,7 +3565,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
                     if (!MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) &&
-                        !MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, macroLevel, linkReferences))
+                        !MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences))
                     {
                         // nothing found, so kill the delimiter
                         inlineDelimiters = inlineDelimiters[0..d] ~ inlineDelimiters[d+1..$];
@@ -3671,9 +3650,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 while (inlineDelimiters.length && inlineDelimiters[$-1].macroLevel >= macroLevel)
                     --inlineDelimiters.length;
-                foreach (label; linkReferences.references.keys)
-                    if (linkReferences.references[label].macroLevel >= macroLevel)
-		                linkReferences.references.remove(label);
                 if (linkReferences.iParsedUntil <= i)
                     linkReferences.iParsedUntil = i + 1;
 
@@ -3749,11 +3725,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
     size_t i = buf.offset;
     replaceMarkdownEmphasis(buf, i, inlineDelimiters);
-    endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
+    if (headingLevel)
+        endMarkdownHeading(buf, i, headingLevel, iHeadingStart);
     for (; nestedQuotes.length; --nestedQuotes.length)
-        buf.insert(i, ")");
+        i = buf.insert(i, ")");
+    nestedQuotes.length = 0;
     for (; nestedLists.length; --nestedLists.length)
-        buf.insert(i, ")\n)");
+        i = buf.insert(i, ")\n)");
+    nestedLists.length = 0;
 }
 
 /**************************************************
