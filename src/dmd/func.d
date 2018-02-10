@@ -1054,17 +1054,17 @@ extern (C++) class FuncDeclaration : Declaration
         return buf.extractString();
     }
 
-    final bool isMain()
+    final bool isMain() const
     {
         return ident == Id.main && linkage != LINK.c && !isMember() && !isNested();
     }
 
-    final bool isCMain()
+    final bool isCMain() const
     {
         return ident == Id.main && linkage == LINK.c && !isMember() && !isNested();
     }
 
-    final bool isWinMain()
+    final bool isWinMain() const
     {
         //printf("FuncDeclaration::isWinMain() %s\n", toChars());
         version (none)
@@ -1079,29 +1079,29 @@ extern (C++) class FuncDeclaration : Declaration
         }
     }
 
-    final bool isDllMain()
+    final bool isDllMain() const
     {
         return ident == Id.DllMain && linkage != LINK.c && !isMember();
     }
 
-    final bool isRtInit()
+    final bool isRtInit() const
     {
         return ident == Id.rt_init && linkage == LINK.c && !isMember() && !isNested();
     }
 
-    override final bool isExport()
+    override final bool isExport() const
     {
         return protection.kind == Prot.Kind.export_;
     }
 
-    override final bool isImportedSymbol()
+    override final bool isImportedSymbol() const
     {
         //printf("isImportedSymbol()\n");
         //printf("protection = %d\n", protection);
         return (protection.kind == Prot.Kind.export_) && !fbody;
     }
 
-    override final bool isCodeseg()
+    override final bool isCodeseg() const pure nothrow @nogc @safe
     {
         return true; // functions are always in the code segment
     }
@@ -1160,7 +1160,7 @@ extern (C++) class FuncDeclaration : Declaration
 
         if (isInstantiated())
         {
-            TemplateInstance ti = parent.isTemplateInstance();
+            auto ti = parent.isTemplateInstance();
             if (ti is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident)
                 return true;
         }
@@ -1546,12 +1546,12 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     // Determine if function goes into virtual function pointer table
-    bool isVirtual()
+    bool isVirtual() const
     {
         if (toAliasFunc() != this)
             return toAliasFunc().isVirtual();
 
-        Dsymbol p = toParent();
+        auto p = toParent();
         version (none)
         {
             printf("FuncDeclaration::isVirtual(%s)\n", toChars());
@@ -1561,21 +1561,26 @@ extern (C++) class FuncDeclaration : Declaration
         return isMember() && !(isStatic() || protection.kind == Prot.Kind.private_ || protection.kind == Prot.Kind.package_) && p.isClassDeclaration() && !(p.isInterfaceDeclaration() && isFinalFunc());
     }
 
-    bool isFinalFunc()
+    final bool isFinalFunc() const
     {
         if (toAliasFunc() != this)
             return toAliasFunc().isFinalFunc();
 
-        ClassDeclaration cd;
         version (none)
-        {
+        {{
+            auto cd = toParent().isClassDeclaration();
             printf("FuncDeclaration::isFinalFunc(%s), %x\n", toChars(), Declaration.isFinal());
             printf("%p %d %d %d\n", isMember(), isStatic(), Declaration.isFinal(), ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STC.final_));
-            printf("result is %d\n", isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STC.final_)));
+            printf("result is %d\n", isMember() && (Declaration.isFinal() || (cd !is null && cd.storage_class & STC.final_)));
             if (cd)
                 printf("\tmember of %s\n", cd.toChars());
-        }
-        return isMember() && (Declaration.isFinal() || ((cd = toParent().isClassDeclaration()) !is null && cd.storage_class & STC.final_));
+        }}
+        if (!isMember())
+            return false;
+        if (Declaration.isFinal())
+            return true;
+        auto cd = toParent().isClassDeclaration();
+        return (cd !is null) && (cd.storage_class & STC.final_);
     }
 
     bool addPreInvariant()
@@ -2985,7 +2990,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return tok == TOK.delegate_ ? super.isThis() : null;
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
@@ -3107,7 +3112,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         return "this";
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
@@ -3149,7 +3154,7 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(dd);
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
@@ -3211,7 +3216,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         return "~this";
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         // false so that dtor's don't get put into the vtbl[]
         return false;
@@ -3269,7 +3274,7 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return null;
     }
 
-    override final bool isVirtual()
+    override final bool isVirtual() const
     {
         return false;
     }
@@ -3355,7 +3360,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return null;
     }
 
-    override final bool isVirtual()
+    override final bool isVirtual() const
     {
         return false;
     }
@@ -3430,7 +3435,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         return FuncDeclaration.syntaxCopy(id);
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
@@ -3495,7 +3500,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return null;
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
@@ -3547,7 +3552,7 @@ extern (C++) final class NewDeclaration : FuncDeclaration
         return "allocator";
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
@@ -3602,7 +3607,7 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
         return true;
     }
 
-    override bool isVirtual()
+    override bool isVirtual() const
     {
         return false;
     }
