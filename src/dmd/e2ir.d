@@ -2201,6 +2201,7 @@ elem *toElem(Expression e, IRState *irs)
         }
 
         /***************************************
+         * http://dlang.org/spec/expression.html#cat_expressions
          */
 
         override void visit(CatExp ce)
@@ -2209,6 +2210,14 @@ elem *toElem(Expression e, IRState *irs)
             {
                 printf("CatExp.toElem()\n");
                 ce.print();
+            }
+
+            /* Do this check during code gen rather than semantic() because concatenation is
+             * allowed in CTFE, and cannot distinguish that in semantic().
+             */
+            if (global.params.betterC)
+            {
+                error(ce.loc, "array concatenation of expression `%s` requires the GC which is not available with -betterC", ce.toChars());
             }
 
             Type tb1 = ce.e1.type.toBasetype();

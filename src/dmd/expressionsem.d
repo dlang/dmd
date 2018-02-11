@@ -7745,7 +7745,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(CatExp exp)
     {
-        //printf("CatExp::semantic() %s\n", toChars());
+        // https://dlang.org/spec/expression.html#cat_expressions
+        //printf("CatExp.semantic() %s\n", toChars());
         if (exp.type)
         {
             result = exp;
