@@ -638,6 +638,11 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 
 /*****************************************
  * Convert array to a pointer to the data.
+ * Params:
+ *      t = array type
+ *      e = array to convert, it is "consumed" by the function
+ * Returns:
+ *      e rebuilt into a pointer to the data
  */
 
 elem *array_toPtr(Type t, elem *e)
@@ -659,8 +664,19 @@ elem *array_toPtr(Type t, elem *e)
             }
             else if (e.Eoper == OPpair)
             {
-                e.Eoper = OPcomma;
-                e.Ety = TYnptr;
+                if (el_sideeffect(e.EV.E1))
+                {
+                    e.Eoper = OPcomma;
+                    e.Ety = TYnptr;
+                }
+                else
+                {
+                    auto r = e;
+                    e = e.EV.E2;
+                    e.Ety = TYnptr;
+                    r.EV.E2 = null;
+                    el_free(r);
+                }
             }
             else
             {
@@ -2758,30 +2774,74 @@ elem *toElem(Expression e, IRState *irs)
 
                     assert(ae.e2.type.ty != Tpointer);
 
-                    if (!postblit && !destructor && !irs.arrayBoundsCheck())
+                    if (!postblit && !destructor)
                     {
                         elem *ex = el_same(&eto);
 
-                        // Determine if elen is a constant
-                        elem *elen;
-                        if (eto.Eoper == OPpair &&
-                            eto.EV.E1.Eoper == OPconst)
+                        /* Returns: length of array ex
+                         */
+                        static elem *getDotLength(elem *eto, elem *ex)
                         {
-                            elen = el_copytree(eto.EV.E1);
+                            if (eto.Eoper == OPpair &&
+                                eto.EV.E1.Eoper == OPconst)
+                            {
+                                // It's a constant, so just pull it from eto
+                                return el_copytree(eto.EV.E1);
+                            }
+                            else
+                            {
+                                // It's not a constant, so pull it from the dynamic array
+                                return el_una(global.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
+                            }
+                        }
+
+                        auto elen = getDotLength(eto, ex);
+                        auto nbytes = el_bin(OPmul, TYsize_t, elen, esize);  // number of bytes to memcpy
+                        auto epto = array_toPtr(ae.e1.type, ex);
+
+                        elem *epfr;
+                        elem *echeck;
+                        if (irs.arrayBoundsCheck()) // check array lengths match and do not overlap
+                        {
+                            auto ey = el_same(&efrom);
+                            auto eleny = getDotLength(efrom, ey);
+                            epfr = array_toPtr(ae.e2.type, ey);
+
+                            // length check: (eleny == elen)
+                            auto c = el_bin(OPeqeq, TYint, eleny, el_copytree(elen));
+
+                            /* Don't check overlap if epto and epfr point to different symbols
+                             */
+                            if (!(epto.Eoper == OPaddr && epto.EV.E1.Eoper == OPvar &&
+                                  epfr.Eoper == OPaddr && epfr.EV.E1.Eoper == OPvar &&
+                                  epto.EV.E1.EV.Vsym != epfr.EV.E1.EV.Vsym))
+                            {
+                                // Add overlap check (c && (px + nbytes <= py || py + nbytes <= px))
+                                auto c2 = el_bin(OPle, TYint, el_bin(OPadd, TYsize_t, el_copytree(epto), el_copytree(nbytes)), el_copytree(epfr));
+                                auto c3 = el_bin(OPle, TYint, el_bin(OPadd, TYsize_t, el_copytree(epfr), el_copytree(nbytes)), el_copytree(epto));
+                                c = el_bin(OPandand, TYint, c, el_bin(OPoror, TYint, c2, c3));
+                            }
+
+                            // Construct: (c || arrayBoundsError)
+                            echeck = el_bin(OPoror, TYvoid, c, buildArrayBoundsError(irs, ae.loc));
                         }
                         else
                         {
-                            // It's not a constant, so pull it from the dynamic array
-                            elen = el_una(irs.params.is64bit ? OP128_64 : OP64_32, TYsize_t, el_copytree(ex));
+                            epfr = array_toPtr(ae.e2.type, efrom);
+                            efrom = null;
+                            echeck = null;
                         }
 
-                        esize = el_bin(OPmul, TYsize_t, elen, esize);
-                        elem *epto = array_toPtr(ae.e1.type, ex);
-                        elem *epfr = array_toPtr(ae.e2.type, efrom);
-                        e = el_params(esize, epfr, epto, null);
+                        /* Construct:
+                         *   memcpy(ex.ptr, ey.ptr, nbytes)[0..elen]
+                         */
+                        e = el_params(nbytes, epfr, epto, null);
                         e = el_bin(OPcall,TYnptr,el_var(getRtlsym(RTLSYM_MEMCPY)),e);
                         e = el_pair(eto.Ety, el_copytree(elen), e);
-                        e = el_combine(eto, e);
+
+                        /* Combine: eto, efrom, echeck, e
+                         */
+                        e = el_combine(el_combine(eto, efrom), el_combine(echeck, e));
                     }
                     else if ((postblit || destructor) && ae.op != TOK.blit)
                     {
