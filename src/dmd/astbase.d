@@ -1432,7 +1432,6 @@ struct ASTBase
 
         File* srcfile;
         const(char)* arg;
-        const(char)* srcfilePath;
 
         extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
         {

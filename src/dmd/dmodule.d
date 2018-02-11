@@ -51,17 +51,14 @@ version(Windows) {
  * Look for the source file if it's different from filename.
  * Look for .di, .d, directory, and along global.path.
  * Does not open the file.
- * Output:
- *      path            the path where the file was found if it was not the current directory
  * Input:
  *      filename        as supplied by the user
  *      global.path
  * Returns:
  *      NULL if it's not different from filename.
  */
-private const(char)* lookForSourceFile(const(char)** path, const(char)* filename)
+private const(char)* lookForSourceFile(const(char)* filename)
 {
-    *path = null;
     /* Search along global.path for .di file, then .d file.
      */
     const(char)* sdi = FileName.forceExt(filename, global.hdr_ext);
@@ -94,13 +91,11 @@ private const(char)* lookForSourceFile(const(char)** path, const(char)* filename
         const(char)* p = (*global.path)[i];
         const(char)* n = FileName.combine(p, sdi);
         if (FileName.exists(n) == 1) {
-            *path = p;
             return n;
         }
         FileName.free(n);
         n = FileName.combine(p, sd);
         if (FileName.exists(n) == 1) {
-            *path = p;
             return n;
         }
         FileName.free(n);
@@ -115,7 +110,6 @@ private const(char)* lookForSourceFile(const(char)** path, const(char)* filename
             FileName.free(n2i);
             const(char)* n2 = FileName.combine(n, "package.d");
             if (FileName.exists(n2) == 1) {
-                *path = p;
                 return n2;
             }
             FileName.free(n2);
@@ -314,7 +308,6 @@ extern (C++) final class Module : Package
     const(char)* arg;           // original argument name
     ModuleDeclaration* md;      // if !=null, the contents of the ModuleDeclaration declaration
     File* srcfile;              // input source file
-    const(char)* srcfilePath;   // the path prefix to the srcfile if it applies
     File* objfile;              // output .obj file
     File* hdrfile;              // 'header' file
     File* docfile;              // output documentation file
@@ -421,9 +414,6 @@ extern (C++) final class Module : Package
             fatal();
         }
         srcfile = new File(srcfilename);
-        if(!FileName.absolute(srcfilename)) {
-            srcfilePath = getcwd(null, 0);
-        }
         objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
         if (doDocComment)
             setDocfile();
@@ -503,17 +493,10 @@ extern (C++) final class Module : Package
         m.loc = loc;
         /* Look for the source file
          */
-        const(char)* path;
-        const(char)* result = lookForSourceFile(&path, filename);
+        const(char)* result = lookForSourceFile(filename);
         if (result)
-        {
             m.srcfile = new File(result);
-            if(path) {
-                m.srcfilePath = path;
-            } else if(!FileName.absolute(result)) {
-                m.srcfilePath = getcwd(null, 0);
-            }
-        }
+
         if (!m.read(loc))
             return null;
         if (global.params.verbose)

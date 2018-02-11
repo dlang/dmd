@@ -7267,18 +7267,11 @@ final class Parser(AST) : Lexer
                 break;
             }
         case TOK.fileFullPath:
-            {
-                const(char)* srcfile = mod.srcfile.name.toChars();
-                const(char)* s;
-                if(loc.filename && !FileName.equals(loc.filename, srcfile)) {
-                    s = loc.filename;
-                } else {
-                    s = FileName.combine(mod.srcfilePath, srcfile);
-                }
-                e = new AST.StringExp(loc, cast(char*)s);
-                nextToken();
-                break;
-            }
+            assert(loc.isValid(), "__FILE_FULL_PATH__ does not work with an invalid location");
+            e = new AST.StringExp(loc, cast(char*)FileName.toAbsolute(loc.filename));
+            nextToken();
+            break;
+
         case TOK.line:
             e = new AST.IntegerExp(loc, loc.linnum, AST.Type.tint32);
             nextToken();
