@@ -2929,6 +2929,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     int headingLevel = 0;
     int headingMacroLevel = 0;
     int quoteLevel = 0;
+    bool lineQuoted = false;
     MarkdownQuote[] nestedQuotes;
     MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
@@ -3003,9 +3004,12 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 inlineDelimiters.length = 0;
 
-                for (; nestedQuotes.length; --nestedQuotes.length)
-                    i = buf.insert(i, ")");
-                quoteLevel = 0;
+                if (!lineQuoted)
+                {
+                    for (; nestedQuotes.length; --nestedQuotes.length)
+                        i = buf.insert(i, ")");
+                    quoteLevel = 0;
+                }
 
                 if (iParagraphStart <= i)
                 {
@@ -3015,6 +3019,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             leadingBlank = true;
+            lineQuoted = false;
             iLineStart = i + 1;
 
             if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
@@ -3111,6 +3116,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 if (leadingBlank && (!inCode || nestedQuotes.length > quoteLevel))
                 {
+                    lineQuoted = true;
                     ++quoteLevel;
                     size_t iQuotedStart = skipChars(buf, i + 1, " \t");
                     buf.remove(i, iQuotedStart - i);
