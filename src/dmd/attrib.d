@@ -538,8 +538,13 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         super(decl);
         this.loc = loc;
         this.protection.kind = Prot.Kind.package_;
-        this.protection.pkg = null;
         this.pkg_identifiers = pkg_identifiers;
+        if (pkg_identifiers !is null && pkg_identifiers.dim > 0)
+        {
+            Dsymbol tmp;
+            Package.resolve(pkg_identifiers, &tmp, null);
+            protection.pkg = tmp ? tmp.isPackage() : null;
+        }
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
