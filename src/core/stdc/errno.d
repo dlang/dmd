@@ -75,6 +75,14 @@ else version (CRuntime_Bionic)
         alias errno = __errno;
     }
 }
+else version (CRuntime_UClibc)
+{
+    extern (C)
+    {
+        ref int __errno_location();
+        alias errno = __errno_location;
+    }
+}
 else version (Darwin)
 {
     extern (C)

@@ -336,6 +336,63 @@ else version( CRuntime_Musl )
         static assert(false, "Architecture not supported.");
     }
 }
+else version( CRuntime_UClibc )
+{
+    version (X86)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else version (X86_64)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+            uint   __mxcsr;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else version(ARM)
+    {
+        struct fenv_t
+        {
+            uint __cw;
+        }
+
+        alias fexcept_t = uint;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -662,6 +719,11 @@ else version( Solaris )
     enum FE_DFL_ENV = &__fenv_def_env;
 }
 else version( CRuntime_Musl )
+{
+    ///
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
+}
+else version( CRuntime_UClibc )
 {
     ///
     enum FE_DFL_ENV = cast(fenv_t*)(-1);

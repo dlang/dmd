@@ -310,6 +310,24 @@ else version( CRuntime_Bionic )
         int _size;
     }
 }
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        ///
+        BUFSIZ       = 4096,
+        ///
+        EOF          = -1,
+        ///
+        FOPEN_MAX    = 16,
+        ///
+        FILENAME_MAX = 4095,
+        ///
+        TMP_MAX      = 238328,
+        ///
+        L_tmpnam     = 20
+    }
+}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -671,6 +689,59 @@ else version( CRuntime_Bionic )
     ///
     alias shared(__sFILE) FILE;
 }
+else version( CRuntime_UClibc )
+{
+    import core.stdc.wchar_ : mbstate_t;
+    import core.stdc.stddef : wchar_t;
+    import core.sys.posix.sys.types : ssize_t, pthread_mutex_t;
+
+    alias long off_t;
+
+    ///
+    struct fpos_t
+    {
+        off_t __pos;
+        mbstate_t __state;
+        int __mblen_pending;
+    }
+
+    struct _IO_cookie_io_functions_t
+    {
+       ssize_t function(void* __cookie, char* __buf, size_t __bufsize)          read;
+       ssize_t function(void* __cookie, const char* __buf, size_t __bufsize)    write;
+       int function(void* __cookie, off_t* __pos, int __whence)                 seek;
+       int function(void* __cookie)                                             close;
+    }
+
+    alias _IO_cookie_io_functions_t cookie_io_functions_t;
+
+    ///
+    struct __STDIO_FILE_STRUCT
+    {
+        ushort __modeflags;
+        char[2] __ungot_width;
+        int __filedes;
+        char* __bufstart;
+        char* __bufend;
+        char* __bufpos;
+        char* __bufread;
+        char* __bufgetc_u;
+        char*__bufputc_u;
+        __STDIO_FILE_STRUCT* __nextopen;
+        void *__cookie;
+        _IO_cookie_io_functions_t __gcs;
+        wchar_t[2] __ungot;
+        mbstate_t __state;
+        void *__unused;
+        int __user_locking;
+        pthread_mutex_t __lock;
+    }
+
+    ///
+    alias __STDIO_FILE_STRUCT _iobuf;
+    ///
+    alias shared(__STDIO_FILE_STRUCT) FILE;
+}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -966,6 +1037,25 @@ else version( CRuntime_Musl )
         ///
         _IONBF = 2,
     }
+}
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        ///
+        _IOFBF = 0,
+        ///
+        _IOLBF = 1,
+        ///
+        _IONBF = 2,
+    }
+
+    ///
+    extern shared FILE* stdin;
+    ///
+    extern shared FILE* stdout;
+    ///
+    extern shared FILE* stderr;
 }
 else
 {
@@ -1489,6 +1579,28 @@ else version( CRuntime_Musl )
     int snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
+}
+else version( CRuntime_UClibc )
+{
+  // No unsafe pointer manipulation.
+  @trusted
+  {
+    ///
+    void rewind(FILE* stream);
+    ///
+    pure void clearerr(FILE* stream);
+    ///
+    pure int  feof(FILE* stream);
+    ///
+    pure int  ferror(FILE* stream);
+    ///
+    int  fileno(FILE *);
+  }
+
+    ///
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
+    ///
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else
 {

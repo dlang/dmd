@@ -111,6 +111,11 @@ else version (CRuntime_Musl)
     ///
     int strerror_r(int errnum, scope char *buf, size_t buflen);
 }
+else version (CRuntime_UClibc)
+{
+    ///
+    const(char)* strerror_r(int errnum, return char* buf, size_t buflen);
+}
 ///
 pure size_t strlen(scope const char* s);
 ///
