@@ -1,3 +1,3 @@
-module a17625;
+module imports.a17625;
 
 private int boo() { return 69; }

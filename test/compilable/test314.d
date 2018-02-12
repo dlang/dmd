@@ -1,11 +1,12 @@
 // REQUIRED_ARGS: -de
+// EXTRA_SOURCES: imports/a314.d
 module imports.test314; // package imports
 
-import imports.a314;
+import imports.pkg.a314;
 
 void main()
 {
-    imports.a314.bug("This should work.\n");
+    imports.pkg.a314.bug("This should work.\n");
     renamed.bug("This should work.\n");
     bug("This should work.\n");
 }

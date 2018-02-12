@@ -313,3 +313,22 @@ unittest
     array[2] = 910;
     assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == array.asDArray);
 }
+
+/**
+ * Returns true if every element of $(D left) and $(D right) are equal.
+ * Note that an array of size 0 is considered equivalent to a `null` pointer.
+ * Params:
+ *  left = pointer to array to compare
+ *  right = pointer to array to compare
+ */
+bool opEquals(T)(const(Array!T)* left, const(Array!T)* right)
+{
+    if (left is null || left.dim == 0)
+        return right is null || right.dim == 0;
+    if (right is null || left.dim != right.dim)
+        return false;
+    foreach (i; 0 .. left.dim)
+        if ((*left)[i] != (*right)[i])
+            return false;
+    return true;
+}

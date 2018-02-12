@@ -1,0 +1,48 @@
+Deprecate import module name mismatch
+
+Some instances of module name/import name mismatches were deprecated while others are now considered errors.
+
+Case 1: DEPRECATED: import a module name with a qualified name but the module being imported has no module declaration.
+---
+// main.d
+import foo.bar;
+
+// foo/bar.d
+// this file is empty, it has no module declaration
+---
+The above code will now print:
+
+$(CONSOLE Deprecated: module bar from file foo/bar.d should be imported with 'import bar;' )
+
+Case 2: DEPRECATED: import a module with a qualified name that partially matches the name of the module being imported.
+---
+// main.d
+import foo.bar;
+import foo.baz.buz;
+
+// foo/bar.d
+module bar;
+
+// foo/baz/buz.d
+module baz.buz;
+---
+The above code will now print:
+
+$(CONSOLE Deprecated: module bar from file foo/bar.d should be imported with 'import bar;'
+Deprecated: module baz.buz from file foo/baz/buz.d should be imported with 'import baz.buz;' )
+
+Note that for this rule to apply, the shorter name must completely match the end of the longer name.
+
+Case 3: ERROR: import a module that matches the filename but does not match the module name.
+---
+// main.d
+import foo;
+
+// foo.d
+module bar;
+---
+The above code will now fail and print:
+
+$(CONSOLE Error: module bar from file foo.d must be imported with 'import bar;')
+
+Note that importing a module whose module name does not match its filename is still supported.

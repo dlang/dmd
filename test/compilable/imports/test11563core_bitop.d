@@ -1,1 +1,1 @@
-module test11563core_bitop;
+module imports.test11563core_bitop;

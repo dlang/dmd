@@ -1,4 +1,4 @@
-module imports.aXXXXX;
+module imports.a12037;
 
 auto min(A, B)(A a, B b) { return a < b ? a : b; }
 alias TypeTuple(T...) = T;

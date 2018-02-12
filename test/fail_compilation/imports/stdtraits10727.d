@@ -1,3 +1,5 @@
+module imports.stdtraits10727;
+
 template StaticArrayTypeOf(T)
 {
     inout(U[n]) idx(U, size_t n)( inout(U[n]) );

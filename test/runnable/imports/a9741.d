@@ -1,4 +1,4 @@
-module imports.a9741b;
+module imports.a9741;
 
 template ShowAttributes(alias X)
 {

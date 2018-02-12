@@ -1,3 +1,4 @@
+module imports.a10528;
 private enum string a = "asdfgh";
 private enum { b = "asdfgh" }
 
