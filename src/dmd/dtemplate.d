@@ -2422,6 +2422,24 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             else
                 return 0;   // MATCH.nomatch
         }
+        /* Fix Issue 17970:
+           If a struct is declared as shared the dtor is automatically
+           considered to be shared, but when the struct is instantiated
+           the instance is no longer considered to be shared when the
+           function call matching is done. The fix makes it so that if a
+           struct declaration is shared, when the destructor is called,
+           the instantiated struct is also considered shared.
+        */
+        if (auto dt = fd.isDtorDeclaration())
+        {
+            auto dtmod = dt.type.toTypeFunction();
+            auto shared_dtor = dtmod.mod & MODFlags.shared_;
+            auto shared_this = tthis_fd.mod & MODFlags.shared_;
+            if (shared_dtor && !shared_this)
+                tthis_fd = dtmod;
+            else if (shared_this && !shared_dtor)
+                tf.mod = tthis_fd.mod;
+        }
         MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, pMessage);
         //printf("test1: mfa = %d\n", mfa);
         if (mfa > MATCH.nomatch)
