@@ -58,6 +58,7 @@ extern (C) void _d_monitor_staticctor();
 extern (C) void _d_monitor_staticdtor();
 extern (C) void _d_critical_init();
 extern (C) void _d_critical_term();
+extern (C) void protogc_init();
 extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void thread_init() @nogc;
@@ -197,6 +198,7 @@ extern (C) int rt_init()
         // in other druntime systems.
         _d_initMonoTime();
         thread_init();
+        // TODO: fixme - calls GC.addRange -> Initializes GC
         initStaticDataGC();
         lifetime_init();
         rt_moduleCtor();
