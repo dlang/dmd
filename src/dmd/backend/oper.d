@@ -246,15 +246,10 @@ enum
         OPMAX                   // 1 past last operator
 }
 
-/* Convert from token to assignment operator    */
-//int asgtoktoop(int tok) { return tok + OPeq - TKeq; }
-
 
 /************************************
  * Determine things about relational operators.
  */
-
-//OPER rel_toktoop(int tk) { return tk - TKle + RELOPMIN; }
 
 extern __gshared ubyte[RELOPMAX - RELOPMIN + 1]
         _rel_not,
