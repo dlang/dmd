@@ -1453,8 +1453,24 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         if (l1 && l2)
         {
-            import core.stdc.string;
+            const(char)* getSerialization(FuncLiteralDeclaration fld)
+            {
+                import dmd.lambdacomp : SerializeVisitor;
+                auto serVisitor = new SerializeVisitor(sc);
+                fld.accept(serVisitor);
+                if (serVisitor.buf.offset == 0)
+                    return "uncomparable";
+                else
+                    return serVisitor.buf.extractString();
+            }
 
+            if (!l1.serialization)
+                l1.serialization = getSerialization(l1);
+            if (!l2.serialization)
+                l2.serialization = getSerialization(l2);
+
+            //printf("serialization1: %s\n", l1.serialization);
+            //printf("serialization2: %s\n", l2.serialization);
             if (strcmp(l1.serialization, l2.serialization) == 0 &&
                 strcmp(l1.serialization, "uncomparable") != 0)
             {

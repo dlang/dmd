@@ -1,9 +1,34 @@
+
 void test1()
 {
     static assert(__traits(isSame, (a, b) => a + b, (c, d) => c + d));
     static assert(__traits(isSame, a => ++a, b => ++b));
     static assert(!__traits(isSame, (int a, int b) => a + b, (a, b) => a + b));
     static assert(__traits(isSame, (a, b) => a + b + 10, (c, d) => c + d + 10));
+}
+
+class Y
+{
+    static int r = 5;
+    int x;
+    this(int x)
+    {
+        this.x = x;
+    }
+}
+
+class A
+{
+    Y a;
+    this(Y a)
+    {
+        this.a = a;
+    }
+}
+
+void foo3(alias pred)()
+{
+    static assert(!__traits(isSame, pred, (A x, A y) => ++x.a.x + (--y.a.x)));
 }
 
 void test2()
@@ -17,8 +42,8 @@ void test2()
 
     class A
     {
-        int a;
-        this(int a)
+        Y a;
+        this(Y a)
         {
             this.a = a;
         }
@@ -33,18 +58,39 @@ void test2()
         }
     }
 
-    static assert(__traits(isSame, (A a) => ++a.a, (A b) => ++b.a));
-    static assert(!__traits(isSame, (A a) => ++a.a, (B a) => ++a.a));
+    B q = new B(7);
+    alias pred = (A a, A b) => ++a.a.x + (--b.a.x);
+    foo3!pred();
+    static assert(!__traits(isSame, (A a) => ++a.a.x + 2, (A b) => ++b.a.x + 3));
+    static assert(__traits(isSame,  pred, (A x, A y) => ++x.a.x + (--y.a.x)));
+    static assert(!__traits(isSame, (B a) => ++a.a + 2, (B b) => ++b.a + 3));
+    static assert(__traits(isSame, (B a) => ++a.a, (B a) => ++a.a));
 
-    A cl = new A(7);
-    static assert(!__traits(isSame, a => a + cl.a, c => c + cl.a));
+    B cl = new B(7);
+    static assert(!__traits(isSame, a => a + q.a, c => c + cl.a));
+
+    class C(G)
+    {
+        G a;
+        this(int a)
+        {
+            this.a = a;
+        }
+    }
+    static assert(!__traits(isSame, (C!int a) => ++a.a, (C!int a) => ++a.a));
+
+    struct X
+    {
+        int a;
+    }
+    static assert(__traits(isSame, (X a) => a.a + 2, (X b) => b.a + 2));
 
     struct T(G)
     {
         G a;
     }
-
     static assert(!__traits(isSame, (T!int a) => ++a.a, (T!int a) => ++a.a));
+
 }
 
 void test3()
