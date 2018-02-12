@@ -42,6 +42,10 @@ private
   {
     import core.sys.posix.sys.types;
   }
+  version (DragonFlyBSD)
+  {
+    import core.sys.posix.sys.types;
+  }
 }
 
 extern (C):
@@ -259,6 +263,45 @@ else version ( OpenBSD )
     {
         char[128]   __mbstate8;
         long        __mbstateL;
+    }
+}
+else version ( DragonFlyBSD )
+{
+    enum
+    {
+        BUFSIZ       = 1024,
+        EOF          = -1,
+        FOPEN_MAX    = 20,
+        FILENAME_MAX = 1024,
+        TMP_MAX      = 308915776,
+        L_tmpnam     = 1024
+    }
+
+    struct __sbuf {                     // <sys/sbuf.h>
+        byte*            s_buf;         // storage buffer
+        int function(void *, const char *, int) sbuf_drain_func;
+        void*            s_drain_arg;   // user-supplied drain argument
+        int              s_error;       // current error code
+        ssize_t          s_size;        // size of storage buffer
+        ssize_t          s_len;         // current length of string
+        int              s_flags;       // flags
+        ssize_t          s_sect_len;    // current length of section
+    };
+
+    enum {
+        SBUF_FIXEDLEN   = 0x00000000,   // fixed length buffer (default)
+        SBUF_AUTOEXTEND = 0x00000001,   // automatically extend buffer
+        SBUF_USRFLAGMSK = 0x0000ffff,   // mask of flags the user may specify
+        SBUF_DYNAMIC    = 0x00010000,   // s_buf must be freed
+        SBUF_FINISHED   = 0x00020000,   // set by sbuf_finish()
+        SBUF_DYNSTRUCT  = 0x00080000,   // sbuf must be freed
+        SBUF_INSECTION  = 0x00100000,   // set by sbuf_start_section()
+    }
+
+    union __mbstate_t                   // <sys/stdint.h>
+    {
+        char[128]   _mbstate8;
+        long        _mbstateL;
     }
 }
 else version (Solaris)
@@ -600,6 +643,24 @@ else version( OpenBSD )
 
     ///
     alias shared(__sFILE) FILE;
+}
+else version( DragonFlyBSD )
+{
+    alias off_t fpos_t;
+
+    /// See /usr/include/stdio.h
+    struct __FILE_public
+    {
+        ubyte*          *_p;            /* current position in (some) buffer */
+        int             _flags;         /* flags, below; this FILE is free if 0 */
+        int             _fileno;        /* fileno, if Unix descriptor, else -1 */
+        ssize_t         _r;             /* read space left for getc() */
+        ssize_t         _w;             /* write space left for putc() */
+        ssize_t         _lbfsize;       /* 0 or -_bf._size, for inline putc */
+    }
+
+    alias __FILE_public _iobuf;
+    alias shared(__FILE_public) FILE;
 }
 else version (Solaris)
 {
@@ -965,6 +1026,23 @@ else version( OpenBSD )
     shared stdout = &__sF[1];
     ///
     shared stderr = &__sF[2];
+}
+else version( DragonFlyBSD )
+{
+    enum
+    {
+        _IOFBF = 0,
+        _IOLBF = 1,
+        _IONBF = 2,
+    }
+
+    private extern shared FILE* __stdinp;
+    private extern shared FILE* __stdoutp;
+    private extern shared FILE* __stderrp;
+
+    alias __stdinp  stdin;
+    alias __stdoutp stdout;
+    alias __stderrp stderr;
 }
 else version (Solaris)
 {
@@ -1511,6 +1589,37 @@ else version( OpenBSD )
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
+}
+else version( DragonFlyBSD )
+{
+  // No unsafe pointer manipulation.
+  @trusted
+  {
+    void rewind(FILE*);
+    pure void clearerr(FILE*);
+    pure int  feof(FILE*);
+    pure int  ferror(FILE*);
+    int  fileno(FILE*);
+  }
+  enum __SLBF = 0x0001;
+  enum __SNBF = 0x0002;
+  enum __SRD  = 0x0004;
+  enum __SWR  = 0x0008;
+  enum __SRW  = 0x0010;
+  enum __SEOF = 0x0020;
+  enum __SERR = 0x0040;
+  enum __SMBF = 0x0080;
+  enum __SAPP = 0x0100;
+  enum __SSTR = 0x0200;
+  enum __SOPT = 0x0400;
+  enum __SNPT = 0x0800;
+  enum __SOFF = 0x1000;
+  enum __SMOD = 0x2000;
+  enum __SALC = 0x4000;
+  enum __SIGN = 0x8000;
+
+  int  snprintf(scope char* s, size_t n, scope const char* format, ...);
+  int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
 else version (Solaris)
 {

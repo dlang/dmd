@@ -129,6 +129,8 @@ else version( DigitalMars )
             alias real c_long_double;
         else version( NetBSD )
             alias real c_long_double;
+        else version( DragonFlyBSD )
+            alias real c_long_double;
         else version( Solaris )
             alias real c_long_double;
         else version( Darwin )

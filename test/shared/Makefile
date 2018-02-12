@@ -5,8 +5,8 @@ include ../common.mak
 TESTS:=link load linkD linkDR loadDR host finalize
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
 
-EXPORT_DYNAMIC=$(if $(findstring $(OS),linux freebsd),-L--export-dynamic,)
-NO_AS_NEEDED=$(if $(findstring $(OS),linux freebsd),-L--no-as-needed,)
+EXPORT_DYNAMIC=$(if $(findstring $(OS),linux freebsd dragonflybsd),-L--export-dynamic,)
+NO_AS_NEEDED=$(if $(findstring $(OS),linux freebsd dragonflybsd),-L--no-as-needed,)
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))

@@ -39,6 +39,10 @@ version (NetBSD)
 {
     import core.stdc.fenv;
 }
+version (DragonFlyBSD)
+{
+    import core.stdc.fenv;
+}
 
 // not sure why we can't define this in one place, but this is to keep this
 // module from importing core.runtime.

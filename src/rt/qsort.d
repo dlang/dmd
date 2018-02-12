@@ -57,6 +57,21 @@ else version (FreeBSD)
         return a;
     }
 }
+else version (DragonFlyBSD)
+{
+    alias extern (C) int function(scope void *, scope const void *, scope const void *) Cmp;
+    extern (C) void qsort_r(scope void *base, size_t nmemb, size_t size, scope void *thunk, Cmp cmp);
+
+    extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
+    {
+        extern (C) int cmp(scope void* ti, scope const void* p1, scope const void* p2)
+        {
+            return (cast(TypeInfo)ti).compare(p1, p2);
+        }
+        qsort_r(a.ptr, a.length, ti.tsize, cast(void*)ti, &cmp);
+        return a;
+    }
+}
 else version (Darwin)
 {
     alias extern (C) int function(scope void *, scope const void *, scope const void *) Cmp;

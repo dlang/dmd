@@ -67,6 +67,13 @@ else version (OpenBSD)
     ///
     enum int FP_ILOGBNAN      = int.max;
 }
+else version (DragonFlyBSD)
+{
+    ///
+    enum int FP_ILOGB0        = -int.max;
+    ///
+    enum int FP_ILOGBNAN      = int.max;
+}
 else version (CRuntime_Bionic)
 {
     ///
@@ -1488,6 +1495,70 @@ else version( NetBSD )
             ? (cast(short*)&(x))[3] & 0x8000
             : (cast(short*)&(x))[4] & 0x8000;
     }
+  }
+}
+else version( DragonFlyBSD )
+{
+    enum
+    {
+        FP_INFINITE  = 0x01,
+        FP_NAN       = 0x02,
+        FP_NORMAL    = 0x04,
+        FP_SUBNORMAL = 0x08,
+        FP_ZERO      = 0x10,
+    }
+
+    /*
+     * /usr/include/math.h : martynas@openbsd believes only F version is true.
+       enum FP_FAST_FMA  = 1;
+       enum FP_FAST_FMAL = 1;
+     */
+    enum  FP_FAST_FMAF = 1;
+
+    pure int __fpclassifyd(double);
+    pure int __fpclassifyf(float);
+    pure int __fpclassifyl(real);
+    pure int __isfinitef(float);
+    pure int __isfinite(double);
+    pure int __isfinitel(real);
+    pure int __isinff(float);
+    pure int __isinf(double);
+    pure int __isinfl(real);
+    pure int __isnanf(float);
+    pure int __isnan(double);
+    pure int __isnanl(real);
+    pure int __isnormalf(float);
+    pure int __isnormal(double);
+    pure int __isnormall(real);
+    pure int __signbit(double);
+    pure int __signbitf(float);
+    pure int __signbitl(real);
+
+  extern (D)
+  {
+    pure int fpclassify(float x)     { return __fpclassifyf(x); }
+    pure int fpclassify(double x)    { return __fpclassifyd(x); }
+    pure int fpclassify(real x)      { return __fpclassifyl(x); }
+
+    pure int isfinite(float x)       { return __isfinitef(x); }
+    pure int isfinite(double x)      { return __isfinite(x); }
+    pure int isfinite(real x)        { return __isfinitel(x); }
+
+    pure int isinf(float x)          { return __isinff(x); }
+    pure int isinf(double x)         { return __isinf(x); }
+    pure int isinf(real x)           { return __isinfl(x); }
+
+    pure int isnan(float x)          { return __isnanf(x); }
+    pure int isnan(double x)         { return __isnan(x); }
+    pure int isnan(real x)           { return __isnanl(x); }
+
+    pure int isnormal(float x)       { return __isnormalf(x); }
+    pure int isnormal(double x)      { return __isnormal(x); }
+    pure int isnormal(real x)        { return __isnormall(x); }
+
+    pure int signbit(float x)        { return __signbitf(x); }
+    pure int signbit(double x)       { return __signbit(x); }
+    pure int signbit(real x)         { return __signbitl(x); }
   }
 }
 else version( Solaris )
@@ -3376,6 +3447,250 @@ else version( OpenBSD )
     pure double  fma(double x, double y, double z);
     ///
     pure float   fmaf(float x, float y, float z);
+}
+else version(DragonFlyBSD)
+{
+    /* double */
+    double acos(double x);
+    double asin(double x);
+    double atan(double x);
+    double atan2(double, double);
+    double cos(double x);
+    double sin(double x);
+    double tan(double x);
+
+    double cosh(double x);
+    double sinh(double x);
+    double tanh(double x);
+
+    double exp(double x);
+    double frexp(double, int *exp);
+    double ldexp(double, int exp);
+    double log(double x);
+    double log10(double x);
+    double modf(double x, double *iptr);
+
+    double pow(double x, double y);
+    double sqrt(double x);
+
+    double ceil(double x);
+    double fabs(double x);
+    double floor(double x);
+    double fmod(double x, double);
+
+    double acosh(double x);
+    double asinh(double x);
+    double atanh(double x);
+
+    double exp2(double x);
+    double expm1(double x);
+    int ilogb(double x);
+    double log1p(double x);
+    double log2(double x);
+    double logb(double x);
+    double scalbn(double x, int n);
+    double scalbln(double x, c_long n);
+
+    double cbrt(double x);
+    double hypot(double x, double y);
+
+    double erf(double x);
+    double erfc(double x);
+    double lgamma(double x);
+    double tgamma(double x);
+
+    double nearbyint(double x);
+    double rint(double x);
+    c_long lrint(double x);
+    long llrint(double x);
+    double round(double x);
+    c_long lround(double x);
+    long  llround(double x);
+    double trunc(double x);
+
+    double remainder(double x , double y);
+    double remquo(double x, double y, int * quo);
+
+    double copysign(double x, double y);
+    double nan(const char *);
+    double nextafter(double x, double y);
+    double nexttoward(double x, real y);
+
+    double fdim(double x, double y);
+    double fmax(double x, double y);
+    double fmin(double x, double y);
+
+    double fma(double x, double y, double z);
+
+    double j0(double x);
+    double j1(double x);
+    double jn(int, double);
+    double y0(double x);
+    double y1(double x);
+    double yn(int, double);
+
+    double gamma(double x);
+    double scalb(double x, double y);
+
+    double drem(double x, double y);
+    int finite(double x);
+    double gamma_r(double x, int *);
+    double lgamma_r(double x, int *);
+
+    double significand(double x);
+
+    /* float */
+    float acosf(float x);
+    float asinf(float x);
+    float atanf(float x);
+    float atan2f(float x, float y);
+    float cosf(float x);
+    float sinf(float x);
+    float tanf(float x);
+
+    float acoshf(float x);
+    float asinhf(float x);
+    float atanhf(float x);
+    float coshf(float x);
+    float sinhf(float x);
+    float tanhf(float x);
+
+    float expf(float x);
+    float exp2f(float x);
+    float expm1f(float x);
+    float frexpf(float x, int *exp);
+    int ilogbf(float x);
+    float ldexpf(float x, int exp);
+    float logf(float x);
+    float log10f(float x);
+    float log1pf(float x);
+    float log2f(float x);
+    float logbf(float x);
+    float modff(float x, float *iptr);
+    float scalbnf(float x, int y);
+    float scalblnf(float x, c_long y);
+
+    float cbrtf(float x);
+    float fabsf(float x);
+    float hypotf(float x, float y);
+    float powf(float x, float y);
+    float sqrtf(float x);
+
+    float erff(float x);
+    float erfcf(float x);
+    float lgammaf(float x);
+    float tgammaf(float x);
+
+    float ceilf(float x);
+    float floorf(float x);
+    float nearbyintf(float x);
+    float rintf(float x);
+    c_long lrintf(float x);
+    long llrintf(float x);
+    float roundf(float x);
+    c_long lroundf(float x);
+    long llroundf(float x);
+    float truncf(float x);
+
+    float fmodf(float x, float y);
+    float remainderf(float x, float y);
+    float remquof(float x, float y, int *iptr);
+
+    float copysignf(float x, float y);
+    float nanf(const char *);
+    float nextafterf(float x, float y);
+    float nexttowardf(float x, real y);
+
+    float fdimf(float x, float y);
+    float fmaxf(float x, float y);
+    float fminf(float x, float y);
+
+    float fmaf(float x, float y, float z);
+
+    float j0f(float x);
+    float j1f(float x);
+    float jnf(int, float);
+    float scalbf(float x, float);
+    float y0f(float x);
+    float y1f(float x);
+    float ynf(int, float);
+    float gammaf(float x);
+    float dremf(float x, float);
+    int finitef(float x);
+    int isinff(float x);
+    int isnanf(float x);
+
+    float gammaf_r(float x, int *);
+    float lgammaf_r(float x, int *);
+    float significandf(float x);
+
+    /* real */
+    real acosl(real x);
+    real asinl(real x);
+    real atanl(real x);
+    real atan2l(real x, real y);
+    real cosl(real x);
+    real sinl(real x);
+    real tanl(real x);
+
+    real acoshl(real x);
+    real asinhl(real x);
+    real atanhl(real x);
+    real coshl(real x);
+    real sinhl(real x);
+    real tanhl(real x);
+
+    real expl(real x);
+    real exp2l(real x);
+    real expm1l(real x);
+    real frexpl(real x, int *exp);
+    int ilogbl(real x);
+    real ldexpl(real x, int exp);
+    real logl(real x);
+    real log10l(real x);
+    real log1pl(real x);
+    real log2l(real x);
+    real logbl(real x);
+    real modfl(real x, real *iptr);
+    real scalbnl(real x, int y);
+    real scalblnl(real x, c_long y);
+
+    real cbrtl(real x);
+    real fabsl(real x);
+    real hypotl(real x, real y);
+    real powl(real x, real y);
+    real sqrtl(real x);
+
+    real erfl(real x);
+    real erfcl(real x);
+    real lgammal(real x);
+    real tgammal(real x);
+
+    real ceill(real x);
+    real floorl(real x);
+    real nearbyintl(real x);
+    real rintl(real x);
+    c_long lrintl(real x);
+    long llrintl(real x);
+    real roundl(real x);
+    c_long lroundl(real x);
+    long llroundl(real x);
+    real truncl(real x);
+
+    real fmodl(real x, real);
+    real remainderl(real x, real);
+    real remquol(real x, real y, int *iptr);
+
+    real copysignl(real x, real y);
+    real nanl(const char *);
+    real nextafterl(real x, real y);
+    real nexttowardl(real x, real y);
+
+    real fdiml(real x, real y);
+    real fmaxl(real x, real y);
+    real fminl(real x, real y);
+
+    real fmal(real x, real, real);
 }
 else version(CRuntime_Bionic)
 {

@@ -1189,7 +1189,7 @@ class Thread
             }
             else
             {
-                // NOTE: pthread_setschedprio is not implemented on Darwin or FreeBSD, so use
+                // NOTE: pthread_setschedprio is not implemented on Darwin, FreeBSD or DragonFlyBSD, so use
                 //       the more complicated get/set sequence below.
                 int         policy;
                 sched_param param;
@@ -3206,6 +3206,7 @@ extern (C) @nogc nothrow
     version (CRuntime_Glibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (NetBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (DragonFlyBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
     version (Solaris) int thr_stksegment(stack_t* stk);
     version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
     version (CRuntime_Musl) int pthread_getattr_np(pthread_t, pthread_attr_t*);
@@ -3268,6 +3269,17 @@ private void* getStackBottom() nothrow @nogc
         return addr + size;
     }
     else version (NetBSD)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_attr_init(&attr);
+        pthread_attr_get_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else version (DragonFlyBSD)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -4521,6 +4533,7 @@ private:
             version (Posix) import core.sys.posix.sys.mman; // mmap
             version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
             version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
+            version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
             version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
             version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
 
@@ -5504,6 +5517,27 @@ version( D_InlineAsm_X86_64 )
 
 // regression test for Issue 13416
 version (FreeBSD) unittest
+{
+    static void loop()
+    {
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        auto thr = pthread_self();
+        foreach (i; 0 .. 50)
+            pthread_attr_get_np(thr, &attr);
+        pthread_attr_destroy(&attr);
+    }
+
+    auto thr = new Thread(&loop).start();
+    foreach (i; 0 .. 50)
+    {
+        thread_suspendAll();
+        thread_resumeAll();
+    }
+    thr.join();
+}
+
+version (DragonFlyBSD) unittest
 {
     static void loop()
     {
