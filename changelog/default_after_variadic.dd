@@ -1,6 +1,11 @@
-Function parameters with default values are now allowed after variadic template parameters, and when IFTI is used, always take their default values. This allows using special tokens (eg __FILE__) after variadic parameters, which was previously impossible. See also test/runnable/testdefault_after_variadic.d
+Function parameters with default values are now allowed after variadic template parameters
 
-Eg:
+Function parameters with default values are now allowed after variadic template parameters
+and when IFTI is used, always take their default values.
+This allows using special tokens (eg `__FILE__`) after variadic parameters, which was previously impossible.
+
+For example:
+
 ---
 string log(T...)(T a, string file = __FILE__, int line = __LINE__)
 {
@@ -10,8 +15,10 @@ string log(T...)(T a, string file = __FILE__, int line = __LINE__)
 assert(log(10, "abc") == text(__FILE__, ":", __LINE__, " 10abc"));
 ---
 
-This should be preferred to the previous workaround, which caused template bloat:
+This should be preferred to the previous workaround, which causes a new template instantiation
+for every invocation:
 ---
 string log(string file = __FILE__, int line = __LINE__, T...)(T a);
 ---
 
+For more details, see $(DMDSRC test/runnable/testdefault_after_variadic.d).
