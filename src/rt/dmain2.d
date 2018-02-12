@@ -60,6 +60,8 @@ extern (C) void _d_critical_init();
 extern (C) void _d_critical_term();
 extern (C) void gc_init();
 extern (C) void gc_term();
+extern (C) void thread_init() @nogc;
+extern (C) void thread_term() @nogc;
 extern (C) void lifetime_init();
 extern (C) void rt_moduleCtor();
 extern (C) void rt_moduleTlsCtor();
@@ -194,6 +196,7 @@ extern (C) int rt_init()
         // this initializes mono time before anything else to allow usage
         // in other druntime systems.
         _d_initMonoTime();
+        thread_init();
         gc_init();
         initStaticDataGC();
         lifetime_init();
@@ -225,6 +228,7 @@ extern (C) int rt_term()
         thread_joinAll();
         rt_moduleDtor();
         gc_term();
+        thread_term();
         return 1;
     }
     catch (Throwable t)

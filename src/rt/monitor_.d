@@ -56,6 +56,26 @@ extern (C) void _d_monitordelete(Object h, bool det)
     }
 }
 
+// does not call dispose events, for internal use only
+extern (C) void _d_monitordelete_nogc(Object h) @nogc
+{
+    auto m = getMonitor(h);
+    if (m is null)
+        return;
+
+    if (m.impl)
+    {
+        // let the GC collect the monitor
+        setMonitor(h, null);
+    }
+    else if (!atomicOp!("-=")(m.refs, cast(size_t) 1))
+    {
+        // refcount == 0 means unshared => no synchronization required
+        deleteMonitor(cast(Monitor*) m);
+        setMonitor(h, null);
+    }
+}
+
 extern (C) void _d_monitorenter(Object h)
 in
 {
@@ -173,6 +193,7 @@ else version (Posix)
 {
     import core.sys.posix.pthread;
 
+@nogc:
     alias Mutex = pthread_mutex_t;
     __gshared pthread_mutexattr_t gattr;
 
@@ -211,17 +232,17 @@ struct Monitor
 
 private:
 
-@property ref shared(Monitor*) monitor(Object h) pure nothrow
+@property ref shared(Monitor*) monitor(Object h) pure nothrow @nogc
 {
     return *cast(shared Monitor**)&h.__monitor;
 }
 
-private shared(Monitor)* getMonitor(Object h) pure
+private shared(Monitor)* getMonitor(Object h) pure @nogc
 {
     return atomicLoad!(MemoryOrder.acq)(h.monitor);
 }
 
-void setMonitor(Object h, shared(Monitor)* m) pure
+void setMonitor(Object h, shared(Monitor)* m) pure @nogc
 {
     atomicStore!(MemoryOrder.rel)(h.monitor, m);
 }
@@ -263,7 +284,7 @@ shared(Monitor)* ensureMonitor(Object h)
     }
 }
 
-void deleteMonitor(Monitor* m)
+void deleteMonitor(Monitor* m) @nogc
 {
     destroyMutex(&m.mtx);
     free(m);

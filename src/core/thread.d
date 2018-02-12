@@ -1727,7 +1727,7 @@ private:
 
     __gshared align(Mutex.alignof) void[__traits(classInstanceSize, Mutex)][2] _locks;
 
-    static void initLocks()
+    static void initLocks() @nogc
     {
         foreach (ref lock; _locks)
         {
@@ -1736,7 +1736,7 @@ private:
         }
     }
 
-    static void termLocks()
+    static void termLocks() @nogc
     {
         foreach (ref lock; _locks)
             (cast(Mutex)lock.ptr).__dtor();
@@ -2020,7 +2020,7 @@ version( Posix )
  * garbage collector on startup and before any other thread routines
  * are called.
  */
-extern (C) void thread_init()
+extern (C) void thread_init() @nogc
 {
     // NOTE: If thread_init itself performs any allocations then the thread
     //       routines reserved for garbage collector use may be called while
@@ -2090,17 +2090,28 @@ extern (C) void thread_init()
         status = sem_init( &suspendCount, 0, 0 );
         assert( status == 0 );
     }
-    Thread.sm_main = thread_attachThis();
+    if (typeid(Thread).initializer.ptr)
+        _mainThreadStore[] = typeid(Thread).initializer[];
+    Thread.sm_main = attachThread((cast(Thread)_mainThreadStore.ptr).__ctor());
 }
 
+private __gshared align(Thread.alignof) void[__traits(classInstanceSize, Thread)] _mainThreadStore;
+
+extern (C) void _d_monitordelete_nogc(Object h) @nogc;
 
 /**
  * Terminates the thread module. No other thread routine may be called
  * afterwards.
  */
-extern (C) void thread_term()
+extern (C) void thread_term() @nogc
 {
-    destroy(Thread.sm_main);
+    assert(_mainThreadStore.ptr is cast(void*) Thread.sm_main);
+
+    // destruct manually as object.destroy is not @nogc
+    Thread.sm_main.__dtor();
+    _d_monitordelete_nogc(Thread.sm_main);
+    if (typeid(Thread).initializer.ptr)
+        _mainThreadStore[] = typeid(Thread).initializer[];
     Thread.sm_main = null;
 
     assert(Thread.sm_tbeg && Thread.sm_tlen == 1);
@@ -2135,12 +2146,14 @@ extern (C) bool thread_isMainThread() nothrow @nogc
  */
 extern (C) Thread thread_attachThis()
 {
-    GC.disable(); scope(exit) GC.enable();
-
     if (auto t = Thread.getThis())
         return t;
 
-    Thread          thisThread  = new Thread();
+    return attachThread(new Thread());
+}
+
+private Thread attachThread(Thread thisThread) @nogc
+{
     Thread.Context* thisContext = &thisThread.m_main;
     assert( thisContext == thisThread.m_curr );
 

@@ -25,9 +25,6 @@ private
     static import core.memory;
     alias BlkInfo = core.memory.GC.BlkInfo;
 
-    extern (C) void thread_init();
-    extern (C) void thread_term();
-
     __gshared GC instance;
     __gshared GC proxiedGC; // used to iterate roots of Windows DLLs
 
@@ -50,10 +47,6 @@ extern (C)
             fprintf(stderr, "No GC was initialized, please recheck the name of the selected GC ('%.*s').\n", cast(int)config.gc.length, config.gc.ptr);
             exit(1);
         }
-
-        // NOTE: The GC must initialize the thread library
-        //       before its first collection.
-        thread_init();
     }
 
     void gc_term()
@@ -70,8 +63,6 @@ extern (C)
 
         instance.collectNoStack(); // not really a 'collect all' -- still scans
                                     // static data area, roots, and ranges.
-
-        thread_term();
 
         ManualGC.finalize(instance);
         ConservativeGC.finalize(instance);
