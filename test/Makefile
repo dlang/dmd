@@ -36,6 +36,10 @@
 #                        once by explicitly passing the modules to the compiler.
 #                        default: (none)
 #
+#   DFLAGS:              Overrides the DFLAGS environment variable if specified in the test.
+#                        No values are permitted; an error will be emitted if the value is not
+#                        empty.
+#
 #   EXTRA_SOURCES:       list of extra files to build and link along with the test
 #                        default: (none)
 #
