@@ -30,6 +30,7 @@ extern (C++)
     bool dtallzeros(const(dt_t)* dt);
     bool dtpointers(const(dt_t)* dt);
     void dt2common(dt_t **pdt);
+    uint dt_size(const(dt_t)* dtstart);
 }
 
 extern (C++) class DtBuilder
