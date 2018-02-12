@@ -57,7 +57,7 @@ endif
 
 # build with shared library support
 # (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+SHARED=$(if $(findstring $(OS),linux freebsd dragonflybsd),1,)
 
 LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 
@@ -204,7 +204,7 @@ $(IMPDIR)/%.d : src/%.d
 ######################## Build DMD if non-existent ##############################
 
 $(DMD):
-	make -C $(DMD_DIR)/src -f posix.mak BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL)
+	$(MAKE) -C $(DMD_DIR)/src -f posix.mak BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL)
 
 ################### C/ASM Targets ############################
 

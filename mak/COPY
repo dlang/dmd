@@ -86,6 +86,24 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\sys\mman.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	\
+	$(IMPDIR)\core\sys\dragonflybsd\dlfcn.d \
+	$(IMPDIR)\core\sys\dragonflybsd\execinfo.d \
+	\
+	$(IMPDIR)\core\sys\dragonflybsd\netinet\in_.d \
+	\
+	$(IMPDIR)\core\sys\dragonflybsd\sys\cdefs.d \
+	$(IMPDIR)\core\sys\dragonflybsd\pthread_np.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\_bitset.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\_cpuset.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\elf.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\elf32.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\elf64.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\elf_common.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\event.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\link_elf.d \
+	$(IMPDIR)\core\sys\dragonflybsd\sys\mman.d \
+	$(IMPDIR)\core\sys\dragonflybsd\time.d \
+	\
 	$(IMPDIR)\core\sys\linux\config.d \
 	$(IMPDIR)\core\sys\linux\dlfcn.d \
 	$(IMPDIR)\core\sys\linux\elf.d \

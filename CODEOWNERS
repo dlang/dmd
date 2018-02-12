@@ -33,6 +33,7 @@ src/core/sys/darwin/* @jacob-carlborg @klickverbot @etcimon @MartinNowak
 src/core/sys/freebsd/* @redstar @MartinNowak @Calrama @jmdavis
 src/core/sys/linux/* @Burgos @redstar @MartinNowak
 src/core/sys/netbsd/* @nrTQgc @joakim-noah
+src/core/sys/dragonflybsd/* @dkgroot
 src/core/sys/openbsd/* @redstar
 src/core/sys/osx/* @jacob-carlborg @klickverbot @etcimon @MartinNowak
 src/core/sys/posix/* @CyberShadow @MartinNowak @joakim-noah @redstar
