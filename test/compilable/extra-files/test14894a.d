@@ -1,4 +1,4 @@
-module imports.test14894a;
+module test14894a;
 
 mixin template Protocol()
 {

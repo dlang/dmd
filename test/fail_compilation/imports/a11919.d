@@ -1,3 +1,4 @@
+module imports.a11919;
 void doBar(T)(T t)
 {
     static if (t.tupleof.length)

@@ -1,3 +1,5 @@
+module imports.foo10727a;
+
 struct CirBuff(T)
 {
     import imports.stdtraits10727 : isArray;

@@ -31,6 +31,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.parse;
+import dmd.root.array;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.outbuffer;
@@ -514,7 +515,49 @@ extern (C++) final class Module : Package
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
             message("import    %s", buf.peekString());
         }
-        m = m.parse();
+        {
+            auto originalModule = m;
+            m = m.parse();
+
+            // verify the module name matches the imported module name
+            if (m is originalModule)
+            {
+                if (m.md is null)
+                {
+                    // in this case there was no module declaration, this means the import
+                    // should have no package prefix, but for now we support this with a
+                    // depecration message for backwards compatibility
+                    if (packages && packages.dim > 0)
+                        m.deprecation(loc, "from file %s should be imported with 'import %s;'",
+                            m.srcfile.name.toChars(), m.toPrettyChars());
+                }
+                else if (!packages.opEquals(m.md.packages) || ident != m.md.id)
+                {
+                    // deprecate the case when the ends of the names match
+                    bool deprecate = false;
+                    if (ident == m.md.id)
+                    {
+                        deprecate = true;
+                        auto mdPackageCount = (m.md.packages == null) ? 0 : m.md.packages.dim;
+                        auto packageCount   = (packages      == null) ? 0 : packages.dim;
+                        for (size_t i = 1; i <= mdPackageCount && i <= packageCount; i++)
+                        {
+                            if (m.md.packages[mdPackageCount - i] != packages[packageCount - i])
+                            {
+                                deprecate = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (deprecate)
+                        m.deprecation(loc, "from file %s should be imported with 'import %s;'",
+                            m.srcfile.name.toChars(), m.toPrettyChars());
+                    else
+                        m.error(loc, "from file %s must be imported with 'import %s;'",
+                            m.srcfile.name.toChars(), m.toPrettyChars());
+                }
+            }
+        }
 
         // Call onImport here because if the module is going to be compiled then we
         // need to determine it early because it affects semantic analysis. This is

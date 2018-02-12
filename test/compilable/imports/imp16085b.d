@@ -1,4 +1,5 @@
-import imp16085 : S;
+module imports.imp16085b;
+import imports.imp16085 : S;
 
 struct Fail
 {

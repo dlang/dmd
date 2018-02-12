@@ -1,4 +1,4 @@
-module a18243;
+module imports.a18243;
 
 import std.math : isNaN;
 

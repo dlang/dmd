@@ -1,3 +1,4 @@
+module imports.protectionimp;
 private
 {
     void privF() {}

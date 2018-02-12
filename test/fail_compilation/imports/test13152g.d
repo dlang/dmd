@@ -1,3 +1,4 @@
+module imports.test13152g;
 public import imports.test13152a;
 public import imports.test13152b;
 public import imports.test13152c;

@@ -1,4 +1,4 @@
-module imports_test71;
+module imports.test71;
 import imports = object;
 
 void foo()

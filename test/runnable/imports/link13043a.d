@@ -1,4 +1,4 @@
-module imports.lin13043a;
+module imports.link13043a;
 
 struct QualifiedNameTests
 {
