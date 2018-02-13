@@ -1094,7 +1094,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (imp.mod)
         {
             // Modules need a list of each imported module
-            //printf("%s imports %s\n", sc.module.toChars(), mod.toChars());
+            //printf("%s imports %s\n", sc._module.toChars(), imp.mod.toChars());
             sc._module.aimports.push(imp.mod);
 
             if (sc.explicitProtection)
@@ -1145,13 +1145,20 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc.protection = imp.protection;
             for (size_t i = 0; i < imp.aliasdecls.dim; i++)
             {
-                bool flag;
                 AliasDeclaration ad = imp.aliasdecls[i];
                 //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
                 Dsymbol sym = imp.mod.search(imp.loc, imp.names[i] /*, IgnorePrivateImports */);
                 if (sym)
                 {
-                    flag = true;
+                    // Deprecated in 2018-01.
+                    // Change to error in 2019-01 by deleteting the following 5 lines and uncommenting
+                    // the IgnorePrivateImports parameter from above.
+                    // @@@DEPRECATED_2019-01@@@.
+                    Dsymbol s = imp.mod.search(imp.loc, imp.names[i], IgnorePrivateImports);
+                    if (!s)
+                        .deprecation(imp.loc,
+                            "Symbol `%s` is not visible from module `%s` because it is privately imported in module `%s`",
+                            sym.toPrettyChars, sc._module.toChars(), imp.mod.toChars());
 
                     // Deprecated in 2018-01.
                     // Change to error in 2019-01.
@@ -1174,14 +1181,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         imp.mod.error(imp.loc, "import `%s` not found", imp.names[i].toChars());
                     ad.type = Type.terror;
                 }
-
-                // Deprecated in 2018-01.
-                // Change to error in 2019-01 by deleteting the following 3 lines and uncommenting
-                // the IgnorePrivateImports parameter from above.
-                // @@@DEPRECATED_2019-01@@@.
-                Dsymbol s = imp.mod.search(imp.loc, imp.names[i], IgnorePrivateImports);
-                if (!s && flag)
-                    .deprecation(imp.loc, "Symbol `%s` is not visible because it is privately imported", imp.names[i].toChars());
             }
             sc = sc.pop();
         }
