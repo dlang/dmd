@@ -1,4 +1,5 @@
-import imports.a12037;
+// EXTRA_SOURCES: imports/a12037.d
+import imports.aXXXXX;
 
 alias CustomFloat!(10, 5) Float16;
 

@@ -1,4 +1,4 @@
-
+// EXTRA_SOURCES: imports/a9741.d
 import core.stdc.stdio;
 
 template Tuple(T...)
@@ -320,7 +320,7 @@ struct Bug9652
 /************************************************/
 // 9741
 
-import imports.a9741;
+import imports.a9741b;
 
 struct A9741 {}
 

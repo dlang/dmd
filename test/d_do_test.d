@@ -459,24 +459,45 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
 }
 
 // compare output string to reference string, but ignore places
-// marked by $n$ that contain compiler generated unique numbers
+// marked by $n$ that contain compiler generated unique numbers and
+// also ignore dir seperators '/'
 bool compareOutput(string output, string refoutput)
 {
     import std.ascii : digits;
     import std.utf : byCodeUnit;
     for ( ; ; )
     {
+        bool skipDirSeparator = false;
         auto pos = refoutput.indexOf("$n$");
         if (pos < 0)
-            return refoutput == output;
+        {
+            pos = refoutput.indexOf("/");
+            if (pos < 0)
+            {
+                pos = refoutput.indexOf("\\");
+                if (pos < 0)
+                    return refoutput == output;
+            }
+            skipDirSeparator = true;
+        }
         if (output.length < pos)
             return false;
         if (refoutput[0..pos] != output[0..pos])
             return false;
-        refoutput = refoutput[pos + 3 ..$];
-        output = output[pos..$];
-        auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
-        output = output[p..$];
+        if (skipDirSeparator)
+        {
+            refoutput = refoutput[pos + 1 .. $];
+            if (output[pos] != '/' && output[pos] != '\\')
+                return false;
+            output    = output[pos + 1 .. $];
+        }
+        else
+        {
+            refoutput = refoutput[pos + 3 ..$];
+            output = output[pos..$];
+            auto p = output.byCodeUnit.countUntil!(e => !digits.canFind(e));
+            output = output[p..$];
+        }
     }
 }
 
