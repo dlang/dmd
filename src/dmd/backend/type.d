@@ -14,7 +14,7 @@ module dmd.backend.type;
 // Online documentation: https://dlang.org/phobos/dmd_backend_type.html
 
 import dmd.backend.cdef;
-import dmd.backend.cc : block, Blockx, Classsym, Symbol;
+import dmd.backend.cc : block, Blockx, Classsym, Symbol, param_t;
 import dmd.backend.code;
 import dmd.backend.el : elem;
 import dmd.backend.ty;
@@ -58,21 +58,10 @@ enum
     TFemptyexc    = 0x100,  // tyfunc(): empty exception specification
 }
 
-struct PARAM;
 alias type = TYPE;
 
 void type_incCount(type* t);
 void type_setIdent(type* t, char* ident);
-
-type* type_pointer(type* tnext);
-type* type_dyn_array(type* tnext);
-extern extern (C) type* type_static_array(targ_size_t dim, type* tnext);
-type* type_assoc_array(type* tkey, type* tvalue);
-type* type_delegate(type* tnext);
-extern extern (C) type* type_function(tym_t tyf, type** ptypes, size_t nparams, bool variadic, type* tret);
-type* type_enum(const(char)* name, type* tbase);
-type* type_struct_class(const(char)* name, uint alignsize, uint structsize,
-    type* arg1type, type* arg2type, bool isUnion, bool isClass, bool isPOD);
 
 void symbol_struct_addField(Symbol* s, const(char)* name, type* t, uint offset);
 
@@ -82,6 +71,7 @@ bool type_struct(type* t) { return tybasic(t.Tty) == TYstruct; }
 struct TYPE
 {
     debug ushort id;
+    enum IDtype = 0x1234;
 
     tym_t Tty;     /* mask (TYxxx)                         */
     type_flags_t Tflags; // TFxxxxx
@@ -95,10 +85,11 @@ struct TYPE
     {
         targ_size_t Tdim;   // TYarray: # of elements in array
         elem* Tel;          // TFvla: gives dimension (NULL if '*')
-        PARAM* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
+        param_t* Tparamtypes; // TYfunc, TYtemplate: types of function parameters
         Classsym* Ttag;     // TYstruct,TYmemptr: tag symbol
                             // TYenum,TYvtshape: tag symbol
         char* Tident;       // TYident: identifier
+        type* Talternate;   // C++: typtr: type of parameter before converting
         type* Tkey;         // typtr: key type for associative arrays
     }
 
@@ -111,9 +102,30 @@ struct TYPE
     unittest { assert(sizeCheck() == TYPE.sizeof); }
 }
 
+struct typetemp_t
+{
+    TYPE Ttype;
+
+    /* Tsym should really be part of a derived class, as we only
+        allocate room for it if TYtemplate
+     */
+    Symbol *Tsym;               // primary class template symbol
+}
+
+void type_debug(type* t)
+{
+    debug assert(t.id == t.IDtype);
+}
+
 // Workaround 2.066.x bug by resolving the TYMAX value before using it as dimension.
 static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;
+
+// Return name mangling of type
+mangle_t type_mangle(type *t) { return t.Tmangle; }
+
+// Return true if function type has a variable number of arguments
+bool variadic(type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 extern __gshared type*[TYMAX] tstypes;
 extern __gshared type*[TYMAX] tsptr2types;
@@ -131,6 +143,19 @@ extern __gshared
     type* tstrace;
 }
 
+/* Functions    */
+void type_print(type *t);
+void type_free(type *);
+void type_init();
+void type_term();
+type *type_copy(type *);
+elem *type_vla_fix(type **pt);
+type *type_setdim(type **,targ_size_t);
+type *type_setdependent(type *t);
+int type_isdependent(type *t);
+void type_hydrate(type **);
+void type_dehydrate(type **);
+
 targ_size_t type_size(type *);
 uint type_alignsize(type *);
 uint type_paramsize(type *t);
@@ -145,4 +170,23 @@ type *type_setmangle(type **pt,mangle_t mangle);
 type *type_setcv(type **pt,tym_t cv);
 int type_embed(type *t,type *u);
 int type_isvla(type *t);
+
+param_t *param_calloc();
+param_t *param_append_type(param_t **,type *);
+void param_free_l(param_t *);
+void param_free(param_t **);
+Symbol *param_search(const(char)* name, param_t **pp);
+void param_hydrate(param_t **);
+void param_dehydrate(param_t **);
+int typematch(type *t1, type *t2, int relax);
+
+type *type_pointer(type *tnext);
+type *type_dyn_array(type *tnext);
+extern (C) type *type_static_array(targ_size_t dim, type *tnext);
+type *type_assoc_array(type *tkey, type *tvalue);
+type *type_delegate(type *tnext);
+extern (C) type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
+type *type_enum(const(char) *name, type *tbase);
+type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
 
