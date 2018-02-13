@@ -120,7 +120,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             {
                 Scope scx;
                 scx._module = sd.getModule();
-                getTypeInfoType(t, &scx);
+                getTypeInfoType(sd.loc, t, &scx);
                 sd.requestTypeInfo = true;
             }
             else if (!sc.minst)
@@ -130,7 +130,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             }
             else
             {
-                getTypeInfoType(t, sc);
+                getTypeInfoType(sd.loc, t, sc);
                 sd.requestTypeInfo = true;
 
                 // https://issues.dlang.org/show_bug.cgi?id=15149

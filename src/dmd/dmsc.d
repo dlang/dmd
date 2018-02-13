@@ -21,6 +21,7 @@ extern (C++):
 import dmd.globals;
 import dmd.dclass;
 import dmd.dmodule;
+import dmd.mtype;
 
 import dmd.root.filename;
 
@@ -123,7 +124,7 @@ void backend_init()
         params.stackstomp,
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
         params.useModuleInfo && Module.moduleinfo,
-        params.useTypeInfo,
+        params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable
     );
 

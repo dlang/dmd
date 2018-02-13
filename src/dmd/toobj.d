@@ -373,7 +373,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(cd.type, null);
+            genTypeInfo(cd.loc, cd.type, null);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             //////////////////////////////////////////////
@@ -672,7 +672,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(id.type, null);
+            genTypeInfo(id.loc, id.type, null);
             id.type.vtinfo.accept(this);
 
             //////////////////////////////////////////////
@@ -841,8 +841,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (global.params.symdebug)
                     toDebug(sd);
 
-                if (global.params.useTypeInfo)
-                    genTypeInfo(sd.type, null);
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    genTypeInfo(sd.loc, sd.type, null);
 
                 // Generate static initializer
                 toInitializer(sd);
@@ -1004,7 +1004,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(ed);
 
             if (global.params.useTypeInfo)
-                genTypeInfo(ed.type, null);
+                genTypeInfo(ed.loc, ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))

@@ -24,14 +24,26 @@ import dmd.mtype;
 import dmd.visitor;
 
 /****************************************************
- * Get the exact TypeInfo.
+ * Generates the `TypeInfo` object associated with `torig` if it
+ * hasn't already been generated
+ * Params:
+ *      loc   = the location for reporting line numbers in errors
+ *      torig = the type to generate the `TypeInfo` object for
+ *      sc    = the scope
  */
-extern (C++) void genTypeInfo(Type torig, Scope* sc)
+extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
+
+    if (!global.params.useTypeInfo)
+    {
+        torig.error(loc, "`TypeInfo` cannot be used with -betterC");
+        fatal();
+    }
+
     if (!Type.dtypeinfo)
     {
-        torig.error(Loc.initial, "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+        torig.error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
         fatal();
     }
 
@@ -73,10 +85,19 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
     assert(torig.vtinfo);
 }
 
-extern (C++) Type getTypeInfoType(Type t, Scope* sc)
+/****************************************************
+ * Gets the type of the `TypeInfo` object associated with `t`
+ * Params:
+ *      loc = the location for reporting line nunbers in errors
+ *      t   = the type to get the type of the `TypeInfo` object for
+ *      sc  = the scope
+ * Returns:
+ *      The type of the `TypeInfo` object associated with `t`
+ */
+extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
 {
     assert(t.ty != Terror);
-    genTypeInfo(t, sc);
+    genTypeInfo(loc, t, sc);
     return t.vtinfo.type;
 }
 

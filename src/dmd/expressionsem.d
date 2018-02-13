@@ -3765,7 +3765,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             // Handle this in the glue layer
             e = new TypeidExp(exp.loc, ta);
-            e.type = getTypeInfoType(ta, sc);
+            e.type = getTypeInfoType(exp.loc, ta, sc);
 
             semanticTypeInfo(sc, ta);
 

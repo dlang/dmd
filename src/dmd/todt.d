@@ -586,7 +586,7 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
         {
             if (Type t = isType(e.obj))
             {
-                genTypeInfo(t, null);
+                genTypeInfo(e.loc, t, null);
                 Symbol *s = toSymbol(t.vtinfo);
                 dtb.xoff(s, 0);
                 return;
@@ -1000,7 +1000,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.size(0);                                     // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(tm, null);
+        genTypeInfo(d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1013,7 +1013,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.size(0);                                         // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(tm, null);
+        genTypeInfo(d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1026,7 +1026,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.size(0);                                     // monitor
         Type tm = d.tinfo.unSharedOf();
         tm = tm.merge();
-        genTypeInfo(tm, null);
+        genTypeInfo(d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1039,7 +1039,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.size(0);                                 // monitor
         Type tm = d.tinfo.mutableOf();
         tm = tm.merge();
-        genTypeInfo(tm, null);
+        genTypeInfo(d.loc, tm, null);
         dtb.xoff(toSymbol(tm.vtinfo), 0);
     }
 
@@ -1065,7 +1065,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // TypeInfo for enum members
         if (sd.memtype)
         {
-            genTypeInfo(sd.memtype, null);
+            genTypeInfo(d.loc, sd.memtype, null);
             dtb.xoff(toSymbol(sd.memtype.vtinfo), 0);
         }
         else
@@ -1106,7 +1106,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypePointer tc = cast(TypePointer)d.tinfo;
 
-        genTypeInfo(tc.next, null);
+        genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for type being pointed to
     }
 
@@ -1122,7 +1122,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeDArray tc = cast(TypeDArray)d.tinfo;
 
-        genTypeInfo(tc.next, null);
+        genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for array of type
     }
 
@@ -1138,7 +1138,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeSArray tc = cast(TypeSArray)d.tinfo;
 
-        genTypeInfo(tc.next, null);
+        genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
         dtb.size(tc.dim.toInteger());          // length
@@ -1156,7 +1156,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeVector tc = cast(TypeVector)d.tinfo;
 
-        genTypeInfo(tc.basetype, null);
+        genTypeInfo(d.loc, tc.basetype, null);
         dtb.xoff(toSymbol(tc.basetype.vtinfo), 0); // TypeInfo for equivalent static array
     }
 
@@ -1172,10 +1172,10 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeAArray tc = cast(TypeAArray)d.tinfo;
 
-        genTypeInfo(tc.next, null);
+        genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0);   // TypeInfo for array of type
 
-        genTypeInfo(tc.index, null);
+        genTypeInfo(d.loc, tc.index, null);
         dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
     }
 
@@ -1191,7 +1191,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeFunction tc = cast(TypeFunction)d.tinfo;
 
-        genTypeInfo(tc.next, null);
+        genTypeInfo(d.loc, tc.next, null);
         dtb.xoff(toSymbol(tc.next.vtinfo), 0); // TypeInfo for function return value
 
         const(char)* name = d.tinfo.deco;
@@ -1216,7 +1216,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeDelegate tc = cast(TypeDelegate)d.tinfo;
 
-        genTypeInfo(tc.next.nextOf(), null);
+        genTypeInfo(d.loc, tc.next.nextOf(), null);
         dtb.xoff(toSymbol(tc.next.nextOf().vtinfo), 0); // TypeInfo for delegate return value
 
         const(char)* name = d.tinfo.deco;
@@ -1375,7 +1375,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
                 // m_argi
                 if (t)
                 {
-                    genTypeInfo(t, null);
+                    genTypeInfo(d.loc, t, null);
                     dtb.xoff(toSymbol(t.vtinfo), 0);
                 }
                 else
@@ -1444,7 +1444,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         {
             Parameter arg = (*tu.arguments)[i];
 
-            genTypeInfo(arg.type, null);
+            genTypeInfo(d.loc, arg.type, null);
             Symbol* s = toSymbol(arg.type.vtinfo);
             dtbargs.xoff(s, 0);
         }
