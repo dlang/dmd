@@ -2,7 +2,6 @@ DMD
 ===
 
 [![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](https://github.com/dlang/dmd/releases)
-[![Build Status](https://travis-ci.org/dlang/dmd.svg?branch=master)](https://travis-ci.org/dlang/dmd)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](https://codecov.io/gh/dlang/dmd)
 [![license](https://img.shields.io/github/license/dlang/dmd.svg)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
