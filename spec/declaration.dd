@@ -115,6 +115,8 @@ $(MULTICOLS 5,
     $(D uint)
     $(D long)
     $(D ulong)
+    $(D cent)
+    $(D ucent)
     $(D char)
     $(D wchar)
     $(D dchar)
