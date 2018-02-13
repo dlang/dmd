@@ -475,6 +475,8 @@ unittest
 
     Examples:
 --------------------
+import std.datetime;
+
 assert(dur!"days"(12) == dur!"hnsecs"(10_368_000_000_000L));
 assert(dur!"hnsecs"(27) == dur!"hnsecs"(27));
 assert(std.datetime.Date(2010, 9, 7) + dur!"days"(5) ==
