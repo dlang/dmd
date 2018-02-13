@@ -1460,7 +1460,6 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             {
                 return True();
             }
-            return False();
         }
 
         auto s1 = getDsymbol(o1);
