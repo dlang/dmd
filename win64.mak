@@ -628,6 +628,9 @@ $(IMPDIR)\core\sys\osx\sys\mman.d : src\core\sys\osx\sys\mman.d
 $(IMPDIR)\core\sys\posix\arpa\inet.d : src\core\sys\posix\arpa\inet.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\aio.d : src\core\sys\posix\aio.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\config.d : src\core\sys\posix\config.d
 	copy $** $@
 
