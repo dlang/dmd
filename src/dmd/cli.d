@@ -550,11 +550,11 @@ dmd -cov -unittest myprog.d
         ),
         Option("w",
             "warnings as errors (compilation will halt)",
-            `Enable $(LINK2 $(ROOT_DIR)/warnings.html, warnings)`
+            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, warnings)`
         ),
         Option("wi",
             "warnings as messages (compilation will continue)",
-            `Enable $(LINK2 warnings.html, informational warnings (i.e. compilation
+            `Enable $(LINK2 $(ROOT_DIR)articles/warnings.html, informational warnings (i.e. compilation
             still proceeds normally))`,
         ),
         Option("X",
