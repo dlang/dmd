@@ -245,6 +245,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         Declaration d = sx.isDeclaration();
         if (d && !d.isTupleDeclaration())
         {
+            /* https://issues.dlang.org/show_bug.cgi?id=18429
+             *
+             * If the identifier in the AliasThis declaration
+             * is defined later and is a voldemort type, we must
+             * perform semantic on the declaration to deduce the type.
+             */
+            if (!d.type)
+                d.dsymbolSemantic(sc);
+
             Type t = d.type;
             assert(t);
             if (ad.type.implicitConvTo(t) > MATCH.nomatch)
