@@ -150,6 +150,22 @@ else version(CRuntime_Musl)
 
     int uname(utsname*);
 }
+else version(CRuntime_UClibc)
+{
+    private enum utsNameLength = 65;
+
+    struct utsname
+    {
+        char[utsNameLength] sysname;
+        char[utsNameLength] nodename;
+        char[utsNameLength] release;
+        char[utsNameLength] version_;
+        char[utsNameLength] machine;
+        char[utsNameLength] domainname;
+    }
+
+    int uname(utsname*);
+}
 else
 {
     static assert(false, "unsupported system");

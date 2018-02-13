@@ -941,6 +941,96 @@ else version( CRuntime_Musl )
         EAI_OVERFLOW       = -12,
     }
 }
+else version( CRuntime_UClibc )
+{
+    struct hostent
+    {
+        char*   h_name;
+        char**  h_aliases;
+        int     h_addrtype;
+        int     h_length;
+        char**  h_addr_list;
+        extern (D) char* h_addr() @property { return h_addr_list[0]; } // non-standard
+    }
+
+    struct netent
+    {
+        char*   n_name;
+        char**  n_aliases;
+        int     n_addrtype;
+        uint32_t n_net;
+    }
+
+    struct protoent
+    {
+        char*   p_name;
+        char**  p_aliases;
+        int     p_proto;
+    }
+
+    struct servent
+    {
+        char*   s_name;
+        char**  s_aliases;
+        int     s_port;
+        char*   s_proto;
+    }
+
+    enum IPPORT_RESERVED = 1024;
+
+    enum HOST_NOT_FOUND = 1;
+    enum NO_DATA        = 4;
+    enum NO_RECOVERY    = 3;
+    enum TRY_AGAIN      = 2;
+
+    struct addrinfo
+    {
+        int         ai_flags;
+        int         ai_family;
+        int         ai_socktype;
+        int         ai_protocol;
+        socklen_t   ai_addrlen;
+        sockaddr*   ai_addr;
+        char*       ai_canonname;
+        addrinfo*   ai_next;
+    }
+
+    enum AI_PASSIVE         = 0x1;
+    enum AI_CANONNAME       = 0x2;
+    enum AI_NUMERICHOST     = 0x4;
+    enum AI_NUMERICSERV     = 0x400;
+    enum AI_V4MAPPED        = 0x8;
+    enum AI_ALL             = 0x10;
+    enum AI_ADDRCONFIG      = 0x20;
+
+    enum NI_NOFQDN          = 4;
+    enum NI_NUMERICHOST     = 1;
+    enum NI_NAMEREQD        = 8;
+    enum NI_NUMERICSERV     = 2;
+    enum NI_DGRAM           = 16;
+    enum NI_MAXHOST         = 1025; // non-standard
+    enum NI_MAXSERV         = 32;   // non-standard
+
+    enum EAI_AGAIN          = -3;
+    enum EAI_BADFLAGS       = -1;
+    enum EAI_FAIL           = -4;
+    enum EAI_FAMILY         = -6;
+    enum EAI_MEMORY         = -10;
+    enum EAI_NONAME         = -2;
+    enum EAI_SERVICE        = -8;
+    enum EAI_SOCKTYPE       = -7;
+    enum EAI_SYSTEM         = -11;
+    enum EAI_OVERFLOW       = -12;
+
+    enum EAI_NODATA         = -5;
+    enum EAI_ADDRFAMILY     = -9;
+    enum EAI_INPROGRESS     = -100;
+    enum EAI_CANCELED       = -101;
+    enum EAI_NOTCANCELED    = -102;
+    enum EAI_ALLDONE        = -103;
+    enum EAI_INTR           = -104;
+    enum EAI_IDN_ENCODE     = -105;
+}
 else
 {
     static assert(false, "Unsupported platform");

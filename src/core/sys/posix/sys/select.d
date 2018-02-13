@@ -458,6 +458,54 @@ else version( CRuntime_Musl )
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
 }
+else version( CRuntime_UClibc )
+{
+    private
+    {
+        alias c_long __fd_mask;
+        enum uint __NFDBITS = 8 * __fd_mask.sizeof;
+
+        extern (D) auto __FDELT( int d ) pure
+        {
+            return d / __NFDBITS;
+        }
+
+        extern (D) auto __FDMASK( int d ) pure
+        {
+            return cast(__fd_mask) 1 << ( d % __NFDBITS );
+        }
+    }
+
+    enum FD_SETSIZE = 1024;
+
+    struct fd_set
+    {
+        __fd_mask[FD_SETSIZE / __NFDBITS] fds_bits;
+    }
+
+    extern (D) void FD_CLR( int fd, fd_set* fdset ) pure
+    {
+        fdset.fds_bits[__FDELT( fd )] &= ~__FDMASK( fd );
+    }
+
+    extern (D) bool FD_ISSET( int fd, const(fd_set)* fdset ) pure
+    {
+        return (fdset.fds_bits[__FDELT( fd )] & __FDMASK( fd )) != 0;
+    }
+
+    extern (D) void FD_SET( int fd, fd_set* fdset ) pure
+    {
+        fdset.fds_bits[__FDELT( fd )] |= __FDMASK( fd );
+    }
+
+    extern (D) void FD_ZERO( fd_set* fdset ) pure
+    {
+        fdset.fds_bits[0 .. $] = 0;
+    }
+
+    int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
+    int select(int, fd_set*, fd_set*, fd_set*, timeval*);
+}
 else
 {
     static assert(false, "Unsupported platform");

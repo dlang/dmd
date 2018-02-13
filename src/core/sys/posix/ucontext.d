@@ -995,6 +995,146 @@ else version ( Solaris )
         c_long[5]   uc_filler;
     }
 }
+else version( CRuntime_UClibc )
+{
+    version( X86_64 )
+    {
+        enum
+        {
+            REG_R8 = 0,
+            REG_R9,
+            REG_R10,
+            REG_R11,
+            REG_R12,
+            REG_R13,
+            REG_R14,
+            REG_R15,
+            REG_RDI,
+            REG_RSI,
+            REG_RBP,
+            REG_RBX,
+            REG_RDX,
+            REG_RAX,
+            REG_RCX,
+            REG_RSP,
+            REG_RIP,
+            REG_EFL,
+            REG_CSGSFS,     /* Actually short cs, gs, fs, __pad0.  */
+            REG_ERR,
+            REG_TRAPNO,
+            REG_OLDMASK,
+            REG_CR2
+        }
+
+        alias sigcontext mcontext_t;
+
+        struct ucontext_t
+        {
+            c_ulong         uc_flags;
+            ucontext_t*     uc_link;
+            stack_t         uc_stack;
+            mcontext_t      uc_mcontext;
+            sigset_t        uc_sigmask;
+        }
+    }
+    else version(MIPS32)
+    {
+        struct sigcontext
+        {
+            uint           sc_regmask;     /* Unused */
+            uint           sc_status;      /* Unused */
+            ulong          sc_pc;
+            ulong[32]      sc_regs;
+            ulong[32]      sc_fpregs;
+            uint           sc_acx;         /* Only MIPS32; was sc_ownedfp */
+            uint           sc_fpc_csr;
+            uint           sc_fpc_eir;     /* Unused */
+            uint           sc_used_math;
+            uint           sc_dsp;         /* dsp status, was sc_ssflags */
+            ulong          sc_mdhi;
+            ulong          sc_mdlo;
+            uint           sc_hi1;         /* Was sc_cause */
+            uint           sc_lo1;         /* Was sc_badvaddr */
+            uint           sc_hi2;         /* Was sc_sigset[4] */
+            uint           sc_lo2;
+            uint           sc_hi3;
+            uint           sc_lo3;
+        }
+
+        alias sigcontext mcontext_t;
+
+        struct ucontext_t
+        {
+            c_ulong uc_flags;
+            ucontext_t* uc_link;
+            stack_t uc_stack;
+            mcontext_t uc_mcontext;
+            sigset_t uc_sigmask;
+            c_ulong[0] uc_extcontext;
+        }
+    }
+    else version(ARM)
+    {
+        enum
+        {
+            R0 = 0,
+            R1 = 1,
+            R2 = 2,
+            R3 = 3,
+            R4 = 4,
+            R5 = 5,
+            R6 = 6,
+            R7 = 7,
+            R8 = 8,
+            R9 = 9,
+            R10 = 10,
+            R11 = 11,
+            R12 = 12,
+            R13 = 13,
+            R14 = 14,
+            R15 = 15
+        }
+
+        struct sigcontext
+        {
+            c_ulong trap_no;
+            c_ulong error_code;
+            c_ulong oldmask;
+            c_ulong arm_r0;
+            c_ulong arm_r1;
+            c_ulong arm_r2;
+            c_ulong arm_r3;
+            c_ulong arm_r4;
+            c_ulong arm_r5;
+            c_ulong arm_r6;
+            c_ulong arm_r7;
+            c_ulong arm_r8;
+            c_ulong arm_r9;
+            c_ulong arm_r10;
+            c_ulong arm_fp;
+            c_ulong arm_ip;
+            c_ulong arm_sp;
+            c_ulong arm_lr;
+            c_ulong arm_pc;
+            c_ulong arm_cpsr;
+            c_ulong fault_address;
+        }
+
+        alias sigcontext mcontext_t;
+
+        struct ucontext_t
+        {
+            c_ulong uc_flags;
+            ucontext_t* uc_link;
+            stack_t uc_stack;
+            mcontext_t uc_mcontext;
+            sigset_t uc_sigmask;
+            align(8) c_ulong[128] uc_regspace;
+        }
+    }
+    else
+        static assert(0, "unimplemented");
+}
 
 //
 // Obsolescent (OB)

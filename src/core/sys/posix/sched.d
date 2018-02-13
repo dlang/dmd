@@ -167,6 +167,21 @@ else version( CRuntime_Bionic )
     enum SCHED_FIFO     = 1;
     enum SCHED_RR       = 2;
 }
+else version( CRuntime_UClibc )
+{
+    struct sched_param
+    {
+        int sched_priority;
+    }
+
+    enum SCHED_OTHER    = 0;
+    enum SCHED_FIFO     = 1;
+    enum SCHED_RR       = 2;
+    enum SCHED_BATCH    = 3;
+    enum SCHED_IDLE     = 5;
+
+    enum SCHED_RESET_ON_FORK    = 0x40000000;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -217,6 +232,10 @@ else version (CRuntime_Bionic)
     int sched_yield();
 }
 else version (CRuntime_Musl)
+{
+    int sched_yield();
+}
+else version( CRuntime_UClibc )
 {
     int sched_yield();
 }
@@ -283,6 +302,12 @@ else version (CRuntime_Bionic)
     int sched_rr_get_interval(pid_t, timespec*);
 }
 else version (CRuntime_Musl)
+{
+    int sched_get_priority_max(int);
+    int sched_get_priority_min(int);
+    int sched_rr_get_interval(pid_t, timespec*);
+}
+else version( CRuntime_UClibc )
 {
     int sched_get_priority_max(int);
     int sched_get_priority_min(int);
