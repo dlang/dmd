@@ -58,7 +58,6 @@ extern (C) void _d_monitor_staticctor();
 extern (C) void _d_monitor_staticdtor();
 extern (C) void _d_critical_init();
 extern (C) void _d_critical_term();
-extern (C) void protogc_init();
 extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void thread_init() @nogc;

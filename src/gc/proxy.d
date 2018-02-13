@@ -38,8 +38,6 @@ extern (C)
 {
     void gc_init()
     {
-        import core.atomic : atomicLoad, atomicStore, MemoryOrder;
-
         instanceLock.lock();
         if (!isInstanceInit)
         {
@@ -48,7 +46,7 @@ extern (C)
             ManualGC.initialize(instance);
             ConservativeGC.initialize(instance);
 
-            if (instance == protoInstance)
+            if (instance is protoInstance)
             {
                 import core.stdc.stdio : fprintf, stderr;
                 import core.stdc.stdlib : exit;
@@ -61,6 +59,8 @@ extern (C)
                 assert(0);
             }
 
+            // Transfer all ranges and roots to the real GC.
+            (cast(ProtoGC) protoInstance).term();
             isInstanceInit = true;
         }
         instanceLock.unlock();
@@ -89,11 +89,14 @@ extern (C)
         // NOTE: Due to popular demand, this has been re-enabled.  It still has
         //       the problems mentioned above though, so I guess we'll see.
 
-        instance.collectNoStack();  // not really a 'collect all' -- still scans
-                                    // static data area, roots, and ranges.
+        if (isInstanceInit)
+        {
+            instance.collectNoStack();  // not really a 'collect all' -- still scans
+                                        // static data area, roots, and ranges.
 
-        ManualGC.finalize(instance);
-        ConservativeGC.finalize(instance);
+            ManualGC.finalize(instance);
+            ConservativeGC.finalize(instance);
+        }
     }
 
     void gc_enable()

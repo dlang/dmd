@@ -31,8 +31,27 @@ private
 
 class ProtoGC : GC
 {
-    __gshared Array!Root roots;
-    __gshared Array!Range ranges;
+    Array!Root roots;
+    Array!Range ranges;
+
+    // Call this function when initializing the real GC
+    // upon ProtoGC term. This function should be called
+    // after the real GC is in place.
+    void term()
+    {
+        // Transfer all ranges
+        foreach (ref r; ranges)
+        {
+            // Range(p, p + sz, cast() ti)
+            gc_addRange(r.pbot, r.ptop - r.pbot, r.ti);
+        }
+
+        // Transfer all roots
+        foreach (ref r; roots)
+        {
+            gc_addRoot(r.proot);
+        }
+    }
 
     this()
     {
@@ -141,14 +160,24 @@ class ProtoGC : GC
         return typeof(return).init;
     }
 
+
     void addRoot(void* p) nothrow @nogc
     {
-        gc_init_nothrow();
-        gc_addRoot(p);
+        roots.insertBack(Root(p));
     }
 
     void removeRoot(void* p) nothrow @nogc
     {
+        foreach (ref r; roots)
+        {
+            if (r is p)
+            {
+                r = roots.back;
+                roots.popBack();
+                return;
+            }
+        }
+        assert(false);
     }
 
     @property RootIterator rootIter() return @nogc
@@ -158,17 +187,31 @@ class ProtoGC : GC
 
     private int rootsApply(scope int delegate(ref Root) nothrow dg)
     {
+        foreach (ref r; roots)
+        {
+            if (auto result = dg(r))
+                return result;
+        }
         return 0;
     }
 
     void addRange(void* p, size_t sz, const TypeInfo ti = null) nothrow @nogc
     {
-        gc_init_nothrow();
-        gc_addRange(p, sz, ti);
+        ranges.insertBack(Range(p, p + sz, cast() ti));
     }
 
     void removeRange(void* p) nothrow @nogc
     {
+        foreach (ref r; ranges)
+        {
+            if (r.pbot is p)
+            {
+                r = ranges.back;
+                ranges.popBack();
+                return;
+            }
+        }
+        assert(false);
     }
 
     @property RangeIterator rangeIter() return @nogc
@@ -178,6 +221,11 @@ class ProtoGC : GC
 
     private int rangesApply(scope int delegate(ref Range) nothrow dg)
     {
+        foreach (ref r; ranges)
+        {
+            if (auto result = dg(r))
+                return result;
+        }
         return 0;
     }
 
