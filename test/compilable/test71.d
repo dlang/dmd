@@ -1,6 +1,7 @@
-import imports.test71;
+// EXTRA_SOURCES: imports/test71.d
+import imports_test71;
 
 void bar()
 {
-    imports.test71.foo();
+    imports_test71.foo();
 }

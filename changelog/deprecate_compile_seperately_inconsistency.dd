@@ -1,0 +1,21 @@
+Make imports behave the same whether or not both modules were given on the command line
+
+Before, if an import statement matches a filename but does not match its module name, an error is asserted, but only if both modules have been given on the command line. Now it will be an error even if the modules are not both given on the command line, i.e.
+---
+// main.d
+import foo;
+---
+---
+// foo.d
+module bar;
+---
+Before, this module would fail if compiled like this:
+$(CONSOLE dmd -c main.d foo.d)
+
+and pass if compiled like this:
+$(CONSOLE
+dmd -c main.d
+dmd -c foo.d
+)
+
+Now it will fail in both cases.

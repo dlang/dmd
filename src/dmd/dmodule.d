@@ -514,7 +514,36 @@ extern (C++) final class Module : Package
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
             message("import    %s", buf.peekString());
         }
-        m = m.parse();
+        {
+            auto originalModule = m;
+            m = m.parse();
+
+            // verify the module name matches the imported module name
+            if (m is originalModule && m.md !is null)
+            {
+                bool mismatch = false;
+                if (!ident.equals(m.md.id))
+                {
+                    mismatch = true;
+                }
+                else
+                {
+                    auto mdPackageCount = (m.md.packages == null) ? 0 : m.md.packages.dim;
+                    auto packageCount   = (packages      == null) ? 0 : packages.dim;
+                    for (size_t i = 1; i <= mdPackageCount && i <= packageCount; i++)
+                    {
+                        if (!(*m.md.packages)[mdPackageCount - i].equals((*packages)[packageCount - i]))
+                        {
+                            mismatch = true;
+                            break;
+                        }
+                    }
+                }
+                if (mismatch)
+                    m.deprecation(loc, "from file %s must be imported with 'import %s;'",
+                        m.srcfile.name.toChars(), m.toPrettyChars());
+            }
+        }
 
         // Call onImport here because if the module is going to be compiled then we
         // need to determine it early because it affects semantic analysis. This is
