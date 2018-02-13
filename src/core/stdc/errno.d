@@ -96,6 +96,14 @@ else version (Darwin)
         alias errno = __error;
     }
 }
+else version (Solaris)
+{
+    extern (C)
+    {
+        ref int ___errno();
+        alias errno = ___errno;
+    }
+}
 else
 {
     ///
