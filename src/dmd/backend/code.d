@@ -203,7 +203,14 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
-extern __gshared int BPRM;
+extern __gshared
+{
+    int BPRM;
+    targ_size_t localsize;
+    targ_size_t funcoffset;
+    targ_size_t framehandleroffset;
+    segidx_t cseg;
+}
 
 /* cgxmm.c */
 bool isXMMstore(uint op);
@@ -215,6 +222,11 @@ extern __gshared targ_size_t retoffset;
 extern __gshared int refparam;
 
 /* cod3.c */
+
+void cod3_initregs();
+void cod3_setdefault();
+void cod3_set32();
+void cod3_set64();
 targ_size_t cod3_spoff();
 uint calccodsize(code *c);
 targ_size_t cod3_bpoffset(Symbol *s);
