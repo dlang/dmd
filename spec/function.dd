@@ -2457,6 +2457,10 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
             }
             ---
 
+        $(P To ease debugging,
+            in a $(GLINK2 version, ConditionalStatement)
+            controlled by a $(GLINK2 version, DebugCondition)
+            `@nogc` functions can call functions that are not `@nogc`.)
 
 $(H2 $(LNAME2 function-safety, Function Safety))
 
