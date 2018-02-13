@@ -3,8 +3,8 @@
  * Available since Linux 2.6
  *
  * Copyright: Copyright D Language Foundation 2018.
- * License : $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors  : Alexandru Razvan Caciulescu (github.com/darredevil)
+ * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Authors:   Alexandru Razvan Caciulescu (github.com/darredevil)
  */
 module core.sys.posix.aio;
 
