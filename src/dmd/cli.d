@@ -311,10 +311,10 @@ dmd -cov -unittest myprog.d
             "look for imports also in directory"
         ),
         Option("i",
-            "same as -i=-std,-core,-etc,-object"
+            "include imported modules except from druntime/phobos (equivalent to -i=-std -i=-core -i=-etc -i=-object)"
         ),
-        Option("i=[-]<pattern>,[-]<pattern>,...",
-            "include/exclude imported modules whose name matches one of <pattern>"
+        Option("i=[-]<pattern>",
+            "include (or exclude if prefixed with '-') imported modules whose names match <pattern>"
         ),
         Option("ignore",
             "ignore unsupported pragmas"

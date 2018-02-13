@@ -1884,32 +1884,21 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.useInline = true;
                 params.hdrStripPlainFunctions = false;
             }
-            else if (p[1] == 'i')
+            else if (arg == "-i")
+                includeImports = true;
+            else if (startsWith(p + 1, "i="))
             {
                 includeImports = true;
-                if (p[2] != '\0')
+                if (!p[3])
                 {
-                    size_t start = 2 + (p[2] == '=');
-                    for (size_t nameIndex = start;; nameIndex++)
-                    {
-                        if (endOfModulePattern(p[nameIndex]))
-                        {
-                            auto pattern = p + start;
-                            // NOTE: we could check that the pattern only contains valid package characters
-                            //       if they aren't valid it's not a problem but would give the user a nice error message
-                            if (start == nameIndex)
-                            {
-                                error("invalid option '%s', module patterns cannot be empty", p);
-                                break;
-                            }
-                            includeModulePatterns.push(pattern);
-                            if (p[nameIndex] == '\0')
-                            {
-                                break;
-                            }
-                            start = nameIndex + 1;
-                        }
-                    }
+                    error("invalid option '%s', module patterns cannot be empty", p);
+                }
+                else
+                {
+                    // NOTE: we could check that the argument only contains valid "module-pattern" characters.
+                    //       Invalid characters doesn't break anything but an error message to the user might
+                    //       be nice.
+                    includeModulePatterns.push(p + 3);
                 }
             }
             else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
@@ -2351,16 +2340,6 @@ private void createMatchNodes()
 }
 
 /*
- * Module patterns are taken directly from the -i command line option,
- * so they can either end with the traditional terminating null, or they
- * can end with a comma.  This function returns true if the given character
- * matches either of these.
- * Returns:
- *  True if the given character is '\0' or ','.
- */
-private bool endOfModulePattern(char c) { return c == ',' || c == '\0'; }
-
-/*
  * Determines the depth of the given module pattern.
  * Params:
  *  modulePattern = The module pattern to determine the depth of.
@@ -2373,7 +2352,7 @@ private ushort parseModulePatternDepth(const(char)* modulePattern)
         modulePattern++;
 
     // handle special case
-    if (modulePattern[0] == '.' && endOfModulePattern(modulePattern[1]))
+    if (modulePattern[0] == '.' && modulePattern[1] == '\0')
         return 0;
 
     ushort depth = 1;
@@ -2382,7 +2361,7 @@ private ushort parseModulePatternDepth(const(char)* modulePattern)
         auto c = *modulePattern;
         if (c == '.')
             depth++;
-        if (endOfModulePattern(c))
+        if (c == '\0')
             return depth;
     }
 }
@@ -2437,7 +2416,7 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
         }
         for (;; modulePattern++)
         {
-            if (endOfModulePattern(*modulePattern))
+            if (*modulePattern == '\0')
             {
                 assert(modulePattern > idStart, "empty module pattern");
                 *lastNode = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
