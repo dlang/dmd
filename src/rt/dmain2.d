@@ -197,7 +197,7 @@ extern (C) int rt_init()
         // in other druntime systems.
         _d_initMonoTime();
         thread_init();
-        gc_init();
+        // TODO: fixme - calls GC.addRange -> Initializes GC
         initStaticDataGC();
         lifetime_init();
         rt_moduleCtor();

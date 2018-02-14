@@ -298,6 +298,7 @@ SRCS=\
 	src\gc\proxy.d \
 	src\gc\impl\conservative\gc.d \
 	src\gc\impl\manual\gc.d \
+	src\gc\impl\proto\gc.d \
 	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
