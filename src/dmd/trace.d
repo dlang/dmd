@@ -30,7 +30,7 @@ struct SymbolProfileEntry
 
 extern (C) __gshared uint dsymbol_profile_array_count;
 extern (C) __gshared SymbolProfileEntry* dsymbol_profile_array;
-enum dsymbol_profile_array_size = ushort.max * 1024; // 64 million entries should do, no ?
+enum dsymbol_profile_array_size = ushort.max * 512; // 32 million entries should do, no ?
 static this()
 {
     static if (SYMBOL_TRACE)

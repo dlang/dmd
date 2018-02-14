@@ -936,8 +936,32 @@ private int tryMain(size_t argc, const(char)** argv)
         char[255] fileNameBuffer;
         import core.stdc.time : ctime, time;
         auto now = time(null);
+        auto timeString = ctime(&now);
+        // replace the ' ' by _ and '\n' or '\r' by '\0'
+        {
+            int len = 0;
+            char c = void;
+            for(;;)
+            {
+                c = timeString[len++];
+                // break on null, just to be safe;
+                if (!c)
+                    break;
+
+                if (c == ' ')
+                    timeString[len - 1] = '_';
+
+                if (c == '\r' || c == '\n')
+                {
+                    timeString[len - 1] = '\0';
+                    break;
+                }
+            }
+        }
+
         sprintf(&fileNameBuffer[0],
-             "%s-%s.%s".ptr, "symbol".ptr, ctime(&now), "log".ptr);
+             "symbol-%s.log".ptr, timeString);
+
         auto f = File(&fileNameBuffer[0]);
 
         bufferPos += sprintf(cast(char*) bufferPos, "//");
