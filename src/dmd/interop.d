@@ -27,3 +27,5 @@ extern (C++) struct Darray(T)
 }
 
 alias Dstring = Darray!char;
+alias Dcstring = Darray!(const(char));
+
