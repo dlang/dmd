@@ -4770,6 +4770,8 @@ final class Parser(AST) : Lexer
                     error("'%s' cannot be placed after a template constraint", token.toChars);
                 else if (t == TOK.at)
                     error("attributes cannot be placed after a template constraint");
+                else if (t == TOK.if_)
+                    error("cannot use function constraints for non-template functions. Use `static if` instead");
                 else
                     error("semicolon expected following function declaration");
             }
