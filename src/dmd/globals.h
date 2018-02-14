@@ -165,6 +165,7 @@ struct Param
 
     bool doJsonGeneration;    // write JSON file
     const char *jsonfilename; // write JSON file to jsonfilename
+    unsigned jsonFieldFlags;  // JSON field flags to include
 
     unsigned debuglevel;   // debug level
     Array<const char *> *debugids;     // debug identifiers

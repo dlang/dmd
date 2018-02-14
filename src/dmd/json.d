@@ -797,19 +797,48 @@ public:
         objectEnd();
     }
 
+    /**
+    Generate an array of module objects that represent the syntax of each
+    "root module".
+
+    Params:
+     modules = array of the "root modules"
+    */
+    private void generateModules(Modules* modules)
+    {
+        arrayStart();
+        if (modules)
+        {
+            foreach (m; *modules)
+            {
+                if (global.params.verbose)
+                    message("json gen %s", m.toChars());
+                m.accept(this);
+            }
+        }
+        arrayEnd();
+    }
+
+    /**
+    Generate the "compilerInfo" object which contains information about the compiler
+    such as the filename, version, supported features, etc.
+    */
     private void generateCompilerInfo()
     {
         objectStart();
-        property("kind", "compilerInfo");
         property("binary", global.params.argv0);
         property("version", global._version);
         propertyBool("supportsIncludeImports", true);
         objectEnd();
     }
+
+    /**
+    Generate the "buildInfo" object which contains information specific to the
+    current build such as CWD, importPaths, configFile, etc.
+    */
     private void generateBuildInfo()
     {
         objectStart();
-        property("kind", "buildInfo");
         property("cwd", getcwd(null, 0));
         property("config", global.inifilename ? global.inifilename : null);
         if (global.params.lib) {
@@ -824,10 +853,15 @@ public:
         arrayEnd();
         objectEnd();
     }
+
+    /**
+    Generate the "semantics" object which contains a 'modules' field representing
+    semantic information about all the modules used in the compilation such as
+    module name, isRoot, contentImportedFiles, etc.
+    */
     private void generateSemantics()
     {
         objectStart();
-        property("kind", "semantics");
         propertyStart("modules");
         arrayStart();
         foreach (m; Module.amodules)
@@ -857,17 +891,80 @@ public:
 extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
-    json.arrayStart();
-    json.generateCompilerInfo();
-    json.generateBuildInfo();
-    for (size_t i = 0; i < modules.dim; i++)
+
+    if (global.params.jsonFieldFlags == 0)
     {
-        Module m = (*modules)[i];
-        if (global.params.verbose)
-            message("json gen %s", m.toChars());
-        m.accept(json);
+        // Generate the original format, which is just an array
+        // of modules representing their syntax.
+        json.generateModules(modules);
+        json.removeComma();
     }
-    json.generateSemantics();
-    json.arrayEnd();
-    json.removeComma();
+    else
+    {
+        // Generate the new format which is an object where each
+        // output option is its own field.
+
+        json.objectStart();
+        if (global.params.jsonFieldFlags & JsonFieldFlags.compilerInfo)
+        {
+            json.propertyStart("compilerInfo");
+            json.generateCompilerInfo();
+        }
+        if (global.params.jsonFieldFlags & JsonFieldFlags.buildInfo)
+        {
+            json.propertyStart("buildInfo");
+            json.generateBuildInfo();
+        }
+        if (global.params.jsonFieldFlags & JsonFieldFlags.modules)
+        {
+            json.propertyStart("modules");
+            json.generateModules(modules);
+        }
+        if (global.params.jsonFieldFlags & JsonFieldFlags.semantics)
+        {
+            json.propertyStart("semantics");
+            json.generateSemantics();
+        }
+        json.objectEnd();
+    }
+}
+
+/**
+A string listing the name of each JSON field. Useful for errors messages.
+*/
+enum jsonFieldNames = () {
+    string s;
+    string prefix = "";
+    foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
+    {
+        static if (idx > 0)
+        {
+            s ~= prefix ~ "`" ~ enumName ~ "`";
+            prefix = ", ";
+        }
+    }
+    return s;
+}();
+
+/**
+Parse the given `fieldName` and return its corresponding JsonFieldFlags value.
+
+Params:
+ fieldName = the field name to parse
+
+Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
+         corresponding to the given fieldName.
+*/
+JsonFieldFlags tryParseJsonField(const(char)* fieldName)
+{
+    auto fieldNameString = fieldName[0 .. strlen(fieldName)];
+    foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
+    {
+        static if (idx > 0)
+        {
+            if (fieldNameString == enumName)
+                return __traits(getMember, JsonFieldFlags, enumName);
+        }
+    }
+    return JsonFieldFlags.none;
 }

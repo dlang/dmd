@@ -68,6 +68,20 @@ enum CPU
     native              // the machine the compiler is being run on
 }
 
+/**
+Each flag represents a field that can be included in the JSON output.
+
+NOTE: set type to uint so its size matches C++ unsigned type
+*/
+enum JsonFieldFlags : uint
+{
+    none         = 0,
+    compilerInfo = (1 << 0),
+    buildInfo    = (1 << 1),
+    modules      = (1 << 2),
+    semantics    = (1 << 3),
+}
+
 // Put command line switches in here
 struct Param
 {
@@ -180,6 +194,7 @@ struct Param
 
     bool doJsonGeneration;              // write JSON file
     const(char)* jsonfilename;          // write JSON file to jsonfilename
+    JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
 
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers

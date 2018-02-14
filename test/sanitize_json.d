@@ -1,6 +1,9 @@
 import std.exception : assumeUnique;
+import std.conv : text;
+import std.range : take, chain, drop;
 import std.string : startsWith, replace;
 import std.format : formattedWrite, format;
+import std.uni : asCapitalized;
 import std.json;
 import std.getopt;
 import std.file : readText;
@@ -39,25 +42,42 @@ int main(string[] args)
     }
 
     auto json = parseJSON(readText(inFilename));
-    sanitize(json.array);
+    sanitize(json);
 
-    outFile.write(json.toJSON(true));
+    outFile.write(json.toJSON(true, JSONOptions.doNotEscapeSlashes));
     return 0;
 }
 
-void sanitize(JSONValue[] rootArray)
+string capitalize(string s)
 {
-    foreach (ref obj; rootArray)
+    return text(s.take(1).asCapitalized.chain(s.drop(1)));
+}
+
+void sanitize(JSONValue root)
+{
+    if (root.type == JSON_TYPE.ARRAY)
     {
-        auto kind = obj.object["kind"].str;
-        if (kind == "compilerInfo")
-            sanitizeCompilerInfo(obj.object);
-        else if (kind == "buildInfo")
-            sanitizeBuildInfo(obj.object);
-        else if(kind == "module")
-            sanitizeSyntaxNode(obj);
-        else if(kind == "semantics")
-            sanitizeSemantics(obj.object);
+        sanitizeSyntaxNode(root);
+    }
+    else
+    {
+        assert(root.type == JSON_TYPE.OBJECT);
+        auto rootObject = root.object;
+        static foreach (name; ["compilerInfo", "buildInfo", "semantics"])
+        {{
+            auto node = rootObject.get(name, JSONValue.init);
+            if (node.type != JSON_TYPE.NULL)
+            {
+                mixin("sanitize" ~ name.capitalize ~ "(node.object);");
+            }
+        }}
+        {
+            auto modules = rootObject.get("modules", JSONValue.init);
+            if (modules.type != JSON_TYPE.NULL)
+            {
+                sanitizeSyntaxNode(modules);
+            }
+        }
     }
 }
 
@@ -120,6 +140,15 @@ void sanitizeSyntaxNode(ref JSONValue value)
     }
 }
 
+string getOptionalString(ref JSONValue[string] obj, string name)
+{
+    auto node = obj.get(name, JSONValue.init);
+    if (node.type == JSON_TYPE.NULL)
+        return null;
+    assert(node.type == JSON_TYPE.STRING, format("got %s where STRING was expected", node.type));
+    return node.str;
+}
+
 void sanitizeSemantics(ref JSONValue[string] semantics)
 {
     import std.array : appender;
@@ -129,7 +158,7 @@ void sanitizeSemantics(ref JSONValue[string] semantics)
     foreach (ref semanticModuleNode; *modulesArrayPtr)
     {
         auto semanticModule = semanticModuleNode.object();
-        auto moduleName = semanticModule["name"].str;
+        auto moduleName = semanticModule.getOptionalString("name");
         if(moduleName.startsWith("std.", "core.", "etc.") || moduleName == "object")
         {
            // remove druntime/phobos modules since they can change for each
