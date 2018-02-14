@@ -1559,17 +1559,17 @@ extern (C++) final class StaticAssertStatement : Statement
  */
 extern (C++) final class SwitchStatement : Statement
 {
-    Expression condition;
-    Statement _body;
-    bool isFinal;
+    Expression condition;           /// switch(condition)
+    Statement _body;                ///
+    bool isFinal;                   ///
 
-    DefaultStatement sdefault;
-    TryFinallyStatement tf;
-    GotoCaseStatements gotoCases;   // array of unresolved GotoCaseStatement's
-    CaseStatements* cases;          // array of CaseStatement's
-    int hasNoDefault;               // !=0 if no default statement
-    int hasVars;                    // !=0 if has variable case values
-    VarDeclaration lastVar;
+    DefaultStatement sdefault;      /// default:
+    TryFinallyStatement tf;         ///
+    GotoCaseStatements gotoCases;   /// array of unresolved GotoCaseStatement's
+    CaseStatements* cases;          /// array of CaseStatement's
+    int hasNoDefault;               /// !=0 if no default statement
+    int hasVars;                    /// !=0 if has variable case values
+    VarDeclaration lastVar;         /// last observed variable declaration in this statement
 
     extern (D) this(const ref Loc loc, Expression c, Statement b, bool isFinal)
     {
@@ -1591,6 +1591,12 @@ extern (C++) final class SwitchStatement : Statement
 
     final bool checkLabel()
     {
+        /*
+        * Checks the scope of a label for existing variable declaration.
+        * Params:
+        *   vd = variable declaration to check
+        * Returns: `true` if the variables declared in this label would be skipped.
+        */
         bool checkVar(VarDeclaration vd)
         {
             if (!vd || vd.isDataseg() || (vd.storage_class & STC.manifest))
@@ -1602,6 +1608,7 @@ extern (C++) final class SwitchStatement : Statement
             if (last == vd)
             {
                 // All good, the label's scope has no variables
+                return false;
             }
             else if (vd.ident == Id.withSym)
             {
@@ -1615,8 +1622,6 @@ extern (C++) final class SwitchStatement : Statement
 
                 return true;
             }
-
-            return false;
         }
 
         enum error = true;
