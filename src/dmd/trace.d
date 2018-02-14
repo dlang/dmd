@@ -53,13 +53,16 @@ return q{
     ulong begin_sema_ticks;
     ulong end_sema_ticks;
     ulong begin_sema_mem = allocated;
+    auto insert_pos = dsymbol_profile_array_count++;
+    assert(dsymbol_profile_array_count < dsymbol_profile_array_size,
+        "Trying to push more then" ~ dsymbol_profile_array_size.stringof ~ " symbols");
     QueryPerformanceCounter(&begin_sema_ticks);
 } ~
 `
     scope(exit)
     {
         QueryPerformanceCounter(&end_sema_ticks);
-        dsymbol_profile_array[dsymbol_profile_array_count++] =
+        dsymbol_profile_array[insert_pos] =
             SymbolProfileEntry(`~ vname ~ `,
         begin_sema_ticks, end_sema_ticks,
         begin_sema_mem, allocated,
