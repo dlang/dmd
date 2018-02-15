@@ -223,17 +223,7 @@ version( Windows )
 
             void append( Throwable t )
             {
-                if (t.refcount())
-                    ++t.refcount();
-                if( obj.m_unhandled is null )
-                    obj.m_unhandled = t;
-                else
-                {
-                    Throwable last = obj.m_unhandled;
-                    while( last.next !is null )
-                        last = last.next;
-                    last.next = t;
-                }
+                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
 
             version( D_InlineAsm_X86 )
@@ -382,17 +372,7 @@ else version( Posix )
 
             void append( Throwable t )
             {
-                if (t.refcount())
-                    ++t.refcount();
-                if( obj.m_unhandled is null )
-                    obj.m_unhandled = t;
-                else
-                {
-                    Throwable last = obj.m_unhandled;
-                    while( last.next !is null )
-                        last = last.next;
-                    last.next = t;
-                }
+                obj.m_unhandled = Throwable.chainTogether(obj.m_unhandled, t);
             }
 
             try
@@ -3071,14 +3051,16 @@ do
 * A callback for thread errors in D during collections. Since an allocation is not possible
 *  a preallocated ThreadError will be used as the Error instance
 *
+* Returns:
+*  never returns
 * Throws:
 *  ThreadError.
 */
-private void onThreadError(string msg = null, Throwable next = null) nothrow
+private void onThreadError(string msg) nothrow
 {
     __gshared ThreadError error = new ThreadError(null);
     error.msg = msg;
-    error.next = next;
+    error.next = null;
     import core.exception : SuppressTraceInfo;
     error.info = SuppressTraceInfo.instance;
     throw error;
