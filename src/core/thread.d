@@ -1556,7 +1556,7 @@ private:
 
     version( Solaris )
     {
-        __gshared immutable bool m_isRTClass;
+        __gshared bool m_isRTClass;
     }
 
 private:
