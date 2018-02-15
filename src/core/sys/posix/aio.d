@@ -1,10 +1,11 @@
 /**
- * D header file to interface with the Linux aio API (http://man7.org/linux/man-pages/man7/aio.7.html).
+ * D header file to interface with the
+ * $(HTTP pubs.opengroup.org/onlinepubs/9699919799/basedefs/aio.h.html, Linux aio API).
  * Available since Linux 2.6
  *
  * Copyright: Copyright D Language Foundation 2018.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors:   Alexandru Razvan Caciulescu (github.com/darredevil)
+ * Authors:   $(HTTPS github.com/darredevil, Alexandru Razvan Caciulescu)
  */
 module core.sys.posix.aio;
 
