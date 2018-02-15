@@ -21,4 +21,4 @@ for every invocation:
 string log(string file = __FILE__, int line = __LINE__, T...)(T a);
 ---
 
-For more details, see $(DMDSRC test/runnable/testdefault_after_variadic.d).
+For more details, see $(DMDSRC ../../test/runnable/testdefault_after_variadic.d).
