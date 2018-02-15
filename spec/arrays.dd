@@ -24,11 +24,31 @@ int* p;
 ---------
 )
 
-        $(P These are simple pointers to data, analogous to C pointers.
+        $(P A pointer to type $(I T) has a value which is a reference (address) to another
+        object of type $(I T). It is commonly called a $(I pointer to T).
+        )
+
+        $(P If a pointer contains a $(I null) value, it is not pointing to a valid object.)
+
+        $(P When a pointer to $(I T) is dereferenced, it must either contain a $(I null) value,
+        or point to a valid object of type $(I T).)
+
+        $(IMPLEMENTATION_DEFINED
+        $(OL
+        $(LI The behavior when a $(I null) pointer is dereferenced. Typically the program
+        will be aborted.)
+        ))
+
+        $(UNDEFINED_BEHAVIOR
+        $(OL
+        $(LI Dereferencing a pointer that is not $(I null) and does not point
+        to a valid object of type $(I T).)
+        ))
+
+        $(BEST_PRACTICE These are simple pointers to data.
         Pointers are provided for interfacing with C and for
         specialized systems work.
-        There
-        is no length associated with it, and so there is no way for the
+        There is no length associated with it, and so there is no way for the
         compiler or runtime to do bounds checking, etc., on it.
         Most conventional uses for pointers can be replaced with
         dynamic arrays, $(D out) and $(D ref) parameters,
@@ -43,26 +63,30 @@ int[3] s;
 ---------
 )
 
-        $(P These are analogous to C arrays. Static arrays are distinguished
-        by having a length fixed at compile time.
+        $(P Static arrays have a length fixed at compile time.
         )
 
         $(P The total size of a static array cannot exceed 16Mb.
-        A dynamic array should be used instead for such large arrays.
         )
 
         $(P A static array with a dimension of 0 is allowed, but no
-        space is allocated for it. It's useful as the last member
+        space is allocated for it.
+        )
+
+        $(P Static arrays are value types.
+        They are passed to and returned by functions by value.
+        )
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Use dynamic arrays for larger arrays.)
+        $(LI Static arrays with 0 elements are useful as the last member
         of a variable length struct, or as the degenerate case of
-        a template expansion.
-        )
-
-
-        $(P Static arrays are value types. Unlike in C and D version 1,
-        static arrays are passed to functions by value.
-        Static arrays can also be returned by functions.
-        )
-
+        a template expansion.)
+        $(LI Because static arrays are passed to functions by value,
+        a larger array can consume a lot of stack space. Use dynamic arrays
+        instead.)
+        ))
 
 $(H3 $(LNAME2 dynamic-arrays, Dynamic Arrays))
 
@@ -75,6 +99,13 @@ int[] a;
         $(P Dynamic arrays consist of a length and a pointer to the array data.
         Multiple dynamic arrays can share all or parts of the array data.
         )
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Use dynamic arrays instead of pointers to arrays as much as practical.
+        Indexing of dynamic arrays are bounds checked, avoiding buffer underflow and
+        overflow problems.)
+        ))
 
 $(H2 $(LNAME2 declarations, Array Declarations))
 
@@ -98,8 +129,6 @@ $(H2 $(LNAME2 usage, Array Usage))
         affecting
         the handle to the array,
         and affecting the contents of the array.
-        C only has
-        operators to affect the handle. In D, both are accessible.
         )
 
         $(P The handle to an array is specified by naming the array, as
