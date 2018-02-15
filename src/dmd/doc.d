@@ -3279,15 +3279,18 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
         case '`':
             {
-                if (inBacktick)
+                size_t iAfterDelimiter = skipChars(buf, i, "`");
+                int count = cast(int) (iAfterDelimiter - i);
+
+                if (inBacktick == count)
                 {
                     inBacktick = 0;
                     inCode = 0;
                     OutBuffer codebuf;
-                    codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
+                    codebuf.write(buf.peekSlice().ptr + iCodeStart + count, i - (iCodeStart + count));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
-                    buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
+                    buf.remove(iCodeStart, i - iCodeStart + count); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
                     i = buf.insert(i, codebuf.peekSlice());
@@ -3299,21 +3302,34 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (leadingBlank)
                 {
                     // Perhaps we're starting or ending a Markdown code block
-                    size_t iAfterDelimiter = skipChars(buf, i, "`");
-                    if (iAfterDelimiter - i >= 3)
-                        goto case '-';
+                    if (count >= 3)
+                    {
+                        bool moreBackticks = false;
+                        for (size_t j = iAfterDelimiter; !moreBackticks && j < buf.offset; ++j)
+                            if (buf.data[j] == '`')
+                                moreBackticks = true;
+                            else if (buf.data[j] == '\r' || buf.data[j] == '\n')
+                                break;
+                        if (!moreBackticks)
+                            goto case '-';
+                    }
                 }
 
-                if (inCode || i >= buf.offset || buf.data[i+1] == '`')
+                if (inCode)
+                {
+                    if (inBacktick)
+                        i = iAfterDelimiter - 1;
                     break;
+                }
                 inCode = c;
-                inBacktick = 1;
+                inBacktick = count;
                 codeIndent = 0; // inline code is not indented
                 // All we do here is set the code flags and record
                 // the location. The macro will be inserted lazily
                 // so we can easily cancel the inBacktick if we come
                 // across a newline character.
                 iCodeStart = i;
+                i = iAfterDelimiter - 1;
                 break;
             }
         case '~':
