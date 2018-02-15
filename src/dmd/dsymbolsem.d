@@ -2584,6 +2584,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         //printf("function storage_class = x%llx, sc.stc = x%llx, %x\n", storage_class, sc.stc, Declaration::isFinal());
 
+        if (sc.flags & SCOPE.compile)
+            funcdecl.flags |= FUNCFLAG.compileTimeOnly; // don't emit code for this function
+
         FuncLiteralDeclaration fld = funcdecl.isFuncLiteralDeclaration();
         if (fld && fld.treq)
         {

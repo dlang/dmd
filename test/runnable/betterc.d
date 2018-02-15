@@ -25,3 +25,14 @@ extern (C) void main()
 {
     test(1);
 }
+
+/*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17605
+
+extern (C) void test17605()
+{
+    int a;
+    enum bool works = __traits(compiles, { a = 1; });
+    a = 1;
+}
+
