@@ -251,6 +251,11 @@ else version( CRuntime_Bionic )
         alias ushort    mode_t;
         alias ushort    nlink_t;
     }
+    else version(X86_64)
+    {
+        alias ushort    mode_t;
+        alias uint      nlink_t;
+    }
     else version(ARM)
     {
         alias ushort    mode_t;
