@@ -43,3 +43,5 @@ If JSON is generated without any `-Xi=` options then the old format is used.  Th
 Also note that the compiler can now be invoked with no source files as long as at least one JSON field is provided, i.e.
 
 $(CONSOLE dmd -Xi=compilerInfo)
+
+$(RED This is an experimental command-line flag and will be stabilized in the next release.)
