@@ -231,7 +231,10 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         string argSetsStr;
         findTestParameter(envData, file, "ARG_SETS", argSetsStr, ";");
         foreach(s; split(argSetsStr, ";"))
+        {
+            replaceResultsDir(s, envData);
             testArgs.argSets ~= s;
+        }
     }
 
     // win(32|64) doesn't support pic

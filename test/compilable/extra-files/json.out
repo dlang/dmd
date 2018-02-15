@@ -1,21 +1,5 @@
 [
     {
-        "binary": "VALUE_REMOVED_FOR_TEST",
-        "kind": "compilerInfo",
-        "supportsIncludeImports": true,
-        "version": "VALUE_REMOVED_FOR_TEST"
-    },
-    {
-        "config": "VALUE_REMOVED_FOR_TEST",
-        "cwd": "VALUE_REMOVED_FOR_TEST",
-        "importPaths": [
-            "compilable",
-            "..\/..\/druntime\/import",
-            "..\/..\/phobos"
-        ],
-        "kind": "buildInfo"
-    },
-    {
         "file": "VALUE_REMOVED_FOR_TEST",
         "kind": "module",
         "members": [
@@ -942,35 +926,5 @@
             }
         ],
         "name": "json"
-    },
-    {
-        "kind": "semantics",
-        "modules": [
-            {
-                "file": "compilable\/json.d",
-                "isRoot": true,
-                "name": "json"
-            },
-            {
-                "file": "compilable\/imports\/jsonimport1.d",
-                "isRoot": false,
-                "name": "imports.jsonimport1"
-            },
-            {
-                "file": "compilable\/imports\/jsonimport2.d",
-                "isRoot": false,
-                "name": "imports.jsonimport2"
-            },
-            {
-                "file": "compilable\/imports\/jsonimport3.d",
-                "isRoot": false,
-                "name": "imports.jsonimport3"
-            },
-            {
-                "file": "compilable\/imports\/jsonimport4.d",
-                "isRoot": false,
-                "name": "imports.jsonimport4"
-            }
-        ]
     }
 ]

@@ -360,6 +360,11 @@ private int tryMain(size_t argc, const(char)** argv)
     }
     if (files.dim == 0)
     {
+        if (global.params.jsonFieldFlags)
+        {
+            generateJson(null);
+            return EXIT_SUCCESS;
+        }
         usage();
         return EXIT_FAILURE;
     }
@@ -859,40 +864,7 @@ private int tryMain(size_t argc, const(char)** argv)
     // Generate output files
     if (global.params.doJsonGeneration)
     {
-        OutBuffer buf;
-        json_generate(&buf, &modules);
-        // Write buf to file
-        const(char)* name = global.params.jsonfilename;
-        if (name && name[0] == '-' && name[1] == 0)
-        {
-            // Write to stdout; assume it succeeds
-            size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-            assert(n == buf.offset); // keep gcc happy about return values
-        }
-        else
-        {
-            /* The filename generation code here should be harmonized with Module::setOutfile()
-             */
-            const(char)* jsonfilename;
-            if (name && *name)
-            {
-                jsonfilename = FileName.defaultExt(name, global.json_ext);
-            }
-            else
-            {
-                // Generate json file name from first obj name
-                const(char)* n = global.params.objfiles[0];
-                n = FileName.name(n);
-                //if (!FileName::absolute(name))
-                //    name = FileName::combine(dir, name);
-                jsonfilename = FileName.forceExt(n, global.json_ext);
-            }
-            ensurePathToNameExists(Loc.initial, jsonfilename);
-            auto jsonfile = new File(jsonfilename);
-            jsonfile.setbuffer(buf.data, buf.offset);
-            jsonfile._ref = 1;
-            writeFile(Loc.initial, jsonfile);
-        }
+        generateJson(&modules);
     }
     if (!global.errors && global.params.doDocComments)
     {
@@ -996,6 +968,50 @@ private int tryMain(size_t argc, const(char)** argv)
     if (global.errors || global.warnings)
         fatal();
     return status;
+}
+
+private void generateJson(Modules* modules)
+{
+    OutBuffer buf;
+    json_generate(&buf, modules);
+
+    // Write buf to file
+    const(char)* name = global.params.jsonfilename;
+    if (name && name[0] == '-' && name[1] == 0)
+    {
+        // Write to stdout; assume it succeeds
+        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
+        assert(n == buf.offset); // keep gcc happy about return values
+    }
+    else
+    {
+        /* The filename generation code here should be harmonized with Module::setOutfile()
+         */
+        const(char)* jsonfilename;
+        if (name && *name)
+        {
+            jsonfilename = FileName.defaultExt(name, global.json_ext);
+        }
+        else
+        {
+            if (global.params.objfiles.dim == 0)
+            {
+                error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
+                fatal();
+            }
+            // Generate json file name from first obj name
+            const(char)* n = global.params.objfiles[0];
+            n = FileName.name(n);
+            //if (!FileName::absolute(name))
+            //    name = FileName::combine(dir, name);
+            jsonfilename = FileName.forceExt(n, global.json_ext);
+        }
+        ensurePathToNameExists(Loc.initial, jsonfilename);
+        auto jsonfile = new File(jsonfilename);
+        jsonfile.setbuffer(buf.data, buf.offset);
+        jsonfile._ref = 1;
+        writeFile(Loc.initial, jsonfile);
+    }
 }
 
 
@@ -1868,6 +1884,24 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     if (!p[3])
                         goto Lnoarg;
                     params.jsonfilename = p + 3 + (p[3] == '=');
+                    break;
+                case 'i':
+                    if (!p[3])
+                        goto Lnoarg;
+                    if (p[3] != '=')
+                        goto Lerror;
+                    if (!p[4])
+                        goto Lnoarg;
+
+                    {
+                        auto flag = tryParseJsonField(p + 4);
+                        if (!flag)
+                        {
+                            error("unknown JSON field `-Xi=%s`, expected one of " ~ jsonFieldNames, p + 4);
+                            continue;
+                        }
+                        global.params.jsonFieldFlags |= flag;
+                    }
                     break;
                 case 0:
                     break;
