@@ -422,8 +422,25 @@ debug:
 }
 ------
 
+$(H3 $(LNAME2 DebugStatement, Debug Statement))
 
-$(H3 $(LNAME2 debug_specification, Debug Specification))
+        $(P A $(GLINK ConditionalStatement) that has a $(GLINK DebugCondition) is called
+        a $(I DebugStatement). $(I DebugStatements) have relaxed semantic checks in that
+        `pure`, `@nogc`, `nothrow` and `@safe` checks are not done.
+        Neither do $(I DebugStatements) influence the inference of `pure`, `@nogc`, `nothrow`
+        and `@safe` attributes.)
+
+        $(UNDEFINED_BEHAVIOR Since these checks are bypassed, it is up to the programmer
+        to ensure the code is correct. For example, throwing an exception in a `nothrow`
+        function is undefined behavior.
+        )
+
+        $(BEST_PRACTICE This enables the easy insertion of code to provide debugging help,
+        by bypassing the otherwise stringent attribute checks.
+        Never ship release code that has $(I DebugStatements) enabled.
+        )
+
+$(H2 $(LNAME2 debug_specification, Debug Specification))
 
 $(GRAMMAR
 $(GNAME DebugSpecification):
