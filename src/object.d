@@ -3884,38 +3884,38 @@ int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @s
     // This closes recursion for other cases.
     static if (caseLabels.length == 0)
     {
-        return -1;
+        return int.min;
     }
     else static if (caseLabels.length == 1)
     {
-        return __cmp(condition, caseLabels[0]) == 0 ? 0 : -1;
+        return __cmp(condition, caseLabels[0]) == 0 ? 0 : int.min;
     }
     // To be adjusted after measurements
     // Compile-time inlined binary search.
     else static if (caseLabels.length < 7)
     {
         int r = void;
-        if (condition.length == caseLabels[$ / 2].length)
+        enum mid = cast(int)caseLabels.length / 2;
+        if (condition.length == caseLabels[mid].length)
         {
-            r = __cmp(condition, caseLabels[$ / 2]);
-            if (r == 0) return cast(int) caseLabels.length / 2;
+            r = __cmp(condition, caseLabels[mid]);
+            if (r == 0) return mid;
         }
         else
         {
             // Equivalent to (but faster than) condition.length > caseLabels[$ / 2].length ? 1 : -1
-            r = ((condition.length > caseLabels[$ / 2].length) << 1) - 1;
+            r = ((condition.length > caseLabels[mid].length) << 1) - 1;
         }
 
         if (r < 0)
         {
             // Search the left side
-            return __switch!(T, caseLabels[0 .. $ / 2])(condition);
+            return __switch!(T, caseLabels[0 .. mid])(condition);
         }
         else
         {
             // Search the right side
-            r = __switch!(T, caseLabels[$ / 2 + 1 .. $])(condition);
-            return r != -1 ? cast(int) (caseLabels.length / 2 + 1 + r) : -1;
+            return __switch!(T, caseLabels[mid + 1 .. $])(condition) + mid + 1;
         }
     }
     else
