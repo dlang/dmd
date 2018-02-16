@@ -491,6 +491,31 @@ private int tryMain(size_t argc, const(char)** argv)
         message("binary    %s", global.params.argv0);
         message("version   %s", global._version);
         message("config    %s", global.inifilename ? global.inifilename : "(none)");
+        // Print DFLAGS environment variable
+        {
+            OutBuffer buf;
+            foreach (flag; dflags.asDArray)
+            {
+                bool needsQuoting;
+                for (auto flagp = flag; flagp; flagp++)
+                {
+                    auto c = flagp[0];
+                    if (!(isalnum(c) || c == '_'))
+                    {
+                        needsQuoting = true;
+                        break;
+                    }
+                }
+
+                if (flag.strchr(' '))
+                    buf.printf("'%s' ", flag);
+                else
+                    buf.printf("%s ", flag);
+            }
+
+            auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
+            message("DFLAGS    %.*s", res.length, res.ptr);
+        }
     }
     //printf("%d source files\n",files.dim);
 
