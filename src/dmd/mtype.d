@@ -508,6 +508,9 @@ extern (C++) abstract class Type : RootObject
 
     type* ctype;                    // for back end
 
+    /// Overridden symbol with `pragma(mangle, "...")`.
+    const(char)* mangleOverride;
+
     extern (C++) static __gshared Type tvoid;
     extern (C++) static __gshared Type tint8;
     extern (C++) static __gshared Type tuns8;
@@ -1048,8 +1051,15 @@ extern (C++) abstract class Type : RootObject
         StringValue* sv = stringtable.lookup(t.deco, strlen(t.deco));
         if (sv && sv.ptrvalue)
         {
+            auto mangleOverride = t.mangleOverride;
             t = cast(Type)sv.ptrvalue;
             assert(t.deco);
+
+            if (mangleOverride)
+            {
+                t = t.copy();
+                t.mangleOverride = mangleOverride;
+            }
         }
         else
             assert(0);

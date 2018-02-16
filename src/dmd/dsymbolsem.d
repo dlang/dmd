@@ -73,7 +73,7 @@ import dmd.visitor;
 
 enum LOG = false;
 
-private uint setMangleOverride(Dsymbol s, char* sym)
+private uint setMangleOverride(Dsymbol s, char* sym, Scope* sc)
 {
     AttribDeclaration ad = s.isAttribDeclaration();
     if (ad)
@@ -82,12 +82,16 @@ private uint setMangleOverride(Dsymbol s, char* sym)
         uint nestedCount = 0;
         if (decls && decls.dim)
             for (size_t i = 0; i < decls.dim; ++i)
-                nestedCount += setMangleOverride((*decls)[i], sym);
+                nestedCount += setMangleOverride((*decls)[i], sym, sc);
         return nestedCount;
     }
-    else if (s.isFuncDeclaration() || s.isVarDeclaration())
+    else if (s.isFuncDeclaration() || s.isVarDeclaration() || s.isAliasDeclaration)
     {
         s.isDeclaration().mangleOverride = sym;
+
+        if (s.isAliasDeclaration)
+            semantic2(s, sc);
+
         return 1;
     }
     else
@@ -1333,7 +1337,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(PragmaDeclaration pd)
     {
         // Should be merged with PragmaStatement
-        //printf("\tPragmaDeclaration::semantic '%s'\n", pd.toChars());
+        //printf("PragmaDeclaration::semantic '%s'\n", pd.toChars());
         if (pd.ident == Id.msg)
         {
             if (pd.args)
@@ -1545,7 +1549,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         char* name = cast(char*)mem.xmalloc(se.len + 1);
                         memcpy(name, se.string, se.len);
                         name[se.len] = 0;
-                        uint cnt = setMangleOverride(s, name);
+                        uint cnt = setMangleOverride(s, name, sc2);
                         if (cnt > 1)
                             pd.error("can only apply to a single declaration");
                     }
@@ -5437,7 +5441,7 @@ Laftersemantic:
 // function used to perform semantic on AliasDeclaration
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
-    //printf("AliasDeclaration::semantic() %s\n", toChars());
+    //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
     if (ds.aliassym)
     {
         auto fd = ds.aliassym.isFuncLiteralDeclaration();

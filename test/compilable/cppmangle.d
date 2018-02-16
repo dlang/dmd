@@ -438,3 +438,40 @@ version (linux)
 {
     static assert(test36.mangleof == "_Z6test36PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPiPS12_");
 }
+
+// test overriding mangling for alias declaration
+version (Posix) extern (C++) struct TestOverridingManglingAlias
+{
+    version (OSX)
+        enum prefix = "_";
+    else
+        enum prefix = "";
+
+    enum baseMangling = prefix ~ "_ZN27TestOverridingManglingAlias";
+
+    // basic type
+
+    // override mangling
+    pragma(mangle, "bar") alias a = int;
+    static assert(a.mangleof == "bar");
+
+    // alias without overriding
+    alias b = int;
+    static assert(b.mangleof == "i");
+
+    // default mangling of basic type
+    static assert(int.mangleof == "i");
+
+
+
+    // function
+
+    // type of parameter is an alias"
+    pragma(mangle, "foo") alias c = int;
+    void d(c);
+    static assert(d.mangleof == baseMangling ~ "1dEfoo");
+
+    // default mangling of function"
+    void e(int);
+    static assert(e.mangleof == baseMangling ~ "1eEi");
+}

@@ -163,6 +163,8 @@ public:
 
     type *ctype;        // for back end
 
+    const char *mangleOverride; // overridden symbol with pragma(mangle, "...")
+
     static Type *tvoid;
     static Type *tint8;
     static Type *tuns8;
