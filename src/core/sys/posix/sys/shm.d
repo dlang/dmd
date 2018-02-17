@@ -160,3 +160,66 @@ else version( Darwin )
 {
 
 }
+else version( CRuntime_UClibc )
+{
+    enum SHM_RDONLY     = 0x1000; // 010000
+    enum SHM_RND        = 0x2000; // 020000
+    enum SHM_REMAP      = 0x4000; // 040000
+
+    int   __getpagesize();
+    alias __getpagesize SHMLBA;
+
+    alias c_ulong   shmatt_t;
+
+    version( X86_64 )
+        enum includeUnused  = false;
+    else version ( MIPS32 )
+        enum includeUnused  = false;
+    else
+        enum includeUnused  = true;
+
+    struct shmid_ds
+    {
+        ipc_perm    shm_perm;
+        size_t      shm_segsz;
+        time_t      shm_atime;
+        static if (includeUnused) c_ulong     __unused1;
+        time_t      shm_dtime;
+        static if (includeUnused) c_ulong     __unused2;
+        time_t      shm_ctime;
+        static if (includeUnused) c_ulong     __unused3;
+        pid_t       shm_cpid;
+        pid_t       shm_lpid;
+        shmatt_t    shm_nattch;
+        c_ulong     __unused4;
+        c_ulong     __unused5;
+    }
+
+    struct shminfo
+    {
+        c_ulong shmmax;
+        c_ulong shmmin;
+        c_ulong shmmni;
+        c_ulong shmseg;
+        c_ulong shmall;
+        c_ulong __unused1;
+        c_ulong __unused2;
+        c_ulong __unused3;
+        c_ulong __unused4;
+    }
+
+    struct shm_info
+    {
+        int used_ids;
+        c_ulong shm_tot;
+        c_ulong shm_rss;
+        c_ulong shm_swp;
+        c_ulong swap_attempts;
+        c_ulong swap_successes;
+    }
+
+    void* shmat(int, in void*, int);
+    int   shmctl(int, int, shmid_ds*);
+    int   shmdt(in void*);
+    int   shmget(key_t, size_t, int);
+}

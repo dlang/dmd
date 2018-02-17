@@ -124,3 +124,13 @@ else version( CRuntime_Bionic )
 
     int utime(in char*, in utimbuf*);
 }
+else version( CRuntime_UClibc )
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(in char*, in utimbuf*);
+}

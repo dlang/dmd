@@ -306,3 +306,43 @@ else version( CRuntime_Musl )
     void*        dlopen(in char*, int);
     void*        dlsym(void*, in char*);
 }
+else version( CRuntime_UClibc )
+{
+    version (X86_64)
+    {
+        enum RTLD_LAZY              = 0x0001;
+        enum RTLD_NOW               = 0x0002;
+        enum RTLD_BINDING_MASK      = 0x3;
+        enum RTLD_NOLOAD            = 0x00004;
+        enum RTLD_GLOBAL            = 0x00100;
+        enum RTLD_LOCAL             = 0;
+        enum RTLD_NODELETE          = 0x01000;
+    }
+    else version (MIPS32)
+    {
+        enum RTLD_LAZY              = 0x0001;
+        enum RTLD_NOW               = 0x0002;
+        enum RTLD_BINDING_MASK      = 0x3;
+        enum RTLD_NOLOAD            = 0x00008;
+        enum RTLD_GLOBAL            = 0x0004;
+        enum RTLD_LOCAL             = 0;
+        enum RTLD_NODELETE          = 0x01000;
+    }
+    else version (ARM)
+    {
+        enum RTLD_LAZY              = 0x0001;
+        enum RTLD_NOW               = 0x0002;
+        enum RTLD_BINDING_MASK      = 0x3;
+        enum RTLD_NOLOAD            = 0x00004;
+        enum RTLD_GLOBAL            = 0x00100;
+        enum RTLD_LOCAL             = 0;
+        enum RTLD_NODELETE          = 0x01000;
+    }
+    else
+        static assert(0, "unimplemented");
+
+    int   dlclose(void*);
+    char* dlerror();
+    void* dlopen(in char*, int);
+    void* dlsym(void*, in char*);
+}

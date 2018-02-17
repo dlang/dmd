@@ -149,6 +149,37 @@ else version( CRuntime_Bionic )
     int   fseek(FILE*, c_long, int);
     int   fsetpos(FILE*, in fpos_t*);
 }
+else version( CRuntime_UClibc )
+{
+    static if( __USE_FILE_OFFSET64 )
+    {
+        int   fgetpos64(FILE*, fpos_t *);
+        alias fgetpos64 fgetpos;
+
+        FILE* fopen64(in char*, in char*);
+        alias fopen64 fopen;
+
+        FILE* freopen64(in char*, in char*, FILE*);
+        alias freopen64 freopen;
+
+        int   fseek(FILE*, c_long, int);
+
+        int   fsetpos64(FILE*, in fpos_t*);
+        alias fsetpos64 fsetpos;
+
+        FILE* tmpfile64();
+        alias tmpfile64 tmpfile;
+    }
+    else
+    {
+        int   fgetpos(FILE*, fpos_t *);
+        FILE* fopen(in char*, in char*);
+        FILE* freopen(in char*, in char*, FILE*);
+        int   fseek(FILE*, c_long, int);
+        int   fsetpos(FILE*, in fpos_t*);
+        FILE* tmpfile();
+    }
+}
 
 //
 // C Extension (CX)
@@ -169,6 +200,31 @@ FILE*  popen(in char*, in char*);
 version( CRuntime_Glibc )
 {
     enum L_ctermid = 9;
+
+  static if( __USE_FILE_OFFSET64 )
+  {
+    int   fseeko64(FILE*, off_t, int);
+    alias fseeko64 fseeko;
+  }
+  else
+  {
+    int   fseeko(FILE*, off_t, int);
+  }
+
+  static if( __USE_FILE_OFFSET64 )
+  {
+    off_t ftello64(FILE*);
+    alias ftello64 ftello;
+  }
+  else
+  {
+    off_t ftello(FILE*);
+  }
+}
+else version( CRuntime_UClibc )
+{
+    enum L_ctermid = 9;
+    enum L_cuserid = 9;
 
   static if( __USE_FILE_OFFSET64 )
   {
@@ -217,11 +273,14 @@ else version( DragonFlyBSD )                 // for DragonFlyBSD
     version = HaveMemstream;
 else version( OpenBSD )                      // as of OpenBSD 5.4
     version = HaveMemstream;
+else version( CRuntime_UClibc )
+    version = HaveMemstream;
 
 version( HaveMemstream )
 {
     FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
     FILE*  open_memstream(char** ptr, size_t* sizeloc);
+    version( CRuntime_UClibc ) {} else
     FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
 }
 
@@ -259,6 +318,16 @@ else version( OpenBSD )
     int    putchar_unlocked(int);
 }
 else version( Solaris )
+{
+    void   flockfile(FILE*);
+    int    ftrylockfile(FILE*);
+    void   funlockfile(FILE*);
+    int    getc_unlocked(FILE*);
+    int    getchar_unlocked();
+    int    putc_unlocked(int, FILE*);
+    int    putchar_unlocked(int);
+}
+else version( CRuntime_UClibc )
 {
     void   flockfile(FILE*);
     int    ftrylockfile(FILE*);
@@ -313,6 +382,10 @@ version( Solaris )
 {
     enum P_tmpdir  = "/var/tmp/";
 }
+version( CRuntime_UClibc )
+{
+    enum P_tmpdir  = "/tmp";
+}
 
 version( HaveMemstream )
 unittest
@@ -343,6 +416,7 @@ unittest
     assert(fclose(f) == 0);
 }
 
+version( CRuntime_UClibc ) {} else
 version( HaveMemstream )
 unittest
 { /* Note: open_wmemstream is only useful for writing */

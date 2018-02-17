@@ -204,6 +204,41 @@ else version( CRuntime_Musl )
     extern (D) int  WTERMSIG( int status ) { return status & 0x7F; }
     alias WEXITSTATUS WSTOPSIG;
 }
+else version( CRuntime_UClibc )
+{
+    enum WNOHANG        = 1;
+    enum WUNTRACED      = 2;
+
+    private
+    {
+        enum __W_CONTINUED = 0xFFFF;
+
+        extern (D) int __WTERMSIG( int status ) { return status & 0x7F; }
+    }
+
+    //
+    // NOTE: These macros assume __USE_BSD is not defined in the relevant
+    //       C headers as the parameter definition there is different and
+    //       much more complicated.
+    //
+    extern (D) int  WEXITSTATUS( int status )  { return ( status & 0xFF00 ) >> 8;   }
+    extern (D) int  WIFCONTINUED( int status ) { return status == __W_CONTINUED;    }
+    extern (D) bool WIFEXITED( int status )    { return __WTERMSIG( status ) == 0;  }
+    extern (D) bool WIFSIGNALED( int status )
+    {
+        return ( cast(ulong) ( ( status & 0xffff ) - 1U ) >> 1 ) < 0xffU;
+    }
+    version (MIPS32)
+    {
+        extern (D) bool WIFSTOPPED( int status )   { return ( status & 0xFF ) == 0x7F;  }
+    }
+    else
+    {
+        extern (D) bool WIFSTOPPED( int status )   { return ( status & 0xFF ) == 0x7F && ( status & 0xFF00 );  }
+    }
+    extern (D) int  WSTOPSIG( int status )     { return WEXITSTATUS( status );      }
+    extern (D) int  WTERMSIG( int status )     { return status & 0x7F;              }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -327,6 +362,22 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_Musl )
 {
+}
+else version( CRuntime_UClibc )
+{
+    enum WEXITED    = 4;
+    enum WSTOPPED   = 2;
+    enum WCONTINUED = 8;
+    enum WNOWAIT    = 0x01000000;
+
+    enum idtype_t
+    {
+        P_ALL,
+        P_PID,
+        P_PGID
+    }
+
+    int waitid(idtype_t, id_t, siginfo_t*, int);
 }
 else
 {

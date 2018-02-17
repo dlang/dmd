@@ -220,3 +220,33 @@ else version( CRuntime_Bionic )
 
     key_t ftok(in char*, int);
 }
+else version( CRuntime_UClibc )
+{
+    struct ipc_perm
+    {
+        key_t   __key;
+        uid_t   uid;
+        gid_t   gid;
+        uid_t   cuid;
+        gid_t   cgid;
+        ushort  mode;
+        ushort  __pad1;
+        ushort  __seq;
+        ushort  __pad2;
+        c_ulong __unused1;
+        c_ulong __unused2;
+    }
+
+    enum IPC_CREAT      = 0x0200; // 01000
+    enum IPC_EXCL       = 0x0400; // 02000
+    enum IPC_NOWAIT     = 0x0800; // 04000
+
+    enum key_t IPC_PRIVATE = 0;
+
+    enum IPC_RMID       = 0;
+    enum IPC_SET        = 1;
+    enum IPC_STAT       = 2;
+    enum IPC_INFO       = 3;
+
+    key_t ftok(in char*, int);
+}

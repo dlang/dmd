@@ -1936,6 +1936,196 @@ else version( CRuntime_Musl )
     int     sockatmark(int);
     int     socketpair(int, int, int, ref int[2]);
 }
+else version( CRuntime_UClibc )
+{
+    alias uint   socklen_t;
+    alias ushort sa_family_t;
+
+    struct sockaddr
+    {
+        sa_family_t sa_family;
+        byte[14]    sa_data;
+    }
+
+    private enum : size_t
+    {
+        _SS_SIZE    = 128,
+        _SS_PADSIZE = _SS_SIZE - (c_ulong.sizeof * 2)
+    }
+
+    struct sockaddr_storage
+    {
+        sa_family_t ss_family;
+        c_ulong     __ss_align;
+        byte[_SS_PADSIZE] __ss_padding;
+    }
+
+    struct msghdr
+    {
+        void*     msg_name;
+        socklen_t msg_namelen;
+        iovec*    msg_iov;
+        size_t    msg_iovlen;
+        void*     msg_control;
+        size_t    msg_controllen;
+        int       msg_flags;
+    }
+
+    struct cmsghdr
+    {
+        size_t cmsg_len;
+        int    cmsg_level;
+        int    cmsg_type;
+    }
+
+    enum : uint
+    {
+        SCM_RIGHTS = 0x01
+    }
+
+    extern (D) inout(ubyte)*   CMSG_DATA( inout(cmsghdr)* cmsg ) pure nothrow @nogc { return cast(ubyte*)( cmsg + 1 ); }
+
+    private inout(cmsghdr)* __cmsg_nxthdr(inout(msghdr)*, inout(cmsghdr)*) pure nothrow @nogc;
+    extern (D)  inout(cmsghdr)* CMSG_NXTHDR(inout(msghdr)* msg, inout(cmsghdr)* cmsg) pure nothrow @nogc
+    {
+        return __cmsg_nxthdr(msg, cmsg);
+    }
+
+    extern (D) inout(cmsghdr)* CMSG_FIRSTHDR( inout(msghdr)* mhdr ) pure nothrow @nogc
+    {
+        return ( cast(size_t)mhdr.msg_controllen >= cmsghdr.sizeof
+                             ? cast(inout(cmsghdr)*) mhdr.msg_control
+                             : cast(inout(cmsghdr)*) null );
+    }
+
+    extern (D)
+    {
+        size_t CMSG_ALIGN( size_t len ) pure nothrow @nogc
+        {
+            return (len + size_t.sizeof - 1) & cast(size_t) (~(size_t.sizeof - 1));
+        }
+
+        size_t CMSG_LEN( size_t len ) pure nothrow @nogc
+        {
+            return CMSG_ALIGN(cmsghdr.sizeof) + len;
+        }
+    }
+
+    extern (D) size_t CMSG_SPACE(size_t len) pure nothrow @nogc
+    {
+        return CMSG_ALIGN(len) + CMSG_ALIGN(cmsghdr.sizeof);
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    version (X86_64)
+    {
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+    }
+    else version (MIPS32)
+    {
+        enum
+        {
+            SOCK_DGRAM      = 1,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 2,
+        }
+    }
+    else version (ARM)
+    {
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+    }
+    else
+        static assert(0, "unimplemented");
+
+    enum
+    {
+        SO_ACCEPTCONN   = 30,
+        SO_BROADCAST    = 6,
+        SO_DEBUG        = 1,
+        SO_DONTROUTE    = 5,
+        SO_ERROR        = 4,
+        SO_KEEPALIVE    = 9,
+        SO_LINGER       = 13,
+        SO_OOBINLINE    = 10,
+        SO_RCVBUF       = 8,
+        SO_RCVLOWAT     = 18,
+        SO_RCVTIMEO     = 20,
+        SO_REUSEADDR    = 2,
+        SO_SNDBUF       = 7,
+        SO_SNDLOWAT     = 19,
+        SO_SNDTIMEO     = 21,
+        SO_TYPE         = 3,
+
+        SOL_SOCKET      = 1,
+        SOMAXCONN       = 128
+    }
+
+    enum : uint
+    {
+        MSG_CTRUNC      = 0x08,
+        MSG_DONTROUTE   = 0x04,
+        MSG_EOR         = 0x80,
+        MSG_OOB         = 0x01,
+        MSG_PEEK        = 0x02,
+        MSG_TRUNC       = 0x20,
+        MSG_WAITALL     = 0x100,
+        MSG_NOSIGNAL    = 0x4000
+    }
+
+    enum
+    {
+        AF_APPLETALK    = 5,
+        AF_INET         = 2,
+        AF_IPX          = 4,
+        AF_UNIX         = 1,
+        AF_UNSPEC       = 0,
+        PF_APPLETALK    = AF_APPLETALK,
+        PF_IPX          = AF_IPX
+    }
+
+    enum int SOCK_RDM   = 4;
+
+    enum
+    {
+        SHUT_RD,
+        SHUT_WR,
+        SHUT_RDWR
+    }
+
+    int     accept(int, sockaddr*, socklen_t*);
+    int     bind(int, in sockaddr*, socklen_t);
+    int     connect(int, in sockaddr*, socklen_t);
+    int     getpeername(int, sockaddr*, socklen_t*);
+    int     getsockname(int, sockaddr*, socklen_t*);
+    int     getsockopt(int, int, int, void*, socklen_t*);
+    int     listen(int, int);
+    ssize_t recv(int, void*, size_t, int);
+    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
+    ssize_t recvmsg(int, msghdr*, int);
+    ssize_t send(int, in void*, size_t, int);
+    ssize_t sendmsg(int, in msghdr*, int);
+    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
+    int     setsockopt(int, int, int, in void*, socklen_t);
+    int     shutdown(int, int);
+    int     socket(int, int, int);
+    int     sockatmark(int);
+    int     socketpair(int, int, int, ref int[2]);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2001,6 +2191,13 @@ else version( CRuntime_Musl )
 {
     enum AF_INET6 = 10;
 }
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        AF_INET6    = 10
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2064,6 +2261,13 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_Musl )
 {
+}
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        SOCK_RAW    = 3
+    }
 }
 else
 {

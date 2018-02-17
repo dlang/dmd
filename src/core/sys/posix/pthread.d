@@ -398,6 +398,43 @@ else version( CRuntime_Musl )
         PTHREAD_PROCESS_SHARED = 1
     }
 }
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        PTHREAD_CANCEL_ENABLE,
+        PTHREAD_CANCEL_DISABLE
+    }
+
+    enum
+    {
+        PTHREAD_CANCEL_DEFERRED,
+        PTHREAD_CANCEL_ASYNCHRONOUS
+    }
+
+    enum PTHREAD_CANCELED   = cast(void*) -1;
+
+    enum PTHREAD_MUTEX_INITIALIZER  = pthread_mutex_t.init;
+    enum PTHREAD_ONCE_INIT          = pthread_once_t.init;
+
+    enum
+    {
+        PTHREAD_CREATE_JOINABLE,
+        PTHREAD_CREATE_DETACHED
+    }
+
+    enum
+    {
+        PTHREAD_INHERIT_SCHED,
+        PTHREAD_EXPLICIT_SCHED
+    }
+
+    enum
+    {
+        PTHREAD_PROCESS_PRIVATE,
+        PTHREAD_PROCESS_SHARED
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -641,6 +678,35 @@ else version( CRuntime_Musl )
         }
     }
 }
+else version( CRuntime_UClibc )
+{
+    struct _pthread_cleanup_buffer
+    {
+        _pthread_cleanup_routine    __routine;
+        void*                       __arg;
+        int                         __canceltype;
+        _pthread_cleanup_buffer*    __prev;
+    }
+
+    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine, void*);
+    void _pthread_cleanup_push(_pthread_cleanup_buffer*, _pthread_cleanup_routine_nogc, void*) @nogc;
+    void _pthread_cleanup_pop(_pthread_cleanup_buffer*, int);
+
+    struct pthread_cleanup
+    {
+        _pthread_cleanup_buffer buffer = void;
+
+        extern (D) void push(F: _pthread_cleanup_routine)(F routine, void* arg )
+        {
+            _pthread_cleanup_push( &buffer, routine, arg );
+        }
+
+        extern (D) void pop()( int execute )
+        {
+            _pthread_cleanup_pop( &buffer, execute );
+        }
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -790,6 +856,18 @@ else version (CRuntime_Musl)
 {
 
 }
+else version( CRuntime_UClibc )
+{
+    enum PTHREAD_BARRIER_SERIAL_THREAD = -1;
+
+    int pthread_barrier_destroy(pthread_barrier_t*);
+    int pthread_barrier_init(pthread_barrier_t*, in pthread_barrierattr_t*, uint);
+    int pthread_barrier_wait(pthread_barrier_t*);
+    int pthread_barrierattr_destroy(pthread_barrierattr_t*);
+    int pthread_barrierattr_getpshared(in pthread_barrierattr_t*, int*);
+    int pthread_barrierattr_init(pthread_barrierattr_t*);
+    int pthread_barrierattr_setpshared(pthread_barrierattr_t*, int);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -871,6 +949,14 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
 
+}
+else version( CRuntime_UClibc )
+{
+    int pthread_spin_destroy(pthread_spinlock_t*);
+    int pthread_spin_init(pthread_spinlock_t*, int);
+    int pthread_spin_lock(pthread_spinlock_t*);
+    int pthread_spin_trylock(pthread_spinlock_t*);
+    int pthread_spin_unlock(pthread_spinlock_t*);
 }
 else
 {
@@ -1036,6 +1122,28 @@ else version (CRuntime_Musl)
     }
     int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
 }
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+      PTHREAD_MUTEX_TIMED_NP,
+      PTHREAD_MUTEX_RECURSIVE_NP,
+      PTHREAD_MUTEX_ERRORCHECK_NP,
+      PTHREAD_MUTEX_ADAPTIVE_NP,
+      PTHREAD_MUTEX_NORMAL = PTHREAD_MUTEX_TIMED_NP,
+      PTHREAD_MUTEX_RECURSIVE = PTHREAD_MUTEX_RECURSIVE_NP,
+      PTHREAD_MUTEX_ERRORCHECK = PTHREAD_MUTEX_ERRORCHECK_NP,
+      PTHREAD_MUTEX_DEFAULT = PTHREAD_MUTEX_NORMAL,
+      PTHREAD_MUTEX_FAST_NP = PTHREAD_MUTEX_TIMED_NP
+    }
+
+    int pthread_attr_getguardsize(in pthread_attr_t*, size_t*);
+    int pthread_attr_setguardsize(pthread_attr_t*, size_t);
+    int pthread_getconcurrency();
+    int pthread_mutexattr_gettype(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_settype(pthread_mutexattr_t*, int) @trusted;
+    int pthread_setconcurrency(int);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1080,6 +1188,10 @@ else version( CRuntime_Bionic )
 else version( CRuntime_Musl )
 {
 
+}
+else version( CRuntime_UClibc )
+{
+    int pthread_getcpuclockid(pthread_t, clockid_t*);
 }
 else
 {
@@ -1145,6 +1257,12 @@ else version( CRuntime_Bionic )
 else version( CRuntime_Musl )
 {
 
+}
+else version( CRuntime_UClibc )
+{
+    int pthread_mutex_timedlock(pthread_mutex_t*, in timespec*);
+    int pthread_rwlock_timedrdlock(pthread_rwlock_t*, in timespec*);
+    int pthread_rwlock_timedwrlock(pthread_rwlock_t*, in timespec*);
 }
 else
 {
@@ -1369,6 +1487,24 @@ else version (CRuntime_Musl)
     int pthread_setschedparam(pthread_t, int, in sched_param*);
     int pthread_setschedprio(pthread_t, int);
 }
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        PTHREAD_SCOPE_SYSTEM,
+        PTHREAD_SCOPE_PROCESS
+    }
+
+    int pthread_attr_getinheritsched(in pthread_attr_t*, int*);
+    int pthread_attr_getschedpolicy(in pthread_attr_t*, int*);
+    int pthread_attr_getscope(in pthread_attr_t*, int*);
+    int pthread_attr_setinheritsched(pthread_attr_t*, int);
+    int pthread_attr_setschedpolicy(pthread_attr_t*, int);
+    int pthread_attr_setscope(pthread_attr_t*, int);
+    int pthread_getschedparam(pthread_t, int*, sched_param*);
+    int pthread_setschedparam(pthread_t, int, in sched_param*);
+    int pthread_setschedprio(pthread_t, int);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1463,6 +1599,15 @@ else version (CRuntime_Musl)
     int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
     int pthread_attr_setstacksize(pthread_attr_t*, size_t);
 }
+else version( CRuntime_UClibc )
+{
+    int pthread_attr_getstack(in pthread_attr_t*, void**, size_t*);
+    int pthread_attr_getstackaddr(in pthread_attr_t*, void**);
+    int pthread_attr_getstacksize(in pthread_attr_t*, size_t*);
+    int pthread_attr_setstack(pthread_attr_t*, void*, size_t);
+    int pthread_attr_setstackaddr(pthread_attr_t*, void*);
+    int pthread_attr_setstacksize(pthread_attr_t*, size_t);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1549,6 +1694,15 @@ else version (CRuntime_Bionic)
 else version (CRuntime_Musl)
 {
 
+}
+else version (CRuntime_UClibc)
+{
+    int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
+    int pthread_condattr_setpshared(pthread_condattr_t*, int);
+    int pthread_mutexattr_getpshared(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_setpshared(pthread_mutexattr_t*, int);
+    int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
+    int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
 else
 {

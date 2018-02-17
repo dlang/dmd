@@ -271,6 +271,43 @@ else version( CRuntime_Bionic )
         static assert(false, "Architecture not supported.");
     }
 }
+else version( CRuntime_UClibc )
+{
+    static if( __USE_FILE_OFFSET64 )
+    {
+        alias long      blkcnt_t;
+        alias ulong     ino_t;
+        alias long      off_t;
+    }
+    else
+    {
+        alias slong_t   blkcnt_t;
+        alias ulong_t   ino_t;
+        alias slong_t   off_t;
+    }
+
+    version (D_LP64)
+    {
+        alias ino_t ino64_t;
+        alias off_t off64_t;
+    }
+    else
+    {
+        alias ulong ino64_t;
+        alias long off64_t;
+    }
+
+    alias slong_t   blksize_t;
+    alias c_ulong   dev_t;
+    alias uint      gid_t;
+    alias uint      mode_t;
+    alias uint      nlink_t;
+    alias int       pid_t;
+    //size_t (defined in core.stdc.stddef)
+    alias c_long    ssize_t;
+    alias slong_t   time_t;
+    alias uint      uid_t;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -397,6 +434,24 @@ else version( CRuntime_Musl )
     alias uint mode_t;
     alias uint id_t;
     alias long suseconds_t;
+}
+else version( CRuntime_UClibc )
+{
+  static if( __USE_FILE_OFFSET64 )
+  {
+    alias ulong     fsblkcnt_t;
+    alias ulong     fsfilcnt_t;
+  }
+  else
+  {
+    alias ulong_t   fsblkcnt_t;
+    alias ulong_t   fsfilcnt_t;
+  }
+    alias slong_t   clock_t;
+    alias uint      id_t;
+    alias int       key_t;
+    alias slong_t   suseconds_t;
+    alias uint      useconds_t;
 }
 else
 {
@@ -1027,6 +1082,154 @@ else version( CRuntime_Bionic )
     alias int    pthread_rwlockattr_t;
     alias c_long pthread_t;
 }
+else version ( CRuntime_UClibc )
+{
+     version (X86_64)
+     {
+        enum __SIZEOF_PTHREAD_ATTR_T        = 56;
+        enum __SIZEOF_PTHREAD_MUTEX_T       = 40;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T   = 4;
+        enum __SIZEOF_PTHREAD_COND_T        = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T    = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T      = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T  = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T     = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+     }
+     else version (MIPS32)
+     {
+        enum __SIZEOF_PTHREAD_ATTR_T        = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T       = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T   = 4;
+        enum __SIZEOF_PTHREAD_COND_T        = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T    = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T      = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T  = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T     = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+     }
+     else version (ARM)
+     {
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_COND_COMPAT_T = 12;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+     }
+     else
+     {
+        static assert (false, "Architecture unsupported");
+     }
+
+    union pthread_attr_t
+    {
+        byte[__SIZEOF_PTHREAD_ATTR_T] __size;
+        c_long __align;
+    }
+
+    union pthread_cond_t
+    {
+        struct data
+        {
+            int __lock;
+            uint __futex;
+            ulong __total_seq;
+            ulong __wakeup_seq;
+            ulong __woken_seq;
+            void *__mutex;
+            uint __nwaiters;
+            uint __broadcast_seq;
+        } data __data;
+        byte[__SIZEOF_PTHREAD_COND_T] __size;
+        long  __align;
+    }
+
+    union pthread_condattr_t
+    {
+        byte[__SIZEOF_PTHREAD_CONDATTR_T] __size;
+        c_long __align;
+    }
+
+    alias uint pthread_key_t;
+
+    struct __pthread_slist_t
+    {
+      __pthread_slist_t* __next;
+    }
+
+    union pthread_mutex_t
+    {
+      struct __pthread_mutex_s
+      {
+        int __lock;
+        uint __count;
+        int __owner;
+        /* KIND must stay at this position in the structure to maintain
+           binary compatibility.  */
+        int __kind;
+        uint __nusers;
+        union
+        {
+          int __spins;
+          __pthread_slist_t __list;
+        }
+      }
+      __pthread_mutex_s __data;
+        byte[__SIZEOF_PTHREAD_MUTEX_T] __size;
+        c_long __align;
+    }
+
+    union pthread_mutexattr_t
+    {
+        byte[__SIZEOF_PTHREAD_MUTEXATTR_T] __size;
+        c_long __align;
+    }
+
+    alias int pthread_once_t;
+
+    struct pthread_rwlock_t
+    {
+        struct data
+        {
+            int __lock;
+            uint __nr_readers;
+            uint __readers_wakeup;
+            uint __writer_wakeup;
+            uint __nr_readers_queued;
+            uint __nr_writers_queued;
+            version( BigEndian )
+            {
+                ubyte __pad1;
+                ubyte __pad2;
+                ubyte __shared;
+                ubyte __flags;
+            }
+            else
+            {
+                ubyte __flags;
+                ubyte __shared;
+                ubyte __pad1;
+                ubyte __pad2;
+            }
+            int __writer;
+        } data __data;
+        byte[__SIZEOF_PTHREAD_RWLOCK_T] __size;
+        c_long __align;
+    }
+
+    struct pthread_rwlockattr_t
+    {
+        byte[__SIZEOF_PTHREAD_RWLOCKATTR_T] __size;
+        c_long __align;
+    }
+
+    alias c_ulong pthread_t;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1095,6 +1298,20 @@ else version( CRuntime_Bionic )
 else version( CRuntime_Musl )
 {
 }
+else version( CRuntime_UClibc )
+{
+    struct pthread_barrier_t
+    {
+        byte[__SIZEOF_PTHREAD_BARRIER_T] __size;
+        c_long __align;
+    }
+
+    struct pthread_barrierattr_t
+    {
+        byte[__SIZEOF_PTHREAD_BARRIERATTR_T] __size;
+        int __align;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -1126,6 +1343,10 @@ else version( DragonFlyBSD )
 else version (Solaris)
 {
     alias pthread_mutex_t pthread_spinlock_t;
+}
+else version( CRuntime_UClibc )
+{
+    alias int pthread_spinlock_t; // volatile
 }
 
 //

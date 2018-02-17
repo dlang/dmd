@@ -269,6 +269,58 @@ else version( CRuntime_Bionic )
     int  setjmp(ref jmp_buf);
     void longjmp(ref jmp_buf, int);
 }
+else version( CRuntime_UClibc )
+{
+    version( X86_64 )
+    {
+        alias long[8] __jmp_buf;
+    }
+    else version (ARM)
+    {
+        align(8) alias int[64] __jmp_buf;
+    }
+    else version (MIPS32)
+    {
+        struct __jmp_buf
+        {
+            version (MIPS_O32)
+            {
+                void * __pc;
+                void * __sp;
+                int[8] __regs;
+                void * __fp;
+                void * __gp;
+            }
+            else
+            {
+                long __pc;
+                long __sp;
+                long[8] __regs;
+                long __fp;
+                long __gp;
+            }
+            int __fpc_csr;
+            version (MIPS_N64)
+                double[8] __fpregs;
+            else
+                double[6] __fpregs;
+        };
+    }
+    else
+        static assert(0, "unimplemented");
+
+    struct __jmp_buf_tag
+    {
+        __jmp_buf   __jmpbuf;
+        int         __mask_was_saved;
+        sigset_t    __saved_mask;
+    }
+
+    alias __jmp_buf_tag[1] jmp_buf;
+
+    alias _setjmp setjmp;
+    void longjmp(ref jmp_buf, int);
+}
 
 //
 // C Extension (CX)
@@ -362,6 +414,14 @@ else version( CRuntime_Bionic )
     int  sigsetjmp(ref sigjmp_buf, int);
     void siglongjmp(ref sigjmp_buf, int);
 }
+else version( CRuntime_UClibc )
+{
+    alias jmp_buf sigjmp_buf;
+
+    int __sigsetjmp(ref sigjmp_buf, int);
+    alias __sigsetjmp sigsetjmp;
+    void siglongjmp(ref sigjmp_buf, int);
+}
 
 //
 // XOpen (XSI)
@@ -397,6 +457,11 @@ else version( DragonFlyBSD )
     void _longjmp(ref jmp_buf, int);
 }
 else version( CRuntime_Bionic )
+{
+    int  _setjmp(ref jmp_buf);
+    void _longjmp(ref jmp_buf, int);
+}
+else version( CRuntime_UClibc )
 {
     int  _setjmp(ref jmp_buf);
     void _longjmp(ref jmp_buf, int);

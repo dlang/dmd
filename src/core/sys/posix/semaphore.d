@@ -146,6 +146,18 @@ else version( CRuntime_Musl )
         int[4*long.sizeof/int.sizeof] __val;
     }
 }
+else version( CRuntime_UClibc )
+{
+    enum __SIZEOF_SEM_T  = 16;
+
+    union sem_t
+    {
+        byte[__SIZEOF_SEM_T] __size;
+        c_long __align;
+    }
+
+    enum SEM_FAILED      = cast(sem_t*) null;
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -201,6 +213,10 @@ else version( CRuntime_Bionic )
     int sem_timedwait(sem_t*, in timespec*);
 }
 else version( CRuntime_Musl )
+{
+    int sem_timedwait(sem_t*, in timespec*);
+}
+else version( CRuntime_UClibc )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }

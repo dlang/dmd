@@ -81,6 +81,10 @@ else version (CRuntime_Musl)
 {
     time_t timegm(tm*);
 }
+else version( CRuntime_UClibc )
+{
+    time_t timegm(tm*);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -427,6 +431,40 @@ else version( CRuntime_Musl )
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
     int timer_getoverrun(timer_t);
 }
+else version( CRuntime_UClibc )
+{
+    enum CLOCK_REALTIME             = 0;
+    enum CLOCK_MONOTONIC            = 1;
+    enum CLOCK_PROCESS_CPUTIME_ID   = 2;
+    enum CLOCK_THREAD_CPUTIME_ID    = 3;
+    enum CLOCK_MONOTONIC_RAW        = 4;
+    enum CLOCK_REALTIME_COARSE      = 5;
+    enum CLOCK_MONOTONIC_COARSE     = 6;
+    enum CLOCK_BOOTTIME             = 7;
+    enum CLOCK_REALTIME_ALARM       = 8;
+    enum CLOCK_BOOTTIME_ALARM       = 9;
+
+    struct itimerspec
+    {
+        timespec it_interval;
+        timespec it_value;
+    }
+
+    enum TIMER_ABSTIME          = 0x01;
+
+    alias int clockid_t;
+    alias void* timer_t;
+
+    int clock_getres(clockid_t, timespec*);
+    int clock_gettime(clockid_t, timespec*);
+    int clock_settime(clockid_t, in timespec*);
+    int nanosleep(in timespec*, timespec*);
+    int timer_create(clockid_t, sigevent*, timer_t*);
+    int timer_delete(timer_t);
+    int timer_gettime(timer_t, itimerspec*);
+    int timer_getoverrun(timer_t);
+    int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -492,6 +530,13 @@ else version (CRuntime_Bionic)
     tm* localtime_r(in time_t*, tm*);
 }
 else version (CRuntime_Musl)
+{
+    char* asctime_r(in tm*, char*);
+    char* ctime_r(in time_t*, char*);
+    tm*   gmtime_r(in time_t*, tm*);
+    tm*   localtime_r(in time_t*, tm*);
+}
+else version( CRuntime_UClibc )
 {
     char* asctime_r(in tm*, char*);
     char* ctime_r(in time_t*, char*);
@@ -565,6 +610,14 @@ else version( CRuntime_Bionic )
 }
 else version( CRuntime_Musl )
 {
+    tm*   getdate(in char*);
+    char* strptime(in char*, in char*, tm*);
+}
+else version( CRuntime_UClibc )
+{
+    extern __gshared int    daylight;
+    extern __gshared c_long timezone;
+
     tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
