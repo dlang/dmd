@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/el.d, backend/el.d)
@@ -18,6 +18,8 @@ import dmd.backend.cc;
 import dmd.backend.type;
 
 import dmd.backend.cc : Symbol;
+
+import dmd.tk.dlist;
 
 extern (C++):
 @nogc:
@@ -65,7 +67,6 @@ struct elem
 {
     debug ushort      id;
     enum IDelem = 0x4C45;   // 'EL'
-    //elem_debug(e) assert((e)->id == IDelem)
 
     version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
         align(16) eve EV; // variants for each type of elem
@@ -83,6 +84,8 @@ struct elem
         struct
         {
             version (SCPP)
+                Symbol* Emember;       // if PEFmember, this is the member
+            version (HTOD)
                 Symbol* Emember;       // if PEFmember, this is the member
             pef_flags_t PEFflags;
         }
@@ -118,6 +121,11 @@ struct elem
     Srcpos Esrcpos;      // source file position
 }
 
+void elem_debug(elem* e)
+{
+    debug assert(e.id == e.IDelem);
+}
+
 version (MARS)
     tym_t typemask(elem* e) { return e.Ety; }
 else
@@ -128,8 +136,10 @@ else
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
 
-//#define list_elem(list) ((elem *) list_ptr(list))
-//#define list_setelem(list,ptr) list_ptr(list) = (elem *)(ptr)
+elem* list_elem(list_t list) { return cast(elem*)list_ptr(list); }
+
+void list_setelem(list_t list, void* ptr) { list.ptr = cast(elem *)ptr; }
+
 //#define cnst(e) ((e)->Eoper == OPconst) /* Determine if elem is a constant */
 //#define E1        EV.eop.Eleft          /* left child                   */
 //#define E2        EV.eop.Eright         /* right child                  */
@@ -153,7 +163,7 @@ elem *el_alloctmp(tym_t);
 elem *el_selecte1(elem *);
 elem *el_selecte2(elem *);
 elem *el_copytree(elem *);
-void   el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
+void  el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
 elem *el_scancommas(elem *);
 int el_countCommas(elem *);
 int el_sideeffect(elem *);
@@ -185,7 +195,6 @@ elem *el_var(Symbol *);
 elem *el_settype(elem *,type *);
 elem *el_typesize(type *);
 elem *el_ptr(Symbol *);
-void el_replace_sym(elem *e,Symbol *s1,Symbol *s2);
 elem *el_ptr_offset(Symbol *s,targ_size_t offset);
 void el_replacesym(elem *,Symbol *,Symbol *);
 elem *el_nelems(type *);

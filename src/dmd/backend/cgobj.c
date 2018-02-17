@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.c, backend/cgobj.c)
@@ -47,6 +47,11 @@ struct Loc
 };
 
 void error(Loc loc, const char *format, ...);
+#endif
+
+#if MARS
+// C++ name mangling is handled by front end
+#define cpp_mangle(s) ((s)->Sident)
 #endif
 
 #if TARGET_WINDOS
@@ -1802,7 +1807,7 @@ void Obj::setModuleCtorDtor(Symbol *s, bool isCtor)
  * Used for static ctor and dtor lists.
  */
 
-void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
 {
     // We need to always put out the segments in triples, so that the
     // linker will put them in the correct order.
@@ -2403,6 +2408,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
                 break;
             }
         case mTYman_c:
+        case mTYman_d:
             if (config.flags4 & CFG4underscore)
             {
                 dest[1] = '_';          // leading _ in name
@@ -2410,7 +2416,6 @@ size_t Obj::mangle(Symbol *s,char *dest)
                 len++;
                 break;
             }
-        case mTYman_d:
         case mTYman_sys:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;

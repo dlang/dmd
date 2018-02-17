@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/inlinecost.d, _inlinecost.d)
+ * Documentation:  https://dlang.org/phobos/dmd_inlinecost.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/inlinecost.d
  */
 
 module dmd.inlinecost;
-
-// Online documentation: https://dlang.org/phobos/dmd_inlinecost.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -76,6 +76,8 @@ int inlineCostExpression(Expression e)
  * Determine cost of inlining function
  * Params:
  *      fd = function to determine cost of
+ *      hasthis = if the function call has explicit 'this' expression
+ *      hdrscan = if generating a header file
  * Returns:
  *      cost of inlining fd
  */
@@ -442,9 +444,9 @@ public:
         // https://issues.dlang.org/show_bug.cgi?id=3500
         // super.func() calls must be devirtualized, and the inliner
         // can't handle that at present.
-        if (e.e1.op == TOKdotvar && (cast(DotVarExp)e.e1).e1.op == TOKsuper)
+        if (e.e1.op == TOK.dotVariable && (cast(DotVarExp)e.e1).e1.op == TOK.super_)
             cost = COST_MAX;
-        else if (e.f && e.f.ident == Id.__alloca && e.f.linkage == LINKc && !allowAlloca)
+        else if (e.f && e.f.ident == Id.__alloca && e.f.linkage == LINK.c && !allowAlloca)
             cost = COST_MAX; // inlining alloca may cause stack overflows
         else
             cost++;

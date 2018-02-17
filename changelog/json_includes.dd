@@ -1,0 +1,47 @@
+Added `-Xi=<name>` to include more fields in the JSON output
+
+Added `-Xi=<name>` to include more fields in the JSON output. Currently there are 4 fields that can be included: "compilerInfo", "buildInfo", "modules" and "semantics", i.e.
+
+$(CONSOLE dmd -Xi=compilerInfo -Xi=buildInfo -Xi=semantics -Xi=modules)
+
+will generate a JSON file with the following:
+---
+{
+  "compilerInfo" : {
+    "binary" : "<filename-of-compiler-binary>",
+    "version" : "<compiler-version>",
+    "supportsIncludeImports" : true,
+  },
+  "buildInfo" : {
+    "config" : "<config-filename>",
+    "cwd" : "<cwd-during-build>",
+    "importParths" : [
+      "<import-path1>",
+      "<import-path2>",
+      // ...
+    ]
+  },
+  "semantics" : {
+    "modules" : [
+      {
+        "name" : "<module-name>",
+        "file" : "<module-filename>",
+        "isRoot" : true|false
+      },
+      // more module objects...
+    ]
+  },
+  "modules" : [
+    // an array of the syntax data for all the modules,
+    // this is the same array that would be generated
+    // for a JSON file with no -Xi=<field> options
+  ]
+}
+---
+If JSON is generated without any `-Xi=` options then the old format is used.  The old format is the same data that would appear in the new "modules" field.
+
+Also note that the compiler can now be invoked with no source files as long as at least one JSON field is provided, i.e.
+
+$(CONSOLE dmd -Xi=compilerInfo)
+
+$(RED This is an experimental command-line flag and will be stabilized in the next release.)

@@ -32,6 +32,7 @@ headers.
 #define _GLIBCXX_USE_CXX11_ABI 0
 
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 #include <exception>
 #include <cstdarg>
@@ -347,7 +348,7 @@ size_t getoffset13161a()
 
 /****************************************************/
 
-#if __linux__ || __APPLE__ || __FreeBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __DragonFly__
 #include <memory>
 #include <vector>
 #include <string>
@@ -404,7 +405,7 @@ wchar_t f13289_cpp_wchar_t(wchar_t ch)
     }
 }
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
 unsigned short f13289_d_wchar(unsigned short ch);
 wchar_t f13289_d_dchar(wchar_t ch);
 #elif _WIN32
@@ -414,7 +415,7 @@ unsigned int f13289_d_dchar(unsigned int ch);
 
 bool f13289_cpp_test()
 {
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
     if (!(f13289_d_wchar((unsigned short)'c') == (unsigned short)'C')) return false;
     if (!(f13289_d_wchar((unsigned short)'D') == (unsigned short)'D')) return false;
     if (!(f13289_d_dchar(L'e') == L'E')) return false;
@@ -567,25 +568,20 @@ Visitor2* getVisitor2()
 
 /******************************************/
 // issues detected by fuzzer
-#if _LP64
-#define longlong long
-#else
-#define longlong long long
-#endif
 
-void fuzz1_checkValues(longlong arg10, longlong arg11, bool arg12);
-void fuzz1_cppvararg(longlong arg10, longlong arg11, bool arg12)
+void fuzz1_checkValues(int64_t arg10, int64_t arg11, bool arg12);
+void fuzz1_cppvararg(int64_t arg10, int64_t arg11, bool arg12)
 {
     fuzz1_checkValues(arg10, arg11, arg12);
 }
 
-void fuzz2_checkValues(unsigned longlong arg10, unsigned longlong arg11, bool arg12);
-void fuzz2_cppvararg(unsigned longlong arg10, unsigned longlong arg11, bool arg12)
+void fuzz2_checkValues(uint64_t arg10, uint64_t arg11, bool arg12);
+void fuzz2_cppvararg(uint64_t arg10, uint64_t arg11, bool arg12)
 {
     fuzz2_checkValues(arg10, arg11, arg12);
 }
 
-#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__
+#if __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || __NetBSD__ || __DragonFly__
 #define wchar unsigned short
 #elif _WIN32
 #define wchar wchar_t
@@ -805,7 +801,7 @@ void test15802b()
 // 16536 - mangling mismatch on OSX
 
 #if defined(__APPLE__)
-__UINTMAX_TYPE__ pass16536(__UINTMAX_TYPE__ a)
+uint64_t pass16536(uint64_t a)
 {
     return a;
 }

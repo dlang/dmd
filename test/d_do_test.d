@@ -14,6 +14,11 @@ import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
 
+version(Win32)
+{
+    extern(C) int putenv(const char*);
+}
+
 void usage()
 {
     write("d_do_test <input_dir> <test_name> <test_extension>\n"
@@ -32,7 +37,7 @@ void usage()
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd\n"
+          ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
           ~ "   windows vs non-windows portability env vars:\n"
@@ -54,11 +59,15 @@ struct TestArgs
     TestMode mode;
 
     bool     compileSeparately;
+    bool     link;
     string   executeArgs;
+    string   dflags;
     string[] sources;
+    string[] compiledImports;
     string[] cppSources;
     string[] objcSources;
     string   permuteArgs;
+    string[] argSets;
     string   compileOutput;
     string   gdbScript;
     string   gdbMatch;
@@ -88,7 +97,7 @@ struct EnvData
     bool coverage_build;
 }
 
-bool findTestParameter(const ref EnvData envData, string file, string token, ref string result)
+bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
 {
     auto tokenStart = std.string.indexOf(file, token);
     if (tokenStart == -1) return false;
@@ -123,8 +132,11 @@ bool findTestParameter(const ref EnvData envData, string file, string token, ref
     //writeln("arg: '", result, "'");
 
     string result2;
-    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2))
-        result ~= " " ~ result2;
+    if (findTestParameter(envData, file[tokenStart+lineEnd..$], token, result2, multiLineDelimiter))
+    {
+        if(result2.length > 0)
+            result ~= multiLineDelimiter ~ result2;
+    }
 
     return true;
 }
@@ -182,9 +194,16 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 {
     string file = cast(string)std.file.read(input_file);
 
+    findTestParameter(envData, file, "DFLAGS", testArgs.dflags);
+
     findTestParameter(envData, file, "REQUIRED_ARGS", testArgs.requiredArgs);
-    if(envData.required_args.length)
-        testArgs.requiredArgs ~= " " ~ envData.required_args;
+    if (envData.required_args.length)
+    {
+        if (testArgs.requiredArgs.length)
+            testArgs.requiredArgs ~= " " ~ envData.required_args;
+        else
+            testArgs.requiredArgs = envData.required_args;
+    }
     replaceResultsDir(testArgs.requiredArgs, envData);
 
     if (! findTestParameter(envData, file, "PERMUTE_ARGS", testArgs.permuteArgs))
@@ -197,6 +216,26 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
     replaceResultsDir(testArgs.permuteArgs, envData);
+
+    // remove permute args enforced as required anyway
+    if (testArgs.requiredArgs.length && testArgs.permuteArgs.length)
+    {
+        const required = split(testArgs.requiredArgs);
+        const newPermuteArgs = split(testArgs.permuteArgs)
+            .filter!(a => !required.canFind(a))
+            .join(" ");
+        testArgs.permuteArgs = newPermuteArgs;
+    }
+
+    {
+        string argSetsStr;
+        findTestParameter(envData, file, "ARG_SETS", argSetsStr, ";");
+        foreach(s; split(argSetsStr, ";"))
+        {
+            replaceResultsDir(s, envData);
+            testArgs.argSets ~= s;
+        }
+    }
 
     // win(32|64) doesn't support pic
     if (envData.os == "win32" || envData.os == "win64")
@@ -218,6 +257,13 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // prepend input_dir to each extra source file
     foreach(s; split(extraSourcesStr))
         testArgs.sources ~= input_dir ~ "/" ~ s;
+
+    {
+        string compiledImports;
+        findTestParameter(envData, file, "COMPILED_IMPORTS", compiledImports);
+        foreach(s; split(compiledImports))
+            testArgs.compiledImports ~= input_dir ~ "/" ~ s;
+    }
 
     string extraCppSourcesStr;
     findTestParameter(envData, file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
@@ -242,6 +288,11 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         foreach (ref s; testArgs.sources)
             s = replace(s, "/", to!string(envData.sep));
     //writeln ("sources: ", testArgs.sources);
+
+    {
+        string throwAway;
+        testArgs.link = findTestParameter(envData, file, "LINK", throwAway);
+    }
 
     // COMPILE_SEPARATELY can take optional compiler switches when link .o files
     testArgs.compileSeparately = findTestParameter(envData, file, "COMPILE_SEPARATELY", testArgs.requiredArgsForLink);
@@ -526,6 +577,24 @@ int tryMain(string[] args)
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
         return 0;
 
+    // Clear the DFLAGS environment variable if it was specified in the test file
+    if (testArgs.dflags !is null)
+    {
+        if (testArgs.dflags != "")
+            throw new Exception("The DFLAGS test argument must be empty: It is '" ~ testArgs.dflags ~ "'");
+
+        // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
+        // in std.process). So, resorting to `putenv` in snn.lib
+        version(Win32)
+        {
+            putenv("DFLAGS=");
+        }
+        else
+        {
+            environment["DFLAGS"] = "";
+        }
+    }
+
     //prepare cpp extra sources
     if (testArgs.cppSources.length)
     {
@@ -558,6 +627,16 @@ int tryMain(string[] args)
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
 
+    version (DragonFlyBSD)
+    {
+        // DragonFlyBSD is x86_64 only, instead of adding DISABLED to a lot of tests, just exclude them from running
+        if (testArgs.requiredArgs.canFind("-m32"))
+        {
+            testArgs.disabled = true;
+            writefln("!!! [Skipping -m32 on %s]", envData.os);
+        }
+    }
+
     if (testArgs.disabledPlatforms.canFind(envData.os, envData.os ~ envData.model))
     {
         testArgs.disabled = true;
@@ -570,9 +649,12 @@ int tryMain(string[] args)
 
     auto f = File(output_file, "a");
 
-    foreach (i, c; combinations(testArgs.permuteArgs))
+    enum Result { continue_, return0, return1 }
+
+    // Runs the test with a specific combination of arguments
+    Result testCombination(bool autoCompileImports, string argSet, size_t permuteIndex, string permutedArgs)
     {
-        string test_app_dmd = test_app_dmd_base ~ to!string(i) ~ envData.exe;
+        string test_app_dmd = test_app_dmd_base ~ to!string(permuteIndex) ~ envData.exe;
 
         try
         {
@@ -601,35 +683,39 @@ int tryMain(string[] args)
             string compile_output;
             if (!testArgs.compileSeparately)
             {
-                string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
+                string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(permuteIndex) ~ envData.obj;
                 toCleanup ~= objfile;
 
-                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
-                        reqArgs, c, output_dir,
-                        (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
-                        (testArgs.mode == TestMode.RUN ? "" : "-c "),
-                        join(testArgs.sources, " "));
+                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
+                        reqArgs, permutedArgs, output_dir,
+                        (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
+                        argSet,
+                        (testArgs.mode == TestMode.RUN || testArgs.link ? "" : "-c "),
+                        join(testArgs.sources, " "),
+                        (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
                 version(Windows) command ~= " -map nul.map";
 
                 compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
             }
             else
             {
-                foreach (filename; testArgs.sources)
+                foreach (filename; testArgs.sources ~ (autoCompileImports ? null : testArgs.compiledImports))
                 {
                     string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
-                        reqArgs, c, output_dir, filename);
+                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
+                        reqArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
-                if (testArgs.mode == TestMode.RUN)
+                if (testArgs.mode == TestMode.RUN || testArgs.link)
                 {
                     // link .o's into an executable
-                    string command = format("%s -conf= -m%s %s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args,
-                            testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
+                    string command = format("%s -conf= -m%s%s%s %s %s -od%s -of%s %s", envData.dmd, envData.model,
+                        autoCompileImports ? " -i" : "",
+                        autoCompileImports ? "extraSourceIncludePaths" : "",
+                        envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
                     execute(fThisRun, command, true, result_path);
@@ -655,8 +741,8 @@ int tryMain(string[] args)
                 version(Windows)
                     if (msc)
                     {
-                        toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".ilk";
-                        toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".pdb";
+                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
+                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
                     }
 
                 if (testArgs.gdbScript is null)
@@ -668,7 +754,7 @@ int tryMain(string[] args)
                 }
                 else version (linux)
                 {
-                    auto script = test_app_dmd_base ~ to!string(i) ~ ".gdb";
+                    auto script = test_app_dmd_base ~ to!string(permuteIndex) ~ ".gdb";
                     toCleanup ~= script;
                     with (File(script, "w"))
                     {
@@ -696,12 +782,13 @@ int tryMain(string[] args)
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
+            return Result.continue_;
         }
         catch(Exception e)
         {
             // it failed but it was disabled, exit as if it was successful
             if (testArgs.disabled)
-                return 0;
+                return Result.return0;
 
             f.writeln();
             f.writeln("==============================");
@@ -711,8 +798,27 @@ int tryMain(string[] args)
             writeln("Test failed.  The logged output:");
             writeln(cast(string)std.file.read(output_file));
             std.file.remove(output_file);
-            return 1;
+            return Result.return1;
         }
+    }
+
+    auto argSets = (testArgs.argSets.length == 0) ? [""] : testArgs.argSets;
+    for(auto autoCompileImports = false;; autoCompileImports = true)
+    {
+        foreach(argSet; argSets)
+        {
+            foreach (i, c; combinations(testArgs.permuteArgs))
+            {
+                final switch(testCombination(autoCompileImports, argSet, i, c))
+                {
+                    case Result.continue_: break;
+                    case Result.return0: return 0;
+                    case Result.return1: return 1;
+                }
+            }
+        }
+        if(autoCompileImports || testArgs.compiledImports.length == 0)
+            break;
     }
 
     // it was disabled but it passed! print an informational message

@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -137,7 +137,7 @@ private block *labelToBlock(IRState *irs, const ref Loc loc, Blockx *blx, LabelD
 {
     if (!label.statement)
     {
-        error(loc, "undefined label %s", label.toChars());
+        error(loc, "undefined label `%s`", label.toChars());
         return null;
     }
     Label *l = getLabel(irs, null, label.statement);
@@ -442,7 +442,7 @@ private extern (C++) class S2irVisitor : Visitor
             if (!bt)
             {
                 //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                s.error("cannot goto into try block");
+                s.error("cannot `goto` into `try` block");
                 break;
             }
         }
@@ -475,7 +475,7 @@ private extern (C++) class S2irVisitor : Visitor
                     if (!bt)
                     {
                         //printf("b.Btry = %p, label.lblock.Btry = %p\n", b.Btry, label.lblock.Btry);
-                        s.error("cannot goto into try block");
+                        s.error("cannot `goto` into `try` block");
                         break;
                     }
 
@@ -494,7 +494,6 @@ private extern (C++) class S2irVisitor : Visitor
     override void visit(SwitchStatement s)
 //    { .visit(irs, s); }
     {
-        int string;
         Blockx *blx = irs.blx;
 
         //printf("SwitchStatement.toIR()\n");
@@ -605,7 +604,7 @@ private extern (C++) class S2irVisitor : Visitor
             bsw.appendSucc(clabel.lblock);   // second entry in pair
         bcase.appendSucc(clabel.lblock);
         if (blx.tryblock != bsw.Btry)
-            s.error("case cannot be in different try block level from switch");
+            s.error("case cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -619,7 +618,7 @@ private extern (C++) class S2irVisitor : Visitor
         block_next(blx,BCgoto,bdefault);
         bcase.appendSucc(blx.curblock);
         if (blx.tryblock != irs.getSwitchBlock().Btry)
-            s.error("default cannot be in different try block level from switch");
+            s.error("default cannot be in different `try` block level from `switch`");
         incUsage(irs, s.loc);
         if (s.statement)
             Statement_toIR(s.statement, irs);
@@ -644,7 +643,7 @@ private extern (C++) class S2irVisitor : Visitor
                 if (!bt)
                 {
                     //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot goto into try block");
+                    s.error("cannot `goto` into `try` block");
                     break;
                 }
             }
@@ -675,7 +674,7 @@ private extern (C++) class S2irVisitor : Visitor
                 if (!bt)
                 {
                     //printf("b.Btry = %p, bdest.Btry = %p\n", b.Btry, bdest.Btry);
-                    s.error("cannot goto into try block");
+                    s.error("cannot `goto` into `try` block");
                     break;
                 }
             }
@@ -721,7 +720,7 @@ private extern (C++) class S2irVisitor : Visitor
             TypeFunction tf = cast(TypeFunction)(func.type);
 
             RET retmethod = retStyle(tf);
-            if (retmethod == RETstack)
+            if (retmethod == RET.stack)
             {
                 elem *es;
                 bool writetohp;
@@ -729,7 +728,7 @@ private extern (C++) class S2irVisitor : Visitor
                 /* If returning struct literal, write result
                  * directly into return value
                  */
-                if (s.exp.op == TOKstructliteral)
+                if (s.exp.op == TOK.structLiteral)
                 {
                     StructLiteralExp sle = cast(StructLiteralExp)s.exp;
                     sle.sym = irs.shidden;
@@ -739,16 +738,16 @@ private extern (C++) class S2irVisitor : Visitor
                  *    structliteral.ctor(args)
                  * and construct directly into *shidden
                  */
-                else if (s.exp.op == TOKcall)
+                else if (s.exp.op == TOK.call)
                 {
                     auto ce = cast(CallExp)s.exp;
-                    if (ce.e1.op == TOKdotvar)
+                    if (ce.e1.op == TOK.dotVariable)
                     {
                         auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
                         if (fd && fd.isCtorDeclaration())
                         {
-                            if (dve.e1.op == TOKstructliteral)
+                            if (dve.e1.op == TOK.structLiteral)
                             {
                                 auto sle = cast(StructLiteralExp)dve.e1;
                                 sle.sym = irs.shidden;
@@ -919,7 +918,7 @@ private extern (C++) class S2irVisitor : Visitor
         Blockx *blx = irs.blx;
 
         //printf("WithStatement.toIR()\n");
-        if (s.exp.op == TOKscope || s.exp.op == TOKtype)
+        if (s.exp.op == TOK.scope_ || s.exp.op == TOK.type)
         {
         }
         else
@@ -1165,11 +1164,11 @@ private extern (C++) class S2irVisitor : Visitor
                          * At some point should try to do better.
                          */
                         FuncDeclaration fdend = FuncDeclaration.genCfunc(null, Type.tvoid, "__cxa_end_catch");
-                        Expression ec = VarExp.create(Loc(), fdend);
-                        Expression ecc = CallExp.create(Loc(), ec);
+                        Expression ec = VarExp.create(Loc.initial, fdend);
+                        Expression ecc = CallExp.create(Loc.initial, ec);
                         ecc.type = Type.tvoid;
-                        Statement sf = ExpStatement.create(Loc(), ecc);
-                        Statement stf = TryFinallyStatement.create(Loc(), cs.handler, sf);
+                        Statement sf = ExpStatement.create(Loc.initial, ecc);
+                        Statement stf = TryFinallyStatement.create(Loc.initial, cs.handler, sf);
                         Statement_toIR(stf, &catchState);
                     }
                     else

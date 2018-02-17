@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod2.c, backend/cod2.c)
@@ -909,7 +909,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             orthxmm(cdb,e,pretregs);
             return;
         }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         orth87(cdb,e,pretregs);
 #else
         opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -1799,7 +1799,7 @@ void cdnot(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e->E1,&retregs,FALSE);
         reg = findreg(retregs);
         getregs(cdb,retregs);
-        cdb.gen2(0xF7 ^ (sz == 1),grex | modregrmx(3,3,reg));   // NEG reg
+        cdb.gen2(sz == 1 ? 0xF6 : 0xF7,grex | modregrmx(3,3,reg));   // NEG reg
         code_orflag(cdb.last(),CFpsw);
         if (!I16 && sz == SHORTSIZE)
             code_orflag(cdb.last(),CFopsize);
@@ -4145,7 +4145,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     {
       L5:
         if (config.flags3 & CFG3pic)
@@ -4271,7 +4271,7 @@ void getoffset(CodeBuilder& cdb,elem *e,unsigned reg)
         goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (e->EV.sp.Vsym->ty() & mTYthread)
             goto L5;
 #endif
@@ -4403,7 +4403,7 @@ void cdneg(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         }
         else
         {
-            unsigned reg = (sz == 8) ? AX : findregmsw(retregs);
+            unsigned reg = (sz == 8) ? (unsigned) AX : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,6,reg),0x8000);     // XOR AX,0x8000
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4476,7 +4476,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         }
         else
         {
-            int reg = (sz == 8) ? AX : findregmsw(retregs);
+            int reg = (sz == 8) ? (int) AX : findregmsw(retregs);
             cdb.genc2(0x81,modregrm(3,4,reg),0x7FFF);     // AND AX,0x7FFF
         }
         fixresult(cdb,e,retregs,pretregs);
@@ -4486,7 +4486,7 @@ void cdabs(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     unsigned byte = sz == 1;
     assert(byte == 0);
     byte = 0;
-    regm_t possregs = (sz <= REGSIZE) ? mAX : allregs;
+    regm_t possregs = (sz <= REGSIZE) ? (regm_t) mAX : allregs;
     if (!I16 && sz == REGSIZE)
         possregs = allregs;
     regm_t retregs = *pretregs & possregs;

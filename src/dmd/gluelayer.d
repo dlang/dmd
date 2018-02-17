@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/gluelayer.d, _gluelayer.d)
+ * Documentation:  https://dlang.org/phobos/dmd_gluelayer.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/gluelayer.d
  */
 
 module dmd.gluelayer;
-
-// Online documentation: https://dlang.org/phobos/dmd_gluelayer.html
 
 import dmd.dmodule;
 import dmd.dscope;
@@ -47,20 +47,23 @@ version (NoBackend)
         Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
 
         // toir
-        RET retStyle(TypeFunction tf)               { return RETregs; }
+        RET retStyle(TypeFunction tf)               { return RET.regs; }
         void toObjFile(Dsymbol ds, bool multiobj)   {}
 
-        void objc_initSymbols() {}
+        extern(C++) abstract class ObjcGlue
+        {
+            static void initialize() {}
+        }
     }
 }
-else
+else version (MARS)
 {
     import dmd.lib : Library;
 
     public import dmd.backend.cc : block, Blockx, Symbol;
     public import dmd.backend.type : type;
     public import dmd.backend.el : elem;
-    public import dmd.backend.code : code;
+    public import dmd.backend.code_x86 : code;
 
     extern (C++)
     {
@@ -77,6 +80,28 @@ else
         RET retStyle(TypeFunction tf);
         void toObjFile(Dsymbol ds, bool multiobj);
 
-        void objc_initSymbols();
+        extern(C++) abstract class ObjcGlue
+        {
+            static void initialize();
+        }
     }
 }
+else version (IN_GCC)
+{
+    union tree_node;
+
+    alias Symbol = tree_node;
+    alias code = tree_node;
+    alias type = tree_node;
+
+    extern (C++)
+    {
+        RET retStyle(TypeFunction tf);
+        Statement asmSemantic(AsmStatement s, Scope* sc);
+    }
+
+    // stubs
+    void objc_initSymbols() { }
+}
+else
+    static assert(false, "Unsupported compiler backend");

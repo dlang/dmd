@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/outbuf.h, backend/outbuf.h)
@@ -47,14 +47,14 @@ struct Outbuffer
     void reset();
 
     // Reserve nbytes in buffer
-    void reserve(d_size_t nbytes)
+    void reserve(unsigned nbytes)
     {
         if (pend - p < nbytes)
             enlarge(nbytes);
     }
 
     // Reserve nbytes in buffer
-    void enlarge(d_size_t nbytes);
+    void enlarge(unsigned nbytes);
 
     // Write n zeros; return pointer to start of zeros
     void *writezeros(d_size_t n);
@@ -77,7 +77,7 @@ struct Outbuffer
     }
 
     // Write an array to the buffer.
-    void write(const void *b, d_size_t len);
+    void write(const void *b, unsigned len);
 
     void write(Outbuffer *b) { write(b->buf,b->p - b->buf); }
 

@@ -1,6 +1,9 @@
-module dmd.transitivevisitor;
+/**
+ * Documentation:  https://dlang.org/phobos/dmd_transitivevisitor.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/transitivevisitor.d
+ */
 
-// Online documentation: https://dlang.org/phobos/dmd_transitivevisitor.html
+module dmd.transitivevisitor;
 
 import dmd.permissivevisitor;
 import dmd.tokens;
@@ -28,7 +31,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.ExpStatement s)
     {
         //printf("Visiting ExpStatement\n");
-        if (s.exp && s.exp.op == TOKdeclaration)
+        if (s.exp && s.exp.op == TOK.declaration)
         {
             (cast(AST.DeclarationExp)s.exp).declaration.accept(this);
             return;
@@ -61,7 +64,7 @@ package mixin template ParseVisitMethods(AST)
         if (v._init)
         {
             auto ie = v._init.isExpInitializer();
-            if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
+            if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
                 (cast(AST.AssignExp)ie.exp).e2.accept(this);
             else
                 v._init.accept(this);
@@ -74,7 +77,7 @@ package mixin template ParseVisitMethods(AST)
         foreach (sx; *s.statements)
         {
             auto ds = sx ? sx.isExpStatement() : null;
-            if (ds && ds.exp.op == TOKdeclaration)
+            if (ds && ds.exp.op == TOK.declaration)
             {
                 auto d = (cast(AST.DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
@@ -632,7 +635,7 @@ package mixin template ParseVisitMethods(AST)
             if (vd._init)
             {
                 AST.ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
+                if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
                     (cast(AST.AssignExp)ie.exp).e2.accept(this);
                 else
                     vd._init.accept(this);
@@ -1062,12 +1065,6 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.PostExp e)
     {
         //printf("Visiting PostExp\n");
-        e.e1.accept(this);
-    }
-
-    override void visit(AST.PreExp e)
-    {
-        //printf("Visiting PreExp\n");
         e.e1.accept(this);
     }
 

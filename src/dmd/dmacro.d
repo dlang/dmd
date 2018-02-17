@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmacro.d, _dmacro.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dmacro.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmacro.d
  */
 
 module dmd.dmacro;
-
-// Online documentation: https://dlang.org/phobos/dmd_dmacro.html
 
 import core.stdc.ctype;
 import core.stdc.string;
@@ -85,7 +85,7 @@ public:
         static __gshared const(int) nestLimit = 1000;
         if (nest > nestLimit)
         {
-            error(Loc(), "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
+            error(Loc.initial, "DDoc macro expansion limit exceeded; more than %d expansions.", nestLimit);
             return;
         }
         nest++;

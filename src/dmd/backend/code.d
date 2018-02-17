@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/code.d, backend/_code.d)
@@ -203,7 +203,14 @@ struct FuncParamRegs
     const(ubyte)* floatregs;    // map to fp register
 }
 
-extern __gshared int BPRM;
+extern __gshared
+{
+    int BPRM;
+    targ_size_t localsize;
+    targ_size_t funcoffset;
+    targ_size_t framehandleroffset;
+    segidx_t cseg;
+}
 
 /* cgxmm.c */
 bool isXMMstore(uint op);
@@ -215,6 +222,11 @@ extern __gshared targ_size_t retoffset;
 extern __gshared int refparam;
 
 /* cod3.c */
+
+void cod3_initregs();
+void cod3_setdefault();
+void cod3_set32();
+void cod3_set64();
 targ_size_t cod3_spoff();
 uint calccodsize(code *c);
 targ_size_t cod3_bpoffset(Symbol *s);

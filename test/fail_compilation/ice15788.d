@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice15788.d(17): Error: none of the overloads of 'iota' are callable using argument types !()(S, S)
+fail_compilation/ice15788.d(17): Error: none of the overloads of `iota` are callable using argument types `!()(S, S)`
 ---
 */
 

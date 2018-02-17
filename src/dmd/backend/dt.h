@@ -60,7 +60,7 @@ public:
     void coff(unsigned offset);
     void cat(dt_t *dt);
     void cat(DtBuilder *dtb);
-    void repeat(dt_t *dt, d_size_t count);
+    void repeat(dt_t *dt, unsigned count);
     unsigned length();
     bool isZeroLength();
 };

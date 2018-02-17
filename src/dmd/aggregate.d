@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/aggregate.d, _aggregate.d)
+ * Documentation:  https://dlang.org/phobos/dmd_aggregate.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/aggregate.d
  */
 
 module dmd.aggregate;
-
-// Online documentation: https://dlang.org/phobos/dmd_aggregate.html
 
 import core.stdc.stdio;
 import core.checkedint;
@@ -30,33 +30,25 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 enum Sizeok : int
 {
-    SIZEOKnone,             // size of aggregate is not yet able to compute
-    SIZEOKfwd,              // size of aggregate is ready to compute
-    SIZEOKdone,             // size of aggregate is set correctly
+    none,           // size of aggregate is not yet able to compute
+    fwd,            // size of aggregate is ready to compute
+    done,           // size of aggregate is set correctly
 }
-
-alias SIZEOKnone = Sizeok.SIZEOKnone;
-alias SIZEOKdone = Sizeok.SIZEOKdone;
-alias SIZEOKfwd = Sizeok.SIZEOKfwd;
 
 enum Baseok : int
 {
-    BASEOKnone,             // base classes not computed yet
-    BASEOKin,               // in process of resolving base classes
-    BASEOKdone,             // all base classes are resolved
-    BASEOKsemanticdone,     // all base classes semantic done
+    none,             // base classes not computed yet
+    start,            // in process of resolving base classes
+    done,             // all base classes are resolved
+    semanticdone,     // all base classes semantic done
 }
-
-alias BASEOKnone = Baseok.BASEOKnone;
-alias BASEOKin = Baseok.BASEOKin;
-alias BASEOKdone = Baseok.BASEOKdone;
-alias BASEOKsemanticdone = Baseok.BASEOKsemanticdone;
 
 /***********************************************************
  */
@@ -108,8 +100,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         super(id);
         this.loc = loc;
-        protection = Prot(PROTpublic);
-        sizeok = SIZEOKnone; // size not determined yet
+        protection = Prot(Prot.Kind.public_);
+        sizeok = Sizeok.none; // size not determined yet
     }
 
     /***************************************
@@ -119,11 +111,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     Scope* newScope(Scope* sc)
     {
         auto sc2 = sc.push(this);
-        sc2.stc &= STCsafe | STCtrusted | STCsystem;
+        sc2.stc &= STC.safe | STC.trusted | STC.system;
         sc2.parent = this;
         if (isUnionDeclaration())
             sc2.inunion = 1;
-        sc2.protection = Prot(PROTpublic);
+        sc2.protection = Prot(Prot.Kind.public_);
         sc2.explicitProtection = 0;
         sc2.aligndecl = null;
         sc2.userAttribDecl = null;
@@ -136,7 +128,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // semanticRun prevents unnecessary setting of _scope during deferred
         // setScope phases for aggregates which already finished semantic().
         // See https://issues.dlang.org/show_bug.cgi?id=16607
-        if (semanticRun < PASSsemanticdone)
+        if (semanticRun < PASS.semanticdone)
             ScopeDsymbol.setScope(sc);
     }
 
@@ -146,14 +138,14 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      * Runs semantic() for all instance field variables, but also
      * the field types can remain yet not resolved forward references,
      * except direct recursive definitions.
-     * After the process sizeok is set to SIZEOKfwd.
+     * After the process sizeok is set to Sizeok.fwd.
      *
      * Returns:
      *      false if any errors occur.
      */
     final bool determineFields()
     {
-        if (sizeok != SIZEOKnone)
+        if (sizeok != Sizeok.none)
             return true;
 
         //printf("determineFields() %s, fields.dim = %d\n", toChars(), fields.dim);
@@ -165,28 +157,28 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto v = s.isVarDeclaration();
             if (!v)
                 return 0;
-            if (v.storage_class & STCmanifest)
+            if (v.storage_class & STC.manifest)
                 return 0;
 
             auto ad = cast(AggregateDeclaration)param;
 
-            if (v.semanticRun < PASSsemanticdone)
+            if (v.semanticRun < PASS.semanticdone)
                 v.dsymbolSemantic(null);
             // Return in case a recursive determineFields triggered by v.semantic already finished
-            if (ad.sizeok != SIZEOKnone)
+            if (ad.sizeok != Sizeok.none)
                 return 1;
 
             if (v.aliassym)
                 return 0;   // If this variable was really a tuple, skip it.
 
-            if (v.storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
+            if (v.storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared | STC.manifest | STC.ctfe | STC.templateparameter))
                 return 0;
-            if (!v.isField() || v.semanticRun < PASSsemanticdone)
+            if (!v.isField() || v.semanticRun < PASS.semanticdone)
                 return 1;   // unresolvable forward reference
 
             ad.fields.push(v);
 
-            if (v.storage_class & STCref)
+            if (v.storage_class & STC.ref_)
                 return 0;
             auto tv = v.type.baseElemOf();
             if (tv.ty != Tstruct)
@@ -207,7 +199,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             auto s = (*members)[i];
             if (s.apply(&func, cast(void*)this))
             {
-                if (sizeok != SIZEOKnone)
+                if (sizeok != Sizeok.none)
                 {
                     // recursive determineFields already finished
                     return true;
@@ -216,8 +208,8 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
             }
         }
 
-        if (sizeok != SIZEOKdone)
-            sizeok = SIZEOKfwd;
+        if (sizeok != Sizeok.done)
+            sizeok = Sizeok.fwd;
 
         return true;
     }
@@ -234,7 +226,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         // The previous instance size finalizing had:
         if (type.ty == Terror)
             return false;   // failed already
-        if (sizeok == SIZEOKdone)
+        if (sizeok == Sizeok.done)
             return true;    // succeeded
 
         if (!members)
@@ -254,16 +246,16 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 goto Lfail;
         }
 
-        // Determine instance fields when sizeok == SIZEOKnone
+        // Determine instance fields when sizeok == Sizeok.none
         if (!determineFields())
             goto Lfail;
-        if (sizeok != SIZEOKdone)
+        if (sizeok != Sizeok.done)
             finalizeSize();
 
         // this aggregate type has:
         if (type.ty == Terror)
             return false;   // marked as invalid during the finalizing.
-        if (sizeok == SIZEOKdone)
+        if (sizeok == Sizeok.done)
             return true;    // succeeded to calculate instance size.
 
     Lfail:
@@ -282,7 +274,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
     abstract void finalizeSize();
 
-    override final d_uns64 size(Loc loc)
+    override final d_uns64 size(const ref Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
         bool ok = determineSize(loc);
@@ -299,7 +291,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool checkOverlappedFields()
     {
         //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
+        assert(sizeok == Sizeok.done);
         size_t nfields = fields.dim;
         if (isNested())
         {
@@ -374,7 +366,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     final bool fill(Loc loc, Expressions* elements, bool ctorinit)
     {
         //printf("AggregateDeclaration::fill() %s\n", toChars());
-        assert(sizeok == SIZEOKdone);
+        assert(sizeok == Sizeok.done);
         assert(elements);
         size_t nfields = fields.dim - isNested();
         bool errors = false;
@@ -467,11 +459,17 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 else if (vx._init)
                 {
                     assert(!vx._init.isVoidInitializer());
-                    e = vx.getConstInitializer(false);
+                    if (vx.inuse)   // https://issues.dlang.org/show_bug.cgi?id=18057
+                    {
+                        vx.error(loc, "recursive initialization of field");
+                        errors = true;
+                    }
+                    else
+                        e = vx.getConstInitializer(false);
                 }
                 else
                 {
-                    if ((vx.storage_class & STCnodefaultctor) && !ctorinit)
+                    if ((vx.storage_class & STC.nodefaultctor) && !ctorinit)
                     {
                         .error(loc, "field `%s.%s` must be initialized because it has no default constructor",
                             type.toChars(), vx.toChars());
@@ -503,7 +501,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         }
         foreach (e; *elements)
         {
-            if (e && e.op == TOKerror)
+            if (e && e.op == TOK.error)
                 return false;
         }
 
@@ -609,11 +607,11 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     {
         if (enclosing) // if already nested
             return;
-        if (sizeok == SIZEOKdone)
+        if (sizeok == Sizeok.done)
             return;
         if (isUnionDeclaration() || isInterfaceDeclaration())
             return;
-        if (storage_class & STCstatic)
+        if (storage_class & STC.static_)
             return;
 
         // If nested struct, add in hidden 'this' pointer to outer scope
@@ -655,26 +653,26 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
 
             assert(!vthis);
             vthis = new ThisDeclaration(loc, t);
-            //vthis.storage_class |= STCref;
+            //vthis.storage_class |= STC.ref_;
 
             // Emulate vthis.addMember()
             members.push(vthis);
 
             // Emulate vthis.dsymbolSemantic()
-            vthis.storage_class |= STCfield;
+            vthis.storage_class |= STC.field;
             vthis.parent = this;
-            vthis.protection = Prot(PROTpublic);
+            vthis.protection = Prot(Prot.Kind.public_);
             vthis.alignment = t.alignment();
-            vthis.semanticRun = PASSsemanticdone;
+            vthis.semanticRun = PASS.semanticdone;
 
-            if (sizeok == SIZEOKfwd)
+            if (sizeok == Sizeok.fwd)
                 fields.push(vthis);
         }
     }
 
     override final bool isExport()
     {
-        return protection.kind == PROTexport;
+        return protection.kind == Prot.Kind.export_;
     }
 
     /*******************************************
@@ -682,14 +680,14 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
      */
     final Dsymbol searchCtor()
     {
-        auto s = search(Loc(), Id.ctor);
+        auto s = search(Loc.initial, Id.ctor);
         if (s)
         {
             if (!(s.isCtorDeclaration() ||
                   s.isTemplateDeclaration() ||
                   s.isOverloadSet()))
             {
-                s.error("is not a constructor; identifiers starting with __ are reserved for the implementation");
+                s.error("is not a constructor; identifiers starting with `__` are reserved for the implementation");
                 errors = true;
                 s = null;
             }
@@ -704,7 +702,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
                 extern (C++) static int fp(Dsymbol s, void* ctxt)
                 {
                     auto f = s.isCtorDeclaration();
-                    if (f && f.semanticRun == PASSinit)
+                    if (f && f.semanticRun == PASS.init)
                         f.dsymbolSemantic(null);
                     return 0;
                 }

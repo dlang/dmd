@@ -2,15 +2,17 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanmach.d, _scanmach.d)
+ * Documentation:  https://dlang.org/phobos/dmd_scanmach.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanmach.d
  */
 
 module dmd.scanmach;
 
-// Online documentation: https://dlang.org/phobos/dmd_scanmach.html
+version(OSX):
 
 import core.stdc.string;
 import core.stdc.stdint;
@@ -39,7 +41,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt Mach-O object module %s %d", module_name, reason);
+        error(loc, "corrupt Mach-O object module `%s` %d", module_name, reason);
     }
 
     const buf = base.ptr;
@@ -56,12 +58,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -75,12 +77,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            error(loc, "Mach-O object module %s has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module %s has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)

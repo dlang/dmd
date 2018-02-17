@@ -324,23 +324,25 @@ void test9525()
     enum result1 = "S6mangle8test9525FZ"~tl!"26"~"__T5test1S"~tl!"13"~id!("6mangle","QBc")~"5f9525Z"~id!("5test1","Qr")~"MFZ1S";
     enum result2 = "S6mangle8test9525FZ"~tl!"26"~"__T5test2S"~tl!"13"~id!("6mangle","QBc")~"5f9525Z"~id!("5test2","Qr")~"MFNaNbZ1S";
 
-    void test1(alias a)()
+    bool test1(alias a)()
     {
         static struct S {}
         static assert(S.mangleof == result1);
         S s;
         a(&s);  // Error: Cannot convert &S to const(S*) at compile time
+        return true;
     }
-    static assert((test1!f9525(), true));
+    enum evalTest1 = test1!f9525();
 
-    void test2(alias a)() pure nothrow
+    bool test2(alias a)() pure nothrow
     {
         static struct S {}
         static assert(S.mangleof == result2);
         S s;
         a(&s);  // Error: Cannot convert &S to const(S*) at compile time
+        return true;
     }
-    static assert((test2!f9525(), true));
+    enum evalTest2 = test2!f9525();
 }
 
 /******************************************/

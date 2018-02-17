@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dclass.d, _dclass.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dclass.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dclass.d
  */
 
 module dmd.dclass;
-
-// Online documentation: https://dlang.org/phobos/dmd_dclass.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -28,20 +28,15 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.rmem;
-import dmd.semantic;
 import dmd.target;
 import dmd.visitor;
 
 enum Abstract : int
 {
-    ABSfwdref = 0,      // whether an abstract class is not yet computed
-    ABSyes,             // is abstract class
-    ABSno,              // is not abstract class
+    fwdref = 0,      // whether an abstract class is not yet computed
+    yes,             // is abstract class
+    no,              // is not abstract class
 }
-
-alias ABSfwdref = Abstract.ABSfwdref;
-alias ABSyes = Abstract.ABSyes;
-alias ABSno = Abstract.ABSno;
 
 /***********************************************************
  */
@@ -107,7 +102,7 @@ struct BaseClass
                 //printf("newinstance = %d fd.toParent() = %s ifd.toParent() = %s\n",
                     //newinstance, fd.toParent().toChars(), ifd.toParent().toChars());
                 if (newinstance && fd.toParent() != cd && ifd.toParent() == sym)
-                    cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
+                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
 
                 if (fd.toParent() == cd)
                     result = true;
@@ -117,7 +112,7 @@ struct BaseClass
                 //printf("            not found %p\n", fd);
                 // BUG: should mark this class as abstract?
                 if (!cd.isAbstract())
-                    cd.error("interface function '%s' is not implemented", ifd.toFullSignature());
+                    cd.error("interface function `%s` is not implemented", ifd.toFullSignature());
 
                 fd = null;
             }
@@ -424,7 +419,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 cpp_type_info_ptr = this;
             }
         }
-        baseok = BASEOKnone;
+        baseok = Baseok.none;
     }
 
     static ClassDeclaration create(Loc loc, Identifier id, BaseClasses* baseclasses, Dsymbols* members, bool inObject)
@@ -498,11 +493,11 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         {
             /* cd.baseClass might not be set if cd is forward referenced.
              */
-            if (!cd.baseClass && cd.semanticRun < PASSsemanticdone && !cd.isInterfaceDeclaration())
+            if (!cd.baseClass && cd.semanticRun < PASS.semanticdone && !cd.isInterfaceDeclaration())
             {
                 cd.dsymbolSemantic(null);
-                if (!cd.baseClass && cd.semanticRun < PASSsemanticdone)
-                    cd.error("base class is forward referenced by %s", toChars());
+                if (!cd.baseClass && cd.semanticRun < PASS.semanticdone)
+                    cd.error("base class is forward referenced by `%s`", toChars());
             }
 
             if (this == cd.baseClass)
@@ -519,14 +514,14 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
      */
     final bool isBaseInfoComplete() const
     {
-        return baseok >= BASEOKdone;
+        return baseok >= Baseok.done;
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.ClassDeclaration.search('%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (_scope) printf("%s baseok = %d\n", toChars(), baseok);
-        if (_scope && baseok < BASEOKdone)
+        if (_scope && baseok < Baseok.done)
         {
             if (!inuse)
             {
@@ -539,7 +534,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or addMember is not yet done
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             //*(char*)0=0;
             return null;
         }
@@ -559,7 +554,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                 if (b.sym)
                 {
                     if (!b.sym.symtab)
-                        error("base %s is forward referenced", b.sym.ident.toChars());
+                        error("base `%s` is forward referenced", b.sym.ident.toChars());
                     else
                     {
                         import dmd.access : symbolIsVisible;
@@ -569,7 +564,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
                             continue;
                         else if (s == this) // happens if s is nested in this and derives from this
                             s = null;
-                        else if (!(flags & IgnoreSymbolVisibility) && !(s.prot().kind == PROTprotected) && !symbolIsVisible(this, s))
+                        else if (!(flags & IgnoreSymbolVisibility) && !(s.prot().kind == Prot.Kind.protected_) && !symbolIsVisible(this, s))
                             s = null;
                         else
                             break;
@@ -607,12 +602,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final override void finalizeSize()
     {
-        assert(sizeok != SIZEOKdone);
+        assert(sizeok != Sizeok.done);
 
         // Set the offsets of the fields and determine the size of the class
         if (baseClass)
         {
-            assert(baseClass.sizeok == SIZEOKdone);
+            assert(baseClass.sizeok == Sizeok.done);
 
             alignsize = baseClass.alignsize;
             structsize = baseClass.structsize;
@@ -655,9 +650,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
             foreach (BaseClass* b; cd.interfaces)
             {
-                if (b.sym.sizeok != SIZEOKdone)
+                if (b.sym.sizeok != Sizeok.done)
                     b.sym.finalizeSize();
-                assert(b.sym.sizeok == SIZEOKdone);
+                assert(b.sym.sizeok == Sizeok.done);
 
                 if (!b.sym.alignsize)
                     b.sym.alignsize = Target.ptrsize;
@@ -691,7 +686,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
         if (isInterfaceDeclaration())
         {
-            sizeok = SIZEOKdone;
+            sizeok = Sizeok.done;
             return;
         }
 
@@ -705,7 +700,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             s.setFieldOffset(this, &offset, false);
         }
 
-        sizeok = SIZEOKdone;
+        sizeok = Sizeok.done;
 
         // Calculate fields[i].overlapped
         checkOverlappedFields();
@@ -719,7 +714,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool isFuncHidden(FuncDeclaration fd)
     {
         //printf("ClassDeclaration.isFuncHidden(class = %s, fd = %s)\n", toChars(), fd.toPrettyChars());
-        Dsymbol s = search(Loc(), fd.ident, IgnoreAmbiguous | IgnoreErrors);
+        Dsymbol s = search(Loc.initial, fd.ident, IgnoreAmbiguous | IgnoreErrors);
         if (!s)
         {
             //printf("not found\n");
@@ -835,7 +830,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         }
 
         if (fdambig)
-            error("ambiguous virtual function %s", fdambig.toChars());
+            error("ambiguous virtual function `%s`", fdambig.toChars());
 
         return fdmatch;
     }
@@ -867,15 +862,15 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     final bool isAbstract()
     {
         enum log = false;
-        if (isabstract != ABSfwdref)
-            return isabstract == ABSyes;
+        if (isabstract != Abstract.fwdref)
+            return isabstract == Abstract.yes;
 
         if (log) printf("isAbstract(%s)\n", toChars());
 
-        bool no()  { if (log) printf("no\n");  isabstract = ABSno;  return false; }
-        bool yes() { if (log) printf("yes\n"); isabstract = ABSyes; return true;  }
+        bool no()  { if (log) printf("no\n");  isabstract = Abstract.no;  return false; }
+        bool yes() { if (log) printf("yes\n"); isabstract = Abstract.yes; return true;  }
 
-        if (storage_class & STCabstract || _scope && _scope.stc & STCabstract)
+        if (storage_class & STC.abstract_ || _scope && _scope.stc & STC.abstract_)
             return yes();
 
         if (errors)
@@ -890,7 +885,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             auto fd = s.isFuncDeclaration();
             if (!fd)
                 return 0;
-            if (fd.storage_class & STCstatic)
+            if (fd.storage_class & STC.static_)
                 return 0;
 
             if (fd.isAbstract())
@@ -920,9 +915,9 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         this.dsymbolSemantic(null);
 
         /* The next line should work, but does not because when ClassDeclaration.dsymbolSemantic()
-         * is called recursively it can set PASSsemanticdone without finishing it.
+         * is called recursively it can set PASS.semanticdone without finishing it.
          */
-        //if (semanticRun < PASSsemanticdone)
+        //if (semanticRun < PASS.semanticdone)
         {
             /* Could not complete semantic(). Try running semantic() on
              * each of the virtual functions,
@@ -931,7 +926,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             extern (C++) static int virtualSemantic(Dsymbol s, void* param)
             {
                 auto fd = s.isFuncDeclaration();
-                if (fd && !(fd.storage_class & STCstatic) && !fd.isUnitTestDeclaration())
+                if (fd && !(fd.storage_class & STC.static_) && !fd.isUnitTestDeclaration())
                     fd.dsymbolSemantic(null);
                 return 0;
             }
@@ -1027,11 +1022,11 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         auto sc2 = super.newScope(sc);
         if (com)
-            sc2.linkage = LINKwindows;
+            sc2.linkage = LINK.windows;
         else if (classKind == ClassKind.cpp)
-            sc2.linkage = LINKcpp;
+            sc2.linkage = LINK.cpp;
         else if (classKind == ClassKind.objc)
-            sc2.linkage = LINKobjc;
+            sc2.linkage = LINK.objc;
         return sc2;
     }
 
@@ -1049,7 +1044,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     {
         //printf("%s.InterfaceDeclaration.isBaseOf(cd = '%s')\n", toChars(), cd.toChars());
         assert(!baseClass);
-        foreach (j, b; cd.interfaces)
+        foreach (b; cd.interfaces)
         {
             //printf("\tX base %s\n", b.sym.toChars());
             if (this == b.sym)
@@ -1059,7 +1054,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
                 {
                     // don't return incorrect offsets
                     // https://issues.dlang.org/show_bug.cgi?id=16980
-                    *poffset = cd.sizeok == SIZEOKdone ? b.offset : OFFSET_FWDREF;
+                    *poffset = cd.sizeok == Sizeok.done ? b.offset : OFFSET_FWDREF;
                 }
                 // printf("\tfound at offset %d\n", b.offset);
                 return true;

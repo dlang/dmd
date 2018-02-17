@@ -2,15 +2,15 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/filename.d, root/_filename.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_filename.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/filename.d
  */
 
 module dmd.root.filename;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_filename.html
 
 import core.stdc.ctype;
 import core.stdc.errno;
@@ -29,9 +29,10 @@ nothrow
 version (Windows) extern (C) int stricmp(const char*, const char*) pure;
 version (Windows) extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) @nogc;
 version (Windows) extern (Windows) void SetLastError(DWORD) @nogc;
+version (Windows) extern (C) char* getcwd(char* buffer, size_t maxlen);
 version (Posix) extern (C) char* canonicalize_file_name(const char*);
+version (Posix) import core.sys.posix.unistd : getcwd;
 }
-
 alias Strings = Array!(const(char)*);
 alias Files = Array!(File*);
 
@@ -96,6 +97,20 @@ nothrow:
         {
             assert(0);
         }
+    }
+
+    /**
+    Return the given name as an absolute path
+
+    Params:
+        name = path
+        base = the absolute base to prefix name with if it is relative
+
+    Returns: name as an absolute path relative to base
+    */
+    extern (C++) static const(char)* toAbsolute(const(char)* name, const(char)* base = null)
+    {
+        return absolute(name) ? name : combine(base ? base : getcwd(null, 0), name);
     }
 
     /********************************

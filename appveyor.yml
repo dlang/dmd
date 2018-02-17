@@ -1,0 +1,58 @@
+
+os: Visual Studio 2015
+
+environment:
+  matrix:
+    - ARCH:                x64
+      D_COMPILER:          dmd
+      D_VERSION:           2.077.1
+      C_COMPILER:          MSVC
+      VISUALD_VER:         v0.45.1-rc2
+
+cache:
+  - C:\projects\gnumake\make.exe
+  - C:\projects\VisualD-v0.45.1-rc2.exe
+
+skip_commits:
+  # Avoid retesting the merged PR on `master` or `stable`
+  message: /^Merge pull request/
+
+artifacts:
+  - path: src/dmd.exe
+    name: dmd
+  - path: phobos64.lib
+    name: phobos
+
+init:
+  - git config --global core.autocrlf input
+
+build_script:
+  - cd c:/projects/
+  - call "c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+
+  # Download & install Visual D (needs admin rights?)
+  - set VISUALD_INSTALLER=VisualD-%VISUALD_VER%.exe
+  - set VISUALD_URL=https://github.com/dlang/visuald/releases/download/%VISUALD_VER%/%VISUALD_INSTALLER%
+  - ps: |
+        If (-not (Test-Path $Env:VISUALD_INSTALLER)) {
+            Start-FileDownload $Env:VISUALD_URL -FileName $Env:VISUALD_INSTALLER
+        }
+  - .\%VISUALD_INSTALLER% /S
+  # configure DMD path
+  - reg add "HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v DMDInstallDir /t REG_SZ /d c:\projects\dmd2 /reg:32 /f
+  # disable link dependencies monitoring, fails on AppVeyor server
+  - reg add "HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\ToolsOptionsPages\Projects\Visual D Settings" /v optlinkDeps /t REG_DWORD /d 0 /reg:32 /f
+
+  - bash --version
+  - sh --login /c/projects/dmd/appveyor.sh
+
+  # build via VS projects (needs dmd downloaded in appveyor.sh)
+  - cd c:\projects\dmd\src
+  - devenv /Build "Release|Win32" /Project dmd vcbuild\dmd.sln
+
+  # sanity check: build druntime unittests
+  - cd c:\projects\druntime
+  - set PATH=c:\projects\dmd2\windows\bin;%PATH%
+  - make -f win64.mak MODEL=32mscoff DMD=..\dmd\generated\Windows\Release\Win32\dmd.exe VCDIR="%VCINSTALLDIR%." SDKDIR=unused unittest32mscoff
+
+test_script: true

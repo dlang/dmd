@@ -26,7 +26,7 @@ do
 {
 	float f = (float).infinity;
 	int i = cast(int)f;
-	writeln((i , 1), 2);
+	writeln(i, 1, 2);
 	writeln(cast(int)(float).max);
 	assert(i == cast(int)(float).max);
 	assert(i == 2147483648u);
@@ -636,11 +636,11 @@ struct SafeS
 		{
 			return this;
 		}
-		return scope SafeS foo()
+		return scope SafeS foo2()
 		{
 			return this;
 		}
-		ref return scope SafeS foo()
+		ref return scope SafeS foo3()
 		{
 			return this;
 		}

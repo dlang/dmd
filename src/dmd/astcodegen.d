@@ -1,43 +1,44 @@
 module dmd.astcodegen;
 
-// Online documentation: https://dlang.org/phobos/dmd_astcodegen.html
+/**
+ * Documentation:  https://dlang.org/phobos/dmd_astcodegen.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astcodegen.d
+ */
 
 struct ASTCodegen
 {
-    import dmd.aggregate;
-    import dmd.aliasthis;
-    import dmd.arraytypes;
-    import dmd.attrib;
-    import dmd.cond;
-    import dmd.dclass;
-    import dmd.declaration;
-    import dmd.denum;
-    import dmd.dimport;
-    import dmd.dmodule;
-    import dmd.dstruct;
-    import dmd.dsymbol;
-    import dmd.dtemplate;
-    import dmd.dversion;
-    import dmd.expression;
-    import dmd.func;
-    import dmd.hdrgen;
-    import dmd.init;
-    import dmd.initsem;
-    import dmd.mtype;
-    import dmd.nspace;
-    import dmd.statement;
-    import dmd.staticassert;
-    import dmd.typesem;
-    import dmd.ctfeexpr;
+    public import dmd.aggregate;
+    public import dmd.aliasthis;
+    public import dmd.arraytypes;
+    public import dmd.attrib;
+    public import dmd.cond;
+    public import dmd.dclass;
+    public import dmd.declaration;
+    public import dmd.denum;
+    public import dmd.dimport;
+    public import dmd.dmodule;
+    public import dmd.dstruct;
+    public import dmd.dsymbol;
+    public import dmd.dtemplate;
+    public import dmd.dversion;
+    public import dmd.expression;
+    public import dmd.func;
+    public import dmd.hdrgen;
+    public import dmd.init;
+    public import dmd.initsem;
+    public import dmd.mtype;
+    public import dmd.nspace;
+    public import dmd.statement;
+    public import dmd.staticassert;
+    public import dmd.typesem;
+    public import dmd.ctfeexpr;
+
 
     alias initializerToExpression   = dmd.initsem.initializerToExpression;
     alias typeToExpression          = dmd.typesem.typeToExpression;
     alias UserAttributeDeclaration  = dmd.attrib.UserAttributeDeclaration;
 
-    alias MODconst                  = dmd.mtype.MODconst;
-    alias MODimmutable              = dmd.mtype.MODimmutable;
-    alias MODshared                 = dmd.mtype.MODshared;
-    alias MODwild                   = dmd.mtype.MODwild;
+    alias MODFlags                  = dmd.mtype.MODFlags;
     alias Type                      = dmd.mtype.Type;
     alias Tident                    = dmd.mtype.Tident;
     alias Tfunction                 = dmd.mtype.Tfunction;
@@ -46,49 +47,9 @@ struct ASTCodegen
     alias Tsarray                   = dmd.mtype.Tsarray;
     alias Terror                    = dmd.mtype.Terror;
 
-    alias STCconst                  = dmd.declaration.STCconst;
-    alias STCimmutable              = dmd.declaration.STCimmutable;
-    alias STCshared                 = dmd.declaration.STCshared;
-    alias STCwild                   = dmd.declaration.STCwild;
-    alias STCin                     = dmd.declaration.STCin;
-    alias STCout                    = dmd.declaration.STCout;
-    alias STCref                    = dmd.declaration.STCref;
-    alias STClazy                   = dmd.declaration.STClazy;
-    alias STCscope                  = dmd.declaration.STCscope;
-    alias STCfinal                  = dmd.declaration.STCfinal;
-    alias STCauto                   = dmd.declaration.STCauto;
-    alias STCreturn                 = dmd.declaration.STCreturn;
-    alias STCmanifest               = dmd.declaration.STCmanifest;
-    alias STCgshared                = dmd.declaration.STCgshared;
-    alias STCtls                    = dmd.declaration.STCtls;
-    alias STCsafe                   = dmd.declaration.STCsafe;
-    alias STCsystem                 = dmd.declaration.STCsystem;
-    alias STCtrusted                = dmd.declaration.STCtrusted;
-    alias STCnothrow                = dmd.declaration.STCnothrow;
-    alias STCpure                   = dmd.declaration.STCpure;
-    alias STCproperty               = dmd.declaration.STCproperty;
-    alias STCnogc                   = dmd.declaration.STCnogc;
-    alias STCdisable                = dmd.declaration.STCdisable;
-    alias STCundefined              = dmd.declaration.STCundefined;
-    alias STC_TYPECTOR              = dmd.declaration.STC_TYPECTOR;
-    alias STCoverride               = dmd.declaration.STCoverride;
-    alias STCabstract               = dmd.declaration.STCabstract;
-    alias STCsynchronized           = dmd.declaration.STCsynchronized;
-    alias STCdeprecated             = dmd.declaration.STCdeprecated;
-    alias STCstatic                 = dmd.declaration.STCstatic;
-    alias STCextern                 = dmd.declaration.STCextern;
-    alias STCfuture                 = dmd.declaration.STCfuture;
-    alias STCalias                  = dmd.declaration.STCalias;
-    alias STClocal                  = dmd.declaration.STClocal;
-
+    alias STC                       = dmd.declaration.STC;
     alias Dsymbol                   = dmd.dsymbol.Dsymbol;
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;
-    alias PROTprivate               = dmd.dsymbol.PROTprivate;
-    alias PROTpackage               = dmd.dsymbol.PROTpackage;
-    alias PROTprotected             = dmd.dsymbol.PROTprotected;
-    alias PROTpublic                = dmd.dsymbol.PROTpublic;
-    alias PROTexport                = dmd.dsymbol.PROTexport;
-    alias PROTundefined             = dmd.dsymbol.PROTundefined;
     alias Prot                      = dmd.dsymbol.Prot;
 
     alias stcToBuffer               = dmd.hdrgen.stcToBuffer;
@@ -98,4 +59,5 @@ struct ASTCodegen
     alias isType                    = dmd.dtemplate.isType;
     alias isExpression              = dmd.dtemplate.isExpression;
     alias isTuple                   = dmd.dtemplate.isTuple;
+
 }

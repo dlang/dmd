@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d, _toctype.d)
+ * Documentation:  https://dlang.org/phobos/dmd_toctype.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toctype.d
  */
 
 module dmd.toctype;
-
-// Online documentation: https://dlang.org/phobos/dmd_toctype.html
 
 import core.stdc.stdlib;
 
@@ -74,9 +74,9 @@ public:
         {
             Parameter p = Parameter.getNth(t.parameters, i);
             type* tp = Type_toCtype(p.type);
-            if (p.storageClass & (STCout | STCref))
+            if (p.storageClass & (STC.out_ | STC.ref_))
                 tp = type_allocn(TYnref, tp);
-            else if (p.storageClass & STClazy)
+            else if (p.storageClass & STC.lazy_)
             {
                 // Mangle as delegate
                 type* tf = type_function(TYnfunc, null, 0, false, tp);
@@ -100,20 +100,20 @@ public:
         {
         case 0:
             assert(0);
-        case MODconst:
-        case MODwild:
-        case MODwildconst:
+        case MODFlags.const_:
+        case MODFlags.wild:
+        case MODFlags.wildconst:
             t.ctype.Tty |= mTYconst;
             break;
-        case MODshared:
+        case MODFlags.shared_:
             t.ctype.Tty |= mTYshared;
             break;
-        case MODshared | MODconst:
-        case MODshared | MODwild:
-        case MODshared | MODwildconst:
+        case MODFlags.shared_ | MODFlags.const_:
+        case MODFlags.shared_ | MODFlags.wild:
+        case MODFlags.shared_ | MODFlags.wildconst:
             t.ctype.Tty |= mTYshared | mTYconst;
             break;
-        case MODimmutable:
+        case MODFlags.immutable_:
             t.ctype.Tty |= mTYimmutable;
             break;
         default:

@@ -3,8 +3,8 @@ REQUIRED_ARGS:
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/test15306.d(17): Error: immutable delegate 'test15306.main.__dgliteral1' cannot access mutable data 'i'
-fail_compilation/test15306.d(21): Error: shared delegate 'test15306.main.__dgliteral2' cannot access non-shared data 'p'
+fail_compilation/test15306.d(17): Error: `immutable` delegate `test15306.main.__dgliteral1` cannot access mutable data `i`
+fail_compilation/test15306.d(21): Error: `shared` delegate `test15306.main.__dgliteral2` cannot access non-shared data `p`
 ---
 */
 

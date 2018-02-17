@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/hdrgen.d, _hdrgen.d)
@@ -77,7 +77,7 @@ extern (C++) void genhdrfile(Module m)
     // Transfer image to file
     m.hdrfile.setbuffer(buf.data, buf.offset);
     buf.extractData();
-    ensurePathToNameExists(Loc(), m.hdrfile.toChars());
+    ensurePathToNameExists(Loc.initial, m.hdrfile.toChars());
     writeFile(m.loc, m.hdrfile);
 }
 
@@ -111,7 +111,7 @@ public:
 
     override void visit(ExpStatement s)
     {
-        if (s.exp && s.exp.op == TOKdeclaration)
+        if (s.exp && s.exp.op == TOK.declaration)
         {
             // bypass visit(DeclarationExp)
             (cast(DeclarationExp)s.exp).declaration.accept(this);
@@ -148,7 +148,7 @@ public:
         foreach (sx; *s.statements)
         {
             auto ds = sx ? sx.isExpStatement() : null;
-            if (ds && ds.exp.op == TOKdeclaration)
+            if (ds && ds.exp.op == TOK.declaration)
             {
                 auto d = (cast(DeclarationExp)ds.exp).declaration;
                 assert(d.isDeclaration());
@@ -331,7 +331,7 @@ public:
         {
             StorageClass stc = p.storageClass;
             if (!p.type && !stc)
-                stc = STCauto;
+                stc = STC.auto_;
             if (stcToBuffer(buf, stc))
                 buf.writeByte(' ');
             if (p.type)
@@ -668,13 +668,13 @@ public:
         {
             buf.writestring(t.toChars());
             if (t.next &&
-                t.value != TOKmin      &&
-                t.value != TOKcomma    && t.next.value != TOKcomma    &&
-                t.value != TOKlbracket && t.next.value != TOKlbracket &&
-                                          t.next.value != TOKrbracket &&
-                t.value != TOKlparen   && t.next.value != TOKlparen   &&
-                                          t.next.value != TOKrparen   &&
-                t.value != TOKdot      && t.next.value != TOKdot)
+                t.value != TOK.min      &&
+                t.value != TOK.comma    && t.next.value != TOK.comma    &&
+                t.value != TOK.leftBracket && t.next.value != TOK.leftBracket &&
+                                          t.next.value != TOK.rightBracket &&
+                t.value != TOK.leftParentheses   && t.next.value != TOK.leftParentheses   &&
+                                          t.next.value != TOK.rightParentheses   &&
+                t.value != TOK.dot      && t.next.value != TOK.dot)
             {
                 buf.writeByte(' ');
             }
@@ -742,27 +742,27 @@ public:
         else
         {
             ubyte m = t.mod & ~(t.mod & modMask);
-            if (m & MODshared)
+            if (m & MODFlags.shared_)
             {
-                MODtoBuffer(buf, MODshared);
+                MODtoBuffer(buf, MODFlags.shared_);
                 buf.writeByte('(');
             }
-            if (m & MODwild)
+            if (m & MODFlags.wild)
             {
-                MODtoBuffer(buf, MODwild);
+                MODtoBuffer(buf, MODFlags.wild);
                 buf.writeByte('(');
             }
-            if (m & (MODconst | MODimmutable))
+            if (m & (MODFlags.const_ | MODFlags.immutable_))
             {
-                MODtoBuffer(buf, m & (MODconst | MODimmutable));
+                MODtoBuffer(buf, m & (MODFlags.const_ | MODFlags.immutable_));
                 buf.writeByte('(');
             }
             t.accept(this);
-            if (m & (MODconst | MODimmutable))
+            if (m & (MODFlags.const_ | MODFlags.immutable_))
                 buf.writeByte(')');
-            if (m & MODwild)
+            if (m & MODFlags.wild)
                 buf.writeByte(')');
-            if (m & MODshared)
+            if (m & MODFlags.shared_)
                 buf.writeByte(')');
         }
     }
@@ -885,7 +885,7 @@ public:
         pas.buf = buf;
         pas.isCtor = false;
         pas.isPostfixStyle = true;
-        if (t.linkage > LINKd && hgs.ddoc != 1 && !hgs.hdrgen)
+        if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
             buf.writeByte(' ');
@@ -932,7 +932,7 @@ public:
             buf.writeByte(' ');
         }
         t.attributesApply(&pas, &PrePostAppendStrings.fp);
-        if (t.linkage > LINKd && hgs.ddoc != 1 && !hgs.hdrgen)
+        if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
         {
             linkageToBuffer(buf, t.linkage);
             buf.writeByte(' ');
@@ -1227,27 +1227,28 @@ public:
     override void visit(LinkDeclaration d)
     {
         const(char)* p;
-        switch (d.linkage)
+        final switch (d.linkage)
         {
-        case LINKd:
+        case LINK.d:
             p = "D";
             break;
-        case LINKc:
+        case LINK.c:
             p = "C";
             break;
-        case LINKcpp:
+        case LINK.cpp:
             p = "C++";
             break;
-        case LINKwindows:
+        case LINK.windows:
             p = "Windows";
             break;
-        case LINKpascal:
+        case LINK.pascal:
             p = "Pascal";
             break;
-        case LINKobjc:
+        case LINK.objc:
             p = "Objective-C";
             break;
-        default:
+        case LINK.default_:
+        case LINK.system:
             assert(0);
         }
         buf.writestring("extern (");
@@ -1259,7 +1260,7 @@ public:
     override void visit(CPPMangleDeclaration d)
     {
         const(char)* p;
-        switch (d.cppmangle)
+        final switch (d.cppmangle)
         {
         case CPPMANGLE.asClass:
             p = "class";
@@ -1267,8 +1268,8 @@ public:
         case CPPMANGLE.asStruct:
             p = "struct";
             break;
-        default:
-            assert(0);
+        case CPPMANGLE.def:
+            break;
         }
         buf.writestring("extern (C++, ");
         buf.writestring(p);
@@ -1280,7 +1281,11 @@ public:
     {
         protectionToBuffer(buf, d.protection);
         buf.writeByte(' ');
-        visit(cast(AttribDeclaration)d);
+        AttribDeclaration ad = cast(AttribDeclaration)d;
+        if (ad.decl.dim == 1 && (*ad.decl)[0].isProtDeclaration)
+            visit(cast(AttribDeclaration)(*ad.decl)[0]);
+        else
+            visit(cast(AttribDeclaration)d);
     }
 
     override void visit(AlignDeclaration d)
@@ -1495,7 +1500,7 @@ public:
             {
                 buf.writestring(" = ");
                 ExpInitializer ie = vd._init.isExpInitializer();
-                if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
+                if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
                     (cast(AssignExp)ie.exp).e2.accept(this);
                 else
                     vd._init.accept(this);
@@ -1605,7 +1610,7 @@ public:
             }
             else if (Expression e = isExpression(oarg))
             {
-                if (e.op == TOKint64 || e.op == TOKfloat64 || e.op == TOKnull || e.op == TOKstring || e.op == TOKthis)
+                if (e.op == TOK.int64 || e.op == TOK.float64 || e.op == TOK.null_ || e.op == TOK.string_ || e.op == TOK.this_)
                 {
                     buf.writestring(e.toChars());
                     return;
@@ -1643,7 +1648,7 @@ public:
         }
         else if (auto e = isExpression(oarg))
         {
-            if (e.op == TOKvar)
+            if (e.op == TOK.variable)
                 e = e.optimize(WANTvalue); // added to fix https://issues.dlang.org/show_bug.cgi?id=7375
             e.accept(this);
         }
@@ -1795,7 +1800,7 @@ public:
 
     override void visit(AliasDeclaration d)
     {
-        if (d.storage_class & STClocal)
+        if (d.storage_class & STC.local)
             return;
         buf.writestring("alias ");
         if (d.aliassym)
@@ -1828,7 +1833,7 @@ public:
 
     override void visit(VarDeclaration d)
     {
-        if (d.storage_class & STClocal)
+        if (d.storage_class & STC.local)
             return;
         visitVarDecl(d, false);
         buf.writeByte(';');
@@ -1855,7 +1860,7 @@ public:
         {
             buf.writestring(" = ");
             auto ie = v._init.isExpInitializer();
-            if (ie && (ie.exp.op == TOKconstruct || ie.exp.op == TOKblit))
+            if (ie && (ie.exp.op == TOK.construct || ie.exp.op == TOK.blit))
                 (cast(AssignExp)ie.exp).e2.accept(this);
             else
                 v._init.accept(this);
@@ -1873,7 +1878,7 @@ public:
         if (hgs.hdrgen)
         {
             // if the return type is missing (e.g. ref functions or auto)
-            if (!tf.next || f.storage_class & STCauto)
+            if (!tf.next || f.storage_class & STC.auto_)
             {
                 hgs.autoMember++;
                 bodyToBuffer(f);
@@ -1947,7 +1952,7 @@ public:
             buf.writestring("__error");
             return;
         }
-        if (f.tok != TOKreserved)
+        if (f.tok != TOK.reserved)
         {
             buf.writestring(f.kind());
             buf.writeByte(' ');
@@ -1959,7 +1964,7 @@ public:
         parametersToBuffer(tf.parameters, tf.varargs);
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
-        if (f.semanticRun >= PASSsemantic3done && cs)
+        if (f.semanticRun >= PASS.semantic3done && cs)
         {
             s1 = (*cs.statements)[cs.statements.dim - 1];
         }
@@ -1989,13 +1994,13 @@ public:
 
     override void visit(DtorDeclaration d)
     {
-        if (d.storage_class & STCtrusted)
+        if (d.storage_class & STC.trusted)
             buf.writestring("@trusted ");
-        if (d.storage_class & STCsafe)
+        if (d.storage_class & STC.safe)
             buf.writestring("@safe ");
-        if (d.storage_class & STCnogc)
+        if (d.storage_class & STC.nogc)
             buf.writestring("@nogc ");
-        if (d.storage_class & STCdisable)
+        if (d.storage_class & STC.disable)
             buf.writestring("@disable ");
 
         buf.writestring("~this()");
@@ -2004,7 +2009,7 @@ public:
 
     override void visit(StaticCtorDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         if (d.isSharedStaticCtorDeclaration())
             buf.writestring("shared ");
@@ -2020,7 +2025,7 @@ public:
 
     override void visit(StaticDtorDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         if (d.isSharedStaticDtorDeclaration())
             buf.writestring("shared ");
@@ -2056,7 +2061,7 @@ public:
 
     override void visit(NewDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("new");
         parametersToBuffer(d.parameters, d.varargs);
@@ -2065,7 +2070,7 @@ public:
 
     override void visit(DeleteDeclaration d)
     {
-        if (stcToBuffer(buf, d.storage_class & ~STCstatic))
+        if (stcToBuffer(buf, d.storage_class & ~STC.static_))
             buf.writeByte(' ');
         buf.writestring("delete");
         parametersToBuffer(d.parameters, 0);
@@ -2178,9 +2183,9 @@ public:
     {
         if (e.type == Type.tsize_t)
         {
-            Expression ex = (e.op == TOKcast ? (cast(CastExp)e).e1 : e);
+            Expression ex = (e.op == TOK.cast_ ? (cast(CastExp)e).e1 : e);
             ex = ex.optimize(WANTvalue);
-            dinteger_t uval = ex.op == TOKint64 ? ex.toInteger() : cast(dinteger_t)-1;
+            dinteger_t uval = ex.op == TOK.int64 ? ex.toInteger() : cast(dinteger_t)-1;
             if (cast(sinteger_t)uval >= 0)
             {
                 dinteger_t sizemax;
@@ -2692,13 +2697,13 @@ public:
     {
         buf.writestring("is(");
         typeToBuffer(e.targ, e.id);
-        if (e.tok2 != TOKreserved)
+        if (e.tok2 != TOK.reserved)
         {
             buf.printf(" %s %s", Token.toChars(e.tok), Token.toChars(e.tok2));
         }
         else if (e.tspec)
         {
-            if (e.tok == TOKcolon)
+            if (e.tok == TOK.colon)
                 buf.writestring(" : ");
             else
                 buf.writestring(" == ");
@@ -2801,7 +2806,7 @@ public:
 
     override void visit(CallExp e)
     {
-        if (e.e1.op == TOKtype)
+        if (e.e1.op == TOK.type)
         {
             /* Avoid parens around type to prevent forbidden cast syntax:
              *   (sometype)(arg1)
@@ -3049,26 +3054,26 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Parameter p)
     {
-        if (p.storageClass & STCauto)
+        if (p.storageClass & STC.auto_)
             buf.writestring("auto ");
-        if (p.storageClass & STCreturn)
+        if (p.storageClass & STC.return_)
             buf.writestring("return ");
-        if (p.storageClass & STCout)
+        if (p.storageClass & STC.out_)
             buf.writestring("out ");
-        else if (p.storageClass & STCref)
+        else if (p.storageClass & STC.ref_)
             buf.writestring("ref ");
-        else if (p.storageClass & STCin)
+        else if (p.storageClass & STC.in_)
             buf.writestring("in ");
-        else if (p.storageClass & STClazy)
+        else if (p.storageClass & STC.lazy_)
             buf.writestring("lazy ");
-        else if (p.storageClass & STCalias)
+        else if (p.storageClass & STC.alias_)
             buf.writestring("alias ");
         StorageClass stc = p.storageClass;
-        if (p.type && p.type.mod & MODshared)
-            stc &= ~STCshared;
-        if (stcToBuffer(buf, stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope | STCscopeinferred)))
+        if (p.type && p.type.mod & MODFlags.shared_)
+            stc &= ~STC.shared_;
+        if (stcToBuffer(buf, stc & (STC.const_ | STC.immutable_ | STC.wild | STC.shared_ | STC.scope_ | STC.scopeinferred)))
             buf.writeByte(' ');
-        if (p.storageClass & STCalias)
+        if (p.storageClass & STC.alias_)
         {
             if (p.ident)
                 buf.writestring(p.ident.toString());
@@ -3182,10 +3187,10 @@ extern (C++) void toCBuffer(Initializer iz, OutBuffer* buf, HdrGenState* hgs)
 extern (C++) bool stcToBuffer(OutBuffer* buf, StorageClass stc)
 {
     bool result = false;
-    if ((stc & (STCreturn | STCscope)) == (STCreturn | STCscope))
-        stc &= ~STCscope;
-    if (stc & STCscopeinferred)
-        stc &= ~(STCscope | STCscopeinferred);
+    if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
+        stc &= ~STC.scope_;
+    if (stc & STC.scopeinferred)
+        stc &= ~(STC.scope_ | STC.scopeinferred);
     while (stc)
     {
         const(char)* p = stcToChars(stc);
@@ -3216,39 +3221,39 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
 
     static __gshared SCstring* table =
     [
-        SCstring(STCauto, TOKauto),
-        SCstring(STCscope, TOKscope),
-        SCstring(STCstatic, TOKstatic),
-        SCstring(STCextern, TOKextern),
-        SCstring(STCconst, TOKconst),
-        SCstring(STCfinal, TOKfinal),
-        SCstring(STCabstract, TOKabstract),
-        SCstring(STCsynchronized, TOKsynchronized),
-        SCstring(STCdeprecated, TOKdeprecated),
-        SCstring(STCoverride, TOKoverride),
-        SCstring(STClazy, TOKlazy),
-        SCstring(STCalias, TOKalias),
-        SCstring(STCout, TOKout),
-        SCstring(STCin, TOKin),
-        SCstring(STCmanifest, TOKenum),
-        SCstring(STCimmutable, TOKimmutable),
-        SCstring(STCshared, TOKshared),
-        SCstring(STCnothrow, TOKnothrow),
-        SCstring(STCwild, TOKwild),
-        SCstring(STCpure, TOKpure),
-        SCstring(STCref, TOKref),
-        SCstring(STCreturn, TOKreturn),
-        SCstring(STCtls),
-        SCstring(STCgshared, TOKgshared),
-        SCstring(STCnogc, TOKat, "@nogc"),
-        SCstring(STCproperty, TOKat, "@property"),
-        SCstring(STCsafe, TOKat, "@safe"),
-        SCstring(STCtrusted, TOKat, "@trusted"),
-        SCstring(STCsystem, TOKat, "@system"),
-        SCstring(STCdisable, TOKat, "@disable"),
-        SCstring(STCfuture, TOKat, "@__future"),
-        SCstring(STClocal, TOKat, "__local"),
-        SCstring(0, TOKreserved)
+        SCstring(STC.auto_, TOK.auto_),
+        SCstring(STC.scope_, TOK.scope_),
+        SCstring(STC.static_, TOK.static_),
+        SCstring(STC.extern_, TOK.extern_),
+        SCstring(STC.const_, TOK.const_),
+        SCstring(STC.final_, TOK.final_),
+        SCstring(STC.abstract_, TOK.abstract_),
+        SCstring(STC.synchronized_, TOK.synchronized_),
+        SCstring(STC.deprecated_, TOK.deprecated_),
+        SCstring(STC.override_, TOK.override_),
+        SCstring(STC.lazy_, TOK.lazy_),
+        SCstring(STC.alias_, TOK.alias_),
+        SCstring(STC.out_, TOK.out_),
+        SCstring(STC.in_, TOK.in_),
+        SCstring(STC.manifest, TOK.enum_),
+        SCstring(STC.immutable_, TOK.immutable_),
+        SCstring(STC.shared_, TOK.shared_),
+        SCstring(STC.nothrow_, TOK.nothrow_),
+        SCstring(STC.wild, TOK.inout_),
+        SCstring(STC.pure_, TOK.pure_),
+        SCstring(STC.ref_, TOK.ref_),
+        SCstring(STC.return_, TOK.return_),
+        SCstring(STC.tls),
+        SCstring(STC.gshared, TOK.gshared),
+        SCstring(STC.nogc, TOK.at, "@nogc"),
+        SCstring(STC.property, TOK.at, "@property"),
+        SCstring(STC.safe, TOK.at, "@safe"),
+        SCstring(STC.trusted, TOK.at, "@trusted"),
+        SCstring(STC.system, TOK.at, "@system"),
+        SCstring(STC.disable, TOK.at, "@disable"),
+        SCstring(STC.future, TOK.at, "@__future"),
+        SCstring(STC.local, TOK.at, "__local"),
+        SCstring(0, TOK.reserved)
     ];
     for (int i = 0; table[i].stc; i++)
     {
@@ -3257,10 +3262,10 @@ extern (C++) const(char)* stcToChars(ref StorageClass stc)
         if (stc & tbl)
         {
             stc &= ~tbl;
-            if (tbl == STCtls) // TOKtls was removed
+            if (tbl == STC.tls) // TOKtls was removed
                 return "__thread";
             TOK tok = table[i].tok;
-            if (tok == TOKat)
+            if (tok == TOK.at)
                 return table[i].id;
             else
                 return Token.toChars(tok);
@@ -3279,22 +3284,20 @@ extern (C++) void trustToBuffer(OutBuffer* buf, TRUST trust)
 
 extern (C++) const(char)* trustToChars(TRUST trust)
 {
-    switch (trust)
+    final switch (trust)
     {
-    case TRUSTdefault:
+    case TRUST.default_:
         return null;
-    case TRUSTsystem:
+    case TRUST.system:
         return "@system";
-    case TRUSTtrusted:
+    case TRUST.trusted:
         return "@trusted";
-    case TRUSTsafe:
+    case TRUST.safe:
         return "@safe";
-    default:
-        assert(0);
     }
 }
 
-extern (C++) void linkageToBuffer(OutBuffer* buf, LINK linkage)
+private void linkageToBuffer(OutBuffer* buf, LINK linkage)
 {
     const(char)* p = linkageToChars(linkage);
     if (p)
@@ -3307,26 +3310,24 @@ extern (C++) void linkageToBuffer(OutBuffer* buf, LINK linkage)
 
 extern (C++) const(char)* linkageToChars(LINK linkage)
 {
-    switch (linkage)
+    final switch (linkage)
     {
-    case LINKdefault:
+    case LINK.default_:
         return null;
-    case LINKd:
+    case LINK.d:
         return "D";
-    case LINKc:
+    case LINK.c:
         return "C";
-    case LINKcpp:
+    case LINK.cpp:
         return "C++";
-    case LINKwindows:
+    case LINK.windows:
         return "Windows";
-    case LINKpascal:
+    case LINK.pascal:
         return "Pascal";
-    case LINKobjc:
+    case LINK.objc:
         return "Objective-C";
-    case LINKsystem:
+    case LINK.system:
         return "System";
-    default:
-        assert(0);
     }
 }
 
@@ -3335,7 +3336,7 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     const(char)* p = protectionToChars(prot.kind);
     if (p)
         buf.writestring(p);
-    if (prot.kind == PROTpackage && prot.pkg)
+    if (prot.kind == Prot.Kind.package_ && prot.pkg)
     {
         buf.writeByte('(');
         buf.writestring(prot.pkg.toPrettyChars(true));
@@ -3343,26 +3344,24 @@ extern (C++) void protectionToBuffer(OutBuffer* buf, Prot prot)
     }
 }
 
-extern (C++) const(char)* protectionToChars(PROTKIND kind)
+extern (C++) const(char)* protectionToChars(Prot.Kind kind)
 {
-    switch (kind)
+    final switch (kind)
     {
-    case PROTundefined:
+    case Prot.Kind.undefined:
         return null;
-    case PROTnone:
+    case Prot.Kind.none:
         return "none";
-    case PROTprivate:
+    case Prot.Kind.private_:
         return "private";
-    case PROTpackage:
+    case Prot.Kind.package_:
         return "package";
-    case PROTprotected:
+    case Prot.Kind.protected_:
         return "protected";
-    case PROTpublic:
+    case Prot.Kind.public_:
         return "public";
-    case PROTexport:
+    case Prot.Kind.export_:
         return "export";
-    default:
-        assert(0);
     }
 }
 
@@ -3425,11 +3424,41 @@ extern (C++) void arrayObjectsToBuffer(OutBuffer* buf, Objects* objects)
     }
 }
 
+/*************************************************************
+ * Pretty print function parameters.
+ * Params:
+ *  parameters = parameters to print, such as TypeFunction.parameters.
+ *  varargs = kind of varargs, see TypeFunction.varargs.
+ * Returns: Null-terminated string representing parameters.
+ */
 extern (C++) const(char)* parametersTypeToChars(Parameters* parameters, int varargs)
 {
     OutBuffer buf;
     HdrGenState hgs;
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
     v.parametersToBuffer(parameters, varargs);
+    return buf.extractString();
+}
+
+/*************************************************************
+ * Pretty print function parameter.
+ * Params:
+ *  parameter = parameter to print.
+ *  tf = TypeFunction which holds parameter.
+ *  fullQual = whether to fully qualify types.
+ * Returns: Null-terminated string representing parameters.
+ */
+extern (C++) const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQual)
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    hgs.fullQual = fullQual;
+    scope PrettyPrintVisitor v = new PrettyPrintVisitor(&buf, &hgs);
+
+    parameter.accept(v);
+    if (tf.varargs == 2 && parameter == Parameter.getNth(tf.parameters, tf.parameters.dim - 1))
+    {
+        buf.writestring("...");
+    }
     return buf.extractString();
 }

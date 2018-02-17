@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/obj.d, backend/obj.d)
@@ -73,7 +73,7 @@ version (OMF)
         void staticctor(Symbol *s,int dtor,int seg);
         void staticdtor(Symbol *s);
         void setModuleCtorDtor(Symbol *s, bool isCtor);
-        void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+        void ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
         void ehsections();
         void moduleinfo(Symbol *scc);
       }
@@ -152,7 +152,7 @@ else version (OMFandMSCOFF)
         void staticctor(Symbol *s,int dtor,int seg);
         void staticdtor(Symbol *s);
         void setModuleCtorDtor(Symbol *s, bool isCtor);
-        void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+        void ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
         void ehsections();
         void moduleinfo(Symbol *scc);
         int comdat(Symbol *);
@@ -228,7 +228,7 @@ else version (OMFandMSCOFF)
         override void staticctor(Symbol *s,int dtor,int seg);
         override void staticdtor(Symbol *s);
         override void setModuleCtorDtor(Symbol *s, bool isCtor);
-        override void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+        override void ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
         override void ehsections();
         override void moduleinfo(Symbol *scc);
         override int comdat(Symbol *);
@@ -321,7 +321,7 @@ else version (Posix)
         static void staticctor(Symbol *s,int dtor,int seg);
         static void staticdtor(Symbol *s);
         static void setModuleCtorDtor(Symbol *s, bool isCtor);
-        static void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
+        static void ehtables(Symbol *sfunc,uint size,Symbol *ehsym);
         static void ehsections();
         static void moduleinfo(Symbol *scc);
         int comdat(Symbol *);

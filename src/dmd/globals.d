@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/globals.d, _globals.d)
@@ -12,13 +12,11 @@
 
 module dmd.globals;
 
-// Online documentation: https://dlang.org/phobos/dmd_globals.html
-
 import core.stdc.stdint;
-import core.stdc.stdio;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.outbuffer;
+import dmd.compiler;
 import dmd.identifier;
 
 template xversion(string s)
@@ -26,14 +24,16 @@ template xversion(string s)
     enum xversion = mixin(`{ version (` ~ s ~ `) return true; else return false; }`)();
 }
 
-enum IN_GCC     = xversion!`IN_GCC`;
-
-enum TARGET_LINUX   = xversion!`linux`;
-enum TARGET_OSX     = xversion!`OSX`;
-enum TARGET_FREEBSD = xversion!`FreeBSD`;
-enum TARGET_OPENBSD = xversion!`OpenBSD`;
-enum TARGET_SOLARIS = xversion!`Solaris`;
-enum TARGET_WINDOS  = xversion!`Windows`;
+enum TARGET : bool
+{
+    Linux        = xversion!`linux`,
+    OSX          = xversion!`OSX`,
+    FreeBSD      = xversion!`FreeBSD`,
+    OpenBSD      = xversion!`OpenBSD`,
+    Solaris      = xversion!`Solaris`,
+    Windows      = xversion!`Windows`,
+    DragonFlyBSD = xversion!`DragonFlyBSD`,
+}
 
 enum CHECKENABLE : ubyte
 {
@@ -68,6 +68,20 @@ enum CPU
     native              // the machine the compiler is being run on
 }
 
+/**
+Each flag represents a field that can be included in the JSON output.
+
+NOTE: set type to uint so its size matches C++ unsigned type
+*/
+enum JsonFieldFlags : uint
+{
+    none         = 0,
+    compilerInfo = (1 << 0),
+    buildInfo    = (1 << 1),
+    modules      = (1 << 2),
+    semantics    = (1 << 3),
+}
+
 // Put command line switches in here
 struct Param
 {
@@ -98,6 +112,7 @@ struct Param
     bool isWindows;         // generate code for Windows
     bool isFreeBSD;         // generate code for FreeBSD
     bool isOpenBSD;         // generate code for OpenBSD
+    bool isDragonFlyBSD;    // generate code for DragonFlyBSD
     bool isSolaris;         // generate code for Solaris
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
@@ -179,6 +194,7 @@ struct Param
 
     bool doJsonGeneration;              // write JSON file
     const(char)* jsonfilename;          // write JSON file to jsonfilename
+    JsonFieldFlags jsonFieldFlags;      // JSON field flags to include
 
     uint debuglevel;                    // debug level
     Array!(const(char)*)* debugids;     // debug identifiers
@@ -215,11 +231,6 @@ struct Param
     const(char)* mapfile;
 }
 
-struct Compiler
-{
-    const(char)* vendor; // Compiler backend name
-}
-
 alias structalign_t = uint;
 
 // magic value means "match whatever the underlying C compiler does"
@@ -229,22 +240,22 @@ enum STRUCTALIGN_DEFAULT = (cast(structalign_t)~0);
 struct Global
 {
     const(char)* inifilename;
-    const(char)* mars_ext;
+    const(char)* mars_ext = "d";
     const(char)* obj_ext;
     const(char)* lib_ext;
     const(char)* dll_ext;
-    const(char)* doc_ext;           // for Ddoc generated files
-    const(char)* ddoc_ext;          // for Ddoc macro include files
-    const(char)* hdr_ext;           // for D 'header' import files
-    const(char)* json_ext;          // for JSON files
-    const(char)* map_ext;           // for .map files
-    bool run_noext;                 // allow -run sources without extensions.
+    const(char)* doc_ext = "html";      // for Ddoc generated files
+    const(char)* ddoc_ext = "ddoc";     // for Ddoc macro include files
+    const(char)* hdr_ext = "di";        // for D 'header' import files
+    const(char)* json_ext = "json";     // for JSON files
+    const(char)* map_ext = "map";       // for .map files
+    bool run_noext;                     // allow -run sources without extensions.
 
-    const(char)* copyright;
-    const(char)* written;
-    const(char)* main_d;            // dummy filename for dummy main()
-    Array!(const(char)*)* path;     // Array of char*'s which form the import lookup path
-    Array!(const(char)*)* filePath; // Array of char*'s which form the file import lookup path
+    const(char)* copyright = "Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved";
+    const(char)* written = "written by Walter Bright";
+    const(char)* main_d = "__main.d";   // dummy filename for dummy main()
+    Array!(const(char)*)* path;         // Array of char*'s which form the import lookup path
+    Array!(const(char)*)* filePath;     // Array of char*'s which form the file import lookup path
 
     const(char)* _version;
 
@@ -252,7 +263,6 @@ struct Global
     Param params;
     uint errors;            // number of errors reported so far
     uint warnings;          // number of warnings reported so far
-    FILE* stdmsg;           // where to send verbose messages
     uint gag;               // !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      // number of errors reported while gagged
 
@@ -296,18 +306,11 @@ struct Global
 
     extern (C++) void _init()
     {
-        inifilename = null;
-        mars_ext = "d";
-        hdr_ext = "di";
-        doc_ext = "html";
-        ddoc_ext = "ddoc";
-        json_ext = "json";
-        map_ext = "map";
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             obj_ext = "obj";
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             obj_ext = "o";
         }
@@ -315,11 +318,11 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             lib_ext = "lib";
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             lib_ext = "a";
         }
@@ -327,15 +330,15 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             dll_ext = "dll";
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             dll_ext = "so";
         }
-        else static if (TARGET_OSX)
+        else static if (TARGET.OSX)
         {
             dll_ext = "dylib";
         }
@@ -343,11 +346,11 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             run_noext = false;
         }
-        else static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             // Allow 'script' D source files to have no extension.
             run_noext = true;
@@ -356,12 +359,8 @@ struct Global
         {
             static assert(0, "fix this");
         }
-        copyright = "Copyright (c) 1999-2017 by The D Language Foundation";
-        written = "written by Walter Bright";
         _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
-        stdmsg = stdout;
-        main_d = "__main.d";
     }
 }
 
@@ -389,9 +388,11 @@ alias d_uns64 = uint64_t;
 // file location
 struct Loc
 {
-    const(char)* filename;
+    const(char)* filename; // either absolute or relative to cwd
     uint linnum;
     uint charnum;
+
+    static immutable Loc initial;       /// use for default initialization of const ref Loc's
 
 nothrow:
     extern (D) this(const(char)* filename, uint linnum, uint charnum)
@@ -422,15 +423,26 @@ nothrow:
         return buf.extractString();
     }
 
-    extern (C++) bool equals(ref const(Loc) loc)
+    extern (C++) bool equals(ref const(Loc) loc) const
     {
-        return (!global.params.showColumns || charnum == loc.charnum) && linnum == loc.linnum && FileName.equals(filename, loc.filename);
+        return (!global.params.showColumns || charnum == loc.charnum) &&
+               linnum == loc.linnum &&
+               FileName.equals(filename, loc.filename);
+    }
+
+    /******************
+     * Returns:
+     *   true if Loc has been set to other than the default initialization
+     */
+    bool isValid() const pure
+    {
+        return filename !is null;
     }
 }
 
 enum LINK : int
 {
-    def,        // default
+    default_,
     d,
     c,
     cpp,
@@ -440,25 +452,12 @@ enum LINK : int
     system,
 }
 
-alias LINKdefault = LINK.def;
-alias LINKd = LINK.d;
-alias LINKc = LINK.c;
-alias LINKcpp = LINK.cpp;
-alias LINKwindows = LINK.windows;
-alias LINKpascal = LINK.pascal;
-alias LINKobjc = LINK.objc;
-alias LINKsystem = LINK.system;
-
 enum CPPMANGLE : int
 {
     def,
     asStruct,
     asClass,
 }
-
-alias CPPMANGLEdefault = CPPMANGLE.def;
-alias CPPMANGLEstruct = CPPMANGLE.asStruct;
-alias CPPMANGLEclass = CPPMANGLE.asClass;
 
 enum MATCH : int
 {
@@ -470,14 +469,10 @@ enum MATCH : int
 
 enum PINLINE : int
 {
-    def,     // as specified on the command line
+    default_,     // as specified on the command line
     never,   // never inline
     always,  // always inline
 }
-
-alias PINLINEdefault = PINLINE.def;
-alias PINLINEnever = PINLINE.never;
-alias PINLINEalways = PINLINE.always;
 
 alias StorageClass = uinteger_t;
 

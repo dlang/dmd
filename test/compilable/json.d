@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -dip1000 -o- -X -Xf${RESULTS_DIR}/compilable/json.out
-// POST_SCRIPT: compilable/extra-files/json-postscript.sh
+// POST_SCRIPT: compilable/extra-files/json-postscript.sh json
 
 module json;
 
@@ -159,20 +159,36 @@ ref int* foo(scope return ref int* a) @safe
 struct SafeS
 {
 @safe:
-	ref SafeS foo() return
-	{
-		return this;
-	}
+    ref SafeS foo() return
+    {
+        return this;
+    }
 
-	SafeS foo() return scope
-	{
-		return this;
-	}
+    SafeS foo2() return scope
+    {
+        return this;
+    }
 
-	ref SafeS foo() return scope
-	{
-		return this;
-	}
+    ref SafeS foo3() return scope
+    {
+        return this;
+    }
 
 	int* p;
 }
+
+extern int vlinkageDefault;
+extern(D) int vlinkageD;
+extern(C) int vlinakgeC;
+extern(C++) __gshared int vlinkageCpp;
+extern(Windows) int vlinkageWindows;
+extern(Pascal) int vlinkagePascal;
+extern(Objective-C) int vlinkageObjc;
+
+extern int flinkageDefault();
+extern(D) int flinkageD();
+extern(C) int linakgeC();
+extern(C++) int flinkageCpp();
+extern(Windows) int flinkageWindows();
+extern(Pascal) int flinkagePascal();
+extern(Objective-C) int flinkageObjc();

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.c, backend/cgcod.c)
@@ -595,7 +595,7 @@ tryagain:
 
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
-    sfunc->Sregsaved = (functy == TYifunc) ? mBP : (mfuncreg | fregsaved);
+    sfunc->Sregsaved = (functy == TYifunc) ? (regm_t) mBP : (mfuncreg | fregsaved);
 
     util_free(csextab);
     csextab = NULL;
@@ -2365,10 +2365,11 @@ static void comsub(CodeBuilder& cdb,elem *e,regm_t *pretregs)
   /* create mask of what's in csextab[] */
   csemask = 0;
   for (size_t i = 0; i < cstop; i++)
-  {     if (csextab[i].e)
-            elem_debug(csextab[i].e);
-        if (csextab[i].e == e)
-                csemask |= csextab[i].regm;
+  {
+      if (csextab[i].e)
+          elem_debug(csextab[i].e);
+      if (csextab[i].e == e)
+          csemask |= csextab[i].regm;
   }
   csemask &= ~emask;            /* stuff already in registers   */
 
@@ -2543,7 +2544,7 @@ reload:                                 /* reload result from memory    */
         case OPrelconst:
             cdrelconst(cdb,e,pretregs);
             break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         case OPgot:
             cdgot(cdb,e,pretregs);
             break;

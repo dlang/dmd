@@ -2,20 +2,26 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanelf.d, _scanelf.d)
+ * Documentation:  https://dlang.org/phobos/dmd_scanelf.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanelf.d
  */
 
 module dmd.scanelf;
 
-// Online documentation: https://dlang.org/phobos/dmd_scanelf.html
+version(Windows) {}
+else version(OSX) {}
+else:
 
 version (linux)
     import core.sys.linux.elf;
 else version (FreeBSD)
     import core.sys.freebsd.sys.elf;
+else version (DragonFlyBSD)
+    import core.sys.dragonflybsd.sys.elf;
 else version (Solaris)
     import core.sys.solaris.elf;
 
@@ -46,7 +52,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt ELF object module %s %d", module_name, reason);
+        error(loc, "corrupt ELF object module `%s` %d", module_name, reason);
     }
 
     if (base.length < Elf32_Ehdr.sizeof)
@@ -57,16 +63,16 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
 
     if (base[EI_VERSION] != EV_CURRENT)
     {
-        return error(loc, "ELF object module %s has EI_VERSION = %d, should be %d",
+        return error(loc, "ELF object module `%s` has EI_VERSION = %d, should be %d",
             module_name, base[EI_VERSION], EV_CURRENT);
     }
     if (base[EI_DATA] != ELFDATA2LSB)
     {
-        return error(loc, "ELF object module %s is byte swapped and unsupported", module_name);
+        return error(loc, "ELF object module `%s` is byte swapped and unsupported", module_name);
     }
     if (base[EI_CLASS] != ELFCLASS32 && base[EI_CLASS] != ELFCLASS64)
     {
-        return error(loc, "ELF object module %s is unrecognized class %d", module_name, base[EI_CLASS]);
+        return error(loc, "ELF object module `%s` is unrecognized class %d", module_name, base[EI_CLASS]);
     }
 
     void scanELF(uint model)()
@@ -90,7 +96,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
 
         const eh = cast(const(ElfXX_Ehdr)*) base.ptr;
         if (eh.e_type != ET_REL)
-            return error(loc, "ELF object module %s is not relocatable", module_name);
+            return error(loc, "ELF object module `%s` is not relocatable", module_name);
         if (eh.e_version != EV_CURRENT)
             return corrupt(__LINE__);
 

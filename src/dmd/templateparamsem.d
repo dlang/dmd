@@ -4,15 +4,15 @@
  *
  * Template implementation.
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/templateparamsem.d, _templateparamsem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_templateparamsem.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/templateparamsem.d
  */
 
 module dmd.templateparamsem;
-
-// Online documentation: https://dlang.org/phobos/dmd_templateparamsem.html
 
 import dmd.arraytypes;
 import dmd.dsymbol;
@@ -22,7 +22,6 @@ import dmd.globals;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.root.rootobject;
-import dmd.semantic;
 import dmd.mtype;
 import dmd.typesem;
 import dmd.visitor;
@@ -91,8 +90,8 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, tvp.valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOKint64 || e.op == TOKfloat64 ||
-                    e.op == TOKcomplex80 || e.op == TOKnull || e.op == TOKstring)
+                if (e.op == TOK.int64 || e.op == TOK.float64 ||
+                    e.op == TOK.complex80 || e.op == TOK.null_ || e.op == TOK.string_)
                     tvp.specValue = e;
             }
 
@@ -104,7 +103,7 @@ private extern (C++) final class TemplateParameterSemanticVisitor : Visitor
                 sc = sc.endCTFE();
                 e = e.implicitCastTo(sc, tvp.valType);
                 e = e.ctfeInterpret();
-                if (e.op == TOKint64)
+                if (e.op == TOK.int64)
                     tvp.defaultValue = e;
             }
         }

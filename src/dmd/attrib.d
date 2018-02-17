@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
+ * Documentation:  https://dlang.org/phobos/dmd_attrib.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/attrib.d
  */
 
 module dmd.attrib;
-
-// Online documentation: https://dlang.org/phobos/dmd_attrib.html
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -30,7 +30,6 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.target;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 /***********************************************************
@@ -39,7 +38,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 {
     Dsymbols* decl;     // array of Dsymbol's
 
-    final extern (D) this(Dsymbols* decl)
+    extern (D) this(Dsymbols* decl)
     {
         this.decl = decl;
     }
@@ -279,7 +278,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
     StorageClass stc;
 
-    final extern (D) this(StorageClass stc, Dsymbols* decl)
+    extern (D) this(StorageClass stc, Dsymbols* decl)
     {
         super(decl);
         this.stc = stc;
@@ -297,16 +296,16 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
          */
-        if (stc & (STCauto | STCscope | STCstatic | STCextern | STCmanifest))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCextern | STCmanifest);
-        if (stc & (STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared))
-            scstc &= ~(STCauto | STCscope | STCstatic | STCtls | STCmanifest | STCgshared);
-        if (stc & (STCconst | STCimmutable | STCmanifest))
-            scstc &= ~(STCconst | STCimmutable | STCmanifest);
-        if (stc & (STCgshared | STCshared | STCtls))
-            scstc &= ~(STCgshared | STCshared | STCtls);
-        if (stc & (STCsafe | STCtrusted | STCsystem))
-            scstc &= ~(STCsafe | STCtrusted | STCsystem);
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.manifest | STC.gshared))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.tls | STC.manifest | STC.gshared);
+        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
+            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
+        if (stc & (STC.gshared | STC.shared_ | STC.tls))
+            scstc &= ~(STC.gshared | STC.shared_ | STC.tls);
+        if (stc & (STC.safe | STC.trusted | STC.system))
+            scstc &= ~(STC.safe | STC.trusted | STC.system);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
         return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
@@ -350,13 +349,13 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
             {
                 Dsymbol s = (*d)[i];
                 //printf("\taddMember %s to %s\n", s.toChars(), sds.toChars());
-                // STClocal needs to be attached before the member is added to the scope (because it influences the parent symbol)
+                // STC.local needs to be attached before the member is added to the scope (because it influences the parent symbol)
                 if (auto decl = s.isDeclaration())
                 {
-                    decl.storage_class |= stc & STClocal;
+                    decl.storage_class |= stc & STC.local;
                     if (auto sdecl = s.isStorageClassDeclaration()) // TODO: why is this not enough to deal with the nested case?
                     {
-                        sdecl.stc |= stc & STClocal;
+                        sdecl.stc |= stc & STC.local;
                     }
                 }
                 s.addMember(sc2, sds);
@@ -387,7 +386,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
 
     extern (D) this(Expression msg, Dsymbols* decl)
     {
-        super(STCdeprecated, decl);
+        super(STC.deprecated_, decl);
         this.msg = msg;
     }
 
@@ -398,7 +397,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     }
 
     /**
-     * Provides a new scope with `STCdeprecated` and `Scope.depdecl` set
+     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
      *
      * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
      * in any function overriding `newScope`), then set the `Scope`'s depdecl.
@@ -440,7 +439,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
     {
         super(decl);
         //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
-        linkage = (p == LINKsystem) ? Target.systemLinkage() : p;
+        linkage = (p == LINK.system) ? Target.systemLinkage() : p;
     }
 
     static LinkDeclaration create(LINK p, Dsymbols* decl)
@@ -492,7 +491,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
 
     override Scope* newScope(Scope* sc)
     {
-        return createNewScope(sc, sc.stc, LINKcpp, cppmangle, sc.protection, sc.explicitProtection,
+        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.protection, sc.explicitProtection,
             sc.aligndecl, sc.inlining);
     }
 
@@ -520,7 +519,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
      *  p = protection attribute data
      *  decl = declarations which are affected by this protection attribute
      */
-    extern (D) this(Loc loc, Prot p, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Prot p, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -534,19 +533,24 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
      *  pkg_identifiers = list of identifiers for a qualified package name
      *  decl = declarations which are affected by this protection attribute
      */
-    extern (D) this(Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifiers* pkg_identifiers, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
-        this.protection.kind = PROTpackage;
-        this.protection.pkg = null;
+        this.protection.kind = Prot.Kind.package_;
         this.pkg_identifiers = pkg_identifiers;
+        if (pkg_identifiers !is null && pkg_identifiers.dim > 0)
+        {
+            Dsymbol tmp;
+            Package.resolve(pkg_identifiers, &tmp, null);
+            protection.pkg = tmp ? tmp.isPackage() : null;
+        }
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
     {
         assert(!s);
-        if (protection.kind == PROTpackage)
+        if (protection.kind == Prot.Kind.package_)
             return new ProtDeclaration(this.loc, pkg_identifiers, Dsymbol.arraySyntaxCopy(decl));
         else
             return new ProtDeclaration(this.loc, protection, Dsymbol.arraySyntaxCopy(decl));
@@ -568,7 +572,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
             protection.pkg = tmp ? tmp.isPackage() : null;
             pkg_identifiers = null;
         }
-        if (protection.kind == PROTpackage && protection.pkg && sc._module)
+        if (protection.kind == Prot.Kind.package_ && protection.pkg && sc._module)
         {
             Module m = sc._module;
             Package pkg = m.parent ? m.parent.isPackage() : null;
@@ -585,12 +589,15 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
 
     override const(char)* toPrettyChars(bool)
     {
-        assert(protection.kind > PROTundefined);
+        assert(protection.kind > Prot.Kind.undefined);
         OutBuffer buf;
-        buf.writeByte('\'');
         protectionToBuffer(&buf, protection);
-        buf.writeByte('\'');
         return buf.extractString();
+    }
+
+    override final inout(ProtDeclaration) isProtDeclaration() inout
+    {
+        return this;
     }
 
     override void accept(Visitor v)
@@ -608,7 +615,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
     structalign_t salign = UNKNOWN;
 
-    extern (D) this(Loc loc, Expression ealign, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -643,7 +650,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
     uint anonstructsize;    // size of anonymous struct
     uint anonalignsize;     // size of anonymous struct for alignment purposes
 
-    extern (D) this(Loc loc, bool isunion, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -761,7 +768,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
 {
     Expressions* args;      // array of Expression's
 
-    extern (D) this(Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
+    extern (D) this(const ref Loc loc, Identifier ident, Expressions* args, Dsymbols* decl)
     {
         super(decl);
         this.loc = loc;
@@ -780,9 +787,9 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
     {
         if (ident == Id.Pinline)
         {
-            PINLINE inlining = PINLINEdefault;
+            PINLINE inlining = PINLINE.default_;
             if (!args || args.dim == 0)
-                inlining = PINLINEdefault;
+                inlining = PINLINE.default_;
             else if (args.dim != 1)
             {
                 error("one boolean expression expected for `pragma(inline)`, not %d", args.dim);
@@ -792,18 +799,18 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
             else
             {
                 Expression e = (*args)[0];
-                if (e.op != TOKint64 || !e.type.equals(Type.tbool))
+                if (e.op != TOK.int64 || !e.type.equals(Type.tbool))
                 {
-                    if (e.op != TOKerror)
+                    if (e.op != TOK.error)
                     {
                         error("pragma(`inline`, `true` or `false`) expected, not `%s`", e.toChars());
                         (*args)[0] = new ErrorExp();
                     }
                 }
                 else if (e.isBool(true))
-                    inlining = PINLINEalways;
+                    inlining = PINLINE.always;
                 else if (e.isBool(false))
-                    inlining = PINLINEnever;
+                    inlining = PINLINE.never;
             }
             return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, sc.aligndecl, inlining);
         }
@@ -828,7 +835,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
     Condition condition;
     Dsymbols* elsedecl;     // array of Dsymbol's for else block
 
-    final extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
+    extern (D) this(Condition condition, Dsymbols* decl, Dsymbols* elsedecl)
     {
         super(decl);
         //printf("ConditionalDeclaration::ConditionalDeclaration()\n");
@@ -1143,7 +1150,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
  * another scope, like:
  *
  *      static foreach (i; 0 .. 10) // loop variables for different indices do not conflict.
- *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STClocal
+ *      { // this body is expanded into 10 ForwardingAttribDeclarations, where `i` has storage class STC.local
  *          mixin("enum x" ~ to!string(i) ~ " = i"); // ok, can access current loop variable
  *      }
  *
@@ -1208,7 +1215,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
     ScopeDsymbol scopesym;
     bool compiled;
 
-    extern (D) this(Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp)
     {
         super(null);
         //printf("CompileDeclaration(loc = %d)\n", loc.linnum);
@@ -1299,8 +1306,8 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
              * (do not append to left operand, as this is a copy-on-write operation)
              */
             udas = new Expressions();
-            udas.push(new TupleExp(Loc(), udas1));
-            udas.push(new TupleExp(Loc(), udas2));
+            udas.push(new TupleExp(Loc.initial, udas1));
+            udas.push(new TupleExp(Loc.initial, udas2));
         }
         return udas;
     }
@@ -1314,9 +1321,9 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         }
         auto exps = new Expressions();
         if (userAttribDecl)
-            exps.push(new TupleExp(Loc(), userAttribDecl.getAttributes()));
+            exps.push(new TupleExp(Loc.initial, userAttribDecl.getAttributes()));
         if (atts && atts.dim)
-            exps.push(new TupleExp(Loc(), atts));
+            exps.push(new TupleExp(Loc.initial, atts));
         return exps;
     }
 

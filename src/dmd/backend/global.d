@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -17,10 +17,12 @@ extern (C++):
 nothrow:
 
 import core.stdc.stdio;
+import core.stdc.stdint;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;
-import dmd.backend.cc : Symbol, block, Classsym, Blockx, code;
+import dmd.backend.cc : Symbol, block, Classsym, Blockx;
+import dmd.backend.code_x86 : code;
 import dmd.backend.code;
 import dmd.backend.el;
 import dmd.backend.el : elem;
@@ -135,7 +137,7 @@ void util_progress();
 void util_set16();
 void util_set32();
 void util_set64();
-int ispow2(targ_ullong);
+int ispow2(uint64_t);
 
 //#if __GNUC__
 //#define util_malloc(n,size) mem_malloc((n)*(size))
@@ -238,15 +240,9 @@ char *file_getsource(const(char)* iname);
 int file_isdir(const(char)* fname);
 void file_progress();
 void file_remove(char *fname);
-//int file_stat(const(char)* fname,stat *pbuf);
 int file_exists(const(char)* fname);
 int file_size(const(char)* fname);
 void file_term();
-//#if __NT__ && _WINDLL
-//char *file_nettranslate(const(char)* filename,const(char)* mode);
-//#else
-//#define file_nettranslate(f,m)  ((char*)(f))
-//#endif
 char *file_unique();
 
 /* from msc.c */
@@ -267,7 +263,7 @@ void chkunass(elem *);
 void chknoabstract(type *);
 targ_llong msc_getnum();
 targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-targ_size_t _align(targ_size_t,targ_size_t);
+extern (C) targ_size_t _align(targ_size_t,targ_size_t);
 
 /* nteh.c */
 ubyte *nteh_context_string();
@@ -380,7 +376,7 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
 /* out.c */
 void outfilename(char *name,int linnum);
 void outcsegname(char *csegname);
-void outthunk(Symbol *sthunk, Symbol *sfunc, uint p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
+extern (C) void outthunk(Symbol *sthunk, Symbol *sfunc, uint p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
 void outdata(Symbol *s);
 void outcommon(Symbol *s, targ_size_t n);
 void out_readonly(Symbol *s);
@@ -452,7 +448,7 @@ int elemisone(elem *);
 
 /* msc.c */
 targ_size_t size(tym_t);
-Symbol *symboldata(targ_size_t offset,tym_t ty);
+extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty);
 bool dom(block *A , block *B);
 uint revop(uint op);
 uint invrel(uint op);
@@ -503,7 +499,7 @@ void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
 
-// TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+// TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 elem *exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const(char)*);

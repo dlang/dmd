@@ -2,15 +2,15 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/file.d, root/_file.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_file.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/file.d
  */
 
 module dmd.root.file;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_file.html
 
 import core.stdc.errno;
 import core.stdc.stdio;
@@ -144,7 +144,10 @@ nothrow:
                 goto err1;
             }
             if (!_ref)
+            {
                 .free(buffer);
+                buffer = null;
+            }
             _ref = 0; // we own the buffer now
             //printf("\tfile opened\n");
             if (fstat(fd, &buf))

@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/testcontracts.d
+// COMPILED_IMPORTS: imports/testcontracts.d
 
 import imports.testcontracts;
 

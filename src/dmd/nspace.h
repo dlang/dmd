@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  */
@@ -24,6 +24,8 @@ class Nspace : public ScopeDsymbol
 {
   public:
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void addMember(Scope *sc, ScopeDsymbol *sds);
+    void setScope(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
     int apply(Dsymbol_apply_ft_t fp, void *param);

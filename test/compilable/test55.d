@@ -1,5 +1,5 @@
 // COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/test55a.d
+// COMPILED_IMPORT: imports/test55a.d
 // PERMUTE_ARGS: -dw
 // REQUIRED_ARGS: -d
 

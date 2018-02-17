@@ -2,10 +2,12 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/visitor.d, _visitor.d)
+ * Documentation:  https://dlang.org/phobos/dmd_visitor.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/visitor.d
  */
 
 module dmd.visitor;
@@ -16,8 +18,6 @@ import dmd.tokens;
 import dmd.transitivevisitor;
 import dmd.expression;
 import dmd.root.rootobject;
-
-// Online documentation: https://dlang.org/phobos/dmd_visitor.html
 
 /**
  * Classic Visitor class which implements visit methods for all the AST
@@ -112,7 +112,8 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
 {
     alias visit = SemanticTimePermissiveVisitor.visit;
 
-    mixin ParseVisitMethods!ASTCodegen;
+    mixin ParseVisitMethods!ASTCodegen __methods;
+    alias visit = __methods.visit;
 
     override void visit(ASTCodegen.PeelStatement s)
     {

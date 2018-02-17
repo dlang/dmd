@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail218.d(15): Error: cannot modify string literal ", "
+fail_compilation/fail218.d(15): Error: cannot modify string literal `", "`
 ---
 */
 

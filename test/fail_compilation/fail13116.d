@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13116.d(13): Error: this is not an lvalue
+fail_compilation/fail13116.d(13): Error: `this` is not an lvalue
 ---
 */
 struct S
@@ -19,7 +19,7 @@ void main()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13116.d(28): Error: super is not an lvalue
+fail_compilation/fail13116.d(28): Error: `super` is not an lvalue
 ---
 */
 class Base { }

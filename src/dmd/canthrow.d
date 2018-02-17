@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/canthrow.d, _canthrow.d)
+ * Documentation:  https://dlang.org/phobos/dmd_canthrow.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/canthrow.d
  */
 
 module dmd.canthrow;
-
-// Online documentation: https://dlang.org/phobos/dmd_canthrow.html
 
 import dmd.aggregate;
 import dmd.apply;
@@ -79,15 +79,15 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             {
                 if (ce.f)
                 {
-                    ce.error("%s `%s` is not nothrow",
+                    ce.error("%s `%s` is not `nothrow`",
                         ce.f.kind(), ce.f.toPrettyChars());
                 }
                 else
                 {
                     auto e1 = ce.e1;
-                    if (e1.op == TOKstar)   // print 'fp' if e1 is (*fp)
+                    if (e1.op == TOK.star)   // print 'fp' if e1 is (*fp)
                         e1 = (cast(PtrExp)e1).e1;
-                    ce.error("`%s` is not nothrow", e1.toChars());
+                    ce.error("`%s` is not `nothrow`", e1.toChars());
                 }
             }
             stop = true;
@@ -105,7 +105,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     {
                         if (mustNotThrow)
                         {
-                            ne.error("%s `%s` is not nothrow",
+                            ne.error("%s `%s` is not `nothrow`",
                                 ne.allocator.kind(), ne.allocator.toPrettyChars());
                         }
                         stop = true;
@@ -117,7 +117,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     if (mustNotThrow)
                     {
-                        ne.error("%s `%s` is not nothrow",
+                        ne.error("%s `%s` is not `nothrow`",
                             ne.member.kind(), ne.member.toPrettyChars());
                     }
                     stop = true;
@@ -161,7 +161,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     if (mustNotThrow)
                     {
-                        de.error("%s `%s` is not nothrow",
+                        de.error("%s `%s` is not `nothrow`",
                             ad.dtor.kind(), ad.dtor.toPrettyChars());
                     }
                     stop = true;
@@ -174,7 +174,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                 {
                     if (mustNotThrow)
                     {
-                        de.error("%s `%s` is not nothrow",
+                        de.error("%s `%s` is not `nothrow`",
                             ad.aggDelete.kind(), ad.aggDelete.toPrettyChars());
                     }
                     stop = true;
@@ -185,7 +185,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
         override void visit(AssignExp ae)
         {
             // blit-init cannot throw
-            if (ae.op == TOKblit)
+            if (ae.op == TOK.blit)
                 return;
             /* Element-wise assignment could invoke postblits.
              */
@@ -196,7 +196,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
                     return;
                 t = ae.type;
             }
-            else if (ae.e1.op == TOKslice)
+            else if (ae.e1.op == TOK.slice)
                 t = (cast(SliceExp)ae.e1).e1.type;
             else
                 return;
@@ -213,7 +213,7 @@ extern (C++) bool canThrow(Expression e, FuncDeclaration func, bool mustNotThrow
             {
                 if (mustNotThrow)
                 {
-                    ae.error("%s `%s` is not nothrow",
+                    ae.error("%s `%s` is not `nothrow`",
                         sd.postblit.kind(), sd.postblit.toPrettyChars());
                 }
                 stop = true;
@@ -260,10 +260,10 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
         s = s.toAlias();
         if (s != vd)
             return Dsymbol_canThrow(s, func, mustNotThrow);
-        if (vd.storage_class & STCmanifest)
+        if (vd.storage_class & STC.manifest)
         {
         }
-        else if (vd.isStatic() || vd.storage_class & (STCextern | STCtls | STCgshared))
+        else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
         {
         }
         else
@@ -299,7 +299,7 @@ private bool Dsymbol_canThrow(Dsymbol s, FuncDeclaration func, bool mustNotThrow
             if (o.dyncast() == DYNCAST.expression)
             {
                 Expression eo = cast(Expression)o;
-                if (eo.op == TOKdsymbol)
+                if (eo.op == TOK.dSymbol)
                 {
                     DsymbolExp se = cast(DsymbolExp)eo;
                     if (Dsymbol_canThrow(se.s, func, mustNotThrow))

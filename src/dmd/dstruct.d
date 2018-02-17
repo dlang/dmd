@@ -2,18 +2,17 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dstruct.d, _dstruct.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dstruct.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dstruct.d
  */
 
 module dmd.dstruct;
 
-// Online documentation: https://dlang.org/phobos/dmd_dstruct.html
-
 import dmd.aggregate;
-import dmd.argtypes;
 import dmd.arraytypes;
 import dmd.declaration;
 import dmd.dmodule;
@@ -30,7 +29,8 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
-import dmd.semantic;
+import dmd.semantic3;
+import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.typinf;
@@ -53,7 +53,7 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
         static __gshared TypeFunction tftostring;
         if (!tftostring)
         {
-            tftostring = new TypeFunction(null, Type.tstring, 0, LINKd);
+            tftostring = new TypeFunction(null, Type.tstring, 0, LINK.d);
             tftostring = tftostring.merge().toTypeFunction();
         }
         fd = fd.overloadExactMatch(tftostring);
@@ -120,7 +120,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             {
                 Scope scx;
                 scx._module = sd.getModule();
-                getTypeInfoType(t, &scx);
+                getTypeInfoType(sd.loc, t, &scx);
                 sd.requestTypeInfo = true;
             }
             else if (!sc.minst)
@@ -130,7 +130,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             }
             else
             {
-                getTypeInfoType(t, sc);
+                getTypeInfoType(sd.loc, t, sc);
                 sd.requestTypeInfo = true;
 
                 // https://issues.dlang.org/show_bug.cgi?id=15149
@@ -150,7 +150,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 
             // If the struct is in a non-root module, run semantic3 to get
             // correct symbols for the member function.
-            if (sd.semanticRun >= PASSsemantic3)
+            if (sd.semanticRun >= PASS.semantic3)
             {
                 // semantic3 is already done
             }
@@ -193,7 +193,7 @@ extern (C++) void semanticTypeInfo(Scope* sc, Type t)
             return;
         if (sc.intypeof)
             return;
-        if (sc.flags & (SCOPEctfe | SCOPEcompile))
+        if (sc.flags & (SCOPE.ctfe | SCOPE.compile))
             return;
     }
 
@@ -216,14 +216,10 @@ struct StructFlags
 
 enum StructPOD : int
 {
-    ISPODno,    // struct is not POD
-    ISPODyes,   // struct is POD
-    ISPODfwd,   // POD not yet computed
+    no,    // struct is not POD
+    yes,   // struct is POD
+    fwd,   // POD not yet computed
 }
-
-alias ISPODno = StructPOD.ISPODno;
-alias ISPODyes = StructPOD.ISPODyes;
-alias ISPODfwd = StructPOD.ISPODfwd;
 
 /***********************************************************
  * All `struct` declarations are an instance of this.
@@ -254,11 +250,11 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     // For those, today TypeInfo_Struct is generated in COMDAT.
     bool requestTypeInfo;
 
-    final extern (D) this(Loc loc, Identifier id, bool inObject)
+    extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
         super(loc, id);
         zeroInit = 0; // assume false until we do semantic processing
-        ispod = ISPODfwd;
+        ispod = StructPOD.fwd;
         // For forward references
         type = new TypeStruct(this);
 
@@ -286,7 +282,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     {
         if (xeq &&
             xeq._scope &&
-            xeq.semanticRun < PASSsemantic3done)
+            xeq.semanticRun < PASS.semantic3done)
         {
             uint errors = global.startGagging();
             xeq.semantic3(xeq._scope);
@@ -296,7 +292,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (xcmp &&
             xcmp._scope &&
-            xcmp.semanticRun < PASSsemantic3done)
+            xcmp.semanticRun < PASS.semantic3done)
         {
             uint errors = global.startGagging();
             xcmp.semantic3(xcmp._scope);
@@ -307,34 +303,34 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         FuncDeclaration ftostr = search_toString(this);
         if (ftostr &&
             ftostr._scope &&
-            ftostr.semanticRun < PASSsemantic3done)
+            ftostr.semanticRun < PASS.semantic3done)
         {
             ftostr.semantic3(ftostr._scope);
         }
 
         if (xhash &&
             xhash._scope &&
-            xhash.semanticRun < PASSsemantic3done)
+            xhash.semanticRun < PASS.semantic3done)
         {
             xhash.semantic3(xhash._scope);
         }
 
         if (postblit &&
             postblit._scope &&
-            postblit.semanticRun < PASSsemantic3done)
+            postblit.semanticRun < PASS.semantic3done)
         {
             postblit.semantic3(postblit._scope);
         }
 
         if (dtor &&
             dtor._scope &&
-            dtor.semanticRun < PASSsemantic3done)
+            dtor.semanticRun < PASS.semantic3done)
         {
             dtor.semantic3(dtor._scope);
         }
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.StructDeclaration::search('%s', flags = x%x)\n", toChars(), ident.toChars(), flags);
         if (_scope && !symtab)
@@ -342,7 +338,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
 
@@ -357,7 +353,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override final void finalizeSize()
     {
         //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
-        assert(sizeok != SIZEOKdone);
+        assert(sizeok != Sizeok.done);
 
         //printf("+StructDeclaration::finalizeSize() %s, fields.dim = %d, sizeok = %d\n", toChars(), fields.dim, sizeok);
 
@@ -389,7 +385,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         else
             structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
-        sizeok = SIZEOKdone;
+        sizeok = Sizeok.done;
 
         //printf("-StructDeclaration::finalizeSize() %s, fields.dim = %d, structsize = %d\n", toChars(), fields.dim, structsize);
 
@@ -420,7 +416,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             }
         }
 
-        auto tt = toArgTypes(type);
+        auto tt = Target.toArgTypes(type);
         size_t dim = tt.arguments.dim;
         if (dim >= 1)
         {
@@ -443,7 +439,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
      *      false if any errors occur,
      *      otherwise true and elements[] are rewritten for the output.
      */
-    final bool fit(Loc loc, Scope* sc, Expressions* elements, Type stype)
+    final bool fit(const ref Loc loc, Scope* sc, Expressions* elements, Type stype)
     {
         if (!elements)
             return true;
@@ -459,18 +455,18 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             e = resolveProperties(sc, e);
             if (i >= nfields)
             {
-                if (i == fields.dim - 1 && isNested() && e.op == TOKnull)
+                if (i == fields.dim - 1 && isNested() && e.op == TOK.null_)
                 {
                     // CTFE sometimes creates null as hidden pointer; we'll allow this.
                     continue;
                 }
-                .error(loc, "more initializers than fields (%d) of %s", nfields, toChars());
+                .error(loc, "more initializers than fields (%d) of `%s`", nfields, toChars());
                 return false;
             }
             VarDeclaration v = fields[i];
             if (v.offset < offset)
             {
-                .error(loc, "overlapping initialization for %s", v.toChars());
+                .error(loc, "overlapping initialization for `%s`", v.toChars());
                 return false;
             }
             offset = cast(uint)(v.offset + v.type.size());
@@ -487,7 +483,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
              * Allow this by doing an explicit cast, which will lengthen the string
              * literal.
              */
-            if (e.op == TOKstring && tb.ty == Tsarray)
+            if (e.op == TOK.string_ && tb.ty == Tsarray)
             {
                 StringExp se = cast(StringExp)e;
                 Type typeb = se.type.toBasetype();
@@ -515,7 +511,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
             e = e.implicitCastTo(sc, t);
         L1:
-            if (e.op == TOKerror)
+            if (e.op == TOK.error)
                 return false;
 
             (*elements)[i] = doCopyOrMove(sc, e);
@@ -540,21 +536,21 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     final bool isPOD()
     {
         // If we've already determined whether this struct is POD.
-        if (ispod != ISPODfwd)
-            return (ispod == ISPODyes);
+        if (ispod != StructPOD.fwd)
+            return (ispod == StructPOD.yes);
 
-        ispod = ISPODyes;
+        ispod = StructPOD.yes;
 
         if (enclosing || postblit || dtor)
-            ispod = ISPODno;
+            ispod = StructPOD.no;
 
         // Recursively check all fields are POD.
         for (size_t i = 0; i < fields.dim; i++)
         {
             VarDeclaration v = fields[i];
-            if (v.storage_class & STCref)
+            if (v.storage_class & STC.ref_)
             {
-                ispod = ISPODno;
+                ispod = StructPOD.no;
                 break;
             }
 
@@ -565,13 +561,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 StructDeclaration sd = ts.sym;
                 if (!sd.isPOD())
                 {
-                    ispod = ISPODno;
+                    ispod = StructPOD.no;
                     break;
                 }
             }
         }
 
-        return (ispod == ISPODyes);
+        return (ispod == StructPOD.yes);
     }
 
     override final inout(StructDeclaration) isStructDeclaration() inout
@@ -590,7 +586,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
  */
 extern (C++) final class UnionDeclaration : StructDeclaration
 {
-    extern (D) this(Loc loc, Identifier id)
+    extern (D) this(const ref Loc loc, Identifier id)
     {
         super(loc, id, false);
     }

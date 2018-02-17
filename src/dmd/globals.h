@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2017 by Digital Mars
- * All Rights Reserved
+ * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -19,6 +18,7 @@
 #include "ctfloat.h"
 #include "outbuffer.h"
 #include "filename.h"
+#include "compiler.h"
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
@@ -89,6 +89,7 @@ struct Param
     bool isWindows;     // generate code for Windows
     bool isFreeBSD;     // generate code for FreeBSD
     bool isOpenBSD;     // generate code for OpenBSD
+    bool isDragonFlyBSD;// generate code for DragonFlyBSD
     bool isSolaris;     // generate code for Solaris
     bool hasObjectiveC; // target supports Objective-C
     bool mscoff;        // for Win32: write COFF object files instead of OMF
@@ -164,6 +165,7 @@ struct Param
 
     bool doJsonGeneration;    // write JSON file
     const char *jsonfilename; // write JSON file to jsonfilename
+    unsigned jsonFieldFlags;  // JSON field flags to include
 
     unsigned debuglevel;   // debug level
     Array<const char *> *debugids;     // debug identifiers
@@ -200,11 +202,6 @@ struct Param
     const char *mapfile;
 };
 
-struct Compiler
-{
-    const char *vendor;     // Compiler backend name
-};
-
 typedef unsigned structalign_t;
 // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
@@ -236,7 +233,6 @@ struct Global
     Param params;
     unsigned errors;       // number of errors reported so far
     unsigned warnings;     // number of warnings reported so far
-    FILE *stdmsg;          // where to send verbose messages
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
 
@@ -302,7 +298,7 @@ struct DArray
 // file location
 struct Loc
 {
-    const char *filename;
+    const char *filename; // either absolute or relative to cwd
     unsigned linnum;
     unsigned charnum;
 

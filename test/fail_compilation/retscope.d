@@ -55,7 +55,7 @@ void test2(scope int* p, int[] a ...) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(76): Error: function retscope.HTTP.Impl.onReceive is @nogc yet allocates closures with the GC
+fail_compilation/retscope.d(76): Error: function `retscope.HTTP.Impl.onReceive` is `@nogc` yet allocates closures with the GC
 fail_compilation/retscope.d(78):        retscope.HTTP.Impl.onReceive.__lambda1 closes over variable this at fail_compilation/retscope.d(76)
 ---
 */
@@ -129,7 +129,7 @@ char[] bar9() @safe
 /*
 //
 //
-//fail_compilation/retscope.d(143): To enforce @safe compiler allocates a closure unless the opApply() uses 'scope'
+//fail_compilation/retscope.d(143): To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`
 //
 */
 
@@ -255,7 +255,7 @@ void escape4() @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(267): Error: cannot take address of scope local p in @safe function escape5
+fail_compilation/retscope.d(267): Error: cannot take address of `scope` local `p` in `@safe` function `escape5`
 ---
 */
 
@@ -332,7 +332,7 @@ int* bar10( scope int** ptr ) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(343): Error: cannot take address of scope local aa in @safe function escape11
+fail_compilation/retscope.d(343): Error: cannot take address of `scope` local `aa` in `@safe` function `escape11`
 ---
 */
 

@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/nspace.d, _nspace.d)
+ * Documentation:  https://dlang.org/phobos/dmd_nspace.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/nspace.d
  */
 
 module dmd.nspace;
-
-// Online documentation: https://dlang.org/phobos/dmd_nspace.html
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -19,7 +19,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.globals;
 import dmd.identifier;
-import dmd.semantic;
 import dmd.visitor;
 import core.stdc.stdio;
 
@@ -31,7 +30,7 @@ private enum LOG = false;
  */
 extern (C++) final class Nspace : ScopeDsymbol
 {
-    extern (D) this(Loc loc, Identifier ident, Dsymbols* members)
+    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* members)
     {
         super(ident);
         //printf("Nspace::Nspace(ident = %s)\n", ident.toChars());
@@ -58,13 +57,13 @@ extern (C++) final class Nspace : ScopeDsymbol
                 ScopeDsymbol sds2 = sce.scopesym;
                 if (sds2)
                 {
-                    sds2.importScope(this, Prot(PROTpublic));
+                    sds2.importScope(this, Prot(Prot.Kind.public_));
                     break;
                 }
             }
             assert(sc);
             sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
+            sc.linkage = LINK.cpp; // namespaces default to C++ linkage
             sc.parent = this;
             foreach (s; *members)
             {
@@ -82,7 +81,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         {
             assert(sc);
             sc = sc.push(this);
-            sc.linkage = LINKcpp; // namespaces default to C++ linkage
+            sc.linkage = LINK.cpp; // namespaces default to C++ linkage
             sc.parent = this;
             foreach (s; *members)
             {
@@ -97,7 +96,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         return Dsymbol.oneMember(ps, ident);
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.Nspace.search('%s')\n", toChars(), ident.toChars());
         if (_scope && !symtab)
@@ -105,7 +104,7 @@ extern (C++) final class Nspace : ScopeDsymbol
 
         if (!members || !symtab) // opaque or semantic() is not yet called
         {
-            error("is forward referenced when looking for '%s'", ident.toChars());
+            error("is forward referenced when looking for `%s`", ident.toChars());
             return null;
         }
 

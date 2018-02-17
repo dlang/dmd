@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/access.d, _access.d)
+ * Documentation:  https://dlang.org/phobos/dmd_access.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/access.d
  */
 
 module dmd.access;
-
-// Online documentation: https://dlang.org/phobos/dmd_access.html
 
 import dmd.aggregate;
 import dmd.dclass;
@@ -33,7 +33,7 @@ private enum LOG = false;
  */
 private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
 {
-    Prot access_ret = Prot(PROTnone);
+    Prot access_ret = Prot(Prot.Kind.none);
     static if (LOG)
     {
         printf("+AggregateDeclaration::getAccess(this = '%s', smember = '%s')\n", ad.toChars(), smember.toChars());
@@ -53,26 +53,25 @@ private Prot getAccess(AggregateDeclaration ad, Dsymbol smember)
         {
             BaseClass* b = (*cd.baseclasses)[i];
             Prot access = getAccess(b.sym, smember);
-            switch (access.kind)
+            final switch (access.kind)
             {
-            case PROTnone:
+            case Prot.Kind.none:
+            case Prot.Kind.undefined:
                 break;
-            case PROTprivate:
-                access_ret = Prot(PROTnone); // private members of base class not accessible
+            case Prot.Kind.private_:
+                access_ret = Prot(Prot.Kind.none); // private members of base class not accessible
                 break;
-            case PROTpackage:
-            case PROTprotected:
-            case PROTpublic:
-            case PROTexport:
+            case Prot.Kind.package_:
+            case Prot.Kind.protected_:
+            case Prot.Kind.public_:
+            case Prot.Kind.export_:
                 // If access is to be tightened
-                if (PROTpublic < access.kind)
-                    access = Prot(PROTpublic);
+                if (Prot.Kind.public_ < access.kind)
+                    access = Prot(Prot.Kind.public_);
                 // Pick path with loosest access
                 if (access_ret.isMoreRestrictiveThan(access))
                     access_ret = access;
                 break;
-            default:
-                assert(0);
             }
         }
     }
@@ -106,7 +105,7 @@ private bool isAccessible(Dsymbol smember, Dsymbol sfunc, AggregateDeclaration d
             {
                 BaseClass* b = (*cdthis.baseclasses)[i];
                 Prot access = getAccess(b.sym, smember);
-                if (access.kind >= PROTprotected || isAccessible(smember, sfunc, b.sym, cdscope))
+                if (access.kind >= Prot.Kind.protected_ || isAccessible(smember, sfunc, b.sym, cdscope))
                 {
                     return true;
                 }
@@ -160,13 +159,13 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
     if (smemberparent == ad)
     {
         access = smember.prot();
-        result = access.kind >= PROTpublic || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == PROTpackage && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
+        result = access.kind >= Prot.Kind.public_ || hasPrivateAccess(ad, f) || isFriendOf(ad, cdscope) || (access.kind == Prot.Kind.package_ && hasPackageAccess(sc, smember)) || ad.getAccessModule() == sc._module;
         static if (LOG)
         {
             printf("result1 = %d\n", result);
         }
     }
-    else if ((access = getAccess(ad, smember)).kind >= PROTpublic)
+    else if ((access = getAccess(ad, smember)).kind >= Prot.Kind.public_)
     {
         result = true;
         static if (LOG)
@@ -174,7 +173,7 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
             printf("result2 = %d\n", result);
         }
     }
-    else if (access.kind == PROTpackage && hasPackageAccess(sc, ad))
+    else if (access.kind == Prot.Kind.package_ && hasPackageAccess(sc, ad))
     {
         result = true;
         static if (LOG)
@@ -236,7 +235,7 @@ private bool hasPackageAccess(Scope* sc, Dsymbol s)
     return hasPackageAccess(sc._module, s);
 }
 
-extern (C++) bool hasPackageAccess(Module mod, Dsymbol s)
+private bool hasPackageAccess(Module mod, Dsymbol s)
 {
     static if (LOG)
     {
@@ -391,7 +390,7 @@ private bool hasPrivateAccess(AggregateDeclaration ad, Dsymbol smember)
  */
 extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
 {
-    if (sc.flags & SCOPEnoaccesscheck)
+    if (sc.flags & SCOPE.noaccesscheck)
         return false;
     static if (LOG)
     {
@@ -412,7 +411,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     }
     if (!e)
     {
-        if (d.prot().kind == PROTprivate && d.getAccessModule() != sc._module || d.prot().kind == PROTpackage && !hasPackageAccess(sc, d))
+        if (d.prot().kind == Prot.Kind.private_ && d.getAccessModule() != sc._module || d.prot().kind == Prot.Kind.package_ && !hasPackageAccess(sc, d))
         {
             error(loc, "%s `%s` is not accessible from module `%s`", d.kind(), d.toPrettyChars(), sc._module.toChars());
             return true;
@@ -422,7 +421,7 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Expression e, Declaration d)
     {
         // Do access check
         ClassDeclaration cd = (cast(TypeClass)e.type).sym;
-        if (e.op == TOKsuper)
+        if (e.op == TOK.super_)
         {
             ClassDeclaration cd2 = sc.func.toParent().isClassDeclaration();
             if (cd2)
@@ -459,14 +458,14 @@ extern (C++) bool checkAccess(Loc loc, Scope* sc, Package p)
         return false;
     for (; sc; sc = sc.enclosing)
     {
-        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(PROTprivate)))
+        if (sc.scopesym && sc.scopesym.isPackageAccessible(p, Prot(Prot.Kind.private_)))
             return false;
     }
     auto name = p.toPrettyChars();
-    if (p.isPkgMod == PKGmodule || p.isModule())
-        deprecation(loc, "%s %s is not accessible here, perhaps add 'static import %s;'", p.kind(), name, name);
+    if (p.isPkgMod == PKG.module_ || p.isModule())
+        deprecation(loc, "%s `%s` is not accessible here, perhaps add `static import %s;`", p.kind(), name, name);
     else
-        deprecation(loc, "%s %s is not accessible here", p.kind(), name);
+        deprecation(loc, "%s `%s` is not accessible here", p.kind(), name);
     return true;
 }
 
@@ -484,12 +483,12 @@ extern (C++) bool symbolIsVisible(Module mod, Dsymbol s)
     s = mostVisibleOverload(s);
     final switch (s.prot().kind)
     {
-    case PROTundefined: return true;
-    case PROTnone: return false; // no access
-    case PROTprivate: return s.getAccessModule() == mod;
-    case PROTpackage: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
-    case PROTprotected: return s.getAccessModule() == mod;
-    case PROTpublic, PROTexport: return true;
+    case Prot.Kind.undefined: return true;
+    case Prot.Kind.none: return false; // no access
+    case Prot.Kind.private_: return s.getAccessModule() == mod;
+    case Prot.Kind.package_: return s.getAccessModule() == mod || hasPackageAccess(mod, s);
+    case Prot.Kind.protected_: return s.getAccessModule() == mod;
+    case Prot.Kind.public_, Prot.Kind.export_: return true;
     }
 }
 
@@ -513,14 +512,28 @@ extern (C++) bool symbolIsVisible(Dsymbol origin, Dsymbol s)
 extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
 {
     s = mostVisibleOverload(s);
+    return checkSymbolAccess(sc, s);
+}
+
+/**
+ * Check if a symbol is visible from a given scope without taking
+ * into account the most visible overload.
+ *
+ * Params:
+ *  sc = lookup scope
+ *  s = symbol to check for visibility
+ * Returns: true if s is visible by origin
+ */
+extern (C++) bool checkSymbolAccess(Scope *sc, Dsymbol s)
+{
     final switch (s.prot().kind)
     {
-    case PROTundefined: return true;
-    case PROTnone: return false; // no access
-    case PROTprivate: return sc._module == s.getAccessModule();
-    case PROTpackage: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
-    case PROTprotected: return hasProtectedAccess(sc, s);
-    case PROTpublic, PROTexport: return true;
+    case Prot.Kind.undefined: return true;
+    case Prot.Kind.none: return false; // no access
+    case Prot.Kind.private_: return sc._module == s.getAccessModule();
+    case Prot.Kind.package_: return sc._module == s.getAccessModule() || hasPackageAccess(sc._module, s);
+    case Prot.Kind.protected_: return hasProtectedAccess(sc, s);
+    case Prot.Kind.public_, Prot.Kind.export_: return true;
     }
 }
 
@@ -530,7 +543,7 @@ extern (C++) bool symbolIsVisible(Scope *sc, Dsymbol s)
  * but doesn't recurse nor resolve aliases because protection/visibility is an
  * attribute of the alias not the aliasee.
  */
-private Dsymbol mostVisibleOverload(Dsymbol s)
+public Dsymbol mostVisibleOverload(Dsymbol s)
 {
     if (!s.isOverloadable())
         return s;
@@ -560,7 +573,7 @@ private Dsymbol mostVisibleOverload(Dsymbol s)
         {
             assert(ad.isOverloadable, "Non overloadable Aliasee in overload list");
             // Yet unresolved aliases store overloads in overnext.
-            if (ad.semanticRun < PASSsemanticdone)
+            if (ad.semanticRun < PASS.semanticdone)
                 next = ad.overnext;
             else
             {

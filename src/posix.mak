@@ -2,10 +2,10 @@
 # Important variables:
 # --------------------
 #
-# HOST_CSS:				Host C++ compiler to use (g++,clang++)
-# HOST_DMD: 			Host D compiler to use for bootstrapping
-# AUTO_BOOTSTRAP:		Enable auto-boostrapping by download a stable DMD binary
-# INSTALL_DIR:			Installation folder to use
+# HOST_CXX:             Host C++ compiler to use (g++,clang++)
+# HOST_DMD:             Host D compiler to use for bootstrapping
+# AUTO_BOOTSTRAP:       Enable auto-boostrapping by download a stable DMD binary
+# INSTALL_DIR:          Installation folder to use
 #
 ################################################################################
 # Build modes:
@@ -14,17 +14,31 @@
 #
 # Opt-in build features:
 #
-# ENABLE_RELEASE:		Optimized release built (set by BUILD=release)
-# ENABLE_DEBUG:			Add debug instructions and symbols (set by BUILD=debug)
-# ENABLE_WARNINGS: 		Enable C++ build warnings
-# ENABLE_PROFILING:		Build dmd with a profiling recorder (C++)
-# ENABLE_PGO_USE:		Build dmd with existing profiling information (C++)
-# 	PGO_DIR:			Directory for profile-guided optimization (PGO) logs
-# ENABLE_LTO:			Enable link-time optimizations
-# ENABLE_UNITTEST:		Build dmd with unittests (sets ENABLE_COVERAGE=1)
-# ENABLE_PROFILE:		Build dmd with a profiling recorder (D)
-# ENABLE_COVERAGE		Build dmd with coverage counting
-# ENABLE_SANITIZERS		Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
+# ENABLE_RELEASE:       Optimized release built (set by BUILD=release)
+# ENABLE_DEBUG:         Add debug instructions and symbols (set by BUILD=debug)
+# ENABLE_WARNINGS:      Enable C++ build warnings
+# ENABLE_PROFILING:     Build dmd with a profiling recorder (C++)
+# ENABLE_PGO_USE:       Build dmd with existing profiling information (C++)
+#   PGO_DIR:            Directory for profile-guided optimization (PGO) logs
+# ENABLE_LTO:           Enable link-time optimizations
+# ENABLE_UNITTEST:      Build dmd with unittests (sets ENABLE_COVERAGE=1)
+# ENABLE_PROFILE:       Build dmd with a profiling recorder (D)
+# ENABLE_COVERAGE       Build dmd with coverage counting
+# ENABLE_SANITIZERS     Build dmd with sanitizer (e.g. ENABLE_SANITIZERS=address,undefined)
+#
+# Targets
+# -------
+#
+# all					Build dmd
+# unittest              Run all unittest blocks
+# cxx-unittest          Check conformance of the C++ headers
+# build-examples        Build DMD as library examples
+# clean                 Remove all generated files
+# man                   Generate the man pages
+# checkwhitespace       Checks for trailing whitespace and tabs
+# zip                   Packs all sources into a ZIP archive
+# gitzip                Packs all sources into a ZIP archive
+# install               Installs dmd into $(INSTALL_DIR)
 ################################################################################
 
 # get OS and MODEL
@@ -82,7 +96,7 @@ G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
 $(shell mkdir -p $G)
 
 ifeq (osx,$(OS))
-    export MACOSX_DEPLOYMENT_TARGET=10.7
+    export MACOSX_DEPLOYMENT_TARGET=10.9
 endif
 
 HOST_CXX=c++
@@ -97,7 +111,7 @@ GIT=git
 
 # determine whether CXX is gcc or clang based
 CXX_VERSION:=$(shell $(CXX) --version)
-ifneq (,$(findstring g++,$(CXX_VERSION))$(findstring gcc,$(CXX_VERSION))$(findstring GCC,$(CXX_VERSION)))
+ifneq (,$(findstring g++,$(CXX_VERSION))$(findstring gcc,$(CXX_VERSION))$(findstring Free Software,$(CXX_VERSION)))
 	CXX_KIND=g++
 endif
 ifneq (,$(findstring clang,$(CXX_VERSION)))
@@ -134,14 +148,14 @@ else
 endif
 
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
+ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=dmd
+endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
 endif
 ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=ldc
-endif
-ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
-	HOST_DMD_KIND=dmd
 endif
 
 # Compiler Warnings
@@ -174,16 +188,9 @@ WARNINGS += \
 	-Wno-logical-op \
 	-Wno-narrowing \
 	-Wno-unused-but-set-variable \
-	-Wno-uninitialized
-endif
-# Clang Specific
-ifeq ($(HOST_CXX_KIND), clang++)
-WARNINGS += \
-	-Wno-tautological-constant-out-of-range-compare \
-	-Wno-tautological-compare \
-	-Wno-constant-logical-operand \
-	-Wno-self-assign -Wno-self-assign
-# -Wno-sometimes-uninitialized
+	-Wno-uninitialized \
+	-Wno-class-memaccess \
+	-Wno-implicit-fallthrough
 endif
 else
 # Default Warnings
@@ -191,9 +198,7 @@ WARNINGS := -Wno-deprecated -Wstrict-aliasing -Werror
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
 WARNINGS += \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
+    -Wno-logical-op-parentheses
 endif
 endif
 
@@ -210,6 +215,11 @@ CXXFLAGS := $(WARNINGS) \
 ifeq ($(CXX_KIND), g++)
 CXXFLAGS += \
     -std=gnu++98
+endif
+# Clang Specific
+ifeq ($(CXX_KIND), clang++)
+CXXFLAGS += \
+    -xc++
 endif
 DFLAGS := -version=MARS $(PIC)
 # Enable D warnings
@@ -266,9 +276,9 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$(D) -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -I$(D) -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I$G -I$D -DDMDV2=1
+DMD_FLAGS  := -I$D -I$(ROOT) -Wuninitialized
+GLUE_FLAGS := -I$D -I$(ROOT) -I$(TK) -I$C
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$C -I$G -I$D -DDMDV2=1
 ROOT_FLAGS := -I$(ROOT)
 
 ifeq ($(OS), osx)
@@ -281,14 +291,15 @@ endif
 ######## DMD frontend source files
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes astcodegen attrib builtin canthrow clone complex cond constfold		\
+	arraytypes astcodegen attrib builtin canthrow cli clone compiler complex cond constfold	\
 	cppmangle cppmanglewin ctfeexpr dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
-	json lib link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
-	semantic sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
-	typinf utils statement_rewrite_walker statementsem staticcond safe blockexit printast))
+	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
+	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
+	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
+	semantic2 semantic3))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
@@ -300,23 +311,10 @@ ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	stringtable hash))
 
 GLUE_OBJS =
-
-ifeq (osx,$(OS))
-    FRONT_SRCS += $D/libmach.d $D/scanmach.d
-else
-    FRONT_SRCS += $D/libelf.d $D/scanelf.d
-endif
-
 G_GLUE_OBJS = $(addprefix $G/, $(GLUE_OBJS))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
-	tocvdebug s2ir toobj e2ir eh iasm))
-
-ifeq ($(D_OBJC),1)
-	GLUE_SRCS += $D/objc_glue.d
-else
-	GLUE_SRCS += $D/objc_glue_stubs.d
-endif
+	tocvdebug s2ir toobj e2ir eh iasm objc_glue))
 
 DMD_SRCS=$(FRONT_SRCS) $(GLUE_SRCS) $(BACK_HDRS) $(TK_HDRS)
 
@@ -399,7 +397,7 @@ TK_SRC = \
 ######## CXX header files (only needed for cxx-unittest)
 
 SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
-	attrib.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
+	attrib.h compiler.h complex_t.h cond.h ctfe.h ctfe.h declaration.h dsymbol.h	\
 	enum.h errors.h expression.h globals.h hdrgen.h identifier.h \
 	id.h import.h init.h intrange.h json.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
@@ -532,9 +530,9 @@ $(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 
 # Generic rules for all source files
 ########################################################################
-# Search the directory $(C) for .c-files when using implicit pattern
+# Search the directory $C for .c-files when using implicit pattern
 # matching below.
-#vpath %.c $(C)
+#vpath %.c $C
 
 -include $(DEPS)
 
@@ -550,9 +548,20 @@ $G/newdelete.o: $G/%.o: $(ROOT)/%.c $(SRC_MAKE)
 	@echo "  (CC)  ROOT_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
+################################################################################
+# Generate the man pages
+################################################################################
+
+DMD_MAN_PAGE = $(GENERATED)/docs/man1/dmd.1
+
+$(DMD_MAN_PAGE): dmd/cli.d
+	${MAKE} -C ../docs DMD=$(HOST_DMD_PATH) build
+
+man: $(DMD_MAN_PAGE)
+
 ######################################################
 
-install: all
+install: all $(DMD_MAN_PAGE)
 	$(eval bin_dir=$(if $(filter $(OS),osx), bin, bin$(MODEL)))
 	mkdir -p $(INSTALL_DIR)/$(OS)/$(bin_dir)
 	cp $G/dmd $(INSTALL_DIR)/$(OS)/$(bin_dir)/dmd
@@ -606,7 +615,8 @@ DOC_OUTPUT_DIR=$(DOCDIR)
 ifneq ($(DOCSRC),)
 
 # list all files for which documentation should be generated, use sort to remove duplicates
-SRC_DOCUMENTABLES = $(sort $(ROOT_SRCS) $(DMD_SRCS) $(LEXER_SRCS) $(LEXER_ROOT) $(PARSER_SRCS))
+SRC_DOCUMENTABLES = $(sort $(ROOT_SRCS) $(DMD_SRCS) $(LEXER_SRCS) $(LEXER_ROOT) $(PARSER_SRCS) \
+                           $D/frontend.d)
 
 D2HTML=$(foreach p,$1,$(if $(subst package.d,,$(notdir $p)),$(subst /,_,$(subst .d,.html,$p)),$(subst /,_,$(subst /package.d,.html,$p))))
 HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
@@ -615,8 +625,8 @@ HTMLS=$(addprefix $(DOC_OUTPUT_DIR)/, \
 # For each module, define a rule e.g.:
 # ../web/phobos/dmd_mars.html : dmd/mars.d $(STDDOC) ; ...
 $(foreach p,$(SRC_DOCUMENTABLES),$(eval \
-$(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(HOST_DMD_PATH) ;\
-  $(HOST_DMD_RUN) -of- $(MODEL_FLAG) -J$G -J../res -c -Dd$(DOCSRC) -Idmd\
+$(DOC_OUTPUT_DIR)/$(call D2HTML,$p) : $p $(STDDOC) $(DMD) ;\
+  $(DMD) -o- $(MODEL_FLAG) -J$G -J../res -c -w -Dd$(DOCSRC) -Idmd\
   $(DFLAGS) project.ddoc $(STDDOC) -Df$$@ $$<))
 
 $(DOC_OUTPUT_DIR) :

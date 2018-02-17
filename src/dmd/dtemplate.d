@@ -4,15 +4,15 @@
  *
  * Template implementation.
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtemplate.d, _dtemplate.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dtemplate.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dtemplate.d
  */
 
 module dmd.dtemplate;
-
-// Online documentation: https://dlang.org/phobos/dmd_dtemplate.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -40,10 +40,10 @@ import dmd.init;
 import dmd.initsem;
 import dmd.mtype;
 import dmd.opover;
-import dmd.root.aav;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
-import dmd.semantic;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -109,7 +109,7 @@ extern (C++) bool isError(RootObject o)
         return (t.ty == Terror);
     Expression e = isExpression(o);
     if (e)
-        return (e.op == TOKerror || !e.type || e.type.ty == Terror);
+        return (e.op == TOK.error || !e.type || e.type.ty == Terror);
     Tuple v = isTuple(o);
     if (v)
         return arrayObjectIsError(&v.objects);
@@ -158,16 +158,16 @@ extern (C++) Dsymbol getDsymbol(RootObject oarg)
     if (ea)
     {
         // Try to convert Expression to symbol
-        if (ea.op == TOKvar)
+        if (ea.op == TOK.variable)
             sa = (cast(VarExp)ea).var;
-        else if (ea.op == TOKfunction)
+        else if (ea.op == TOK.function_)
         {
             if ((cast(FuncExp)ea).td)
                 sa = (cast(FuncExp)ea).td;
             else
                 sa = (cast(FuncExp)ea).fd;
         }
-        else if (ea.op == TOKtemplate)
+        else if (ea.op == TOK.template_)
             sa = (cast(TemplateExp)ea).td;
         else
             sa = null;
@@ -190,7 +190,7 @@ private Expression getValue(ref Dsymbol s)
     if (s)
     {
         VarDeclaration v = s.isVarDeclaration();
-        if (v && v.storage_class & STCmanifest)
+        if (v && v.storage_class & STC.manifest)
         {
             e = v.getConstInitializer();
         }
@@ -203,10 +203,10 @@ private Expression getValue(ref Dsymbol s)
  */
 private Expression getValue(Expression e)
 {
-    if (e && e.op == TOKvar)
+    if (e && e.op == TOK.variable)
     {
         VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
-        if (v && v.storage_class & STCmanifest)
+        if (v && v.storage_class & STC.manifest)
         {
             e = v.getConstInitializer();
         }
@@ -390,27 +390,27 @@ private hash_t expressionHash(Expression e)
 
     switch (e.op)
     {
-    case TOKint64:
+    case TOK.int64:
         return cast(size_t) (cast(IntegerExp)e).getInteger();
 
-    case TOKfloat64:
+    case TOK.float64:
         return CTFloat.hash((cast(RealExp)e).value);
 
-    case TOKcomplex80:
+    case TOK.complex80:
         auto ce = cast(ComplexExp)e;
         return mixHash(CTFloat.hash(ce.toReal), CTFloat.hash(ce.toImaginary));
 
-    case TOKidentifier:
+    case TOK.identifier:
         return cast(size_t)cast(void*) (cast(IdentifierExp)e).ident;
 
-    case TOKnull:
+    case TOK.null_:
         return cast(size_t)cast(void*) (cast(NullExp)e).type;
 
-    case TOKstring:
+    case TOK.string_:
         auto se = cast(StringExp)e;
         return calcHash(se.string, se.len * se.sz);
 
-    case TOKtuple:
+    case TOK.tuple:
     {
         auto te = cast(TupleExp)e;
         size_t hash = 0;
@@ -420,7 +420,7 @@ private hash_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOKarrayliteral:
+    case TOK.arrayLiteral:
     {
         auto ae = cast(ArrayLiteralExp)e;
         size_t hash;
@@ -429,7 +429,7 @@ private hash_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOKassocarrayliteral:
+    case TOK.assocArrayLiteral:
     {
         auto ae = cast(AssocArrayLiteralExp)e;
         size_t hash;
@@ -439,7 +439,7 @@ private hash_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOKstructliteral:
+    case TOK.structLiteral:
     {
         auto se = cast(StructLiteralExp)e;
         size_t hash;
@@ -448,10 +448,10 @@ private hash_t expressionHash(Expression e)
         return hash;
     }
 
-    case TOKvar:
+    case TOK.variable:
         return cast(size_t)cast(void*) (cast(VarExp)e).var;
 
-    case TOKfunction:
+    case TOK.function_:
         return cast(size_t)cast(void*) (cast(FuncExp)e).fd;
 
     default:
@@ -518,11 +518,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     bool ismixin;           // template declaration is only to be used as a mixin
     bool isstatic;          // this is static template declaration
     Prot protection;
+    int inuse;              /// for recursive expansion detection
 
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
-    extern (D) this(Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
+    extern (D) this(const ref Loc loc, Identifier id, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
         super(id);
         static if (LOG)
@@ -551,7 +552,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         this.literal = literal;
         this.ismixin = ismixin;
         this.isstatic = true;
-        this.protection = Prot(PROTundefined);
+        this.protection = Prot(Prot.Kind.undefined);
 
         // Compute in advance for Ddoc's use
         // https://issues.dlang.org/show_bug.cgi?id=11153: ident could be NULL if parsing fails.
@@ -713,8 +714,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         pr.dedargs = dedargs;
         previous = &pr; // add this to threaded list
 
-        uint nerrors = global.errors;
-
         Scope* scx = paramscope.push(ti);
         scx.parent = ti;
         scx.tinst = null;
@@ -737,10 +736,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             for (size_t i = 0; i < nfparams; i++)
             {
                 Parameter fparam = Parameter.getNth(fparameters, i);
-                fparam.storageClass &= (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
-                fparam.storageClass |= STCparameter;
+                fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
+                fparam.storageClass |= STC.parameter;
                 if (fvarargs == 2 && i + 1 == nfparams)
-                    fparam.storageClass |= STCvariadic;
+                    fparam.storageClass |= STC.variadic;
             }
             for (size_t i = 0; i < fparameters.dim; i++)
             {
@@ -754,12 +753,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (!ti.symtab)
                     ti.symtab = new DsymbolTable();
                 if (!scx.insert(v))
-                    error("parameter %s.%s is already defined", toChars(), v.toChars());
+                    error("parameter `%s.%s` is already defined", toChars(), v.toChars());
                 else
                     v.parent = fd;
             }
             if (isstatic)
-                fd.storage_class |= STCstatic;
+                fd.storage_class |= STC.static_;
             fd.vthis = fd.declareThis(scx, fd.isThis());
         }
 
@@ -769,7 +768,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
-        scx.flags |= SCOPEconstraint;
+        scx.flags |= SCOPE.constraint;
         bool errors;
         bool result = evalStaticCondition(scx, constraint, e, errors);
         ti.inst = null;
@@ -857,7 +856,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
+            inuse++;
             m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
+            inuse--;
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCH.nomatch)
             {
@@ -1018,7 +1019,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             tiargs.push(p);
         }
-        scope TemplateInstance ti = new TemplateInstance(Loc(), ident, tiargs); // create dummy template instance
+        scope TemplateInstance ti = new TemplateInstance(Loc.initial, ident, tiargs); // create dummy template instance
 
         // Temporary Array to hold deduced types
         Objects dedtypes;
@@ -1252,7 +1253,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (toParent().isModule() || (_scope.stc & STCstatic))
+        if (toParent().isModule() || (_scope.stc & STC.static_))
             tthis = null;
         if (tthis)
         {
@@ -1266,7 +1267,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 {
                     hasttp = true;
 
-                    Type t = new TypeIdentifier(Loc(), ttp.ident);
+                    Type t = new TypeIdentifier(Loc.initial, ttp.ident);
                     MATCH m = deduceType(tthis, paramscope, t, parameters, dedtypes);
                     if (m <= MATCH.nomatch)
                         goto Lnomatch;
@@ -1288,16 +1289,16 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     stc |= ad.storage_class;
 
                 ubyte mod = fd.type.mod;
-                if (stc & STCimmutable)
-                    mod = MODimmutable;
+                if (stc & STC.immutable_)
+                    mod = MODFlags.immutable_;
                 else
                 {
-                    if (stc & (STCshared | STCsynchronized))
-                        mod |= MODshared;
-                    if (stc & STCconst)
-                        mod |= MODconst;
-                    if (stc & STCwild)
-                        mod |= MODwild;
+                    if (stc & (STC.shared_ | STC.synchronized_))
+                        mod |= MODFlags.shared_;
+                    if (stc & STC.const_)
+                        mod |= MODFlags.const_;
+                    if (stc & STC.wild)
+                        mod |= MODFlags.wild;
                 }
 
                 ubyte thismod = tthis.mod;
@@ -1341,13 +1342,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         declaredTuple = new Tuple();
                         (*dedargs)[parameters.dim - 1] = declaredTuple;
 
-                        /* Count function parameters following a tuple parameter.
-                         * void foo(U, T...)(int y, T, U, int) {}  // rem == 2 (U, int)
+                        /* Count function parameters with no defaults following a tuple parameter.
+                         * void foo(U, T...)(int y, T, U, double, int bar = 0) {}  // rem == 2 (U, double)
                          */
                         size_t rem = 0;
                         for (size_t j = parami + 1; j < nfparams; j++)
                         {
                             Parameter p = Parameter.getNth(fparameters, j);
+                            if (p.defaultArg)
+                            {
+                               break;
+                            }
                             if (!reliesOnTident(p.type, parameters, inferStart))
                             {
                                 Type pt = p.type.syntaxCopy().typeSemantic(fd.loc, paramscope);
@@ -1367,10 +1372,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                             farg = (*fargs)[argi + i];
 
                             // Check invalid arguments to detect errors early.
-                            if (farg.op == TOKerror || farg.type.ty == Terror)
+                            if (farg.op == TOK.error || farg.type.ty == Terror)
                                 goto Lnomatch;
 
-                            if (!(fparam.storageClass & STClazy) && farg.type.ty == Tvoid)
+                            if (!(fparam.storageClass & STC.lazy_) && farg.type.ty == Tvoid)
                                 goto Lnomatch;
 
                             Type tt;
@@ -1391,7 +1396,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                             /* Remove top const for dynamic array types and pointer types
                              */
-                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STCref) || (fparam.storageClass & STCauto) && !farg.isLvalue()))
+                            if ((tt.ty == Tarray || tt.ty == Tpointer) && !tt.isMutable() && (!(fparam.storageClass & STC.ref_) || (fparam.storageClass & STC.auto_) && !farg.isLvalue()))
                             {
                                 tt = tt.mutableOf();
                             }
@@ -1504,7 +1509,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                         if (m2 < matchTiargs)
                                             matchTiargs = m2; // pick worst match
                                         if (!(*dedtypes)[i].equals(oded))
-                                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                                     }
                                     else
                                     {
@@ -1515,7 +1520,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 }
                                 else
                                 {
+                                    inuse++;
                                     oded = tparam.defaultArg(instLoc, paramscope);
+                                    inuse--;
                                     if (oded)
                                         (*dedargs)[i] = declareParameter(paramscope, tparam, oded);
                                 }
@@ -1555,7 +1562,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
                 {
                     // Check invalid arguments to detect errors early.
-                    if (farg.op == TOKerror || farg.type.ty == Terror)
+                    if (farg.op == TOK.error || farg.type.ty == Terror)
                         goto Lnomatch;
 
                     Type att = null;
@@ -1567,33 +1574,33 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     }
                     Type argtype = farg.type;
 
-                    if (!(fparam.storageClass & STClazy) && argtype.ty == Tvoid && farg.op != TOKfunction)
+                    if (!(fparam.storageClass & STC.lazy_) && argtype.ty == Tvoid && farg.op != TOK.function_)
                         goto Lnomatch;
 
                     // https://issues.dlang.org/show_bug.cgi?id=12876
                     // Optimize argument to allow CT-known length matching
-                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STCref | STCout)) != 0);
+                    farg = farg.optimize(WANTvalue, (fparam.storageClass & (STC.ref_ | STC.out_)) != 0);
                     //printf("farg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                     RootObject oarg = farg;
-                    if ((fparam.storageClass & STCref) && (!(fparam.storageClass & STCauto) || farg.isLvalue()))
+                    if ((fparam.storageClass & STC.ref_) && (!(fparam.storageClass & STC.auto_) || farg.isLvalue()))
                     {
                         /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
                          */
                         Type taai;
                         if (argtype.ty == Tarray && (prmtype.ty == Tsarray || prmtype.ty == Taarray && (taai = (cast(TypeAArray)prmtype).index).ty == Tident && (cast(TypeIdentifier)taai).idents.dim == 0))
                         {
-                            if (farg.op == TOKstring)
+                            if (farg.op == TOK.string_)
                             {
                                 StringExp se = cast(StringExp)farg;
                                 argtype = se.type.nextOf().sarrayOf(se.len);
                             }
-                            else if (farg.op == TOKarrayliteral)
+                            else if (farg.op == TOK.arrayLiteral)
                             {
                                 ArrayLiteralExp ae = cast(ArrayLiteralExp)farg;
                                 argtype = ae.type.nextOf().sarrayOf(ae.elements.dim);
                             }
-                            else if (farg.op == TOKslice)
+                            else if (farg.op == TOK.slice)
                             {
                                 SliceExp se = cast(SliceExp)farg;
                                 if (Type tsa = toStaticArrayType(se))
@@ -1603,7 +1610,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
                         oarg = argtype;
                     }
-                    else if ((fparam.storageClass & STCout) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
+                    else if ((fparam.storageClass & STC.out_) == 0 && (argtype.ty == Tarray || argtype.ty == Tpointer) && templateParameterLookup(prmtype, parameters) != IDX_NOTFOUND && (cast(TypeIdentifier)prmtype).idents.dim == 0)
                     {
                         /* The farg passing to the prmtype always make a copy. Therefore,
                          * we can shrink the set of the deduced type arguments for prmtype
@@ -1657,11 +1664,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         }
                     }
 
-                    if (m > MATCH.nomatch && (fparam.storageClass & (STCref | STCauto)) == STCref)
+                    if (m > MATCH.nomatch && (fparam.storageClass & (STC.ref_ | STC.auto_)) == STC.ref_)
                     {
                         if (!farg.isLvalue())
                         {
-                            if ((farg.op == TOKstring || farg.op == TOKslice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
+                            if ((farg.op == TOK.string_ || farg.op == TOK.slice) && (prmtype.ty == Tsarray || prmtype.ty == Taarray))
                             {
                                 // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                             }
@@ -1669,14 +1676,14 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 goto Lnomatch;
                         }
                     }
-                    if (m > MATCH.nomatch && (fparam.storageClass & STCout))
+                    if (m > MATCH.nomatch && (fparam.storageClass & STC.out_))
                     {
                         if (!farg.isLvalue())
                             goto Lnomatch;
                         if (!farg.type.isMutable()) // https://issues.dlang.org/show_bug.cgi?id=11916
                             goto Lnomatch;
                     }
-                    if (m == MATCH.nomatch && (fparam.storageClass & STClazy) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
+                    if (m == MATCH.nomatch && (fparam.storageClass & STC.lazy_) && prmtype.ty == Tvoid && farg.type.ty != Tvoid)
                         m = MATCH.convert;
                     if (m != MATCH.nomatch)
                     {
@@ -1765,7 +1772,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                                 }
                                 else
                                 {
-                                    Type vt = tvp.valType.typeSemantic(Loc(), sc);
+                                    Type vt = tvp.valType.typeSemantic(Loc.initial, sc);
                                     MATCH m = dim.implicitConvTo(vt);
                                     if (m <= MATCH.nomatch)
                                         goto Lnomatch;
@@ -1875,7 +1882,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
                         if (!(*dedtypes)[i].equals(oded))
-                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                     }
                     else
                     {
@@ -1886,7 +1893,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 }
                 else
                 {
+                    inuse++;
                     oded = tparam.defaultArg(instLoc, paramscope);
+                    inuse--;
                     if (!oded)
                     {
                         // if tuple parameter and
@@ -1922,7 +1931,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                         if (m2 < matchTiargs)
                             matchTiargs = m2; // pick worst match
                         if (!(*dedtypes)[i].equals(oded))
-                            error("specialization not allowed for deduced parameter %s", tparam.ident.toChars());
+                            error("specialization not allowed for deduced parameter `%s`", tparam.ident.toChars());
                     }
                 }
                 oded = declareParameter(paramscope, tparam, oded);
@@ -2008,13 +2017,13 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         Declaration d;
         VarDeclaration v = null;
 
-        if (ea && ea.op == TOKtype)
+        if (ea && ea.op == TOK.type)
             ta = ea.type;
-        else if (ea && ea.op == TOKscope)
+        else if (ea && ea.op == TOK.scope_)
             sa = (cast(ScopeExp)ea).sds;
-        else if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
+        else if (ea && (ea.op == TOK.this_ || ea.op == TOK.super_))
             sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOKfunction)
+        else if (ea && ea.op == TOK.function_)
         {
             if ((cast(FuncExp)ea).td)
                 sa = (cast(FuncExp)ea).td;
@@ -2025,12 +2034,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         if (ta)
         {
             //printf("type %s\n", ta.toChars());
-            d = new AliasDeclaration(Loc(), tp.ident, ta);
+            d = new AliasDeclaration(Loc.initial, tp.ident, ta);
         }
         else if (sa)
         {
             //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
-            d = new AliasDeclaration(Loc(), tp.ident, sa);
+            d = new AliasDeclaration(Loc.initial, tp.ident, sa);
         }
         else if (ea)
         {
@@ -2039,7 +2048,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             TemplateValueParameter tvp = tp.isTemplateValueParameter();
             Type t = tvp ? tvp.valType : null;
             v = new VarDeclaration(loc, t, tp.ident, _init);
-            v.storage_class = STCmanifest | STCtemplateparameter;
+            v.storage_class = STC.manifest | STC.templateparameter;
             d = v;
         }
         else if (va)
@@ -2055,7 +2064,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
             assert(0);
         }
-        d.storage_class |= STCtemplateparameter;
+        d.storage_class |= STC.templateparameter;
 
         if (ta)
         {
@@ -2070,17 +2079,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             if (Dsymbol s = t.toDsymbol(sc))
             {
                 if (s.isDeprecated())
-                    d.storage_class |= STCdeprecated;
+                    d.storage_class |= STC.deprecated_;
             }
         }
         else if (sa)
         {
             if (sa.isDeprecated())
-                d.storage_class |= STCdeprecated;
+                d.storage_class |= STC.deprecated_;
         }
 
         if (!sc.insert(d))
-            error("declaration %s is already defined", tp.ident.toChars());
+            error("declaration `%s` is already defined", tp.ident.toChars());
         d.dsymbolSemantic(sc);
         /* So the caller's o gets updated with the result of semantic() being run on o
          */
@@ -2138,7 +2147,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         {
             // For constructors, emitting return type is necessary for
             // isReturnIsolated() in functionResolve.
-            scx.flags |= SCOPEctor;
+            scx.flags |= SCOPE.ctor;
 
             Dsymbol parent = toParent2();
             Type tret;
@@ -2300,7 +2309,7 @@ extern (C++) final class TypeDeduced : Type
             if (e == emptyArrayElement)
                 continue;
 
-            Type t = tt.addMod(tparams[j].mod).substWildTo(MODconst);
+            Type t = tt.addMod(tparams[j].mod).substWildTo(MODFlags.const_);
 
             MATCH m = e.implicitConvTo(t);
             if (match > m)
@@ -2316,16 +2325,18 @@ extern (C++) final class TypeDeduced : Type
 /*************************************************
  * Given function arguments, figure out which template function
  * to expand, and return matching result.
- * Input:
- *      m               matching result
- *      dstart          the root of overloaded function templates
- *      loc             instantiation location
- *      sc              instantiation scope
- *      tiargs          initial list of template arguments
- *      tthis           if !NULL, the 'this' pointer argument
- *      fargs           arguments to function
+ * Params:
+ *      m           = matching result
+ *      dstart      = the root of overloaded function templates
+ *      loc         = instantiation location
+ *      sc          = instantiation scope
+ *      tiargs      = initial list of template arguments
+ *      tthis       = if !NULL, the 'this' pointer argument
+ *      fargs       = arguments to function
+ *      pMessage    = address to store error message, or null
  */
-void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs, Type tthis, Expressions* fargs)
+void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiargs,
+    Type tthis, Expressions* fargs, const(char)** pMessage = null)
 {
     version (none)
     {
@@ -2369,14 +2380,14 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (tiargs && tiargs.dim > 0)
             return 0;
 
-        if (fd.semanticRun < PASSsemanticdone)
+        if (fd.semanticRun < PASS.semanticdone)
         {
             Ungag ungag = fd.ungagSpeculative();
             fd.dsymbolSemantic(null);
         }
-        if (fd.semanticRun == PASSinit)
+        if (fd.semanticRun == PASS.init)
         {
-            .error(loc, "forward reference to template %s", fd.toChars());
+            .error(loc, "forward reference to template `%s`", fd.toChars());
             return 1;
         }
         //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
@@ -2411,7 +2422,25 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             else
                 return 0;   // MATCH.nomatch
         }
-        MATCH mfa = tf.callMatch(tthis_fd, fargs);
+        /* Fix Issue 17970:
+           If a struct is declared as shared the dtor is automatically
+           considered to be shared, but when the struct is instantiated
+           the instance is no longer considered to be shared when the
+           function call matching is done. The fix makes it so that if a
+           struct declaration is shared, when the destructor is called,
+           the instantiated struct is also considered shared.
+        */
+        if (auto dt = fd.isDtorDeclaration())
+        {
+            auto dtmod = dt.type.toTypeFunction();
+            auto shared_dtor = dtmod.mod & MODFlags.shared_;
+            auto shared_this = tthis_fd.mod & MODFlags.shared_;
+            if (shared_dtor && !shared_this)
+                tthis_fd = dtmod;
+            else if (shared_this && !shared_dtor)
+                tf.mod = tthis_fd.mod;
+        }
+        MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, pMessage);
         //printf("test1: mfa = %d\n", mfa);
         if (mfa > MATCH.nomatch)
         {
@@ -2499,22 +2528,26 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
     int applyTemplate(TemplateDeclaration td)
     {
         //printf("applyTemplate()\n");
-        // skip duplicates
-        if (td == td_best)
+        if (td.inuse)
+        {
+            td.error(loc, "recursive template expansion");
+            return 1;
+        }
+        if (td == td_best)   // skip duplicates
             return 0;
 
         if (!sc)
             sc = td._scope; // workaround for Type.aliasthisOf
 
-        if (td.semanticRun == PASSinit && td._scope)
+        if (td.semanticRun == PASS.init && td._scope)
         {
             // Try to fix forward reference. Ungag errors while doing so.
             Ungag ungag = td.ungagSpeculative();
             td.dsymbolSemantic(td._scope);
         }
-        if (td.semanticRun == PASSinit)
+        if (td.semanticRun == PASS.init)
         {
-            .error(loc, "forward reference to template %s", td.toChars());
+            .error(loc, "forward reference to template `%s`", td.toChars());
         Lerror:
             m.lastf = null;
             m.count = 0;
@@ -2531,7 +2564,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
             auto ti = new TemplateInstance(loc, td, tiargs);
             Objects dedtypes;
             dedtypes.setDim(td.parameters.dim);
-            assert(td.semanticRun != PASSinit);
+            assert(td.semanticRun != PASS.init);
             MATCH mta = td.matchWithInstance(sc, ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta <= MATCH.nomatch || mta < ta_last)   // no match or less match
@@ -2561,7 +2594,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
                         {
                             if (scx == p.sc)
                             {
-                                error(loc, "recursive template expansion while looking for %s.%s", ti.toChars(), tdx.toChars());
+                                error(loc, "recursive template expansion while looking for `%s.%s`", ti.toChars(), tdx.toChars());
                                 goto Lerror;
                             }
                         }
@@ -2757,7 +2790,7 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         if (auto td = s.isTemplateDeclaration())
             return applyTemplate(td);
         return 0;
-    });
+    }, sc);
 
     //printf("td_best = %p, m.lastf = %p\n", td_best, m.lastf);
     if (td_best && ti_best && m.count == 1)
@@ -2862,7 +2895,7 @@ private size_t templateParameterLookup(Type tparam, TemplateParameters* paramete
 
 private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 {
-    if ((tparam.mod & MODwild) == 0)
+    if ((tparam.mod & MODFlags.wild) == 0)
         return 0;
 
     *at = null;
@@ -2874,45 +2907,45 @@ private ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 
     switch (X(tparam.mod, t.mod))
     {
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODshared | MODwildconst, MODimmutable):
+    case X(MODFlags.wild, 0):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.wildconst, 0):
+    case X(MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.immutable_):
         {
-            ubyte wm = (t.mod & ~MODshared);
+            ubyte wm = (t.mod & ~MODFlags.shared_);
             if (wm == 0)
-                wm = MODmutable;
-            ubyte m = (t.mod & (MODconst | MODimmutable)) | (tparam.mod & t.mod & MODshared);
+                wm = MODFlags.mutable;
+            ubyte m = (t.mod & (MODFlags.const_ | MODFlags.immutable_)) | (tparam.mod & t.mod & MODFlags.shared_);
             *at = t.unqualify(m);
             return wm;
         }
-    case X(MODwild, MODwild):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
+    case X(MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
         {
             *at = t.unqualify(tparam.mod & t.mod);
-            return MODwild;
+            return MODFlags.wild;
         }
     default:
         return 0;
@@ -2955,14 +2988,14 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
     switch (X(tparam.mod, t.mod))
     {
     case X(0, 0):
-    case X(0, MODconst):
-    case X(0, MODwild):
-    case X(0, MODwildconst):
-    case X(0, MODshared):
-    case X(0, MODshared | MODconst):
-    case X(0, MODshared | MODwild):
-    case X(0, MODshared | MODwildconst):
-    case X(0, MODimmutable):
+    case X(0, MODFlags.const_):
+    case X(0, MODFlags.wild):
+    case X(0, MODFlags.wildconst):
+    case X(0, MODFlags.shared_):
+    case X(0, MODFlags.shared_ | MODFlags.const_):
+    case X(0, MODFlags.shared_ | MODFlags.wild):
+    case X(0, MODFlags.shared_ | MODFlags.wildconst):
+    case X(0, MODFlags.immutable_):
         // foo(U)                       T                       => T
         // foo(U)                       const(T)                => const(T)
         // foo(U)                       inout(T)                => inout(T)
@@ -2976,14 +3009,14 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t;
             return MATCH.exact;
         }
-    case X(MODconst, MODconst):
-    case X(MODwild, MODwild):
-    case X(MODwildconst, MODwildconst):
-    case X(MODshared, MODshared):
-    case X(MODshared | MODconst, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwild):
-    case X(MODshared | MODwildconst, MODshared | MODwildconst):
-    case X(MODimmutable, MODimmutable):
+    case X(MODFlags.const_, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.shared_, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.immutable_, MODFlags.immutable_):
         // foo(const(U))                const(T)                => T
         // foo(inout(U))                inout(T)                => T
         // foo(inout(const(U)))         inout(const(T))         => T
@@ -2996,16 +3029,16 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf().unSharedOf();
             return MATCH.exact;
         }
-    case X(MODconst, 0):
-    case X(MODconst, MODwild):
-    case X(MODconst, MODwildconst):
-    case X(MODconst, MODshared | MODconst):
-    case X(MODconst, MODshared | MODwild):
-    case X(MODconst, MODshared | MODwildconst):
-    case X(MODconst, MODimmutable):
-    case X(MODwild, MODshared | MODwild):
-    case X(MODwildconst, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODimmutable):
+    case X(MODFlags.const_, 0):
+    case X(MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.wildconst):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.const_, MODFlags.immutable_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.immutable_):
         // foo(const(U))                T                       => T
         // foo(const(U))                inout(T)                => T
         // foo(const(U))                inout(const(T))         => T
@@ -3020,16 +3053,16 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.mutableOf();
             return MATCH.constant;
         }
-    case X(MODconst, MODshared):
+    case X(MODFlags.const_, MODFlags.shared_):
         // foo(const(U))                shared(T)               => shared(T)
         {
             *at = t;
             return MATCH.constant;
         }
-    case X(MODshared, MODshared | MODconst):
-    case X(MODshared, MODshared | MODwild):
-    case X(MODshared, MODshared | MODwildconst):
-    case X(MODshared | MODconst, MODshared):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_):
         // foo(shared(U))               shared(const(T))        => const(T)
         // foo(shared(U))               shared(inout(T))        => inout(T)
         // foo(shared(U))               shared(inout(const(T))) => inout(const(T))
@@ -3038,10 +3071,10 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.unSharedOf();
             return MATCH.constant;
         }
-    case X(MODwildconst, MODimmutable):
-    case X(MODshared | MODconst, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, MODimmutable):
-    case X(MODshared | MODwildconst, MODshared | MODwild):
+    case X(MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
         // foo(inout(const(U)))         immutable(T)            => T
         // foo(shared(const(U)))        shared(inout(const(T))) => T
         // foo(shared(inout(const(U)))) immutable(T)            => T
@@ -3050,56 +3083,56 @@ private MATCH deduceTypeHelper(Type t, Type* at, Type tparam)
             *at = t.unSharedOf().mutableOf();
             return MATCH.constant;
         }
-    case X(MODshared | MODconst, MODshared | MODwild):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.shared_ | MODFlags.wild):
         // foo(shared(const(U)))        shared(inout(T))        => T
         {
             *at = t.unSharedOf().mutableOf();
             return MATCH.constant;
         }
-    case X(MODwild, 0):
-    case X(MODwild, MODconst):
-    case X(MODwild, MODwildconst):
-    case X(MODwild, MODimmutable):
-    case X(MODwild, MODshared):
-    case X(MODwild, MODshared | MODconst):
-    case X(MODwild, MODshared | MODwildconst):
-    case X(MODwildconst, 0):
-    case X(MODwildconst, MODconst):
-    case X(MODwildconst, MODwild):
-    case X(MODwildconst, MODshared):
-    case X(MODwildconst, MODshared | MODconst):
-    case X(MODwildconst, MODshared | MODwild):
-    case X(MODshared, 0):
-    case X(MODshared, MODconst):
-    case X(MODshared, MODwild):
-    case X(MODshared, MODwildconst):
-    case X(MODshared, MODimmutable):
-    case X(MODshared | MODconst, 0):
-    case X(MODshared | MODconst, MODconst):
-    case X(MODshared | MODconst, MODwild):
-    case X(MODshared | MODconst, MODwildconst):
-    case X(MODshared | MODwild, 0):
-    case X(MODshared | MODwild, MODconst):
-    case X(MODshared | MODwild, MODwild):
-    case X(MODshared | MODwild, MODwildconst):
-    case X(MODshared | MODwild, MODimmutable):
-    case X(MODshared | MODwild, MODshared):
-    case X(MODshared | MODwild, MODshared | MODconst):
-    case X(MODshared | MODwild, MODshared | MODwildconst):
-    case X(MODshared | MODwildconst, 0):
-    case X(MODshared | MODwildconst, MODconst):
-    case X(MODshared | MODwildconst, MODwild):
-    case X(MODshared | MODwildconst, MODwildconst):
-    case X(MODshared | MODwildconst, MODshared):
-    case X(MODshared | MODwildconst, MODshared | MODconst):
-    case X(MODimmutable, 0):
-    case X(MODimmutable, MODconst):
-    case X(MODimmutable, MODwild):
-    case X(MODimmutable, MODwildconst):
-    case X(MODimmutable, MODshared):
-    case X(MODimmutable, MODshared | MODconst):
-    case X(MODimmutable, MODshared | MODwild):
-    case X(MODimmutable, MODshared | MODwildconst):
+    case X(MODFlags.wild, 0):
+    case X(MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.wildconst, 0):
+    case X(MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.wildconst, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.shared_, 0):
+    case X(MODFlags.shared_, MODFlags.const_):
+    case X(MODFlags.shared_, MODFlags.wild):
+    case X(MODFlags.shared_, MODFlags.wildconst):
+    case X(MODFlags.shared_, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.const_, 0):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.const_, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, 0):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.immutable_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wild, MODFlags.shared_ | MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, 0):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.const_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.wild):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.wildconst):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_):
+    case X(MODFlags.shared_ | MODFlags.wildconst, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.immutable_, 0):
+    case X(MODFlags.immutable_, MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.wildconst):
+    case X(MODFlags.immutable_, MODFlags.shared_):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.const_):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.wild):
+    case X(MODFlags.immutable_, MODFlags.shared_ | MODFlags.wildconst):
         // foo(inout(U))                T                       => nomatch
         // foo(inout(U))                const(T)                => nomatch
         // foo(inout(U))                inout(const(T))         => nomatch
@@ -3249,7 +3282,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         {
                             if (!s || !s.parent)
                                 goto Lnomatch;
-                            Dsymbol s2 = s.parent.search(Loc(), cast(Identifier)id);
+                            Dsymbol s2 = s.parent.search(Loc.initial, cast(Identifier)id);
                             if (!s2)
                                 goto Lnomatch;
                             s2 = s2.toAlias();
@@ -3336,13 +3369,13 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (tt.implicitConvTo(at.constOf()))
                     {
                         (*dedtypes)[i] = at.constOf().mutableOf();
-                        *wm |= MODconst;
+                        *wm |= MODFlags.const_;
                         goto Lconst;
                     }
                     if (at.implicitConvTo(tt.constOf()))
                     {
                         (*dedtypes)[i] = tt.constOf().mutableOf();
-                        *wm |= MODconst;
+                        *wm |= MODFlags.const_;
                         goto Lconst;
                     }
                     goto Lnomatch;
@@ -3414,26 +3447,26 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     if (t.ty == Tclass)
                     {
                         TypeClass tc = cast(TypeClass)t;
-                        if (tc.sym.aliasthis && !(tc.att & RECtracingDT))
+                        if (tc.sym.aliasthis && !(tc.att & AliasThisRec.tracingDT))
                         {
                             if (auto ato = t.aliasthisOf())
                             {
-                                tc.att = cast(AliasThisRec)(tc.att | RECtracingDT);
+                                tc.att = cast(AliasThisRec)(tc.att | AliasThisRec.tracingDT);
                                 m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
-                                tc.att = cast(AliasThisRec)(tc.att & ~RECtracingDT);
+                                tc.att = cast(AliasThisRec)(tc.att & ~AliasThisRec.tracingDT);
                             }
                         }
                     }
                     else if (t.ty == Tstruct)
                     {
                         TypeStruct ts = cast(TypeStruct)t;
-                        if (ts.sym.aliasthis && !(ts.att & RECtracingDT))
+                        if (ts.sym.aliasthis && !(ts.att & AliasThisRec.tracingDT))
                         {
                             if (auto ato = t.aliasthisOf())
                             {
-                                ts.att = cast(AliasThisRec)(ts.att | RECtracingDT);
+                                ts.att = cast(AliasThisRec)(ts.att | AliasThisRec.tracingDT);
                                 m = deduceType(ato, sc, tparam, parameters, dedtypes, wm);
-                                ts.att = cast(AliasThisRec)(ts.att & ~RECtracingDT);
+                                ts.att = cast(AliasThisRec)(ts.att & ~AliasThisRec.tracingDT);
                             }
                         }
                     }
@@ -3455,7 +3488,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=12403
                     // In IFTI, stop inout matching on transitive part of AA types.
-                    tpn = tpn.substWildTo(MODmutable);
+                    tpn = tpn.substWildTo(MODFlags.mutable);
                 }
 
                 result = deduceType(t.nextOf(), sc, tpn, parameters, dedtypes, wm);
@@ -3533,7 +3566,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 if (tparam.ty == Tsarray)
                 {
                     TypeSArray tsa = cast(TypeSArray)tparam;
-                    if (tsa.dim.op == TOKvar && (cast(VarExp)tsa.dim).var.storage_class & STCtemplateparameter)
+                    if (tsa.dim.op == TOK.variable && (cast(VarExp)tsa.dim).var.storage_class & STC.templateparameter)
                     {
                         Identifier id = (cast(VarExp)tsa.dim).var.ident;
                         i = templateIdentifierLookup(id, parameters);
@@ -3554,7 +3587,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         Expression e;
                         Type tx;
                         Dsymbol s;
-                        taa.index.resolve(Loc(), sc, &e, &tx, &s);
+                        taa.index.resolve(Loc.initial, sc, &e, &tx, &s);
                         edim = s ? getValue(s) : getValue(e);
                     }
                 }
@@ -3612,13 +3645,13 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                     // https://issues.dlang.org/show_bug.cgi?id=2579
                     // Apply function parameter storage classes to parameter types
                     fparam.type = fparam.type.addStorageClass(fparam.storageClass);
-                    fparam.storageClass &= ~(STC_TYPECTOR | STCin);
+                    fparam.storageClass &= ~(STC.TYPECTOR | STC.in_);
 
                     // https://issues.dlang.org/show_bug.cgi?id=15243
                     // Resolve parameter type if it's not related with template parameters
                     if (!reliesOnTident(fparam.type, parameters, inferStart))
                     {
-                        auto tx = fparam.type.typeSemantic(Loc(), sc);
+                        auto tx = fparam.type.typeSemantic(Loc.initial, sc);
                         if (tx.ty == Terror)
                         {
                             result = MATCH.nomatch;
@@ -3936,7 +3969,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                         /* If it is one of the template parameters for this template,
                          * we should not attempt to interpret it. It already has a value.
                          */
-                        if (e2.op == TOKvar && ((cast(VarExp)e2).var.storage_class & STCtemplateparameter))
+                        if (e2.op == TOK.variable && ((cast(VarExp)e2).var.storage_class & STC.templateparameter))
                         {
                             /*
                              * (T:Number!(e2), int e2)
@@ -4030,7 +4063,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             {
                 if (ti && ti.toAlias() == t.sym)
                 {
-                    auto tx = new TypeInstance(Loc(), ti);
+                    auto tx = new TypeInstance(Loc.initial, ti);
                     result = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
                     return;
                 }
@@ -4124,7 +4157,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 tmpdedtypes.setDim(dedtypes.dim);
                 memcpy(tmpdedtypes.tdata(), dedtypes.tdata(), dedtypes.dim * (void*).sizeof);
 
-                auto t = new TypeInstance(Loc(), parti);
+                auto t = new TypeInstance(Loc.initial, parti);
                 MATCH m = deduceType(t, sc, tparam, parameters, tmpdedtypes);
                 if (m > MATCH.nomatch)
                 {
@@ -4164,7 +4197,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             {
                 if (ti && ti.toAlias() == t.sym)
                 {
-                    auto tx = new TypeInstance(Loc(), ti);
+                    auto tx = new TypeInstance(Loc.initial, ti);
                     MATCH m = deduceType(tx, sc, tparam, parameters, dedtypes, wm);
                     // Even if the match fails, there is still a chance it could match
                     // a base class.
@@ -4401,7 +4434,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
         {
             if (!emptyArrayElement)
             {
-                emptyArrayElement = new IdentifierExp(Loc(), Id.p); // dummy
+                emptyArrayElement = new IdentifierExp(Loc.initial, Id.p); // dummy
                 emptyArrayElement.type = Type.tvoid;
             }
             assert(tparam.ty == Tarray);
@@ -4558,9 +4591,9 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 // Reset inference target for the later re-semantic
                 e.fd.treq = null;
 
-                if (ex.op == TOKerror)
+                if (ex.op == TOK.error)
                     return;
-                if (ex.op != TOKfunction)
+                if (ex.op != TOK.function_)
                     return;
                 visit(ex.type);
                 return;
@@ -4572,7 +4605,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 return;
 
             // Allow conversion from implicit function pointer to delegate
-            if (e.tok == TOKreserved && t.ty == Tpointer && tparam.ty == Tdelegate)
+            if (e.tok == TOK.reserved && t.ty == Tpointer && tparam.ty == Tdelegate)
             {
                 TypeFunction tf = cast(TypeFunction)t.nextOf();
                 t = (new TypeDelegate(tf)).merge();
@@ -5005,7 +5038,7 @@ extern (C++) class TemplateParameter
     bool dependent;
 
     /* ======================== TemplateParameter =============================== */
-    final extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         this.loc = loc;
         this.ident = ident;
@@ -5108,7 +5141,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
 
     extern (C++) static __gshared Type tdummy = null;
 
-    final extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
+    extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident);
         this.ident = ident;
@@ -5271,7 +5304,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
  */
 extern (C++) final class TemplateThisParameter : TemplateTypeParameter
 {
-    extern (D) this(Loc loc, Identifier ident, Type specType, Type defaultType)
+    extern (D) this(const ref Loc loc, Identifier ident, Type specType, Type defaultType)
     {
         super(loc, ident, specType, defaultType);
     }
@@ -5302,9 +5335,9 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     Expression specValue;
     Expression defaultValue;
 
-    extern (C++) static __gshared AA* edummies = null;
+    extern (D) static __gshared Expression[void*] edummies;
 
-    extern (D) this(Loc loc, Identifier ident, Type valType,
+    extern (D) this(const ref Loc loc, Identifier ident, Type valType,
         Expression specValue, Expression defaultValue)
     {
         super(loc, ident);
@@ -5330,7 +5363,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     override bool declareParameter(Scope* sc)
     {
         auto v = new VarDeclaration(loc, valType, ident, null);
-        v.storage_class = STCtemplateparameter;
+        v.storage_class = STC.templateparameter;
         return sc.insert(v) !is null;
     }
 
@@ -5354,12 +5387,15 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (e)
         {
             e = e.syntaxCopy();
+            uint olderrs = global.errors;
             if ((e = e.expressionSemantic(sc)) is null)
                 return null;
             if ((e = resolveProperties(sc, e)) is null)
                 return null;
             e = e.resolveLoc(instLoc, sc); // use the instantiated loc
             e = e.optimize(WANTvalue);
+            if (global.errors != olderrs)
+                e = new ErrorExp();
         }
         return e;
     }
@@ -5396,7 +5432,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             uint olderrors = global.startGagging();
             ei = resolveProperties(sc, ei);
             ei = ei.ctfeInterpret();
-            if (global.endGagging(olderrors) || ei.op == TOKerror)
+            if (global.endGagging(olderrors) || ei.op == TOK.error)
                 goto Lnomatch;
 
             /* https://issues.dlang.org/show_bug.cgi?id=14520
@@ -5418,7 +5454,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
             m = MATCH.convert;
         }
 
-        if (ei && ei.op == TOKvar)
+        if (ei && ei.op == TOK.variable)
         {
             // Resolve const variables that we had skipped earlier
             ei = ei.ctfeInterpret();
@@ -5443,7 +5479,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
 
         if (specValue)
         {
-            if (!ei || cast(Expression)dmd_aaGetRvalue(edummies, cast(void*)ei.type) == ei)
+            if (ei is null || (cast(void*)ei.type in edummies && edummies[cast(void*)ei.type] == ei))
                 goto Lnomatch;
 
             Expression e = specValue;
@@ -5482,7 +5518,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         {
             Initializer _init = new ExpInitializer(loc, ei);
             Declaration sparam = new VarDeclaration(loc, vt, ident, _init);
-            sparam.storage_class = STCmanifest;
+            sparam.storage_class = STC.manifest;
             *psparam = sparam;
         }
         return dependent ? MATCH.exact : m;
@@ -5500,10 +5536,14 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         if (!e)
         {
             // Create a dummy value
-            Expression* pe = cast(Expression*)dmd_aaGet(&edummies, cast(void*)valType);
-            if (!*pe)
-                *pe = valType.defaultInit();
-            e = *pe;
+            auto pe = cast(void*)valType in edummies;
+            if (!pe)
+            {
+                e = valType.defaultInit(Loc.initial);
+                edummies[cast(void*)valType] = e;
+            }
+            else
+                e = *pe;
         }
         return cast(void*)e;
     }
@@ -5526,7 +5566,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
 
     extern (C++) static __gshared Dsymbol sdummy = null;
 
-    extern (D) this(Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
+    extern (D) this(const ref Loc loc, Identifier ident, Type specType, RootObject specAlias, RootObject defaultAlias)
     {
         super(loc, ident);
         this.ident = ident;
@@ -5594,9 +5634,9 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         Type ta = isType(oarg);
         RootObject sa = ta && !ta.deco ? null : getDsymbol(oarg);
         Expression ea = isExpression(oarg);
-        if (ea && (ea.op == TOKthis || ea.op == TOKsuper))
+        if (ea && (ea.op == TOK.this_ || ea.op == TOK.super_))
             sa = (cast(ThisExp)ea).var;
-        else if (ea && ea.op == TOKscope)
+        else if (ea && ea.op == TOK.scope_)
             sa = (cast(ScopeExp)ea).sds;
         if (sa)
         {
@@ -5668,7 +5708,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 if (!ti)
                     goto Lnomatch;
 
-                Type t = new TypeInstance(Loc(), ti);
+                Type t = new TypeInstance(Loc.initial, ti);
                 MATCH m2 = deduceType(t, sc, talias, parameters, dedtypes);
                 if (m2 <= MATCH.nomatch)
                     goto Lnomatch;
@@ -5700,7 +5740,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
                 // Declare manifest constant
                 Initializer _init = new ExpInitializer(loc, ea);
                 auto v = new VarDeclaration(loc, null, ident, _init);
-                v.storage_class = STCmanifest;
+                v.storage_class = STC.manifest;
                 v.dsymbolSemantic(sc);
                 *psparam = v;
             }
@@ -5738,7 +5778,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
  */
 extern (C++) final class TemplateTupleParameter : TemplateParameter
 {
-    extern (D) this(Loc loc, Identifier ident)
+    extern (D) this(const ref Loc loc, Identifier ident)
     {
         super(loc, ident);
         this.ident = ident;
@@ -5908,7 +5948,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     TemplateInstance tnext;     // non-first instantiated instances
     Module minst;               // the top module that instantiated this instance
 
-    final extern (D) this(Loc loc, Identifier ident, Objects* tiargs)
+    extern (D) this(const ref Loc loc, Identifier ident, Objects* tiargs)
     {
         super(null);
         static if (LOG)
@@ -5924,7 +5964,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * This constructor is only called when we figured out which function
      * template to instantiate.
      */
-    final extern (D) this(Loc loc, TemplateDeclaration td, Objects* tiargs)
+    extern (D) this(const ref Loc loc, TemplateDeclaration td, Objects* tiargs)
     {
         super(null);
         static if (LOG)
@@ -6034,7 +6074,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return;
 
         const(uint) max_shown = 6;
-        const(char)* format = "instantiated from here: %s";
+        const(char)* format = "instantiated from here: `%s`";
 
         // determine instantiation depth and number of recursive instantiations
         int n_instantiations = 1;
@@ -6075,7 +6115,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     if (recursionDepth)
-                        errorSupplemental(cur.loc, "%d recursive instantiations from here: %s", recursionDepth + 2, cur.toChars());
+                        errorSupplemental(cur.loc, "%d recursive instantiations from here: `%s`", recursionDepth + 2, cur.toChars());
                     else
                         errorSupplemental(cur.loc, format, cur.toChars());
                     recursionDepth = 0;
@@ -6116,7 +6156,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Compare proposed template instantiation with existing template instantiation.
      * Note that this is not commutative because of the auto ref check.
      * Params:
-     *  this = proposed template instantiation
      *  o = existing template instantiation
      * Returns:
      *  0 for match, 1 for no match
@@ -6151,7 +6190,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 for (size_t j = 0; j < nfparams; j++)
                 {
                     Parameter fparam = Parameter.getNth(fparameters, j);
-                    if (fparam.storageClass & STCautoref)       // if "auto ref"
+                    if (fparam.storageClass & STC.autoref)       // if "auto ref"
                     {
                         if (!fargs)
                             goto Lnotequals;
@@ -6160,12 +6199,12 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         Expression farg = (*fargs)[j];
                         if (farg.isLvalue())
                         {
-                            if (!(fparam.storageClass & STCref))
+                            if (!(fparam.storageClass & STC.ref_))
                                 goto Lnotequals; // auto ref's don't match
                         }
                         else
                         {
-                            if (fparam.storageClass & STCref)
+                            if (fparam.storageClass & STC.ref_)
                                 goto Lnotequals; // auto ref's don't match
                         }
                     }
@@ -6394,9 +6433,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             {
                 s = sc.search_correct(id);
                 if (s)
-                    error("template '%s' is not defined, did you mean %s?", id.toChars(), s.toChars());
+                    error("template `%s` is not defined, did you mean %s?", id.toChars(), s.toChars());
                 else
-                    error("template '%s' is not defined", id.toChars());
+                    error("template `%s` is not defined", id.toChars());
                 return false;
             }
             static if (LOG)
@@ -6446,7 +6485,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 if (!td)
                     return 0;
 
-                if (td.semanticRun == PASSinit)
+                if (td.semanticRun == PASS.init)
                 {
                     if (td._scope)
                     {
@@ -6454,9 +6493,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         Ungag ungag = td.ungagSpeculative();
                         td.dsymbolSemantic(td._scope);
                     }
-                    if (td.semanticRun == PASSinit)
+                    if (td.semanticRun == PASS.init)
                     {
-                        error("%s forward references template declaration %s",
+                        error("`%s` forward references template declaration `%s`",
                             toChars(), td.toChars());
                         return 1;
                     }
@@ -6512,7 +6551,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 if (!s)
                 {
-                    error("template '%s' is not defined", id.toChars());
+                    error("template `%s` is not defined", id.toChars());
                     return false;
                 }
             }
@@ -6539,7 +6578,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     Dsymbol s2 = s.getType().toDsymbol(sc);
                     if (!s2)
                     {
-                        error("%s is not a template declaration, it is a %s", id.toChars(), s.kind());
+                        error("`%s` is not a template declaration, it is a %s", id.toChars(), s.kind());
                         return false;
                     }
                     s = s2;
@@ -6564,7 +6603,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 else
                 {
-                    error("%s is not a template declaration, it is a %s", id.toChars(), s.kind());
+                    error("`%s` is not a template declaration, it is a %s", id.toChars(), s.kind());
                     return false;
                 }
             }
@@ -6583,7 +6622,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      * Returns:
      *      false if one or more arguments have errors.
      */
-    static bool semanticTiargs(Loc loc, Scope* sc, Objects* tiargs, int flags)
+    static bool semanticTiargs(const ref Loc loc, Scope* sc, Objects* tiargs, int flags)
     {
         // Run semantic on each argument, place results in tiargs[]
         //printf("+TemplateInstance.semanticTiargs()\n");
@@ -6651,7 +6690,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     ea = ea.expressionSemantic(sc);
 
                     // must not interpret the args, excepting template parameters
-                    if (ea.op != TOKvar || ((cast(VarExp)ea).var.storage_class & STCtemplateparameter))
+                    if (ea.op != TOK.variable || ((cast(VarExp)ea).var.storage_class & STC.templateparameter))
                     {
                         ea = ea.optimize(WANTvalue);
                     }
@@ -6662,7 +6701,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     ea = ea.expressionSemantic(sc);
                     sc = sc.endCTFE();
 
-                    if (ea.op == TOKvar)
+                    if (ea.op == TOK.variable)
                     {
                         /* This test is to skip substituting a const var with
                          * its initializer. The problem is the initializer won't
@@ -6681,7 +6720,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     }
                 }
                 //printf("-[%d] ea = %s %s\n", j, Token.toChars(ea.op), ea.toChars());
-                if (ea.op == TOKtuple)
+                if (ea.op == TOK.tuple)
                 {
                     // Expand tuple
                     TupleExp te = cast(TupleExp)ea;
@@ -6696,34 +6735,34 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     j--;
                     continue;
                 }
-                if (ea.op == TOKerror)
+                if (ea.op == TOK.error)
                 {
                     err = true;
                     continue;
                 }
                 (*tiargs)[j] = ea;
 
-                if (ea.op == TOKtype)
+                if (ea.op == TOK.type)
                 {
                     ta = ea.type;
                     goto Ltype;
                 }
-                if (ea.op == TOKscope)
+                if (ea.op == TOK.scope_)
                 {
                     sa = (cast(ScopeExp)ea).sds;
                     goto Ldsym;
                 }
-                if (ea.op == TOKfunction)
+                if (ea.op == TOK.function_)
                 {
                     FuncExp fe = cast(FuncExp)ea;
                     /* A function literal, that is passed to template and
                      * already semanticed as function pointer, never requires
                      * outer frame. So convert it to global function is valid.
                      */
-                    if (fe.fd.tok == TOKreserved && fe.type.ty == Tpointer)
+                    if (fe.fd.tok == TOK.reserved && fe.type.ty == Tpointer)
                     {
                         // change to non-nested
-                        fe.fd.tok = TOKfunction;
+                        fe.fd.tok = TOK.function_;
                         fe.fd.vthis = null;
                     }
                     else if (fe.td)
@@ -6734,18 +6773,18 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         //goto Ldsym;
                     }
                 }
-                if (ea.op == TOKdotvar && !(flags & 1))
+                if (ea.op == TOK.dotVariable && !(flags & 1))
                 {
                     // translate expression to dsymbol.
                     sa = (cast(DotVarExp)ea).var;
                     goto Ldsym;
                 }
-                if (ea.op == TOKtemplate)
+                if (ea.op == TOK.template_)
                 {
                     sa = (cast(TemplateExp)ea).td;
                     goto Ldsym;
                 }
-                if (ea.op == TOKdottd && !(flags & 1))
+                if (ea.op == TOK.dotTemplateDeclaration && !(flags & 1))
                 {
                     // translate expression to dsymbol.
                     sa = (cast(DotTemplateExp)ea).td;
@@ -6784,7 +6823,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 (*tiargs)[j] = sa;
 
                 TemplateDeclaration td = sa.isTemplateDeclaration();
-                if (td && td.semanticRun == PASSinit && td.literal)
+                if (td && td.semanticRun == PASS.init && td.literal)
                 {
                     td.dsymbolSemantic(sc);
                 }
@@ -6881,8 +6920,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             Dsymbol dstart = tovers ? tovers.a[oi] : tempdecl;
             overloadApply(dstart, (Dsymbol s)
             {
-                auto  td = s.isTemplateDeclaration();
-                if (!td || td == td_best)   // skip duplicates
+                auto td = s.isTemplateDeclaration();
+                if (!td)
+                    return 0;
+                if (td.inuse)
+                {
+                    td.error(loc, "recursive template expansion");
+                    return 1;
+                }
+                if (td == td_best)   // skip duplicates
                     return 0;
 
                 //printf("td = %s\n", td.toPrettyChars());
@@ -6896,7 +6942,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                 dedtypes.setDim(td.parameters.dim);
                 dedtypes.zero();
-                assert(td.semanticRun != PASSinit);
+                assert(td.semanticRun != PASS.init);
 
                 MATCH m = td.matchWithInstance(sc, this, &dedtypes, fargs, 0);
                 //printf("matchWithInstance = %d\n", m);
@@ -6934,7 +6980,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
             if (td_ambig)
             {
-                .error(loc, "%s %s.%s matches more than one template declaration:\n%s:     %s\nand\n%s:     %s",
+                .error(loc, "%s `%s.%s` matches more than one template declaration:\n%s:     `%s`\nand\n%s:     `%s`",
                     td_best.kind(), td_best.parent.toPrettyChars(), td_best.ident.toChars(),
                     td_best.loc.toChars(), td_best.toChars(),
                     td_ambig.loc.toChars(), td_ambig.toChars());
@@ -7001,14 +7047,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             auto tdecl = tempdecl.isTemplateDeclaration();
 
             if (errs != global.errors)
-                errorSupplemental(loc, "while looking for match for %s", toChars());
+                errorSupplemental(loc, "while looking for match for `%s`", toChars());
             else if (tdecl && !tdecl.overnext)
             {
                 // Only one template, so we can give better error message
-                error("does not match template declaration %s", tdecl.toChars());
+                error("does not match template declaration `%s`", tdecl.toChars());
             }
             else
-                .error(loc, "%s %s.%s does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
+                .error(loc, "%s `%s.%s` does not match any template declaration", tempdecl.kind(), tempdecl.parent.toPrettyChars(), tempdecl.ident.toChars());
             return false;
         }
 
@@ -7034,7 +7080,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     final bool needsTypeInference(Scope* sc, int flag = 0)
     {
         //printf("TemplateInstance.needsTypeInference() %s\n", toChars());
-        if (semanticRun != PASSinit)
+        if (semanticRun != PASS.init)
             return false;
 
         uint olderrs = global.errors;
@@ -7050,6 +7096,11 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 auto td = s.isTemplateDeclaration();
                 if (!td)
                     return 0;
+                if (td.inuse)
+                {
+                    td.error(loc, "recursive template expansion");
+                    return 1;
+                }
 
                 /* If any of the overloaded template declarations need inference,
                  * then return true
@@ -7098,7 +7149,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     foreach (size_t i; 0 .. dim)
                     {
                         // 'auto ref' needs inference.
-                        if (Parameter.getNth(tf.parameters, i).storageClass & STCauto)
+                        if (Parameter.getNth(tf.parameters, i).storageClass & STC.auto_)
                             return 1;
                     }
                 }
@@ -7110,7 +7161,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                      */
                     dedtypes.setDim(td.parameters.dim);
                     dedtypes.zero();
-                    if (td.semanticRun == PASSinit)
+                    if (td.semanticRun == PASS.init)
                     {
                         if (td._scope)
                         {
@@ -7118,9 +7169,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             Ungag ungag = td.ungagSpeculative();
                             td.dsymbolSemantic(td._scope);
                         }
-                        if (td.semanticRun == PASSinit)
+                        if (td.semanticRun == PASS.init)
                         {
-                            error("%s forward references template declaration %s", toChars(), td.toChars());
+                            error("`%s` forward references template declaration `%s`", toChars(), td.toChars());
                             return 1;
                         }
                     }
@@ -7142,8 +7193,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             if (!global.gag)
             {
-                errorSupplemental(loc, "while looking for match for %s", toChars());
-                semanticRun = PASSsemanticdone;
+                errorSupplemental(loc, "while looking for match for `%s`", toChars());
+                semanticRun = PASS.semanticdone;
                 inst = this;
             }
             errors = true;
@@ -7182,17 +7233,17 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             Tuple va = isTuple(o);
             if (ea)
             {
-                if (ea.op == TOKvar)
+                if (ea.op == TOK.variable)
                 {
                     sa = (cast(VarExp)ea).var;
                     goto Lsa;
                 }
-                if (ea.op == TOKthis)
+                if (ea.op == TOK.this_)
                 {
                     sa = (cast(ThisExp)ea).var;
                     goto Lsa;
                 }
-                if (ea.op == TOKfunction)
+                if (ea.op == TOK.function_)
                 {
                     if ((cast(FuncExp)ea).td)
                         sa = (cast(FuncExp)ea).td;
@@ -7201,9 +7252,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     goto Lsa;
                 }
                 // Emulate Expression.toMangleBuffer call that had exist in TemplateInstance.genIdent.
-                if (ea.op != TOKint64 && ea.op != TOKfloat64 && ea.op != TOKcomplex80 && ea.op != TOKnull && ea.op != TOKstring && ea.op != TOKarrayliteral && ea.op != TOKassocarrayliteral && ea.op != TOKstructliteral)
+                if (ea.op != TOK.int64 && ea.op != TOK.float64 && ea.op != TOK.complex80 && ea.op != TOK.null_ && ea.op != TOK.string_ && ea.op != TOK.arrayLiteral && ea.op != TOK.assocArrayLiteral && ea.op != TOK.structLiteral)
                 {
-                    ea.error("expression %s is not a valid template value argument", ea.toChars());
+                    ea.error("expression `%s` is not a valid template value argument", ea.toChars());
                     errors = true;
                 }
             }
@@ -7220,7 +7271,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 TemplateInstance ti = sa.isTemplateInstance();
                 Declaration d = sa.isDeclaration();
-                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STCmanifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
+                if ((td && td.literal) || (ti && ti.enclosing) || (d && !d.isDataseg() && !(d.storage_class & STC.manifest) && (!d.isFuncDeclaration() || d.isFuncDeclaration().isNested()) && !isTemplateMixin()))
                 {
                     // if module level template
                     if (isstatic)
@@ -7246,7 +7297,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                                     goto L1; // dparent is most nested
                                 }
                             }
-                            error("%s is nested in both %s and %s", toChars(), enclosing.toChars(), dparent.toChars());
+                            error("`%s` is nested in both `%s` and `%s`", toChars(), enclosing.toChars(), dparent.toChars());
                             errors = true;
                         }
                     L1:
@@ -7255,7 +7306,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     }
                     else
                     {
-                        error("cannot use local '%s' as parameter to non-global template %s", sa.toChars(), tempdecl.toChars());
+                        error("cannot use local `%s` as parameter to non-global template `%s`", sa.toChars(), tempdecl.toChars());
                         errors = true;
                     }
                 }
@@ -7341,9 +7392,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         Dsymbols* a = mi.members;
         a.push(this);
         memberOf = mi;
-        if (mi.semanticRun >= PASSsemantic2done && mi.isRoot())
+        if (mi.semanticRun >= PASS.semantic2done && mi.isRoot())
             Module.addDeferredSemantic2(this);
-        if (mi.semanticRun >= PASSsemantic3done && mi.isRoot())
+        if (mi.semanticRun >= PASS.semantic3done && mi.isRoot())
             Module.addDeferredSemantic3(this);
         return a;
     }
@@ -7527,14 +7578,14 @@ void unSpeculative(Scope* sc, RootObject o)
 bool definitelyValueParameter(Expression e)
 {
     // None of these can be value parameters
-    if (e.op == TOKtuple || e.op == TOKscope ||
-        e.op == TOKtype || e.op == TOKdottype ||
-        e.op == TOKtemplate || e.op == TOKdottd ||
-        e.op == TOKfunction || e.op == TOKerror ||
-        e.op == TOKthis || e.op == TOKsuper)
+    if (e.op == TOK.tuple || e.op == TOK.scope_ ||
+        e.op == TOK.type || e.op == TOK.dotType ||
+        e.op == TOK.template_ || e.op == TOK.dotTemplateDeclaration ||
+        e.op == TOK.function_ || e.op == TOK.error ||
+        e.op == TOK.this_ || e.op == TOK.super_)
         return false;
 
-    if (e.op != TOKdotvar)
+    if (e.op != TOK.dotVariable)
         return true;
 
     /* Template instantiations involving a DotVar expression are difficult.
@@ -7548,20 +7599,20 @@ bool definitelyValueParameter(Expression e)
     if (f)
         return false;
 
-    while (e.op == TOKdotvar)
+    while (e.op == TOK.dotVariable)
     {
         e = (cast(DotVarExp)e).e1;
     }
     // this.x.y and super.x.y couldn't possibly be valid values.
-    if (e.op == TOKthis || e.op == TOKsuper)
+    if (e.op == TOK.this_ || e.op == TOK.super_)
         return false;
 
     // e.type.x could be an alias
-    if (e.op == TOKdottype)
+    if (e.op == TOK.dotType)
         return false;
 
     // var.x.y is the only other possible form of alias
-    if (e.op != TOKvar)
+    if (e.op != TOK.variable)
         return true;
 
     VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
@@ -7571,7 +7622,7 @@ bool definitelyValueParameter(Expression e)
 
     // https://issues.dlang.org/show_bug.cgi?id=16685
     // var.x.y where var is a constant available at compile time
-    if (v.storage_class & STCmanifest)
+    if (v.storage_class & STC.manifest)
         return true;
 
     // TODO: Should we force CTFE if it is a global constant?
@@ -7584,7 +7635,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
 {
     TypeQualified tqual;
 
-    extern (D) this(Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
+    extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
     {
         super(loc,
               tqual.idents.dim ? cast(Identifier)tqual.idents[tqual.idents.dim - 1] : (cast(TypeIdentifier)tqual).ident,
@@ -7709,7 +7760,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
             }
             if (!tempdecl)
             {
-                error("%s isn't a template", s.toChars());
+                error("`%s` isn't a template", s.toChars());
                 return false;
             }
         }
@@ -7726,13 +7777,13 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 if (!td)
                     return 0;
 
-                if (td.semanticRun == PASSinit)
+                if (td.semanticRun == PASS.init)
                 {
                     if (td._scope)
                         td.dsymbolSemantic(td._scope);
                     else
                     {
-                        semanticRun = PASSinit;
+                        semanticRun = PASS.init;
                         return 1;
                     }
                 }

@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
+ * Documentation:  https://dlang.org/phobos/dmd_toobj.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/toobj.d
  */
 
 module dmd.toobj;
-
-// Online documentation: https://dlang.org/phobos/dmd_toobj.html
 
 import core.stdc.stdio;
 import core.stdc.stddef;
@@ -44,6 +44,7 @@ import dmd.init;
 import dmd.irstate;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.objc_glue;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.target;
@@ -214,7 +215,7 @@ void genModuleInfo(Module m)
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
-    objc_Module_genmoduleinfo_classes();
+    objc.generateModuleInfo();
     m.csym.Sdt = dtb.finish();
     out_readonly(m.csym);
     outdata(m.csym);
@@ -255,11 +256,11 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
         return;
 
     Array!(d_uns64) data;
-    d_uns64 sz = getTypePointerBitmap(Loc(), type, &data);
+    d_uns64 sz = getTypePointerBitmap(Loc.initial, type, &data);
     if (sz == d_uns64.max)
         return;
 
-    const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc());
+    const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
     for (size_t i = 0; i < data.dim; i++)
@@ -335,7 +336,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (global.params.symdebug)
                 toDebug(cd);
 
-            assert(cd.semanticRun >= PASSsemantic3done);     // semantic() should have been run to completion
+            assert(cd.semanticRun >= PASS.semantic3done);     // semantic() should have been run to completion
 
             enum_SC scclass = SCcomdat;
 
@@ -372,7 +373,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(cd.type, null);
+            genTypeInfo(cd.loc, cd.type, null);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             //////////////////////////////////////////////
@@ -514,7 +515,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             dtb.size(0);            // null for now, fix later
 
             // defaultConstructor
-            if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STCdisable))
+            if (cd.defaultCtor && !(cd.defaultCtor.storage_class & STC.disable))
                 dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
             else
                 dtb.size(0);
@@ -671,7 +672,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(id.type, null);
+            genTypeInfo(id.loc, id.type, null);
             id.type.vtinfo.accept(this);
 
             //////////////////////////////////////////////
@@ -840,8 +841,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 else if (global.params.symdebug)
                     toDebug(sd);
 
-                if (global.params.useTypeInfo)
-                    genTypeInfo(sd.type, null);
+                if (global.params.useTypeInfo && Type.dtypeinfo)
+                    genTypeInfo(sd.loc, sd.type, null);
 
                 // Generate static initializer
                 toInitializer(sd);
@@ -904,7 +905,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            if (!vd.isDataseg() || vd.storage_class & STCextern)
+            if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
 
             Symbol *s = toSymbol(vd);
@@ -984,7 +985,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(EnumDeclaration ed)
         {
-            if (ed.semanticRun >= PASSobj)  // already written
+            if (ed.semanticRun >= PASS.obj)  // already written
                 return;
             //printf("EnumDeclaration.toObjFile('%s')\n", ed.toChars());
 
@@ -1003,10 +1004,10 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(ed);
 
             if (global.params.useTypeInfo)
-                genTypeInfo(ed.type, null);
+                genTypeInfo(ed.loc, ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
-            if (!tc.sym.members || ed.type.isZeroInit())
+            if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
             else
@@ -1024,7 +1025,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 ed.sinit.Sdt = dtb.finish();
                 outdata(ed.sinit);
             }
-            ed.semanticRun = PASSobj;
+            ed.semanticRun = PASS.obj;
         }
 
         override void visit(TypeInfoDeclaration tid)
@@ -1086,7 +1087,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 Expression e = (*pd.args)[0];
 
-                assert(e.op == TOKstring);
+                assert(e.op == TOK.string_);
 
                 StringExp se = cast(StringExp)e;
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
@@ -1138,8 +1139,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     else if (auto f = s.isFuncDeclaration())
                     {
                         objmod.setModuleCtorDtor(s.csym, isCtor);
-                        if (f.linkage != LINKc)
-                            f.error("must be extern(C) for pragma %s", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
+                        if (f.linkage != LINK.c)
+                            f.error("must be `extern(C)` for `pragma(%s)`", isCtor ? "crt_constructor".ptr : "crt_destructor".ptr);
                         return 1;
                     }
                     else
@@ -1323,7 +1324,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             Symbol *tlvInit = symbol_name(tlvInitName, SCstatic, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
-            if (vd.linkage == LINKcpp)
+            if (vd.linkage == LINK.cpp)
                 tlvInit.Sflags |= SFLpublic;
 
             return tlvInit;
@@ -1340,25 +1341,26 @@ void toObjFile(Dsymbol ds, bool multiobj)
          */
         static mangle_t mangle(const VarDeclaration vd)
         {
-            switch (vd.linkage)
+            final switch (vd.linkage)
             {
-                case LINKwindows:
+                case LINK.windows:
                     return global.params.is64bit ? mTYman_c : mTYman_std;
 
-                case LINKpascal:
+                case LINK.pascal:
                     return mTYman_pas;
 
-                case LINKobjc:
-                case LINKc:
+                case LINK.objc:
+                case LINK.c:
                     return mTYman_c;
 
-                case LINKd:
+                case LINK.d:
                     return mTYman_d;
 
-                case LINKcpp:
-                    return mTYman_d;
+                case LINK.cpp:
+                    return mTYman_cpp;
 
-                default:
+                case LINK.default_:
+                case LINK.system:
                     printf("linkage = %d\n", vd.linkage);
                     assert(0);
             }

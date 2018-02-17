@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.c, backend/elfobj.c)
@@ -54,6 +54,8 @@
 #  define ELFOSABI ELFOSABI_SYSV
 # elif TARGET_OPENBSD
 #  define ELFOSABI ELFOSABI_OPENBSD
+# elif TARGET_DRAGONFLYBSD
+#  define ELFOSABI ELFOSABI_SYSV
 # else
 #  error "No ELF OS ABI defined.  Please fix"
 # endif
@@ -82,7 +84,7 @@ void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
  * If set the compiler requires full druntime support of the new
  * section registration.
  */
-#define REQUIRE_DSO_REGISTRY (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD))
+#define REQUIRE_DSO_REGISTRY (DMDV2 && (TARGET_LINUX || TARGET_FREEBSD || TARGET_DRAGONFLYBSD))
 
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
@@ -1164,7 +1166,7 @@ void Obj::term(const char *objfilename)
     }
 
 #if MARS
-    if (!config.betterC)
+    if (config.useModuleInfo)
         obj_rtinit();
 #endif
 
@@ -1678,7 +1680,7 @@ void Obj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      length of function
  */
 
-void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
 {
     assert(0);                  // converted to Dwarf EH debug format
 }
@@ -2238,7 +2240,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
             }
             break;
         case mTYman_std:
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
@@ -3360,7 +3362,6 @@ void Obj::moduleinfo(Symbol *scc)
     SegData[seg]->SDoffset +=
         reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFflags);
 }
-
 
 /***************************************
  * Create startup/shutdown code to register an executable/shared

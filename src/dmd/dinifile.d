@@ -3,15 +3,15 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d, _dinifile.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dinifile.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dinifile.d
  */
 
 module dmd.dinifile;
-
-// Online documentation: https://dlang.org/phobos/dmd_dinifile.html
 
 import core.stdc.ctype;
 import core.stdc.string;
@@ -169,8 +169,9 @@ void updateRealEnvironment(StringTable* environment)
  *      environment = our own cache of the program environment
  *      filename = name of the file being parsed
  *      path = what @P will expand to
- *      buffer[len] = contents of configuration file
- *      sections[] = section names
+ *      length = length of the configuration file buffer
+ *      buffer = contents of configuration file
+ *      sections = section names
  */
 void parseConfFile(StringTable* environment, const(char)* filename, const(char)* path, size_t length, ubyte* buffer, Strings* sections)
 {
@@ -350,7 +351,7 @@ void parseConfFile(StringTable* environment, const(char)* filename, const(char)*
                 {
                     if (!writeToEnv(environment, strdup(pn)))
                     {
-                        error(Loc(filename, lineNum, 0), "Use 'NAME=value' syntax, not '%s'", pn);
+                        error(Loc(filename, lineNum, 0), "Use `NAME=value` syntax, not `%s`", pn);
                         fatal();
                     }
                     static if (LOG)

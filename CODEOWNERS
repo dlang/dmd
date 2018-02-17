@@ -28,16 +28,11 @@ src/dmd/target.d @ibuclaw @MartinNowak
 src/dmd/transitivevisitor.d @RazvanN7
 src/dmd/vcbuild @rainers
 
-# GitHub's implementation of the CODEOWNERS format is buggy, so this might not work
-src/dmd/*.h @ibuclaw
-
-src/dmd/* @WalterBright
-src/dmd/backend/* @WalterBright
-src/dmd/root/* @WalterBright
-src/dmd/tk/* @WalterBright
+# GitHub's implementation of the CODEOWNERS format is buggy, it doesn't allow src/dmd/*.h
+*.h @ibuclaw @kinke @klickverbot
 
 # CI & automation
-posix.mak @CyberShadow @MartinNowak @wilzbach
-src/posix.mak @CyberShadow @MartinNowak @wilzbach
-circle.sh @CyberShadow @MartinNowak @wilzbach
-travis.sh @CyberShadow @MartinNowak @wilzbach
+posix.mak @MartinNowak @wilzbach
+src/posix.mak @MartinNowak @wilzbach
+circle.sh @MartinNowak @wilzbach
+travis.sh @MartinNowak @wilzbach

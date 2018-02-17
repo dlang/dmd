@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/test12558.d(16): Deprecation: catch statement without an exception specification is deprecated; use catch(Throwable) for old behavior
-compilable/test12558.d(21): Deprecation: catch statement without an exception specification is deprecated; use catch(Throwable) for old behavior
+compilable/test12558.d(16): Deprecation: `catch` statement without an exception specification is deprecated; use `catch(Throwable)` for old behavior
+compilable/test12558.d(21): Deprecation: `catch` statement without an exception specification is deprecated; use `catch(Throwable)` for old behavior
 ---
 */
 

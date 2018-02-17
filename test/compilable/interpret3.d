@@ -1,4 +1,4 @@
-﻿// PERMUTE_ARGS: -inline
+// PERMUTE_ARGS: -inline
 
 template compiles(int T)
 {
@@ -6288,7 +6288,7 @@ static assert(ctfe7784());
     7781
 **************************************************/
 
-static assert(({ return; }(), true));
+static assert(({ return true; }()));
 
 /**************************************************
     7785
@@ -7730,4 +7730,15 @@ bool foo17407()
 }
 
 static assert(!foo17407);
+
+/**************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18057
+// Recursive field initializer causes segfault.
+
+struct RBNode(T)
+{
+    RBNode!T *copy = new RBNode!T;
+}
+
+static assert(!__traits(compiles, { alias bug18057 = RBNode!int; }));
 

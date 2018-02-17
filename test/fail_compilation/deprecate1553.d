@@ -4,7 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/deprecate1553.d(19): Deprecation: cannot use foreach_reverse with a delegate
+fail_compilation/deprecate1553.d(19): Deprecation: cannot use `foreach_reverse` with a delegate
 ---
 */
 

@@ -3,15 +3,15 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/eh.d, _eh.d)
+ * Documentation:  https://dlang.org/phobos/dmd_eh.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/eh.d
  */
 
 module dmd.eh;
-
-// Online documentation: https://dlang.org/phobos/dmd_eh.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -50,7 +50,7 @@ Symbol *except_gentables()
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
         if (Alloca.size)
-            error(null, 0, 0, "cannot mix core.std.stdlib.alloca() and exception handling in %s()", &funcsym_p.Sident[0]);
+            error(null, 0, 0, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
 
         char[13+5+1] name = void;
         __gshared int tmpnum;
@@ -64,7 +64,7 @@ Symbol *except_gentables()
 
         outdata(s);                 // output the scope table
 
-        objmod.ehtables(funcsym_p,funcsym_p.Ssize,s);
+        objmod.ehtables(funcsym_p,cast(uint)funcsym_p.Ssize,s);
     }
     return null;
 }

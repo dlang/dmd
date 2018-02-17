@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dsymbol.d, _dsymbol.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dsymbol.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dsymbol.d
  */
 
 module dmd.dsymbol;
-
-// Online documentation: https://dlang.org/phobos/dmd_dsymbol.html
 
 import core.stdc.stdarg;
 import core.stdc.stdio;
@@ -47,7 +47,6 @@ import dmd.root.aav;
 import dmd.root.rmem;
 import dmd.root.rootobject;
 import dmd.root.speller;
-import dmd.semantic;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
@@ -67,31 +66,24 @@ struct Ungag
     }
 }
 
-enum PROTKIND : int
-{
-    PROTundefined,
-    PROTnone,           // no access
-    PROTprivate,
-    PROTpackage,
-    PROTprotected,
-    PROTpublic,
-    PROTexport,
-}
-
-alias PROTundefined = PROTKIND.PROTundefined;
-alias PROTnone = PROTKIND.PROTnone;
-alias PROTprivate = PROTKIND.PROTprivate;
-alias PROTpackage = PROTKIND.PROTpackage;
-alias PROTprotected = PROTKIND.PROTprotected;
-alias PROTpublic = PROTKIND.PROTpublic;
-alias PROTexport = PROTKIND.PROTexport;
-
 struct Prot
 {
-    PROTKIND kind;
+    ///
+    enum Kind : int
+    {
+        undefined,
+        none,           // no access
+        private_,
+        package_,
+        protected_,
+        public_,
+        export_,
+    }
+
+    Kind kind;
     Package pkg;
 
-    extern (D) this(PROTKIND kind)
+    extern (D) this(Prot.Kind kind)
     {
         this.kind = kind;
     }
@@ -114,7 +106,7 @@ struct Prot
     {
         if (this.kind == other.kind)
         {
-            if (this.kind == PROTpackage)
+            if (this.kind == Prot.Kind.package_)
                 return this.pkg == other.pkg;
             return true;
         }
@@ -135,7 +127,7 @@ struct Prot
     {
         if (this.kind != parent.kind)
             return false;
-        if (this.kind == PROTpackage)
+        if (this.kind == Prot.Kind.package_)
         {
             if (!this.pkg)
                 return true;
@@ -150,28 +142,17 @@ struct Prot
 
 enum PASS : int
 {
-    PASSinit,           // initial state
-    PASSsemantic,       // semantic() started
-    PASSsemanticdone,   // semantic() done
-    PASSsemantic2,      // semantic2() started
-    PASSsemantic2done,  // semantic2() done
-    PASSsemantic3,      // semantic3() started
-    PASSsemantic3done,  // semantic3() done
-    PASSinline,         // inline started
-    PASSinlinedone,     // inline done
-    PASSobj,            // toObjFile() run
+    init,           // initial state
+    semantic,       // semantic() started
+    semanticdone,   // semantic() done
+    semantic2,      // semantic2() started
+    semantic2done,  // semantic2() done
+    semantic3,      // semantic3() started
+    semantic3done,  // semantic3() done
+    inline,         // inline started
+    inlinedone,     // inline done
+    obj,            // toObjFile() run
 }
-
-alias PASSinit = PASS.PASSinit;
-alias PASSsemantic = PASS.PASSsemantic;
-alias PASSsemanticdone = PASS.PASSsemanticdone;
-alias PASSsemantic2 = PASS.PASSsemantic2;
-alias PASSsemantic2done = PASS.PASSsemantic2done;
-alias PASSsemantic3 = PASS.PASSsemantic3;
-alias PASSsemantic3done = PASS.PASSsemantic3done;
-alias PASSinline = PASS.PASSinline;
-alias PASSinlinedone = PASS.PASSinlinedone;
-alias PASSobj = PASS.PASSobj;
 
 // Search options
 enum : int
@@ -216,14 +197,14 @@ extern (C++) class Dsymbol : RootObject
     final extern (D) this()
     {
         //printf("Dsymbol::Dsymbol(%p)\n", this);
-        this.semanticRun = PASSinit;
+        this.semanticRun = PASS.init;
     }
 
     final extern (D) this(Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
         this.ident = ident;
-        this.semanticRun = PASSinit;
+        this.semanticRun = PASS.init;
     }
 
     static Dsymbol create(Identifier ident)
@@ -242,9 +223,9 @@ extern (C++) class Dsymbol : RootObject
         return toChars();
     }
 
-    final ref Loc getLoc()
+    final ref const(Loc) getLoc()
     {
-        if (!loc.filename) // avoid bug 5861.
+        if (!loc.isValid()) // avoid bug 5861.
         {
             auto m = getModule();
             if (m && m.srcfile)
@@ -274,11 +255,13 @@ extern (C++) class Dsymbol : RootObject
         return ident is null;
     }
 
-    final void error(Loc loc, const(char)* format, ...)
+    final void error(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        .verror(loc, format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .verror(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -286,15 +269,19 @@ extern (C++) class Dsymbol : RootObject
     {
         va_list ap;
         va_start(ap, format);
-        .verror(getLoc(), format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .verror(getLoc(), format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
-    final void deprecation(Loc loc, const(char)* format, ...)
+    final void deprecation(const ref Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
-        .vdeprecation(loc, format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .vdeprecation(loc, format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
@@ -302,28 +289,20 @@ extern (C++) class Dsymbol : RootObject
     {
         va_list ap;
         va_start(ap, format);
-        .vdeprecation(getLoc(), format, ap, kind(), toPrettyChars());
+        const cstr = toPrettyChars();
+        const pretty = '`' ~ cstr[0 .. strlen(cstr)] ~ "`\0";
+        .vdeprecation(getLoc(), format, ap, kind(), pretty.ptr);
         va_end(ap);
     }
 
-    final void checkDeprecated(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+    final bool checkDeprecated(const ref Loc loc, Scope* sc)
     {
         if (global.params.useDeprecated != 1 && isDeprecated())
         {
             // Don't complain if we're inside a deprecated symbol's scope
-            for (Dsymbol sp = sc.parent; sp; sp = sp.parent)
-            {
-                if (sp.isDeprecated())
-                    goto L1;
-            }
-            for (Scope* sc2 = sc; sc2; sc2 = sc2.enclosing)
-            {
-                if (sc2.scopesym && sc2.scopesym.isDeprecated())
-                    goto L1;
-                // If inside a StorageClassDeclaration that is deprecated
-                if (sc2.stc & STCdeprecated)
-                    goto L1;
-            }
+            if (sc.isDeprecated())
+                return false;
+
             const(char)* message = null;
             for (Dsymbol p = this; p; p = p.parent)
             {
@@ -335,33 +314,11 @@ extern (C++) class Dsymbol : RootObject
                 deprecation(loc, "is deprecated - %s", message);
             else
                 deprecation(loc, "is deprecated");
+
+            return true;
         }
-    L1:
-        Declaration d = isDeclaration();
-        if (d && d.storage_class & STCdisable)
-        {
-            if (!(sc.func && sc.func.storage_class & STCdisable))
-            {
-                if (d.toParent() && d.isPostBlitDeclaration())
-                    d.toParent().error(loc, "is not copyable because it is annotated with @disable");
-                else
-                {
-                    // if the function is @disabled, maybe there
-                    // is an overload in the overload set that isn't
-                    if (isAliasedDeclaration)
-                    {
-                        FuncDeclaration fd = d.isFuncDeclaration;
-                        if (fd)
-                        {
-                            for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
-                                if (!(ovl.storage_class & STCdisable))
-                                    return;
-                        }
-                    }
-                    error(loc, "is not callable because it is annotated with @disable");
-                }
-            }
-        }
+
+        return false;
     }
 
     /**********************************
@@ -585,7 +542,7 @@ extern (C++) class Dsymbol : RootObject
         return s;
     }
 
-    const(char)* kind() const
+    const(char)* kind() const pure nothrow @nogc @safe
     {
         return "symbol";
     }
@@ -637,7 +594,7 @@ extern (C++) class Dsymbol : RootObject
                 Dsymbol s2 = sds.symtabLookup(this,ident);
                 if (!s2.overloadInsert(this))
                 {
-                    sds.multiplyDefined(Loc(), this, s2);
+                    sds.multiplyDefined(Loc.initial, this, s2);
                     errors = true;
                 }
             }
@@ -645,7 +602,7 @@ extern (C++) class Dsymbol : RootObject
             {
                 if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
                 {
-                    error(".%s property cannot be redefined", ident.toChars());
+                    error("`.%s` property cannot be redefined", ident.toChars());
                     errors = true;
                 }
             }
@@ -681,7 +638,7 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *  null if not found
      */
-    Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         return null;
@@ -706,7 +663,7 @@ extern (C++) class Dsymbol : RootObject
             cost = 0;
             Dsymbol s = this;
             Module.clearCache();
-            return cast(void*)s.search(Loc(), id, IgnoreErrors);
+            return cast(void*)s.search(Loc.initial, id, IgnoreErrors);
         }
 
         if (global.gag)
@@ -715,12 +672,19 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /***************************************
-     * Search for identifier id as a member of 'this'.
-     * id may be a template instance.
+     * Search for identifier id as a member of `this`.
+     * `id` may be a template instance.
+     *
+     * Params:
+     *  loc = location to print the error messages
+     *  sc = the scope where the symbol is located
+     *  id = the id of the symbol
+     *  flags = the search flags which can be `SearchLocalsOnly` or `IgnorePrivateImports`
+     *
      * Returns:
      *      symbol found, NULL if not
      */
-    final Dsymbol searchX(Loc loc, Scope* sc, RootObject id)
+    final Dsymbol searchX(const ref Loc loc, Scope* sc, RootObject id, int flags)
     {
         //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident.toChars());
         Dsymbol s = toAlias();
@@ -729,14 +693,14 @@ extern (C++) class Dsymbol : RootObject
         {
             if (d.inuse)
             {
-                .error(loc, "circular reference to '%s'", d.toPrettyChars());
+                .error(loc, "circular reference to `%s`", d.toPrettyChars());
                 return null;
             }
         }
         switch (id.dyncast())
         {
         case DYNCAST.identifier:
-            sm = s.search(loc, cast(Identifier)id);
+            sm = s.search(loc, cast(Identifier)id, flags);
             break;
         case DYNCAST.dsymbol:
             {
@@ -749,16 +713,16 @@ extern (C++) class Dsymbol : RootObject
                 {
                     sm = s.search_correct(ti.name);
                     if (sm)
-                        .error(loc, "template identifier '%s' is not a member of %s '%s', did you mean %s '%s'?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`, did you mean %s `%s`?", ti.name.toChars(), s.kind(), s.toPrettyChars(), sm.kind(), sm.toChars());
                     else
-                        .error(loc, "template identifier '%s' is not a member of %s '%s'", ti.name.toChars(), s.kind(), s.toPrettyChars());
+                        .error(loc, "template identifier `%s` is not a member of %s `%s`", ti.name.toChars(), s.kind(), s.toPrettyChars());
                     return null;
                 }
                 sm = sm.toAlias();
                 TemplateDeclaration td = sm.isTemplateDeclaration();
                 if (!td)
                 {
-                    .error(loc, "%s.%s is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
+                    .error(loc, "`%s.%s` is not a template, it is a %s", s.toPrettyChars(), ti.name.toChars(), sm.kind());
                     return null;
                 }
                 ti.tempdecl = td;
@@ -785,9 +749,9 @@ extern (C++) class Dsymbol : RootObject
      * Returns:
      *  SIZE_INVALID when the size cannot be determined
      */
-    d_uns64 size(Loc loc)
+    d_uns64 size(const ref Loc loc)
     {
-        error("Dsymbol '%s' has no size", toChars());
+        error("Dsymbol `%s` has no size", toChars());
         return SIZE_INVALID;
     }
 
@@ -797,7 +761,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     // is a 'this' required to access the member
-    AggregateDeclaration isThis()
+    inout(AggregateDeclaration) isThis() inout
     {
         return null;
     }
@@ -832,7 +796,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /// Returns an AggregateDeclaration when toParent() is that.
-    final AggregateDeclaration isMember()
+    final inout(AggregateDeclaration) isMember() inout
     {
         //printf("Dsymbol::isMember() %s\n", toChars());
         auto p = toParent();
@@ -841,7 +805,7 @@ extern (C++) class Dsymbol : RootObject
     }
 
     /// Returns an AggregateDeclaration when toParent2() is that.
-    final AggregateDeclaration isMember2()
+    final inout(AggregateDeclaration) isMember2() inout
     {
         //printf("Dsymbol::isMember2() '%s'\n", toChars());
         auto p = toParent2();
@@ -872,7 +836,7 @@ extern (C++) class Dsymbol : RootObject
      */
     Prot prot()
     {
-        return Prot(PROTpublic);
+        return Prot(Prot.Kind.public_);
     }
 
     /**************************************
@@ -1098,7 +1062,7 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
-    inout(AggregateDeclaration) isAggregateDeclaration() inout
+    inout(AggregateDeclaration) isAggregateDeclaration() inout pure nothrow @safe @nogc
     {
         return null;
     }
@@ -1248,6 +1212,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    inout(ProtDeclaration) isProtDeclaration() inout
+    {
+        return null;
+    }
+
     inout(OverloadSet) isOverloadSet() inout
     {
         return null;
@@ -1273,7 +1242,7 @@ extern (C++) class ScopeDsymbol : Dsymbol
 private:
     /// symbols whose members have been imported, i.e. imported modules and template mixins
     Dsymbols* importedScopes;
-    PROTKIND* prots;            // array of PROTKIND, one for each import
+    Prot.Kind* prots;            // array of Prot.Kind, one for each import
 
     import dmd.root.array : BitArray;
     BitArray accessiblePackages, privateAccessiblePackages;// whitelists of accessible (imported) packages
@@ -1301,7 +1270,7 @@ public:
      * This function is #1 on the list of functions that eat cpu time.
      * Be very, very careful about slowing it down.
      */
-    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("%s.ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident.toChars(), flags);
         //if (strcmp(ident.toChars(),"c") == 0) *(char*)0=0;
@@ -1329,7 +1298,7 @@ public:
             for (size_t i = 0; i < importedScopes.dim; i++)
             {
                 // If private import, don't search it
-                if ((flags & IgnorePrivateImports) && prots[i] == PROTprivate)
+                if ((flags & IgnorePrivateImports) && prots[i] == Prot.Kind.private_)
                     continue;
                 int sflags = flags & (IgnoreErrors | IgnoreAmbiguous | IgnoreSymbolVisibility); // remember these in recursive searches
                 Dsymbol ss = (*importedScopes)[i];
@@ -1371,7 +1340,7 @@ public:
                          * alias is deprecated or less accessible, prefer
                          * the other.
                          */
-                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != PROTnone)
+                        if (s.isDeprecated() || s.prot().isMoreRestrictiveThan(s2.prot()) && s2.prot().kind != Prot.Kind.none)
                             s = s2;
                     }
                     else
@@ -1393,9 +1362,15 @@ public:
                             /* If both s2 and s are overloadable (though we only
                              * need to check s once)
                              */
+
                             if ((s2.isOverloadSet() || s2.isOverloadable()) && (a || s.isOverloadable()))
                             {
-                                a = mergeOverloadSet(ident, a, s2);
+                                if (symbolIsVisible(this, s2))
+                                {
+                                    a = mergeOverloadSet(ident, a, s2);
+                                }
+                                if (!symbolIsVisible(this, s))
+                                    s = s2;
                                 continue;
                             }
                             if (flags & IgnoreAmbiguous) // if return NULL on ambiguity
@@ -1418,7 +1393,7 @@ public:
                     s = a;
                 }
                 // TODO: remove once private symbol visibility has been deprecated
-                if (!(flags & IgnoreErrors) && s.prot().kind == PROTprivate &&
+                if (!(flags & IgnoreErrors) && s.prot().kind == Prot.Kind.private_ &&
                     !s.isOverloadable() && !s.parent.isTemplateMixin() && !s.parent.isNspace())
                 {
                     AliasDeclaration ad = void;
@@ -1427,7 +1402,7 @@ public:
                     if (s.isImport() || (ad = s.isAliasDeclaration()) !is null && ad._import !is null)
                     {}
                     else
-                        error(loc, "%s %s is private", s.kind(), s.toPrettyChars());
+                        error(loc, "%s `%s` is `private`", s.kind(), s.toPrettyChars());
                 }
                 //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
                 return s;
@@ -1470,7 +1445,7 @@ public:
                 Dsymbol s2 = os.a[j];
                 if (s.toAlias() == s2.toAlias())
                 {
-                    if (s2.isDeprecated() || (s2.prot().isMoreRestrictiveThan(s.prot()) && s.prot().kind != PROTnone))
+                    if (s2.isDeprecated() || (s2.prot().isMoreRestrictiveThan(s.prot()) && s.prot().kind != Prot.Kind.none))
                     {
                         os.a[j] = s;
                     }
@@ -1505,14 +1480,14 @@ public:
                 }
             }
             importedScopes.push(s);
-            prots = cast(PROTKIND*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
+            prots = cast(Prot.Kind*)mem.xrealloc(prots, importedScopes.dim * (prots[0]).sizeof);
             prots[importedScopes.dim - 1] = protection.kind;
         }
     }
 
     final void addAccessiblePackage(Package p, Prot protection)
     {
-        auto pary = protection.kind == PROTprivate ? &privateAccessiblePackages : &accessiblePackages;
+        auto pary = protection.kind == Prot.Kind.private_ ? &privateAccessiblePackages : &accessiblePackages;
         if (pary.length <= p.tag)
             pary.length = p.tag + 1;
         (*pary)[p.tag] = true;
@@ -1521,7 +1496,7 @@ public:
     bool isPackageAccessible(Package p, Prot protection, int flags = 0)
     {
         if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
-            protection.kind == PROTprivate && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
+            protection.kind == Prot.Kind.private_ && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
             return true;
         foreach (i, ss; importedScopes ? (*importedScopes)[] : null)
         {
@@ -1538,7 +1513,7 @@ public:
         return (members is null);
     }
 
-    static void multiplyDefined(Loc loc, Dsymbol s1, Dsymbol s2)
+    static void multiplyDefined(const ref Loc loc, Dsymbol s1, Dsymbol s2)
     {
         version (none)
         {
@@ -1546,13 +1521,13 @@ public:
             printf("s1 = %p, '%s' kind = '%s', parent = %s\n", s1, s1.toChars(), s1.kind(), s1.parent ? s1.parent.toChars() : "");
             printf("s2 = %p, '%s' kind = '%s', parent = %s\n", s2, s2.toChars(), s2.kind(), s2.parent ? s2.parent.toChars() : "");
         }
-        if (loc.filename)
+        if (loc.isValid())
         {
-            .error(loc, "%s at %s conflicts with %s at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
+            .error(loc, "`%s` at %s conflicts with `%s` at %s", s1.toPrettyChars(), s1.locToChars(), s2.toPrettyChars(), s2.locToChars());
         }
         else
         {
-            s1.error(s1.loc, "conflicts with %s %s at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            s1.error(s1.loc, "conflicts with %s `%s` at %s", s2.kind(), s2.toPrettyChars(), s2.locToChars());
         }
     }
 
@@ -1578,11 +1553,11 @@ public:
             {
                 Scope sc;
                 auto parameters = new Parameters();
-                Parameters* p = new Parameter(STCin, Type.tchar.constOf().arrayOf(), null, null);
+                Parameters* p = new Parameter(STC.in_, Type.tchar.constOf().arrayOf(), null, null);
                 parameters.push(p);
                 Type tret = null;
-                tfgetmembers = new TypeFunction(parameters, tret, 0, LINKd);
-                tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc(), &sc);
+                tfgetmembers = new TypeFunction(parameters, tret, 0, LINK.d);
+                tfgetmembers = cast(TypeFunction)tfgetmembers.dsymbolSemantic(Loc.initial, &sc);
             }
             if (fdx)
                 fdx = fdx.overloadExactMatch(tfgetmembers);
@@ -1730,7 +1705,7 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         this.withstate = withstate;
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         //printf("WithScopeSymbol.search(%s)\n", ident.toChars());
         if (flags & SearchImportsOnly)
@@ -1740,11 +1715,11 @@ extern (C++) final class WithScopeSymbol : ScopeDsymbol
         Expression eold = null;
         for (Expression e = withstate.exp; e != eold; e = resolveAliasThis(_scope, e))
         {
-            if (e.op == TOKscope)
+            if (e.op == TOK.scope_)
             {
                 s = (cast(ScopeExp)e).sds;
             }
-            else if (e.op == TOKtype)
+            else if (e.op == TOK.type)
             {
                 s = e.type.toDsymbol(null);
             }
@@ -1787,7 +1762,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
 
     extern (D) this(Scope* sc, Expression e)
     {
-        assert(e.op == TOKindex || e.op == TOKslice || e.op == TOKarray);
+        assert(e.op == TOK.index || e.op == TOK.slice || e.op == TOK.array);
         exp = e;
         this.sc = sc;
     }
@@ -1804,7 +1779,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
         this.sc = sc;
     }
 
-    override Dsymbol search(Loc loc, Identifier ident, int flags = IgnoreNone)
+    override Dsymbol search(const ref Loc loc, Identifier ident, int flags = IgnoreNone)
     {
         //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident.toChars(), flags);
         if (ident == Id.dollar)
@@ -1817,9 +1792,9 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 /* $ gives the number of elements in the tuple
                  */
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc(), td.objects.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc(), e);
-                v.storage_class |= STCtemp | STCstatic | STCconst;
+                Expression e = new IntegerExp(Loc.initial, td.objects.dim, Type.tsize_t);
+                v._init = new ExpInitializer(Loc.initial, e);
+                v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 v.dsymbolSemantic(sc);
                 return v;
             }
@@ -1828,13 +1803,13 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 /* $ gives the number of type entries in the type tuple
                  */
                 auto v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, null);
-                Expression e = new IntegerExp(Loc(), type.arguments.dim, Type.tsize_t);
-                v._init = new ExpInitializer(Loc(), e);
-                v.storage_class |= STCtemp | STCstatic | STCconst;
+                Expression e = new IntegerExp(Loc.initial, type.arguments.dim, Type.tsize_t);
+                v._init = new ExpInitializer(Loc.initial, e);
+                v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 v.dsymbolSemantic(sc);
                 return v;
             }
-            if (exp.op == TOKindex)
+            if (exp.op == TOK.index)
             {
                 /* array[index] where index is some function of $
                  */
@@ -1842,7 +1817,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 pvar = &ie.lengthVar;
                 ce = ie.e1;
             }
-            else if (exp.op == TOKslice)
+            else if (exp.op == TOK.slice)
             {
                 /* array[lwr .. upr] where lwr or upr is some function of $
                  */
@@ -1850,7 +1825,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                 pvar = &se.lengthVar;
                 ce = se.e1;
             }
-            else if (exp.op == TOKarray)
+            else if (exp.op == TOK.array)
             {
                 /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
                  * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
@@ -1865,13 +1840,13 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                  */
                 return null;
             }
-            while (ce.op == TOKcomma)
+            while (ce.op == TOK.comma)
                 ce = (cast(CommaExp)ce).e2;
             /* If we are indexing into an array that is really a type
              * tuple, rewrite this as an index into a type tuple and
              * try again.
              */
-            if (ce.op == TOKtype)
+            if (ce.op == TOK.type)
             {
                 Type t = (cast(TypeExp)ce).type;
                 if (t.ty == Ttuple)
@@ -1889,19 +1864,19 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                  */
                 VarDeclaration v;
                 Type t;
-                if (ce.op == TOKtuple)
+                if (ce.op == TOK.tuple)
                 {
                     /* It is for an expression tuple, so the
                      * length will be a const.
                      */
-                    Expression e = new IntegerExp(Loc(), (cast(TupleExp)ce).exps.dim, Type.tsize_t);
-                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc(), e));
-                    v.storage_class |= STCtemp | STCstatic | STCconst;
+                    Expression e = new IntegerExp(Loc.initial, (cast(TupleExp)ce).exps.dim, Type.tsize_t);
+                    v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, new ExpInitializer(Loc.initial, e));
+                    v.storage_class |= STC.temp | STC.static_ | STC.const_;
                 }
                 else if (ce.type && (t = ce.type.toBasetype()) !is null && (t.ty == Tstruct || t.ty == Tclass))
                 {
                     // Look for opDollar
-                    assert(exp.op == TOKarray || exp.op == TOKslice);
+                    assert(exp.op == TOK.array || exp.op == TOK.slice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
                     Dsymbol s = ad.search(loc, Id.opDollar);
@@ -1913,11 +1888,11 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     if (TemplateDeclaration td = s.isTemplateDeclaration())
                     {
                         dinteger_t dim = 0;
-                        if (exp.op == TOKarray)
+                        if (exp.op == TOK.array)
                         {
                             dim = (cast(ArrayExp)exp).currentDimension;
                         }
-                        else if (exp.op == TOKslice)
+                        else if (exp.op == TOK.slice)
                         {
                             dim = 0; // slices are currently always one-dimensional
                         }
@@ -1926,7 +1901,7 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                             assert(0);
                         }
                         auto tiargs = new Objects();
-                        Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
+                        Expression edim = new IntegerExp(Loc.initial, dim, Type.tsize_t);
                         edim = edim.expressionSemantic(sc);
                         tiargs.push(edim);
                         e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
@@ -1938,9 +1913,9 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                          * Note that it's impossible to have both template & function opDollar,
                          * because both take no arguments.
                          */
-                        if (exp.op == TOKarray && (cast(ArrayExp)exp).arguments.dim != 1)
+                        if (exp.op == TOK.array && (cast(ArrayExp)exp).arguments.dim != 1)
                         {
-                            exp.error("%s only defines opDollar for one dimension", ad.toChars());
+                            exp.error("`%s` only defines opDollar for one dimension", ad.toChars());
                             return null;
                         }
                         Declaration d = s.isDeclaration();
@@ -1949,12 +1924,12 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                     }
                     e = e.expressionSemantic(sc);
                     if (!e.type)
-                        exp.error("%s has no value", e.toChars());
+                        exp.error("`%s` has no value", e.toChars());
                     t = e.type.toBasetype();
                     if (t && t.ty == Tfunction)
                         e = new CallExp(e.loc, e);
-                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
-                    v.storage_class |= STCtemp | STCctfe | STCrvalue;
+                    v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc.initial, e));
+                    v.storage_class |= STC.temp | STC.ctfe | STC.rvalue;
                 }
                 else
                 {
@@ -1963,10 +1938,10 @@ extern (C++) final class ArrayScopeSymbol : ScopeDsymbol
                      * or a variable (in which case an expression is created in
                      * toir.c).
                      */
-                    auto e = new VoidInitializer(Loc());
+                    auto e = new VoidInitializer(Loc.initial);
                     e.type = Type.tsize_t;
                     v = new VarDeclaration(loc, Type.tsize_t, Id.dollar, e);
-                    v.storage_class |= STCtemp | STCctfe; // it's never a true static variable
+                    v.storage_class |= STC.temp | STC.ctfe; // it's never a true static variable
                 }
                 *pvar = v;
             }
@@ -2048,9 +2023,9 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         assert(forward);
         if (auto d = s.isDeclaration())
         {
-            if (d.storage_class & STClocal)
+            if (d.storage_class & STC.local)
             {
-                // Symbols with storage class STClocal are not
+                // Symbols with storage class STC.local are not
                 // forwarded, but stored in the local symbol
                 // table. (Those are the `static foreach` variables.)
                 if (!symtab)
@@ -2064,7 +2039,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         {
             forward.symtab = new DsymbolTable();
         }
-        // Non-STClocal symbols are forwarded to `forward`.
+        // Non-STC.local symbols are forwarded to `forward`.
         return forward.symtabInsert(s);
     }
 
@@ -2080,7 +2055,7 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         // correctly diagnose clashing foreach loop variables.
         if (auto d = s.isDeclaration())
         {
-            if (d.storage_class & STClocal)
+            if (d.storage_class & STC.local)
             {
                 if (!symtab)
                 {

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2016 by The D Language Foundation
- * All Rights Reserved
+ * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -246,7 +245,6 @@ public:
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
     Type *trySemantic(Loc loc, Scope *sc);
-    Type *merge();
     Type *merge2();
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
@@ -338,7 +336,7 @@ public:
     uinteger_t sizemask();
     virtual bool needsDestruction();
     virtual bool needsNested();
-    void checkComplexTransition(Loc loc);
+    bool checkComplexTransition(Loc loc, Scope *sc);
 
     static void error(Loc loc, const char *format, ...);
     static void warning(Loc loc, const char *format, ...);

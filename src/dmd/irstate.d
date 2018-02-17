@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/irstate.d, _irstate.d)
@@ -16,6 +16,7 @@ import dmd.root.array;
 
 import dmd.arraytypes;
 import dmd.backend.type;
+import dmd.dclass;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.func;
@@ -88,8 +89,9 @@ struct IRState
         this.varsInScope = varsInScope;
         this.deferToObj = deferToObj;
         this.labels = labels;
-        mayThrow = global.params.useExceptions &&
-                !(fd && fd.eh_none);
+        mayThrow = global.params.useExceptions
+            && ClassDeclaration.throwable
+            && !(fd && fd.eh_none);
     }
 
     /****
@@ -243,7 +245,7 @@ struct IRState
                 if (fd)
                 {
                     Type t = fd.type;
-                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUSTsafe)
+                    if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
                         result = true;
                 }
                 break;

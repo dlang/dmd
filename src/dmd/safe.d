@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/safe.d, _safe.d)
+ * Documentation:  https://dlang.org/phobos/dmd_safe.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/safe.d
  */
 
 module dmd.safe;
-
-// Online documentation: https://dlang.org/phobos/dmd_safe.html
 
 import core.stdc.stdio;
 
@@ -41,7 +41,7 @@ import dmd.tokens;
 
 bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 {
-    if (e.op != TOKdotvar)
+    if (e.op != TOK.dotVariable)
         return false;
     DotVarExp dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
@@ -56,7 +56,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (v.overlapped && v.type.hasPointers() && sc.func.setUnsafe())
         {
             if (printmsg)
-                e.error("field %s.%s cannot access pointers in @safe code that overlap other fields",
+                e.error("field `%s.%s` cannot access pointers in `@safe` code that overlap other fields",
                     ad.toChars(), v.toChars());
             return true;
         }
@@ -71,7 +71,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
                 sc.func.setUnsafe())
             {
                 if (printmsg)
-                    e.error("field %s.%s cannot modify misaligned pointers in @safe code",
+                    e.error("field `%s.%s` cannot modify misaligned pointers in `@safe` code",
                         ad.toChars(), v.toChars());
                 return true;
             }
@@ -80,7 +80,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (v.overlapUnsafe && sc.func.setUnsafe())
         {
              if (printmsg)
-                 e.error("field %s.%s cannot modify fields in @safe code that overlap fields with other storage classes",
+                 e.error("field `%s.%s` cannot modify fields in `@safe` code that overlap fields with other storage classes",
                     ad.toChars(), v.toChars());
              return true;
         }
@@ -110,9 +110,9 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
     auto tfromb = tfrom.toBasetype();
     auto ttob = tto.toBasetype();
 
-    if (ttob.ty == Tclass && tfrom.ty == Tclass)
+    if (ttob.ty == Tclass && tfromb.ty == Tclass)
     {
-        ClassDeclaration cdfrom = tfrom.isClassHandle();
+        ClassDeclaration cdfrom = tfromb.isClassHandle();
         ClassDeclaration cdto = ttob.isClassHandle();
 
         int offset;
@@ -122,19 +122,19 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
         if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
             return false;
 
-        if (!MODimplicitConv(tfrom.mod, ttob.mod))
+        if (!MODimplicitConv(tfromb.mod, ttob.mod))
             return false;
         return true;
     }
 
-    if (ttob.ty == Tarray && tfrom.ty == Tsarray) // https://issues.dlang.org/show_bug.cgi?id=12502
-        tfrom = tfrom.nextOf().arrayOf();
+    if (ttob.ty == Tarray && tfromb.ty == Tsarray) // https://issues.dlang.org/show_bug.cgi?id=12502
+        tfromb = tfromb.nextOf().arrayOf();
 
-    if (ttob.ty == Tarray   && tfrom.ty == Tarray ||
-        ttob.ty == Tpointer && tfrom.ty == Tpointer)
+    if (ttob.ty == Tarray   && tfromb.ty == Tarray ||
+        ttob.ty == Tpointer && tfromb.ty == Tpointer)
     {
         Type ttobn = ttob.nextOf().toBasetype();
-        Type tfromn = tfrom.nextOf().toBasetype();
+        Type tfromn = tfromb.nextOf().toBasetype();
 
         /* From void[] to anything mutable is unsafe because:
          *  int*[] api;
@@ -145,7 +145,7 @@ bool isSafeCast(Expression e, Type tfrom, Type tto)
          */
         if (tfromn.ty == Tvoid && ttobn.isMutable())
         {
-            if (ttob.ty == Tarray && e.op == TOKarrayliteral)
+            if (ttob.ty == Tarray && e.op == TOK.arrayLiteral)
                 return true;
             return false;
         }

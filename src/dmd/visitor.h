@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by The D Language Foundation
- * All Rights Reserved
+ * Copyright (C) 2013-2018 by The D Language Foundation, All Rights Reserved
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
@@ -298,7 +297,7 @@ class StaticIfCondition;
 
 class Parameter;
 
-class Visitor
+class ParseTimeVisitor
 {
 public:
     virtual void visit(Dsymbol *) { assert(0); }
@@ -558,6 +557,12 @@ public:
     virtual void visit(StructInitializer *i) { visit((Initializer *)i); }
     virtual void visit(ArrayInitializer *i) { visit((Initializer *)i); }
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
+};
+
+class Visitor : public ParseTimeVisitor
+{
+public:
+    using ParseTimeVisitor::visit;
 
     // Miscellaneous
     virtual void visit(ErrorStatement *s) { visit((Statement *)s); }

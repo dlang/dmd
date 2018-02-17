@@ -559,7 +559,8 @@ void test13977()
     Object.init && check();
     assert(x == 0);
 
-    (check(2), false) && check();
+    check(2);
+    false && check();
     assert(x == 2); x = 0;
 }
 
@@ -588,7 +589,8 @@ void test13978()
     Object.init || check();
     assert(x == 1); x = 0;
 
-    (check(2), true) || check();
+    check(2);
+    true || check();
     assert(x == 2); x = 0;
 }
 

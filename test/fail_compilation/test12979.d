@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test12979.d(13): Error: const/immutable/shared/inout attributes are not allowed on `asm` blocks
+fail_compilation/test12979.d(13): Error: `const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks
 ---
 */
 

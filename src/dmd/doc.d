@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/doc.d, _doc.d)
+ * Documentation:  https://dlang.org/phobos/dmd_doc.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/doc.d
  */
 
 module dmd.doc;
-
-// Online documentation: https://dlang.org/phobos/dmd_doc.html
 
 import core.stdc.ctype;
 import core.stdc.stdlib;
@@ -44,7 +44,6 @@ import dmd.root.filename;
 import dmd.root.outbuffer;
 import dmd.root.port;
 import dmd.root.rmem;
-import dmd.semantic;
 import dmd.tokens;
 import dmd.utf;
 import dmd.utils;
@@ -481,7 +480,7 @@ extern (C++) void gendocfile(Module m)
         assert(m.docfile);
         m.docfile.setbuffer(cast(void*)buf.peekSlice().ptr, buf.peekSlice().length);
         m.docfile._ref = 1;
-        ensurePathToNameExists(Loc(), m.docfile.toChars());
+        ensurePathToNameExists(Loc.initial, m.docfile.toChars());
         writeFile(m.loc, m.docfile);
     }
     else
@@ -506,7 +505,7 @@ extern (C++) void gendocfile(Module m)
         // Transfer image to file
         m.docfile.setbuffer(buf2.data, buf2.offset);
         m.docfile._ref = 1;
-        ensurePathToNameExists(Loc(), m.docfile.toChars());
+        ensurePathToNameExists(Loc.initial, m.docfile.toChars());
         writeFile(m.loc, m.docfile);
     }
 }
@@ -767,7 +766,7 @@ private void expandTemplateMixinComments(TemplateMixin tm, OutBuffer* buf, Scope
     }
 }
 
-extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
+private void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc)
 {
     if (!sds.members)
         return;
@@ -810,14 +809,14 @@ extern (C++) void emitMemberComments(ScopeDsymbol sds, OutBuffer* buf, Scope* sc
 
 extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
 {
-    if (prot.kind != PROTundefined && prot.kind != PROTpublic)
+    if (prot.kind != Prot.Kind.undefined && prot.kind != Prot.Kind.public_)
     {
         protectionToBuffer(buf, prot);
         buf.writeByte(' ');
     }
 }
 
-extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
+private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class EmitComment : Visitor
     {
@@ -878,7 +877,6 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                     "documentation comment");
 
                 auto symbol = dc.a[0];
-                auto symbolName = symbol.ident.toString;
 
                 buf.writestring("$(DDOC_MEMBER");
                 buf.writestring("$(DDOC_MEMBER_HEADER");
@@ -954,7 +952,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
                         return;
                     }
                 }
-                if (d.protection.kind == PROTprivate || sc.protection.kind == PROTprivate)
+                if (d.protection.kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                     return;
             }
             if (!com)
@@ -975,7 +973,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             else
             {
-                if (ad.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+                if (ad.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                     return;
                 if (!ad.comment)
                     return;
@@ -988,7 +986,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         override void visit(TemplateDeclaration td)
         {
             //printf("TemplateDeclaration::emitComment() '%s', kind = %s\n", td.toChars(), td.kind());
-            if (td.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+            if (td.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                 return;
             if (!td.comment)
                 return;
@@ -1002,7 +1000,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
         override void visit(EnumDeclaration ed)
         {
-            if (ed.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+            if (ed.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                 return;
             if (ed.isAnonymous() && ed.members)
             {
@@ -1023,7 +1021,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         override void visit(EnumMember em)
         {
             //printf("EnumMember::emitComment(%p '%s'), comment = '%s'\n", em, em.toChars(), em.comment);
-            if (em.prot().kind == PROTprivate || sc.protection.kind == PROTprivate)
+            if (em.prot().kind == Prot.Kind.private_ || sc.protection.kind == Prot.Kind.private_)
                 return;
             if (!em.comment)
                 return;
@@ -1093,7 +1091,7 @@ extern (C++) void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
         s.accept(v);
 }
 
-extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
+private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
     extern (C++) final class ToDocBuffer : Visitor
     {
@@ -1135,7 +1133,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 
                 if (d.isImmutable())
                     buf.writestring("immutable ");
-                if (d.storage_class & STCshared)
+                if (d.storage_class & STC.shared_)
                     buf.writestring("shared ");
                 if (d.isWild())
                     buf.writestring("inout ");
@@ -1145,12 +1143,12 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                 if (d.isSynchronized())
                     buf.writestring("synchronized ");
 
-                if (d.storage_class & STCmanifest)
+                if (d.storage_class & STC.manifest)
                     buf.writestring("enum ");
 
                 // Add "auto" for the untyped variable in template members
                 if (!d.type && d.isVarDeclaration() &&
-                    !d.isImmutable() && !(d.storage_class & STCshared) && !d.isWild() && !d.isConst() &&
+                    !d.isImmutable() && !(d.storage_class & STC.shared_) && !d.isWild() && !d.isConst() &&
                     !d.isSynchronized())
                 {
                     buf.writestring("auto ");
@@ -1356,7 +1354,7 @@ extern (C++) void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
                     buf.writestring(": ");
                     any = 1;
                 }
-                emitProtection(buf, Prot(PROTpublic));
+                emitProtection(buf, Prot(Prot.Kind.public_));
                 if (bc.sym)
                 {
                     buf.printf("$(DDOC_PSUPER_SYMBOL %s)", bc.sym.toPrettyChars());
@@ -1756,7 +1754,7 @@ struct DocComment
                 s = td;
             for (UnitTestDeclaration utd = s.ddocUnittest; utd; utd = utd.ddocUnittest)
             {
-                if (utd.protection.kind == PROTprivate || !utd.comment || !utd.fbody)
+                if (utd.protection.kind == Prot.Kind.private_ || !utd.comment || !utd.fbody)
                     continue;
                 // Strip whitespaces to avoid showing empty summary
                 const(char)* c = utd.comment;
@@ -2460,9 +2458,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                             i = k - 1;
                         else
                         {
-                            /* Replace URL with '$(LINK URL)'
+                            /* Replace URL with '$(DDOC_LINK_AUTODETECT URL)'
                              */
-                            i = buf.bracket(i, "$(LINK ", k, ")") - 1;
+                            i = buf.bracket(i, "$(DDOC_LINK_AUTODETECT ", k, ")") - 1;
                         }
                         break;
                     }
@@ -2474,23 +2472,23 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (c == '_' && (i == 0 || !isdigit(*(start - 1))) && (i == buf.offset - 1 || !isReservedName(start, len)))
                 {
                     buf.remove(i, 1);
-                    i = j - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL_SUPPRESS ", j - 1, ")") - 1;
                     break;
                 }
                 if (isIdentifier(a, start, len))
                 {
-                    i = buf.bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PSYMBOL ", j, ")") - 1;
                     break;
                 }
                 if (isKeyword(start, len))
                 {
-                    i = buf.bracket(i, "$(DDOC_KEYWORD ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_KEYWORD ", j, ")") - 1;
                     break;
                 }
                 if (isFunctionParameter(a, start, len))
                 {
                     //printf("highlighting arg '%s', i = %d, j = %d\n", arg.ident.toChars(), i, j);
-                    i = buf.bracket(i, "$(DDOC_PARAM ", j, ")") - 1;
+                    i = buf.bracket(i, "$(DDOC_AUTO_PARAM ", j, ")") - 1;
                     break;
                 }
                 i = j - 1;
@@ -2499,7 +2497,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
     }
     if (inCode)
-        error(s ? s.loc : Loc(), "unmatched --- in DDoc comment");
+        error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
 }
 
 /**************************************************
@@ -2668,7 +2666,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         const(char)* highlight = null;
         switch (tok.value)
         {
-        case TOKidentifier:
+        case TOK.identifier:
             {
                 if (!sc)
                     break;
@@ -2686,10 +2684,10 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
                 }
                 break;
             }
-        case TOKcomment:
+        case TOK.comment:
             highlight = "$(D_COMMENT ";
             break;
-        case TOKstring:
+        case TOK.string_:
             highlight = "$(D_STRING ";
             break;
         default:
@@ -2702,7 +2700,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
             res.writestring(highlight);
             size_t o = res.offset;
             highlightCode3(sc, &res, tok.ptr, lex.p);
-            if (tok.value == TOKcomment || tok.value == TOKstring)
+            if (tok.value == TOK.comment || tok.value == TOK.string_)
                 /* https://issues.dlang.org/show_bug.cgi?id=7656
                  * https://issues.dlang.org/show_bug.cgi?id=7715
                  * https://issues.dlang.org/show_bug.cgi?id=10519
@@ -2712,7 +2710,7 @@ extern (C++) void highlightCode2(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t 
         }
         else
             highlightCode3(sc, &res, tok.ptr, lex.p);
-        if (tok.value == TOKeof)
+        if (tok.value == TOK.endOfFile)
             break;
         lastp = lex.p;
     }

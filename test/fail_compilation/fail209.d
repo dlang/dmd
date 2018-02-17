@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail209.d(20): Error: incompatible types for ((a) -= (x)): 'float' and 'fail209.X'
+fail_compilation/fail209.d(20): Error: incompatible types for `(a) -= (x)`: `float` and `fail209.X`
 ---
 */
 

@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
+ * Documentation:  https://dlang.org/phobos/dmd_dmsc.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmsc.d
  */
 
 module dmd.dmsc;
-
-// Online documentation: https://dlang.org/phobos/dmd_dmsc.html
 
 import core.stdc.stdio;
 import core.stdc.string;
@@ -19,6 +19,9 @@ import core.stdc.stddef;
 extern (C++):
 
 import dmd.globals;
+import dmd.dclass;
+import dmd.dmodule;
+import dmd.mtype;
 
 import dmd.root.filename;
 
@@ -58,7 +61,9 @@ void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         ubyte avx,              // use AVX instruction set (0, 1, 2)
-        bool betterC            // implement "Better C"
+        bool useModuleInfo,     // implement ModuleInfo
+        bool useTypeInfo,       // implement TypeInfo
+        bool useExceptions      // implement exception handling
         );
 
 void out_config_debug(
@@ -101,6 +106,7 @@ void backend_init()
              global.params.isOSX     ||
              global.params.isFreeBSD ||
              global.params.isOpenBSD ||
+             global.params.isDragonFlyBSD ||
              global.params.isSolaris)
     {
         exe = params.pic == 0;
@@ -117,7 +123,9 @@ void backend_init()
         params.alwaysframe,
         params.stackstomp,
         params.cpu >= CPU.avx2 ? 2 : params.cpu >= CPU.avx ? 1 : 0,
-        params.betterC
+        params.useModuleInfo && Module.moduleinfo,
+        params.useTypeInfo && Type.dtypeinfo,
+        params.useExceptions && ClassDeclaration.throwable
     );
 
     debug
@@ -139,7 +147,7 @@ void backend_init()
  * Return aligned 'offset' if it is of size 'size'.
  */
 
-targ_size_t _align(targ_size_t size, targ_size_t offset)
+extern (C) targ_size_t _align(targ_size_t size, targ_size_t offset)
 {
     switch (size)
     {
@@ -181,13 +189,13 @@ targ_size_t size(tym_t ty)
  * Generate symbol of type ty at DATA:offset
  */
 
-Symbol *symboldata(targ_size_t offset,tym_t ty)
+extern (C) Symbol *symboldata(targ_size_t offset,tym_t ty)
 {
     Symbol *s = symbol_generate(SClocstat, type_fake(ty));
     s.Sfl = FLdata;
     s.Soffset = offset;
-    s.Stype.Tmangle = mTYman_d; // writes symbol unmodified in Obj::mangle
-    symbol_keep(s);             // keep around
+    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
+    symbol_keep(s);               // keep around
     return s;
 }
 

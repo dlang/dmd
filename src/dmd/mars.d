@@ -7,7 +7,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
@@ -56,7 +56,8 @@ import dmd.root.outbuffer;
 import dmd.root.response;
 import dmd.root.rmem;
 import dmd.root.stringtable;
-import dmd.semantic;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.target;
 import dmd.tokens;
 import dmd.utils;
@@ -73,29 +74,13 @@ private void logo()
 /**
  * Print DMD's usage message on stdout
  */
-private  void usage()
+private void usage()
 {
-    static if (TARGET_LINUX)
-    {
-        const(char)* fpic = "\n  -fPIC            generate position independent code";
-    }
-    else
-    {
-        const(char)* fpic = "";
-    }
-    static if (TARGET_WINDOS)
-    {
-        const(char)* m32mscoff = "\n  -m32mscoff       generate 32 bit code and write MS-COFF object files";
-        const(char)* mscrtlib  = "\n  -mscrtlib=<name> MS C runtime library to reference from main/WinMain/DllMain";
-    }
-    else
-    {
-        const(char)* m32mscoff = "";
-        const(char)* mscrtlib  = "";
-    }
+    import dmd.cli : CLIUsage;
     logo();
+    auto help = CLIUsage.usage;
     printf("
-Documentation: http://dlang.org/
+Documentation: https://dlang.org/
 Config file: %s
 Usage:
   dmd [<option>...] <file>...
@@ -107,84 +92,7 @@ Where:
 
 <option>:
   @<cmdfile>       read arguments from cmdfile
-  -allinst         generate code for all template instantiations
-  -betterC         omit generating some runtime information and helper functions
-  -boundscheck=[on|safeonly|off]   bounds checks on, in @safe only, or off
-  -c               do not link
-  -color           turn colored console output on
-  -color=[on|off]  force colored console output on or off
-  -conf=<filename> use config file at filename
-  -cov             do code coverage analysis
-  -cov=<nnn>       require at least nnn%% code coverage
-  -D               generate documentation
-  -Dd<directory>   write documentation file to directory
-  -Df<filename>    write documentation file to filename
-  -d               silently allow deprecated features
-  -dw              show use of deprecated features as warnings (default)
-  -de              show use of deprecated features as errors (halt compilation)
-  -debug           compile in debug code
-  -debug=<level>   compile in debug code <= level
-  -debug=<ident>   compile in debug code identified by ident
-  -debuglib=<name> set symbolic debug library to name
-  -defaultlib=<name>
-                   set default library to name
-  -deps            print module dependencies (imports/file/version/debug/lib)
-  -deps=<filename> write module dependencies to filename (only imports)" ~
-  "%s" /* placeholder for fpic */ ~ "
-  -dip25           implement http://wiki.dlang.org/DIP25 (experimental)
-  -dip1000         implement http://wiki.dlang.org/DIP1000 (experimental)
-  -dip1008         implement DIP1008 (experimental)
-  -g               add symbolic debug info
-  -gf              emit debug info for all referenced types
-  -gs              always emit stack frame
-  -gx              add stack stomp code
-  -H               generate 'header' file
-  -Hd=<directory>  write 'header' file to directory
-  -Hf=<filename>   write 'header' file to filename
-  --help           print help and exit
-  -I=<directory>   look for imports also in directory
-  -ignore          ignore unsupported pragmas
-  -inline          do function inlining
-  -J=<directory>   look for string imports also in directory
-  -L=<linkerflag>  pass linkerflag to link
-  -lib             generate library rather than object files
-  -m32             generate 32 bit code" ~
-  "%s" /* placeholder for m32mscoff */ ~ "
-  -m64             generate 64 bit code
-  -main            add default main() (e.g. for unittesting)
-  -man             open web browser on manual page
-  -map             generate linker .map file
-  -mcpu=<id>       generate instructions for architecture identified by 'id'
-  -mcpu=?          list all architecture options " ~
-  "%s" /* placeholder for mscrtlib */ ~ "
-  -mv=<package.module>=<filespec>  use <filespec> as source file for <package.module>
-  -noboundscheck   no array bounds checking (deprecated, use -boundscheck=off)
-  -O               optimize
-  -o-              do not write object file
-  -od=<directory>  write object & library files to directory
-  -of=<filename>   name output file to filename
-  -op              preserve source path for output files
-  -profile         profile runtime performance of generated code
-  -profile=gc      profile runtime allocations
-  -release         compile release version
-  -shared          generate shared library (DLL)
-  -transition=<id> help with language change identified by 'id'
-  -transition=?    list all language changes
-  -unittest        compile in unit tests
-  -v               verbose
-  -vcolumns        print character (column) numbers in diagnostics
-  -verrors=<num>   limit the number of error messages (0 means unlimited)
-  -verrors=spec    show errors from speculative compiles such as __traits(compiles,...)
-  -vgc             list all gc allocations including hidden ones
-  -vtls            list all variables going into thread local storage
-  --version        print compiler version and exit
-  -version=<level> compile in version code >= level
-  -version=<ident> compile in version code identified by ident
-  -w               warnings as errors (compilation will halt)
-  -wi              warnings as messages (compilation will continue)
-  -X               generate JSON file
-  -Xf=<filename>   write JSON file to filename
-", FileName.canonicalName(global.inifilename), fpic, m32mscoff, mscrtlib);
+%.*s", FileName.canonicalName(global.inifilename), help.length, &help[0]);
 }
 
 /// DMD-generated module `__entrypoint` where the C main resides
@@ -230,10 +138,10 @@ extern (C++) void genCmain(Scope* sc)
     Identifier id = Id.entrypoint;
     auto m = new Module("__entrypoint.d", id, 0, 0);
     scope p = new Parser!ASTCodegen(m, cmaincode, false);
-    p.scanloc = Loc();
+    p.scanloc = Loc.initial;
     p.nextToken();
     m.members = p.parseModule();
-    assert(p.token.value == TOKeof);
+    assert(p.token.value == TOK.endOfFile);
     assert(!p.errors); // shouldn't have failed to parse it
     bool v = global.params.verbose;
     global.params.verbose = false;
@@ -275,7 +183,7 @@ private int tryMain(size_t argc, const(char)** argv)
     if (argc < 1 || !argv)
     {
     Largs:
-        error(Loc(), "missing or null command line arguments");
+        error(Loc.initial, "missing or null command line arguments");
         fatal();
     }
     // Convert argc/argv into arguments[] for easier handling
@@ -288,14 +196,14 @@ private int tryMain(size_t argc, const(char)** argv)
         arguments[i] = argv[i];
     }
     if (response_expand(&arguments)) // expand response files
-        error(Loc(), "can't open response file");
+        error(Loc.initial, "can't open response file");
     //for (size_t i = 0; i < arguments.dim; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
     files.reserve(arguments.dim - 1);
     // Set default values
     global.params.argv0 = arguments[0];
 
     // Temporary: Use 32 bits as the default on Windows, for config parsing
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
         global.params.is64bit = false;
 
     global.inifilename = parse_conf_arg(&arguments);
@@ -303,7 +211,7 @@ private int tryMain(size_t argc, const(char)** argv)
     {
         // can be empty as in -conf=
         if (strlen(global.inifilename) && !FileName.exists(global.inifilename))
-            error(Loc(), "Config file '%s' does not exist.", global.inifilename);
+            error(Loc.initial, "Config file '%s' does not exist.", global.inifilename);
     }
     else
     {
@@ -375,29 +283,17 @@ private int tryMain(size_t argc, const(char)** argv)
 
     if (global.params.mcpuUsage)
     {
-        printf("
-CPU architectures supported by -mcpu=id:
-  =?             list information on all architecture choices
-  =baseline      use default architecture as determined by target
-  =avx           use AVX 1 instructions
-  =avx2          use AVX 2 instructions
-  =native        use CPU architecture that this compiler is running on
-");
+        import dmd.cli : CLIUsage;
+        auto help = CLIUsage.mcpu;
+        printf("%.*s", help.length, &help[0]);
         return EXIT_SUCCESS;
     }
 
     if (global.params.transitionUsage)
     {
-         printf("
-Language changes listed by -transition=id:
-  =all           list information on all language changes
-  =checkimports  give deprecation messages about 10378 anomalies
-  =complex,14488 list all usages of complex or imaginary types
-  =field,3449    list all non-mutable fields which occupy an object instance
-  =import,10378  revert to single phase name lookup
-  =intpromote,16997 fix integral promotions for unary + - ~ operators
-  =tls           list all variables going into thread local storage
-");
+        import dmd.cli : CLIUsage;
+        auto help = CLIUsage.transitionUsage;
+        printf("%.*s", help.length, &help[0]);
         return EXIT_SUCCESS;
     }
 
@@ -419,10 +315,17 @@ Language changes listed by -transition=id:
         {
             browse("http://dlang.org/dmd-freebsd.html");
         }
+        /*NOTE: No regular builds for openbsd/dragonflybsd (yet) */
+        /*
         version (OpenBSD)
         {
             browse("http://dlang.org/dmd-openbsd.html");
         }
+        version (DragonFlyBSD)
+        {
+            browse("http://dlang.org/dmd-dragonflybsd.html");
+        }
+        */
         return EXIT_SUCCESS;
     }
 
@@ -431,7 +334,7 @@ Language changes listed by -transition=id:
 
     global.params.cpu = setTargetCPU(global.params.cpu);
     if (global.params.is64bit != is64bit)
-        error(Loc(), "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
+        error(Loc.initial, "the architecture must not be changed in the %s section of %s", envsection.ptr, global.inifilename);
     if (global.params.enforcePropertySyntax)
     {
         /*NOTE: -property used to disallow calling non-properties
@@ -457,19 +360,24 @@ Language changes listed by -transition=id:
     }
     if (files.dim == 0)
     {
+        if (global.params.jsonFieldFlags)
+        {
+            generateJson(null);
+            return EXIT_SUCCESS;
+        }
         usage();
         return EXIT_FAILURE;
     }
-    static if (TARGET_OSX)
+    static if (TARGET.OSX)
     {
         global.params.pic = 1;
     }
-    static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+    static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
     {
         if (global.params.lib && global.params.dll)
-            error(Loc(), "cannot mix -lib and -shared");
+            error(Loc.initial, "cannot mix -lib and -shared");
     }
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
     {
         if (!global.params.mscrtlib)
             global.params.mscrtlib = "libcmt";
@@ -532,7 +440,7 @@ Language changes listed by -transition=id:
     }
     else if (global.params.run)
     {
-        error(Loc(), "flags conflict with -run");
+        error(Loc.initial, "flags conflict with -run");
         fatal();
     }
     else if (global.params.lib)
@@ -570,16 +478,44 @@ Language changes listed by -transition=id:
     Type._init();
     Id.initialize();
     Module._init();
+    Module.onImport = &marsOnImport;
     Target._init();
     Expression._init();
     Objc._init();
     builtin_init();
 
+    printPredefinedVersions();
+
     if (global.params.verbose)
     {
-        fprintf(global.stdmsg, "binary    %s\n", global.params.argv0);
-        fprintf(global.stdmsg, "version   %s\n", global._version);
-        fprintf(global.stdmsg, "config    %s\n", global.inifilename ? global.inifilename : "(none)");
+        message("binary    %s", global.params.argv0);
+        message("version   %s", global._version);
+        message("config    %s", global.inifilename ? global.inifilename : "(none)");
+        // Print DFLAGS environment variable
+        {
+            OutBuffer buf;
+            foreach (flag; dflags.asDArray)
+            {
+                bool needsQuoting;
+                for (auto flagp = flag; flagp; flagp++)
+                {
+                    auto c = flagp[0];
+                    if (!(isalnum(c) || c == '_'))
+                    {
+                        needsQuoting = true;
+                        break;
+                    }
+                }
+
+                if (flag.strchr(' '))
+                    buf.printf("'%s' ", flag);
+                else
+                    buf.printf("%s ", flag);
+            }
+
+            auto res = buf.peekSlice() ? buf.peekSlice()[0 .. $ - 1] : "(none)";
+            message("DFLAGS    %.*s", res.length, res.ptr);
+        }
     }
     //printf("%d source files\n",files.dim);
 
@@ -642,7 +578,7 @@ Language changes listed by -transition=id:
                 libmodules.push(files[i]);
                 continue;
             }
-            static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+            static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
             {
                 if (FileName.equals(ext, global.dll_ext))
                 {
@@ -667,7 +603,7 @@ Language changes listed by -transition=id:
                 global.params.mapfile = files[i];
                 continue;
             }
-            static if (TARGET_WINDOS)
+            static if (TARGET.Windows)
             {
                 if (FileName.equals(ext, "res"))
                 {
@@ -698,13 +634,13 @@ Language changes listed by -transition=id:
                 if (name[0] == 0 || strcmp(name, "..") == 0 || strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error(Loc(), "invalid file name '%s'", files[i]);
+                    error(Loc.initial, "invalid file name '%s'", files[i]);
                     fatal();
                 }
             }
             else
             {
-                error(Loc(), "unrecognized file extension %s", ext);
+                error(Loc.initial, "unrecognized file extension %s", ext);
                 fatal();
             }
         }
@@ -761,7 +697,7 @@ Language changes listed by -transition=id:
         // Single threaded
         foreach (m; modules)
         {
-            m.read(Loc());
+            m.read(Loc.initial);
         }
     }
     // Parse files
@@ -771,7 +707,7 @@ Language changes listed by -transition=id:
     {
         Module m = modules[modi];
         if (global.params.verbose)
-            fprintf(global.stdmsg, "parse     %s\n", m.toChars());
+            message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
         m.importedFrom = m; // m.isRoot() == true
@@ -781,7 +717,7 @@ Language changes listed by -transition=id:
         {
             if (aw.read(filei))
             {
-                error(Loc(), "cannot read file %s", m.srcfile.name.toChars());
+                error(Loc.initial, "cannot read file %s", m.srcfile.name.toChars());
                 fatal();
             }
         }
@@ -812,7 +748,7 @@ Language changes listed by -transition=id:
     }
     if (anydocfiles && modules.dim && (global.params.oneobj || global.params.objname))
     {
-        error(Loc(), "conflicting Ddoc and obj generation options");
+        error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
     }
     if (global.errors)
@@ -828,7 +764,7 @@ Language changes listed by -transition=id:
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "import    %s\n", m.toChars());
+                message("import    %s", m.toChars());
             genhdrfile(m);
         }
     }
@@ -839,7 +775,7 @@ Language changes listed by -transition=id:
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "importall %s\n", m.toChars());
+            message("importall %s", m.toChars());
         m.importAll(null);
     }
     if (global.errors)
@@ -851,7 +787,7 @@ Language changes listed by -transition=id:
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic  %s\n", m.toChars());
+            message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
     //if (global.errors)
@@ -872,7 +808,7 @@ Language changes listed by -transition=id:
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic2 %s\n", m.toChars());
+            message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
     Module.runDeferredSemantic2();
@@ -883,8 +819,22 @@ Language changes listed by -transition=id:
     foreach (m; modules)
     {
         if (global.params.verbose)
-            fprintf(global.stdmsg, "semantic3 %s\n", m.toChars());
+            message("semantic3 %s", m.toChars());
         m.semantic3(null);
+    }
+    if (includeImports)
+    {
+        // Note: DO NOT USE foreach here because Module.amodules.dim can
+        //       change on each iteration of the loop
+        for (size_t i = 0; i < compiledImports.dim; i++)
+        {
+            auto m = compiledImports[i];
+            assert(m.isRoot);
+            if (global.params.verbose)
+                message("semantic3 %s", m.toChars());
+            m.semantic3(null);
+            modules.push(m);
+        }
     }
     Module.runDeferredSemantic3();
     if (global.errors)
@@ -896,7 +846,7 @@ Language changes listed by -transition=id:
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "inline scan %s\n", m.toChars());
+                message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
     }
@@ -916,7 +866,7 @@ Language changes listed by -transition=id:
         {
             auto deps = File(global.params.moduleDepsFile);
             deps.setbuffer(cast(void*)ob.data, ob.offset);
-            writeFile(Loc(), &deps);
+            writeFile(Loc.initial, &deps);
         }
         else
             printf("%.*s", cast(int)ob.offset, ob.data);
@@ -939,40 +889,7 @@ Language changes listed by -transition=id:
     // Generate output files
     if (global.params.doJsonGeneration)
     {
-        OutBuffer buf;
-        json_generate(&buf, &modules);
-        // Write buf to file
-        const(char)* name = global.params.jsonfilename;
-        if (name && name[0] == '-' && name[1] == 0)
-        {
-            // Write to stdout; assume it succeeds
-            size_t n = fwrite(buf.data, 1, buf.offset, stdout);
-            assert(n == buf.offset); // keep gcc happy about return values
-        }
-        else
-        {
-            /* The filename generation code here should be harmonized with Module::setOutfile()
-             */
-            const(char)* jsonfilename;
-            if (name && *name)
-            {
-                jsonfilename = FileName.defaultExt(name, global.json_ext);
-            }
-            else
-            {
-                // Generate json file name from first obj name
-                const(char)* n = global.params.objfiles[0];
-                n = FileName.name(n);
-                //if (!FileName::absolute(name))
-                //    name = FileName::combine(dir, name);
-                jsonfilename = FileName.forceExt(n, global.json_ext);
-            }
-            ensurePathToNameExists(Loc(), jsonfilename);
-            auto jsonfile = new File(jsonfilename);
-            jsonfile.setbuffer(buf.data, buf.offset);
-            jsonfile._ref = 1;
-            writeFile(Loc(), jsonfile);
-        }
+        generateJson(&modules);
     }
     if (!global.errors && global.params.doDocComments)
     {
@@ -1015,7 +932,7 @@ Language changes listed by -transition=id:
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "code      %s\n", m.toChars());
+                message("code      %s", m.toChars());
             genObjFile(m, false);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, false);
@@ -1030,7 +947,7 @@ Language changes listed by -transition=id:
         foreach (m; modules)
         {
             if (global.params.verbose)
-                fprintf(global.stdmsg, "code      %s\n", m.toChars());
+                message("code      %s", m.toChars());
             obj_start(cast(char*)m.srcfile.toChars());
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
@@ -1050,7 +967,7 @@ Language changes listed by -transition=id:
     if (!global.params.objfiles.dim)
     {
         if (global.params.link)
-            error(Loc(), "no object files to link");
+            error(Loc.initial, "no object files to link");
     }
     else
     {
@@ -1073,7 +990,53 @@ Language changes listed by -transition=id:
             }
         }
     }
+    if (global.errors || global.warnings)
+        fatal();
     return status;
+}
+
+private void generateJson(Modules* modules)
+{
+    OutBuffer buf;
+    json_generate(&buf, modules);
+
+    // Write buf to file
+    const(char)* name = global.params.jsonfilename;
+    if (name && name[0] == '-' && name[1] == 0)
+    {
+        // Write to stdout; assume it succeeds
+        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
+        assert(n == buf.offset); // keep gcc happy about return values
+    }
+    else
+    {
+        /* The filename generation code here should be harmonized with Module::setOutfile()
+         */
+        const(char)* jsonfilename;
+        if (name && *name)
+        {
+            jsonfilename = FileName.defaultExt(name, global.json_ext);
+        }
+        else
+        {
+            if (global.params.objfiles.dim == 0)
+            {
+                error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
+                fatal();
+            }
+            // Generate json file name from first obj name
+            const(char)* n = global.params.objfiles[0];
+            n = FileName.name(n);
+            //if (!FileName::absolute(name))
+            //    name = FileName::combine(dir, name);
+            jsonfilename = FileName.forceExt(n, global.json_ext);
+        }
+        ensurePathToNameExists(Loc.initial, jsonfilename);
+        auto jsonfile = new File(jsonfilename);
+        jsonfile.setbuffer(buf.data, buf.offset);
+        jsonfile._ref = 1;
+        writeFile(Loc.initial, jsonfile);
+    }
 }
 
 
@@ -1109,7 +1072,7 @@ int main()
             return path;
         }
         version (Windows)
-            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, `\`), `\`);
+            enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '\\'), '\\');
         else
             enum sourcePath = dirName(dirName(__FILE_FULL_PATH__, '/'), '/');
 
@@ -1159,7 +1122,6 @@ private void getenv_setargv(const(char)* envvalue, Strings* args)
             p = env;
             slash = 0;
             instring = 0;
-            c = 0;
             while (1)
             {
                 c = *env++;
@@ -1273,7 +1235,7 @@ private void setDefaultLibrary()
 {
     if (global.params.defaultlibname is null)
     {
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             if (global.params.is64bit)
                 global.params.defaultlibname = "phobos64";
@@ -1282,11 +1244,11 @@ private void setDefaultLibrary()
             else
                 global.params.defaultlibname = "phobos";
         }
-        else static if (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+        else static if (TARGET.Linux || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
         {
             global.params.defaultlibname = "libphobos2.a";
         }
-        else static if (TARGET_OSX)
+        else static if (TARGET.OSX)
         {
             global.params.defaultlibname = "phobos2";
         }
@@ -1295,6 +1257,9 @@ private void setDefaultLibrary()
             static assert(0, "fix this");
         }
     }
+    else if (!global.params.defaultlibname[0])  // if `-defaultlib=` (i.e. an empty defaultlib)
+        global.params.defaultlibname = null;
+
     if (global.params.debuglibname is null)
         global.params.debuglibname = global.params.defaultlibname;
 }
@@ -1309,22 +1274,22 @@ private void setDefaultLibrary()
  * variable and config file) in order to add final flags (such as `X86_64` or
  * the `CRuntime` used).
  */
-private void addDefaultVersionIdentifiers()
+void addDefaultVersionIdentifiers()
 {
     VersionCondition.addPredefinedGlobalIdent("DigitalMars");
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
     {
         VersionCondition.addPredefinedGlobalIdent("Windows");
         global.params.isWindows = true;
     }
-    else static if (TARGET_LINUX)
+    else static if (TARGET.Linux)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("linux");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isLinux = true;
     }
-    else static if (TARGET_OSX)
+    else static if (TARGET.OSX)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OSX");
@@ -1332,21 +1297,28 @@ private void addDefaultVersionIdentifiers()
         // For legacy compatibility
         VersionCondition.addPredefinedGlobalIdent("darwin");
     }
-    else static if (TARGET_FREEBSD)
+    else static if (TARGET.FreeBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("FreeBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isFreeBSD = true;
     }
-    else static if (TARGET_OPENBSD)
+    else static if (TARGET.OpenBSD)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("OpenBSD");
         VersionCondition.addPredefinedGlobalIdent("ELFv1");
         global.params.isOpenBSD = true;
     }
-    else static if (TARGET_SOLARIS)
+    else static if (TARGET.DragonFlyBSD)
+    {
+        VersionCondition.addPredefinedGlobalIdent("Posix");
+        VersionCondition.addPredefinedGlobalIdent("DragonFlyBSD");
+        VersionCondition.addPredefinedGlobalIdent("ELFv1");
+        global.params.isDragonFlyBSD = true;
+    }
+    else static if (TARGET.Solaris)
     {
         VersionCondition.addPredefinedGlobalIdent("Posix");
         VersionCondition.addPredefinedGlobalIdent("Solaris");
@@ -1374,7 +1346,7 @@ private void addDefaultVersionIdentifiers()
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win64");
         }
@@ -1384,19 +1356,19 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm"); //legacy
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
-        static if (TARGET_WINDOS)
+        static if (TARGET.Windows)
         {
             VersionCondition.addPredefinedGlobalIdent("Win32");
         }
     }
-    static if (TARGET_WINDOS)
+    static if (TARGET.Windows)
     {
         if (global.params.mscoff)
             VersionCondition.addPredefinedGlobalIdent("CRuntime_Microsoft");
         else
             VersionCondition.addPredefinedGlobalIdent("CRuntime_DigitalMars");
     }
-    else static if (TARGET_LINUX)
+    else static if (TARGET.Linux)
     {
         VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
     }
@@ -1419,19 +1391,19 @@ private void addDefaultVersionIdentifiers()
         VersionCondition.addPredefinedGlobalIdent("D_BetterC");
 
     VersionCondition.addPredefinedGlobalIdent("D_HardFloat");
-
-    printPredefinedVersions();
 }
 
 private void printPredefinedVersions()
 {
     if (global.params.verbose && global.versionids)
     {
-        fprintf(global.stdmsg, "predefs  ");
+        OutBuffer buf;
         foreach (const str; *global.versionids)
-            fprintf(global.stdmsg, " %s", str.toChars);
-
-        fprintf(global.stdmsg, "\n");
+        {
+            buf.writeByte(' ');
+            buf.writestring(str.toChars());
+        }
+        message("predefs  %s", buf.peekString());
     }
 }
 
@@ -1452,7 +1424,7 @@ private CPU setTargetCPU(CPU cpu)
         baseline = CPU.sse2;
     else
     {
-        static if (TARGET_OSX)
+        static if (TARGET.OSX)
         {
             baseline = CPU.sse2;
         }
@@ -1505,7 +1477,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
 
     void error(const(char)* format, const(char*) arg = null)
     {
-        dmd.errors.error(Loc(), format, arg);
+        dmd.errors.error(Loc.initial, format, arg);
         errors = true;
     }
 
@@ -1530,6 +1502,24 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         return (overflow || value > max || *p) ? uint.max : value;
     }
 
+    /********************************
+     * Params:
+     *  p = 0 terminated string
+     *  s = string
+     * Returns:
+     *  true if `p` starts with `s`
+     */
+    static pure bool startsWith(const(char)* p, string s)
+    {
+        foreach (const c; s)
+        {
+            if (c != *p)
+                return false;
+            ++p;
+        }
+        return true;
+    }
+
     version (none)
     {
         for (size_t i = 0; i < arguments.dim; i++)
@@ -1540,19 +1530,20 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
     for (size_t i = 1; i < arguments.dim; i++)
     {
         const(char)* p = arguments[i];
+        const(char)[] arg = p[0 .. strlen(p)];
         if (*p == '-')
         {
-            if (strcmp(p + 1, "allinst") == 0) // https://dlang.org/dmd.html#switch-allinst
+            if (arg == "-allinst")               // https://dlang.org/dmd.html#switch-allinst
                 params.allInst = true;
-            else if (strcmp(p + 1, "de") == 0) // https://dlang.org/dmd.html#switch-de
+            else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
                 params.useDeprecated = 0;
-            else if (strcmp(p + 1, "d") == 0)  // https://dlang.org/dmd.html#switch-d
+            else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
                 params.useDeprecated = 1;
-            else if (strcmp(p + 1, "dw") == 0) // https://dlang.org/dmd.html#switch-dw
+            else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
                 params.useDeprecated = 2;
-            else if (strcmp(p + 1, "c") == 0)  // https://dlang.org/dmd.html#switch-c
+            else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
                 params.link = false;
-            else if (memcmp(p + 1, cast(char*)"color", 5) == 0) // https://dlang.org/dmd.html#switch-color
+            else if (startsWith(p + 1, "color")) // https://dlang.org/dmd.html#switch-color
             {
                 params.color = true;
                 // Parse:
@@ -1568,11 +1559,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else if (p[6])
                     goto Lerror;
             }
-            else if (memcmp(p + 1, cast(char*)"conf=", 5) == 0) // https://dlang.org/dmd.html#switch-conf
+            else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
             {
                 // ignore, already handled above
             }
-            else if (memcmp(p + 1, cast(char*)"cov", 3) == 0) // https://dlang.org/dmd.html#switch-cov
+            else if (startsWith(p + 1, "cov")) // https://dlang.org/dmd.html#switch-cov
             {
                 params.cov = true;
                 // Parse:
@@ -1593,24 +1584,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else if (p[4])
                     goto Lerror;
             }
-            else if (strcmp(p + 1, "shared") == 0)
+            else if (arg == "-shared")
                 params.dll = true;
-            else if (strcmp(p + 1, "dylib") == 0)
+            else if (arg == "-fPIC")
             {
-                static if (TARGET_OSX)
-                {
-                    Loc loc;
-                    deprecation(loc, "use -shared instead of -dylib");
-                    params.dll = true;
-                }
-                else
-                {
-                    goto Lerror;
-                }
-            }
-            else if (strcmp(p + 1, "fPIC") == 0)
-            {
-                static if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                static if (TARGET.Linux || TARGET.OSX || TARGET.FreeBSD || TARGET.OpenBSD || TARGET.Solaris || TARGET.DragonFlyBSD)
                 {
                     params.pic = 1;
                 }
@@ -1619,49 +1597,53 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     goto Lerror;
                 }
             }
-            else if (strcmp(p + 1, "map") == 0) // https://dlang.org/dmd.html#switch-map
+            else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
                 params.map = true;
-            else if (strcmp(p + 1, "multiobj") == 0)
+            else if (arg == "-multiobj")
                 params.multiobj = true;
-            else if (strcmp(p + 1, "g") == 0) // https://dlang.org/dmd.html#switch-g
+            else if (arg == "-g") // https://dlang.org/dmd.html#switch-g
                 params.symdebug = 1;
-            else if (strcmp(p + 1, "gc") == 0)  // https://dlang.org/dmd.html#switch-gc
+            else if (arg == "-gc")  // https://dlang.org/dmd.html#switch-gc
             {
                 Loc loc;
                 deprecation(loc, "use -g instead of -gc");
                 params.symdebug = 2;
             }
-            else if (strcmp(p + 1, "gf") == 0)
+            else if (arg == "-gf")
             {
                 if (!params.symdebug)
                     params.symdebug = 1;
                 params.symdebugref = true;
             }
-            else if (strcmp(p + 1, "gs") == 0)  // https://dlang.org/dmd.html#switch-gs
+            else if (arg == "-gs")  // https://dlang.org/dmd.html#switch-gs
                 params.alwaysframe = true;
-            else if (strcmp(p + 1, "gx") == 0)  // https://dlang.org/dmd.html#switch-gx
+            else if (arg == "-gx")  // https://dlang.org/dmd.html#switch-gx
                 params.stackstomp = true;
-            else if (strcmp(p + 1, "gt") == 0)
+            else if (arg == "-gt")
             {
                 error("use -profile instead of -gt");
                 params.trace = true;
             }
-            else if (strcmp(p + 1, "m32") == 0) // https://dlang.org/dmd.html#switch-m32
+            else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
             {
-                params.is64bit = false;
-                params.mscoff = false;
+                static if (TARGET.DragonFlyBSD) {
+                    error("-m32 is not supported on DragonFlyBSD, it is 64-bit only");
+                } else {
+                    params.is64bit = false;
+                    params.mscoff = false;
+                }
             }
-            else if (strcmp(p + 1, "m64") == 0) // https://dlang.org/dmd.html#switch-m64
+            else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
             {
                 params.is64bit = true;
-                static if (TARGET_WINDOS)
+                static if (TARGET.Windows)
                 {
                     params.mscoff = true;
                 }
             }
-            else if (strcmp(p + 1, "m32mscoff") == 0) // https://dlang.org/dmd.html#switch-m32mscoff
+            else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
             {
-                static if (TARGET_WINDOS)
+                static if (TARGET.Windows)
                 {
                     params.is64bit = 0;
                     params.mscoff = true;
@@ -1673,7 +1655,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (strncmp(p + 1, "mscrtlib=", 9) == 0)
             {
-                static if (TARGET_WINDOS)
+                static if (TARGET.Windows)
                 {
                     params.mscrtlib = p + 10;
                 }
@@ -1682,7 +1664,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     error("-mscrtlib");
                 }
             }
-            else if (memcmp(p + 1, cast(char*)"profile", 7) == 0) // https://dlang.org/dmd.html#switch-profile
+            else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile
             {
                 // Parse:
                 //      -profile
@@ -1699,17 +1681,17 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     params.trace = true;
             }
-            else if (strcmp(p + 1, "v") == 0) // https://dlang.org/dmd.html#switch-v
+            else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
                 params.verbose = true;
-            else if (strcmp(p + 1, "vcg-ast") == 0)
+            else if (arg == "-vcg-ast")
                 params.vcg_ast = true;
-            else if (strcmp(p + 1, "vtls") == 0) // https://dlang.org/dmd.html#switch-vtls
+            else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
                 params.vtls = true;
-            else if (strcmp(p + 1, "vcolumns") == 0) // https://dlang.org/dmd.html#switch-vcolumns
+            else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
                 params.showColumns = true;
-            else if (strcmp(p + 1, "vgc") == 0) // https://dlang.org/dmd.html#switch-vgc
+            else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
                 params.vgc = true;
-            else if (memcmp(p + 1, cast(char*)"verrors", 7) == 0) // https://dlang.org/dmd.html#switch-verrors
+            else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
             {
                 if (p[8] == '=' && isdigit(cast(char)p[9]))
                 {
@@ -1718,14 +1700,14 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         goto Lerror;
                     params.errorLimit = num;
                 }
-                else if (memcmp(p + 9, cast(char*)"spec", 4) == 0)
+                else if (startsWith(p + 9, "spec"))
                 {
                     params.showGaggedErrors = true;
                 }
                 else
                     goto Lerror;
             }
-            else if (memcmp(p + 1, "mcpu".ptr, 4) == 0) // https://dlang.org/dmd.html#switch-mcpu
+            else if (startsWith(p + 1, "mcpu")) // https://dlang.org/dmd.html#switch-mcpu
             {
                 // Parse:
                 //      -mcpu=identifier
@@ -1763,7 +1745,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (memcmp(p + 1, cast(char*)"transition", 10) == 0) // https://dlang.org/dmd.html#switch-transition
+            else if (startsWith(p + 1, "transition") ) // https://dlang.org/dmd.html#switch-transition
             {
                 // Parse:
                 //      -transition=number
@@ -1780,53 +1762,46 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         if (num == uint.max)
                             goto Lerror;
 
+                        string generateTransitionsNumbers()
+                        {
+                            import dmd.cli : Usage;
+                            string buf;
+                            foreach (t; Usage.transitions)
+                            {
+                                if (t.bugzillaNumber !is null)
+                                    buf ~= `case `~t.bugzillaNumber~`: params.`~t.paramName~` = true;break;`;
+                            }
+                            return buf;
+                        }
+
                         // Bugzilla issue number
                         switch (num)
                         {
-                        case 3449:
-                            params.vfield = true;
-                            break;
-                        case 10378:
-                            params.bug10378 = true;
-                            break;
-                        case 14488:
-                            params.vcomplex = true;
-                            break;
-                        case 16997:
-                            params.fix16997 = true;
-                            break;
+                        mixin(generateTransitionsNumbers());
                         default:
                             goto Lerror;
                         }
                     }
                     else if (Identifier.isValidIdentifier(p + 12))
                     {
+                        string generateTransitionsText()
+                        {
+                            import dmd.cli : Usage;
+                            string buf = `case "all":`;
+                            foreach (t; Usage.transitions)
+                                buf ~= `params.`~t.paramName~` = true;`;
+                            buf ~= "break;";
+
+                            foreach (t; Usage.transitions)
+                            {
+                                buf ~= `case "`~t.name~`": params.`~t.paramName~` = true;break;`;
+                            }
+                            return buf;
+                        }
                         const ident = p + 12;
                         switch (ident[0 .. strlen(ident)])
                         {
-                        case "all":
-                            params.vtls = true;
-                            params.vfield = true;
-                            params.vcomplex = true;
-                            break;
-                        case "checkimports":
-                            params.check10378 = true;
-                            break;
-                        case "complex":
-                            params.vcomplex = true;
-                            break;
-                        case "field":
-                            params.vfield = true;
-                            break;
-                        case "import":
-                            params.bug10378 = true;
-                            break;
-                        case "intpromote":
-                            params.fix16997 = true;
-                            break;
-                        case "tls":
-                            params.vtls = true;
-                            break;
+                        mixin(generateTransitionsText());
                         default:
                             goto Lerror;
                         }
@@ -1837,11 +1812,11 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (strcmp(p + 1, "w") == 0)   // https://dlang.org/dmd.html#switch-w
+            else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
                 params.warnings = 1;
-            else if (strcmp(p + 1, "wi") == 0)  // https://dlang.org/dmd.html#switch-wi
+            else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
                 params.warnings = 2;
-            else if (strcmp(p + 1, "O") == 0)   // https://dlang.org/dmd.html#switch-O
+            else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
                 params.optimize = true;
             else if (p[1] == 'o')
             {
@@ -1935,49 +1910,84 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                         goto Lnoarg;
                     params.jsonfilename = p + 3 + (p[3] == '=');
                     break;
+                case 'i':
+                    if (!p[3])
+                        goto Lnoarg;
+                    if (p[3] != '=')
+                        goto Lerror;
+                    if (!p[4])
+                        goto Lnoarg;
+
+                    {
+                        auto flag = tryParseJsonField(p + 4);
+                        if (!flag)
+                        {
+                            error("unknown JSON field `-Xi=%s`, expected one of " ~ jsonFieldNames, p + 4);
+                            continue;
+                        }
+                        global.params.jsonFieldFlags |= flag;
+                    }
+                    break;
                 case 0:
                     break;
                 default:
                     goto Lerror;
                 }
             }
-            else if (strcmp(p + 1, "ignore") == 0)      // https://dlang.org/dmd.html#switch-ignore
+            else if (arg == "-ignore")      // https://dlang.org/dmd.html#switch-ignore
                 params.ignoreUnsupportedPragmas = true;
-            else if (strcmp(p + 1, "property") == 0)
+            else if (arg == "-property")
                 params.enforcePropertySyntax = true;
-            else if (strcmp(p + 1, "inline") == 0) // https://dlang.org/dmd.html#switch-inline
+            else if (arg == "-inline")      // https://dlang.org/dmd.html#switch-inline
             {
                 params.useInline = true;
                 params.hdrStripPlainFunctions = false;
             }
-            else if (strcmp(p + 1, "dip25") == 0)       // https://dlang.org/dmd.html#switch-dip25
+            else if (arg == "-i")
+                includeImports = true;
+            else if (startsWith(p + 1, "i="))
+            {
+                includeImports = true;
+                if (!p[3])
+                {
+                    error("invalid option '%s', module patterns cannot be empty", p);
+                }
+                else
+                {
+                    // NOTE: we could check that the argument only contains valid "module-pattern" characters.
+                    //       Invalid characters doesn't break anything but an error message to the user might
+                    //       be nice.
+                    includeModulePatterns.push(p + 3);
+                }
+            }
+            else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
                 params.useDIP25 = true;
-            else if (strcmp(p + 1, "dip1000") == 0)
+            else if (arg == "-dip1000")
             {
                 params.useDIP25 = true;
                 params.vsafe = true;
             }
-            else if (strcmp(p + 1, "dip1008") == 0)
+            else if (arg == "-dip1008")
             {
                 params.ehnogc = true;
             }
-            else if (strcmp(p + 1, "lib") == 0) // https://dlang.org/dmd.html#switch-lib
+            else if (arg == "-lib")         // https://dlang.org/dmd.html#switch-lib
                 params.lib = true;
-            else if (strcmp(p + 1, "nofloat") == 0)
+            else if (arg == "-nofloat")
                 params.nofloat = true;
-            else if (strcmp(p + 1, "quiet") == 0)
+            else if (arg == "-quiet")
             {
                 // Ignore
             }
-            else if (strcmp(p + 1, "release") == 0) // https://dlang.org/dmd.html#switch-release
+            else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
                 params.release = true;
-            else if (strcmp(p + 1, "betterC") == 0) // https://dlang.org/dmd.html#switch-betterC
+            else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
                 params.betterC = true;
-            else if (strcmp(p + 1, "noboundscheck") == 0) // https://dlang.org/dmd.html#switch-noboundscheck
+            else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
             {
                 params.useArrayBounds = CHECKENABLE.off;
             }
-            else if (memcmp(p + 1, cast(char*)"boundscheck", 11) == 0) // https://dlang.org/dmd.html#switch-boundscheck
+            else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
             {
                 // Parse:
                 //      -boundscheck=[on|safeonly|off]
@@ -2001,9 +2011,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (strcmp(p + 1, "unittest") == 0)
+            else if (arg == "-unittest")
                 params.useUnitTests = true;
-            else if (p[1] == 'I') // https://dlang.org/dmd.html#switch-I
+            else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
             {
                 if (!params.imppath)
                     params.imppath = new Strings();
@@ -2020,13 +2030,13 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (p[1] == 'J') // https://dlang.org/dmd.html#switch-J
+            else if (p[1] == 'J')             // https://dlang.org/dmd.html#switch-J
             {
                 if (!params.fileImppath)
                     params.fileImppath = new Strings();
                 params.fileImppath.push(p + 2 + (p[2] == '='));
             }
-            else if (memcmp(p + 1, cast(char*)"debug", 5) == 0 && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
+            else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
             {
                 // Parse:
                 //      -debug
@@ -2056,7 +2066,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     params.debuglevel = 1;
             }
-            else if (memcmp(p + 1, cast(char*)"version", 7) == 0) // https://dlang.org/dmd.html#switch-version
+            else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
             {
                 // Parse:
                 //      -version=number
@@ -2082,41 +2092,42 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                     goto Lerror;
             }
-            else if (strcmp(p + 1, "-b") == 0)
+            else if (arg == "--b")
                 params.debugb = true;
-            else if (strcmp(p + 1, "-c") == 0)
+            else if (arg == "--c")
                 params.debugc = true;
-            else if (strcmp(p + 1, "-f") == 0)
+            else if (arg == "--f")
                 params.debugf = true;
-            else if (strcmp(p + 1, "-help") == 0 || strcmp(p + 1, "h") == 0)
+            else if (arg == "--help" ||
+                     arg == "-h")
             {
                 params.usage = true;
                 return false;
             }
-            else if (strcmp(p + 1, "-r") == 0)
+            else if (arg == "--r")
                 params.debugr = true;
-            else if (strcmp(p + 1, "-version") == 0)
+            else if (arg == "--version")
             {
                 params.logo = true;
                 return false;
             }
-            else if (strcmp(p + 1, "-x") == 0)
+            else if (arg == "--x")
                 params.debugx = true;
-            else if (strcmp(p + 1, "-y") == 0)
+            else if (arg == "--y")
                 params.debugy = true;
-            else if (p[1] == 'L')       // https://dlang.org/dmd.html#switch-L
+            else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
             {
                 params.linkswitches.push(p + 2 + (p[2] == '='));
             }
-            else if (memcmp(p + 1, cast(char*)"defaultlib=", 11) == 0) // https://dlang.org/dmd.html#switch-defaultlib
+            else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
             {
                 params.defaultlibname = p + 1 + 11;
             }
-            else if (memcmp(p + 1, cast(char*)"debuglib=", 9) == 0)     // https://dlang.org/dmd.html#switch-debuglib
+            else if (startsWith(p + 1, "debuglib="))     // https://dlang.org/dmd.html#switch-debuglib
             {
                 params.debuglibname = p + 1 + 9;
             }
-            else if (memcmp(p + 1, cast(char*)"deps", 4) == 0) // https://dlang.org/dmd.html#switch-deps
+            else if (startsWith(p + 1, "deps"))          // https://dlang.org/dmd.html#switch-deps
             {
                 if (params.moduleDeps)
                 {
@@ -2136,16 +2147,16 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 }
                 params.moduleDeps = new OutBuffer();
             }
-            else if (strcmp(p + 1, "main") == 0)        // https://dlang.org/dmd.html#switch-main
+            else if (arg == "-main")             // https://dlang.org/dmd.html#switch-main
             {
                 params.addMain = true;
             }
-            else if (memcmp(p + 1, cast(char*)"man", 3) == 0)   // https://dlang.org/dmd.html#switch-man
+            else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
             {
                 params.manual = true;
                 return false;
             }
-            else if (strcmp(p + 1, "run") == 0)         // https://dlang.org/dmd.html#switch-run
+            else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
             {
                 params.run = true;
                 size_t length = argc - i - 1;
@@ -2188,7 +2199,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
         }
         else
         {
-            static if (TARGET_WINDOS)
+            static if (TARGET.Windows)
             {
                 const(char)* ext = FileName.ext(p);
                 if (ext && FileName.compare(ext, "exe") == 0)
@@ -2196,7 +2207,7 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                     params.objname = p;
                     continue;
                 }
-                if (strcmp(p, `/?`) == 0)
+                if (arg == "/?")
                 {
                     params.usage = true;
                     return false;
@@ -2208,3 +2219,268 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
     return errors;
 }
 
+
+private __gshared bool includeImports = false;
+// array of module patterns used to include/exclude imported modules
+private __gshared Array!(const(char)*) includeModulePatterns;
+private __gshared Modules compiledImports;
+private extern(C++) bool marsOnImport(Module m)
+{
+    if (includeImports)
+    {
+        Identifiers empty;
+        if (includeImportedModuleCheck(ModuleComponentRange(
+            (m.md && m.md.packages) ? m.md.packages : &empty, m.ident, m.isPackageFile)))
+        {
+            if (global.params.verbose)
+                message("compileimport (%s)", m.srcfile.toChars);
+            compiledImports.push(m);
+            return true; // this import will be compiled
+        }
+    }
+    return false; // this import will not be compiled
+}
+
+// A range of component identifiers for a module
+private struct ModuleComponentRange
+{
+    Identifiers* packages;
+    Identifier name;
+    bool isPackageFile;
+    size_t index;
+    @property auto totalLength() const { return packages.dim + 1 + (isPackageFile ? 1 : 0); }
+
+    @property auto empty() { return index >= totalLength(); }
+    @property auto front() const
+    {
+        if (index < packages.dim)
+            return (*packages)[index];
+        if (index == packages.dim)
+            return name;
+        else
+            return Identifier.idPool("package");
+    }
+    void popFront() { index++; }
+}
+
+/*
+ * Determines if the given module should be included in the compilation.
+ * Returns:
+ *  True if the given module should be included in the compilation.
+ */
+private bool includeImportedModuleCheck(ModuleComponentRange components)
+    in { assert(includeImports); } body
+{
+    createMatchNodes();
+    size_t nodeIndex = 0;
+    while (nodeIndex < matchNodes.dim)
+    {
+        //printf("matcher ");printMatcher(nodeIndex);printf("\n");
+        auto info = matchNodes[nodeIndex++];
+        if (info.depth <= components.totalLength())
+        {
+            size_t nodeOffset = 0;
+            for (auto range = components;;range.popFront())
+            {
+                if (range.empty || nodeOffset >= info.depth)
+                {
+                    // MATCH
+                    //printf("matcher ");printMatcher(nodeIndex - 1);
+                    //printf(" MATCHES module '");components.print();printf("'\n");
+                    return !info.isExclude;
+                }
+                if (!range.front.equals(matchNodes[nodeIndex + nodeOffset].id))
+                {
+                    break;
+                }
+                nodeOffset++;
+            }
+        }
+        //printf("matcher ");printMatcher(nodeIndex-1);
+        //printf(" does not match module '");components.print();printf("'\n");
+        nodeIndex += info.depth;
+    }
+    assert(nodeIndex == matchNodes.dim, "code bug");
+    return includeByDefault;
+}
+
+// Matching module names is done with an array of matcher nodes.
+// The nodes are sorted by "component depth" from largest to smallest
+// so that the first match is always the longest (best) match.
+private struct MatcherNode
+{
+    union
+    {
+        struct
+        {
+            ushort depth;
+            bool isExclude;
+        }
+        Identifier id;
+    }
+    this(Identifier id) { this.id = id; }
+    this(bool isExclude, ushort depth)
+    {
+        this.depth = depth;
+        this.isExclude = isExclude;
+    }
+}
+
+/*
+ * $(D includeByDefault) determines whether to include/exclude modules when they don't
+ * match any pattern. This setting changes depending on if the user provided any "inclusive" module
+ * patterns. When a single "inclusive" module pattern is given, it likely means the user only
+ * intends to include modules they've "included", however, if no module patterns are given or they
+ * are all "exclusive", then it is likely they intend to include everything except modules
+ * that have been excluded. i.e.
+ * ---
+ * -i=-foo // include everything except modules that match "foo*"
+ * -i=foo  // only include modules that match "foo*" (exclude everything else)
+ * ---
+ * Note that this default behavior can be overriden using the '.' module pattern. i.e.
+ * ---
+ * -i=-foo,-.  // this excludes everything
+ * -i=foo,.    // this includes everything except the default exclusions (-std,-core,-etc.-object)
+ * ---
+*/
+private __gshared bool includeByDefault = true;
+private __gshared Array!MatcherNode matchNodes;
+
+/*
+ * Creates the global list of match nodes used to match module names
+ * given strings provided by the -i commmand line option.
+ */
+private void createMatchNodes()
+{
+    static size_t findSortedIndexToAddForDepth(size_t depth)
+    {
+        size_t index = 0;
+        while (index < matchNodes.dim)
+        {
+            auto info = matchNodes[index];
+            if (depth > info.depth)
+                break;
+            index += 1 + info.depth;
+        }
+        return index;
+    }
+
+    if (matchNodes.dim == 0)
+    {
+        foreach (modulePattern; includeModulePatterns)
+        {
+            auto depth = parseModulePatternDepth(modulePattern);
+            auto entryIndex = findSortedIndexToAddForDepth(depth);
+            matchNodes.split(entryIndex, depth + 1);
+            parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
+            // if at least 1 "include pattern" is given, then it is assumed the
+            // user only wants to include modules that were explicitly given, which
+            // changes the default behavior from inclusion to exclusion.
+            if (includeByDefault && !matchNodes[entryIndex].isExclude)
+            {
+                //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
+                includeByDefault = false;
+            }
+        }
+
+        // Add the default 1 depth matchers
+        MatcherNode[8] defaultDepth1MatchNodes = [
+            MatcherNode(true, 1), MatcherNode(Id.std),
+            MatcherNode(true, 1), MatcherNode(Id.core),
+            MatcherNode(true, 1), MatcherNode(Id.etc),
+            MatcherNode(true, 1), MatcherNode(Id.object),
+        ];
+        {
+            auto index = findSortedIndexToAddForDepth(1);
+            matchNodes.split(index, defaultDepth1MatchNodes.length);
+            matchNodes.data[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
+        }
+    }
+}
+
+/*
+ * Determines the depth of the given module pattern.
+ * Params:
+ *  modulePattern = The module pattern to determine the depth of.
+ * Returns:
+ *  The component depth of the given module pattern.
+ */
+private ushort parseModulePatternDepth(const(char)* modulePattern)
+{
+    if (modulePattern[0] == '-')
+        modulePattern++;
+
+    // handle special case
+    if (modulePattern[0] == '.' && modulePattern[1] == '\0')
+        return 0;
+
+    ushort depth = 1;
+    for (;; modulePattern++)
+    {
+        auto c = *modulePattern;
+        if (c == '.')
+            depth++;
+        if (c == '\0')
+            return depth;
+    }
+}
+unittest
+{
+    assert(".".parseModulePatternDepth == 0);
+    assert("-.".parseModulePatternDepth == 0);
+    assert("abc".parseModulePatternDepth == 1);
+    assert("-abc".parseModulePatternDepth == 1);
+    assert("abc.foo".parseModulePatternDepth == 2);
+    assert("-abc.foo".parseModulePatternDepth == 2);
+}
+
+/*
+ * Parses a 'module pattern', which is the "include import" components
+ * given on the command line, i.e. "-i=<module_pattern>,<module_pattern>,...".
+ * Params:
+ *  modulePattern = The module pattern to parse.
+ *  dst = the data structure to save the parsed module pattern to.
+ *  depth = the depth of the module pattern previously retrieved from $(D parseModulePatternDepth).
+ */
+private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, ushort depth)
+{
+    bool isExclude = false;
+    if (modulePattern[0] == '-')
+    {
+        isExclude = true;
+        modulePattern++;
+    }
+
+    *dst = MatcherNode(isExclude, depth);
+    dst++;
+
+    // Create and add identifiers for each component in the modulePattern
+    if (depth > 0)
+    {
+        auto idStart = modulePattern;
+        auto lastNode = dst + depth - 1;
+        for (; dst < lastNode; dst++)
+        {
+            for (;; modulePattern++)
+            {
+                if (*modulePattern == '.')
+                {
+                    assert(modulePattern > idStart, "empty module pattern");
+                    *dst = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
+                    modulePattern++;
+                    idStart = modulePattern;
+                    break;
+                }
+            }
+        }
+        for (;; modulePattern++)
+        {
+            if (*modulePattern == '\0')
+            {
+                assert(modulePattern > idStart, "empty module pattern");
+                *lastNode = MatcherNode(Identifier.idPool(idStart, modulePattern - idStart));
+                break;
+            }
+        }
+    }
+}

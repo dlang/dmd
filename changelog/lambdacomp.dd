@@ -1,0 +1,22 @@
+Lambda comparison using __traits(isSame, ...)
+
+It is now possible to compare two lambda functions, under certain
+constraints, using __traits(isSame, lamda1, lambda2). In order to
+correctly compare two lambdas, the following conditions must be
+satisfied:
+
+$(UL
+    $(LI the lambda function arguments must not have a template instantiation
+    as an explicit argument type. Any other argument types (basic,
+    user-defined, template) are supported.)
+    $(LI the lambda function body must contain a single expression (no return statement)
+    which contains only numeric values, manifest constants, enum values and arguments.
+    If the expression contains local variables, function calls or return statements,
+    the function is considered uncomparable.)
+)
+
+These limitations might be lifted in the next release version.
+
+Whenver a lambda is considered uncomparable, the __traits(isSame, ...) expression
+in which it's used will return false, no matter what other lambda is used in
+the comparison.

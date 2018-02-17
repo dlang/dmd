@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/array.d, root/_array.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_array.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/array.d
  */
 
 module dmd.root.array;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_array.html
 
 import core.stdc.string;
 
@@ -252,4 +252,64 @@ nothrow:
 private:
     size_t len;
     size_t *ptr;
+}
+
+/**
+ * Exposes the given root Array as a standard D array.
+ * Params:
+ *  array = the array to expose.
+ * Returns:
+ *  The given array exposed to a standard D array.
+ */
+@property T[] asDArray(T)(ref Array!T array)
+{
+    return array.data[0..array.dim];
+}
+
+/**
+ * Splits the array at $(D index) and expands it to make room for $(D length)
+ * elements by shifting everything past $(D index) to the right.
+ * Params:
+ *  array = the array to split.
+ *  index = the index to split the array from.
+ *  length = the number of elements to make room for starting at $(D index).
+ */
+void split(T)(ref Array!T array, size_t index, size_t length)
+{
+    if (length > 0)
+    {
+        auto previousDim = array.dim;
+        array.setDim(array.dim + length);
+        for (size_t i = previousDim; i > index;)
+        {
+            i--;
+            array[i + length] = array[i];
+        }
+    }
+}
+unittest
+{
+    auto array = Array!int();
+    array.split(0, 0);
+    assert([] == array.asDArray);
+    array.push(1);
+    array.push(3);
+    array.split(1, 1);
+    array[1] = 2;
+    assert([1, 2, 3] == array.asDArray);
+    array.split(2, 3);
+    array[2] = 8;
+    array[3] = 20;
+    array[4] = 4;
+    assert([1, 2, 8, 20, 4, 3] == array.asDArray);
+    array.split(0, 0);
+    assert([1, 2, 8, 20, 4, 3] == array.asDArray);
+    array.split(0, 1);
+    array[0] = 123;
+    assert([123, 1, 2, 8, 20, 4, 3] == array.asDArray);
+    array.split(0, 3);
+    array[0] = 123;
+    array[1] = 421;
+    array[2] = 910;
+    assert([123, 421, 910, 123, 1, 2, 8, 20, 4, 3] == array.asDArray);
 }

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -85,7 +85,7 @@ enum bool HEADER_LIST = true;
 
 // Precompiled header variations
 //#define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-//#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
+//#define MMFIO           (_WIN32 || __linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)  // if memory mapped files
 //#define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -272,7 +272,7 @@ enum
 {
     CHARSIZE       = 1,
     SHORTSIZE      = 2,
-    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
+    WCHARSIZE      = 2,       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/DragonFlyBSD/Solaris
     LONGSIZE       = 4,
     LLONGSIZE      = 8,
     CENTSIZE       = 16,
@@ -288,7 +288,7 @@ enum
 //#define REGMASK         0xFFFF
 
 // targ_llong is also used to store host pointers, so it should have at least their size
-//#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || MARS
+//#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX || MARS
 alias targ_ptrdiff_t = targ_llong;  // ptrdiff_t for target machine
 alias targ_size_t = targ_ullong;    // size_t for the target machine
 //#else
@@ -311,14 +311,14 @@ alias targ_size_t = targ_ullong;    // size_t for the target machine
 //#define OMFOBJ          TARGET_WINDOS
 //#endif
 //#ifndef ELFOBJ
-//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+//#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS)
 //#endif
 //#ifndef MACHOBJ
 //#define MACHOBJ         TARGET_OSX
 //#endif
 
 //#define SYMDEB_CODEVIEW TARGET_WINDOS
-//#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX)
+//#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX)
 
 //#define TOOLKIT_H
 
@@ -362,18 +362,18 @@ alias SYMIDX = int;    // symbol table index
 //#ifndef COPYRIGHT_SYMBOL
 //#define COPYRIGHT_SYMBOL "\xA9"
 //#endif
-//#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001 The D Language Foundation"
+//#define COPYRIGHT "Copyright " COPYRIGHT_SYMBOL " 2001-2018 by The D Language Foundation"
 //#else
 //#ifdef DEBUG
-//#define COPYRIGHT "Copyright (C) The D Language Foundation 2000-2017.  All Rights Reserved.\n\
+//#define COPYRIGHT "Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved\n\
 //Written by Walter Bright\n\
 //*****BETA TEST VERSION*****"
 //#else
 //#if __linux__
-//#define COPYRIGHT "Copyright (C) The D Language Foundation 2000-2017.  All Rights Reserved.\n\
+//#define COPYRIGHT "Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved\n\
 //Written by Walter Bright, Linux version by Pat Nelson"
 //#else
-//#define COPYRIGHT "Copyright (C) The D Language Foundation 2000-2017.  All Rights Reserved.\n\
+//#define COPYRIGHT "Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved\n\
 //Written by Walter Bright"
 //#endif
 //#endif
@@ -500,6 +500,7 @@ enum
     EX_SOLARIS64    = 0x200000,
     EX_OPENBSD      = 0x400000,
     EX_OPENBSD64    = 0x800000,
+    EX_DRAGONFLYBSD64 = 0x1000000,
 }
 
 
@@ -507,6 +508,7 @@ enum
 enum exefmt_t EX_flat = EX_OS2 | EX_WIN32 | EX_LINUX | EX_WIN64 | EX_LINUX64 |
                          EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 |
                          EX_OPENBSD | EX_OPENBSD64 |
+                         EX_DRAGONFLYBSD64 |
                          EX_SOLARIS | EX_SOLARIS64;
 
 // All DOS executable types
@@ -694,7 +696,9 @@ struct Config
                                 // to near
     linkage_t linkage;          // default function call linkage
     EHmethod ehmethod;          // exception handling method
-    bool betterC;               // implement "Better C"
+    bool useModuleInfo;         // implement ModuleInfo
+    bool useTypeInfo;           // implement TypeInfo
+    bool useExceptions;         // implement exception handling
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Config.sizeof); }

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2016 by The D Language Foundation
- * All Rights Reserved
+ * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -159,6 +158,8 @@ struct Scope
     void setNoFree();
 
     structalign_t alignment();
+
+    bool isDeprecated();
 };
 
 #endif /* DMD_SCOPE_H */

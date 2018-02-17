@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod4.c, backend/cod4.c)
@@ -819,7 +819,7 @@ void cdaddass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         if (op == OPnegass)
             cdnegass87(cdb,e,pretregs);
         else
@@ -1332,7 +1332,7 @@ void cdmulass(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
         opass87(cdb,e,pretregs);
 #else
         opassdbl(cdb,e,pretregs,op);
@@ -2751,7 +2751,7 @@ void cdcnvt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
                     cdd_u32(cdb,e,pretregs);
                     return;
                 }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
                 retregs = mST0;
 #else
                 retregs = DOUBLEREGS;
@@ -3303,7 +3303,7 @@ void cdport(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     {
         sz = tysize(e->E2->Ety);
         regm_t retregs = mAX;           // byte/word to output is in AL/AX
-        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? mDX : (regm_t) 0),TRUE);
+        scodelem(cdb,e->E2,&retregs,((op & 0x08) ? mDX : 0),TRUE);
         op |= 0x02;                     // OUT opcode
     }
     else // OPinp

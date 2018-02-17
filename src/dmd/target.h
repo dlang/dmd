@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 2013-2014 by The D Language Foundation
- * All Rights Reserved
+ * Copyright (C) 2013-2018 by The D Language Foundation, All Rights Reserved
  * written by Iain Buclaw
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -21,22 +20,31 @@
 class ClassDeclaration;
 class Dsymbol;
 class Expression;
+class Parameter;
 class Type;
+class TypeTuple;
 class Module;
 struct OutBuffer;
 
 struct Target
 {
+    // D ABI
     static int ptrsize;
-    static int realsize;             // size a real consumes in memory
-    static int realpad;              // 'padding' added to the CPU real size to bring it up to realsize
-    static int realalignsize;        // alignment for reals
-    static bool reverseCppOverloads; // with dmc and cl, overloaded functions are grouped and in reverse order
-    static bool cppExceptions;       // set if catching C++ exceptions is supported
-    static int c_longsize;           // size of a C 'long' or 'unsigned long' type
-    static int c_long_doublesize;    // size of a C 'long double'
-    static int classinfosize;        // size of 'ClassInfo'
+    static int realsize;                // size a real consumes in memory
+    static int realpad;                 // 'padding' added to the CPU real size to bring it up to realsize
+    static int realalignsize;           // alignment for reals
+    static int classinfosize;           // size of 'ClassInfo'
     static unsigned long long maxStaticDataSize;  // maximum size of static data
+
+    // C ABI
+    static int c_longsize;              // size of a C 'long' or 'unsigned long' type
+    static int c_long_doublesize;       // size of a C 'long double'
+
+    // C++ ABI
+    static bool reverseCppOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
+    static bool cppExceptions;          // set if catching C++ exceptions is supported
+    static char int64Mangle;            // mangling character for C++ int64_t
+    static char uint64Mangle;           // mangling character for C++ uint64_t
 
     template <typename T>
     struct FPTypeProperties
@@ -62,8 +70,8 @@ struct Target
 
     static void _init();
     // Type sizes and support.
-    static unsigned alignsize(Type* type);
-    static unsigned fieldalign(Type* type);
+    static unsigned alignsize(Type *type);
+    static unsigned fieldalign(Type *type);
     static unsigned critsecsize();
     static Type *va_listType();  // get type of va_list
     static int isVectorTypeSupported(int sz, Type *type);
@@ -72,11 +80,12 @@ struct Target
     static Expression *paintAsType(Expression *e, Type *type);
     // ABI and backend.
     static void loadModule(Module *m);
-    static void prefixName(OutBuffer *buf, LINK linkage);
     static const char *toCppMangle(Dsymbol *s);
     static const char *cppTypeInfoMangle(ClassDeclaration *cd);
     static const char *cppTypeMangle(Type *t);
+    static Type *cppParameterType(Parameter *p);
     static LINK systemLinkage();
+    static TypeTuple *toArgTypes(Type *t);
 };
 
 #endif

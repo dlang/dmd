@@ -2,15 +2,15 @@
  * Compiler implementation of the D programming language
  * http://dlang.org
  *
- * Copyright: Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/rmem.d, root/_rmem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_root_rmem.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/root/rmem.d
  */
 
 module dmd.root.rmem;
-
-// Online documentation: https://dlang.org/phobos/dmd_root_rmem.html
 
 import core.stdc.string;
 
@@ -53,6 +53,11 @@ version (GC)
             printf("Error: out of memory\n");
             exit(EXIT_FAILURE);
         }
+    }
+
+    extern (C) void* allocmemory(size_t m_size) nothrow
+    {
+        return GC.malloc(m_size);
     }
 
     extern (C++) const __gshared Mem mem;

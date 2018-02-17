@@ -492,8 +492,8 @@ struct SafeS
 	@safe 
 	{
 		ref return SafeS foo();
-		return scope SafeS foo();
-		ref return scope SafeS foo();
+		return scope SafeS foo2();
+		ref return scope SafeS foo3();
 		int* p;
 	}
 }

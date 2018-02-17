@@ -1,17 +1,16 @@
-
-/* Compiler implementation of the D programming language
- * Copyright (c) 2015 by The D Language Foundation
- * All Rights Reserved
- * written by Michel Fortin
- * http://www.digitalmars.com
- * Distributed under the Boost Software License, Version 1.0.
- * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/_objc_glue.d
+/**
+ * Compiler implementation of the
+ * $(LINK2 http://www.dlang.org, D programming language).
+ *
+ * Copyright:   Copyright (C) 2015-2018 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
+ * Documentation:  https://dlang.org/phobos/dmd_objc_glue.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/objc_glue.d
  */
 
 module dmd.objc_glue;
-
-// Online documentation: https://dlang.org/phobos/dmd_objc_glue.html
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -21,6 +20,7 @@ import dmd.aggregate;
 import dmd.declaration;
 import dmd.dmodule;
 import dmd.func;
+import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.objc;
@@ -39,273 +39,353 @@ import dmd.backend.type;
 import dmd.backend.mach;
 import dmd.backend.obj;
 
-extern (C++):
+private __gshared ObjcGlue _objc;
 
-enum ObjcSegment
+ObjcGlue objc()
 {
-    SEGcstring,
-    SEGimage_info,
-    SEGmethname,
-    SEGmodule_info,
-    SEGselrefs,
-    SEG_MAX,
+    return _objc;
 }
 
-elem *addressElem(elem *e, Type t, bool alwaysCopy = false);
-
-__gshared int[ObjcSegment.SEG_MAX] objc_segList;
-
-int objc_getSegment(ObjcSegment segid)
+// Should be an interface
+extern(C++) abstract class ObjcGlue
 {
-    int *seg = objc_segList.ptr;
-    if (seg[segid] != 0)
-        return seg[segid];
-
-    // initialize
-    int _align = 3;
-
-    with (ObjcSegment)
+    static void initialize()
     {
-        seg[SEGcstring] = MachObj.getsegment("__cstring", "__TEXT", _align, S_CSTRING_LITERALS);
-        seg[SEGimage_info] = MachObj.getsegment("__objc_imageinfo", "__DATA", _align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
-        seg[SEGmethname] = MachObj.getsegment("__objc_methname", "__TEXT", _align, S_CSTRING_LITERALS);
-        seg[SEGmodule_info] = MachObj.getsegment("__objc_classlist", "__DATA", _align, S_REGULAR | S_ATTR_NO_DEAD_STRIP);
-        seg[SEGselrefs] = MachObj.getsegment("__objc_selrefs", "__DATA", _align, S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS);
+        if (global.params.isOSX && global.params.is64bit)
+            _objc = new Supported;
+        else
+            _objc = new Unsupported;
     }
 
-    return seg[segid];
+    abstract void setupMethodSelector(FuncDeclaration fd, elem** esel);
+    abstract void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf);
+    abstract void setupEp(elem* esel, elem** ep, int leftToRight);
+    abstract void generateModuleInfo();
 }
 
-// MARK: ObjcSymbols
+private:
 
-__gshared
+extern(C++) final class Unsupported : ObjcGlue
 {
-    bool objc_hasSymbols = false;
-
-    Symbol *objc_smsgSend = null;
-    Symbol *objc_smsgSend_stret = null;
-    Symbol *objc_smsgSend_fpret = null;
-    Symbol *objc_smsgSend_fp2ret = null;
-
-    Symbol *objc_simageInfo = null;
-    Symbol *objc_smoduleInfo = null;
-
-    StringTable *objc_smethVarNameTable = null;
-    StringTable *objc_smethVarRefTable = null;
-}
-
-static StringTable *initStringTable(StringTable *stringtable)
-{
-    stringtable = new StringTable();
-    stringtable._init();
-
-    return stringtable;
-}
-
-void objc_initSymbols()
-{
-    objc_hasSymbols = false;
-
-    objc_smsgSend = null;
-    objc_smsgSend_stret = null;
-    objc_smsgSend_fpret = null;
-    objc_smsgSend_fp2ret = null;
-
-    objc_simageInfo = null;
-    objc_smoduleInfo = null;
-
-    // clear tables
-    objc_smethVarNameTable = initStringTable(objc_smethVarNameTable);
-    objc_smethVarRefTable = initStringTable(objc_smethVarRefTable);
-
-    // also wipe out segment numbers
-    for (int s = 0; s < ObjcSegment.SEG_MAX; ++s)
-        objc_segList[s] = 0;
-}
-
-Symbol *objc_getCString(const(char)* str, size_t len, const(char)* symbolName, ObjcSegment segment)
-{
-    objc_hasSymbols = true;
-
-    // create data
-    scope dtb = new DtBuilder();
-    dtb.nbytes(cast(uint)(len + 1), str);
-
-    // find segment
-    int seg = objc_getSegment(segment);
-
-    // create symbol
-    Symbol *s;
-    s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tstypes[TYchar]));
-    s.Sdt = dtb.finish();
-    s.Sseg = seg;
-    return s;
-}
-
-Symbol *objc_getMethVarName(const(char)* s, size_t len)
-{
-    objc_hasSymbols = true;
-
-    StringValue *sv = objc_smethVarNameTable.update(s, len);
-    Symbol *sy = cast(Symbol *) sv.ptrvalue;
-    if (!sy)
+    override void setupMethodSelector(FuncDeclaration fd, elem** esel)
     {
-        __gshared size_t classnamecount = 0;
-        char[42] namestr;
-        sprintf(namestr.ptr, "L_OBJC_METH_VAR_NAME_%lu", classnamecount++);
-        sy = objc_getCString(s, len, namestr.ptr, ObjcSegment.SEGmethname);
-        sv.ptrvalue = sy;
+        // noop
     }
-    return sy;
-}
 
-Symbol *objc_getMethVarName(Identifier *ident)
-{
-    const char* id = ident.toChars();
-    return objc_getMethVarName(id, strlen(id));
-}
-
-Symbol *objc_getMsgSend(Type ret, bool hasHiddenArg)
-{
-    if (hasHiddenArg)
+    override void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf)
     {
-        if (!objc_smsgSend_stret)
-            objc_smsgSend_stret = symbol_name("_objc_msgSend_stret", SCglobal, type_fake(TYhfunc));
-        return objc_smsgSend_stret;
+        assert(0, "Should never be called when Objective-C is not supported");
     }
-    // not sure if DMD can handle this
-    else if (ret.ty == Tcomplex80)
+
+    override void setupEp(elem* esel, elem** ep, int reverse)
     {
-         if (!objc_smsgSend_fp2ret)
-             objc_smsgSend_fp2ret = symbol_name("_objc_msgSend_fp2ret", SCglobal, type_fake(TYnfunc));
-         return objc_smsgSend_fp2ret;
+        // noop
     }
-    else if (ret.ty == Tfloat80)
+
+    override void generateModuleInfo()
     {
-        if (!objc_smsgSend_fpret)
-            objc_smsgSend_fpret = symbol_name("_objc_msgSend_fpret", SCglobal, type_fake(TYnfunc));
-        return objc_smsgSend_fpret;
+        // noop
     }
-    else
+}
+
+extern(C++) final class Supported : ObjcGlue
+{
+    extern (D) this()
     {
-        if (!objc_smsgSend)
-            objc_smsgSend = symbol_name("_objc_msgSend", SCglobal, type_fake(TYnfunc));
-        return objc_smsgSend;
+        Symbols.initialize();
     }
-    assert(0);
-}
 
-Symbol *objc_getImageInfo()
-{
-    if (objc_simageInfo)
-        return objc_simageInfo;
-
-    objc_hasSymbols = true;
-
-    scope dtb = new DtBuilder();
-    dtb.dword(0); // version
-    dtb.dword(0); // flags
-
-    objc_simageInfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
-    objc_simageInfo.Sdt = dtb.finish();
-    objc_simageInfo.Sseg = objc_getSegment(ObjcSegment.SEGimage_info);
-    outdata(objc_simageInfo);
-
-    return objc_simageInfo;
-}
-
-Symbol *objc_getModuleInfo()
-{
-    assert(!objc_smoduleInfo); // only allow once per object file
-    objc_hasSymbols = true;
-
-    scope dtb = new DtBuilder();
-
-    Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
-    symbol.Sdt = dtb.finish();
-    symbol.Sseg = objc_getSegment(ObjcSegment.SEGmodule_info);
-    outdata(symbol);
-
-    objc_getImageInfo(); // make sure we also generate image info
-
-    return objc_smoduleInfo;
-}
-
-// MARK: Module.genmoduleinfo
-
-void objc_Module_genmoduleinfo_classes()
-{
-    if (objc_hasSymbols)
-        objc_getModuleInfo();
-}
-
-// MARK: ObjcSelector
-
-Symbol *objc_getMethVarRef(const(char)* s, size_t len)
-{
-    objc_hasSymbols = true;
-
-    StringValue *sv = objc_smethVarRefTable.update(s, len);
-    Symbol *refsymbol = cast(Symbol *) sv.ptrvalue;
-    if (refsymbol == null)
+    override void setupMethodSelector(FuncDeclaration fd, elem** esel)
     {
+        if (fd && fd.selector && !*esel)
+        {
+            *esel = el_var(Symbols.getMethVarRef(fd.selector.toString()));
+        }
+    }
+
+    override void setupMethodCall(elem** ec, elem* ehidden, elem* ethis, TypeFunction tf)
+    {
+        // make objc-style "virtual" call using dispatch function
+        assert(ethis);
+        Type tret = tf.next;
+        *ec = el_var(Symbols.getMsgSend(tret, ehidden !is null));
+    }
+
+    override void setupEp(elem* esel, elem** ep, int leftToRight)
+    {
+        if (esel)
+        {
+            // using objc-style "virtual" call
+            // add hidden argument (second to 'this') for selector used by dispatch function
+            if (leftToRight)
+                *ep = el_param(esel, *ep);
+            else
+                *ep = el_param(*ep, esel);
+        }
+    }
+
+    override void generateModuleInfo()
+    {
+        if (Symbols.hasSymbols)
+            Symbols.getModuleInfo();
+    }
+}
+
+struct Segments
+{
+    enum Id
+    {
+        cString,
+        imageInfo,
+        methodName,
+        moduleInfo,
+        selectorRefs
+    }
+
+    private
+    {
+        __gshared static int[segmentData.length] segments;
+
+        __gshared static Segments[__traits(allMembers, Id).length] segmentData = [
+            Segments("__cstring", "__TEXT", S_CSTRING_LITERALS),
+            Segments("__objc_imageinfo", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP),
+            Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS),
+            Segments("__objc_classlist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP),
+            Segments("__objc_selrefs", "__DATA", S_ATTR_NO_DEAD_STRIP | S_LITERAL_POINTERS)
+        ];
+
+        const(char)* sectionName;
+        const(char)* segmentName;
+        int flags;
+        int alignment = 3;
+    }
+
+    static int opIndex(Id id)
+    {
+        auto segmentsPtr = segments.ptr;
+
+        if (segmentsPtr[id] != 0)
+            return segmentsPtr[id];
+
+        foreach (i, seg ; segmentData)
+        {
+            version (OSX)
+            {
+                segmentsPtr[i] = MachObj.getsegment(
+                    seg.sectionName,
+                    seg.segmentName,
+                    seg.alignment,
+                    seg.flags
+                );
+            }
+            else
+            {
+                // This should never happen. If the platform is not OSX an error
+                // should have occurred sooner which should have prevented the
+                // code from getting here.
+                assert(0);
+            }
+        }
+
+        return segmentsPtr[id];
+    }
+}
+
+struct Symbols
+{
+static:
+
+    private __gshared
+    {
+        bool hasSymbols_ = false;
+
+        Symbol* objc_msgSend = null;
+        Symbol* objc_msgSend_stret = null;
+        Symbol* objc_msgSend_fpret = null;
+        Symbol* objc_msgSend_fp2ret = null;
+
+        Symbol* imageInfo = null;
+        Symbol* moduleInfo = null;
+
+        StringTable* methVarNameTable = null;
+        StringTable* methVarRefTable = null;
+    }
+
+    void initialize()
+    {
+        initializeStringTables();
+    }
+
+    private void initializeStringTables()
+    {
+        alias This = typeof(this);
+
+        foreach (m ; __traits(allMembers, This))
+        {
+            static if (is(typeof(__traits(getMember, This, m)) == StringTable*))
+            {
+                __traits(getMember, This, m) = new StringTable();
+                __traits(getMember, This, m)._init();
+            }
+        }
+    }
+
+    bool hasSymbols()
+    {
+        if (hasSymbols_)
+            return true;
+
+        alias This = typeof(this);
+
+        foreach (m ; __traits(allMembers, This))
+        {
+            static if (is(typeof(__traits(getMember, This, m)) == Symbol*))
+            {
+                if (__traits(getMember, This, m) !is null)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    Symbol* getCString(const(char)[] str, const(char)* symbolName, Segments.Id segment)
+    {
+        hasSymbols_ = true;
+
         // create data
         scope dtb = new DtBuilder();
-        Symbol *sselname = objc_getMethVarName(s, len);
-        dtb.xoff(sselname, 0, TYnptr);
+        dtb.nbytes(cast(uint)(str.length + 1), str.ptr);
 
         // find segment
-        int seg = objc_getSegment(ObjcSegment.SEGselrefs);
+        auto seg = Segments[segment];
 
         // create symbol
-        __gshared size_t selcount = 0;
-        char[42] namestr;
-        sprintf(namestr.ptr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
-        refsymbol = symbol_name(namestr.ptr, SCstatic, type_fake(TYnptr));
-
-        refsymbol.Sdt = dtb.finish();
-        refsymbol.Sseg = seg;
-        outdata(refsymbol);
-        sv.ptrvalue = refsymbol;
-
-        ++selcount;
+        auto s = symbol_name(symbolName, SCstatic, type_allocn(TYarray, tstypes[TYchar]));
+        s.Sdt = dtb.finish();
+        s.Sseg = seg;
+        return s;
     }
-    return refsymbol;
-}
 
-Symbol *objc_getMethVarRef(Identifier ident)
-{
-    auto id = ident.toChars();
-    return objc_getMethVarRef(id, strlen(id));
-}
-
-// MARK: callfunc
-
-void objc_callfunc_setupMethodSelector(Type tret, FuncDeclaration fd, Type t, elem *ehidden, elem **esel)
-{
-    if (fd && fd.selector && !*esel)
+    Symbol* getMethVarName(const(char)[] name)
     {
-        *esel = el_var(objc_getMethVarRef(fd.selector.stringvalue, fd.selector.stringlen));
+        hasSymbols_ = true;
+
+        auto stringValue = methVarNameTable.update(name.ptr, name.length);
+        auto symbol = cast(Symbol*) stringValue.ptrvalue;
+
+        if (!symbol)
+        {
+            __gshared size_t classNameCount = 0;
+            char[42] nameString;
+            sprintf(nameString.ptr, "L_OBJC_METH_VAR_NAME_%lu", classNameCount++);
+            symbol = getCString(name, nameString.ptr, Segments.Id.methodName);
+            stringValue.ptrvalue = symbol;
+        }
+
+        return symbol;
     }
-}
 
-void objc_callfunc_setupMethodCall(elem **ec, elem *ehidden, elem *ethis, TypeFunction tf)
-{
-    // make objc-style "virtual" call using dispatch function
-    assert(ethis);
-    Type tret = tf.next;
-    *ec = el_var(objc_getMsgSend(tret, ehidden !is null));
-}
-
-void objc_callfunc_setupEp(elem *esel, elem **ep, int reverse)
-{
-    if (esel)
+    Symbol* getMethVarName(Identifier* ident)
     {
-        // using objc-style "virtual" call
-        // add hidden argument (second to 'this') for selector used by dispatch function
-        if (reverse)
-            *ep = el_param(esel,*ep);
+        return getMethVarName(ident.toString());
+    }
+
+    Symbol* getMsgSend(Type returnType, bool hasHiddenArgument)
+    {
+        static Symbol* setSymbol(string name)(tym_t ty = TYnfunc)
+        {
+            enum fieldName = name[1 .. $];
+
+            if (!mixin(fieldName))
+            {
+                mixin(fieldName) = symbol_name(name.ptr, name.length, SCglobal,
+                    type_fake(ty));
+            }
+
+            return mixin(fieldName);
+        }
+
+        if (hasHiddenArgument)
+            return setSymbol!("_objc_msgSend_stret")(TYhfunc);
+        // not sure if DMD can handle this
+        else if (returnType.ty == Tcomplex80)
+            return setSymbol!("_objc_msgSend_fp2ret");
+        else if (returnType.ty == Tfloat80)
+            return setSymbol!("_objc_msgSend_fpret");
         else
-            *ep = el_param(*ep,esel);
+            return setSymbol!("_objc_msgSend");
+
+        assert(0);
+    }
+
+    Symbol* getImageInfo()
+    {
+        if (imageInfo)
+            return imageInfo;
+
+        scope dtb = new DtBuilder();
+        dtb.dword(0); // version
+        dtb.dword(0); // flags
+
+        imageInfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
+        imageInfo.Sdt = dtb.finish();
+        imageInfo.Sseg = Segments[Segments.Id.imageInfo];
+        outdata(imageInfo);
+
+        return imageInfo;
+    }
+
+    Symbol* getModuleInfo()
+    {
+        assert(!moduleInfo); // only allow once per object file
+
+        scope dtb = new DtBuilder();
+
+        Symbol* symbol = symbol_name("L_OBJC_LABEL_CLASS_$", SCstatic, type_allocn(TYarray, tstypes[TYchar]));
+        symbol.Sdt = dtb.finish();
+        symbol.Sseg = Segments[Segments.Id.moduleInfo];
+        outdata(symbol);
+
+        getImageInfo(); // make sure we also generate image info
+
+        return moduleInfo;
+    }
+
+    Symbol* getMethVarRef(const(char)[] name)
+    {
+        hasSymbols_ = true;
+
+        auto stringValue = methVarRefTable.update(name.ptr, name.length);
+        auto refSymbol = cast(Symbol*) stringValue.ptrvalue;
+        if (refSymbol is null)
+        {
+            // create data
+            scope dtb = new DtBuilder();
+            auto selector = getMethVarName(name);
+            dtb.xoff(selector, 0, TYnptr);
+
+            // find segment
+            auto seg = Segments[Segments.Id.selectorRefs];
+
+            // create symbol
+            __gshared size_t selectorCount = 0;
+            char[42] nameString;
+            sprintf(nameString.ptr, "L_OBJC_SELECTOR_REFERENCES_%lu", selectorCount);
+            refSymbol = symbol_name(nameString.ptr, SCstatic, type_fake(TYnptr));
+
+            refSymbol.Sdt = dtb.finish();
+            refSymbol.Sseg = seg;
+            outdata(refSymbol);
+            stringValue.ptrvalue = refSymbol;
+
+            ++selectorCount;
+        }
+        return refSymbol;
+    }
+
+    Symbol* getMethVarRef(Identifier ident)
+    {
+        return getMethVarRef(ident.toString());
     }
 }

@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/init.d, _init.d)
+ * Documentation:  https://dlang.org/phobos/dmd_init.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/init.d
  */
 
 module dmd.init;
-
-// Online documentation: https://dlang.org/phobos/dmd_init.html
 
 import core.stdc.stdio;
 import core.checkedint;
@@ -47,7 +47,7 @@ extern (C++) class Initializer : RootObject
 {
     Loc loc;
 
-    final extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         this.loc = loc;
     }
@@ -112,7 +112,7 @@ extern (C++) final class VoidInitializer : Initializer
 {
     Type type;      // type that this will initialize to
 
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(loc);
     }
@@ -139,7 +139,7 @@ extern (C++) final class ErrorInitializer : Initializer
 {
     extern (D) this()
     {
-        super(Loc());
+        super(Loc.initial);
     }
 
     override Initializer syntaxCopy()
@@ -165,7 +165,7 @@ extern (C++) final class StructInitializer : Initializer
     Identifiers field;      // of Identifier *'s
     Initializers value;     // parallel array of Initializer *'s
 
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(loc);
     }
@@ -212,7 +212,7 @@ extern (C++) final class ArrayInitializer : Initializer
     Type type;              // type that array will be used to initialize
     bool sem;               // true if semantic() is run
 
-    extern (D) this(Loc loc)
+    extern (D) this(const ref Loc loc)
     {
         super(loc);
     }
@@ -301,7 +301,7 @@ extern (C++) final class ExpInitializer : Initializer
     Expression exp;
     bool expandTuples;
 
-    extern (D) this(Loc loc, Expression exp)
+    extern (D) this(const ref Loc loc, Expression exp)
     {
         super(loc);
         this.exp = exp;
@@ -339,21 +339,21 @@ version (all)
 
         if (e.type.ty == Terror)
             return false;
-        if (e.op == TOKnull)
+        if (e.op == TOK.null_)
             return false;
-        if (e.op == TOKstructliteral)
+        if (e.op == TOK.structLiteral)
         {
             StructLiteralExp se = cast(StructLiteralExp)e;
             return checkArray(se.elements);
         }
-        if (e.op == TOKarrayliteral)
+        if (e.op == TOK.arrayLiteral)
         {
             if (!e.type.nextOf().hasPointers())
                 return false;
             ArrayLiteralExp ae = cast(ArrayLiteralExp)e;
             return checkArray(ae.elements);
         }
-        if (e.op == TOKassocarrayliteral)
+        if (e.op == TOK.assocArrayLiteral)
         {
             AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
             if (ae.type.nextOf().hasPointers() && checkArray(ae.values))
@@ -362,10 +362,10 @@ version (all)
                 return checkArray(ae.keys);
             return false;
         }
-        if (e.op == TOKaddress)
+        if (e.op == TOK.address)
         {
             AddrExp ae = cast(AddrExp)e;
-            if (ae.e1.op == TOKstructliteral)
+            if (ae.e1.op == TOK.structLiteral)
             {
                 StructLiteralExp se = cast(StructLiteralExp)ae.e1;
                 if (!(se.stageflags & stageSearchPointers))
@@ -385,11 +385,11 @@ version (all)
         }
         if (e.type.ty == Tpointer && e.type.nextOf().ty != Tfunction)
         {
-            if (e.op == TOKsymoff) // address of a global is OK
+            if (e.op == TOK.symbolOffset) // address of a global is OK
                 return false;
-            if (e.op == TOKint64) // cast(void *)int is OK
+            if (e.op == TOK.int64) // cast(void *)int is OK
                 return false;
-            if (e.op == TOKstring) // "abc".ptr is OK
+            if (e.op == TOK.string_) // "abc".ptr is OK
                 return false;
             return true;
         }

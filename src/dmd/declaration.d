@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/declaration.d, _declaration.d)
+ * Documentation:  https://dlang.org/phobos/dmd_declaration.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/declaration.d
  */
 
 module dmd.declaration;
-
-// Online documentation: https://dlang.org/phobos/dmd_declaration.html
 
 import dmd.aggregate;
 import dmd.arraytypes;
@@ -33,7 +33,6 @@ import dmd.intrange;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
-import dmd.semantic;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
@@ -54,7 +53,7 @@ extern (C++) bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, 
         //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
         if (!ensureStaticLinkTo(s, sparent))
         {
-            error(loc, "cannot access frame pointer of %s", ad.toPrettyChars());
+            error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
             return true;
         }
     }
@@ -89,7 +88,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             ((fd.isCtorDeclaration() && var.isField()) ||
              (fd.isStaticCtorDeclaration() && !var.isField())) &&
             fd.toParent2() == var.toParent2() &&
-            (!e1 || e1.op == TOKthis))
+            (!e1 || e1.op == TOK.this_))
         {
             bool result = true;
 
@@ -99,7 +98,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             if (var.isField() && sc.fieldinit && !sc.intypeof)
             {
                 assert(e1);
-                auto mustInit = ((var.storage_class & STCnodefaultctor) != 0 ||
+                auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
                                  var.type.needsNested());
 
                 auto dim = sc.fieldinit_dim;
@@ -114,28 +113,28 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                 assert(i < dim);
                 uint fi = sc.fieldinit[i];
 
-                if (fi & CSXthis_ctor)
+                if (fi & CSX.this_ctor)
                 {
                     if (var.type.isMutable() && e1.type.isMutable())
                         result = false;
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field '%s' initialized multiple times", modStr, var.toChars());
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
                     }
                 }
-                else if (sc.noctor || (fi & CSXlabel))
+                else if (sc.noctor || (fi & CSX.label))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field '%s' initialization is not allowed in loops or after labels", modStr, var.toChars());
+                        .error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var.toChars());
                     }
                 }
 
-                sc.fieldinit[i] |= CSXthis_ctor;
+                sc.fieldinit[i] |= CSX.this_ctor;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -143,7 +142,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.fieldinit[j] = CSXthis_ctor;
+                        sc.fieldinit[j] = CSX.this_ctor;
                     }
                 }
             }
@@ -154,13 +153,13 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                 else if (sc.func.fes)
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s '%s' initialization is not allowed in foreach loop",
+                    .error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
                         MODtoChars(var.type.mod), p, var.toChars());
                 }
                 else
                 {
                     const(char)* p = var.isField() ? "field" : var.kind();
-                    .error(loc, "%s %s '%s' initialization is not allowed in nested function '%s'",
+                    .error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
                         MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
                 }
             }
@@ -183,72 +182,75 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
  */
 extern (C++) void ObjectNotFound(Identifier id)
 {
-    Type.error(Loc(), "%s not found. object.d may be incorrectly installed or corrupt.", id.toChars());
+    Type.error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();
 }
 
-enum STCundefined           = 0L;
-enum STCstatic              = (1L << 0);
-enum STCextern              = (1L << 1);
-enum STCconst               = (1L << 2);
-enum STCfinal               = (1L << 3);
-enum STCabstract            = (1L << 4);
-enum STCparameter           = (1L << 5);
-enum STCfield               = (1L << 6);
-enum STCoverride            = (1L << 7);
-enum STCauto                = (1L << 8);
-enum STCsynchronized        = (1L << 9);
-enum STCdeprecated          = (1L << 10);
-enum STCin                  = (1L << 11);   // in parameter
-enum STCout                 = (1L << 12);   // out parameter
-enum STClazy                = (1L << 13);   // lazy parameter
-enum STCforeach             = (1L << 14);   // variable for foreach loop
-//                            (1L << 15)
-enum STCvariadic            = (1L << 16);   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
-enum STCctorinit            = (1L << 17);   // can only be set inside constructor
-enum STCtemplateparameter   = (1L << 18);   // template parameter
-enum STCscope               = (1L << 19);
-enum STCimmutable           = (1L << 20);
-enum STCref                 = (1L << 21);
-enum STCinit                = (1L << 22);   // has explicit initializer
-enum STCmanifest            = (1L << 23);   // manifest constant
-enum STCnodtor              = (1L << 24);   // don't run destructor
-enum STCnothrow             = (1L << 25);   // never throws exceptions
-enum STCpure                = (1L << 26);   // pure function
-enum STCtls                 = (1L << 27);   // thread local
-enum STCalias               = (1L << 28);   // alias parameter
-enum STCshared              = (1L << 29);   // accessible from multiple threads
-enum STCgshared             = (1L << 30);   // accessible from multiple threads, but not typed as "shared"
-enum STCwild                = (1L << 31);   // for "wild" type constructor
-enum STCproperty            = (1L << 32);
-enum STCsafe                = (1L << 33);
-enum STCtrusted             = (1L << 34);
-enum STCsystem              = (1L << 35);
-enum STCctfe                = (1L << 36);   // can be used in CTFE, even if it is static
-enum STCdisable             = (1L << 37);   // for functions that are not callable
-enum STCresult              = (1L << 38);   // for result variables passed to out contracts
-enum STCnodefaultctor       = (1L << 39);   // must be set inside constructor
-enum STCtemp                = (1L << 40);   // temporary variable
-enum STCrvalue              = (1L << 41);   // force rvalue for variables
-enum STCnogc                = (1L << 42);   // @nogc
-enum STCvolatile            = (1L << 43);   // destined for volatile in the back end
-enum STCreturn              = (1L << 44);   // 'return ref' or 'return scope' for function parameters
-enum STCautoref             = (1L << 45);   // Mark for the already deduced 'auto ref' parameter
-enum STCinference           = (1L << 46);   // do attribute inference
-enum STCexptemp             = (1L << 47);   // temporary variable that has lifetime restricted to an expression
-enum STCmaybescope          = (1L << 48);   // parameter might be 'scope'
-enum STCscopeinferred       = (1L << 49);   // 'scope' has been inferred and should not be part of mangling
-enum STCfuture              = (1L << 50);   // introducing new base class function
-enum STClocal               = (1L << 51);   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+enum STC : long
+{
+    undefined_          = 0L,
+    static_             = (1L << 0),
+    extern_             = (1L << 1),
+    const_              = (1L << 2),
+    final_              = (1L << 3),
+    abstract_           = (1L << 4),
+    parameter           = (1L << 5),
+    field               = (1L << 6),
+    override_           = (1L << 7),
+    auto_               = (1L << 8),
+    synchronized_       = (1L << 9),
+    deprecated_         = (1L << 10),
+    in_                 = (1L << 11),   // in parameter
+    out_                = (1L << 12),   // out parameter
+    lazy_               = (1L << 13),   // lazy parameter
+    foreach_            = (1L << 14),   // variable for foreach loop
+                          //(1L << 15)
+    variadic            = (1L << 16),   // the 'variadic' parameter in: T foo(T a, U b, V variadic...)
+    ctorinit            = (1L << 17),   // can only be set inside constructor
+    templateparameter   = (1L << 18),   // template parameter
+    scope_              = (1L << 19),
+    immutable_          = (1L << 20),
+    ref_                = (1L << 21),
+    init                = (1L << 22),   // has explicit initializer
+    manifest            = (1L << 23),   // manifest constant
+    nodtor              = (1L << 24),   // don't run destructor
+    nothrow_            = (1L << 25),   // never throws exceptions
+    pure_               = (1L << 26),   // pure function
+    tls                 = (1L << 27),   // thread local
+    alias_              = (1L << 28),   // alias parameter
+    shared_             = (1L << 29),   // accessible from multiple threads
+    gshared             = (1L << 30),   // accessible from multiple threads, but not typed as "shared"
+    wild                = (1L << 31),   // for "wild" type constructor
+    property            = (1L << 32),
+    safe                = (1L << 33),
+    trusted             = (1L << 34),
+    system              = (1L << 35),
+    ctfe                = (1L << 36),   // can be used in CTFE, even if it is static
+    disable             = (1L << 37),   // for functions that are not callable
+    result              = (1L << 38),   // for result variables passed to out contracts
+    nodefaultctor       = (1L << 39),   // must be set inside constructor
+    temp                = (1L << 40),   // temporary variable
+    rvalue              = (1L << 41),   // force rvalue for variables
+    nogc                = (1L << 42),   // @nogc
+    volatile_           = (1L << 43),   // destined for volatile in the back end
+    return_             = (1L << 44),   // 'return ref' or 'return scope' for function parameters
+    autoref             = (1L << 45),   // Mark for the already deduced 'auto ref' parameter
+    inference           = (1L << 46),   // do attribute inference
+    exptemp             = (1L << 47),   // temporary variable that has lifetime restricted to an expression
+    maybescope          = (1L << 48),   // parameter might be 'scope'
+    scopeinferred       = (1L << 49),   // 'scope' has been inferred and should not be part of mangling
+    future              = (1L << 50),   // introducing new base class function
+    local               = (1L << 51),   // do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 
-enum STC_TYPECTOR = (STCconst | STCimmutable | STCshared | STCwild);
-enum STC_FUNCATTR = (STCref | STCnothrow | STCnogc | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem);
+    TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
+    FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.safe | STC.trusted | STC.system),
+}
 
 extern (C++) __gshared const(StorageClass) STCStorageClass =
-    (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | STCabstract | STCsynchronized |
-     STCdeprecated | STCfuture | STCoverride | STClazy | STCalias | STCout | STCin | STCmanifest |
-     STCimmutable | STCshared | STCwild | STCnothrow | STCnogc | STCpure | STCref | STCreturn | STCtls | STCgshared |
-     STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable | STClocal);
+    (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.const_ | STC.final_ | STC.abstract_ | STC.synchronized_ |
+     STC.deprecated_ | STC.future | STC.override_ | STC.lazy_ | STC.alias_ | STC.out_ | STC.in_ | STC.manifest |
+     STC.immutable_ | STC.shared_ | STC.wild | STC.nothrow_ | STC.nogc | STC.pure_ | STC.ref_ | STC.return_ | STC.tls | STC.gshared |
+     STC.property | STC.safe | STC.trusted | STC.system | STC.disable | STC.local);
 
 struct Match
 {
@@ -276,9 +278,9 @@ extern (C++) abstract class Declaration : Dsymbol
     final extern (D) this(Identifier id)
     {
         super(id);
-        storage_class = STCundefined;
-        protection = Prot(PROTundefined);
-        linkage = LINKdefault;
+        storage_class = STC.undefined_;
+        protection = Prot(Prot.Kind.undefined);
+        linkage = LINK.default_;
     }
 
     override const(char)* kind() const
@@ -286,10 +288,56 @@ extern (C++) abstract class Declaration : Dsymbol
         return "declaration";
     }
 
-    override final d_uns64 size(Loc loc)
+    override final d_uns64 size(const ref Loc loc)
     {
         assert(type);
         return type.size();
+    }
+
+    /**
+     * Issue an error if an attempt to call a disabled method is made
+     *
+     * If the declaration is disabled but inside a disabled function,
+     * returns `true` but do not issue an error message.
+     *
+     * Params:
+     *   loc = Location information of the call
+     *   sc  = Scope in which the call occurs
+     *   isAliasedDeclaration = if `true` searches overload set
+     *
+     * Returns:
+     *   `true` if this `Declaration` is `@disable`d, `false` otherwise.
+     */
+    final bool checkDisabled(Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+    {
+        if (storage_class & STC.disable)
+        {
+            if (!(sc.func && sc.func.storage_class & STC.disable))
+            {
+                auto p = toParent();
+                if (p && isPostBlitDeclaration())
+                    p.error(loc, "is not copyable because it is annotated with `@disable`");
+                else
+                {
+                    // if the function is @disabled, maybe there
+                    // is an overload in the overload set that isn't
+                    if (isAliasedDeclaration)
+                    {
+                        FuncDeclaration fd = isFuncDeclaration();
+                        if (fd)
+                        {
+                            for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
+                                if (!(ovl.storage_class & STC.disable))
+                                    return false;
+                        }
+                    }
+                    error(loc, "is not callable because it is annotated with `@disable`");
+                }
+            }
+            return true;
+        }
+
+        return false;
     }
 
     /*************************************
@@ -306,11 +354,25 @@ extern (C++) abstract class Declaration : Dsymbol
         {
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
-                if (scx.func == parent && (scx.flags & SCOPEcontract))
+                if (scx.func == parent && (scx.flags & SCOPE.contract))
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
                     if (!flag)
-                        error(loc, "cannot modify %s '%s' in contract", s, toChars());
+                        error(loc, "cannot modify %s `%s` in contract", s, toChars());
+                    return 2; // do not report type related errors
+                }
+            }
+        }
+
+        if (e1 && e1.op == TOK.this_ && isField())
+        {
+            VarDeclaration vthis = (cast(ThisExp)e1).var;
+            for (Scope* scx = sc; scx; scx = scx.enclosing)
+            {
+                if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
+                {
+                    if (!flag)
+                        error(loc, "cannot modify parameter 'this' in contract");
                     return 2; // do not report type related errors
                 }
             }
@@ -319,14 +381,14 @@ extern (C++) abstract class Declaration : Dsymbol
         if (v && (isCtorinit() || isField()))
         {
             // It's only modifiable if inside the right constructor
-            if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
+            if ((storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
                 return 2;
             return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
         }
         return 1;
     }
 
-    override final Dsymbol search(Loc loc, Identifier ident, int flags = SearchLocalsOnly)
+    override final Dsymbol search(const ref Loc loc, Identifier ident, int flags = SearchLocalsOnly)
     {
         Dsymbol s = Dsymbol.search(loc, ident, flags);
         if (!s && type)
@@ -338,9 +400,9 @@ extern (C++) abstract class Declaration : Dsymbol
         return s;
     }
 
-    final bool isStatic()
+    final bool isStatic() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCstatic) != 0;
+        return (storage_class & STC.static_) != 0;
     }
 
     bool isDelete()
@@ -363,97 +425,102 @@ extern (C++) abstract class Declaration : Dsymbol
         return false;
     }
 
-    final bool isCtorinit()
+    final bool isCtorinit() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCctorinit) != 0;
+        return (storage_class & STC.ctorinit) != 0;
     }
 
-    final bool isFinal()
+    final bool isFinal() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCfinal) != 0;
+        return (storage_class & STC.final_) != 0;
     }
 
     bool isAbstract()
     {
-        return (storage_class & STCabstract) != 0;
+        return (storage_class & STC.abstract_) != 0;
     }
 
-    final bool isConst()
+    final bool isConst() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCconst) != 0;
+        return (storage_class & STC.const_) != 0;
     }
 
-    final bool isImmutable()
+    final bool isImmutable() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCimmutable) != 0;
+        return (storage_class & STC.immutable_) != 0;
     }
 
-    final bool isWild()
+    final bool isWild() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCwild) != 0;
+        return (storage_class & STC.wild) != 0;
     }
 
-    final bool isAuto()
+    final bool isAuto() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCauto) != 0;
+        return (storage_class & STC.auto_) != 0;
     }
 
-    final bool isScope()
+    final bool isScope() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCscope) != 0;
+        return (storage_class & STC.scope_) != 0;
     }
 
-    final bool isSynchronized()
+    final bool isSynchronized() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCsynchronized) != 0;
+        return (storage_class & STC.synchronized_) != 0;
     }
 
-    final bool isParameter()
+    final bool isParameter() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCparameter) != 0;
+        return (storage_class & STC.parameter) != 0;
     }
 
-    override final bool isDeprecated()
+    override final bool isDeprecated() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCdeprecated) != 0;
+        return (storage_class & STC.deprecated_) != 0;
     }
 
-    final bool isOverride()
+    final bool isDisabled() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCoverride) != 0;
+        return (storage_class & STC.disable) != 0;
     }
 
-    final bool isResult()
+    final bool isOverride() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCresult) != 0;
+        return (storage_class & STC.override_) != 0;
     }
 
-    final bool isField()
+    final bool isResult() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCfield) != 0;
+        return (storage_class & STC.result) != 0;
     }
 
-    final bool isIn()
+    final bool isField() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCin) != 0;
+        return (storage_class & STC.field) != 0;
     }
 
-    final bool isOut()
+    final bool isIn() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCout) != 0;
+        return (storage_class & STC.in_) != 0;
     }
 
-    final bool isRef()
+    final bool isOut() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCref) != 0;
+        return (storage_class & STC.out_) != 0;
     }
 
-    final bool isFuture()
+    final bool isRef() const pure nothrow @nogc @safe
     {
-        return (storage_class & STCfuture) != 0;
+        return (storage_class & STC.ref_) != 0;
     }
 
-    override final Prot prot()
+    final bool isFuture() const pure nothrow @nogc @safe
+    {
+        return (storage_class & STC.future) != 0;
+    }
+
+    override final Prot prot() pure nothrow @nogc @safe
     {
         return protection;
     }
@@ -533,7 +600,7 @@ extern (C++) final class TupleDeclaration : Declaration
                     const len = buf.offset;
                     const name = cast(const(char)*)buf.extractData();
                     auto id = Identifier.idPool(name, len);
-                    auto arg = new Parameter(STCin, t, id, null);
+                    auto arg = new Parameter(STC.in_, t, id, null);
                 }
                 else
                 {
@@ -546,7 +613,7 @@ extern (C++) final class TupleDeclaration : Declaration
 
             tupletype = new TypeTuple(args);
             if (hasdeco)
-                return tupletype.typeSemantic(Loc(), null);
+                return tupletype.typeSemantic(Loc.initial, null);
         }
         return tupletype;
     }
@@ -575,7 +642,7 @@ extern (C++) final class TupleDeclaration : Declaration
             if (o.dyncast() == DYNCAST.expression)
             {
                 Expression e = cast(Expression)o;
-                if (e.op == TOKdsymbol)
+                if (e.op == TOK.dSymbol)
                 {
                     DsymbolExp ve = cast(DsymbolExp)e;
                     Declaration d = ve.s.isDeclaration();
@@ -663,7 +730,7 @@ extern (C++) final class AliasDeclaration : Declaration
          *  simple Overload class (an array) and then later have that resolve
          *  all collisions.
          */
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASS.semanticdone)
         {
             /* Semantic analysis is already finished, and the aliased entity
              * is not overloadable.
@@ -801,7 +868,7 @@ extern (C++) final class AliasDeclaration : Declaration
             return aliassym;
         }
 
-        if (semanticRun >= PASSsemanticdone)
+        if (semanticRun >= PASS.semanticdone)
         {
             // semantic is already done.
 
@@ -847,7 +914,7 @@ extern (C++) final class AliasDeclaration : Declaration
     override bool isOverloadable()
     {
         // assume overloadable until alias is resolved
-        return semanticRun < PASSsemanticdone ||
+        return semanticRun < PASS.semanticdone ||
             aliassym && aliassym.isOverloadable();
     }
 
@@ -1012,7 +1079,7 @@ extern (C++) class VarDeclaration : Declaration
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
 
-    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STCundefined)
+    final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass storage_class = STC.undefined_)
     {
         super(id);
         //printf("VarDeclaration('%s')\n", id.toChars());
@@ -1057,7 +1124,7 @@ extern (C++) class VarDeclaration : Declaration
                 RootObject o = (*v2.objects)[i];
                 assert(o.dyncast() == DYNCAST.expression);
                 Expression e = cast(Expression)o;
-                assert(e.op == TOKdsymbol);
+                assert(e.op == TOK.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
                 se.s.setFieldOffset(ad, poffset, isunion);
             }
@@ -1066,7 +1133,7 @@ extern (C++) class VarDeclaration : Declaration
 
         if (!isField())
             return;
-        assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
+        assert(!(storage_class & (STC.static_ | STC.extern_ | STC.parameter | STC.tls)));
 
         //printf("+VarDeclaration::setFieldOffset(ad = %s) %s\n", ad.toChars(), toChars());
 
@@ -1091,7 +1158,7 @@ extern (C++) class VarDeclaration : Declaration
 
         // Check for forward referenced types which will fail the size() call
         Type t = type.toBasetype();
-        if (storage_class & STCref)
+        if (storage_class & STC.ref_)
         {
             // References are the size of a pointer
             t = Type.tvoidptr;
@@ -1135,21 +1202,22 @@ extern (C++) class VarDeclaration : Declaration
         return "variable";
     }
 
-    override final AggregateDeclaration isThis()
+    override final inout(AggregateDeclaration) isThis() inout
     {
-        AggregateDeclaration ad = null;
-        if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe)))
+        if (!(storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.templateparameter | STC.tls | STC.gshared | STC.ctfe)))
         {
-            for (Dsymbol s = this; s; s = s.parent)
+            /* The casting is necessary because `s = s.parent` is otherwise rejected
+             */
+            for (auto s = cast(Dsymbol)this; s; s = s.parent)
             {
-                ad = s.isMember();
+                auto ad = (cast(inout)s).isMember();
                 if (ad)
-                    break;
+                    return ad;
                 if (!s.parent || !s.parent.isTemplateMixin())
                     break;
             }
         }
-        return ad;
+        return null;
     }
 
     override final bool needThis()
@@ -1160,12 +1228,12 @@ extern (C++) class VarDeclaration : Declaration
 
     override final bool isExport()
     {
-        return protection.kind == PROTexport;
+        return protection.kind == Prot.Kind.export_;
     }
 
     override final bool isImportedSymbol()
     {
-        if (protection.kind == PROTexport && !_init && (storage_class & STCstatic || parent.isModule()))
+        if (protection.kind == Prot.Kind.export_ && !_init && (storage_class & STC.static_ || parent.isModule()))
             return true;
         return false;
     }
@@ -1180,7 +1248,7 @@ extern (C++) class VarDeclaration : Declaration
         {
             printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
             printf("%llx, isModule: %p, isTemplateInstance: %p, isNspace: %p\n",
-                   storage_class & (STCstatic | STCconst), parent.isModule(), parent.isTemplateInstance(), parent.isNspace());
+                   storage_class & (STC.static_ | STC.const_), parent.isModule(), parent.isTemplateInstance(), parent.isNspace());
             printf("parent = '%s'\n", parent.toChars());
         }
 
@@ -1194,12 +1262,12 @@ extern (C++) class VarDeclaration : Declaration
             }
 
             Dsymbol parent = toParent();
-            if (!parent && !(storage_class & STCstatic))
+            if (!parent && !(storage_class & STC.static_))
             {
                 error("forward referenced");
                 type = Type.terror;
             }
-            else if (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
+            else if (storage_class & (STC.static_ | STC.extern_ | STC.tls | STC.gshared) ||
                 parent.isModule() || parent.isTemplateInstance() || parent.isNspace())
             {
                 isdataseg = 1; // It is in the DataSegment
@@ -1217,7 +1285,7 @@ extern (C++) class VarDeclaration : Declaration
         /* Data defaults to being thread-local. It is not thread-local
          * if it is immutable, const or shared.
          */
-        bool i = isDataseg() && !(storage_class & (STCimmutable | STCconst | STCshared | STCgshared));
+        bool i = isDataseg() && !(storage_class & (STC.immutable_ | STC.const_ | STC.shared_ | STC.gshared));
         //printf("\treturn %d\n", i);
         return i;
     }
@@ -1227,7 +1295,7 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool isCTFE()
     {
-        return (storage_class & STCctfe) != 0; // || !isDataseg();
+        return (storage_class & STC.ctfe) != 0; // || !isDataseg();
     }
 
     final bool isOverlappedWith(VarDeclaration v)
@@ -1250,7 +1318,7 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool canTakeAddressOf()
     {
-        return !(storage_class & STCmanifest);
+        return !(storage_class & STC.manifest);
     }
 
     /******************************************
@@ -1259,7 +1327,7 @@ extern (C++) class VarDeclaration : Declaration
     final bool needsScopeDtor()
     {
         //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
-        return edtor && !(storage_class & STCnodtor);
+        return edtor && !(storage_class & STC.nodtor);
     }
 
     /******************************************
@@ -1270,8 +1338,8 @@ extern (C++) class VarDeclaration : Declaration
     {
         //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
-        // Destruction of STCfield's is handled by buildDtor()
-        if (storage_class & (STCnodtor | STCref | STCout | STCfield))
+        // Destruction of STC.field's is handled by buildDtor()
+        if (storage_class & (STC.nodtor | STC.ref_ | STC.out_ | STC.field))
         {
             return null;
         }
@@ -1334,7 +1402,7 @@ extern (C++) class VarDeclaration : Declaration
             return e;
         }
         // Destructors for classes
-        if (storage_class & (STCauto | STCscope) && !(storage_class & STCparameter))
+        if (storage_class & (STC.auto_ | STC.scope_) && !(storage_class & STC.parameter))
         {
             for (ClassDeclaration cd = type.isClassHandle(); cd; cd = cd.baseClass)
             {
@@ -1343,7 +1411,7 @@ extern (C++) class VarDeclaration : Declaration
                  * could be set.
                  */
                 //if (cd.isInterfaceDeclaration())
-                //    error("interface %s cannot be scope", cd.toChars());
+                //    error("interface `%s` cannot be scope", cd.toChars());
 
                 // Destroying C++ scope classes crashes currently. Since C++ class dtors are not currently supported, simply do not run dtors for them.
                 // See https://issues.dlang.org/show_bug.cgi?id=13182
@@ -1400,12 +1468,12 @@ extern (C++) class VarDeclaration : Declaration
      */
     final Expression expandInitializer(Loc loc)
     {
-        assert((storage_class & STCmanifest) && _init);
+        assert((storage_class & STC.manifest) && _init);
 
         auto e = getConstInitializer();
         if (!e)
         {
-            .error(loc, "cannot make expression out of initializer for %s", toChars());
+            .error(loc, "cannot make expression out of initializer for `%s`", toChars());
             return new ErrorExp();
         }
 
@@ -1432,11 +1500,11 @@ extern (C++) class VarDeclaration : Declaration
     final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
-        if (sc.intypeof == 1 || (sc.flags & SCOPEctfe))
+        if (sc.intypeof == 1 || (sc.flags & SCOPE.ctfe))
             return false;
         if (!parent || parent == sc.parent)
             return false;
-        if (isDataseg() || (storage_class & STCmanifest))
+        if (isDataseg() || (storage_class & STC.manifest))
             return false;
 
         // The current function
@@ -1474,7 +1542,7 @@ extern (C++) class VarDeclaration : Declaration
 
         //printf("\tfdv = %s\n", fdv.toChars());
         //printf("\tfdthis = %s\n", fdthis.toChars());
-        if (loc.filename)
+        if (loc.isValid())
         {
             int lv = fdthis.getLevel(loc, sc, fdv);
             if (lv == -2) // error
@@ -1482,16 +1550,21 @@ extern (C++) class VarDeclaration : Declaration
         }
 
         // Add this to fdv.closureVars[] if not already there
-        for (size_t i = 0; 1; i++)
+        if (!sc.intypeof && !(sc.flags & SCOPE.compile) &&
+            // https://issues.dlang.org/show_bug.cgi?id=17605
+            (fdv.flags & FUNCFLAG.compileTimeOnly || !(fdthis.flags & FUNCFLAG.compileTimeOnly))
+           )
         {
-            if (i == fdv.closureVars.dim)
+            for (size_t i = 0; 1; i++)
             {
-                if (!sc.intypeof && !(sc.flags & SCOPEcompile))
+                if (i == fdv.closureVars.dim)
+                {
                     fdv.closureVars.push(this);
-                break;
+                    break;
+                }
+                if (fdv.closureVars[i] == this)
+                    break;
             }
-            if (fdv.closureVars[i] == this)
-                break;
         }
 
         //printf("fdthis is %s\n", fdthis.toChars());
@@ -1500,7 +1573,7 @@ extern (C++) class VarDeclaration : Declaration
         // https://issues.dlang.org/show_bug.cgi?id=3326
         if (ident == Id.dollar)
         {
-            .error(loc, "cannnot use $ inside a function literal");
+            .error(loc, "cannnot use `$` inside a function literal");
             return true;
         }
         if (ident == Id.withSym) // https://issues.dlang.org/show_bug.cgi?id=1759
@@ -1508,7 +1581,7 @@ extern (C++) class VarDeclaration : Declaration
             ExpInitializer ez = _init.isExpInitializer();
             assert(ez);
             Expression e = ez.exp;
-            if (e.op == TOKconstruct || e.op == TOKblit)
+            if (e.op == TOK.construct || e.op == TOK.blit)
                 e = (cast(AssignExp)e).e2;
             return lambdaCheckForNestedRef(e, sc);
         }
@@ -1564,7 +1637,7 @@ extern (C++) final class SymbolDeclaration : Declaration
         super(dsym.ident);
         this.loc = loc;
         this.dsym = dsym;
-        storage_class |= STCconst;
+        storage_class |= STC.const_;
     }
 
     // Eliminate need for dynamic_cast
@@ -1587,11 +1660,11 @@ extern (C++) class TypeInfoDeclaration : VarDeclaration
 
     final extern (D) this(Type tinfo)
     {
-        super(Loc(), Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
+        super(Loc.initial, Type.dtypeinfo.type, tinfo.getTypeInfoIdent(), null);
         this.tinfo = tinfo;
-        storage_class = STCstatic | STCgshared;
-        protection = Prot(PROTpublic);
-        linkage = LINKc;
+        storage_class = STC.static_ | STC.gshared;
+        protection = Prot(Prot.Kind.public_);
+        linkage = LINK.c;
         alignment = Target.ptrsize;
     }
 
@@ -2034,7 +2107,7 @@ extern (C++) final class ThisDeclaration : VarDeclaration
     extern (D) this(Loc loc, Type t)
     {
         super(loc, t, Id.This, null);
-        storage_class |= STCnodtor;
+        storage_class |= STC.nodtor;
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

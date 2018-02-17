@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/optimize.d, _optimize.d)
+ * Documentation:  https://dlang.org/phobos/dmd_optimize.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/optimize.d
  */
 
 module dmd.optimize;
-
-// Online documentation: https://dlang.org/phobos/dmd_optimize.html
 
 import core.stdc.stdio;
 
@@ -27,7 +27,6 @@ import dmd.init;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.sideeffect;
-import dmd.semantic;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -43,64 +42,84 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
 {
     //printf("expandVar(result = %d, v = %p, %s)\n", result, v, v ? v.toChars() : "null");
 
+    /********
+     * Params:
+     *  e = initializer expression
+     */
+    Expression initializerReturn(Expression e)
+    {
+        if (e.type != v.type)
+        {
+            e = e.castTo(null, v.type);
+        }
+        v.inuse++;
+        e = e.optimize(result);
+        v.inuse--;
+        //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
+        return e;
+    }
+
+    static Expression nullReturn()
+    {
+        return null;
+    }
+
     static Expression errorReturn()
     {
         return new ErrorExp();
     }
 
-    Expression e = null;
     if (!v)
-        return e;
-    if (!v.originalType && v.semanticRun < PASSsemanticdone) // semantic() not yet run
+        return nullReturn();
+    if (!v.originalType && v.semanticRun < PASS.semanticdone) // semantic() not yet run
         v.dsymbolSemantic(null);
-    if (v.isConst() || v.isImmutable() || v.storage_class & STCmanifest)
+    if (v.type &&
+        (v.isConst() || v.isImmutable() || v.storage_class & STC.manifest))
     {
-        if (!v.type)
-        {
-            return e;
-        }
         Type tb = v.type.toBasetype();
-        if (v.storage_class & STCmanifest || v.type.toBasetype().isscalar() || ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
+        if (v.storage_class & STC.manifest ||
+            tb.isscalar() ||
+            ((result & WANTexpand) && (tb.ty != Tsarray && tb.ty != Tstruct)))
         {
             if (v._init)
             {
                 if (v.inuse)
                 {
-                    if (v.storage_class & STCmanifest)
+                    if (v.storage_class & STC.manifest)
                     {
                         v.error("recursive initialization of constant");
                         return errorReturn();
                     }
-                    goto L1;
+                    return nullReturn();
                 }
                 Expression ei = v.getConstInitializer();
                 if (!ei)
                 {
-                    if (v.storage_class & STCmanifest)
+                    if (v.storage_class & STC.manifest)
                     {
-                        v.error("enum cannot be initialized with %s", v._init.toChars());
+                        v.error("enum cannot be initialized with `%s`", v._init.toChars());
                         return errorReturn();
                     }
-                    goto L1;
+                    return nullReturn();
                 }
-                if (ei.op == TOKconstruct || ei.op == TOKblit)
+                if (ei.op == TOK.construct || ei.op == TOK.blit)
                 {
                     AssignExp ae = cast(AssignExp)ei;
                     ei = ae.e2;
                     if (ei.isConst() == 1)
                     {
                     }
-                    else if (ei.op == TOKstring)
+                    else if (ei.op == TOK.string_)
                     {
                         // https://issues.dlang.org/show_bug.cgi?id=14459
                         // Do not constfold the string literal
                         // if it's typed as a C string, because the value expansion
                         // will drop the pointer identity.
                         if (!(result & WANTexpand) && ei.type.toBasetype().ty == Tpointer)
-                            goto L1;
+                            return nullReturn();
                     }
                     else
-                        goto L1;
+                        return nullReturn();
                     if (ei.type == v.type)
                     {
                         // const variable initialized with const expression
@@ -112,56 +131,54 @@ extern (C++) Expression expandVar(int result, VarDeclaration v)
                         ei = ei.expressionSemantic(null);
                     }
                     else
-                        goto L1;
+                        return nullReturn();
                 }
-                else if (!(v.storage_class & STCmanifest) && ei.isConst() != 1 && ei.op != TOKstring && ei.op != TOKaddress)
+                else if (!(v.storage_class & STC.manifest) &&
+                         ei.isConst() != 1 &&
+                         ei.op != TOK.string_ &&
+                         ei.op != TOK.address)
                 {
-                    goto L1;
+                    return nullReturn();
                 }
+
                 if (!ei.type)
                 {
-                    goto L1;
+                    return nullReturn();
                 }
                 else
                 {
                     // Should remove the copy() operation by
                     // making all mods to expressions copy-on-write
-                    e = ei.copy();
+                    return initializerReturn(ei.copy());
                 }
             }
             else
             {
+                // v does not have an initializer
                 version (all)
                 {
-                    goto L1;
+                    return nullReturn();
                 }
                 else
                 {
                     // BUG: what if const is initialized in constructor?
-                    e = v.type.defaultInit();
+                    auto e = v.type.defaultInit();
                     e.loc = e1.loc;
+                    return initializerReturn(e);
                 }
             }
-            if (e.type != v.type)
-            {
-                e = e.castTo(null, v.type);
-            }
-            v.inuse++;
-            e = e.optimize(result);
-            v.inuse--;
+            assert(0);
         }
     }
-L1:
-    //if (e) printf("\te = %p, %s, e.type = %d, %s\n", e, e.toChars(), e.type.ty, e.type.toChars());
-    return e;
+    return nullReturn();
 }
 
-extern (C++) Expression fromConstInitializer(int result, Expression e1)
+private Expression fromConstInitializer(int result, Expression e1)
 {
     //printf("fromConstInitializer(result = %x, %s)\n", result, e1.toChars());
     //static int xx; if (xx++ == 10) assert(0);
     Expression e = e1;
-    if (e1.op == TOKvar)
+    if (e1.op == TOK.variable)
     {
         VarExp ve = cast(VarExp)e1;
         VarDeclaration v = ve.var.isVarDeclaration();
@@ -171,7 +188,7 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
             // If it is a comma expression involving a declaration, we mustn't
             // perform a copy -- we'd get two declarations of the same variable.
             // See bugzilla 4465.
-            if (e.op == TOKcomma && (cast(CommaExp)e).e1.op == TOKdeclaration)
+            if (e.op == TOK.comma && (cast(CommaExp)e).e1.op == TOK.declaration)
                 e = e1;
             else if (e.type != e1.type && e1.type && e1.type.ty != Tident)
             {
@@ -189,18 +206,75 @@ extern (C++) Expression fromConstInitializer(int result, Expression e1)
     return e;
 }
 
+/* It is possible for constant folding to change an array expression of
+ * unknown length, into one where the length is known.
+ * If the expression 'arr' is a literal, set lengthVar to be its length.
+ */
+package void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
+{
+    if (!lengthVar)
+        return;
+    if (lengthVar._init && !lengthVar._init.isVoidInitializer())
+        return; // we have previously calculated the length
+    size_t len;
+    if (arr.op == TOK.string_)
+        len = (cast(StringExp)arr).len;
+    else if (arr.op == TOK.arrayLiteral)
+        len = (cast(ArrayLiteralExp)arr).elements.dim;
+    else
+    {
+        Type t = arr.type.toBasetype();
+        if (t.ty == Tsarray)
+            len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+        else
+            return; // we don't know the length yet
+    }
+    Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+    lengthVar._init = new ExpInitializer(Loc.initial, dollar);
+    lengthVar.storage_class |= STC.static_ | STC.const_;
+}
+
+/* Same as above, but determines the length from 'type'. */
+package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
+{
+    if (!lengthVar)
+        return;
+    if (lengthVar._init && !lengthVar._init.isVoidInitializer())
+        return; // we have previously calculated the length
+    size_t len;
+    Type t = type.toBasetype();
+    if (t.ty == Tsarray)
+        len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
+    else
+        return; // we don't know the length yet
+    Expression dollar = new IntegerExp(Loc.initial, len, Type.tsize_t);
+    lengthVar._init = new ExpInitializer(Loc.initial, dollar);
+    lengthVar.storage_class |= STC.static_ | STC.const_;
+}
+
+/*********************************
+ * Constant fold an Expression.
+ * Params:
+ *      e = expression to const fold; this may get modified in-place
+ *      result = WANTvalue, WANTexpand, or both
+ *      keepLvalue = `e` is an lvalue, and keep it as an lvalue since it is
+ *                   an argument to a `ref` or `out` parameter, or the operand of `&` operator
+ * Returns:
+ *      Constant folded version of `e`
+ */
 extern (C++) Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
     extern (C++) final class OptimizeVisitor : Visitor
     {
         alias visit = Visitor.visit;
-    public:
-        int result;
-        bool keepLvalue;
-        Expression ret;
 
-        extern (D) this(int result, bool keepLvalue)
+        Expression ret;
+        private const int result;
+        private const bool keepLvalue;
+
+        extern (D) this(Expression e, int result, bool keepLvalue)
         {
+            this.ret = e;               // default result is original expression
             this.result = result;
             this.keepLvalue = keepLvalue;
         }
@@ -214,8 +288,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             if (!e)
                 return false;
-            Expression ex = e.optimize(flags, keepLvalue);
-            if (ex.op == TOKerror)
+            Expression ex = Expression_optimize(e, flags, keepLvalue);
+            if (ex.op == TOK.error)
             {
                 ret = ex; // store error result
                 return true;
@@ -236,7 +310,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             expOptimize(e.e1, flags);
             expOptimize(e.e2, flags);
-            return ret.op == TOKerror;
+            return ret.op == TOK.error;
         }
 
         override void visit(Expression e)
@@ -249,7 +323,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (keepLvalue)
             {
                 VarDeclaration v = e.var.isVarDeclaration();
-                if (v && !(v.storage_class & STCmanifest))
+                if (v && !(v.storage_class & STC.manifest))
                     return;
             }
             ret = fromConstInitializer(result, e);
@@ -349,7 +423,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("AddrExp::optimize(result = %d) %s\n", result, e.toChars());
             /* Rewrite &(a,b) as (a,&b)
              */
-            if (e.e1.op == TOKcomma)
+            if (e.e1.op == TOK.comma)
             {
                 CommaExp ce = cast(CommaExp)e.e1;
                 auto ae = new AddrExp(e.loc, ce.e2);
@@ -362,7 +436,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (expOptimize(e.e1, result, true))
                 return;
             // Convert &*ex to ex
-            if (e.e1.op == TOKstar)
+            if (e.e1.op == TOK.star)
             {
                 Expression ex = (cast(PtrExp)e.e1).e1;
                 if (e.type.equals(ex.type))
@@ -374,7 +448,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
                 return;
             }
-            if (e.e1.op == TOKvar)
+            if (e.e1.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)e.e1;
                 if (!ve.var.isOut() && !ve.var.isRef() && !ve.var.isImportedSymbol())
@@ -384,11 +458,11 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     return;
                 }
             }
-            if (e.e1.op == TOKindex)
+            if (e.e1.op == TOK.index)
             {
                 // Convert &array[n] to &array+n
                 IndexExp ae = cast(IndexExp)e.e1;
-                if (ae.e2.op == TOKint64 && ae.e1.op == TOKvar)
+                if (ae.e2.op == TOK.int64 && ae.e1.op == TOK.variable)
                 {
                     sinteger_t index = ae.e2.toInteger();
                     VarExp ve = cast(VarExp)ae.e1;
@@ -426,7 +500,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             // Convert *&ex to ex
             // But only if there is no type punning involved
-            if (e.e1.op == TOKaddress)
+            if (e.e1.op == TOK.address)
             {
                 Expression ex = (cast(AddrExp)e.e1).e1;
                 if (e.type.equals(ex.type))
@@ -440,7 +514,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (keepLvalue)
                 return;
             // Constant fold *(&structliteral + offset)
-            if (e.e1.op == TOKadd)
+            if (e.e1.op == TOK.add)
             {
                 Expression ex = Ptr(e.type, e.e1).copy();
                 if (!CTFEExp.isCantExp(ex))
@@ -449,12 +523,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     return;
                 }
             }
-            if (e.e1.op == TOKsymoff)
+            if (e.e1.op == TOK.symbolOffset)
             {
                 SymOffExp se = cast(SymOffExp)e.e1;
                 VarDeclaration v = se.var.isVarDeclaration();
                 Expression ex = expandVar(result, v);
-                if (ex && ex.op == TOKstructliteral)
+                if (ex && ex.op == TOK.structLiteral)
                 {
                     StructLiteralExp sle = cast(StructLiteralExp)ex;
                     ex = sle.getField(e.type, cast(uint)se.offset);
@@ -475,13 +549,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (keepLvalue)
                 return;
             Expression ex = e.e1;
-            if (ex.op == TOKvar)
+            if (ex.op == TOK.variable)
             {
                 VarExp ve = cast(VarExp)ex;
                 VarDeclaration v = ve.var.isVarDeclaration();
                 ex = expandVar(result, v);
             }
-            if (ex && ex.op == TOKstructliteral)
+            if (ex && ex.op == TOK.structLiteral)
             {
                 StructLiteralExp sle = cast(StructLiteralExp)ex;
                 VarDeclaration vf = e.var.isVarDeclaration();
@@ -536,7 +610,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 for (size_t i = 0; i < e.arguments.dim; i++)
                 {
                     Parameter p = Parameter.getNth(tf.parameters, i);
-                    bool keep = p && (p.storageClass & (STCref | STCout)) != 0;
+                    bool keep = p && (p.storageClass & (STC.ref_ | STC.out_)) != 0;
                     expOptimize((*e.arguments)[i], WANTvalue, keep);
                 }
             }
@@ -555,13 +629,13 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (expOptimize(e.e1, result))
                 return;
             e.e1 = fromConstInitializer(result, e.e1);
-            if (e.e1 == e1old && e.e1.op == TOKarrayliteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
+            if (e.e1 == e1old && e.e1.op == TOK.arrayLiteral && e.type.toBasetype().ty == Tpointer && e.e1.type.toBasetype().ty != Tsarray)
             {
                 // Casting this will result in the same expression, and
                 // infinite loop because of Expression::implicitCastTo()
                 return; // no change
             }
-            if ((e.e1.op == TOKstring || e.e1.op == TOKarrayliteral) &&
+            if ((e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral) &&
                 (e.type.ty == Tpointer || e.type.ty == Tarray))
             {
                 const esz  = e.type.nextOf().size(e.loc);
@@ -582,7 +656,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
             }
 
-            if (e.e1.op == TOKstructliteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
+            if (e.e1.op == TOK.structLiteral && e.e1.type.implicitConvTo(e.type) >= MATCH.constant)
             {
                 //printf(" returning2 %s\n", e.e1.toChars());
             L1:
@@ -593,19 +667,19 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             /* The first test here is to prevent infinite loops
              */
-            if (op1 != TOKarrayliteral && e.e1.op == TOKarrayliteral)
+            if (op1 != TOK.arrayLiteral && e.e1.op == TOK.arrayLiteral)
             {
                 ret = e.e1.castTo(null, e.to);
                 return;
             }
-            if (e.e1.op == TOKnull && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
+            if (e.e1.op == TOK.null_ && (e.type.ty == Tpointer || e.type.ty == Tclass || e.type.ty == Tarray))
             {
                 //printf(" returning3 %s\n", e.e1.toChars());
                 goto L1;
             }
             if (e.type.ty == Tclass && e.e1.type.ty == Tclass)
             {
-                import dmd.aggregate : SIZEOKdone;
+                import dmd.aggregate : Sizeok;
 
                 // See if we can remove an unnecessary cast
                 ClassDeclaration cdfrom = e.e1.type.isClassHandle();
@@ -615,8 +689,8 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 // Need to determine correct offset before optimizing away the cast.
                 // https://issues.dlang.org/show_bug.cgi?id=16980
                 cdfrom.size(e.loc);
-                assert(cdfrom.sizeok == SIZEOKdone);
-                assert(cdto.sizeok == SIZEOKdone || !cdto.isBaseOf(cdfrom, null));
+                assert(cdfrom.sizeok == Sizeok.done);
+                assert(cdto.sizeok == Sizeok.done || !cdto.isBaseOf(cdfrom, null));
                 int offset;
                 if (cdto.isBaseOf(cdfrom, &offset) && offset == 0)
                 {
@@ -632,7 +706,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
             if (e.e1.isConst())
             {
-                if (e.e1.op == TOKsymoff)
+                if (e.e1.op == TOK.symbolOffset)
                 {
                     if (e.type.toBasetype().ty != Tsarray)
                     {
@@ -662,10 +736,10 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         {
             //printf("BinExp::optimize(result = %d) %s\n", result, e.toChars());
             // don't replace const variable with its initializer in e1
-            bool e2only = (e.op == TOKconstruct || e.op == TOKblit);
+            bool e2only = (e.op == TOK.construct || e.op == TOK.blit);
             if (e2only ? expOptimize(e.e2, result) : binOptimize(e, result))
                 return;
-            if (e.op == TOKshlass || e.op == TOKshrass || e.op == TOKushrass)
+            if (e.op == TOK.leftShiftAssign || e.op == TOK.rightShiftAssign || e.op == TOK.unsignedRightShiftAssign)
             {
                 if (e.e2.isConst() == 1)
                 {
@@ -675,7 +749,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     sz *= 8;
                     if (i2 < 0 || i2 >= sz)
                     {
-                        e.error("shift assign by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
+                        e.error("shift assign by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                         return error();
                     }
                 }
@@ -689,7 +763,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (e.e1.isConst() && e.e2.isConst())
             {
-                if (e.e1.op == TOKsymoff && e.e2.op == TOKsymoff)
+                if (e.e1.op == TOK.symbolOffset && e.e2.op == TOK.symbolOffset)
                     return;
                 ret = Add(e.loc, e.type, e.e1, e.e2).copy();
             }
@@ -701,7 +775,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (e.e1.isConst() && e.e2.isConst())
             {
-                if (e.e2.op == TOKsymoff)
+                if (e.e2.op == TOK.symbolOffset)
                     return;
                 ret = Min(e.loc, e.type, e.e1, e.e2).copy();
             }
@@ -739,7 +813,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             }
         }
 
-        void shift_optimize(BinExp e, UnionExp function(Loc, Type, Expression, Expression) shift)
+        void shift_optimize(BinExp e, UnionExp function(const ref Loc, Type, Expression, Expression) shift)
         {
             if (binOptimize(e, result))
                 return;
@@ -751,7 +825,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 sz *= 8;
                 if (i2 < 0 || i2 >= sz)
                 {
-                    e.error("shift by %lld is outside the range 0..%llu", i2, cast(ulong)sz - 1);
+                    e.error("shift by %lld is outside the range `0..%llu`", i2, cast(ulong)sz - 1);
                     return error();
                 }
                 if (e.e1.isConst() == 1)
@@ -806,14 +880,14 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (binOptimize(e, result))
                 return;
             // Replace 1 ^^ x or 1.0^^x by (x, 1)
-            if ((e.e1.op == TOKint64 && e.e1.toInteger() == 1) || (e.e1.op == TOKfloat64 && e.e1.toReal() == CTFloat.one))
+            if ((e.e1.op == TOK.int64 && e.e1.toInteger() == 1) || (e.e1.op == TOK.float64 && e.e1.toReal() == CTFloat.one))
             {
                 ret = new CommaExp(e.loc, e.e2, e.e1);
                 ret.type = e.type;
                 return;
             }
             // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
-            if (e.e2.type.isintegral() && e.e1.op == TOKint64 && cast(sinteger_t)e.e1.toInteger() == -1)
+            if (e.e2.type.isintegral() && e.e1.op == TOK.int64 && cast(sinteger_t)e.e1.toInteger() == -1)
             {
                 ret = new AndExp(e.loc, e.e2, new IntegerExp(e.loc, 1, e.e2.type));
                 ret.type = e.e2.type;
@@ -822,7 +896,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             }
             // Replace x ^^ 0 or x^^0.0 by (x, 1)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 0) || (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.zero))
+            if ((e.e2.op == TOK.int64 && e.e2.toInteger() == 0) || (e.e2.op == TOK.float64 && e.e2.toReal() == CTFloat.zero))
             {
                 if (e.e1.type.isintegral())
                     ret = new IntegerExp(e.loc, 1, e.e1.type);
@@ -833,26 +907,26 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             }
             // Replace x ^^ 1 or x^^1.0 by (x)
-            if ((e.e2.op == TOKint64 && e.e2.toInteger() == 1) || (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.one))
+            if ((e.e2.op == TOK.int64 && e.e2.toInteger() == 1) || (e.e2.op == TOK.float64 && e.e2.toReal() == CTFloat.one))
             {
                 ret = e.e1;
                 return;
             }
             // Replace x ^^ -1.0 by (1.0 / x)
-            if (e.e2.op == TOKfloat64 && e.e2.toReal() == CTFloat.minusone)
+            if (e.e2.op == TOK.float64 && e.e2.toReal() == CTFloat.minusone)
             {
                 ret = new DivExp(e.loc, new RealExp(e.loc, CTFloat.one, e.e2.type), e.e1);
                 ret.type = e.type;
                 return;
             }
             // All other negative integral powers are illegal
-            if (e.e1.type.isintegral() && (e.e2.op == TOKint64) && cast(sinteger_t)e.e2.toInteger() < 0)
+            if (e.e1.type.isintegral() && (e.e2.op == TOK.int64) && cast(sinteger_t)e.e2.toInteger() < 0)
             {
-                e.error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
+                e.error("cannot raise `%s` to a negative integer power. Did you mean `(cast(real)%s)^^%s` ?", e.e1.type.toBasetype().toChars(), e.e1.toChars(), e.e2.toChars());
                 return error();
             }
             // If e2 *could* have been an integer, make it one.
-            if (e.e2.op == TOKfloat64)
+            if (e.e2.op == TOK.float64)
             {
                 version (all)
                 {
@@ -881,7 +955,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
             }
             // (2 ^^ n) ^^ p -> 1 << n * p
-            if (e.e1.op == TOKint64 && e.e1.toInteger() > 0 && !((e.e1.toInteger() - 1) & e.e1.toInteger()) && e.e2.type.isintegral() && e.e2.type.isunsigned())
+            if (e.e1.op == TOK.int64 && e.e1.toInteger() > 0 && !((e.e1.toInteger() - 1) & e.e1.toInteger()) && e.e2.type.isintegral() && e.e2.type.isunsigned())
             {
                 dinteger_t i = e.e1.toInteger();
                 dinteger_t mul = 1;
@@ -906,9 +980,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // to be an lvalue (this is particularly important for struct constructors)
             expOptimize(e.e1, WANTvalue);
             expOptimize(e.e2, result, keepLvalue);
-            if (ret.op == TOKerror)
+            if (ret.op == TOK.error)
                 return;
-            if (!e.e1 || e.e1.op == TOKint64 || e.e1.op == TOKfloat64 || !hasSideEffect(e.e1))
+            if (!e.e1 || e.e1.op == TOK.int64 || e.e1.op == TOK.float64 || !hasSideEffect(e.e1))
             {
                 ret = e.e2;
                 if (ret)
@@ -923,16 +997,16 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (unaOptimize(e, WANTexpand))
                 return;
             // CTFE interpret static immutable arrays (to get better diagnostics)
-            if (e.e1.op == TOKvar)
+            if (e.e1.op == TOK.variable)
             {
                 VarDeclaration v = (cast(VarExp)e.e1).var.isVarDeclaration();
-                if (v && (v.storage_class & STCstatic) && (v.storage_class & STCimmutable) && v._init)
+                if (v && (v.storage_class & STC.static_) && (v.storage_class & STC.immutable_) && v._init)
                 {
                     if (Expression ci = v.getConstInitializer())
                         e.e1 = ci;
                 }
             }
-            if (e.e1.op == TOKstring || e.e1.op == TOKarrayliteral || e.e1.op == TOKassocarrayliteral || e.e1.type.toBasetype().ty == Tsarray)
+            if (e.e1.op == TOK.string_ || e.e1.op == TOK.arrayLiteral || e.e1.op == TOK.assocArrayLiteral || e.e1.type.toBasetype().ty == Tsarray)
             {
                 ret = ArrayLength(e.type, e.e1).copy();
             }
@@ -945,12 +1019,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             Expression e1 = fromConstInitializer(result, e.e1);
             Expression e2 = fromConstInitializer(result, e.e2);
-            if (e1.op == TOKerror)
+            if (e1.op == TOK.error)
             {
                 ret = e1;
                 return;
             }
-            if (e2.op == TOKerror)
+            if (e2.op == TOK.error)
             {
                 ret = e2;
                 return;
@@ -965,40 +1039,12 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("IdentityExp::optimize(result = %d) %s\n", result, e.toChars());
             if (binOptimize(e, WANTvalue))
                 return;
-            if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOKnull && e.e2.op == TOKnull))
+            if ((e.e1.isConst() && e.e2.isConst()) || (e.e1.op == TOK.null_ && e.e2.op == TOK.null_))
             {
                 ret = Identity(e.op, e.loc, e.type, e.e1, e.e2).copy();
                 if (CTFEExp.isCantExp(ret))
                     ret = e;
             }
-        }
-
-        /* It is possible for constant folding to change an array expression of
-         * unknown length, into one where the length is known.
-         * If the expression 'arr' is a literal, set lengthVar to be its length.
-         */
-        static void setLengthVarIfKnown(VarDeclaration lengthVar, Expression arr)
-        {
-            if (!lengthVar)
-                return;
-            if (lengthVar._init && !lengthVar._init.isVoidInitializer())
-                return; // we have previously calculated the length
-            size_t len;
-            if (arr.op == TOKstring)
-                len = (cast(StringExp)arr).len;
-            else if (arr.op == TOKarrayliteral)
-                len = (cast(ArrayLiteralExp)arr).elements.dim;
-            else
-            {
-                Type t = arr.type.toBasetype();
-                if (t.ty == Tsarray)
-                    len = cast(size_t)(cast(TypeSArray)t).dim.toInteger();
-                else
-                    return; // we don't know the length yet
-            }
-            Expression dollar = new IntegerExp(Loc(), len, Type.tsize_t);
-            lengthVar._init = new ExpInitializer(Loc(), dollar);
-            lengthVar.storage_class |= STCstatic | STCconst;
         }
 
         override void visit(IndexExp e)
@@ -1025,7 +1071,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 return;
             if (!e.lwr)
             {
-                if (e.e1.op == TOKstring)
+                if (e.e1.op == TOK.string_)
                 {
                     // Convert slice of string literal into dynamic array
                     Type t = e.e1.type.toBasetype();
@@ -1040,7 +1086,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 setLengthVarIfKnown(e.lengthVar, e.e1);
                 expOptimize(e.lwr, WANTvalue);
                 expOptimize(e.upr, WANTvalue);
-                if (ret.op == TOKerror)
+                if (ret.op == TOK.error)
                     return;
                 ret = Slice(e.type, e.e1, e.lwr, e.upr).copy();
                 if (CTFEExp.isCantExp(ret))
@@ -1051,7 +1097,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             // a part of array operation.
             // Assume that the backend codegen will handle the form `e[]`
             // as an equal to `e` itself.
-            if (ret.op == TOKstring)
+            if (ret.op == TOK.string_)
             {
                 e.e1 = ret;
                 e.lwr = null;
@@ -1066,7 +1112,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("LogicalExp::optimize(%d) %s\n", result, e.toChars());
             if (expOptimize(e.e1, WANTvalue))
                 return;
-            const oror = e.op == TOKoror;
+            const oror = e.op == TOK.orOr;
             if (e.e1.isBool(oror))
             {
                 // Replace with (e1, oror)
@@ -1077,7 +1123,7 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                     ret = new CastExp(e.loc, ret, Type.tvoid);
                     ret.type = e.type;
                 }
-                ret = ret.optimize(result);
+                ret = Expression_optimize(ret, result, false);
                 return;
             }
             if (expOptimize(e.e2, WANTvalue))
@@ -1120,14 +1166,14 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             //printf("CatExp::optimize(%d) %s\n", result, e.toChars());
             if (binOptimize(e, result))
                 return;
-            if (e.e1.op == TOKcat)
+            if (e.e1.op == TOK.concatenate)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=12798
                 // optimize ((expr ~ str1) ~ str2)
                 CatExp ce1 = cast(CatExp)e.e1;
                 scope CatExp cex = new CatExp(e.loc, ce1.e2, e.e2);
                 cex.type = e.type;
-                Expression ex = cex.optimize(result);
+                Expression ex = Expression_optimize(cex, result, false);
                 if (ex != cex)
                 {
                     e.e1 = ce1.e1;
@@ -1135,16 +1181,16 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
                 }
             }
             // optimize "str"[] -> "str"
-            if (e.e1.op == TOKslice)
+            if (e.e1.op == TOK.slice)
             {
                 SliceExp se1 = cast(SliceExp)e.e1;
-                if (se1.e1.op == TOKstring && !se1.lwr)
+                if (se1.e1.op == TOK.string_ && !se1.lwr)
                     e.e1 = se1.e1;
             }
-            if (e.e2.op == TOKslice)
+            if (e.e2.op == TOK.slice)
             {
                 SliceExp se2 = cast(SliceExp)e.e2;
-                if (se2.e1.op == TOKstring && !se2.lwr)
+                if (se2.e1.op == TOK.string_ && !se2.lwr)
                     e.e2 = se2.e1;
             }
             ret = Cat(e.type, e.e1, e.e2).copy();
@@ -1157,9 +1203,9 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
             if (expOptimize(e.econd, WANTvalue))
                 return;
             if (e.econd.isBool(true))
-                ret = e.e1.optimize(result, keepLvalue);
+                ret = Expression_optimize(e.e1, result, keepLvalue);
             else if (e.econd.isBool(false))
-                ret = e.e2.optimize(result, keepLvalue);
+                ret = Expression_optimize(e.e2, result, keepLvalue);
             else
             {
                 expOptimize(e.e1, result, keepLvalue);
@@ -1168,15 +1214,15 @@ extern (C++) Expression Expression_optimize(Expression e, int result, bool keepL
         }
     }
 
-    scope OptimizeVisitor v = new OptimizeVisitor(result, keepLvalue);
-    Expression ex = null;
-    v.ret = e;
+    scope OptimizeVisitor v = new OptimizeVisitor(e, result, keepLvalue);
 
     // Optimize the expression until it can no longer be simplified.
-    while (ex != v.ret)
+    while (1)
     {
-        ex = v.ret;
+        auto ex = v.ret;
         ex.accept(v);
+        if (ex == v.ret)
+            break;
     }
-    return ex;
+    return v.ret;
 }

@@ -185,34 +185,53 @@ void test13976()
 {
     int[] da = new int[](10);
     int[10] sa;
-    size_t l = 0;               // upperInRange
-    size_t u = 9;               // | lowerLessThan
-                                // | |  check code
-    { auto s = da[l .. u];   }  // 0 0  (u <= 10 && l <= u  )
-    { auto s = da[1 .. u];   }  // 0 0  (u <= 10 && l <= u  )
-    { auto s = da[l .. 10];  }  // 0 0  (u <= 10 && l <= u  )
-    { auto s = da[1 .. u%5]; }  // 0 0  (u <= 10 && l <= u%5)
+    enum size_t two = 2;
+    enum size_t five = 5;
+    size_t lb = 0;                    // upperInRange
+    size_t ub = 9;                    // | lowerLessThan
+                                      // | |  check code
+    { auto s = da[lb .. ub];        } // 0 0  (ub   <= $  && lb <= ub  )
+    { auto s = da[1 .. ub];         } // 0 0  (ub   <= $  && 1  <= ub  )
+    { auto s = da[lb .. 10];        } // 0 0  (10   <= $  && lb <= 10  )
+    { auto s = da[1 .. ub%5];       } // 0 0  (ub%5 <= $  && 1  <= ub%5)
 
-    { auto s = da[l .. u];   }  // 0 0  (u   <= 10 && l <= u)
-    { auto s = da[0 .. u];   }  // 0 1  (u   <= 10          )
-    { auto s = da[l .. 10];  }  // 0 0  (u   <= 10 && l <= u)
-    { auto s = da[0 .. u%5]; }  // 0 1  (u%5 <= 10          )
+    { auto s = da[lb .. ub];        } // 0 0  (ub   <= $  && lb <= ub  )
+    { auto s = da[0 .. ub];         } // 0 1  (ub   <= $               )
+    { auto s = da[lb .. 10];        } // 0 0  (10   <= $  && lb <= 10  )
+    { auto s = da[0 .. ub%5];       } // 0 1  (ub%5 <= $               )
 
-    { auto s = sa[l .. u];   }  // 0 0  (u <= 10 && l <= u  )
-    { auto s = sa[1 .. u];   }  // 0 0  (u <= 10 && l <= u  )
-    { auto s = sa[l .. 10];  }  // 1 0  (           l <= u  )
-    { auto s = sa[1 .. u%5]; }  // 1 0  (           l <= u%5)
+    { auto s = da[0 .. 0];          } // 1 1  NULL
+    { auto s = da[0 .. $];          } // 1 1  NULL
+    { auto s = da[1 .. $];          } // 1 0  (              1   <= $  )
+    { auto s = da[$ .. $];          } // 1 0  (              $   <= $  )
+    { auto s = da[0 .. $/two];      } // 0 1  ($/2  <= $               )
+    { auto s = da[$/two .. $];      } // 1 0  (              $/2 <= $  )
+    { auto s = da[$/five .. $/two]; } // 0 0  ($/2  <= $  && $/5 <= $/2)
 
-    { auto s = sa[l .. u];   }  // 0 0  (u <= 10 && l <= u )
-    { auto s = sa[0 .. u];   }  // 0 1  (u <= 10           )
-    { auto s = sa[l .. 10];  }  // 1 0  (           l <= 10)
-    { auto s = sa[0 .. u%5]; }  // 1 1  NULL
+    { auto s = sa[lb .. ub];        } // 0 0  (ub   <= 10 && lb <= ub  )
+    { auto s = sa[1 .. ub];         } // 0 0  (ub   <= 10 && 1  <= ub  )
+    { auto s = sa[lb .. 10];        } // 1 0  (              lb <= 10  )
+    { auto s = sa[1 .. ub%5];       } // 1 0  (              1  <= ub%5)
+
+    { auto s = sa[lb .. ub];        } // 0 0  (ub   <= 10 && lb <= ub  )
+    { auto s = sa[0 .. ub];         } // 0 1  (ub   <= 10              )
+    { auto s = sa[lb .. 10];        } // 1 0  (              lb <= 10  )
+    { auto s = sa[0 .. ub%5];       } // 1 1  NULL
+
+    { auto s = sa[0 .. 0];          } // 1 1  NULL
+    { auto s = sa[0 .. $];          } // 1 1  NULL
+    { auto s = sa[1 .. $];          } // 1 1  NULL
+    { auto s = sa[$ .. $];          } // 1 1  NULL
+    { auto s = sa[0 .. $/two];      } // 1 1  NULL
+    { auto s = sa[$/two .. $];      } // 1 1  NULL
+    { auto s = sa[$/five .. $/two]; } // 1 1  NULL
 
     int* p = new int[](10).ptr;
-    { auto s = p[0 .. u];    }  // 1 1  NULL
-    { auto s = p[l .. u];    }  // 1 0  (l <= u)
-    { auto s = p[0 .. u%5];  }  // 1 1  NULL
-    { auto s = p[1 .. u%5];  }  // 1 0  (l <= u%5)
+    { auto s = p[0 .. ub];          } // 1 1  NULL
+    { auto s = p[lb .. ub];         } // 1 0  (lb <= ub  )
+    { auto s = p[0 .. ub%5];        } // 1 1  NULL
+    { auto s = p[1 .. ub%5];        } // 1 0  (1  <= ub%5)
+    { auto s = p[0 .. 0];           } // 1 1  NULL
 }
 
 /******************************************/

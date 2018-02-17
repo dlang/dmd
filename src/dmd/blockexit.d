@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/blockexit.d, _blockexit.d)
+ * Documentation:  https://dlang.org/phobos/dmd_blockexit.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/blockexit.d
  */
 
 module dmd.blockexit;
-
-// Online documentation: https://dlang.org/phobos/dmd_blockexit.html
 
 import core.stdc.stdio;
 
@@ -94,12 +94,12 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
             result = BE.fallthru;
             if (s.exp)
             {
-                if (s.exp.op == TOKhalt)
+                if (s.exp.op == TOK.halt)
                 {
                     result = BE.halt;
                     return;
                 }
-                if (s.exp.op == TOKassert)
+                if (s.exp.op == TOK.assert_)
                 {
                     AssertExp a = cast(AssertExp)s.exp;
                     if (a.e1.isBool(false)) // if it's an assert(0)
@@ -510,10 +510,10 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
         {
             // Assume the worst
             result = BE.fallthru | BE.return_ | BE.goto_ | BE.halt;
-            if (!(s.stc & STCnothrow))
+            if (!(s.stc & STC.nothrow_))
             {
-                if (mustNotThrow && !(s.stc & STCnothrow))
-                    s.deprecation("asm statement is assumed to throw - mark it with `nothrow` if it does not");
+                if (mustNotThrow && !(s.stc & STC.nothrow_))
+                    s.deprecation("`asm` statement is assumed to throw - mark it with `nothrow` if it does not");
                 else
                     result |= BE.throw_;
             }

@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/arrayop.d, _arrayop.d)
+ * Documentation:  https://dlang.org/phobos/dmd_arrayop.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/arrayop.d
  */
 
 module dmd.arrayop;
-
-// Online documentation: https://dlang.org/phobos/dmd_arrayop.html
 
 import core.stdc.stdio;
 import dmd.arraytypes;
@@ -27,7 +27,6 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.statement;
 import dmd.tokens;
-import dmd.semantic;
 import dmd.visitor;
 
 /**********************************************
@@ -35,9 +34,9 @@ import dmd.visitor;
  */
 extern (C++) bool isArrayOpValid(Expression e)
 {
-    if (e.op == TOKslice)
+    if (e.op == TOK.slice)
         return true;
-    if (e.op == TOKarrayliteral)
+    if (e.op == TOK.arrayLiteral)
     {
         Type t = e.type.toBasetype();
         while (t.ty == Tarray || t.ty == Tsarray)
@@ -51,17 +50,17 @@ extern (C++) bool isArrayOpValid(Expression e)
         {
             return isArrayOpValid((cast(UnaExp)e).e1);
         }
-        if (isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOKassign)
+        if (isBinArrayOp(e.op) || isBinAssignArrayOp(e.op) || e.op == TOK.assign)
         {
             BinExp be = cast(BinExp)e;
             return isArrayOpValid(be.e1) && isArrayOpValid(be.e2);
         }
-        if (e.op == TOKconstruct)
+        if (e.op == TOK.construct)
         {
             BinExp be = cast(BinExp)e;
-            return be.e1.op == TOKslice && isArrayOpValid(be.e2);
+            return be.e1.op == TOK.slice && isArrayOpValid(be.e2);
         }
-        if (e.op == TOKcall)
+        if (e.op == TOK.call)
         {
             return false; // TODO: Decide if [] is required after arrayop calls.
         }
@@ -75,7 +74,7 @@ extern (C++) bool isArrayOpValid(Expression e)
 
 extern (C++) bool isNonAssignmentArrayOp(Expression e)
 {
-    if (e.op == TOKslice)
+    if (e.op == TOK.slice)
         return isNonAssignmentArrayOp((cast(SliceExp)e).e1);
 
     Type tb = e.type.toBasetype();
@@ -136,7 +135,7 @@ extern (C++) Expression arrayOp(BinExp e, Scope* sc)
         id = new DotIdExp(e.loc, id, Id.object);
         id = new DotIdExp(e.loc, id, Identifier.idPool("_arrayOp"));
         id = id.expressionSemantic(sc);
-        if (id.op != TOKtemplate)
+        if (id.op != TOK.template_)
             ObjectNotFound(Identifier.idPool("_arrayOp"));
         arrayOp = (cast(TemplateExp)id).td;
     }
@@ -161,7 +160,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
         e.error("slice `%s` is not mutable", e.e1.toChars());
         return new ErrorExp();
     }
-    if (e.e1.op == TOKarrayliteral)
+    if (e.e1.op == TOK.arrayLiteral)
     {
         return e.e1.modifiableLvalue(sc, e.e1);
     }
@@ -174,7 +173,7 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
  * using reverse polish notation (RPN) to encode order of operations.
  * Encode operations as string arguments, using a "u" prefix for unary operations.
  */
-extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
+private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
 {
     extern (C++) final class BuildArrayOpVisitor : Visitor
     {
@@ -221,7 +220,7 @@ extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Express
                 buf.writestring("u");
                 buf.writestring(Token.toString(e.op));
                 e.e1.accept(this);
-                tiargs.push(new StringExp(Loc(), buf.extractString()).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, buf.extractString()).expressionSemantic(sc));
             }
         }
 
@@ -237,7 +236,7 @@ extern (C++) void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Express
                 // RPN
                 e.e1.accept(this);
                 e.e2.accept(this);
-                tiargs.push(new StringExp(Loc(), cast(char*) Token.toChars(e.op)).expressionSemantic(sc));
+                tiargs.push(new StringExp(Loc.initial, cast(char*) Token.toChars(e.op)).expressionSemantic(sc));
             }
         }
     }
@@ -253,8 +252,8 @@ extern (C++) bool isUnaArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKneg:
-    case TOKtilde:
+    case TOK.negate:
+    case TOK.tilde:
         return true;
     default:
         break;
@@ -269,15 +268,15 @@ extern (C++) bool isBinArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKadd:
-    case TOKmin:
-    case TOKmul:
-    case TOKdiv:
-    case TOKmod:
-    case TOKxor:
-    case TOKand:
-    case TOKor:
-    case TOKpow:
+    case TOK.add:
+    case TOK.min:
+    case TOK.mul:
+    case TOK.div:
+    case TOK.mod:
+    case TOK.xor:
+    case TOK.and:
+    case TOK.or:
+    case TOK.pow:
         return true;
     default:
         break;
@@ -292,15 +291,15 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 {
     switch (op)
     {
-    case TOKaddass:
-    case TOKminass:
-    case TOKmulass:
-    case TOKdivass:
-    case TOKmodass:
-    case TOKxorass:
-    case TOKandass:
-    case TOKorass:
-    case TOKpowass:
+    case TOK.addAssign:
+    case TOK.minAssign:
+    case TOK.mulAssign:
+    case TOK.divAssign:
+    case TOK.modAssign:
+    case TOK.xorAssign:
+    case TOK.andAssign:
+    case TOK.orAssign:
+    case TOK.powAssign:
         return true;
     default:
         break;
@@ -314,9 +313,9 @@ extern (C++) bool isBinAssignArrayOp(TOK op)
 extern (C++) bool isArrayOpOperand(Expression e)
 {
     //printf("Expression.isArrayOpOperand() %s\n", e.toChars());
-    if (e.op == TOKslice)
+    if (e.op == TOK.slice)
         return true;
-    if (e.op == TOKarrayliteral)
+    if (e.op == TOK.arrayLiteral)
     {
         Type t = e.type.toBasetype();
         while (t.ty == Tarray || t.ty == Tsarray)
@@ -329,7 +328,7 @@ extern (C++) bool isArrayOpOperand(Expression e)
         return (isUnaArrayOp(e.op) ||
                 isBinArrayOp(e.op) ||
                 isBinAssignArrayOp(e.op) ||
-                e.op == TOKassign);
+                e.op == TOK.assign);
     }
     return false;
 }

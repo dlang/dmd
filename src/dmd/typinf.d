@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/typeinf.d, _typeinf.d)
+ * Documentation:  https://dlang.org/phobos/dmd_typinf.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/typinf.d
  */
 
 module dmd.typinf;
-
-// Online documentation: https://dlang.org/phobos/dmd_typinf.html
 
 import dmd.declaration;
 import dmd.dmodule;
@@ -24,14 +24,26 @@ import dmd.mtype;
 import dmd.visitor;
 
 /****************************************************
- * Get the exact TypeInfo.
+ * Generates the `TypeInfo` object associated with `torig` if it
+ * hasn't already been generated
+ * Params:
+ *      loc   = the location for reporting line numbers in errors
+ *      torig = the type to generate the `TypeInfo` object for
+ *      sc    = the scope
  */
-extern (C++) void genTypeInfo(Type torig, Scope* sc)
+extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
+
+    if (!global.params.useTypeInfo)
+    {
+        torig.error(loc, "`TypeInfo` cannot be used with -betterC");
+        fatal();
+    }
+
     if (!Type.dtypeinfo)
     {
-        torig.error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+        torig.error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
         fatal();
     }
 
@@ -73,10 +85,19 @@ extern (C++) void genTypeInfo(Type torig, Scope* sc)
     assert(torig.vtinfo);
 }
 
-extern (C++) Type getTypeInfoType(Type t, Scope* sc)
+/****************************************************
+ * Gets the type of the `TypeInfo` object associated with `t`
+ * Params:
+ *      loc = the location for reporting line nunbers in errors
+ *      t   = the type to get the type of the `TypeInfo` object for
+ *      sc  = the scope
+ * Returns:
+ *      The type of the `TypeInfo` object associated with `t`
+ */
+extern (C++) Type getTypeInfoType(Loc loc, Type t, Scope* sc)
 {
     assert(t.ty != Terror);
-    genTypeInfo(t, sc);
+    genTypeInfo(loc, t, sc);
     return t.vtinfo.type;
 }
 
@@ -243,8 +264,8 @@ private bool builtinTypeInfo(Type t)
         // strings are so common, make them builtin
         return !t.mod &&
                (next.isTypeBasic() !is null && !next.mod ||
-                next.ty == Tchar && next.mod == MODimmutable ||
-                next.ty == Tchar && next.mod == MODconst);
+                next.ty == Tchar && next.mod == MODFlags.immutable_ ||
+                next.ty == Tchar && next.mod == MODFlags.const_);
     }
     return false;
 }

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1983-1998 by Symantec
- *              Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/ty.d, backend/_ty.d)
@@ -74,7 +74,7 @@ enum
     TYifunc             = 0x2E, // interrupt func
     TYptr               = 0x33, // generic pointer type
     TYmfunc             = 0x37, // NT C++ member func
-    TYjfunc             = 0x38, // LINKd D function
+    TYjfunc             = 0x38, // LINK.d D function
     TYhfunc             = 0x39, // C function with hidden parameter
     TYnref              = 0x3A, // near reference
 
@@ -141,6 +141,8 @@ enum
     TYMAX               = 0x5C,
 }
 
+alias TYerror = TYint;
+
 extern __gshared int TYaarray;                            // D type
 
 // These change depending on memory model
@@ -182,7 +184,7 @@ enum
     mTYnothrow      = 0x00200000,    // nothrow function
 
     // Used only by C/C++ compiler
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     mTYnoret        = 0x01000000,    // function has no return
     mTYtransu       = 0x01000000,    // transparent union
 //#else
@@ -196,7 +198,7 @@ enum
     mTYsyscall      = 0x40000000,
     mTYjava         = 0x80000000,
 
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
 //    mTYTFF          = 0xFE000000,
 //#else
     mTYTFF          = 0xFF000000,
@@ -323,16 +325,8 @@ uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 static if (__VERSION__ <= 2066)
     private enum computeEnumValue = TYMAX;
 
-/* Array to give the 'relaxed' type for relaxed type checking   */
-extern __gshared ubyte[TYMAX] _tyrelax;
-//#define type_relax      (config.flags3 & CFG3relax)     // !=0 if relaxed type checking
-//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-//#define type_semirelax  (config.flags3 & CFG3semirelax) // !=0 if semi-relaxed type checking
-//#else
-//#define type_semirelax  type_relax
-//#endif
-
 /* Determine relaxed type       */
+extern __gshared ubyte[TYMAX] _tyrelax;
 uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 
 
@@ -340,8 +334,14 @@ uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 extern __gshared ubyte[TYMAX] tyequiv;
 
 /* Give an ascii string for a type      */
-extern __gshared const char*[TYMAX] tystring;
+extern (C) { extern __gshared const char*[TYMAX] tystring; }
 
 /* Debugger value for type      */
 extern __gshared ubyte[TYMAX] dttab;
 extern __gshared ushort[TYMAX] dttab4;
+
+
+bool I16() { return _tysize[TYnptr] == 2; }
+bool I32() { return _tysize[TYnptr] == 4; }
+bool I64() { return _tysize[TYnptr] == 8; }
+

@@ -1,6 +1,9 @@
-module dmd.strictvisitor;
+/**
+ * Documentation:  https://dlang.org/phobos/dmd_strictvisitor.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/strictvisitor.d
+ */
 
-// Online documentation: https://dlang.org/phobos/dmd_strictvisitor.html
+module dmd.strictvisitor;
 
 import dmd.parsetimevisitor;
 

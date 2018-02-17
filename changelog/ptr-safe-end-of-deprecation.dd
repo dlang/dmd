@@ -1,0 +1,26 @@
+`.ptr` on arrays can no longer be used in `@safe` code
+
+The deprecation period for using `.ptr` on arrays in `@safe` ended.
+The following now triggers an error instead of a deprecation:
+
+---
+@safe ubyte* oops(ubyte[] arr) {
+    return arr.ptr;
+}
+---
+
+Use `&arr[0]` instead:
+
+---
+@safe ubyte* oops(ubyte[] arr) {
+    return &arr[0];
+}
+---
+
+Note that this only applies to SafeD - in `@system` code `.ptr` may still be used:
+
+---
+@system ubyte* oops(ubyte[] arr) {
+    return arr.ptr;
+}
+---

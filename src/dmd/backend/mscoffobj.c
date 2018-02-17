@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2009-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/mscoffobj.c, backend/mscoffobj.c)
@@ -44,6 +44,11 @@ static char __file__[] = __FILE__;      // for tassert.h
 
 #define DEST_LEN (IDMAX + IDOHD + 1)
 char *obj_mangle2(Symbol *s,char *dest);
+
+#if MARS
+// C++ name mangling is handled by front end
+#define cpp_mangle(s) ((s)->Sident)
+#endif
 
 /******************************************
  */
@@ -1166,7 +1171,7 @@ void MsCoffObj::setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      length of function
  */
 
-void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void MsCoffObj::ehtables(Symbol *sfunc,unsigned size,Symbol *ehsym)
 {
     //printf("MsCoffObj::ehtables(func = %s, handler table = %s) \n",sfunc->Sident, ehsym->Sident);
 
@@ -1734,7 +1739,6 @@ char *obj_mangle2(Symbol *s,char *dest)
             }
             // fall through
         case mTYman_cpp:
-        case mTYman_d:
         case mTYman_sys:
         case_mTYman_c64:
         case 0:
@@ -1744,6 +1748,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             break;
 
         case mTYman_c:
+        case mTYman_d:
             if(I64)
                 goto case_mTYman_c64;
             // Prepend _ to identifier

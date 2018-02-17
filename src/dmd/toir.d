@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -109,7 +109,7 @@ extern (D) elem *incUsageElem(IRState *irs, const ref Loc loc)
  * of fd's 'this' variable.
  * This routine is critical for implementing nested functions.
  */
-elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
+elem *getEthis(const ref Loc loc, IRState *irs, Dsymbol fd)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -315,7 +315,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol fd)
  * Returns:
  *      *(ey + ad.vthis.offset) = this;
  */
-elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad)
+elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration ad)
 {
     elem *ethis;
     FuncDeclaration thisfd = irs.getFunc();
@@ -685,7 +685,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
     //printf("resolveLengthVar()\n");
     elem *einit = null;
 
-    if (lengthVar && !(lengthVar.storage_class & STCconst))
+    if (lengthVar && !(lengthVar.storage_class & STC.const_))
     {
         elem *elength;
         Symbol *slength;
@@ -738,7 +738,7 @@ void setClosureVarOffset(FuncDeclaration fd)
             uint memsize;
             uint memalignsize;
             structalign_t xalign;
-            if (v.storage_class & STClazy)
+            if (v.storage_class & STC.lazy_)
             {
                 /* Lazy variables are really delegates,
                  * so give same answers that TypeDelegate would
@@ -747,7 +747,7 @@ void setClosureVarOffset(FuncDeclaration fd)
                 memalignsize = memsize;
                 xalign = STRUCTALIGN_DEFAULT;
             }
-            else if (v.storage_class & (STCout | STCref))
+            else if (v.storage_class & (STC.out_ | STC.ref_))
             {
                 // reference parameters are just pointers
                 memsize = Target.ptrsize;
@@ -846,7 +846,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
 
             // Hack for the case fail_compilation/fail10666.d,
             // until proper issue 5730 fix will come.
-            bool isScopeDtorParam = v.edtor && (v.storage_class & STCparameter);
+            bool isScopeDtorParam = v.edtor && (v.storage_class & STC.parameter);
             if (v.needsScopeDtor() || isScopeDtorParam)
             {
                 /* Because the value needs to survive the end of the scope!
@@ -875,7 +875,7 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
         // Calculate the size of the closure
         VarDeclaration  vlast = fd.closureVars[fd.closureVars.dim - 1];
         typeof(Type.size()) lastsize;
-        if (vlast.storage_class & STClazy)
+        if (vlast.storage_class & STC.lazy_)
             lastsize = Target.ptrsize * 2;
         else if (vlast.isRef() || vlast.isOut())
             lastsize = Target.ptrsize;
@@ -917,12 +917,12 @@ void buildClosure(FuncDeclaration fd, IRState *irs)
             bool win64ref = ISWIN64REF(v);
             if (win64ref)
             {
-                if (v.storage_class & STClazy)
+                if (v.storage_class & STC.lazy_)
                     tym = TYdelegate;
             }
             else if (ISREF(v))
                 tym = TYnptr;   // reference parameters are just pointers
-            else if (v.storage_class & STClazy)
+            else if (v.storage_class & STC.lazy_)
                 tym = TYdelegate;
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v.offset));
             ex = el_una(OPind, tym, ex);
@@ -961,8 +961,8 @@ RET retStyle(TypeFunction tf)
     //printf("TypeFunction.retStyle() %s\n", toChars());
     if (tf.isref)
     {
-        //printf("  ref RETregs\n");
-        return RETregs;                 // returns a pointer
+        //printf("  ref RET.regs\n");
+        return RET.regs;                 // returns a pointer
     }
 
     Type tn = tf.next.toBasetype();
@@ -974,24 +974,24 @@ RET retStyle(TypeFunction tf)
     {
         // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
         if (tns.ty == Tcomplex32)
-            return RETstack;
+            return RET.stack;
         if (tns.isscalar())
-            return RETregs;
+            return RET.regs;
 
         tns = tns.baseElemOf();
         if (tns.ty == Tstruct)
         {
             StructDeclaration sd = (cast(TypeStruct)tns).sym;
             if (sd.ident == Id.__c_long_double)
-                return RETregs;
+                return RET.regs;
             if (!sd.isPOD() || sz > 8)
-                return RETstack;
+                return RET.stack;
             if (sd.fields.dim == 0)
-                return RETstack;
+                return RET.stack;
         }
         if (sz <= 16 && !(sz & (sz - 1)))
-            return RETregs;
-        return RETstack;
+            return RET.regs;
+        return RET.stack;
     }
     else if (global.params.isWindows && global.params.mscoff)
     {
@@ -1000,7 +1000,7 @@ RET retStyle(TypeFunction tf)
         {
             StructDeclaration sd = (cast(TypeStruct)tb).sym;
             if (sd.ident == Id.__c_long_double)
-                return RETregs;
+                return RET.regs;
         }
     }
 
@@ -1011,7 +1011,7 @@ Lagain:
         if (tns.ty != Tstruct)
         {
 L2:
-            if (global.params.isLinux && tf.linkage != LINKd && !global.params.is64bit)
+            if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
             {
                                                 // 32 bit C/C++ structs always on stack
             }
@@ -1023,37 +1023,37 @@ L2:
                     case 2:
                     case 4:
                     case 8:
-                        //printf("  sarray RETregs\n");
-                        return RETregs; // return small structs in regs
+                        //printf("  sarray RET.regs\n");
+                        return RET.regs; // return small structs in regs
                                             // (not 3 byte structs!)
                     default:
                         break;
                 }
             }
-            //printf("  sarray RETstack\n");
-            return RETstack;
+            //printf("  sarray RET.stack\n");
+            return RET.stack;
         }
     }
 
     if (tns.ty == Tstruct)
     {
         StructDeclaration sd = (cast(TypeStruct)tns).sym;
-        if (global.params.isLinux && tf.linkage != LINKd && !global.params.is64bit)
+        if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
         {
             if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                return RETregs;
+                return RET.regs;
 
-            //printf("  2 RETstack\n");
-            return RETstack;            // 32 bit C/C++ structs always on stack
+            //printf("  2 RET.stack\n");
+            return RET.stack;            // 32 bit C/C++ structs always on stack
         }
-        if (global.params.isWindows && tf.linkage == LINKcpp && !global.params.is64bit &&
+        if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
                  sd.isPOD() && sd.ctor)
         {
             // win32 returns otherwise POD structs with ctors via memory
             // unless it's not really a struct
             if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
-                return RETregs;
-            return RETstack;
+                return RET.regs;
+            return RET.stack;
         }
         if (sd.arg1type && !sd.arg2type)
         {
@@ -1063,7 +1063,7 @@ L2:
             goto Lagain;
         }
         else if (global.params.is64bit && !sd.arg1type && !sd.arg2type)
-            return RETstack;
+            return RET.stack;
         else if (sd.isPOD())
         {
             switch (sz)
@@ -1072,34 +1072,34 @@ L2:
                 case 2:
                 case 4:
                 case 8:
-                    //printf("  3 RETregs\n");
-                    return RETregs;     // return small structs in regs
+                    //printf("  3 RET.regs\n");
+                    return RET.regs;     // return small structs in regs
                                         // (not 3 byte structs!)
                 case 16:
                     if (!global.params.isWindows && global.params.is64bit)
-                       return RETregs;
+                       return RET.regs;
                     break;
 
                 default:
                     break;
             }
         }
-        //printf("  3 RETstack\n");
-        return RETstack;
+        //printf("  3 RET.stack\n");
+        return RET.stack;
     }
-    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
-             tf.linkage == LINKc &&
+    else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris) &&
+             tf.linkage == LINK.c &&
              tns.iscomplex())
     {
         if (tns.ty == Tcomplex32)
-            return RETregs;     // in EDX:EAX, not ST1:ST0
+            return RET.regs;     // in EDX:EAX, not ST1:ST0
         else
-            return RETstack;
+            return RET.stack;
     }
     else
     {
         //assert(sz <= 16);
-        //printf("  4 RETregs\n");
-        return RETregs;
+        //printf("  4 RET.regs\n");
+        return RET.regs;
     }
 }

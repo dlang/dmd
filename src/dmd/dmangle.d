@@ -1,12 +1,13 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
- * Copyright: Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmangle.d, _dmangle.d)
  * Documentation:  https://dlang.org/phobos/dmd_dmangle.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/dmangle.d
+ * References:  https://dlang.org/blog/2017/12/20/ds-newfangled-name-mangling/
  */
 
 module dmd.dmangle;
@@ -136,28 +137,28 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     {
     case 0:
         break;
-    case MODconst:
+    case MODFlags.const_:
         buf.writeByte('x');
         break;
-    case MODimmutable:
+    case MODFlags.immutable_:
         buf.writeByte('y');
         break;
-    case MODshared:
+    case MODFlags.shared_:
         buf.writeByte('O');
         break;
-    case MODshared | MODconst:
+    case MODFlags.shared_ | MODFlags.const_:
         buf.writestring("Ox");
         break;
-    case MODwild:
+    case MODFlags.wild:
         buf.writestring("Ng");
         break;
-    case MODwildconst:
+    case MODFlags.wildconst:
         buf.writestring("Ngx");
         break;
-    case MODshared | MODwild:
+    case MODFlags.shared_ | MODFlags.wild:
         buf.writestring("ONg");
         break;
-    case MODshared | MODwildconst:
+    case MODFlags.shared_ | MODFlags.wildconst:
         buf.writestring("ONgx");
         break;
     default:
@@ -350,28 +351,28 @@ public:
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
         ubyte mc;
-        switch (t.linkage)
+        final switch (t.linkage)
         {
-        case LINKd:
+        case LINK.default_:
+        case LINK.system:
+        case LINK.d:
             mc = 'F';
             break;
-        case LINKc:
+        case LINK.c:
             mc = 'U';
             break;
-        case LINKwindows:
+        case LINK.windows:
             mc = 'W';
             break;
-        case LINKpascal:
+        case LINK.pascal:
             mc = 'V';
             break;
-        case LINKcpp:
+        case LINK.cpp:
             mc = 'R';
             break;
-        case LINKobjc:
+        case LINK.objc:
             mc = 'Y';
             break;
-        default:
-            assert(0);
         }
         buf.writeByte(mc);
         if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn || ta.isscope)
@@ -392,10 +393,10 @@ public:
                 buf.writestring("Nl");
             switch (ta.trust)
             {
-            case TRUSTtrusted:
+            case TRUST.trusted:
                 buf.writestring("Ne");
                 break;
-            case TRUSTsafe:
+            case TRUST.safe:
                 buf.writestring("Nf");
                 break;
             default:
@@ -542,25 +543,23 @@ public:
 
     static const(char)* externallyMangledIdentifier(Declaration d)
     {
-        if (!d.parent || d.parent.isModule() || d.linkage == LINKcpp) // if at global scope
+        if (!d.parent || d.parent.isModule() || d.linkage == LINK.cpp) // if at global scope
         {
-            switch (d.linkage)
+            final switch (d.linkage)
             {
-                case LINKd:
+                case LINK.d:
                     break;
-                case LINKc:
-                case LINKwindows:
-                case LINKpascal:
-                case LINKobjc:
+                case LINK.c:
+                case LINK.windows:
+                case LINK.pascal:
+                case LINK.objc:
                     return d.ident.toChars();
-                case LINKcpp:
+                case LINK.cpp:
                     return Target.toCppMangle(d);
-                case LINKdefault:
+                case LINK.default_:
+                case LINK.system:
                     d.error("forward declaration");
                     return d.ident.toChars();
-                default:
-                    fprintf(stderr, "'%s', linkage = %d\n", d.toChars(), d.linkage);
-                    assert(0);
             }
         }
         return null;
@@ -583,7 +582,12 @@ public:
             assert(slice.length);
             foreach (const char c; slice)
             {
-                assert(c == '_' || c == '@' || c == '?' || c == '$' || isalnum(c) || c & 0x80);
+                assert(c == '_' ||
+                       c == '@' ||
+                       c == '?' ||
+                       c == '$' ||
+                       isalnum(c) ||
+                       c & 0x80);
             }
         }
     }
@@ -766,19 +770,19 @@ public:
                 // Only constfold manifest constants, not const/immutable lvalues, see https://issues.dlang.org/show_bug.cgi?id=17339.
                 enum keepLvalue = true;
                 ea = ea.optimize(WANTvalue, keepLvalue);
-                if (ea.op == TOKvar)
+                if (ea.op == TOK.variable)
                 {
                     sa = (cast(VarExp)ea).var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOKthis)
+                if (ea.op == TOK.this_)
                 {
                     sa = (cast(ThisExp)ea).var;
                     ea = null;
                     goto Lsa;
                 }
-                if (ea.op == TOKfunction)
+                if (ea.op == TOK.function_)
                 {
                     if ((cast(FuncExp)ea).td)
                         sa = (cast(FuncExp)ea).td;
@@ -788,7 +792,7 @@ public:
                     goto Lsa;
                 }
                 buf.writeByte('V');
-                if (ea.op == TOKtuple)
+                if (ea.op == TOK.tuple)
                 {
                     ea.error("tuple is not a valid template value argument");
                     continue;
@@ -796,7 +800,7 @@ public:
                 // Now that we know it is not an alias, we MUST obtain a value
                 uint olderr = global.errors;
                 ea = ea.ctfeInterpret();
-                if (ea.op == TOKerror || olderr != global.errors)
+                if (ea.op == TOK.error || olderr != global.errors)
                     continue;
 
                 /* Use type mangling that matches what it would be for a function parameter
@@ -826,7 +830,7 @@ public:
                     }
                     if (!d.type || !d.type.deco)
                     {
-                        ti.error("forward reference of %s %s", d.kind(), d.toChars());
+                        ti.error("forward reference of %s `%s`", d.kind(), d.toChars());
                         continue;
                     }
                 }
@@ -865,7 +869,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Expression e)
     {
-        e.error("expression %s is not a valid template value argument", e.toChars());
+        e.error("expression `%s` is not a valid template value argument", e.toChars());
     }
 
     override void visit(IntegerExp e)
@@ -1057,29 +1061,29 @@ public:
 
     override void visit(Parameter p)
     {
-        if (p.storageClass & STCscope && !(p.storageClass & STCscopeinferred))
+        if (p.storageClass & STC.scope_ && !(p.storageClass & STC.scopeinferred))
             buf.writeByte('M');
         // 'return inout ref' is the same as 'inout ref'
-        if ((p.storageClass & (STCreturn | STCwild)) == STCreturn)
+        if ((p.storageClass & (STC.return_ | STC.wild)) == STC.return_)
             buf.writestring("Nk");
-        switch (p.storageClass & (STCin | STCout | STCref | STClazy))
+        switch (p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_))
         {
         case 0:
-        case STCin:
+        case STC.in_:
             break;
-        case STCout:
+        case STC.out_:
             buf.writeByte('J');
             break;
-        case STCref:
+        case STC.ref_:
             buf.writeByte('K');
             break;
-        case STClazy:
+        case STC.lazy_:
             buf.writeByte('L');
             break;
         default:
             debug
             {
-                printf("storageClass = x%llx\n", p.storageClass & (STCin | STCout | STCref | STClazy));
+                printf("storageClass = x%llx\n", p.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_));
             }
             assert(0);
         }
@@ -1132,3 +1136,24 @@ extern (C++) void mangleToBuffer(TemplateInstance ti, OutBuffer* buf)
     v.mangleTemplateInstance(ti);
 }
 
+/******************************************************************************
+ * Mangle function signatures ('this' qualifier, and parameter types)
+ * to check conflicts in function overloads.
+ * It's different from fd.type.deco. For example, fd.type.deco would be null
+ * if fd is an auto function.
+ *
+ * Params:
+ *    buf = `OutBuffer` to write the mangled function signature to
+*     fd  = `FuncDeclaration` to mangle
+ */
+void mangleToFuncSignature(ref OutBuffer buf, FuncDeclaration fd)
+{
+    assert(fd.type.ty == Tfunction);
+    auto tf = cast(TypeFunction)fd.type;
+
+    scope Mangler v = new Mangler(&buf);
+
+    MODtoDecoBuffer(&buf, tf.mod);
+    v.paramsToDecoBuffer(tf.parameters);
+    buf.writeByte('Z' - tf.varargs);
+}

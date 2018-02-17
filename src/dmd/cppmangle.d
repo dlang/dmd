@@ -1,35 +1,26 @@
 /**
  * Compiler implementation of the $(LINK2 http://www.dlang.org, D programming language)
  *
- * Copyright: Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Do mangling for C++ linkage.
+ *
+ * Copyright: Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, http://www.digitalmars.com
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
  * Documentation:  https://dlang.org/phobos/dmd_cppmangle.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmangle.d
- */
-
-module dmd.cppmangle;
-
-
-/**
- * Do mangling for C++ linkage.
  *
  * References:
  *  Follows Itanium C++ ABI 1.86 section 5.1
  *  http://refspecs.linux-foundation.org/cxxabi-1.86.html#mangling
  *  which is where the grammar comments come from.
  *
- * Documentation:
- *  https://dlang.org/phobos/dmd_cppmangle.html
- *
- * Coverage:
- *  https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmangle.d
- *
  * Bugs:
  *  https://issues.dlang.org/query.cgi
  *  enter `C++, mangling` as the keywords.
  */
+
+module dmd.cppmangle;
 
 import core.stdc.string;
 import core.stdc.stdio;
@@ -58,7 +49,6 @@ const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
-    Target.prefixName(&buf, LINKcpp);
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.mangleOf(s);
     return buf.extractString();
@@ -232,7 +222,7 @@ private final class CppMangleVisitor : Visitor
                 {
                     bool is_nested = d.toParent() &&
                         !d.toParent().isModule() &&
-                        (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINKcpp;
+                        (cast(TypeFunction)d.isFuncDeclaration().type).linkage == LINK.cpp;
                     if (is_nested)
                         buf.writeByte('X');
                     buf.writeByte('L');
@@ -241,7 +231,7 @@ private final class CppMangleVisitor : Visitor
                     if (is_nested)
                         buf.writeByte('E');
                 }
-                else if (e && e.op == TOKvar && (cast(VarExp)e).var.isVarDeclaration())
+                else if (e && e.op == TOK.variable && (cast(VarExp)e).var.isVarDeclaration())
                 {
                     VarDeclaration vd = (cast(VarExp)e).var.isVarDeclaration();
                     buf.writeByte('L');
@@ -549,9 +539,9 @@ private final class CppMangleVisitor : Visitor
     void mangle_variable(VarDeclaration d, bool is_temp_arg_ref)
     {
         // fake mangling for fields to fix https://issues.dlang.org/show_bug.cgi?id=16525
-        if (!(d.storage_class & (STCextern | STCfield | STCgshared)))
+        if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
-            d.error("Internal Compiler Error: C++ static non- __gshared non-extern variables not supported");
+            d.error("Internal Compiler Error: C++ static non-`__gshared` non-`extern` variables not supported");
             fatal();
         }
         Dsymbol p = d.toParent();
@@ -600,7 +590,7 @@ private final class CppMangleVisitor : Visitor
         else
         {
             Dsymbol p = d.toParent();
-            if (p && !p.isModule() && tf.linkage == LINKcpp)
+            if (p && !p.isModule() && tf.linkage == LINK.cpp)
             {
                 /* <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
                  *               ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
@@ -634,7 +624,7 @@ private final class CppMangleVisitor : Visitor
             }
         }
 
-        if (tf.linkage == LINKcpp) //Template args accept extern "C" symbols with special mangling
+        if (tf.linkage == LINK.cpp) //Template args accept extern "C" symbols with special mangling
         {
             assert(tf.ty == Tfunction);
             mangleFunctionParameters(tf.parameters, tf.varargs);
@@ -647,16 +637,7 @@ private final class CppMangleVisitor : Visitor
 
         int paramsCppMangleDg(size_t n, Parameter fparam)
         {
-            Type t = fparam.type.merge2();
-            if (fparam.storageClass & (STCout | STCref))
-                t = t.referenceTo();
-            else if (fparam.storageClass & STClazy)
-            {
-                // Mangle as delegate
-                Type td = new TypeFunction(null, t, 0, LINKd);
-                td = new TypeDelegate(td);
-                t = merge(t);
-            }
+            Type t = Target.cppParameterType(fparam);
             if (t.ty == Tsarray)
             {
                 // Static arrays in D are passed by value; no counterpart in C++
@@ -711,9 +692,9 @@ public:
     {
         const(char)* p;
         if (t.isImmutable())
-            p = "immutable ";
+            p = "`immutable` ";
         else if (t.isShared())
-            p = "shared ";
+            p = "`shared` ";
         else
             p = "";
         t.error(loc, "Internal Compiler Error: %stype `%s` can not be mapped to C++\n", p, t.toChars());
@@ -815,10 +796,10 @@ public:
             case Tuns32:                c = 'j';        break;
             case Tfloat32:              c = 'f';        break;
             case Tint64:
-                c = (Target.c_longsize == 8 ? 'l' : 'x');
+                c = Target.c_longsize == 8 ? Target.int64Mangle : 'x';
                 break;
             case Tuns64:
-                c = (Target.c_longsize == 8 ? 'm' : 'y');
+                c = Target.c_longsize == 8 ? Target.uint64Mangle : 'y';
                 break;
             case Tint128:                c = 'n';       break;
             case Tuns128:                c = 'o';       break;
@@ -946,7 +927,7 @@ public:
         if (substitute(t))
             return;
         buf.writeByte('F');
-        if (t.linkage == LINKc)
+        if (t.linkage == LINK.c)
             buf.writeByte('Y');
         Type tn = t.next;
         if (t.isref)

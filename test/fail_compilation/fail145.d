@@ -1,8 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail145.d(13): Error: assert(i < 0) failed
-fail_compilation/fail145.d(26):        called from here: bar(7)
+fail_compilation/fail145.d(13): Error: `assert(i < 0)` failed
+fail_compilation/fail145.d(26):        called from here: `bar(7)`
 ---
 */
 

@@ -1,7 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (c) 1999-2016 by The D Language Foundation
- * All Rights Reserved
+ * Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -336,9 +335,8 @@ public:
     Expression *condition;
     Statement *ifbody;
     Statement *elsebody;
-    Loc endloc;                 // location of closing curly bracket
-
     VarDeclaration *match;      // for MatchExpression results
+    Loc endloc;                 // location of closing curly bracket
 
     Statement *syntaxCopy();
     IfStatement *isIfStatement() { return this; }

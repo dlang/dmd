@@ -1,5 +1,5 @@
 
-/* Copyright (c) 1999-2016 by The D Language Foundation
+/* Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * All Rights Reserved, written by Walter Bright
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -10,7 +10,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#define POSIX (__linux__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __DragonFly__ || __sun)
 
 #if __DMC__
 #pragma once

@@ -3,7 +3,7 @@
  * $(LINK2 http://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.c, backend/out.c)
@@ -34,8 +34,6 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
-
-static  int addrparam;  /* see if any parameters get their address taken */
 
 void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset);
 
@@ -68,6 +66,7 @@ void outcsegname(char *csegname)
 /***********************************
  * Output function thunk.
  */
+extern "C" {
 void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
@@ -76,7 +75,7 @@ void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     sthunk->Sfunc->Fflags &= ~Fpending;
     sthunk->Sfunc->Fflags |= Foutput;   /* mark it as having been output */
 }
-
+}
 
 /***************************
  * Write out statically allocated data.
@@ -376,7 +375,7 @@ void dt_writeToObj(Obj& objmod, dt_t *dt, int seg, targ_size_t& offset)
                 if (tybasic(dt->Dty) == TYcptr)
                     objmod.reftocodeseg(seg,offset,dt->DTabytes);
                 else
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
                     objmod.reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
                 /*else*/ if (dt->DTseg == DATA)
@@ -609,7 +608,7 @@ Symbol *out_string_literal(const char *str, unsigned len, unsigned sz)
  * a code generator tree.
  */
 
-STATIC void outelem(elem *e)
+STATIC void outelem(elem *e, bool& addressOfParam)
 {
     symbol *s;
     tym_t tym;
@@ -674,7 +673,7 @@ again:
         //if (!EOP(e)) dbg_printf("e->Eoper = x%x\n",e->Eoper);
 #endif
         if (EBIN(e))
-        {   outelem(e->E1);
+        {   outelem(e->E1, addressOfParam);
             e = e->E2;
         }
         else if (EUNA(e))
@@ -719,7 +718,7 @@ again:
                 if (e->Eoper == OPrelconst)
                 {
                     if (I16)
-                        addrparam = TRUE;   // taking addr of param list
+                        addressOfParam = true;   // taking addr of param list
                     else
                         s->Sflags &= ~(SFLunambig | GTregcand);
                 }
@@ -838,18 +837,14 @@ again:
  * Determine register candidates.
  */
 
-STATIC void out_regcand_walk(elem *e);
+STATIC void out_regcand_walk(elem *e, bool& addressOfParam);
 
 void out_regcand(symtab_t *psymtab)
 {
-    block *b;
-    SYMIDX si;
-    int ifunc;
-
     //printf("out_regcand()\n");
-    ifunc = (tybasic(funcsym_p->ty()) == TYifunc);
-    for (si = 0; si < psymtab->top; si++)
-    {   symbol *s = psymtab->tab[si];
+    const bool ifunc = (tybasic(funcsym_p->ty()) == TYifunc);
+    for (SYMIDX si = 0; si < psymtab->top; si++)
+    {   Symbol *s = psymtab->tab[si];
 
         symbol_debug(s);
         //assert(sytab[s->Sclass] & SCSS);      // only stack variables
@@ -862,47 +857,48 @@ void out_regcand(symtab_t *psymtab)
             s->Sflags &= ~(GTregcand | SFLunambig);
     }
 
-    addrparam = FALSE;                  // haven't taken addr of param yet
-    for (b = startblock; b; b = b->Bnext)
+    bool addressOfParam = false;                  // haven't taken addr of param yet
+    for (block *b = startblock; b; b = b->Bnext)
     {
         if (b->Belem)
-            out_regcand_walk(b->Belem);
+            out_regcand_walk(b->Belem, addressOfParam);
 
         // Any assembler blocks make everything ambiguous
         if (b->BC == BCasm)
-            for (si = 0; si < psymtab->top; si++)
+            for (SYMIDX si = 0; si < psymtab->top; si++)
                 psymtab->tab[si]->Sflags &= ~(SFLunambig | GTregcand);
     }
 
     // If we took the address of one parameter, assume we took the
     // address of all non-register parameters.
-    if (addrparam)                      // if took address of a parameter
+    if (addressOfParam)                      // if took address of a parameter
     {
-        for (si = 0; si < psymtab->top; si++)
+        for (SYMIDX si = 0; si < psymtab->top; si++)
             if (psymtab->tab[si]->Sclass == SCparameter || psymtab->tab[si]->Sclass == SCshadowreg)
                 psymtab->tab[si]->Sflags &= ~(SFLunambig | GTregcand);
     }
 
 }
 
-STATIC void out_regcand_walk(elem *e)
-{   symbol *s;
-
+STATIC void out_regcand_walk(elem *e, bool& addressOfParam)
+{
     while (1)
     {   elem_debug(e);
 
         if (EBIN(e))
         {   if (e->Eoper == OPstreq)
             {   if (e->E1->Eoper == OPvar)
-                {   s = e->E1->EV.sp.Vsym;
+                {
+                    Symbol *s = e->E1->EV.sp.Vsym;
                     s->Sflags &= ~(SFLunambig | GTregcand);
                 }
                 if (e->E2->Eoper == OPvar)
-                {   s = e->E2->EV.sp.Vsym;
+                {
+                    Symbol *s = e->E2->EV.sp.Vsym;
                     s->Sflags &= ~(SFLunambig | GTregcand);
                 }
             }
-            out_regcand_walk(e->E1);
+            out_regcand_walk(e->E1, addressOfParam);
             e = e->E2;
         }
         else if (EUNA(e))
@@ -922,7 +918,7 @@ STATIC void out_regcand_walk(elem *e)
         else
         {   if (e->Eoper == OPrelconst)
             {
-                s = e->EV.sp.Vsym;
+                Symbol *s = e->EV.sp.Vsym;
                 assert(s);
                 symbol_debug(s);
                 switch (s->Sclass)
@@ -931,7 +927,7 @@ STATIC void out_regcand_walk(elem *e)
                     case SCparameter:
                     case SCshadowreg:
                         if (I16)
-                            addrparam = TRUE;       // taking addr of param list
+                            addressOfParam = true;       // taking addr of param list
                         else
                             s->Sflags &= ~(SFLunambig | GTregcand);
                         break;
@@ -981,14 +977,7 @@ void writefunc(symbol *sfunc)
 
 STATIC void writefunc2(symbol *sfunc)
 {
-    block *b;
-    unsigned nsymbols;
-    SYMIDX si;
-    int anyasm;
-    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
-    int csegsave = CSEGSAVE_DEFAULT;
     func_t *f = sfunc->Sfunc;
-    tym_t tyf;
 
     //printf("writefunc(%s)\n",sfunc->Sident);
     debug(debugy && dbg_printf("writefunc(%s)\n",sfunc->Sident));
@@ -1002,9 +991,8 @@ STATIC void writefunc2(symbol *sfunc)
 
     // If this function is the 'trigger' to output the vtbl[], do so
     if (f->Fflags3 & Fvtblgen && !eecontext.EEcompile)
-    {   Classsym *stag;
-
-        stag = (Classsym *) sfunc->Sscope;
+    {
+        Classsym *stag = (Classsym *) sfunc->Sscope;
         {
             enum SC scvtbl;
 
@@ -1035,7 +1023,7 @@ STATIC void writefunc2(symbol *sfunc)
     /* Copy local symbol table onto main one, making sure       */
     /* that the symbol numbers are adjusted accordingly */
     //dbg_printf("f->Flocsym.top = %d\n",f->Flocsym.top);
-    nsymbols = f->Flocsym.top;
+    unsigned nsymbols = f->Flocsym.top;
     if (nsymbols > globsym.symmax)
     {   /* Reallocate globsym.tab[]     */
         globsym.symmax = nsymbols;
@@ -1049,13 +1037,11 @@ STATIC void writefunc2(symbol *sfunc)
     assert(startblock == NULL);
     if (f->Fflags & Finline)            // if keep function around
     {   // Generate copy of function
-        block *bf;
-        block **pb;
 
-        pb = &startblock;
-        for (bf = f->Fstartblock; bf; bf = bf->Bnext)
+        block **pb = &startblock;
+        for (block *bf = f->Fstartblock; bf; bf = bf->Bnext)
         {
-            b = block_calloc();
+            block *b = block_calloc();
             *pb = b;
             pb = &b->Bnext;
 
@@ -1079,10 +1065,9 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     /* If function is _STIxxxx, add in the auto destructors             */
     if (cpp_stidtors && memcmp("__SI",sfunc->Sident,4) == 0)
-    {   list_t el;
-
+    {
         assert(startblock->Bnext == NULL);
-        el = cpp_stidtors;
+        list_t el = cpp_stidtors;
         do
         {
             startblock->Belem = el_combine(startblock->Belem,list_elem(el));
@@ -1093,7 +1078,7 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
     assert(funcsym_p == NULL);
     funcsym_p = sfunc;
-    tyf = tybasic(sfunc->ty());
+    tym_t tyf = tybasic(sfunc->ty());
 
 #if SCPP
     out_extdef(sfunc);
@@ -1106,7 +1091,7 @@ STATIC void writefunc2(symbol *sfunc)
     FuncParamRegs fpr(tyf);
 #endif
 
-    for (si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
 
         symbol_debug(s);
@@ -1170,15 +1155,15 @@ STATIC void writefunc2(symbol *sfunc)
         }
     }
 
-    addrparam = FALSE;                  // haven't taken addr of param yet
-    anyasm = 0;
+    bool addressOfParam = false;  // see if any parameters get their address taken
+    bool anyasm = false;
     numblks = 0;
-    for (b = startblock; b; b = b->Bnext)
+    for (block *b = startblock; b; b = b->Bnext)
     {
         numblks++;                              // redo count
         memset(&b->_BLU,0,sizeof(b->_BLU));
         if (b->Belem)
-        {   outelem(b->Belem);
+        {   outelem(b->Belem, addressOfParam);
 #if SCPP
             if (!el_returns(b->Belem) && !(config.flags3 & CFG3eh))
             {   b->BC = BCexit;
@@ -1193,7 +1178,7 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
         }
         if (b->BC == BCasm)
-            anyasm = 1;
+            anyasm = true;
         if (sfunc->Sflags & SFLexit && (b->BC == BCret || b->BC == BCretexp))
         {   b->BC = BCexit;
             list_free(&b->Bsucc,FPNULL);
@@ -1205,7 +1190,7 @@ STATIC void writefunc2(symbol *sfunc)
     {   unsigned marksi = globsym.top;
 
         eecontext.EEin++;
-        outelem(eecontext.EEelem);
+        outelem(eecontext.EEelem, addressOfParam);
         eecontext.EEelem = doptelem(eecontext.EEelem,TRUE);
         eecontext.EEin--;
         eecontext_convs(marksi);
@@ -1213,9 +1198,9 @@ STATIC void writefunc2(symbol *sfunc)
     maxblks = 3 * numblks;              // allow for increase in # of blocks
     // If we took the address of one parameter, assume we took the
     // address of all non-register parameters.
-    if (addrparam | anyasm)             // if took address of a parameter
+    if (addressOfParam | anyasm)        // if took address of a parameter
     {
-        for (si = 0; si < globsym.top; si++)
+        for (SYMIDX si = 0; si < globsym.top; si++)
             if (anyasm || globsym.tab[si]->Sclass == SCparameter)
                 globsym.tab[si]->Sflags &= ~(SFLunambig | GTregcand);
     }
@@ -1247,10 +1232,9 @@ STATIC void writefunc2(symbol *sfunc)
             && compile_state != kDataView
 #endif
            )
-        {   char err;
-
-            err = 0;
-            for (b = startblock; b; b = b->Bnext)
+        {
+            char err = 0;
+            for (block *b = startblock; b; b = b->Bnext)
             {   if (b->BC == BCasm)     // no errors if any asm blocks
                     err |= 2;
                 else if (b->BC == BCret)
@@ -1262,6 +1246,8 @@ STATIC void writefunc2(symbol *sfunc)
     }
 #endif
     assert(funcsym_p == sfunc);
+    const int CSEGSAVE_DEFAULT = -10000;        // some unlikely number
+    int csegsave = CSEGSAVE_DEFAULT;
     if (eecontext.EEcompile != 1)
     {
         if (symbol_iscomdat(sfunc))
@@ -1311,7 +1297,6 @@ STATIC void writefunc2(symbol *sfunc)
         }
 
 #if SCPP && _WIN32
-        char *id;
         // Determine which startup code to reference
         if (!CPP || !isclassmember(sfunc))              // if not member function
         {   static char *startup[] =
@@ -1320,7 +1305,7 @@ STATIC void writefunc2(symbol *sfunc)
             };
             int i;
 
-            id = sfunc->Sident;
+            const char *id = sfunc->Sident;
             switch (id[0])
             {
                 case 'D': if (strcmp(id,"DllMain"))
@@ -1392,7 +1377,7 @@ STATIC void writefunc2(symbol *sfunc)
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.
      */
-    for (si = 0; si < globsym.top; si++)
+    for (SYMIDX si = 0; si < globsym.top; si++)
     {
         Symbol *s = globsym.tab[si];
 
@@ -1455,9 +1440,7 @@ Ldone:
 
 void alignOffset(int seg,targ_size_t datasize)
 {
-    targ_size_t alignbytes;
-
-    alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
+    targ_size_t alignbytes = _align(datasize,Offset(seg)) - Offset(seg);
     //dbg_printf("seg %d datasize = x%x, Offset(seg) = x%x, alignbytes = x%x\n",
       //seg,datasize,Offset(seg),alignbytes);
     if (alignbytes)
@@ -1507,7 +1490,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
             return r->sym;
     }
 
-    symbol *s;
+    Symbol *s;
 
     if (config.objfmt == OBJ_ELF ||
         (MARS && (config.objfmt == OBJ_OMF || config.objfmt == OBJ_MSCOFF)))

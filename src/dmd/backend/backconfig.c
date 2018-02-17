@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 2000-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2000-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/backconfig.c, backend/backconfig.c)
@@ -51,7 +51,9 @@ void out_config_init(
         bool alwaysframe,       // always create standard function frame
         bool stackstomp,        // add stack stomping code
         unsigned char avx,      // use AVX instruction set (0, 1, 2)
-        bool betterC            // implement "Better C"
+        bool useModuleInfo,     // implement ModuleInfo
+        bool useTypeInfo,       // implement TypeInfo
+        bool useExceptions      // implement exception handling
         )
 {
 #if MARS
@@ -74,7 +76,7 @@ void out_config_init(
     {   config.exe = EX_WIN64;
         config.fpxmmregs = TRUE;
         config.avx = avx;
-        config.ehmethod = betterC ? EH_NONE : EH_DM;
+        config.ehmethod = useExceptions ? EH_DM : EH_NONE;
 
         // Not sure we really need these two lines, try removing them later
         config.flags |= CFGnoebp;
@@ -85,7 +87,7 @@ void out_config_init(
     else
     {
         config.exe = EX_WIN32;
-        config.ehmethod = betterC ? EH_NONE : EH_WIN32;
+        config.ehmethod = useExceptions ? EH_WIN32 : EH_NONE;
         config.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
     }
 
@@ -96,14 +98,14 @@ void out_config_init(
 #if TARGET_LINUX
     if (model == 64)
     {   config.exe = EX_LINUX64;
-        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
         config.fpxmmregs = TRUE;
         config.avx = avx;
     }
     else
     {
         config.exe = EX_LINUX;
-        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -121,12 +123,12 @@ void out_config_init(
     if (model == 64)
     {   config.exe = EX_OSX64;
         config.fpxmmregs = TRUE;
-        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
     }
     else
     {
         config.exe = EX_OSX;
-        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
     }
     config.flags |= CFGnoebp;
     if (!exe)
@@ -140,14 +142,14 @@ void out_config_init(
 #if TARGET_FREEBSD
     if (model == 64)
     {   config.exe = EX_FREEBSD64;
-        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
         config.fpxmmregs = TRUE;
         config.avx = avx;
     }
     else
     {
         config.exe = EX_FREEBSD;
-        config.ehmethod = betterC ? EH_NONE : EH_DWARF;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
         if (!exe)
             config.flags |= CFGromable; // put switch tables in code segment
     }
@@ -176,7 +178,26 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = betterC ? EH_NONE : EH_DM;
+    config.ehmethod = useExceptions ? EH_DM : EH_NONE;
+#endif
+#if TARGET_DRAGONFLYBSD
+    if (model == 64)
+    {   config.exe = EX_DRAGONFLYBSD64;
+        config.ehmethod = useExceptions ? EH_DWARF : EH_NONE;
+        config.fpxmmregs = TRUE;
+        config.avx = avx;
+    }
+    else
+    {
+        assert(0);                      // Only 64-bit supported on DragonFlyBSD
+    }
+    config.flags |= CFGnoebp;
+    if (!exe)
+    {
+        config.flags3 |= CFG3pic;
+        config.flags |= CFGalwaysframe; // PIC needs a frame for TLS fixups
+    }
+    config.objfmt = OBJ_ELF;
 #endif
 #if TARGET_SOLARIS
     if (model == 64)
@@ -195,7 +216,7 @@ void out_config_init(
     if (!exe)
         config.flags3 |= CFG3pic;
     config.objfmt = OBJ_ELF;
-    config.ehmethod = betterC ? EH_NONE : EH_DM;
+    config.ehmethod = useExceptions ? EH_DM : EH_NONE;
 #endif
     config.flags2 |= CFG2nodeflib;      // no default library
     config.flags3 |= CFG3eseqds;
@@ -253,7 +274,9 @@ void out_config_init(
     if (stackstomp)
         config.flags2 |= CFG2stomp;
 
-    config.betterC = betterC;
+    config.useModuleInfo = useModuleInfo;
+    config.useTypeInfo = useTypeInfo;
+    config.useExceptions = useExceptions;
 
     ph_init();
     block_init();
@@ -336,7 +359,7 @@ void util_set32()
     _tysize[TYnullptr] = LONGSIZE;
     _tysize[TYnptr] = LONGSIZE;
     _tysize[TYnref] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     _tysize[TYldouble] = 12;
     _tysize[TYildouble] = 12;
     _tysize[TYcldouble] = 24;
@@ -363,7 +386,7 @@ void util_set32()
     _tyalignsize[TYnullptr] = LONGSIZE;
     _tyalignsize[TYnref] = LONGSIZE;
     _tyalignsize[TYnptr] = LONGSIZE;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     _tyalignsize[TYldouble] = 4;
     _tyalignsize[TYildouble] = 4;
     _tyalignsize[TYcldouble] = 4;
@@ -401,7 +424,7 @@ void util_set64()
     _tysize[TYnullptr] = 8;
     _tysize[TYnptr] = 8;
     _tysize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS || TARGET_OSX
     _tysize[TYldouble] = 16;
     _tysize[TYildouble] = 16;
     _tysize[TYcldouble] = 32;
@@ -424,7 +447,7 @@ void util_set64()
     _tyalignsize[TYnullptr] = 8;
     _tyalignsize[TYnptr] = 8;
     _tyalignsize[TYnref] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_DRAGONFLYBSD || TARGET_SOLARIS
     _tyalignsize[TYldouble] = 16;
     _tyalignsize[TYildouble] = 16;
     _tyalignsize[TYcldouble] = 16;

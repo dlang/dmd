@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
-grep -v "\"file\" : " ${RESULTS_DIR}/compilable/json.out | grep -v "\"offset\" : " | grep -v "\"deco\" : " > ${RESULTS_DIR}/compilable/json.out.2
-grep -v "\"file\" : " compilable/extra-files/json.out | grep -v "\"offset\" : " | grep -v "\"deco\" : " > ${RESULTS_DIR}/compilable/json.out.3
+set -euo pipefail
 
-diff --strip-trailing-cr ${RESULTS_DIR}/compilable/json.out.2 ${RESULTS_DIR}/compilable/json.out.3
-if [ $? -ne 0 ]; then
-    exit 1;
-fi
+TEST_NAME=$1
 
-rm ${RESULTS_DIR}/compilable/json.out{.2,.3}
+echo SANITIZING JSON...
+${RESULTS_DIR}/sanitize_json ${RESULTS_DIR}/compilable/${TEST_NAME}.out > ${RESULTS_DIR}/compilable/${TEST_NAME}.out.sanitized
+
+diff --strip-trailing-cr compilable/extra-files/${TEST_NAME}.out ${RESULTS_DIR}/compilable/${TEST_NAME}.out.sanitized
+
+rm -f ${RESULTS_DIR}/compilable/${TEST_NAME}.out || true
+rm -f ${RESULTS_DIR}/compilable/${TEST_NAME}.out.sanitized || true

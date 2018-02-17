@@ -2,15 +2,15 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/initsem.d, _initsem.d)
+ * Documentation:  https://dlang.org/phobos/dmd_initsem.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/initsem.d
  */
 
 module dmd.initsem;
-
-// Online documentation: https://dlang.org/phobos/dmd_initsem.html
 
 import core.checkedint;
 
@@ -32,7 +32,6 @@ import dmd.id;
 import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
-import dmd.semantic;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
@@ -127,12 +126,12 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             StructDeclaration sd = (cast(TypeStruct)t).sym;
             if (sd.ctor)
             {
-                error(i.loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead", sd.kind(), sd.toChars(), sd.toChars());
+                error(i.loc, "%s `%s` has constructors, cannot use `{ initializers }`, use `%s( initializers )` instead", sd.kind(), sd.toChars(), sd.toChars());
                 result = new ErrorInitializer();
                 return;
             }
             sd.size(i.loc);
-            if (sd.sizeok != SIZEOKdone)
+            if (sd.sizeok != Sizeok.done)
             {
                 result = new ErrorInitializer();
                 return;
@@ -155,9 +154,9 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     {
                         s = sd.search_correct(id);
                         if (s)
-                            error(i.loc, "'%s' is not a member of '%s', did you mean %s '%s'?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
+                            error(i.loc, "`%s` is not a member of `%s`, did you mean %s `%s`?", id.toChars(), sd.toChars(), s.kind(), s.toChars());
                         else
-                            error(i.loc, "'%s' is not a member of '%s'", id.toChars(), sd.toChars());
+                            error(i.loc, "`%s` is not a member of `%s`", id.toChars(), sd.toChars());
                         result = new ErrorInitializer();
                         return;
                     }
@@ -167,7 +166,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     {
                         if (fieldi >= nfields)
                         {
-                            error(i.loc, "%s.%s is not a per-instance initializable field", sd.toChars(), s.toChars());
+                            error(i.loc, "`%s.%s` is not a per-instance initializable field", sd.toChars(), s.toChars());
                             result = new ErrorInitializer();
                             return;
                         }
@@ -177,14 +176,14 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 }
                 else if (fieldi >= nfields)
                 {
-                    error(i.loc, "too many initializers for %s", sd.toChars());
+                    error(i.loc, "too many initializers for `%s`", sd.toChars());
                     result = new ErrorInitializer();
                     return;
                 }
                 VarDeclaration vd = sd.fields[fieldi];
                 if ((*elements)[fieldi])
                 {
-                    error(i.loc, "duplicate initializer for field '%s'", vd.toChars());
+                    error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
                     continue;
                 }
@@ -193,7 +192,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     VarDeclaration v2 = sd.fields[k];
                     if (vd.isOverlappedWith(v2) && (*elements)[k])
                     {
-                        error(i.loc, "overlapping initialization for field %s and %s", v2.toChars(), vd.toChars());
+                        error(i.loc, "overlapping initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
                         errors = true;
                         continue;
                     }
@@ -202,7 +201,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 Initializer iz = i.value[j];
                 iz = iz.initializerSemantic(sc, vd.type.addMod(t.mod), needInterpret);
                 Expression ex = iz.initializerToExpression();
-                if (ex.op == TOKerror)
+                if (ex.op == TOK.error)
                 {
                     errors = true;
                     continue;
@@ -229,12 +228,12 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         }
         else if ((t.ty == Tdelegate || t.ty == Tpointer && t.nextOf().ty == Tfunction) && i.value.dim == 0)
         {
-            TOK tok = (t.ty == Tdelegate) ? TOKdelegate : TOKfunction;
+            TOK tok = (t.ty == Tdelegate) ? TOK.delegate_ : TOK.function_;
             /* Rewrite as empty delegate literal { }
              */
             auto parameters = new Parameters();
-            Type tf = new TypeFunction(parameters, null, 0, LINKd);
-            auto fd = new FuncLiteralDeclaration(i.loc, Loc(), tf, tok, null);
+            Type tf = new TypeFunction(parameters, null, 0, LINK.d);
+            auto fd = new FuncLiteralDeclaration(i.loc, Loc.initial, tf, tok, null);
             fd.fbody = new CompoundStatement(i.loc, new Statements());
             fd.endloc = i.loc;
             Expression e = new FuncExp(i.loc, fd);
@@ -242,7 +241,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             result = ie.initializerSemantic(sc, t, needInterpret);
             return;
         }
-        error(i.loc, "a struct is not a valid initializer for a %s", t.toChars());
+        error(i.loc, "a struct is not a valid initializer for a `%s`", t.toChars());
         result = new ErrorInitializer();
         return;
     }
@@ -280,7 +279,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 // Bugzilla 13987
                 if (!e)
                 {
-                    error(i.loc, "cannot use array to initialize %s", t.toChars());
+                    error(i.loc, "cannot use array to initialize `%s`", t.toChars());
                     goto Lerr;
                 }
                 auto ei = new ExpInitializer(e.loc, e);
@@ -292,7 +291,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 break;
             goto default;
         default:
-            error(i.loc, "cannot use array to initialize %s", t.toChars());
+            error(i.loc, "cannot use array to initialize `%s`", t.toChars());
             goto Lerr;
         }
         i.type = t;
@@ -314,7 +313,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     errors = true;
                 }
                 length = cast(uint)idxvalue;
-                if (idx.op == TOKerror)
+                if (idx.op == TOK.error)
                     errors = true;
             }
             Initializer val = i.value[j];
@@ -326,7 +325,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                 errors = true;
             ei = val.isExpInitializer();
             // found a tuple, expand it
-            if (ei && ei.exp.op == TOKtuple)
+            if (ei && ei.exp.op == TOK.tuple)
             {
                 TupleExp te = cast(TupleExp)ei.exp;
                 i.index.remove(j);
@@ -389,7 +388,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
         i.exp = resolveProperties(sc, i.exp);
         if (needInterpret)
             sc = sc.endCTFE();
-        if (i.exp.op == TOKerror)
+        if (i.exp.op == TOK.error)
         {
             result = new ErrorInitializer();
             return;
@@ -426,22 +425,22 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             i.exp = new TupleExp(i.exp.loc, new Expressions());
             i.exp.type = et;
         }
-        if (i.exp.op == TOKtype)
+        if (i.exp.op == TOK.type)
         {
-            i.exp.error("initializer must be an expression, not '%s'", i.exp.toChars());
+            i.exp.error("initializer must be an expression, not `%s`", i.exp.toChars());
             result = new ErrorInitializer();
             return;
         }
         // Make sure all pointers are constants
         if (needInterpret && hasNonConstPointers(i.exp))
         {
-            i.exp.error("cannot use non-constant CTFE pointer in an initializer '%s'", i.exp.toChars());
+            i.exp.error("cannot use non-constant CTFE pointer in an initializer `%s`", i.exp.toChars());
             result = new ErrorInitializer();
             return;
         }
         Type tb = t.toBasetype();
         Type ti = i.exp.type.toBasetype();
-        if (i.exp.op == TOKtuple && i.expandTuples && !i.exp.implicitConvTo(t))
+        if (i.exp.op == TOK.tuple && i.expandTuples && !i.exp.implicitConvTo(t))
         {
             result = new ExpInitializer(i.loc, i.exp);
             return;
@@ -452,7 +451,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
          * Allow this by doing an explicit cast, which will lengthen the string
          * literal.
          */
-        if (i.exp.op == TOKstring && tb.ty == Tsarray)
+        if (i.exp.op == TOK.string_ && tb.ty == Tsarray)
         {
             StringExp se = cast(StringExp)i.exp;
             Type typeb = se.type.toBasetype();
@@ -505,12 +504,12 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             {
                 uinteger_t dim1 = (cast(TypeSArray)tb).dim.toInteger();
                 uinteger_t dim2 = dim1;
-                if (i.exp.op == TOKarrayliteral)
+                if (i.exp.op == TOK.arrayLiteral)
                 {
                     ArrayLiteralExp ale = cast(ArrayLiteralExp)i.exp;
                     dim2 = ale.elements ? ale.elements.dim : 0;
                 }
-                else if (i.exp.op == TOKslice)
+                else if (i.exp.op == TOK.slice)
                 {
                     Type tx = toStaticArrayType(cast(SliceExp)i.exp);
                     if (tx)
@@ -525,7 +524,7 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
             i.exp = i.exp.implicitCastTo(sc, t);
         }
     L1:
-        if (i.exp.op == TOKerror)
+        if (i.exp.op == TOK.error)
         {
             result = i;
             return;
@@ -596,7 +595,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 }
                 assert(iz.isExpInitializer());
                 (*values)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*values)[i].op != TOKerror);
+                assert((*values)[i].op != TOK.error);
             }
             Expression e = new AssocArrayLiteralExp(init.loc, keys, values);
             auto ei = new ExpInitializer(init.loc, e);
@@ -622,7 +621,7 @@ private extern(C++) final class InferTypeVisitor : Visitor
                 }
                 assert(iz.isExpInitializer());
                 (*elements)[i] = (cast(ExpInitializer)iz).exp;
-                assert((*elements)[i].op != TOKerror);
+                assert((*elements)[i].op != TOK.error);
             }
             Expression e = new ArrayLiteralExp(init.loc, elements);
             auto ei = new ExpInitializer(init.loc, e);
@@ -647,18 +646,18 @@ private extern(C++) final class InferTypeVisitor : Visitor
         init.exp = init.exp.expressionSemantic(sc);
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-        if (init.exp.op == TOKtype)
+        if (init.exp.op == TOK.type)
             init.exp = resolveAliasThis(sc, init.exp);
 
         init.exp = resolveProperties(sc, init.exp);
-        if (init.exp.op == TOKscope)
+        if (init.exp.op == TOK.scope_)
         {
             ScopeExp se = cast(ScopeExp)init.exp;
             TemplateInstance ti = se.sds.isTemplateInstance();
-            if (ti && ti.semanticRun == PASSsemantic && !ti.aliasdecl)
-                se.error("cannot infer type from %s %s, possible circular dependency", se.sds.kind(), se.toChars());
+            if (ti && ti.semanticRun == PASS.semantic && !ti.aliasdecl)
+                se.error("cannot infer type from %s `%s`, possible circular dependency", se.sds.kind(), se.toChars());
             else
-                se.error("cannot infer type from %s %s", se.sds.kind(), se.toChars());
+                se.error("cannot infer type from %s `%s`", se.sds.kind(), se.toChars());
             result = new ErrorInitializer();
             return;
         }
@@ -674,22 +673,22 @@ private extern(C++) final class InferTypeVisitor : Visitor
             }
             if (hasOverloads && !f.isUnique())
             {
-                init.exp.error("cannot infer type from overloaded function symbol %s", init.exp.toChars());
+                init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
                 result = new ErrorInitializer();
                 return;
             }
         }
-        if (init.exp.op == TOKaddress)
+        if (init.exp.op == TOK.address)
         {
             AddrExp ae = cast(AddrExp)init.exp;
-            if (ae.e1.op == TOKoverloadset)
+            if (ae.e1.op == TOK.overloadSet)
             {
-                init.exp.error("cannot infer type from overloaded function symbol %s", init.exp.toChars());
+                init.exp.error("cannot infer type from overloaded function symbol `%s`", init.exp.toChars());
                 result = new ErrorInitializer();
                 return;
             }
         }
-        if (init.exp.op == TOKerror)
+        if (init.exp.op == TOK.error)
         {
             result = new ErrorInitializer();
             return;
@@ -785,7 +784,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             {
                 if (init.index[i])
                 {
-                    if (init.index[i].op == TOKint64)
+                    if (init.index[i].op == TOK.int64)
                     {
                         const uinteger_t idxval = init.index[i].toInteger();
                         if (idxval >= amax)
@@ -828,7 +827,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
                     if (!init.type)
                         goto Lno;
                     if (!_init)
-                        _init = (cast(TypeNext)t).next.defaultInit();
+                        _init = (cast(TypeNext)t).next.defaultInit(Loc.initial);
                     (*elements)[i] = _init;
                 }
             }
@@ -863,7 +862,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
             for (size_t i = 0; i < edim; i++)
             {
                 Expression e = (*elements)[i];
-                if (e.op == TOKerror)
+                if (e.op == TOK.error)
                 {
                     result = e;
                     return;
@@ -885,7 +884,7 @@ private extern(C++) final class InitToExpressionVisitor : Visitor
         {
             //printf("ExpInitializer::toExpression(t = %s) exp = %s\n", t.toChars(), exp.toChars());
             Type tb = itype.toBasetype();
-            Expression e = (i.exp.op == TOKconstruct || i.exp.op == TOKblit) ? (cast(AssignExp)i.exp).e2 : i.exp;
+            Expression e = (i.exp.op == TOK.construct || i.exp.op == TOK.blit) ? (cast(AssignExp)i.exp).e2 : i.exp;
             if (tb.ty == Tsarray && e.implicitConvTo(tb.nextOf()))
             {
                 TypeSArray tsa = cast(TypeSArray)tb;

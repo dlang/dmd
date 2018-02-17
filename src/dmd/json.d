@@ -2,7 +2,7 @@
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (c) 1999-2017 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2018 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 http://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/json.d, _json.d)
@@ -24,6 +24,7 @@ import dmd.dimport;
 import dmd.dmodule;
 import dmd.dsymbol;
 import dmd.dtemplate;
+import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -33,6 +34,12 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.visitor;
+
+version(Windows) {
+    extern (C) char* getcwd(char* buffer, size_t maxlen);
+} else {
+    import core.sys.posix.unistd : getcwd;
+}
 
 private extern (C++) final class ToJsonVisitor : Visitor
 {
@@ -246,77 +253,78 @@ public:
 
     void property(const(char)* name, TRUST trust)
     {
-        switch (trust)
+        final switch (trust)
         {
-        case TRUSTdefault:
+        case TRUST.default_:
             // Should not be printed
             //property(name, "default");
             break;
-        case TRUSTsystem:
+        case TRUST.system:
             property(name, "system");
             break;
-        case TRUSTtrusted:
+        case TRUST.trusted:
             property(name, "trusted");
             break;
-        case TRUSTsafe:
+        case TRUST.safe:
             property(name, "safe");
             break;
-        default:
-            assert(false);
         }
     }
 
     void property(const(char)* name, PURE purity)
     {
-        switch (purity)
+        final switch (purity)
         {
-        case PUREimpure:
+        case PURE.impure:
             // Should not be printed
             //property(name, "impure");
             break;
-        case PUREweak:
+        case PURE.weak:
             property(name, "weak");
             break;
-        case PUREconst:
+        case PURE.const_:
             property(name, "const");
             break;
-        case PUREstrong:
+        case PURE.strong:
             property(name, "strong");
             break;
-        case PUREfwdref:
+        case PURE.fwdref:
             property(name, "fwdref");
             break;
-        default:
-            assert(false);
         }
     }
 
     void property(const(char)* name, LINK linkage)
     {
-        switch (linkage)
+        final switch (linkage)
         {
-        case LINKdefault:
+        case LINK.default_:
             // Should not be printed
             //property(name, "default");
             break;
-        case LINKd:
+        case LINK.d:
             // Should not be printed
             //property(name, "d");
             break;
-        case LINKc:
+        case LINK.system:
+            // Should not be printed
+            //property(name, "system");
+            break;
+        case LINK.c:
             property(name, "c");
             break;
-        case LINKcpp:
+        case LINK.cpp:
             property(name, "cpp");
             break;
-        case LINKwindows:
+        case LINK.windows:
             property(name, "windows");
             break;
-        case LINKpascal:
+        case LINK.pascal:
             property(name, "pascal");
             break;
-        default:
-            assert(false);
+        case LINK.objc:
+            property(name, "objc");
+            break;
         }
     }
 
@@ -412,7 +420,7 @@ public:
             property("name", s.toChars());
             property("kind", s.kind());
         }
-        if (s.prot().kind != PROTpublic) // TODO: How about package(names)?
+        if (s.prot().kind != Prot.Kind.public_) // TODO: How about package(names)?
             property("protection", protectionToChars(s.prot().kind));
         if (EnumMember em = s.isEnumMember())
         {
@@ -425,10 +433,11 @@ public:
 
     void jsonProperties(Declaration d)
     {
-        if (d.storage_class & STClocal)
+        if (d.storage_class & STC.local)
             return;
         jsonProperties(cast(Dsymbol)d);
         propertyStorageClass("storageClass", d.storage_class);
+        property("linkage", d.linkage);
         property("type", "deco", d.type);
         // Emit originalType if it differs from type
         if (d.type != d.originalType && d.originalType)
@@ -503,7 +512,7 @@ public:
         property("kind", s.kind());
         property("comment", s.comment);
         property("line", "char", &s.loc);
-        if (s.prot().kind != PROTpublic)
+        if (s.prot().kind != Prot.Kind.public_)
             property("protection", protectionToChars(s.prot().kind));
         if (s.aliasId)
             property("alias", s.aliasId.toChars());
@@ -768,7 +777,7 @@ public:
 
     override void visit(VarDeclaration d)
     {
-        if (d.storage_class & STClocal)
+        if (d.storage_class & STC.local)
             return;
         objectStart();
         jsonProperties(d);
@@ -787,19 +796,175 @@ public:
         jsonProperties(d);
         objectEnd();
     }
+
+    /**
+    Generate an array of module objects that represent the syntax of each
+    "root module".
+
+    Params:
+     modules = array of the "root modules"
+    */
+    private void generateModules(Modules* modules)
+    {
+        arrayStart();
+        if (modules)
+        {
+            foreach (m; *modules)
+            {
+                if (global.params.verbose)
+                    message("json gen %s", m.toChars());
+                m.accept(this);
+            }
+        }
+        arrayEnd();
+    }
+
+    /**
+    Generate the "compilerInfo" object which contains information about the compiler
+    such as the filename, version, supported features, etc.
+    */
+    private void generateCompilerInfo()
+    {
+        objectStart();
+        property("binary", global.params.argv0);
+        property("version", global._version);
+        propertyBool("supportsIncludeImports", true);
+        objectEnd();
+    }
+
+    /**
+    Generate the "buildInfo" object which contains information specific to the
+    current build such as CWD, importPaths, configFile, etc.
+    */
+    private void generateBuildInfo()
+    {
+        objectStart();
+        property("cwd", getcwd(null, 0));
+        property("config", global.inifilename ? global.inifilename : null);
+        if (global.params.lib) {
+            property("library", global.params.libname);
+        }
+        propertyStart("importPaths");
+        arrayStart();
+        foreach (importPath; *global.params.imppath)
+        {
+            item(importPath);
+        }
+        arrayEnd();
+        objectEnd();
+    }
+
+    /**
+    Generate the "semantics" object which contains a 'modules' field representing
+    semantic information about all the modules used in the compilation such as
+    module name, isRoot, contentImportedFiles, etc.
+    */
+    private void generateSemantics()
+    {
+        objectStart();
+        propertyStart("modules");
+        arrayStart();
+        foreach (m; Module.amodules)
+        {
+            objectStart();
+            if(m.md)
+                property("name", m.md.toChars());
+            property("file", m.srcfile.toChars());
+            propertyBool("isRoot", m.isRoot());
+            if(m.contentImportedFiles.dim > 0)
+            {
+                propertyStart("contentImports");
+                arrayStart();
+                foreach (file; m.contentImportedFiles)
+                {
+                    item(file);
+                }
+                arrayEnd();
+            }
+            objectEnd();
+        }
+        arrayEnd();
+        objectEnd();
+    }
 }
 
 extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
-    json.arrayStart();
-    for (size_t i = 0; i < modules.dim; i++)
+
+    if (global.params.jsonFieldFlags == 0)
     {
-        Module m = (*modules)[i];
-        if (global.params.verbose)
-            fprintf(global.stdmsg, "json gen %s\n", m.toChars());
-        m.accept(json);
+        // Generate the original format, which is just an array
+        // of modules representing their syntax.
+        json.generateModules(modules);
+        json.removeComma();
     }
-    json.arrayEnd();
-    json.removeComma();
+    else
+    {
+        // Generate the new format which is an object where each
+        // output option is its own field.
+
+        json.objectStart();
+        if (global.params.jsonFieldFlags & JsonFieldFlags.compilerInfo)
+        {
+            json.propertyStart("compilerInfo");
+            json.generateCompilerInfo();
+        }
+        if (global.params.jsonFieldFlags & JsonFieldFlags.buildInfo)
+        {
+            json.propertyStart("buildInfo");
+            json.generateBuildInfo();
+        }
+        if (global.params.jsonFieldFlags & JsonFieldFlags.modules)
+        {
+            json.propertyStart("modules");
+            json.generateModules(modules);
+        }
+        if (global.params.jsonFieldFlags & JsonFieldFlags.semantics)
+        {
+            json.propertyStart("semantics");
+            json.generateSemantics();
+        }
+        json.objectEnd();
+    }
+}
+
+/**
+A string listing the name of each JSON field. Useful for errors messages.
+*/
+enum jsonFieldNames = () {
+    string s;
+    string prefix = "";
+    foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
+    {
+        static if (idx > 0)
+        {
+            s ~= prefix ~ "`" ~ enumName ~ "`";
+            prefix = ", ";
+        }
+    }
+    return s;
+}();
+
+/**
+Parse the given `fieldName` and return its corresponding JsonFieldFlags value.
+
+Params:
+ fieldName = the field name to parse
+
+Returns: JsonFieldFlags.none on error, otherwise the JsonFieldFlags value
+         corresponding to the given fieldName.
+*/
+JsonFieldFlags tryParseJsonField(const(char)* fieldName)
+{
+    auto fieldNameString = fieldName[0 .. strlen(fieldName)];
+    foreach (idx, enumName; __traits(allMembers, JsonFieldFlags))
+    {
+        static if (idx > 0)
+        {
+            if (fieldNameString == enumName)
+                return __traits(getMember, JsonFieldFlags, enumName);
+        }
+    }
+    return JsonFieldFlags.none;
 }
