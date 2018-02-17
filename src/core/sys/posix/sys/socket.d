@@ -1829,7 +1829,7 @@ else version( CRuntime_Bionic )
 else version( CRuntime_Musl )
 {
     alias uint socklen_t;
-    alias ubyte sa_family_t;
+    alias ushort sa_family_t;
 
     struct sockaddr
     {
