@@ -1317,6 +1317,9 @@ else version (CRuntime_Musl)
     extern (D) bool S_ISREG( mode_t mode )  { return S_ISTYPE( mode, S_IFREG );  }
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
+
+    int utimensat(int dirfd, const char *pathname,
+        ref const(timespec)[2] times, int flags);
 }
 else version( CRuntime_UClibc )
 {
