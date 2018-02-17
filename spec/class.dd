@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Classes,
 
+$(HEADERNAV_TOC)
+
         $(P The object-oriented features of D all come from classes. The class
         hierarchy
         has as its root the class Object. Object defines a minimum level of functionality
@@ -99,18 +101,18 @@ Foo var;
 
 $(H2 $(LNAME2 access_control, Access Control))
 
-	$(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
-	The default protection attribute is $(D public).
-	Access control does not affect visibility.
-	)
+        $(P Access to class members is controlled using $(GLINK2 attribute, ProtectionAttribute)s.
+        The default protection attribute is $(D public).
+        Access control does not affect visibility.
+        )
 
 $(H2 $(LNAME2 fields, Fields))
 
         $(P Class members are always accessed with the . operator.
         )
 
-	$(P Members of a base class can be accessed by prepending the name of
-	the base class followed by a dot:)
+        $(P Members of a base class can be accessed by prepending the name of
+        the base class followed by a dot:)
 
 ---
 class A { int a; int a2;}
@@ -165,15 +167,19 @@ void test(Foo foo)
 
 $(H2 $(LNAME2 class_properties, Class Properties))
 
-        $(P The $(D .tupleof) property returns an $(I ExpressionTuple)
-        of all the fields
-        in the class, excluding the hidden fields and the fields in the
-        base class.
+        $(P The $(D .tupleof) property is an
+        $(DDSUBLINK spec/template, variadic-templates, expression sequence)
+        of all the fields in the class, excluding the hidden fields and
+        the fields in the base class.
         )
 ---
 class Foo { int x; long y; }
+
 void test(Foo foo)
 {
+    import std.stdio;
+    static assert(typeof(foo.tupleof).stringof == `(int, long)`);
+
     foo.tupleof[0] = 1; // set foo.x to 1
     foo.tupleof[1] = 2; // set foo.y to 2
     foreach (x; foo.tupleof)
@@ -199,11 +205,11 @@ $(H2 $(LNAME2 member-functions, Member Functions))
         can be accessed.
         )
 
-	$(P Non-static member functions can have, in addition to the usual
-	$(GLINK2 function, FunctionAttribute)s, the attributes
-	$(D const), $(D immutable), $(D shared), or $(D inout).
-	These attributes apply to the hidden $(I this) parameter.
-	)
+        $(P Non-static member functions can have, in addition to the usual
+        $(GLINK2 function, FunctionAttribute)s, the attributes
+        $(D const), $(D immutable), $(D shared), or $(D inout).
+        These attributes apply to the hidden $(I this) parameter.
+        )
 ---
 class C
 {
@@ -665,19 +671,19 @@ $(GNAME StaticConstructor):
     $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
 )
 
-	$(P A static constructor is a function that performs initializations of
-	thread local data before the $(D main()) function gets control for the main
-	thread, and upon thread startup.)
+        $(P A static constructor is a function that performs initializations of
+        thread local data before the $(D main()) function gets control for the main
+        thread, and upon thread startup.)
 
-	$(P Static constructors are used to initialize static class members with
-	values that cannot be computed at compile time.)
+        $(P Static constructors are used to initialize static class members with
+        values that cannot be computed at compile time.)
 
         $(P Static constructors in other languages are built implicitly by using
         member
         initializers that can't be computed at compile time. The trouble with
         this stems from not
         having good control over exactly when the code is executed, for example:
-	)
+        )
 
 ------
 class Foo
@@ -725,7 +731,7 @@ on thread termination.)
 
 $(P Static constructors have empty parameter lists.)
 
-	$(P
+        $(P
         Static constructors within a module are executed in the lexical
         order in which they appear.
         All the static constructors for modules that are directly or
@@ -733,10 +739,10 @@ $(P Static constructors have empty parameter lists.)
         are executed before the static constructors for the importer.
         )
 
-	$(P
+        $(P
         The $(D static) in the static constructor declaration is not
         an attribute, it must appear immediately before the $(D this):
-	)
+        )
 
 ------
 class Foo
@@ -772,19 +778,19 @@ class Foo
 }
 ------
 
-	$(P
+        $(P
         A static destructor gets called on thread termination,
-	but only if the static constructor
+        but only if the static constructor
         completed successfully.
         Static destructors have empty parameter lists.
         Static destructors get called in the reverse order that the static
         constructors were called in.
         )
 
-	$(P
+        $(P
         The $(D static) in the static destructor declaration is not
         an attribute, it must appear immediately before the $(D ~this):
-	)
+        )
 
 ------
 class Foo
@@ -829,14 +835,104 @@ $(GNAME SharedStaticDestructor):
 $(H2 $(LNAME2 invariants, Class Invariants))
 
 $(GRAMMAR
-$(GNAME Invariant):
+$(GNAME ClassInvariant):
     $(D invariant ( )) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
 )
 
-$(P Class invariants are used to specify characteristics of a class that always
-must be true (except while executing a member function). They are described in
-$(GLINK2 contracts, Invariants).)
+    $(P $(I ClassInvariant) specify the relationships among the members of a class instance.
+    Those relationships must hold for any interactions with the instance from its
+    public interface.
+    )
+
+    $(P The invariant is in the form of a $(D const) member function. The invariant is defined
+    to $(I hold) if all the $(GLINK2 expression, AssertExpression)s within the invariant that are executed
+    succeed.
+    )
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(P Any class invariants for base classes are applied before the class invariant for the derived class.)
+
+    $(P There may be multiple invariants in a class. They are applied in lexical order.)
+
+    $(P $(I ClassInvariant)s must hold at the exit of the class constructor (if any),
+    at the entry of the class destructor (if any).)
+
+    $(P $(I ClassInvariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+    )
+
+    $(P The invariant need not hold if the class instance is implicitly constructed using
+    the default $(D .init) value.)
+
+    ---
+    class Date
+    {
+        this(int d, int h)
+        {
+            day = d;    // days are 1..31
+            hour = h;   // hours are 0..23
+        }
+
+        invariant
+        {
+            assert(1 <= day && day <= 31);
+            assert(0 <= hour && hour < 24);
+        }
+
+      private:
+        int day;
+        int hour;
+    }
+    ---
+
+    $(P Public or exported non-static member functions cannot be called from within an invariant.)
+
+    ---
+    class Foo
+    {
+        public void f() { }
+        private void g() { }
+
+        invariant
+        {
+            f();  // error, cannot call public member function from invariant
+            g();  // ok, g() is not public
+        }
+    }
+    ---
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the $(I Class Invariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Do not indirectly call exported or public member functions within a class invariant,
+    as this can result in infinite recursion.)
+    $(LI Avoid reliance on side effects in the invariant. as the invariant may or may not
+    be executed.)
+    $(LI Avoid having mutable public fields of classes with invariants,
+    as then the invariant cannot verify the public interface.)
+    )
+    )
+
 
 $(H2 $(LNAME2 allocators, Class Allocators))
 $(B Note): Class allocators are deprecated in D2.
@@ -1093,6 +1189,8 @@ final class A { }
 class B : A { }  // error, class A is final
 ---
 
+        $(P Methods of a final class are `final` by default.)
+
 $(H2 $(LNAME2 nested, Nested Classes))
 
 $(P A $(I nested class) is a class that is declared inside the scope of a
@@ -1317,7 +1415,7 @@ $(D new) $(D $(LPAREN))$(I ArgumentList)$(D $(RPAREN)) $(I Identifier) $(D $(LPA
 
 where $(I Identifier) is the name generated for the anonymous nested class.
 
-$(SECTION3 $(LEGACY_LNAME2 ConstClass, const-class, Const, Immutable and Shared Classes),
+$(SECTION2 $(LEGACY_LNAME2 ConstClass, const-class, $(ARGS Const, Immutable and Shared Classes)),
 
     $(P If a $(I ClassDeclaration) has a $(D const), $(D immutable)
         or $(D shared) storage class, then it is as if each member of the class

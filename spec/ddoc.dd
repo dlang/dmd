@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Embedded Documentation,
 
+$(HEADERNAV_TOC)
+
 $(P
 The D programming language enables embedding both contracts and test
 code along side the actual code, which helps to keep them all
@@ -202,6 +204,10 @@ a line immediately followed by a ':'. This name forms the section name.
 The section name is not case sensitive.
 )
 
+$(P
+Section names starting with 'http://' or 'https://' are not recognized as section names.
+)
+
 $(H4 $(LNAME2 summary, Summary))
 
 $(P
@@ -242,7 +248,7 @@ $(P
 Named sections follow the $(I Summary) and $(I Description) unnamed sections.
 )
 
-$(H3 $(LNAME2 standard_srction, Standard Sections))
+$(H3 $(LNAME2 standard_sections, Standard Sections))
 
 $(P
 For consistency and predictability, there are several standard sections.
@@ -304,9 +310,9 @@ $(DD Revision history.)
 ------------------------------------
 /**
  * History:
- *	V1 is initial version
+ *      V1 is initial version
  *
- *	V2 added feature X
+ *      V2 added feature X
  */
 ------------------------------------
 
@@ -399,9 +405,9 @@ $(DD Function parameters can be documented by listing them in a params
 /***********************************
  * foo does this.
  * Params:
- *	x =	is for this
- *		and not for that
- *	y =	is for that
+ *      x =     is for this
+ *              and not for that
+ *      y =     is for that
  */
 
 void foo(int x, int y)
@@ -417,10 +423,10 @@ $(DD The macros section follows the same syntax as the $(B Params:) section.
 ------------------------------------
 /**
  * Macros:
- *	FOO =	now is the time for
- *		all good men
- *	BAR =	bar
- *	MAGENTA =   <font color="magenta">$0</font>
+ *      FOO =   now is the time for
+ *              all good men
+ *      BAR =   bar
+ *      MAGENTA =   <font color="magenta">$0</font>
  */
 ------------------------------------
 
@@ -496,13 +502,13 @@ $(P
 
 $(P
     Text inside these sections will be escaped according to the rules described above,
-    then wrapped in a `$(RAW_DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
+    then wrapped in a `$(DOLLAR)(DDOC_BACKQUOTED)` macro. By default, this macro expands
     to be displayed as an inline text span, formatted as code.
 )
 
 $(P
     A literal backtick character can be output either as a non-paired $(BACKTICK) on a single
-    line or by using the `$(RAW_DOLLAR)(BACKTICK)` macro.
+    line or by using the `$(DOLLAR)(BACKTICK)` macro.
 )
 
 ---
@@ -542,10 +548,21 @@ Identifiers in documentation comments that are function parameters or are
 names that are in scope at the associated declaration are emphasized in
 the output.
 This emphasis can take the form of italics, boldface, a hyperlink, etc.
-How it is emphasized depends on what it is - a function parameter, type,
+How it is emphasized depends on what it is $(MDASH) a function parameter, type,
 D keyword, etc.
 To prevent unintended emphasis of an identifier, it can be preceded by
 an underscore ($(UNDERSCORE)). The underscore will be stripped from the output.
+)
+
+$(H3 $(LNAME2 urls, URLs))
+
+$(P
+URLs are sequences of characters starting with 'http://' or 'https://',
+continue with one or more characters from the set of letters, digits and
+`-_?=%&/+#~.`, and contain at least one period.
+URL recognition happens before all macro text substitution.
+The URL is wrapped with a `$(DOLLAR)(DDOC_LINK_AUTODETECT)` macro.
+The $(LINK2 #emphasis, underscore prefix processing) is not done for URL text.
 )
 
 $(H3 $(LNAME2 character_entities, Character Entities))
@@ -831,8 +848,7 @@ $(P
     And all the summary sections will now be green.
 )
 
-$(H3 $(LNAME2 macro_def_scini, Macro Definitions from $(DPLLINK $(ROOT_DIR)dmd-windows.html, sc.ini)'s
-    DDOCFILE))
+$(H3 $(LNAME2 macro_def_scini, Macro Definitions from `sc.ini`'s DDOCFILE))
 
 $(P
     A text file of macro definitions can be created,
@@ -963,4 +979,3 @@ $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing 
 Macros:
     CHAPTER=31
     TITLE=Documentation Generator
-    RAW_DOLLAR=$

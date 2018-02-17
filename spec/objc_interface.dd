@@ -1,6 +1,9 @@
 Ddoc
 
 $(SPEC_S Interfacing to Objective-C,
+
+$(HEADERNAV_TOC)
+
     $(P
         D has limited support for interfacing with Objective-C. It supports
         external classes and calling instance methods. It is only available on
@@ -364,4 +367,4 @@ $(SPEC_SUBNAV_PREV_NEXT cpp_interface, Interfacing to C++, portability, Portabil
 
 Macros:
     CHAPTER=34
-	TITLE=Interfacing to Objective-C
+        TITLE=Interfacing to Objective-C

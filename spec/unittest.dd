@@ -2,91 +2,119 @@ Ddoc
 
 $(SPEC_S Unit Tests,
 
+$(HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME UnitTest):
     $(D unittest) $(GLINK2 statement, BlockStatement)
 )
+    $(P Unit tests are a builtin framework of test cases
+    applied to a module to determine if it is working properly.
+    A D program can be run with unit tests enabled or disabled.
+    )
 
-	$(P Unit tests are a series of test cases applied to a module to determine
-	if it is working properly. Ideally, unit tests should be run every
-	time a program is compiled.
-	)
+    $(P Unit tests are a special function defined like:)
 
-	$(P Unit tests are a special function defined like:)
+    ---
+    unittest
+    {
+        ...test code...
+    }
+    ---
 
-------
-unittest
-{
-    ...test code...
-}
-------
+    $(P Individual tests are specified in the unit test using $(DDSUBLINK spec/expression, AssertExpression)s.
+    Unlike $(I AssertExpression)s used elsewhere, the assert is not assumed to hold, and upon assert
+    failure the program is still in a defined state.
+    )
 
     $(P There can be any number of unit test functions in a module,
     including within struct, union and class declarations.
     They are executed in lexical order.
-    The order in which the modules are called to run their unit tests is
-    implementation defined.
-    Stylistically, a unit test for a function should appear immediately
-    following it.
     )
 
-    $(P A compiler switch, such as $(DDSUBLINK dmd, switch-unittest, $(B -unittest))
-    for $(B dmd), will
-    cause the unittest test code to be compiled and incorporated into
-    the resulting executable. The unittest code gets run after
-    static initialization is run and before the $(D main())
-    function is called.
+    $(P Unit tests, when enabled, are run after all static initialization is
+    complete and before the $(D main()) function is called.
     )
-
-    $(P $(GLINK UnitTest)s must be grammatically correct even if $(B -unittest) is not
-    used.)
 
     $(P For example, given a class $(D Sum) that is used to add two values, a unit
     test can be given:)
 
-------
-class Sum
-{
-    int add(int x, int y) { return x + y; }
-
-    unittest
+    ---
+    class Sum
     {
-        Sum sum = new Sum;
-        assert(sum.add(3,4) == 7);
-        assert(sum.add(-2,0) == -2);
+        int add(int x, int y) { return x + y; }
+
+        unittest
+        {
+            Sum sum = new Sum;
+            assert(sum.add(3,4) == 7);
+            assert(sum.add(-2,0) == -2);
+        }
     }
-}
-------
+    ---
+
+    $(P When unit tests are enabled, the $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
+    $(D unittest) is predefined.
+    )
+
 
 $(H2 $(LNAME2 attributes_unittest, Attributed Unittests))
 
-$(P A unittest may be attributed with any of the global function attributes.
-Such unittests are useful in verifying the given attribute(s) on a template
-function:)
+    $(P A unittest may be attributed with any of the global function attributes.
+    Such unittests are useful in verifying the given attribute(s) on a template
+    function:)
 
-------
-void myFunc(T)(T[] data)
-{
-    if (data.length > 2)
-        data[0] = data[1];
-}
+    ---
+    void myFunc(T)(T[] data)
+    {
+        if (data.length > 2)
+            data[0] = data[1];
+    }
 
-@safe nothrow unittest
-{
-    auto arr = [1,2,3];
-    myFunc(arr);
-    assert(arr == [2,2,3]);
-}
-------
+    @safe nothrow unittest
+    {
+        auto arr = [1,2,3];
+        myFunc(arr);
+        assert(arr == [2,2,3]);
+    }
+    ---
 
-$(P This unittest verifies that $(D myFunc) contains only $(D @safe),
-`nothrow` code. Although this can also be accomplished by attaching these
-attributes to $(D myFunc) itself, that would prevent $(D myFunc) from being
-instantiated with types $(D T) that have $(D @system) or throwing code in their
-$(D opAssign) method, or other methods that $(D myFunc) may call. The above
-idiom allows $(D myFunc) to be instantiated with such types, yet at the same
-time verify that the $(D @system) and throwing behaviour is not introduced by
-the code within $(D myFunc) itself.)
+    $(P This unittest verifies that $(D myFunc) contains only $(D @safe),
+    `nothrow` code. Although this can also be accomplished by attaching these
+    attributes to $(D myFunc) itself, that would prevent $(D myFunc) from being
+    instantiated with types $(D T) that have $(D @system) or throwing code in their
+    $(D opAssign) method, or other methods that $(D myFunc) may call. The above
+    idiom allows $(D myFunc) to be instantiated with such types, yet at the same
+    time verify that the $(D @system) and throwing behavior is not introduced by
+    the code within $(D myFunc) itself.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI If unit tests are not enabled, the implementation is not required to
+    check the $(GLINK UnitTest) for syntactic or semantic correctness.
+    This is to reduce the compile time impact of larger unit test sections.
+    The tokens must still be valid, and the implementation can merely count
+    $(D {) and $(D }) tokens to find the end of the $(GLINK UnitTest)'s $(GLINK2 statement, BlockStatement).
+    )
+    $(LI The presentation of unit test results to the user.)
+    $(LI The method used to enable or disable the unit tests. Use of a compiler
+    switch such as $(DDSUBLINK dmd, switch-unittest, $(B -unittest)) to enable
+    them is suggested.)
+    $(LI The order in which modules are called to run their unit tests.)
+    $(LI Whether the program stops on the first unit test failure, or continues running the unit tests.)
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Using unit tests in conjuction with coverage testing
+    (such as $(DDSUBLINK dmd, switch-cov, $(B -cov)))
+    is effective.)
+    $(LI A unit test for a function should appear immediately
+    following it.)
+    )
+    )
+
 
 $(H2 $(LNAME2 documented-unittests, Documented Unittests))
 
@@ -195,17 +223,11 @@ code sample generated, even if it is empty or only includes comments
 </dl>
 )
 
-$(H2 $(LNAME2 versioning, Versioning))
-
-	$(P The $(DDSUBLINK spec/version, PredefinedVersions, version identifier)
-	$(D unittest) is predefined if the compilation
-	is done with unit tests enabled.
-	)
 
 $(SPEC_SUBNAV_PREV_NEXT errors, Error Handling, garbage, Garbage Collection)
 )
 
 Macros:
     CHAPTER=27
-	TITLE=Unit Tests
-	_=
+        TITLE=Unit Tests
+        _=

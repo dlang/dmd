@@ -2,50 +2,52 @@ Ddoc
 
 $(D_S Type Qualifiers,
 
-	$(P Type qualifiers modify a type by applying a $(GLINK2 declaration, TypeCtor).
-	$(I TypeCtor)s are: $(D const), $(D immutable),	$(D shared), and $(D inout).
-	Each applies transitively to all subtypes.
-	)
+$(HEADERNAV_TOC)
+
+        $(P Type qualifiers modify a type by applying a $(GLINK2 declaration, TypeCtor).
+        $(I TypeCtor)s are: $(D const), $(D immutable), $(D shared), and $(D inout).
+        Each applies transitively to all subtypes.
+        )
 
 $(H2 $(LNAME2 const_and_immutable, Const and Immutable))
 
-	$(P When examining a data structure or interface, it is very
-	helpful to be able to easily tell which data can be expected to not
-	change, which data might change, and who may change that data.
-	This is done with the aid of the language typing system.
-	Data can be marked as const or immutable, with the default being
-	changeable (or $(I mutable)).
-	)
+        $(P When examining a data structure or interface, it is very
+        helpful to be able to easily tell which data can be expected to not
+        change, which data might change, and who may change that data.
+        This is done with the aid of the language typing system.
+        Data can be marked as const or immutable, with the default being
+        changeable (or $(I mutable)).
+        )
 
-	$(P $(D immutable) applies to data that cannot change.
-	Immutable data values, once constructed, remain the same for
-	the duration of the program's
-	execution.
-	Immutable data can be placed in ROM (Read Only Memory) or in
-	memory pages marked by the hardware as read only.
-	Since immutable data does not change, it enables many opportunities
-	for program optimization, and has applications in functional
-	style programming.
-	)
+        $(P $(D immutable) applies to data that cannot change.
+        Immutable data values, once constructed, remain the same for
+        the duration of the program's
+        execution.
+        Immutable data can be placed in ROM (Read Only Memory) or in
+        memory pages marked by the hardware as read only.
+        Since immutable data does not change, it enables many opportunities
+        for program optimization, and has applications in functional
+        style programming.
+        )
 
-	$(P $(D const) applies to data that cannot be changed by
-	the const reference to that data. It may, however, be changed
-	by another reference to that same data.
-	Const finds applications in passing data through interfaces
-	that promise not to modify them.
-	)
+        $(P $(D const) applies to data that cannot be changed by
+        the const reference to that data. It may, however, be changed
+        by another reference to that same data.
+        Const finds applications in passing data through interfaces
+        that promise not to modify them.
+        )
 
-	$(P Both immutable and const are $(I transitive), which means
-	that any data reachable through an immutable reference is also
-	immutable, and likewise for const.
-	)
+        $(P Both immutable and const are $(I transitive), which means
+        that any data reachable through an immutable reference is also
+        immutable, and likewise for const.
+        )
 
 $(H2 $(LNAME2 immutable_storage_class, Immutable Storage Class))
 
-	$(P
-	The simplest immutable declarations use it as a storage class.
-	It can be used to declare manifest constants.
-	)
+        $(P
+        The simplest immutable declarations use it as a storage class.
+        It can be used to declare manifest constants.
+        )
 
 ---
 immutable int x = 3;  // x is set to 3
@@ -53,16 +55,16 @@ x = 4;        // error, x is immutable
 char[x] s;    // s is an array of 3 char's
 ---
 
-	$(P The type can be inferred from the initializer:
-	)
+        $(P The type can be inferred from the initializer:
+        )
 ---
 immutable y = 4; // y is of type int
 y = 5;           // error, y is immutable
 ---
 
-	$(P If the initializer is not present, the immutable can
-	be initialized from the corresponding constructor:
-	)
+        $(P If the initializer is not present, the immutable can
+        be initialized from the corresponding constructor:
+        )
 
 ---
 immutable int z;
@@ -76,11 +78,11 @@ static this()
            // have static initializer
 }
 ---
-	$(P
-	The initializer for a non-local immutable declaration must be
-	evaluatable
-	at compile time:
-	)
+        $(P
+        The initializer for a non-local immutable declaration must be
+        evaluatable
+        at compile time:
+        )
 
 ---
 int foo(int f) { return f * 3; }
@@ -90,9 +92,9 @@ immutable y = i + 1;      // error, cannot evaluate at compile time
 immutable z = foo(2) + 1; // ok, foo(2) can be evaluated at compile time, 7
 ---
 
-	$(P The initializer for a non-static local immutable declaration
-	is evaluated at run time:
-	)
+        $(P The initializer for a non-static local immutable declaration
+        is evaluated at run time:
+        )
 ---
 int foo(int f)
 {
@@ -101,10 +103,10 @@ int foo(int f)
 }
 ---
 
-	$(P
-	Because immutable is transitive, data referred to by an immutable is
-	also immutable:
-	)
+        $(P
+        Because immutable is transitive, data referred to by an immutable is
+        also immutable:
+        )
 
 ---
 immutable char[] s = "foo";
@@ -112,24 +114,24 @@ s[0] = 'a';  // error, s refers to immutable data
 s = "bar";   // error, s is immutable
 ---
 
-	$(P Immutable declarations can appear as lvalues, i.e. they can
-	have their address taken, and occupy storage.
-	)
+        $(P Immutable declarations can appear as lvalues, i.e. they can
+        have their address taken, and occupy storage.
+        )
 
 $(H2 $(LNAME2 const_storage_class, Const Storage Class))
 
-	$(P
-	A const declaration is exactly like an immutable declaration,
-	with the following differences:
-	)
+        $(P
+        A const declaration is exactly like an immutable declaration,
+        with the following differences:
+        )
 
-	$(UL
-	$(LI Any data referenced by the const declaration cannot be
-	changed from the const declaration, but it might be changed
-	by other references to the same data.)
+        $(UL
+        $(LI Any data referenced by the const declaration cannot be
+        changed from the const declaration, but it might be changed
+        by other references to the same data.)
 
-	$(LI The type of a const declaration is itself const.)
-	)
+        $(LI The type of a const declaration is itself const.)
+        )
 
 $(COMMENT
 $(TABLE
@@ -148,30 +150,30 @@ $(TR $(TD $(NBSP))
 
 $(TR $(TH Global data))
 
-$(TR $(TD1 const T x;)		$(Y)	$(N)	$(Y)	$(N)	$(N)	$(Y))
-$(TR $(TD1 const T x = 3;)		$(N)	$(Y)	$(N)	$(N)	$(N)	$(N))
-$(TR $(TD1 static const T x;)	$(Y)	$(N)	$(Y)	$(N)	$(N)	$(Y))
-$(TR $(TD1 static const T x = 3;)	$(Y)	$(Y)	$(Y)	$(N)	$(N)	$(N))
+$(TR $(TD1 const T x;)          $(Y)    $(N)    $(Y)    $(N)    $(N)    $(Y))
+$(TR $(TD1 const T x = 3;)              $(N)    $(Y)    $(N)    $(N)    $(N)    $(N))
+$(TR $(TD1 static const T x;)   $(Y)    $(N)    $(Y)    $(N)    $(N)    $(Y))
+$(TR $(TD1 static const T x = 3;)       $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
 
 
 $(TR $(TH Class Members))
 
-$(TR $(TD1 const T x;)		$(Y)	$(N)	$(N)	$(Y)	$(N)	$(Y))
-$(TR $(TD1 const T x = 3;)		$(N)	$(Y)	$(N)	$(N)	$(N)	$(N))
-$(TR $(TD1 static const T x;)	$(Y)	$(N)	$(Y)	$(N)	$(N)	$(Y))
-$(TR $(TD1 static const T x = 3;)	$(Y)	$(Y)	$(Y)	$(N)	$(N)	$(N))
+$(TR $(TD1 const T x;)          $(Y)    $(N)    $(N)    $(Y)    $(N)    $(Y))
+$(TR $(TD1 const T x = 3;)              $(N)    $(Y)    $(N)    $(N)    $(N)    $(N))
+$(TR $(TD1 static const T x;)   $(Y)    $(N)    $(Y)    $(N)    $(N)    $(Y))
+$(TR $(TD1 static const T x = 3;)       $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
 
 
 $(TR $(TH Local Variables))
 
-$(TR $(TD1 const T x;)		$(Y)	$(Y)	$(N)	$(N)	$(Y)	$(N))
-$(TR $(TD1 const T x = 3;)		$(Y)	$(N)	$(N)	$(N)	$(Y)	$(N))
-$(TR $(TD1 static const T x;)	$(Y)	$(Y)	$(Y)	$(N)	$(N)	$(N))
-$(TR $(TD1 static const T x = 3;)	$(Y)	$(Y)	$(Y)	$(N)	$(N)	$(N))
+$(TR $(TD1 const T x;)          $(Y)    $(Y)    $(N)    $(N)    $(Y)    $(N))
+$(TR $(TD1 const T x = 3;)              $(Y)    $(N)    $(N)    $(N)    $(Y)    $(N))
+$(TR $(TD1 static const T x;)   $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
+$(TR $(TD1 static const T x = 3;)       $(Y)    $(Y)    $(Y)    $(N)    $(N)    $(N))
 
 $(TR $(TH Function Parameters))
 
-$(TR $(TD1 const T x;)		$(Y)	$(N)	$(N)	$(N)	$(Y)	$(N))
+$(TR $(TD1 const T x;)          $(Y)    $(N)    $(N)    $(N)    $(Y)    $(N))
 )
 
 
@@ -202,30 +204,30 @@ $(TR $(TD $(ORANGE orange)) $(TD implicit conversion))
 
 $(H2 $(LNAME2 immutable_type, Immutable Type))
 
-	$(P
-	Data that will never change its value can be typed as immutable.
-	The immutable keyword can be used as a $(I type qualifier):
-	)
+        $(P
+        Data that will never change its value can be typed as immutable.
+        The immutable keyword can be used as a $(I type qualifier):
+        )
 
 ---
 immutable(char)[] s = "hello";
 ---
 
-	$(P
-	The immutable applies to the type within the following parentheses.
-	So, while $(CODE s) can be assigned new values,
-	the contents of $(CODE s[]) cannot be:
-	)
+        $(P
+        The immutable applies to the type within the following parentheses.
+        So, while $(CODE s) can be assigned new values,
+        the contents of $(CODE s[]) cannot be:
+        )
 
 ---
 s[0] = 'b';  // error, s[] is immutable
 s = null;    // ok, s itself is not immutable
 ---
 
-	$(P
-	Immutability is transitive, meaning it applies to anything that
-	can be referenced from the immutable type:
-	)
+        $(P
+        Immutability is transitive, meaning it applies to anything that
+        can be referenced from the immutable type:
+        )
 
 ---
 immutable(char*)** p = ...;
@@ -235,9 +237,9 @@ p = ...;        // ok, p is not immutable
 ***p = ...;     // error, ***p is immutable
 ---
 
-	$(P Immutable used as a storage class is equivalent to using
-	immutable as a type qualifier for the entire type of a
-	declaration:)
+        $(P Immutable used as a storage class is equivalent to using
+        immutable as a type qualifier for the entire type of a
+        declaration:)
 
 ---
 immutable int x = 3;   // x is typed as immutable(int)
@@ -247,10 +249,10 @@ immutable(int) y = 3;  // y is immutable
 
 $(H2 $(LNAME2 creating_immutable_data, Creating Immutable Data))
 
-	$(P
-	The first way is to use a literal that is already immutable,
-	such as string literals. String literals are always immutable.
-	)
+        $(P
+        The first way is to use a literal that is already immutable,
+        such as string literals. String literals are always immutable.
+        )
 
 ---
 auto s = "hello";   // s is immutable(char)[5]
@@ -258,11 +260,11 @@ char[] p = "world"; // error, cannot implicitly convert immutable
                     // to mutable
 ---
 
-	$(P
-	The second way is to cast data to immutable.
-	When doing so, it is up to the programmer to ensure that no
-	other mutable references to the same data exist.
-	)
+        $(P
+        The second way is to cast data to immutable.
+        When doing so, it is up to the programmer to ensure that no
+        other mutable references to the same data exist.
+        )
 
 ---
 char[] s = ...;
@@ -270,51 +272,51 @@ immutable(char)[] p = cast(immutable)s;     // undefined behavior
 immutable(char)[] p = cast(immutable)s.dup; // ok, unique reference
 ---
 
-	$(P
-	The $(CODE .idup) property is a convenient way to create an immutable
-	copy of an array:
-	)
+        $(P
+        The $(CODE .idup) property is a convenient way to create an immutable
+        copy of an array:
+        )
 
 ---
 auto p = s.idup;
-p[0] = ...;	  // error, p[] is immutable
+p[0] = ...;       // error, p[] is immutable
 ---
 
 $(H2 $(LNAME2 removing_with_cast, Removing Immutable or Const with a Cast))
 
-	$(P
-	An immutable or const type qualifier can be removed with a cast:
-	)
+        $(P
+        An immutable or const type qualifier can be removed with a cast:
+        )
 
 ---
 immutable int* p = ...;
 int* q = cast(int*)p;
 ---
 
-	$(P
-	This does not mean, however, that one can change the data:
-	)
+        $(P
+        This does not mean, however, that one can change the data:
+        )
 
 ---
 *q = 3; // allowed by compiler, but result is undefined behavior
 ---
 
-	$(P
-	The ability to cast away immutable-correctness is necessary in
-	some cases where the static typing is incorrect and not fixable, such
-	as when referencing code in a library one cannot change.
-	Casting is, as always, a blunt and effective instrument, and
-	when using it to cast away immutable-correctness, one must assume
-	the responsibility to ensure the immutability of the data, as
-	the compiler will no longer be able to statically do so.
-	)
+        $(P
+        The ability to cast away immutable-correctness is necessary in
+        some cases where the static typing is incorrect and not fixable, such
+        as when referencing code in a library one cannot change.
+        Casting is, as always, a blunt and effective instrument, and
+        when using it to cast away immutable-correctness, one must assume
+        the responsibility to ensure the immutability of the data, as
+        the compiler will no longer be able to statically do so.
+        )
 
-	$(P
-	Note that casting away a const qualifier and then mutating is undefined
-	behavior, too, even when the referenced data is mutable. This is so that
-	compilers and programmers can make assumptions based on const alone. For
-	example, here it may be assumed that $(D f) does not alter $(D x):
-	)
+        $(P
+        Note that casting away a const qualifier and then mutating is undefined
+        behavior, too, even when the referenced data is mutable. This is so that
+        compilers and programmers can make assumptions based on const alone. For
+        example, here it may be assumed that $(D f) does not alter $(D x):
+        )
 
 ---
 void f(const int* a);
@@ -328,11 +330,11 @@ void main()
 
 $(H2 $(LNAME2 immutable_member_functions, Immutable Member Functions))
 
-	$(P
-	Immutable member functions are guaranteed that the object
-	and anything referred to by the $(CODE this) reference is immutable.
-	They are declared as:
-	)
+        $(P
+        Immutable member functions are guaranteed that the object
+        and anything referred to by the $(CODE this) reference is immutable.
+        They are declared as:
+        )
 
 ---
 struct S
@@ -382,20 +384,20 @@ struct S
 
 $(H2 $(LNAME2 const_type, Const Type))
 
-	$(P
-	Const types are like immutable types, except that const
-	forms a read-only $(I view) of data. Other aliases to that
-	same data may change it at any time.
-	)
+        $(P
+        Const types are like immutable types, except that const
+        forms a read-only $(I view) of data. Other aliases to that
+        same data may change it at any time.
+        )
 
 
 $(H2 $(LNAME2 const_member_functions, Const Member Functions))
 
-	$(P
-	Const member functions are functions that are not allowed to
-	change any part of the object through the member function's
-	this reference.
-	)
+        $(P
+        Const member functions are functions that are not allowed to
+        change any part of the object through the member function's
+        this reference.
+        )
 
 $(H2 $(LNAME2 combining_qualifiers, Combining Qualifiers))
 
@@ -471,30 +473,30 @@ is shown below in tabular format:)
     $(TROW $(D inout shared),       $(NO),  $(NO),  $(NO),  $(YES), $(NO),  $(NO),  $(YES), $(YES), $(NO) )
     )
 
-	$(P If an implicit conversion is disallowed by the table, an $(GLINK2 expression, Expression)
-	may be converted if:
-	)
+        $(P If an implicit conversion is disallowed by the table, an $(GLINK2 expression, Expression)
+        may be converted if:
+        )
 
-	$(P An expression may be converted from mutable or shared to immutable if the expression
-	is unique and all expressions it transitively refers to are either unique or immutable.
-	)
+        $(P An expression may be converted from mutable or shared to immutable if the expression
+        is unique and all expressions it transitively refers to are either unique or immutable.
+        )
 
-	$(P An expression may be converted from mutable to shared if the expression
-	is unique and all expressions it transitively refers to are either unique, immutable,
-	or shared.
-	)
+        $(P An expression may be converted from mutable to shared if the expression
+        is unique and all expressions it transitively refers to are either unique, immutable,
+        or shared.
+        )
 
-	$(P An expression may be converted from immutable to mutable if the expression
-	is unique.
-	)
+        $(P An expression may be converted from immutable to mutable if the expression
+        is unique.
+        )
 
-	$(P An expression may be converted from shared to mutable if the expression
-	is unique.
-	)
+        $(P An expression may be converted from shared to mutable if the expression
+        is unique.
+        )
 
-	$(P A $(I Unique Expression) is one for which there are no other references to the
-	value of the expression and all expressions it transitively refers to are either
-	also unique or are immutable. For example:)
+        $(P A $(I Unique Expression) is one for which there are no other references to the
+        value of the expression and all expressions it transitively refers to are either
+        also unique or are immutable. For example:)
 ---
 void main()
 {
@@ -508,24 +510,24 @@ void main()
 }
 ---
 
-	$(P Otherwise, a $(GLINK2 expression, CastExpression) can be used to force a conversion
-	when an implicit version is disallowed, but this cannot be done in $(D @safe) code,
-	and the correctness of it must be verified by the user.
-	)
+        $(P Otherwise, a $(GLINK2 expression, CastExpression) can be used to force a conversion
+        when an implicit version is disallowed, but this cannot be done in $(D @safe) code,
+        and the correctness of it must be verified by the user.
+        )
 
 $(SPEC_SUBNAV_PREV_NEXT enum, Enums, function, Functions)
 )
 
 Macros:
-	CHAPTER=18
-	TH1=<th class="nobr">$(CODE $0)</th>
-	TD1=<td class="nobr">$(CODE $0)</td>
-	TDE=<td class="nobr">$(GREEN $(CODE $0))</td>
-	TDI=<td class="nobr">$(ORANGE $(CODE $0))</td>
-	NM=$(TD $(RED no match))
-	Y=$(TD $(GREEN Yes))
-	N=$(TD $(RED No))
-	TITLE=Type Qualifiers
-	ERROR = $(RED $(B error))
+        CHAPTER=18
+        TH1=<th class="nobr">$(CODE $0)</th>
+        TD1=<td class="nobr">$(CODE $0)</td>
+        TDE=<td class="nobr">$(GREEN $(CODE $0))</td>
+        TDI=<td class="nobr">$(ORANGE $(CODE $0))</td>
+        NM=$(TD $(RED no match))
+        Y=$(TD $(GREEN Yes))
+        N=$(TD $(RED No))
+        TITLE=Type Qualifiers
+        ERROR = $(RED $(B error))
     META_KEYWORDS=D Programming Language, const, immutable
     META_DESCRIPTION=Comparison of const between the D programming language, C++, and C++0x

@@ -2,83 +2,12 @@ Ddoc
 
 $(SPEC_S Structs and Unions,
 
-         $(P Whereas classes are reference types, structs are value types.
-             Any C struct can be exactly represented as a D struct, except non-static
-             $(RELATIVE_LINK2 nested, function-nested D structs) which access the context of
-             their enclosing scope.
-             Structs and unions are meant as simple aggregations of data, or as a way
-             to paint a data structure over hardware or an external type. External
-             types can be defined by the operating system API, or by a file format.
-             Object oriented features are provided with the class data type.
-             )
+$(HEADERNAV_TOC)
 
-         $(P A struct is defined to not have an identity; that is,
-             the implementation is free to make bit copies of the struct
-             as convenient.)
-
-        $(TABLE2 Struct$(COMMA) Class Comparison Table,
-        $(THEAD Feature, $(D struct), $(D class), C $(D struct), C++
-        $(D struct), C++ $(D class))
-
-        $(TROW value type, $(CHECK), $(UNCHECK), $(CHECK), $(CHECK), $(CHECK))
-        $(TROW reference type, $(UNCHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW data members, $(CHECK), $(CHECK), $(CHECK), $(CHECK), $(CHECK))
-        $(TROW hidden members, $(CHECK),
-        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW static members, $(CHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 static_struct_init, default member initializers),
-        $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW bit fields, $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK),
-        $(CHECK))
-        $(TROW non-virtual member functions, $(CHECK), $(CHECK),
-        $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW virtual member functions, $(UNCHECK), $(CHECK),
-        $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-constructor, constructors), $(CHECK),
-        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-postblit, postblit)/copy constructors,
-        $(CHECK), $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-destructor, destructors), $(CHECK),
-        $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(GLINK2 class, SharedStaticConstructor)s, $(CHECK),
-        $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW $(GLINK2 class, SharedStaticDestructor)s,  $(CHECK),
-        $(CHECK), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW RAII, $(CHECK), $(CHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 assign-overload, identity assign overload), $(CHECK),
-        $(UNCHECK), $(UNCHECK), $(CHECK), $(CHECK))
-        $(TROW $(RELATIVE_LINK2 struct-literal, literals), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        $(TROW operator overloading, $(CHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW inheritance, $(UNCHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW invariants, $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
-        $(UNCHECK))
-        $(TROW unit tests, $(CHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
-        $(UNCHECK))
-        $(TROW synchronizable, $(UNCHECK), $(CHECK), $(UNCHECK), $(UNCHECK),
-        $(UNCHECK))
-        $(TROW parameterizable, $(CHECK), $(CHECK), $(UNCHECK),
-        $(CHECK), $(CHECK))
-        $(TROW alignment control, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW member protection, $(CHECK), $(CHECK), $(UNCHECK),$(CHECK),$(CHECK))
-        $(TROW default public, $(CHECK), $(CHECK), $(CHECK),$(CHECK), $(UNCHECK))
-        $(TROW tag name space, $(UNCHECK), $(UNCHECK), $(CHECK),
-        $(CHECK), $(CHECK))
-        $(TROW anonymous, $(CHECK), $(UNCHECK), $(CHECK), $(CHECK), $(CHECK))
-        $(TROW static constructor, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW static destructor, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW const/immutable/shared, $(CHECK), $(CHECK), $(UNCHECK),
-        $(UNCHECK), $(UNCHECK))
-        $(TROW inner nesting, $(RELATIVE_LINK2 nested, $(CHECK)),
-        $(DDSUBLINK spec/class, nested, $(CHECK)), $(UNCHECK), $(UNCHECK), $(UNCHECK))
-        )
+    $(P Whereas classes are reference types, structs are value types.
+    Structs and unions are simple aggregations of data and their
+    associated operations on that data.
+    )
 
 $(GRAMMAR
 $(GNAME AggregateDeclaration):
@@ -109,27 +38,64 @@ $(GNAME AggregateBody):
     $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 )
 
-$(P They work like they do in C, with the following exceptions:)
+    $(P A struct is defined to not have an identity; that is,
+    the implementation is free to make bit copies of the struct
+    as convenient.)
 
-$(UL
-        $(LI no bit fields)
-        $(LI alignment can be explicitly specified)
-        $(LI no separate tag name space - tag names go into the current scope)
-        $(LI declarations like:
+    $(P Structs and unions may not contain an instance of themselves,
+    however, they may contain a pointer to the same type.
+    )
 
-------
-struct ABC x;
-------
-        are not allowed, replace with:
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Bit fields are supported with the
+    $(LINK2 https://dlang.org/phobos/std_bitmanip.html#bitfields, bitfields) template.)
+    ))
 
-------
-ABC x;
-------
-        )
-        $(LI anonymous structs/unions are allowed as members of other structs/unions)
-        $(LI Default initializers for members can be supplied.)
-        $(LI Member functions and static members are allowed.)
-)
+
+$(H2 $(LNAME2 struct_layout, Struct Layout))
+
+    $(P The non-static data members of a struct are called $(I fields). Fields are laid
+    out in lexical order. Fields are aligned according to the $(DDSUBLINK spec/attribute, align, Align Attribute)
+    in effect.
+    Unnamed padding is inserted between fields to align fields. There is no padding between
+    the first field and the start of the object.
+    )
+
+    $(P Non-static $(RELATIVE_LINK2 nested, function-nested D structs), which access the context of
+    their enclosing scope, have an extra field.
+    )
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The default layout of the fields of a struct is an exact
+    match with the $(I associated C compiler).)
+    ))
+
+    $(UNDEFINED_BEHAVIOR
+    $(OL
+    $(LI The padding data can be accessed, but its contents are undefined.)
+    ))
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI When laying out a struct to match an externally defined layout, use align
+    attributes to describe an exact match. Using a $(DDSUBLINK spec/version, static-assert, Static Assert)
+    to ensure the result is as expected.)
+    $(LI Although the contents of the padding are often zero, do not rely on that.)
+    ))
+
+$(H2 $(LNAME2 POD, Plain Old Data))
+
+    $(P A struct or union is $(I Plain Old Data) (POD) if it meets the following criteria:)
+
+    $(OL
+    $(LI it is not nested)
+    $(LI it has no postblits, destructors, or assignment operators)
+    $(LI it has no `ref` fields or fields that are themselves non-POD)
+    )
+
+    $(BEST_PRACTICE Structs or unions that interface with C code should be POD.)
 
 
 $(H2 $(LNAME2 opaque_struct_unions, Opaque Structs and Unions))
@@ -301,13 +267,23 @@ $(TABLE2 Struct Properties,
 $(THEAD Name, Description)
 $(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
-$(TROW $(D .tupleof), Gets type tuple of fields))
+)
+
+$(H2 $(LNAME2 struct_instance_properties, Struct Instance Properties))
+
+$(TABLE2 Struct Instance Properties,
+$(THEAD Name, Description)
+$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, variadic-templates, expression sequence)
+    of all struct fields - see
+    $(DDSUBLINK spec/class, class_properties, Class Properties) for a class-based example.)
+)
 
 $(H2 $(LNAME2 struct_field_properties, Struct Field Properties))
 
 $(TABLE2 Struct Field Properties,
 $(THEAD Name, Description)
-$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct))
+$(TROW $(D .offsetof), Offset in bytes of field from beginning of struct)
+)
 
 $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Structs))
 
@@ -586,6 +562,109 @@ $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
         )
 
         $(P Unions may not have fields that have destructors.)
+
+$(H2 $(LNAME2 StructInvariant, Struct Invariants))
+
+$(GRAMMAR
+$(GNAME StructInvariant):
+    $(D invariant ( )) $(GLINK2 statement, BlockStatement)
+    $(D invariant) $(GLINK2 statement, BlockStatement)
+)
+
+    $(P $(I StructInvariant)s specify the relationships among the members of a struct instance.
+    Those relationships must hold for any interactions with the instance from its
+    public interface.
+    )
+
+    $(P The invariant is in the form of a $(D const) member function. The invariant is defined
+    to $(I hold) if all the $(GLINK2 expression, AssertExpression)s within the invariant that are executed
+    succeed.
+    )
+
+    $(P If the invariant does not hold, then the program enters an invalid state.)
+
+    $(P Any invariants for fields are applied before the struct invariant.)
+
+    $(P There may be multiple invariants in a struct. They are applied in lexical order.)
+
+    $(P $(I StructInvariant)s must hold at the exit of the struct constructor (if any),
+    and at the entry of the struct destructor (if any).)
+
+    $(P $(I StructInvariant)s must hold
+    at the entry and exit of all public or exported non-static member functions.
+    The order of application of invariants is:
+    $(OL
+    $(LI preconditions)
+    $(LI invariant)
+    $(LI function body)
+    $(LI invariant)
+    $(LI postconditions)
+    )
+    )
+
+    $(P The invariant need not hold if the struct instance is implicitly constructed using
+    the default $(D .init) value.)
+
+    ---
+    struct Date
+    {
+        this(int d, int h)
+        {
+            day = d;    // days are 1..31
+            hour = h;   // hours are 0..23
+        }
+
+        invariant
+        {
+            assert(1 <= day && day <= 31);
+            assert(0 <= hour && hour < 24);
+        }
+
+      private:
+        int day;
+        int hour;
+    }
+    ---
+
+    $(P Public or exported non-static member functions cannot be called from within an invariant.)
+
+    ---
+    struct Foo
+    {
+        public void f() { }
+        private void g() { }
+
+        invariant
+        {
+            f();  // error, cannot call public member function from invariant
+            g();  // ok, g() is not public
+        }
+    }
+    ---
+
+    $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
+
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI Whether the $(I StructInvariant) is executed at runtime or not. This is typically
+    controlled with a compiler switch.)
+    $(LI The behavior when the invariant does not hold is typically the same as
+    for when $(GLINK2 expression, AssertExpression)s fail.)
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+    $(LI Do not indirectly call exported or public member functions within a struct invariant,
+    as this can result in infinite recursion.)
+    $(LI Avoid reliance on side effects in the invariant. as the invariant may or may not
+    be executed.)
+    $(LI Avoid having mutable public fields of structs with invariants,
+    as then the invariant cannot verify the public interface.)
+    )
+    )
+
+
 
 $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overload))
 

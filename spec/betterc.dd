@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Better C,
 
+$(HEADERNAV_TOC)
+
 `-betterC` is a command-line flag for `dmd`,
 which restricts the compiler's support of certain runtime features.
 Notably, D programs or libraries compiled with `betterC` aren't linked with Druntime.
@@ -48,7 +50,7 @@ $(OL
     $(LI `synchronized` and $(MREF core, sync))
     $(LI Static module constructors or deconstructors)
     $(LI Struct deconstructors)
-    $(LI `unittest` (testing can be as usual with the `-betterC` flag))
+    $(LI `unittest` (testing can be done without the `-betterC` flag))
 )
 
 The predefined $(LINK2 version.html, version) `D_BetterC` can be used for conditional compilation.

@@ -89,6 +89,9 @@ $(SUBNAV_TEMPLATE
     )
 )
 SPEC_RUNNABLE_EXAMPLE=$(RUNNABLE_EXAMPLE $0)
+SPEC_RUNNABLE_EXAMPLE_COMPILE=$(RUNNABLE_EXAMPLE $0)
+SPEC_RUNNABLE_EXAMPLE_FAIL=$(RUNNABLE_EXAMPLE $0)
+SPEC_RUNNABLE_EXAMPLE_RUN=$(RUNNABLE_EXAMPLE $0)
 SPEC_SUBNAV_NEXT=
 $(SPEC_NEXT $(LINK2 $(ROOT_DIR)spec/$1.html, $2))
 $(CLEAR)
@@ -105,6 +108,12 @@ $(CLEAR)
 SPEC_NEXT=<div style="float: right">$1 $(FA_ICON angle-right)</div>
 SPEC_PREV=<div style="float: left">$(FA_ICON angle-left) $1</div>
 
+_=
+
 CLEAR=<div style="clear:both"></div>
 RAWHTML=$0
+_=
+LAYOUT_SUFFIX =
+$(SCRIPTLOAD ../js/listanchors.js)
+$(SCRIPT jQuery(document).ready(addVersionSelector);)
 _=

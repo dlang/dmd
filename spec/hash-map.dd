@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Associative Arrays,
 
+$(HEADERNAV_TOC)
+
         $(P Associative arrays have an index that is not necessarily an integer,
         and can be sparsely populated. The index for an associative array
         is called the $(I key), and its type is called the $(I KeyType).)
@@ -19,9 +21,13 @@ $(SPEC_S Associative Arrays,
         assert(value == 3);
         ---------
 
-        $(P $(BLUE $(B Note:)) The built-in associative arrays do not preserve the order
+        $(P Neither the $(I KeyType)s nor the element types of an associative
+        array can be function types or $(D void).
+        )
+
+        $(IMPLEMENTATION_DEFINED The built-in associative arrays do not preserve the order
         of the keys inserted into the array. In particular, in a $(D foreach) loop the
-        order in which the elements are iterated is unspecified.)
+        order in which the elements are iterated is typically unspecified.)
 
 $(H2 $(LNAME2 removing_keys, Removing Keys))
 
@@ -57,9 +63,8 @@ $(H2 $(LNAME2 testing_membership, Testing Membership))
         }
         ---------
 
-        $(P Neither the $(I KeyType)s nor the element types of an associative
-        array can be function types or $(D void).
-        )
+        $(UNDEFINED_BEHAVIOR Adjusting the pointer to point before or after
+        the element whose address is returned, and then dereferencing it.)
 
 $(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
 
@@ -92,17 +97,27 @@ $(H2 $(LNAME2 using_classes_as_key, Using Classes as the KeyType))
         }
         ---
 
-        $(P Care should be taken that $(D toHash) should consistently be the
-        same value when $(D opEquals) returns true. In other words, two objects
-        that are considered equal should always have the same hash value. If
-        this is not the case, the associative array will not function properly.
-        Also note that $(D opCmp) is not used to check for equality by the
-        associative array. However, since the actual $(D opEquals) or
+        $(IMPLEMENTATION_DEFINED
+        `opCmp` is not used to check for equality by the
+        associative array. However, since the actual `opEquals` or
         `opCmp` called is not decided until runtime, the compiler cannot always
         detect mismatched functions. Because of legacy issues, the compiler may
-        reject an associative array key type that overrides $(D opCmp) but not
-        $(D opEquals). This restriction may be removed in future versions of
-        D.)
+        reject an associative array key type that overrides `opCmp` but not
+        `opEquals`. This restriction may be removed in future versions.)
+
+        $(UNDEFINED_BEHAVIOR
+        $(OL
+        $(LI If $(D toHash) must consistently be the
+        same value when $(D opEquals) returns true. In other words, two objects
+        that are considered equal should always have the same hash value.
+        Otherwise, undefined behavior will result.)
+        ))
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Use the attributes `@safe`, `@nogc`, `pure`, `const`, and `scope` as much as possible
+        on the `toHash` and `opEquals` overrides.)
+        ))
 
 $(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
 
@@ -142,18 +157,29 @@ $(H2 $(LNAME2 using_struct_as_key, Using Structs or Unions as the KeyType))
         }
         ---------
 
-        $(P Care should be taken that $(D toHash) should consistently be the
-        same value when $(D opEquals) returns true. In other words, two structs
-        that are considered equal should always have the same hash value. If
-        this is not the case, the associative array will not function properly.)
-        $(P If necessary the functions can use $(D @trusted) instead of $(D @safe).)
-        $(P Also note that $(D opCmp) is not used to check for equality by the
+        $(P The functions can use $(D @trusted) instead of $(D @safe).)
+
+        $(IMPLEMENTATION_DEFINED `opCmp` is not used to check for equality by the
         associative array.  For this reason, and for legacy reasons, an
         associative array key is not allowed to define a specialized `opCmp`,
-        but omit a specialized $(D opEquals). This restriction may be
+        but omit a specialized `opEquals`. This restriction may be
         removed in future versions of D.)
 
-$(H2 $(LNAME2 construction_assignement_entries, Construction or Assignment on Setting AA Entries))
+        $(UNDEFINED_BEHAVIOR
+        $(OL
+        $(LI If $(D toHash) must consistently be the
+        same value when $(D opEquals) returns true. In other words, two structs
+        that are considered equal should always have the same hash value.
+        Otherwise, undefined behavior will result.)
+        ))
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Use the attributes `@nogc` as much as possible
+        on the `toHash` and `opEquals` overrides.)
+        ))
+
+$(H2 $(LNAME2 construction_assignment_entries, Construction or Assignment on Setting AA Entries))
 
     $(P When an AA indexing access appears on the left side of an assignment
     operator, it is specially handled for setting an AA entry associated with

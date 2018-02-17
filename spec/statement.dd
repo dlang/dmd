@@ -2,8 +2,13 @@ Ddoc
 
 $(SPEC_S Statements,
 
-C and C++ programmers will find the D statements very familiar, with a few
-interesting additions.
+$(HEADERNAV_TOC)
+
+    $(P The order of execution within a function is controlled by $(GLINK Statement)s.
+    A function's body consists of a sequence of zero or more $(I Statement)s.
+    Execution occurs in lexical order, though certain statements may have deferred effects.
+    A $(I Statement) has no value; it is executed for its effects.
+    )
 
 $(GRAMMAR
 $(GNAME Statement):
@@ -65,7 +70,7 @@ $(GNAME NonEmptyStatementNoCaseNoDefault):
         $(P Any ambiguities in the grammar between $(I Statement)s and
         $(GLINK2 declaration, Declaration)s are
         resolved by the declarations taking precedence.
-        If a $(I Statement) is desired instead, wrapping it in parentheses will
+        Wrapping such a statement in parentheses will
         disambiguate it in favor of being a $(I Statement).
         )
 
@@ -112,11 +117,9 @@ void func1(int x)
 }
 --------------
 
-$(P
-        The idea is to avoid bugs in complex functions caused by
-        scoped declarations inadvertently hiding previous ones.
-        Local names should all be unique within a function.
-)
+    $(BEST_PRACTICE Local declarations within a function should
+    all have unique names, even if they are in non-overlapping scopes.
+    )
 
 
 $(H2 $(LEGACY_LNAME2 ScopeBlockStatement, scope-block-statement, Scope Block Statements))
@@ -162,6 +165,9 @@ $(P
         inside a block statement is accessible from outside that block.
 )
 
+    $(P Labels in one function cannot be referenced from another function.)
+
+
 $(H2 $(LEGACY_LNAME2 BlockStatement, block-statement, Block Statement))
 
 $(GRAMMAR
@@ -174,10 +180,13 @@ $(GNAME StatementList):
     $(PSSEMI_PSCURLYSCOPE) $(I StatementList)
 )
 
-$(P
-        A block statement is a sequence of statements enclosed
-        by { }. The statements are executed in lexical order.
-)
+    $(P A block statement is a sequence of statements enclosed by `{ }`.
+    The statements are executed in lexical order,
+    until the end of the block is reached or
+    a statement transfers control elsewhere.
+    )
+
+
 $(H2 $(LEGACY_LNAME2 ExpressionStatement, expression-statement, Expression Statement))
 
 $(GRAMMAR
@@ -188,10 +197,8 @@ $(GNAME ExpressionStatement):
         $(P The expression is evaluated.)
 
         $(P Expressions that have no effect, like $(D (x + x)),
-        are illegal
-        in expression statements.
-        If such an expression is needed, casting it to $(D_KEYWORD void) will
-        make it legal.)
+        are illegal as expression statements unless the are cast
+        to $(D_KEYWORD void).)
 
         ----
         int x;
@@ -201,9 +208,13 @@ $(GNAME ExpressionStatement):
         cast(void)(x + x); // ok
         ----
 
+
 $(H2 $(LEGACY_LNAME2 DeclarationStatement, declaration-statement, Declaration Statement))
 
-        Declaration statements declare variables and types.
+    $(P Declaration statements define variables,
+    and declare types, templates, functions, imports,
+    conditionals, static foreaches, and static asserts.
+    )
 
 $(GRAMMAR
 $(GNAME DeclarationStatement):
@@ -245,13 +256,19 @@ $(GNAME ElseStatement):
         $(I ThenStatement) is transferred to, else the $(I ElseStatement)
         is transferred to.)
 
-        $(P The 'dangling else' parsing problem is solved by associating the
-        else with the nearest if statement.)
+        $(P The $(I ElseStatement)is associated with the innermost if
+        statement which does not already have an associated $(I ElseStatement).)
 
         $(P If an $(D auto) $(I Identifier) is provided, it is declared and
         initialized
         to the value
         and type of the $(EXPRESSION). Its scope extends from when it is
+        initialized to the end of the $(I ThenStatement).)
+
+        $(P If a $(I TypeCtors) $(I Identifier) is provided, it is declared
+        to be of the type specified by $(I TypeCtors)
+        and is initialized with the value of the $(EXPRESSION).
+        Its scope extends from when it is
         initialized to the end of the $(I ThenStatement).)
 
         $(P If a $(I Declarator) is provided, it is declared and
@@ -782,7 +799,7 @@ $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
         many different named looping strategies to coexist in the same
         class or struct.)
 
-	$(P For example:)
+        $(P For example:)
 
 --------------
 void main()
@@ -812,11 +829,11 @@ void main()
 }
 --------------
 
-	$(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
-	does not try to implement reverse traversal of the results returned by
-	the delegate when $(D foreach_reverse) is used. This may result in code
-	that is confusing to read. Therefore, using $(D foreach_reverse) with a
-	delegate is now deprecated, and will be rejected in the future.)
+        $(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
+        does not try to implement reverse traversal of the results returned by
+        the delegate when $(D foreach_reverse) is used. This may result in code
+        that is confusing to read. Therefore, using $(D foreach_reverse) with a
+        delegate is now deprecated, and will be rejected in the future.)
 
 $(H3 $(LNAME2 foreach_over_tuples, Foreach over Tuples))
 
@@ -1538,12 +1555,8 @@ $(GNAME TryStatement):
     $(D try) $(PSSCOPE) $(GLINK FinallyStatement)
 
 $(GNAME Catches):
-    $(GLINK LastCatch)
     $(GLINK Catch)
     $(GLINK Catch) $(I Catches)
-
-$(GNAME LastCatch):
-    $(D catch) $(PS0)
 
 $(GNAME Catch):
     $(D catch $(LPAREN)) $(GLINK CatchParameter) $(D $(RPAREN)) $(PS0)
@@ -1568,9 +1581,6 @@ $(GNAME FinallyStatement):
         $(P It is an error if any $(I CatchParameter) type T1 hides
         a subsequent $(I Catch) with type T2, i.e. it is an error if
         T1 is the same type as or a base class of T2.
-        )
-
-        $(P $(I LastCatch) catches all exceptions.
         )
 
         $(P The $(I FinallyStatement) is always executed, whether

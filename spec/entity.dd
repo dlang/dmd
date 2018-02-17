@@ -2,24 +2,26 @@ Ddoc
 
 $(SPEC_S Named Character Entities,
 
+$(HEADERNAV_TOC)
+
 $(GRAMMAR
 $(GNAME NamedCharacterEntity):
     $(CODE_AMP) $(GLINK2 lex, Identifier) $(D ;)
 )
 
-	$(P D supports the full list of named character entities from HTML 5. However,
-        dmd does not yet support named entities which contain multiple code points.
-        Below is a $(I partial) list of the named character entities. See the
+        $(P The full list of named character entities from the
         $(LINK2 https://w3.org/TR/html5/syntax.html#named-character-references, HTML 5 Spec)
-        for the full list.
-	)
+        is supported
+        except for the named entities which contain multiple code points.
+        Below is a $(I partial) list of the named character entities.
+        )
 
-	$(P $(B Note:) Not all will display properly in the $(B Symbol)
-	column in all browsers.
-	)
+        $(P $(B Note:) Not all glyphs will display properly in the $(B Glyph)
+        column in all browsers.
+        )
 
-	$(LONGTABLE_3COLS 0.4, Named Character Entities,
-    $(THEAD Name, Value, Symbol),
+        $(LONGTABLE_3COLS 0.4, Named Character Entities,
+    $(THEAD Name, Value, Glyph),
    $(TROW $(D quot), $(ARGS 34), $(QUOT))
    $(TROW $(D amp), $(ARGS 38), $(AMP))
    $(TROW $(D lt), $(ARGS 60), $(D <))
@@ -57,7 +59,7 @@ $(GNAME NamedCharacterEntity):
 $(BR)
 
    $(LONGTABLE_3COLS 0.4, Latin-1 (ISO-8859-1) Entities,
-   $(THEAD Name, Value, Symbol),
+   $(THEAD Name, Value, Glyph),
    $(TROW $(D nbsp), $(ARGS 160), $(NBSP))
    $(TROW $(D iexcl), $(ARGS 161), $(IEXCL))
    $(TROW $(D cent), $(ARGS 162), $(CENT))
@@ -158,7 +160,7 @@ $(BR)
 $(BR)
 
    $(LONGTABLE_3COLS 0.4, Symbols and Greek letter entities,
-   $(THEAD Name, Value, Symbol),
+   $(THEAD Name, Value, Glyph),
    $(TROW $(D fnof), $(ARGS 402), $(FNOF))
    $(TROW $(D Alpha), $(ARGS 913), $(ALPHA_CAP))
    $(TROW $(D Beta), $(ARGS 914), $(BETA_CAP))
@@ -289,4 +291,4 @@ $(SPEC_SUBNAV_PREV_NEXT portability, Portability Guide, memory-safe-d, Memory Sa
 
 Macros:
     CHAPTER=36
-	TITLE=Named Character Entities
+        TITLE=Named Character Entities

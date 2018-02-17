@@ -2,74 +2,76 @@ Ddoc
 
 $(SPEC_S Application Binary Interface,
 
-	$(P A D implementation that conforms to the D ABI (Application Binary
-	Interface)
-	will be able to generate libraries, DLL's, etc., that can interoperate
-	with
-	D binaries built by other implementations.
-	)
+$(HEADERNAV_TOC)
+
+        $(P A D implementation that conforms to the D ABI (Application Binary
+        Interface)
+        will be able to generate libraries, DLL's, etc., that can interoperate
+        with
+        D binaries built by other implementations.
+        )
 
 $(H2 $(LNAME2 c_abi, C ABI))
 
-	$(P The C ABI referred to in this specification means the C Application
-	Binary Interface of the target system.
-	C and D code should be freely linkable together, in particular, D
-	code shall have access to the entire C ABI runtime library.
-	)
+        $(P The C ABI referred to in this specification means the C Application
+        Binary Interface of the target system.
+        C and D code should be freely linkable together, in particular, D
+        code shall have access to the entire C ABI runtime library.
+        )
 
 $(H2 $(LNAME2 endianness, Endianness))
 
-	$(P The $(LINK2 https://en.wikipedia.org/wiki/Endianness, endianness)
-	(byte order) of the layout of the data
-	will conform to the endianness of the target machine.
-	The Intel x86 CPUs are $(I little endian) meaning that
-	the value 0x0A0B0C0D is stored in memory as:
-	$(D 0D 0C 0B 0A).
-	)
+        $(P The $(LINK2 https://en.wikipedia.org/wiki/Endianness, endianness)
+        (byte order) of the layout of the data
+        will conform to the endianness of the target machine.
+        The Intel x86 CPUs are $(I little endian) meaning that
+        the value 0x0A0B0C0D is stored in memory as:
+        $(D 0D 0C 0B 0A).
+        )
 
 $(H2 $(LNAME2 basic_types, Basic Types))
 
-	$(TABLE
-	$(TROW bool, 8 bit byte with the values 0 for false and 1 for true)
-	$(TROW byte, 8 bit signed value)
-	$(TROW ubyte, 8 bit unsigned value)
-	$(TROW short, 16 bit signed value)
-	$(TROW ushort, 16 bit unsigned value)
-	$(TROW int, 32 bit signed value)
-	$(TROW uint, 32 bit unsigned value)
-	$(TROW long, 64 bit signed value)
-	$(TROW ulong, 64 bit unsigned value)
-	$(TROW cent, 128 bit signed value)
-	$(TROW ucent, 128 bit unsigned value)
-	$(TROW float, 32 bit IEEE 754 floating point value)
-	$(TROW double, 64 bit IEEE 754 floating point value)
-	$(TROW real, implementation defined floating point value$(COMMA) for x86 it is
-	 80 bit IEEE 754 extended real)
-	)
+        $(TABLE
+        $(TROW bool, 8 bit byte with the values 0 for false and 1 for true)
+        $(TROW byte, 8 bit signed value)
+        $(TROW ubyte, 8 bit unsigned value)
+        $(TROW short, 16 bit signed value)
+        $(TROW ushort, 16 bit unsigned value)
+        $(TROW int, 32 bit signed value)
+        $(TROW uint, 32 bit unsigned value)
+        $(TROW long, 64 bit signed value)
+        $(TROW ulong, 64 bit unsigned value)
+        $(TROW cent, 128 bit signed value)
+        $(TROW ucent, 128 bit unsigned value)
+        $(TROW float, 32 bit IEEE 754 floating point value)
+        $(TROW double, 64 bit IEEE 754 floating point value)
+        $(TROW real, implementation defined floating point value$(COMMA) for x86 it is
+         80 bit IEEE 754 extended real)
+        )
 
 $(H2 $(LNAME2 delegates, Delegates))
 
-	$(P Delegates are $(I fat pointers) with two parts:)
+        $(P Delegates are $(I fat pointers) with two parts:)
 
-	$(TABLE2 Delegate Layout,
-	$(THEAD offset, property, contents)
-	$(TROW $(D 0), $(D .ptr), context pointer)
-	$(TROW $(I ptrsize), $(D .funcptr), pointer to function)
-	)
+        $(TABLE2 Delegate Layout,
+        $(THEAD offset, property, contents)
+        $(TROW $(D 0), $(D .ptr), context pointer)
+        $(TROW $(I ptrsize), $(D .funcptr), pointer to function)
+        )
 
-	$(P The $(I context pointer) can be a class $(I this)
-	reference, a struct $(I this) pointer, a pointer to
-	a closure (nested functions) or a pointer to an enclosing
-	function's stack frame (nested functions).
-	)
+        $(P The $(I context pointer) can be a class $(I this)
+        reference, a struct $(I this) pointer, a pointer to
+        a closure (nested functions) or a pointer to an enclosing
+        function's stack frame (nested functions).
+        )
 
 $(H2 $(LNAME2 structs, Structs))
 
-	$(P Conforms to the target's C ABI struct layout.)
+        $(P Conforms to the target's C ABI struct layout.)
 
 $(H2 $(LNAME2 classes, Classes))
 
-	$(P An object consists of:)
+        $(P An object consists of:)
 
     $(TABLE_3COLS Class Object Layout,
     $(THEAD size, property, contents)
@@ -80,7 +82,7 @@ $(H2 $(LNAME2 classes, Classes))
     $(TROW $(D ...), named fields, non-static fields)
     )
 
-	$(P The vtable consists of:)
+        $(P The vtable consists of:)
 
 $(TABLE2 Virtual Function Pointer Table Layout,
 $(THEAD size, contents)
@@ -88,31 +90,31 @@ $(TROW $(I ptrsize), pointer to instance of TypeInfo)
 $(TROW $(I ptrsize)..., pointers to virtual member functions)
 )
 
-	$(P Casting a class object to an interface consists of adding the offset of
-	the interface's corresponding vptr to the address of the base of the object.
-	Casting an interface ptr back to the class type it came from involves getting
-	the correct offset to subtract from it from the object.Interface entry at vtbl[0].
-	Adjustor thunks are created and pointers to them stored in the method entries in the vtbl[]
-	in order to set the this pointer to the start of the object instance corresponding
-	to the implementing method.
-	)
+        $(P Casting a class object to an interface consists of adding the offset of
+        the interface's corresponding vptr to the address of the base of the object.
+        Casting an interface ptr back to the class type it came from involves getting
+        the correct offset to subtract from it from the object.Interface entry at vtbl[0].
+        Adjustor thunks are created and pointers to them stored in the method entries in the vtbl[]
+        in order to set the this pointer to the start of the object instance corresponding
+        to the implementing method.
+        )
 
-	$(P An adjustor thunk looks like:)
+        $(P An adjustor thunk looks like:)
 
 $(CCODE
   ADD EAX,offset
   JMP method
 )
 
-	$(P The leftmost side of the inheritance graph of the interfaces all share
-	their vptrs, this is the single inheritance model.
-	Every time the inheritance graph forks (for multiple inheritance) a new vptr is created
-	and stored in the class' instance.
-	Every time a virtual method is overridden, a new vtbl[] must be created with
-	the updated method pointers in it.
-	)
+        $(P The leftmost side of the inheritance graph of the interfaces all share
+        their vptrs, this is the single inheritance model.
+        Every time the inheritance graph forks (for multiple inheritance) a new vptr is created
+        and stored in the class' instance.
+        Every time a virtual method is overridden, a new vtbl[] must be created with
+        the updated method pointers in it.
+        )
 
-	$(P The class definition:)
+        $(P The class definition:)
 
 ---------
 class XXXX
@@ -121,40 +123,40 @@ class XXXX
 };
 ---------
 
-	$(P Generates the following:)
+        $(P Generates the following:)
 
-	$(UL
-	$(LI An instance of Class called ClassXXXX.)
+        $(UL
+        $(LI An instance of Class called ClassXXXX.)
 
-	$(LI A type called StaticClassXXXX which defines all the static members.)
+        $(LI A type called StaticClassXXXX which defines all the static members.)
 
-	$(LI An instance of StaticClassXXXX called StaticXXXX for the static members.)
-	)
+        $(LI An instance of StaticClassXXXX called StaticXXXX for the static members.)
+        )
 
 $(H2 $(LNAME2 interfaces, Interfaces))
 
-	$(P An interface is a pointer to a pointer to a vtbl[].
-	The vtbl[0] entry is a pointer to the corresponding
-	instance of the object.Interface class.
-	The rest of the $(D vtbl[1..$]) entries are pointers to the
-	virtual functions implemented by that interface, in the
-	order that they were declared.
-	)
+        $(P An interface is a pointer to a pointer to a vtbl[].
+        The vtbl[0] entry is a pointer to the corresponding
+        instance of the object.Interface class.
+        The rest of the $(D vtbl[1..$]) entries are pointers to the
+        virtual functions implemented by that interface, in the
+        order that they were declared.
+        )
 
-	$(P A COM interface differs from a regular interface in that
-	there is no object.Interface entry in $(D vtbl[0]); the entries
-	$(D vtbl[0..$]) are all the virtual function pointers, in the order
-	that they were declared.
-	This matches the COM object layout used by Windows.
-	)
-    	$(P A C++ interface differs from a regular interface in that
-	it matches the layout of a C++ class using single inheritance
-	on the target machine.
-	)
+        $(P A COM interface differs from a regular interface in that
+        there is no object.Interface entry in $(D vtbl[0]); the entries
+        $(D vtbl[0..$]) are all the virtual function pointers, in the order
+        that they were declared.
+        This matches the COM object layout used by Windows.
+        )
+        $(P A C++ interface differs from a regular interface in that
+        it matches the layout of a C++ class using single inheritance
+        on the target machine.
+        )
 
 $(H2 $(LNAME2 arrays, Arrays))
 
-	$(P A dynamic array consists of:)
+        $(P A dynamic array consists of:)
 
 $(TABLE2 Dynamic Array Layout,
 $(THEAD offset, property, contents)
@@ -162,236 +164,237 @@ $(TROW $(D 0), $(D .length), array dimension)
 $(TROW $(D size_t), $(D .ptr), pointer to array data)
 )
 
-	$(P A dynamic array is declared as:)
+        $(P A dynamic array is declared as:)
 
 ---------
 type[] array;
 ---------
 
-	whereas a static array is declared as:
+        whereas a static array is declared as:
 
 ---------
 type[dimension] array;
 ---------
 
-	$(P Thus, a static array always has the dimension statically available as part of the type, and
-	so it is implemented like in C. Static array's and Dynamic arrays can be easily converted back
-	and forth to each other.
-	)
+        $(P Thus, a static array always has the dimension statically available as part of the type, and
+        so it is implemented like in C. Static array's and Dynamic arrays can be easily converted back
+        and forth to each other.
+        )
 
 $(H2 $(LNAME2 associative_arrays, Associative Arrays))
 
-	$(P Associative arrays consist of a pointer to an opaque, implementation
-	defined type.)
+        $(P Associative arrays consist of a pointer to an opaque, implementation
+        defined type.)
 
-	$(P The current implementation is contained in and defined by
-	 $(DRUNTIMESRC rt/aaA.d).
-	)
+        $(P The current implementation is contained in and defined by
+         $(DRUNTIMESRC rt/aaA.d).
+        )
 
 $(H2 $(LNAME2 references_types, Reference Types))
 
-	$(P D has reference types, but they are implicit. For example, classes are always
-	referred to by reference; this means that class instances can never reside on the stack
-	or be passed as function parameters.
-	)
+        $(P D has reference types, but they are implicit. For example, classes are always
+        referred to by reference; this means that class instances can never reside on the stack
+        or be passed as function parameters.
+        )
 
 
 $(H2 $(LNAME2 name_mangling, Name Mangling))
 
-	$(P D accomplishes typesafe linking by $(I mangling) a D identifier
-	to include scope and type information.
-	)
+        $(P D accomplishes typesafe linking by $(I mangling) a D identifier
+        to include scope and type information.
+        )
 
-    $(GRAMMAR
-    $(GNAME MangledName):
-        $(B _D) $(GLINK QualifiedName) $(GLINK Type)
-        $(B _D) $(GLINK QualifiedName) $(B Z)        $(GREEN // Internal)
-    )
+$(GRAMMAR
+$(GNAME MangledName):
+    $(B _D) $(GLINK QualifiedName) $(GLINK Type)
+    $(B _D) $(GLINK QualifiedName) $(B Z)        $(GREEN // Internal)
+)
 
     $(P The $(GLINK Type) above is the type of a variable or the return type of a function.
     This is never a $(GLINK TypeFunction), as the latter can only be bound to a value via a pointer
     to a function or a delegate.)
 
-    $(GRAMMAR
-    $(GNAME QualifiedName):
-        $(GLINK SymbolFunctionName)
-        $(GLINK SymbolFunctionName) $(I QualifiedName)
+$(GRAMMAR
+$(GNAME QualifiedName):
+    $(GLINK SymbolFunctionName)
+    $(GLINK SymbolFunctionName) $(I QualifiedName)
 
-    $(GNAME SymbolFunctionName):
-        $(GLINK SymbolName)
-        $(GLINK SymbolName) $(GLINK TypeFunctionNoReturn)
-        $(GLINK SymbolName) $(B M) $(GLINK TypeModifiers)$(OPT) $(GLINK TypeFunctionNoReturn)
-    )
+$(GNAME SymbolFunctionName):
+    $(GLINK SymbolName)
+    $(GLINK SymbolName) $(GLINK TypeFunctionNoReturn)
+    $(GLINK SymbolName) $(B M) $(GLINK TypeModifiers)$(OPT) $(GLINK TypeFunctionNoReturn)
+)
 
     $(P The $(B M) means that the symbol is a function that requires
     a $(D this) pointer. Class or struct fields are mangled without $(B M).
     To disambiguate $(B M) from being a $(GLINK Parameter) with modifier `scope`, the
     following type needs to be checked for being a $(GLINK TypeFunction).)
 
-    $(GRAMMAR
-    $(GNAME SymbolName):
-        $(GLINK LName)
-        $(GLINK TemplateInstanceName)
-        $(GLINK IdentifierBackRef)
-        $(B 0)                         $(GREEN // anonymous symbols)
-    )
+$(GRAMMAR
+$(GNAME SymbolName):
+    $(GLINK LName)
+    $(GLINK TemplateInstanceName)
+    $(GLINK IdentifierBackRef)
+    $(B 0)                         $(GREEN // anonymous symbols)
+)
 
-	$(P Template Instance Names have the types and values of its parameters
-	encoded into it:
-	)
+        $(P Template Instance Names have the types and values of its parameters
+        encoded into it:
+        )
 
-    $(GRAMMAR
-        $(GNAME TemplateInstanceName):
-            $(GLINK TemplateID) $(GLINK LName) $(GLINK TemplateArgs) $(B Z)
+$(GRAMMAR
+$(GNAME TemplateInstanceName):
+    $(GLINK TemplateID) $(GLINK LName) $(GLINK TemplateArgs) $(B Z)
 
-        $(GNAME TemplateID):
-            $(B __T)
-            $(B __U)        $(GREEN // for symbols declared inside template constraint)
+$(GNAME TemplateID):
+    $(B __T)
+    $(B __U)        $(GREEN // for symbols declared inside template constraint)
 
-        $(GNAME TemplateArgs):
-            $(GLINK TemplateArg)
-            $(GLINK TemplateArg) $(I TemplateArgs)
+$(GNAME TemplateArgs):
+    $(GLINK TemplateArg)
+    $(GLINK TemplateArg) $(I TemplateArgs)
 
-        $(GNAME TemplateArg):
-            $(GLINK TemplateArgX)
-            $(B H) $(GLINK TemplateArgX)
-    )
+$(GNAME TemplateArg):
+    $(GLINK TemplateArgX)
+    $(B H) $(GLINK TemplateArgX)
+)
+
     $(P If a template argument matches a specialized template parameter, the argument
     is mangled with prefix $(B H).)
 
-    $(GRAMMAR
-        $(GNAME TemplateArgX):
-            $(B T) $(GLINK Type)
-            $(B V) $(GLINK Type) $(GLINK Value)
-            $(B S) $(GLINK QualifiedName)
-            $(B X) $(GLINK Number) $(I ExternallyMangledName)
-    )
+$(GRAMMAR
+$(GNAME TemplateArgX):
+    $(B T) $(GLINK Type)
+    $(B V) $(GLINK Type) $(GLINK Value)
+    $(B S) $(GLINK QualifiedName)
+    $(B X) $(GLINK Number) $(I ExternallyMangledName)
+)
 
     $(P $(I ExternallyMangledName) can be any series of characters allowed on the
     current platform, e.g. generated by functions with C++ linkage or annotated
     with `pragma(mangle,...)`.)
 
-    $(GRAMMAR
-        $(GNAME Value):
-            $(B n)
-            $(B i) $(GLINK Number)
-            $(B N) $(GLINK Number)
-            $(B e) $(GLINK HexFloat)
-            $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat)
-            $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
-            $(B A) $(GLINK Number) $(GLINK Value)...
-            $(B S) $(GLINK Number) $(GLINK Value)...
+$(GRAMMAR
+$(GNAME Value):
+    $(B n)
+    $(B i) $(GLINK Number)
+    $(B N) $(GLINK Number)
+    $(B e) $(GLINK HexFloat)
+    $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat)
+    $(GLINK CharWidth) $(GLINK Number) $(B _) $(GLINK HexDigits)
+    $(B A) $(GLINK Number) $(GLINK Value)...
+    $(B S) $(GLINK Number) $(GLINK Value)...
 
-        $(GNAME HexFloat):
-            $(B NAN)
-            $(B INF)
-            $(B NINF)
-            $(B N) $(GLINK HexDigits) $(B P) $(GLINK Exponent)
-            $(GLINK HexDigits) $(B P) $(GLINK Exponent)
+$(GNAME HexFloat):
+    $(B NAN)
+    $(B INF)
+    $(B NINF)
+    $(B N) $(GLINK HexDigits) $(B P) $(GLINK Exponent)
+    $(GLINK HexDigits) $(B P) $(GLINK Exponent)
 
-        $(GNAME Exponent):
-            $(B N) $(GLINK Number)
-            $(GLINK Number)
+$(GNAME Exponent):
+    $(B N) $(GLINK Number)
+    $(GLINK Number)
 
-        $(GNAME HexDigits):
-            $(GLINK HexDigit)
-            $(GLINK HexDigit) $(GLINK HexDigits)
+$(GNAME HexDigits):
+    $(GLINK HexDigit)
+    $(GLINK HexDigit) $(GLINK HexDigits)
 
-        $(GNAME HexDigit):
-            $(GLINK Digit)
-            $(B A)
-            $(B B)
-            $(B C)
-            $(B D)
-            $(B E)
-            $(B F)
+$(GNAME HexDigit):
+    $(GLINK Digit)
+    $(B A)
+    $(B B)
+    $(B C)
+    $(B D)
+    $(B E)
+    $(B F)
 
-        $(GNAME CharWidth):
-            $(B a)
-            $(B w)
-            $(B d)
-    )
+$(GNAME CharWidth):
+    $(B a)
+    $(B w)
+    $(B d)
+)
 
     $(DL
-	    $(DT $(B n))
-	    $(DD is for $(B null) arguments.)
+            $(DT $(B n))
+            $(DD is for $(B null) arguments.)
 
-	    $(DT $(B i) $(GLINK Number))
-	    $(DD is for positive numeric literals (including
-	    character literals).)
+            $(DT $(B i) $(GLINK Number))
+            $(DD is for positive numeric literals (including
+            character literals).)
 
-	    $(DT $(B N) $(GLINK Number))
-	    $(DD is for negative numeric literals.)
+            $(DT $(B N) $(GLINK Number))
+            $(DD is for negative numeric literals.)
 
-	    $(DT $(B e) $(GLINK HexFloat))
-	    $(DD is for real and imaginary floating point literals.)
+            $(DT $(B e) $(GLINK HexFloat))
+            $(DD is for real and imaginary floating point literals.)
 
-	    $(DT $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat))
-	    $(DD is for complex floating point literals.)
+            $(DT $(B c) $(GLINK HexFloat) $(B c) $(GLINK HexFloat))
+            $(DD is for complex floating point literals.)
 
-	    $(DT $(GLINK CharWidth) $(GLINK Number) $(D _) $(GLINK HexDigits))
-	    $(DD $(GLINK CharWidth) is whether the characters
-	    are 1 byte ($(B a)), 2 bytes ($(B w)) or 4 bytes ($(B d)) in size.
-	    $(GLINK Number) is the number of characters in the string.
-	    The $(GLINK HexDigits) are the hex data for the string.
-	    )
+            $(DT $(GLINK CharWidth) $(GLINK Number) $(D _) $(GLINK HexDigits))
+            $(DD $(GLINK CharWidth) is whether the characters
+            are 1 byte ($(B a)), 2 bytes ($(B w)) or 4 bytes ($(B d)) in size.
+            $(GLINK Number) is the number of characters in the string.
+            The $(GLINK HexDigits) are the hex data for the string.
+            )
 
-	    $(DT $(B A) $(GLINK Number) $(GLINK Value)...)
-	    $(DD An array or asssociative array literal.
-	    $(GLINK Number) is the length of the array.
-	    $(GLINK Value) is repeated $(GLINK Number) times for a normal array,
-	    and 2 * $(GLINK Number) times for an associative array.
-	    )
+            $(DT $(B A) $(GLINK Number) $(GLINK Value)...)
+            $(DD An array or asssociative array literal.
+            $(GLINK Number) is the length of the array.
+            $(GLINK Value) is repeated $(GLINK Number) times for a normal array,
+            and 2 * $(GLINK Number) times for an associative array.
+            )
 
-	    $(DT $(B S) $(GLINK Number) $(GLINK Value)...)
-	    $(DD A struct literal. $(GLINK Value) is repeated $(GLINK Number) times.
-	    )
+            $(DT $(B S) $(GLINK Number) $(GLINK Value)...)
+            $(DD A struct literal. $(GLINK Value) is repeated $(GLINK Number) times.
+            )
     )
 
-    $(GRAMMAR
-    $(GNAME Name):
-        $(GLINK Namestart)
-        $(GLINK Namestart) $(GLINK Namechars)
+$(GRAMMAR
+$(GNAME Name):
+    $(GLINK Namestart)
+    $(GLINK Namestart) $(GLINK Namechars)
 
-    $(GNAME Namestart):
-        $(B _)
-        $(I Alpha)
+$(GNAME Namestart):
+    $(B _)
+    $(I Alpha)
 
-    $(GNAME Namechar):
-        $(GLINK Namestart)
-        $(GLINK Digit)
+$(GNAME Namechar):
+    $(GLINK Namestart)
+    $(GLINK Digit)
 
-    $(GNAME Namechars):
-        $(GLINK Namechar)
-        $(GLINK Namechar) $(I Namechars)
-    )
+$(GNAME Namechars):
+    $(GLINK Namechar)
+    $(GLINK Namechar) $(I Namechars)
+)
 
-	$(P A $(GLINK Name) is a standard D $(DDSUBLINK spec/lex, identifiers, identifier).)
+        $(P A $(GLINK Name) is a standard D $(DDSUBLINK spec/lex, identifiers, identifier).)
 
-    $(GRAMMAR
-    $(GNAME LName):
-        $(GLINK Number) $(GLINK Name)
+$(GRAMMAR
+$(GNAME LName):
+    $(GLINK Number) $(GLINK Name)
 
-    $(GNAME Number):
-        $(GLINK Digit)
-        $(GLINK Digit) $(I Number)
+$(GNAME Number):
+    $(GLINK Digit)
+    $(GLINK Digit) $(I Number)
 
-    $(GNAME Digit):
-        $(B 0)
-        $(B 1)
-        $(B 2)
-        $(B 3)
-        $(B 4)
-        $(B 5)
-        $(B 6)
-        $(B 7)
-        $(B 8)
-        $(B 9)
-    )
+$(GNAME Digit):
+    $(B 0)
+    $(B 1)
+    $(B 2)
+    $(B 3)
+    $(B 4)
+    $(B 5)
+    $(B 6)
+    $(B 7)
+    $(B 8)
+    $(B 9)
+)
 
-	$(P An $(GLINK LName) is a name preceded by a $(GLINK Number) giving
-	the number of characters in the $(GLINK Name).
-	)
+        $(P An $(GLINK LName) is a name preceded by a $(GLINK Number) giving
+        the number of characters in the $(GLINK Name).
+        )
 
 $(H3 $(LNAME2 back_ref, Back references))
 
@@ -404,17 +407,17 @@ $(H3 $(LNAME2 back_ref, Back references))
     $(P Numbers in back references are encoded with base 26 by upper case letters $(B A) - $(B Z) for higher digits
     but lower case letters $(B a) - $(B z) for the last digit.)
 
-    $(GRAMMAR
-    $(GNAME TypeBackRef):
-        $(B Q) $(GLINK NumberBackRef)
+$(GRAMMAR
+$(GNAME TypeBackRef):
+    $(B Q) $(GLINK NumberBackRef)
 
-    $(GNAME IdentifierBackRef):
-        $(B Q) $(GLINK NumberBackRef)
+$(GNAME IdentifierBackRef):
+    $(B Q) $(GLINK NumberBackRef)
 
-    $(GNAME NumberTypeRef):
-        $(I lower-case-letter)
-        $(I upper-case-letter) $(GLINK NumberTypeRef)
-    )
+$(GNAME NumberTypeRef):
+    $(I lower-case-letter)
+    $(I upper-case-letter) $(GLINK NumberTypeRef)
+)
 
     $(P To distinguish between the type of the back reference a look-up of the back referenced character is necessary:
     An identifier back reference always points to a digit $(B 0) to $(B 9), while a type back reference always points
@@ -422,592 +425,593 @@ $(H3 $(LNAME2 back_ref, Back references))
 
 $(H3 $(LNAME2 type_mangling, Type Mangling))
 
-	$(P Types are mangled using a simple linear scheme:)
+        $(P Types are mangled using a simple linear scheme:)
 
-    $(GRAMMAR
-    $(GNAME Type):
-        $(GLINK TypeModifiers)$(OPT) $(GLINK TypeX)
-        $(GLINK TypeBackRef)
+$(GRAMMAR
+$(GNAME Type):
+    $(GLINK TypeModifiers)$(OPT) $(GLINK TypeX)
+    $(GLINK TypeBackRef)
 
-    $(GNAME TypeX):
-        $(GLINK TypeArray)
-        $(GLINK TypeStaticArray)
-        $(GLINK TypeAssocArray)
-        $(GLINK TypePointer)
-        $(GLINK TypeFunction)
-        $(GLINK TypeIdent)
-        $(GLINK TypeClass)
-        $(GLINK TypeStruct)
-        $(GLINK TypeEnum)
-        $(GLINK TypeTypedef)
-        $(GLINK TypeDelegate)
-        $(GLINK TypeVoid)
-        $(GLINK TypeByte)
-        $(GLINK TypeUbyte)
-        $(GLINK TypeShort)
-        $(GLINK TypeUshort)
-        $(GLINK TypeInt)
-        $(GLINK TypeUint)
-        $(GLINK TypeLong)
-        $(GLINK TypeUlong)
-        $(GLINK TypeCent)
-        $(GLINK TypeUcent)
-        $(GLINK TypeFloat)
-        $(GLINK TypeDouble)
-        $(GLINK TypeReal)
-        $(GLINK TypeIfloat)
-        $(GLINK TypeIdouble)
-        $(GLINK TypeIreal)
-        $(GLINK TypeCfloat)
-        $(GLINK TypeCdouble)
-        $(GLINK TypeCreal)
-        $(GLINK TypeBool)
-        $(GLINK TypeChar)
-        $(GLINK TypeWchar)
-        $(GLINK TypeDchar)
-        $(GLINK TypeNull)
-        $(GLINK TypeTuple)
-        $(GLINK TypeVector)
+$(GNAME TypeX):
+    $(GLINK TypeArray)
+    $(GLINK TypeStaticArray)
+    $(GLINK TypeAssocArray)
+    $(GLINK TypePointer)
+    $(GLINK TypeFunction)
+    $(GLINK TypeIdent)
+    $(GLINK TypeClass)
+    $(GLINK TypeStruct)
+    $(GLINK TypeEnum)
+    $(GLINK TypeTypedef)
+    $(GLINK TypeDelegate)
+    $(GLINK TypeVoid)
+    $(GLINK TypeByte)
+    $(GLINK TypeUbyte)
+    $(GLINK TypeShort)
+    $(GLINK TypeUshort)
+    $(GLINK TypeInt)
+    $(GLINK TypeUint)
+    $(GLINK TypeLong)
+    $(GLINK TypeUlong)
+    $(GLINK TypeCent)
+    $(GLINK TypeUcent)
+    $(GLINK TypeFloat)
+    $(GLINK TypeDouble)
+    $(GLINK TypeReal)
+    $(GLINK TypeIfloat)
+    $(GLINK TypeIdouble)
+    $(GLINK TypeIreal)
+    $(GLINK TypeCfloat)
+    $(GLINK TypeCdouble)
+    $(GLINK TypeCreal)
+    $(GLINK TypeBool)
+    $(GLINK TypeChar)
+    $(GLINK TypeWchar)
+    $(GLINK TypeDchar)
+    $(GLINK TypeNull)
+    $(GLINK TypeTuple)
+    $(GLINK TypeVector)
 
-    $(GNAME TypeModifiers):
-        $(GLINK Const)
-        $(GLINK Wild)
-        $(GLINK Wild) $(GLINK Const)
-        $(GLINK Shared)
-        $(GLINK Shared) $(GLINK Const)
-        $(GLINK Shared) $(GLINK Wild)
-        $(GLINK Shared) $(GLINK Wild) $(GLINK Const)
-        $(GLINK Immutable)
+$(GNAME TypeModifiers):
+    $(GLINK Const)
+    $(GLINK Wild)
+    $(GLINK Wild) $(GLINK Const)
+    $(GLINK Shared)
+    $(GLINK Shared) $(GLINK Const)
+    $(GLINK Shared) $(GLINK Wild)
+    $(GLINK Shared) $(GLINK Wild) $(GLINK Const)
+    $(GLINK Immutable)
 
-    $(GNAME Shared):
-        $(B O)
+$(GNAME Shared):
+    $(B O)
 
-    $(GNAME Const):
-        $(B x)
+$(GNAME Const):
+    $(B x)
 
-    $(GNAME Immutable):
-        $(B y)
+$(GNAME Immutable):
+    $(B y)
 
-    $(GNAME Wild):
-        $(B Ng)
+$(GNAME Wild):
+    $(B Ng)
 
-    $(GNAME TypeArray):
-        $(B A) $(GLINK Type)
+$(GNAME TypeArray):
+    $(B A) $(GLINK Type)
 
-    $(GNAME TypeStaticArray):
-        $(B G) $(GLINK Number) $(GLINK Type)
+$(GNAME TypeStaticArray):
+    $(B G) $(GLINK Number) $(GLINK Type)
 
-    $(GNAME TypeAssocArray):
-        $(B H) $(GLINK Type) $(GLINK Type)
+$(GNAME TypeAssocArray):
+    $(B H) $(GLINK Type) $(GLINK Type)
 
-    $(GNAME TypePointer):
-        $(B P) $(GLINK Type)
+$(GNAME TypePointer):
+    $(B P) $(GLINK Type)
 
-    $(GNAME TypeVector):
-        $(B Nh) $(GLINK Type)
+$(GNAME TypeVector):
+    $(B Nh) $(GLINK Type)
 
-    $(GNAME TypeFunction):
-        $(GLINK TypeFunctionNoReturn) $(GLINK Type)
+$(GNAME TypeFunction):
+    $(GLINK TypeFunctionNoReturn) $(GLINK Type)
 
-    $(GNAME TypeFunctionNoReturn):
-        $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters)$(OPT) $(GLINK ParamClose)
+$(GNAME TypeFunctionNoReturn):
+    $(GLINK CallConvention) $(GLINK FuncAttrs)$(OPT) $(GLINK Parameters)$(OPT) $(GLINK ParamClose)
 
-    $(GNAME CallConvention):
-        $(B F)       $(GREEN // D)
-        $(B U)       $(GREEN // C)
-        $(B W)       $(GREEN // Windows)
-        $(B V)       $(GREEN // Pascal)
-        $(B R)       $(GREEN // C++)
-        $(B Y)       $(GREEN // Objective-C)
+$(GNAME CallConvention):
+    $(B F)       $(GREEN // D)
+    $(B U)       $(GREEN // C)
+    $(B W)       $(GREEN // Windows)
+    $(B V)       $(GREEN // Pascal)
+    $(B R)       $(GREEN // C++)
+    $(B Y)       $(GREEN // Objective-C)
 
-    $(GNAME FuncAttrs):
-        $(GLINK FuncAttr)
-        $(GLINK FuncAttr) $(I FuncAttrs)
+$(GNAME FuncAttrs):
+    $(GLINK FuncAttr)
+    $(GLINK FuncAttr) $(I FuncAttrs)
 
-    $(GNAME FuncAttr):
-        $(GLINK FuncAttrPure)
-        $(GLINK FuncAttrNothrow)
-        $(GLINK FuncAttrRef)
-        $(GLINK FuncAttrProperty)
-        $(GLINK FuncAttrNogc)
-        $(GLINK FuncAttrReturn)
-        $(GLINK FuncAttrScope)
-        $(GLINK FuncAttrTrusted)
-        $(GLINK FuncAttrSafe)
-    )
+$(GNAME FuncAttr):
+    $(GLINK FuncAttrPure)
+    $(GLINK FuncAttrNothrow)
+    $(GLINK FuncAttrRef)
+    $(GLINK FuncAttrProperty)
+    $(GLINK FuncAttrNogc)
+    $(GLINK FuncAttrReturn)
+    $(GLINK FuncAttrScope)
+    $(GLINK FuncAttrTrusted)
+    $(GLINK FuncAttrSafe)
+)
+
     $(P Function attributes are emitted in the order as listed above.)
 
-    $(GRAMMAR
-    $(GNAME FuncAttrPure):
-        $(B Na)
+$(GRAMMAR
+$(GNAME FuncAttrPure):
+    $(B Na)
 
-    $(GNAME FuncAttrNogc):
-        $(B Ni)
+$(GNAME FuncAttrNogc):
+    $(B Ni)
 
-    $(GNAME FuncAttrNothrow):
-        $(B Nb)
+$(GNAME FuncAttrNothrow):
+    $(B Nb)
 
-    $(GNAME FuncAttrProperty):
-        $(B Nd)
+$(GNAME FuncAttrProperty):
+    $(B Nd)
 
-    $(GNAME FuncAttrRef):
-        $(B Nc)
+$(GNAME FuncAttrRef):
+    $(B Nc)
 
-    $(GNAME FuncAttrReturn):
-        $(B Nj)
+$(GNAME FuncAttrReturn):
+    $(B Nj)
 
-    $(GNAME FuncAttrScope):
-        $(B Nl)
+$(GNAME FuncAttrScope):
+    $(B Nl)
 
-    $(GNAME FuncAttrTrusted):
-        $(B Ne)
+$(GNAME FuncAttrTrusted):
+    $(B Ne)
 
-    $(GNAME FuncAttrSafe):
-        $(B Nf)
+$(GNAME FuncAttrSafe):
+    $(B Nf)
 
-    $(GNAME Parameters):
-        $(GLINK Parameter)
-        $(GLINK Parameter) $(I Parameters)
+$(GNAME Parameters):
+    $(GLINK Parameter)
+    $(GLINK Parameter) $(I Parameters)
 
-    $(GNAME Parameter):
-        $(GLINK Parameter2)
-        $(B M) $(GLINK Parameter2)     $(GREEN // scope)
+$(GNAME Parameter):
+    $(GLINK Parameter2)
+    $(B M) $(GLINK Parameter2)     $(GREEN // scope)
 
-    $(GNAME Parameter2):
-        $(GLINK Type)
-        $(B J) $(GLINK Type)     $(GREEN // out)
-        $(B K) $(GLINK Type)     $(GREEN // ref)
-        $(B L) $(GLINK Type)     $(GREEN // lazy)
+$(GNAME Parameter2):
+    $(GLINK Type)
+    $(B J) $(GLINK Type)     $(GREEN // out)
+    $(B K) $(GLINK Type)     $(GREEN // ref)
+    $(B L) $(GLINK Type)     $(GREEN // lazy)
 
-    $(GNAME ParamClose)
-        $(B X)     $(GREEN // variadic T t...$(RPAREN) style)
-        $(B Y)     $(GREEN // variadic T t,...$(RPAREN) style)
-        $(B Z)     $(GREEN // not variadic)
+$(GNAME ParamClose)
+    $(B X)     $(GREEN // variadic T t...$(RPAREN) style)
+    $(B Y)     $(GREEN // variadic T t,...$(RPAREN) style)
+    $(B Z)     $(GREEN // not variadic)
 
-    $(GNAME TypeIdent):
-        $(B I) $(GLINK QualifiedName)
+$(GNAME TypeIdent):
+    $(B I) $(GLINK QualifiedName)
 
-    $(GNAME TypeClass):
-        $(B C) $(GLINK QualifiedName)
+$(GNAME TypeClass):
+    $(B C) $(GLINK QualifiedName)
 
-    $(GNAME TypeStruct):
-        $(B S) $(GLINK QualifiedName)
+$(GNAME TypeStruct):
+    $(B S) $(GLINK QualifiedName)
 
-    $(GNAME TypeEnum):
-        $(B E) $(GLINK QualifiedName)
+$(GNAME TypeEnum):
+    $(B E) $(GLINK QualifiedName)
 
-    $(GNAME TypeTypedef):
-        $(B T) $(GLINK QualifiedName)
+$(GNAME TypeTypedef):
+    $(B T) $(GLINK QualifiedName)
 
-    $(GNAME TypeDelegate):
-        $(B D) $(GLINK TypeModifiers)$(OPT) $(GLINK TypeFunction)
+$(GNAME TypeDelegate):
+    $(B D) $(GLINK TypeModifiers)$(OPT) $(GLINK TypeFunction)
 
-    $(GNAME TypeVoid):
-        $(B v)
+$(GNAME TypeVoid):
+    $(B v)
 
-    $(GNAME TypeByte):
-        $(B g)
+$(GNAME TypeByte):
+    $(B g)
 
-    $(GNAME TypeUbyte):
-        $(B h)
+$(GNAME TypeUbyte):
+    $(B h)
 
-    $(GNAME TypeShort):
-        $(B s)
+$(GNAME TypeShort):
+    $(B s)
 
-    $(GNAME TypeUshort):
-        $(B t)
+$(GNAME TypeUshort):
+    $(B t)
 
-    $(GNAME TypeInt):
-        $(B i)
+$(GNAME TypeInt):
+    $(B i)
 
-    $(GNAME TypeUint):
-        $(B k)
+$(GNAME TypeUint):
+    $(B k)
 
-    $(GNAME TypeLong):
-        $(B l)
+$(GNAME TypeLong):
+    $(B l)
 
-    $(GNAME TypeUlong):
-        $(B m)
+$(GNAME TypeUlong):
+    $(B m)
 
-    $(GNAME TypeCent):
-        $(B zi)
+$(GNAME TypeCent):
+    $(B zi)
 
-    $(GNAME TypeUcent):
-        $(B zk)
+$(GNAME TypeUcent):
+    $(B zk)
 
-    $(GNAME TypeFloat):
-        $(B f)
+$(GNAME TypeFloat):
+    $(B f)
 
-    $(GNAME TypeDouble):
-        $(B d)
+$(GNAME TypeDouble):
+    $(B d)
 
-    $(GNAME TypeReal):
-        $(B e)
+$(GNAME TypeReal):
+    $(B e)
 
-    $(GNAME TypeIfloat):
-        $(B o)
+$(GNAME TypeIfloat):
+    $(B o)
 
-    $(GNAME TypeIdouble):
-        $(B p)
+$(GNAME TypeIdouble):
+    $(B p)
 
-    $(GNAME TypeIreal):
-        $(B j)
+$(GNAME TypeIreal):
+    $(B j)
 
-    $(GNAME TypeCfloat):
-        $(B q)
+$(GNAME TypeCfloat):
+    $(B q)
 
-    $(GNAME TypeCdouble):
-        $(B r)
+$(GNAME TypeCdouble):
+    $(B r)
 
-    $(GNAME TypeCreal):
-        $(B c)
+$(GNAME TypeCreal):
+    $(B c)
 
-    $(GNAME TypeBool):
-        $(B b)
+$(GNAME TypeBool):
+    $(B b)
 
-    $(GNAME TypeChar):
-        $(B a)
+$(GNAME TypeChar):
+    $(B a)
 
-    $(GNAME TypeWchar):
-        $(B u)
+$(GNAME TypeWchar):
+    $(B u)
 
-    $(GNAME TypeDchar):
-        $(B w)
+$(GNAME TypeDchar):
+    $(B w)
 
-    $(GNAME TypeNull):
-        $(B n)
+$(GNAME TypeNull):
+    $(B n)
 
-    $(GNAME TypeTuple):
-        $(B B) $(GLINK Parameters) $(B Z)
-    )
+$(GNAME TypeTuple):
+    $(B B) $(GLINK Parameters) $(B Z)
+)
 
 $(H2 $(LNAME2 function_calling_conventions, Function Calling Conventions))
 
-	$(P The $(D extern (C)) and $(D extern (D)) calling convention matches the C
-	calling convention
-	used by the supported C compiler on the host system.
-	Except that the extern (D) calling convention for Windows x86 is described here.
-	)
+        $(P The $(D extern (C)) and $(D extern (D)) calling convention matches the C
+        calling convention
+        used by the supported C compiler on the host system.
+        Except that the extern (D) calling convention for Windows x86 is described here.
+        )
 
 $(H3 $(LNAME2 register_conventions, Register Conventions))
 
-	$(UL
+        $(UL
 
-	$(LI EAX, ECX, EDX are scratch registers and can be destroyed
-	by a function.)
+        $(LI EAX, ECX, EDX are scratch registers and can be destroyed
+        by a function.)
 
-	$(LI EBX, ESI, EDI, EBP must be preserved across function calls.)
+        $(LI EBX, ESI, EDI, EBP must be preserved across function calls.)
 
-	$(LI EFLAGS is assumed destroyed across function calls, except
-	for the direction flag which must be forward.)
+        $(LI EFLAGS is assumed destroyed across function calls, except
+        for the direction flag which must be forward.)
 
-	$(LI The FPU stack must be empty when calling a function.)
+        $(LI The FPU stack must be empty when calling a function.)
 
-	$(LI The FPU control word must be preserved across function calls.)
+        $(LI The FPU control word must be preserved across function calls.)
 
-	$(LI Floating point return values are returned on the FPU stack.
-	These must be cleaned off by the caller, even if they are not used.)
+        $(LI Floating point return values are returned on the FPU stack.
+        These must be cleaned off by the caller, even if they are not used.)
 
-	)
+        )
 
 $(H3 $(LNAME2 return_value, Return Value))
 
-	$(UL
+        $(UL
 
-	$(LI The types bool, byte, ubyte, short, ushort, int, uint,
-	pointer, Object, and interfaces
-	are returned in EAX.)
+        $(LI The types bool, byte, ubyte, short, ushort, int, uint,
+        pointer, Object, and interfaces
+        are returned in EAX.)
 
-	$(LI long and ulong
-	are returned in EDX,EAX, where EDX gets the most significant
-	half.)
+        $(LI long and ulong
+        are returned in EDX,EAX, where EDX gets the most significant
+        half.)
 
-	$(LI float, double, real, ifloat, idouble, ireal are returned
-	in ST0.)
+        $(LI float, double, real, ifloat, idouble, ireal are returned
+        in ST0.)
 
-	$(LI cfloat, cdouble, creal are returned in ST1,ST0 where ST1
-	is the real part and ST0 is the imaginary part.)
+        $(LI cfloat, cdouble, creal are returned in ST1,ST0 where ST1
+        is the real part and ST0 is the imaginary part.)
 
-	$(LI Dynamic arrays are returned with the pointer in EDX
-	and the length in EAX.)
+        $(LI Dynamic arrays are returned with the pointer in EDX
+        and the length in EAX.)
 
-	$(LI Associative arrays are returned in EAX.)
+        $(LI Associative arrays are returned in EAX.)
 
-	$(LI References are returned as pointers in EAX.)
+        $(LI References are returned as pointers in EAX.)
 
-	$(LI Delegates are returned with the pointer to the function
-	in EDX and the context pointer in EAX.)
+        $(LI Delegates are returned with the pointer to the function
+        in EDX and the context pointer in EAX.)
 
-	$(LI 1, 2 and 4 byte structs and static arrays are returned in EAX.)
+        $(LI 1, 2 and 4 byte structs and static arrays are returned in EAX.)
 
-	$(LI 8 byte structs and static arrays are returned in EDX,EAX, where
-	EDX gets the most significant half.)
+        $(LI 8 byte structs and static arrays are returned in EDX,EAX, where
+        EDX gets the most significant half.)
 
-	$(LI For other sized structs and static arrays,
-	the return value is stored through a hidden pointer passed as
-	an argument to the function.)
+        $(LI For other sized structs and static arrays,
+        the return value is stored through a hidden pointer passed as
+        an argument to the function.)
 
-	$(LI Constructors return the this pointer in EAX.)
+        $(LI Constructors return the this pointer in EAX.)
 
-	)
+        )
 
 $(H3 $(LNAME2 parameters, Parameters))
 
-	$(P The parameters to the non-variadic function:)
+        $(P The parameters to the non-variadic function:)
 
 ---
 foo(a1, a2, ..., an);
 ---
 
-	are passed as follows:
+        are passed as follows:
 
-	$(TABLE
-	$(TR $(TD a1))
-	$(TR $(TD a2))
-	$(TR $(TD ...))
-	$(TR $(TD an))
-	$(TR $(TD hidden))
-	$(TR $(TD this))
-	)
+        $(TABLE
+        $(TR $(TD a1))
+        $(TR $(TD a2))
+        $(TR $(TD ...))
+        $(TR $(TD an))
+        $(TR $(TD hidden))
+        $(TR $(TD this))
+        )
 
-	$(P where $(I hidden) is present if needed to return a struct
-	value, and $(I this) is present if needed as the this pointer
-	for a member function or the context pointer for a nested
-	function.)
+        $(P where $(I hidden) is present if needed to return a struct
+        value, and $(I this) is present if needed as the this pointer
+        for a member function or the context pointer for a nested
+        function.)
 
-	$(P The last parameter is passed in EAX rather than being pushed
-	on the stack if the following conditions are met:)
+        $(P The last parameter is passed in EAX rather than being pushed
+        on the stack if the following conditions are met:)
 
-	$(UL
-	$(LI It fits in EAX.)
-	$(LI It is not a 3 byte struct.)
-	$(LI It is not a floating point type.)
-	)
+        $(UL
+        $(LI It fits in EAX.)
+        $(LI It is not a 3 byte struct.)
+        $(LI It is not a floating point type.)
+        )
 
-	$(P Parameters are always pushed as multiples of 4 bytes,
-	rounding upwards,
-	so the stack is always aligned on 4 byte boundaries.
-	They are pushed most significant first.
-	$(B out) and $(B ref) are passed as pointers.
-	Static arrays are passed as pointers to their first element.
-	On Windows, a real is pushed as a 10 byte quantity,
-	a creal is pushed as a 20 byte quantity.
-	On Linux, a real is pushed as a 12 byte quantity,
-	a creal is pushed as two 12 byte quantities.
-	The extra two bytes of pad occupy the $(SINGLEQUOTE most significant) position.
-	)
+        $(P Parameters are always pushed as multiples of 4 bytes,
+        rounding upwards,
+        so the stack is always aligned on 4 byte boundaries.
+        They are pushed most significant first.
+        $(B out) and $(B ref) are passed as pointers.
+        Static arrays are passed as pointers to their first element.
+        On Windows, a real is pushed as a 10 byte quantity,
+        a creal is pushed as a 20 byte quantity.
+        On Linux, a real is pushed as a 12 byte quantity,
+        a creal is pushed as two 12 byte quantities.
+        The extra two bytes of pad occupy the $(SINGLEQUOTE most significant) position.
+        )
 
-	$(P The callee cleans the stack.)
+        $(P The callee cleans the stack.)
 
-	$(P The parameters to the variadic function:)
+        $(P The parameters to the variadic function:)
 
 ---
 void foo(int p1, int p2, int[] p3...)
 foo(a1, a2, ..., an);
 ---
 
-	are passed as follows:
+        are passed as follows:
 
-	$(TABLE
-	$(TR $(TD p1))
-	$(TR $(TD p2))
-	$(TR $(TD a3))
-	$(TR $(TD hidden))
-	$(TR $(TD this))
-	)
+        $(TABLE
+        $(TR $(TD p1))
+        $(TR $(TD p2))
+        $(TR $(TD a3))
+        $(TR $(TD hidden))
+        $(TR $(TD this))
+        )
 
-	$(P The variadic part is converted to a dynamic array and the
-	rest is the same as for non-variadic functions.)
+        $(P The variadic part is converted to a dynamic array and the
+        rest is the same as for non-variadic functions.)
 
-	$(P The parameters to the variadic function:)
+        $(P The parameters to the variadic function:)
 
 ---
 void foo(int p1, int p2, ...)
 foo(a1, a2, a3, ..., an);
 ---
 
-	are passed as follows:
+        are passed as follows:
 
-	$(TABLE
-	$(TR $(TD an))
-	$(TR $(TD ...))
-	$(TR $(TD a3))
-	$(TR $(TD a2))
-	$(TR $(TD a1))
-	$(TR $(TD $(D _)arguments))
-	$(TR $(TD hidden))
-	$(TR $(TD this))
-	)
+        $(TABLE
+        $(TR $(TD an))
+        $(TR $(TD ...))
+        $(TR $(TD a3))
+        $(TR $(TD a2))
+        $(TR $(TD a1))
+        $(TR $(TD $(D _)arguments))
+        $(TR $(TD hidden))
+        $(TR $(TD this))
+        )
 
-	$(P The caller is expected to clean the stack.
-	$(D _argptr) is not
-	passed, it is computed by the callee.)
+        $(P The caller is expected to clean the stack.
+        $(D _argptr) is not
+        passed, it is computed by the callee.)
 
 $(H2 $(LNAME2 exception_handling, Exception Handling))
 
     $(H3 $(LNAME2 windows_eh, Windows))
 
-	$(P Conforms to the Microsoft Windows Structured Exception Handling
-	conventions.
-	)
+        $(P Conforms to the Microsoft Windows Structured Exception Handling
+        conventions.
+        )
 
     $(H3 $(LNAME2 ninux_fbsd_osx_eh, Linux$(COMMA) FreeBSD and OS X))
 
-	$(P Uses static address range/handler tables.
-	It is not compatible with the ELF/Mach-O exception handling tables.
-	The stack is walked assuming it uses the EBP/RBP stack frame
-	convention. The EBP/RBP convention must be used for every
-	function that has an associated EH (Exception Handler) table.
-	)
+        $(P Uses static address range/handler tables.
+        It is not compatible with the ELF/Mach-O exception handling tables.
+        The stack is walked assuming it uses the EBP/RBP stack frame
+        convention. The EBP/RBP convention must be used for every
+        function that has an associated EH (Exception Handler) table.
+        )
 
-	$(P For each function that has exception handlers,
-	an EH table entry is generated.
-	)
+        $(P For each function that has exception handlers,
+        an EH table entry is generated.
+        )
 
-	$(TABLE2 EH Table Entry,
-	$(THEAD field, description)
-	$(TROW $(D void*), pointer to start of function)
-	$(TROW $(D DHandlerTable*), pointer to corresponding EH data)
-	$(TROW $(D uint), size in bytes of the function)
-	)
+        $(TABLE2 EH Table Entry,
+        $(THEAD field, description)
+        $(TROW $(D void*), pointer to start of function)
+        $(TROW $(D DHandlerTable*), pointer to corresponding EH data)
+        $(TROW $(D uint), size in bytes of the function)
+        )
 
-	$(P The EH table entries are placed into the following special
-	segments, which are concatenated by the linker.
-	)
+        $(P The EH table entries are placed into the following special
+        segments, which are concatenated by the linker.
+        )
 
-	$(TABLE2 EH Table Segment,
-	$(THEAD Operating System, Segment Name)
-	$(TROW Windows, $(D FI))
-	$(TROW Linux, $(D .deh_eh))
-	$(TROW FreeBSD, $(D .deh_eh))
-	$(TROW OS X, $(ARGS $(D __deh_eh), $(D __DATA)))
-	)
-	$(BR)
+        $(TABLE2 EH Table Segment,
+        $(THEAD Operating System, Segment Name)
+        $(TROW Windows, $(D FI))
+        $(TROW Linux, $(D .deh_eh))
+        $(TROW FreeBSD, $(D .deh_eh))
+        $(TROW OS X, $(ARGS $(D __deh_eh), $(D __DATA)))
+        )
+        $(BR)
 
-	$(P The rest of the EH data can be placed anywhere,
-	it is immutable.)
+        $(P The rest of the EH data can be placed anywhere,
+        it is immutable.)
 
-	$(TABLE2 DHandlerTable,
-	$(THEAD field, description)
-	$(TROW $(D void*), pointer to start of function)
-	$(TROW $(D uint), offset of ESP/RSP from EBP/RBP)
-	$(TROW $(D uint), offset from start of function to return code)
-	$(TROW $(D uint), number of entries in $(D DHandlerInfo[]))
-	$(TROW $(D DHandlerInfo[]), array of handler information)
-	)
-	$(BR)
+        $(TABLE2 DHandlerTable,
+        $(THEAD field, description)
+        $(TROW $(D void*), pointer to start of function)
+        $(TROW $(D uint), offset of ESP/RSP from EBP/RBP)
+        $(TROW $(D uint), offset from start of function to return code)
+        $(TROW $(D uint), number of entries in $(D DHandlerInfo[]))
+        $(TROW $(D DHandlerInfo[]), array of handler information)
+        )
+        $(BR)
 
-	$(TABLE2 DHandlerInfo,
-	$(THEAD field, description)
-	$(TROW $(D uint), offset from function address to start of guarded section)
-	$(TROW $(D uint), offset of end of guarded section)
-	$(TROW $(D int), previous table index)
-	$(TROW $(D uint), if != 0 offset to DCatchInfo data from start of table)
-	$(TROW $(D void*), $(ARGS if not null, pointer to finally code to execute))
-	)
-	$(BR)
+        $(TABLE2 DHandlerInfo,
+        $(THEAD field, description)
+        $(TROW $(D uint), offset from function address to start of guarded section)
+        $(TROW $(D uint), offset of end of guarded section)
+        $(TROW $(D int), previous table index)
+        $(TROW $(D uint), if != 0 offset to DCatchInfo data from start of table)
+        $(TROW $(D void*), $(ARGS if not null, pointer to finally code to execute))
+        )
+        $(BR)
 
-	$(TABLE2 DCatchInfo,
-	$(THEAD field, description)
-	$(TROW $(D uint), number of entries in $(D DCatchBlock[]))
-	$(TROW $(D DCatchBlock[]), array of catch information)
-	)
-	$(BR)
+        $(TABLE2 DCatchInfo,
+        $(THEAD field, description)
+        $(TROW $(D uint), number of entries in $(D DCatchBlock[]))
+        $(TROW $(D DCatchBlock[]), array of catch information)
+        )
+        $(BR)
 
-	$(TABLE2 DCatchBlock,
-	$(THEAD field, description)
-	$(TROW $(D ClassInfo), catch type)
-	$(TROW $(D uint), offset from EBP/RBP to catch variable)
-	$(TR $(D void*), catch handler code)
-	)
+        $(TABLE2 DCatchBlock,
+        $(THEAD field, description)
+        $(TROW $(D ClassInfo), catch type)
+        $(TROW $(D uint), offset from EBP/RBP to catch variable)
+        $(TR $(D void*), catch handler code)
+        )
 
 $(H2 $(LNAME2 garbage_collection, Garbage Collection))
 
-	$(P The interface to this is found in Druntime's $(DRUNTIMESRC gc/gcinterface.d).)
+        $(P The interface to this is found in Druntime's $(DRUNTIMESRC gc/gcinterface.d).)
 
 $(H2 $(LNAME2 runtime_helper_functions, Runtime Helper Functions))
 
-	$(P These are found in Druntime's $(DRUNTIMESRC rt/).)
+        $(P These are found in Druntime's $(DRUNTIMESRC rt/).)
 
 $(H2 $(LNAME2 module_init_and_fina, Module Initialization and Termination))
 
-	$(P All the static constructors for a module are aggregated into a
-	single function, and a pointer to that function is inserted
-	into the ctor member of the ModuleInfo instance for that
-	module.
-	)
+        $(P All the static constructors for a module are aggregated into a
+        single function, and a pointer to that function is inserted
+        into the ctor member of the ModuleInfo instance for that
+        module.
+        )
 
-	$(P All the static denstructors for a module are aggregated into a
-	single function, and a pointer to that function is inserted
-	into the dtor member of the ModuleInfo instance for that
-	module.
-	)
+        $(P All the static denstructors for a module are aggregated into a
+        single function, and a pointer to that function is inserted
+        into the dtor member of the ModuleInfo instance for that
+        module.
+        )
 
 $(H2 $(LNAME2 unit_testing, Unit Testing))
 
-	$(P All the unit tests for a module are aggregated into a
-	single function, and a pointer to that function is inserted
-	into the unitTest member of the ModuleInfo instance for that
-	module.
-	)
+        $(P All the unit tests for a module are aggregated into a
+        single function, and a pointer to that function is inserted
+        into the unitTest member of the ModuleInfo instance for that
+        module.
+        )
 
 $(H2 $(LNAME2 symbolic_debugging, Symbolic Debugging))
 
-	$(P D has types that are not represented in existing C or C++ debuggers.
-	These are dynamic arrays, associative arrays, and delegates.
-	Representing these types as structs causes problems because function
-	calling conventions for structs are often different than that for
-	these types, which causes C/C++ debuggers to misrepresent things.
-	For these debuggers, they are represented as a C type which
-	does match the calling conventions for the type.
-	The $(B dmd) compiler will generate only C symbolic type info with the
-	$(B -gc) compiler switch.
-	)
+        $(P D has types that are not represented in existing C or C++ debuggers.
+        These are dynamic arrays, associative arrays, and delegates.
+        Representing these types as structs causes problems because function
+        calling conventions for structs are often different than that for
+        these types, which causes C/C++ debuggers to misrepresent things.
+        For these debuggers, they are represented as a C type which
+        does match the calling conventions for the type.
+        The $(B dmd) compiler will generate only C symbolic type info with the
+        $(B -gc) compiler switch.
+        )
 
-	$(TABLE2 Types for C Debuggers,
-	$(THEAD D type, C representation)
-	$(TROW dynamic array, $(D unsigned long long))
-	$(TROW associative array, $(D void*))
-	$(TROW delegate, $(D long long))
-	$(TROW $(D dchar), $(D unsigned long))
-	)
+        $(TABLE2 Types for C Debuggers,
+        $(THEAD D type, C representation)
+        $(TROW dynamic array, $(D unsigned long long))
+        $(TROW associative array, $(D void*))
+        $(TROW delegate, $(D long long))
+        $(TROW $(D dchar), $(D unsigned long))
+        )
 
-	$(P For debuggers that can be modified to accept new types, the
-	following extensions help them fully support the types.
-	)
+        $(P For debuggers that can be modified to accept new types, the
+        following extensions help them fully support the types.
+        )
 
 $(H3 $(LNAME2 codeview, Codeview Debugger Extensions))
 
-	$(P The D $(B dchar) type is represented by the special
-	primitive type 0x78.)
+        $(P The D $(B dchar) type is represented by the special
+        primitive type 0x78.)
 
-	$(P D makes use of the Codeview OEM generic type record
-	indicated by $(D LF_OEM) (0x0015). The format is:)
+        $(P D makes use of the Codeview OEM generic type record
+        indicated by $(D LF_OEM) (0x0015). The format is:)
 
-	$(TABLE2 Codeview OEM Extensions for D,
-	$(TROW field size, 2, 2, 2, 2, 2, 2)
-	$(THEAD D Type, Leaf Index, OEM Identifier, recOEM, num indices,
-	type index, type index)
-	$(TROW dynamic array, $(D LF_OEM), $(I OEM), 1, 2, @$(I index), @$(I element))
-	$(TROW associative array, $(D LF_OEM), $(I OEM), 2, 2, @$(I key), @$(I element))
-	$(TROW delegate, $(D LF_OEM), $(I OEM), 3, 2, @$(I this), @$(I function)))
+        $(TABLE2 Codeview OEM Extensions for D,
+        $(TROW field size, 2, 2, 2, 2, 2, 2)
+        $(THEAD D Type, Leaf Index, OEM Identifier, recOEM, num indices,
+        type index, type index)
+        $(TROW dynamic array, $(D LF_OEM), $(I OEM), 1, 2, @$(I index), @$(I element))
+        $(TROW associative array, $(D LF_OEM), $(I OEM), 2, 2, @$(I key), @$(I element))
+        $(TROW delegate, $(D LF_OEM), $(I OEM), 3, 2, @$(I this), @$(I function)))
 
-	where:
+        where:
 
-	$(TABLE_2COLS ,
-	$(TROW $(ARGS $(I OEM)), $(ARGS 0x42))
-	$(TROW $(ARGS $(I index)), $(ARGS type index of array index))
-	$(TROW $(ARGS $(I key)), $(ARGS type index of key))
-	$(TROW $(ARGS $(I element)), $(ARGS type index of array element))
-	$(TROW $(I this), $(ARGS type index of context pointer))
-	$(TROW $(I function), $(ARGS type index of function)))
+        $(TABLE_2COLS ,
+        $(TROW $(ARGS $(I OEM)), $(ARGS 0x42))
+        $(TROW $(ARGS $(I index)), $(ARGS type index of array index))
+        $(TROW $(ARGS $(I key)), $(ARGS type index of key))
+        $(TROW $(ARGS $(I element)), $(ARGS type index of array element))
+        $(TROW $(I this), $(ARGS type index of context pointer))
+        $(TROW $(I function), $(ARGS type index of function)))
 
-	$(P These extensions can be pretty-printed
-	by $(LINK2 http://www.digitalmars.com/ctg/obj2asm.html, obj2asm). The $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg) debugger
-	supports them.)
+        $(P These extensions can be pretty-printed
+        by $(LINK2 http://www.digitalmars.com/ctg/obj2asm.html, obj2asm). The $(LINK2 http://ddbg.mainia.de/releases.html, Ddbg) debugger
+        supports them.)
 $(SPEC_SUBNAV_PREV_NEXT memory-safe-d, Memory Safety, simd, Vector Extensions)
 )
 
 Macros:
-	CHAPTER=38
-	TITLE=Application Binary Interface
+        CHAPTER=38
+        TITLE=Application Binary Interface

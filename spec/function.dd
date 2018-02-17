@@ -2,57 +2,7 @@ Ddoc
 
 $(SPEC_S Functions,
 
-$(NOT_EBOOK
-$(DIVC page-contents quickindex,
-    $(DIVC page-contents-header,
-        $(B Contents)
-    )
-    $(OL
-        $(LI $(RELATIVE_LINK2 grammar, Grammar))
-        $(LI $(RELATIVE_LINK2 contracts, Contracts))
-        $(LI $(RELATIVE_LINK2 function-return-values, Function Return Values))
-        $(LI $(RELATIVE_LINK2 function-declarations, Functions Without Bodies))
-        $(LI $(RELATIVE_LINK2 pure-functions, Pure Functions))
-        $(LI $(RELATIVE_LINK2 nothrow-functions, Nothrow Functions))
-        $(LI $(RELATIVE_LINK2 ref-functions, Ref Functions))
-        $(LI $(RELATIVE_LINK2 auto-functions, Auto Functions))
-        $(LI $(RELATIVE_LINK2 auto-ref-functions, Auto Ref Functions))
-        $(LI $(RELATIVE_LINK2 inout-functions, Inout Functions))
-        $(LI $(RELATIVE_LINK2 optional-parenthesis, Optional Parentheses))
-        $(LI $(RELATIVE_LINK2 property-functions, Property Functions))
-        $(LI $(RELATIVE_LINK2 virtual-functions, Virtual Functions))
-        $(OL
-        $(LI $(RELATIVE_LINK2 function-inheritance, Function Inheritance and Overriding))
-        )
-        $(LI $(RELATIVE_LINK2 inline-functions, Inline Functions))
-        $(LI $(RELATIVE_LINK2 function-overloading, Function Overloading)$(OL
-            $(LI $(RELATIVE_LINK2 overload-sets, Overload Sets))
-        ))
-        $(LI $(RELATIVE_LINK2 parameters, Function Parameters)$(OL
-            $(LI $(RELATIVE_LINK2 function-default-args, Function Default Arguments))
-            $(LI $(RELATIVE_LINK2 return-ref-parameters, Return Ref Parameters))
-            $(LI $(RELATIVE_LINK2 variadic, Variadic Functions))
-        ))
-        $(LI $(RELATIVE_LINK2 local-variables, Local Variables))
-            $(OL $(LI $(RELATIVE_LINK2 local-static-variables, Local Static Variables)))
-        $(LI $(RELATIVE_LINK2 nested, Nested Functions))
-        $(LI $(RELATIVE_LINK2 closures, Delegates, Function Pointers, and  Closures))
-            $(OL $(LI $(RELATIVE_LINK2 anonymous, Anonymous Functions and Anonymous Delegates)))
-        $(LI $(RELATIVE_LINK2 main, main() Function))
-        $(LI $(RELATIVE_LINK2 function-templates, Function Templates))
-        $(LI $(RELATIVE_LINK2 interpretation, Compile Time Function Execution (CTFE))$(OL
-            $(LI $(RELATIVE_LINK2 string-mixins, String Mixins and Compile Time Function Execution))
-        ))
-        $(LI $(RELATIVE_LINK2 function-safety, Function Safety)$(OL
-            $(LI $(RELATIVE_LINK2 safe-functions, Safe Functions))
-            $(LI $(RELATIVE_LINK2 trusted-functions, Trusted Functions))
-            $(LI $(RELATIVE_LINK2 system-functions, System Functions))
-        ))
-        $(LI $(RELATIVE_LINK2 function-attribute-inference, Function Attribute Inference))
-        $(LI $(RELATIVE_LINK2 pseudo-member, Uniform Function Call Syntax (UFCS)))
-    )
-)
-)
+$(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 grammar, Grammar))
 
@@ -178,11 +128,61 @@ int foo();
 
 $(H2 $(LNAME2 pure-functions, Pure Functions))
 
-        $(P Pure functions are functions that cannot access global/static
-        mutable state, except if their arguments contain pointers to such. This
-        enables optimizations based on the fact that a pure function may at most
-        mutate state reachable through its parameters. To that end, a pure
-        function:)
+        $(P Pure functions are functions that cannot directly access global or static
+            mutable state. `pure` guarantees that a pure function call
+            won't access or modify any implicit state in the program.
+        )
+
+        $(P Unlike other functional programming languages, D's `pure`
+            functions allow modification of the caller state through their mutable
+            parameters.
+        )
+
+            ---
+            pure int foo(int[] arr) { arr[] += 1; return arr.length; }
+            int[] a = [1, 2, 3];
+            foo(a);
+            assert(a == [2, 3, 4]);
+            ---
+
+        $(P A `pure` function accepting parameters with mutable indirections offers
+            what's called "weak purity" because it can change program state
+            transitively through its arguments. A `pure` function that has
+            no parameter with mutable indirections is called "strongly pure"
+            and fulfills the purity definition in traditional functional languages.
+            Weakly `pure` functions are useful as reusable building blocks for strongly pure functions.
+        )
+
+        $(P To control mutations, D has the `immutable` type qualifier. If all of
+            a $(D pure) function's parameters are `immutable` or copied values
+            without any indirections, it can guarantee that the pure function has
+            no side effects.
+        )
+        $(P To prevent mutation, D offers the `immutable` type qualifier.
+            If all of a `pure` function's parameters are `immutable` or
+            copied values without any indirections (e.g. `int`),
+            the type system guarantees no side effects.
+        )
+
+            ---
+            struct S { double x; }
+            pure int foo(immutable(int)[] arr, int num, S val)
+            {
+                //arr[num] = 1; // compile error
+                num = 2;        // has no side effect to the caller side
+                val.x = 3.14;   // ditto
+                return arr.length;
+            }
+            ---
+
+        $(P The maximum guarantee of `pure` is called "strong purity". It can enable
+            optimizations based on the fact
+            that a function is guaranteed to not mutate anything which isn't passed to it.
+            For cases where the compiler can guarantee that a pure function cannot
+            alter its arguments, it can enable full, functional purity (i.e. the guarantee
+            that the function will always return the same result for the same arguments).
+            To that end, a pure function:
+        )
 
         $(UL
         $(LI does not read or write any global or static mutable state)
@@ -252,7 +252,7 @@ pure int foo(int i,
     references of the result may be assumed to not refer to any object that
     existed before the function call. For example:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct List { int payload; List* next; }
 pure List* make(int a, int b)
@@ -322,7 +322,7 @@ $(H2 $(LNAME2 auto-functions, Auto Functions))
         If there are no $(I ReturnStatement)s, the return type is inferred
         to be $(D_KEYWORD void).)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto foo(int x) { return x + 3; }          // inferred to be int
         auto bar(int x) { return x; return 2.5; }  // inferred to be double
@@ -337,7 +337,7 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
         if all return expressions are lvalues,
         and it would not be a reference to a local or a parameter.)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto ref f1(int x)     { return x; }  // value return
         auto ref f2()          { return 3; }  // value return
@@ -350,7 +350,7 @@ $(H2 $(LNAME2 auto-ref-functions, Auto Ref Functions))
     $(P The ref-ness of a function is determined from all
         $(GLINK2 statement, ReturnStatement)s in the function body:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         auto ref f1(ref int x) { return 3; return x; }  // ok, value return
         auto ref f2(ref int x) { return x; return 3; }  // ok, value return
@@ -375,7 +375,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
     $(P Functions that deal with mutable, const, or immutable types with
         equanimity often need to transmit their type to the return value:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         int[] f1(int[] a, int x, int y) { return a[x .. y]; }
 
@@ -389,7 +389,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         To indicate that these can be one function, the $(D_KEYWORD inout)
         type constructor is employed:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         inout(int)[] foo(inout(int)[] a, int x, int y) { return a[x .. y]; }
         ---
@@ -433,7 +433,7 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
     $(P The inout in the return type is then rewritten to be the inout matched
         qualifiers:)
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         int[] ma;
         const(int)[] ca;
@@ -477,6 +477,35 @@ $(H2 $(LNAME2 inout-functions, Inout Functions))
         be matched with inout.
     )
 
+    $(P $(RELATIVE_LINK2 variadicnested, Nested functions) inside pure function are implicitly marked as pure.
+
+        ---
+        pure int foo(int x, immutable int y)
+        {
+            int bar()
+            // implicitly marked as pure, to be "weak purity"
+            // hidden context pointer is mutable
+            {
+                x = 10;     // can access states in enclosing scope
+                            // through the mutable context pointer
+                return x;
+            }
+            pragma(msg, typeof(&bar));  // int delegate() pure
+
+            int baz() immutable
+            // qualify hidden context pointer with immutable,
+            // and has no other parameters, make "strong purity"
+            {
+                //return x; // error, cannot access mutable data
+                            // through the immutable context pointer
+                return y;   // ok
+            }
+
+            // can call pure nested functions
+            return bar() + baz();
+        }
+        ---
+    )
 
 $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
 
@@ -485,7 +514,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
         $(RELATIVE_LINK2 property-functions, property function).
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         void foo() {}   // no arguments
     void fun(int x = 10) { }
@@ -523,7 +552,7 @@ $(H2 $(LNAME2 optional-parenthesis, Optional Parentheses))
     returned value is to be called.
     )
 
-    $(SPEC_RUNNABLE_EXAMPLE
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct S {
         int function() callfp() { return &numfp; }
@@ -592,7 +621,7 @@ $(H2 $(LNAME2 property-functions, Property Functions))
     $(P A simple property would be:)
 
 
-    $(SPEC_RUNNABLE_EXAMPLE
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Foo
     {
@@ -704,7 +733,7 @@ void func()
         that is derived from the type returned by the overridden function:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class A { }
 class B : A { }
@@ -731,7 +760,7 @@ class Bar : Foo
         base class name before the member function name. For example:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class B
 {
@@ -924,7 +953,7 @@ void test()
         $(GLINK FunctionAttributes), the missing attributes will be
         automatically compensated by the compiler.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class B
 {
@@ -951,7 +980,7 @@ void main()
     when it is virtual.
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 class B
 {
@@ -1055,7 +1084,7 @@ $(H3 $(LNAME2 overload-sets, Overload Sets))
         at module level:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 module A;
 void foo() { }
@@ -1067,7 +1096,7 @@ void foo(long i) { }
         A different module can also define functions with the same name:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 module B;
 class C { }
@@ -1151,7 +1180,7 @@ int foo(in int x, out int y, ref int z, int q);
     $(THEAD Storage Class, Description)
     $(TROW $(I none), parameter becomes a mutable copy of its argument)
 
-    $(TROW $(D in), equivalent to $(D const scope))
+    $(TROW $(D in), equivalent to $(D const))
     $(TROW $(D out), parameter is initialized upon function entry with the default value
     for its type)
 
@@ -1166,7 +1195,7 @@ int foo(in int x, out int y, ref int z, int q);
     $(TROW $(D inout), argument is implicitly converted to an inout type)
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 void foo(out int x)
 {
@@ -1208,7 +1237,7 @@ def(z);
         a $(D lazy) argument can be executed 0 or more times. A $(D lazy) parameter
         cannot be an lvalue.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void dotimes(int n, lazy void exp)
 {
@@ -1374,7 +1403,7 @@ $(H4 $(LNAME2 d_style_variadic_functions, D-style Variadic Functions))
         It has D linkage, and need not have any non-variadic parameters
         declared:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int abc(char c, ...);   // one required parameter: c
 int def(...);           // ok
@@ -1416,7 +1445,7 @@ void foo(int x, int y, ...)
         $(D _arguments) gives the number of arguments and the type
         of each, enabling type safety to be checked at run time.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 import std.stdio;
 import core.vararg;
@@ -1500,7 +1529,7 @@ $(H4 $(LNAME2 typesafe_variadic_functions, Typesafe Variadic Functions))
 
         $(P For arrays:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int main()
 {
@@ -1681,7 +1710,7 @@ $(H3 $(LEGACY_LNAME2 Local Static Variables, local-static-variables, Local Stati
     As such, their value persists beyond the exit of the function.
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void foo()
 {
@@ -1717,7 +1746,7 @@ $(H2 $(LNAME2 nested, Nested Functions))
 
         $(P Functions may be nested within other functions:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int bar(int a)
 {
@@ -1789,7 +1818,7 @@ void test()
         This access includes both the ability to read and write them.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int bar(int a)
 {
@@ -1815,7 +1844,7 @@ void test()
 
         $(P This access can span multiple nesting levels:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int bar(int a)
 {
@@ -1857,7 +1886,7 @@ int bar(int a)
 
         $(P Functions can be nested within member functions:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 struct Foo
 {
@@ -1915,7 +1944,7 @@ void test()
         $(LI Declare one or more of the functions to be function templates
         even if they take no specific template arguments:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 void test()
 {
@@ -1927,7 +1956,7 @@ void test()
 
         $(LI Declare the functions inside of a mixin template:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 mixin template T()
 {
@@ -1944,7 +1973,7 @@ void main()
 
         $(LI Use a delegate:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 void test()
 {
@@ -1964,7 +1993,7 @@ $(H2 $(LNAME2 closures, Delegates, Function Pointers, and  Closures))
 
         $(P A function pointer can point to a static nested function:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int function() fp;
 
@@ -1989,7 +2018,7 @@ void bar()
         distinct function pointer values. The compiler is free to merge
         functions bodies into one if they compile to identical code.)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int abc(int x) { return x + 1; }
 int def(int y) { return y + 1; }
@@ -2003,7 +2032,7 @@ int delegate(int) fp2 = &def;
 
         $(P A delegate can be set to a non-static nested function:)
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 int delegate() dg;
 
@@ -2047,7 +2076,7 @@ int* bar()
         the same type:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ------
 struct Foo
 {
@@ -2084,6 +2113,24 @@ void test()
         $(P The $(D .funcptr) property of a delegate will return the
         $(I function pointer) value as a function type.
         )
+        $(P Functions and delegates declared at module scope are zero-initialized by default.
+        However both can be initialized to any function pointer (including a function literal).
+        For delegates, the context pointer $(D .ptr) is initialized to null.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int function() foo = { return 42; };
+int delegate() bar = { return 43; };
+int delegate() baz;
+void main()
+{
+    assert(foo() == 42);
+    assert(bar() == 43);
+    assert(baz is null);
+}
+---
+)
 
         $(P $(B Future directions:) Function pointers and delegates may merge
         into a common syntax and be interchangeable with each other.
@@ -2118,7 +2165,7 @@ $(H2 $(LNAME2 function-templates, Function Templates))
     For example:
     )
 
-$(SPEC_RUNNABLE_EXAMPLE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 // Only one copy of func needs to be written
 void func(T)(T x)
@@ -2151,16 +2198,51 @@ void main()
 
 $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
 
-    $(P Functions which are both portable and free of side-effects can be
-    executed at compile time. This is useful when constant folding
-    algorithms need to include recursion and looping. Compile time function
-    execution is subject to the following restrictions:
+    $(P Functions which are both portable and free of global side-effects can be
+    executed at compile time. In certain contexts, such compile time execution
+    is guaranteed. It is called Compile Time Function Execution (CTFE) then.
+    The contexts that trigger CTFE are:)
+
+    $(UL
+    $(LI initialization of a static variable or a
+        $(DDSUBLINK spec/enum, manifest_constants, manifest constant))
+    $(LI static initializers of struct/class members)
+    $(LI dimension of a $(DDSUBLINK spec/arrays, static-arrays, static array))
+    $(LI argument for a $(DDSUBLINK spec/template, template_value_parameter,
+        template value parameter))
+    $(LI $(DDSUBLINK spec/version, staticif, `static if`))
+    $(LI $(DDSUBLINK spec/version, staticforeach, `static foreach`))
+    $(LI $(DDSUBLINK spec/version, static-assert, `static assert`))
+    $(LI $(DDSUBLINK spec/statement, mixin-statement,
+        `mixin` statement))
+    $(LI $(DDLINK spec/pragma, Pragmas, `pragma` argument))
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+enum eval(Args...) = Args[0];
+
+int square(int i)
+{
+    return i * i;
+}
+
+void foo()
+{
+    static j = square(3);      // CTFE
+    writeln(j);
+    assert(square(4));         // run time
+    writeln(eval!(square(5))); // CTFE
+}
+---
+)
+
+    $(P CTFE is subject to the following restrictions:)
 
     $(OL
     $(LI The function source code must be available to the compiler. Functions
         which exist in the source code only as $(D_KEYWORD extern) declarations
-        cannot be executed at compile time.)
+        cannot be executed in CTFE.)
 
     $(LI Executed expressions may not reference any global or local
         static variables.)
@@ -2170,7 +2252,7 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
     $(LI Non-portable casts (eg, from $(D int[]) to $(D float[])), including
         casts which depend on endianness, are not permitted.
         Casts between signed and unsigned types are permitted)
-    $(LI Reinterpretation of overlapped fields in a Union.)
+    $(LI Reinterpretation of overlapped fields in a Union is not permitted.)
     )
 
     $(P Pointers are permitted in CTFE, provided they are used safely:)
@@ -2219,7 +2301,7 @@ $(H2 $(LNAME2 interpretation, Compile Time Function Execution (CTFE)))
         )
 
         $(LI
-        Any pointer may be cast to $(D void *) and from $(D void *) back to
+        Any pointer may be cast to $(D void*) and from $(D void*) back to
         its original type. Casting between pointer and non-pointer types is
         prohibited.
         )
@@ -2238,51 +2320,18 @@ int countTen(int x)
     return x;
 }
 
-static assert(countTen(6) == 6); // OK
+static assert(countTen(6) == 6);    // OK
 static assert(countTen(12) == 12);  // invalid, modifies y.
 ---
     $(P The $(D __ctfe) boolean pseudo-variable, which evaluates to $(D_KEYWORD true)
-        at compile time, but $(D_KEYWORD false) at run time, can be used to provide
+        in CTFE, but $(D_KEYWORD false) otherwise, can be used to provide
         an alternative execution path to avoid operations which are forbidden
-        at compile time. Every usage of $(D __ctfe) is evaluated before
+        in CTFE. Every usage of $(D __ctfe) is evaluated before
         code generation and therefore has no run-time cost, even if no optimizer
         is used.
     )
 
-
-    $(P In order to be executed at compile time, the function
-    must appear in a context where it must be so executed, for
-    example:)
-
-    $(UL
-    $(LI initialization of a static variable)
-    $(LI dimension of a static array)
-    $(LI argument for a template value parameter)
-    )
-
-$(SPEC_RUNNABLE_EXAMPLE
----
-template eval( A... )
-{
-    const typeof(A[0]) eval = A[0];
-}
-
-int square(int i)
-{
-    return i * i;
-}
-
-void foo()
-{
-    static j = square(3);     // compile time
-    writeln(j);
-    writeln(square(4));      // run time
-    writeln(eval!(square(5))); // compile time
-}
----
-)
-
-    $(P Executing functions at compile time can take considerably
+    $(P Executing functions via CTFE can take considerably
     longer than executing it at run time.
     If the function goes into an infinite loop, it will hang at
     compile time (rather than hanging at run time).
@@ -2292,7 +2341,7 @@ void foo()
     throw exceptions; instead, they end interpretation immediately.
     )
 
-    $(P Functions executed at compile time can give different results
+    $(P Functions executed via CTFE can give different results
     from run time in the following scenarios:
     )
 
@@ -2310,7 +2359,7 @@ void foo()
 
 $(H3 $(LNAME2 string-mixins, String Mixins and Compile Time Function Execution))
 
-        $(P Any functions that execute at compile time must also
+        $(P Any functions that execute in CTFE must also
         be executable at run time. The compile time evaluation of
         a function does the equivalent of running the function at
         run time. This means that the semantics of a function cannot
@@ -2325,9 +2374,93 @@ int foo(char[] s)
 const int x = foo("1");
 ---
 
-        $(P is illegal, because the runtime code for foo() cannot be
+        $(COMMENT Intentionally not a $(P ...) so that it doesn't get a
+        paragraph number, because this continues the paragraph above.)
+        is illegal, because the runtime code for `foo` cannot be
         generated. A function template would be the appropriate
-        method to implement this sort of thing.)
+        method to implement this sort of thing.
+
+$(H2 $(LNAME2 nogc-functions, No-GC Functions))
+
+        $(P No-GC functions are functions marked with the $(D @nogc) attribute.
+            Those functions do not allocate memory on the GC heap,
+            through the following language features:
+        )
+
+        $(UL
+        $(LI $(DDSUBLINK expression, ArrayLiteral, constructing an array) on the heap)
+        $(LI resizing an array by writing to its $(D .length) property)
+        $(LI array $(DDSUBLINK expression, CatExpression, concatenation) and appending)
+        $(LI $(DDSUBLINK expression, AssocArrayLiteral, constructing an associative array) on the heap)
+        $(LI $(DDSUBLINK expression, IndexExpression, indexing) an associative array
+            (because it may throw $(D RangeError) if the specified key is not present))
+        $(LI $(DDSUBLINK expression, NewExpression, allocating an object) on the heap)
+        $(LI $(DDSUBLINK expression, DeleteExpression, deleting an object) on the heap)
+        )
+
+            ---
+            @nogc void foo()
+            {
+                auto a = ['a'];    // error, allocates
+                a.length = 1;      // error, array resizing allocates
+                a = a ~ a;         // error, arrays concatenation allocates
+                a ~= 'c';          // error, appending to arrays allocates
+
+                auto aa = ["x":1]; // error, allocates
+                aa["abc"];         // error, indexing may allocate and throws
+
+                auto p = new int;  // error, operator new allocates
+                delete p;          // error, operator delete deallocates
+            }
+            ---
+
+        $(P No-GC functions cannot call functions that are not $(D @nogc).
+        )
+
+            ---
+            @nogc void foo()
+            {
+                bar();             // error, bar() may allocate
+            }
+
+            void bar() { }
+            ---
+
+        $(P No-GC functions cannot be closures.
+        )
+
+            ---
+            @nogc int delegate() foo()
+            {
+                int n;              // error, variable n cannot be allocated on heap
+                return (){ return n; }
+            }
+            ---
+
+        $(P $(D @nogc) affects the type of the function. A $(D @nogc)
+            function is covariant with a non-$(D @nogc) function.
+        )
+
+            ---
+            void function() fp;
+            void function() @nogc gp;  // pointer to @nogc function
+
+            void foo();
+            @nogc void bar();
+
+            void test()
+            {
+                fp = &foo; // ok
+                fp = &bar; // ok, it's covariant
+                gp = &foo; // error, not contravariant
+                gp = &bar; // ok
+            }
+            ---
+
+        $(P To ease debugging,
+            in a $(GLINK2 version, ConditionalStatement)
+            controlled by a $(GLINK2 version, DebugCondition)
+            `@nogc` functions can call functions that are not `@nogc`.)
 
 $(H2 $(LNAME2 function-safety, Function Safety))
 
@@ -2348,7 +2481,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(UL
         $(LI No casting from a pointer type to any type other than $(CODE void*).)
         $(LI No casting from any non-pointer type to a pointer type.)
-        $(LI No modification of pointer values.)
+        $(LI No pointer arithmetic (including pointer indexing).)
         $(LI Cannot access unions that have pointers or references overlapping
         with other types.)
         $(LI Calling any system functions.)
@@ -2360,6 +2493,10 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No explicit casting of shared objects to thread local.)
         $(LI No taking the address of a local variable or function parameter.)
         $(LI Cannot access $(D __gshared) variables.)
+        )
+
+        $(P When indexing and slicing an array, an out of bounds access
+            will cause a runtime error, in order to prevent undefined behavior.
         )
 
         $(P Functions nested inside safe functions default to being
@@ -2411,8 +2548,8 @@ $(H2 $(LNAME2 function-attribute-inference, Function Attribute Inference))
         $(RELATIVE_LINK2 pure-functions, $(D pure)),
         $(RELATIVE_LINK2 nothrow-functions, $(D nothrow)),
         $(RELATIVE_LINK2 safe-functions, $(D @safe)), and
-        $(LINK2 attribute.html#nogc, $(D @nogc)) attributes unless
-        specifically overridden.
+        $(RELATIVE_LINK2 nogc-functions, $(D @nogc))
+        attributes unless specifically overridden.
         )
 
         $(P Attribute inference is not done for other functions, even if the function

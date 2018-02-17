@@ -2,16 +2,18 @@ Ddoc
 
 $(SPEC_S Template Mixins,
 
+$(HEADERNAV_TOC)
+
         $(P A $(I TemplateMixin) takes an arbitrary set of declarations from
         the body of a $(I TemplateDeclaration) and inserts them
         into the current context.)
 
 $(GRAMMAR
 $(GNAME TemplateMixinDeclaration):
-    $(D mixin) $(D template) $(I Identifier) $(TEMPLATEPARAMETERS) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
+    $(D mixin) $(D template) $(I Identifier) $(GLINK2 template, TemplateParameters) $(GLINK2 template, Constraint)$(OPT) $(D {) $(GLINK2 module, DeclDefs)$(OPT) $(D })
 
 $(GNAME TemplateMixin):
-    $(D mixin) $(GLINK MixinTemplateName) $(TEMPLATEARGUMENTS)$(OPT) $(I Identifier)$(OPT) $(D ;)
+    $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(I Identifier)$(OPT) $(D ;)
 
 $(GNAME MixinTemplateName):
     $(D .) $(GLINK QualifiedIdentifierList)
@@ -195,7 +197,7 @@ void test()
 $(H2 $(LNAME2 mixin_scope, Mixin Scope))
 
         $(P The declarations in a mixin are placed in a nested scope and then
-	$(SINGLEQUOTE imported) into the surrounding
+        $(SINGLEQUOTE imported) into the surrounding
         scope. If the name of a declaration in a mixin is the same
         as a declaration in the surrounding scope, the surrounding declaration
         overrides the mixin one:)
@@ -337,6 +339,4 @@ $(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 Macros:
         CHAPTER=22
         TITLE=Template Mixins
-        TEMPLATEPARAMETERS=$(GLINK2 template, TemplateParameters)
-        TEMPLATEARGUMENTS=$(GLINK2 template, TemplateArguments)
         _=

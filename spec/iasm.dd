@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S D x86 Inline Assembler,
 
+$(HEADERNAV_TOC)
+
     $(HTMLTAG3 a,
       href="http://digitalmars.com/gift/index.html" title="Gift Shop" target="_top",
       $(HTMLTAG3V img, src="../images/d5.gif" border="0" align="right" alt="Some Assembly Required" width="284" height="186")
@@ -25,6 +27,38 @@ $(SPEC_S D x86 Inline Assembler,
         provides is indicated by the $(D D_InlineAsm_X86) and
         $(D D_InlineAsm_X86_64) version identifiers, respectively.
     )
+
+$(H2 $(LNAME2 asmstatements, Asm statement))
+
+$(GRAMMAR
+$(GNAME AsmStatement):
+    $(D asm) $(GLINK FunctionAttributes)$(OPT) $(D {) $(GLINK AsmInstructionList)$(OPT) $(D })
+
+    $(GNAME AsmInstructionList):
+        $(GLINK AsmInstruction) $(D ;)
+        $(GLINK AsmInstruction) $(D ;) $(I AsmInstructionList)
+    )
+
+    $(P Assembler instructions must be located inside an `asm` block.
+        Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
+        Asm statements attributes must be explicitly defined, they are not infered.
+    )
+
+---
+void func1() pure nothrow @safe @nogc
+{
+    asm pure nothrow @trusted @nogc
+    {}
+}
+
+void func2() @safe @nogc
+{
+    asm @nogc // Error: asm statement is assumed to be @system - mark it with '@trusted' if it is not
+    {}
+}
+---
+
+$(H2 $(LNAME2 asminstruction, Asm instruction))
 
 $(GRAMMAR
 $(GNAME AsmInstruction):
@@ -530,12 +564,12 @@ $(H2 $(LNAME2 supported_opcodes, Opcodes Supported))
         , $(TT cmpxchg)
         , $(TT cmpxchg8b)
         , $(TT cmpxchg16b)
-	, $(TT )
+        , $(TT )
         )$(TROW $(TT comisd)
         , $(TT comiss)
-	, $(TT )
-	, $(TT )
-	, $(TT )
+        , $(TT )
+        , $(TT )
+        , $(TT )
         )$(TROW $(TT cpuid)
         , $(TT cvtdq2pd)
         , $(TT cvtdq2ps)

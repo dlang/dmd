@@ -2,6 +2,16 @@ Ddoc
 
 $(SPEC_S Types,
 
+$(HEADERNAV_TOC)
+
+    $(P D is statically typed. Every expression has a type. Types constrain the values
+    an expression can hold, and determine the semantics of operations on those values.
+    )
+
+    $(P Basic data types are leaf types. Derived data types build on leaf types. User defined
+    types are aggregates of basic and derived types.
+    )
+
 $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
 
     $(TABLE_3COLS Basic Data Types,
@@ -9,15 +19,15 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D void), $(D -), no type)
     $(TROW $(D bool), $(D false), boolean value)
     $(TROW $(D byte), $(D 0), signed 8 bits)
-    $(TROW $(D ubyte), $(D 0), unsigned 8 bits)
+    $(TROW $(D ubyte), $(D 0u), unsigned 8 bits)
     $(TROW $(D short), $(D 0), signed 16 bits)
-    $(TROW $(D ushort), $(D 0), unsigned 16 bits)
+    $(TROW $(D ushort), $(D 0u), unsigned 16 bits)
     $(TROW $(D int), $(D 0), signed 32 bits)
-    $(TROW $(D uint), $(D 0), unsigned 32 bits)
+    $(TROW $(D uint), $(D 0u), unsigned 32 bits)
     $(TROW $(D long), $(D 0L), signed 64 bits)
-    $(TROW $(D ulong), $(D 0L), unsigned 64 bits)
+    $(TROW $(D ulong), $(D 0uL), unsigned 64 bits)
     $(TROW $(D cent), $(D 0), signed 128 bits (reserved for future use))
-    $(TROW $(D ucent), $(D 0), unsigned 128 bits (reserved for future use))
+    $(TROW $(D ucent), $(D 0u), unsigned 128 bits (reserved for future use))
     $(TROW $(D float), $(D float.nan), 32 bit floating point)
     $(TROW $(D double), $(D double.nan), 64 bit floating point)
     $(TROW $(D real), $(D real.nan), largest FP size implemented in
@@ -28,9 +38,9 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D cfloat), $(D float.nan+float.nan*1.0i), a complex number of two float values)
     $(TROW $(D cdouble), $(D double.nan+double.nan*1.0i), complex double)
     $(TROW $(D creal), $(D real.nan+real.nan*1.0i), complex real)
-    $(TROW $(D char), $(D 0xFF), unsigned 8 bit (UTF-8 code unit))
-    $(TROW $(D wchar), $(D 0xFFFF), unsigned 16 bit (UTF-16 code unit))
-    $(TROW $(D dchar), $(D 0x0000FFFF), unsigned 32 bit (UTF-32 code unit))
+    $(TROW $(D char), $(D 'xFF'), unsigned 8 bit (UTF-8 code unit))
+    $(TROW $(D wchar), $(D 'uFFFF'), unsigned 16 bit (UTF-16 code unit))
+    $(TROW $(D dchar), $(D 'U0000FFFF'), unsigned 32 bit (UTF-32 code unit))
     )
 
 $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types))
@@ -45,10 +55,9 @@ $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types)
 
     $(P $(DDSUBLINK spec/arrays, strings, $(I Strings)) are a special case of arrays.)
 
-$(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User Defined Types))
+$(H2 $(LEGACY_LNAME2 User Defined Types, user-defined-types, User-Defined Types))
 
     $(UL
-    $(LI alias)
     $(LI enum)
     $(LI struct)
     $(LI union)
@@ -66,8 +75,9 @@ enum E : T { ... }  // T is the base type of E
 
 $(H2 $(LEGACY_LNAME2 Pointer Conversions, pointer-conversions, Pointer Conversions))
 
-    $(P Casting pointers to non-pointers and vice versa is allowed in D,
-    however, do not do this for any pointers that point to data
+    $(P Casting pointers to non-pointers and vice versa is allowed.)
+
+    $(BEST_PRACTICE do not do this for any pointers that point to data
     allocated by the garbage collector.
     )
 
@@ -81,6 +91,7 @@ $(H2 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
     type, but going the other way requires an explicit
     conversion. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 -------------------
 int i;
 
@@ -92,6 +103,7 @@ f = cast(Foo)i;  // OK
 f = 0;           // error
 f = Foo.E;       // OK
 -------------------
+)
 
 $(H2 $(LEGACY_LNAME2 Integer Promotions, integer-promotions, Integer Promotions))
 
@@ -149,14 +161,14 @@ $(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     )
 
     $(OL
-    $(LI If either operand is real, the other operand is
-    converted to real.)
+    $(LI If either operand is `real`, the other operand is
+    converted to `real`.)
 
-    $(LI Else if either operand is double, the other operand is
-    converted to double.)
+    $(LI Else if either operand is `double`, the other operand is
+    converted to `double`.)
 
-    $(LI Else if either operand is float, the other operand is
-    converted to float.)
+    $(LI Else if either operand is `float`, the other operand is
+    converted to `float`.)
 
     $(LI Else the integer promotions are done on each operand,
     followed by:
@@ -193,23 +205,18 @@ $(H2 $(LEGACY_LNAME2 Usual Arithmetic Conversions, usual-arithmetic-conversions,
     type that cannot represent the integer bit pattern after integral
     promotion. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
-ubyte  u1 = cast(byte)-1;  // error, -1 cannot be represented in a ubyte
-ushort u2 = cast(short)-1; // error, -1 cannot be represented in a ushort
-uint   u3 = cast(int)-1;   // ok, -1 can be represented in a uint
-ulong  u4 = cast(long)-1; // ok, -1 can be represented in a ulong
+ubyte  u1 = -1;       // error, -1 cannot be represented in a ubyte
+ushort u2 = -1;       // error, -1 cannot be represented in a ushort
+uint   u3 = int(-1);  // ok, -1 can be represented in a uint
+ulong  u4 = long(-1); // ok, -1 can be represented in a ulong
 ---
+)
 
     $(P Floating point types cannot be implicitly converted to
-    integral types.
-    )
-
-    $(P Complex floating point types cannot be implicitly converted
-    to non-complex floating point types.
-    )
-
-    $(P Imaginary floating point types cannot be implicitly converted to
-    float, double, or real types. Float, double, or real types
+    integral types. Complex or imaginary floating point types cannot be implicitly converted
+    to non-complex floating point types. Non-complex floating point types
     cannot be implicitly converted to imaginary floating
     point types.
     )
@@ -233,26 +240,19 @@ pointers or references.)
 
 $(H2 $(LNAME2 delegates, Delegates))
 
-$(P There are no pointers-to-members in D, but a more useful concept called $(I
-delegates) is supported. Delegates are an aggregate of two pieces of data: an
+$(P Delegates are an aggregate of two pieces of data: an
 object reference and a pointer to a non-static member function, or a pointer to
 a closure and a pointer to a nested function. The object reference forms the
 `this` pointer when the function is called.)
 
-$(P Delegates are declared similarly to function pointers, except that the
-keyword $(D delegate) takes the place of (*), and the identifier occurs
-afterwards:)
+$(P Delegates are declared similarly to function pointers:)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 -------------------
 int function(int) fp; // fp is pointer to a function
 int delegate(int) dg; // dg is a delegate to a function
 -------------------
-
-$(P The C style syntax for declaring pointers to functions is deprecated:)
-
--------------------
-int (*fp)(int);  // fp is pointer to a function
--------------------
+)
 
     $(P A delegate is initialized analogously to function pointers:
     )
@@ -260,7 +260,6 @@ int (*fp)(int);  // fp is pointer to a function
 -------------------
 int func(int);
 fp = &func;   // fp points to func
-
 class OB
 {
     int member(int);
@@ -285,6 +284,7 @@ dg(3);   // call o.member(3)
     $(P The equivalent of member function pointers can be constructed
     using anonymous lambda functions:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
 class C
 {
@@ -297,6 +297,13 @@ auto mfp = function(C self, int i) { return self.foo(i); };
 auto c = new C();  // create an instance of C
 mfp(c, 1);  // and call c.foo(1)
 ---
+)
+
+$(P The C style syntax for declaring pointers to functions is deprecated:)
+
+-------------------
+int (*fp)(int);  // fp is pointer to a function
+-------------------
 
 $(H2 $(LNAME2 size_t, $(D size_t)))
 
@@ -305,7 +312,7 @@ $(H2 $(LNAME2 size_t, $(D size_t)))
     all addressible memory.)
 
 $(H2 $(LNAME2 ptrdiff_t, $(D ptrdiff_t)))
-    $(P $(D ptrdiff_t) is an alias to the signed basic type the same size as $(D size_t).)
+    $(P $(D ptrdiff_t) is an alias to the signed integral basic type the same size as $(D size_t).)
 
 $(SPEC_SUBNAV_PREV_NEXT declaration, Declarations, property, Properties)
 )

@@ -2,8 +2,7 @@ Ddoc
 
 $(SPEC_S Templates,
 
-$(BLOCKQUOTE_BY Richard Deyman,
-I think that I can safely say that nobody understands C++ template mechanics.)
+$(HEADERNAV_TOC)
 
     $(P Templates are D's approach to generic programming.
         Templates are defined with a $(I TemplateDeclaration):
@@ -338,8 +337,6 @@ $(H3 $(LNAME2 parameters_specialization, Specialization))
 
     $(P The template picked to instantiate is the one that is most specialized
         that fits the types of the $(I TemplateArgumentList).
-        Determining which is more specialized is done in the same way as the
-        C++ partial ordering rules.
         If the result is ambiguous, it is an error.
     )
 
@@ -966,6 +963,18 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         }
         ------
 
+    $(P It is lowered to:)
+
+        ------
+        template $(CODE_HIGHLIGHT Square)(T)
+        {
+            T $(CODE_HIGHLIGHT Square)(T t)
+            {
+                return t * t;
+            }
+        }
+        ------
+
     $(P Function templates can be explicitly instantiated with a
         !($(I TemplateArgumentList)):)
 
@@ -984,6 +993,10 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         than parameters in the $(I TemplateParameterList), the arguments fulfill
         parameters from left to right, and the rest of the parameters are then deduced
         from the function arguments.
+    )
+
+    $(P The process of deducing template type parameters from function arguments
+        is called Implicit Function Template Instantiation (IFTI).
     )
 
     $(P Function template type parameters that are to be implicitly
@@ -1006,6 +1019,31 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         Foo(x);    // T is int, U is int*
         ------
 
+    $(P If template type parameters match the literal expressions on function arguments,
+        the deduced types may consider narrowing conversions of them.
+    )
+
+        ------
+        void foo(T)(T v)        { pragma(msg, "in foo, T = ", T); }
+        void bar(T)(T v, T[] a) { pragma(msg, "in bar, T = ", T); }
+
+        foo(1);
+        // an integer literal type is analyzed as int by default
+        // then T is deduced to int
+
+        short[] arr;
+        bar(1, arr);
+        // arr is short[], and the interger literal 1 is
+        // implicitly convertible to short.
+        // then T will be deduced to short.
+
+        bar(1, [2.0, 3.0]);
+        // the array literal is analyzed as double[],
+        // and the interger literal 1 is implicitly convertible to double.
+        // then T will be deduced to double.
+        ------
+
+
     $(P The deduced type parameter for dynamic array and pointer arguments
         has an unqualified head:)
 
@@ -1027,8 +1065,15 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         foo(iptr);  // T == immutable(int)*
         ------
 
+    $(P Type parameter deduction is not influenced by the order of function
+        arguments.
+    )
+
     $(P Function templates can have their return types deduced based on the
-        first $(GLINK2 statement, ReturnStatement) in the function:)
+        $(GLINK2 statement, ReturnStatement)s in the function, just as with
+        normal functions.
+        See $(DDSUBLINK function, auto-functions, Auto Functions).
+    )
 
         ---
         auto $(CODE_HIGHLIGHT Square)(T)(T t)
@@ -1036,12 +1081,6 @@ $(H2 $(LNAME2 function-templates, Function Templates))
             return t * t;
         }
         ---
-
-    $(P If there is more than one return statement, then the
-        types of the return statement expressions must match.
-        If there are no return statements, then the return type of the
-        function template is $(CODE void).
-    )
 
 $(H2 $(LNAME2 variable-template, Variable Templates))
 

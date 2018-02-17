@@ -2,9 +2,7 @@ Ddoc
 
 $(SPEC_S Expressions,
 
-    $(P C and C++ programmers will find the D expressions very familiar,
-        with a few interesting additions.
-    )
+$(HEADERNAV_TOC)
 
     $(P Expressions are used to compute values with a resulting type.
         These values can then be assigned,
@@ -14,9 +12,7 @@ $(SPEC_S Expressions,
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
 $(P Binary expressions and function arguments are evaluated in strictly
-left-to-right order. This is similar to Java but different to C and C++, where
-the evaluation order is unspecified. Thus, the following code is valid and well
-defined.)
+left-to-right order.)
 
         -------------
         import std.conv;
@@ -26,11 +22,14 @@ defined.)
         assert(text(++i, ++i) == "1415"); // left to right evaluation of arguments
         -------------
 
-    $(P But even though the order of evaluation is well defined, writing code that
-        depends on it is rarely recommended.
-        $(B Note that dmd currently does not comply with left to right evaluation of
-        function arguments and AssignExpression.)
-    )
+    $(IMPLEMENTATION_DEFINED
+    $(OL
+    $(LI The order of evaluation of the operands of $(GLINK AssignExpression).)
+    $(LI The order of evaluation of function arguments.)
+    ))
+
+    $(BEST_PRACTICE Even though the order of evaluation is well defined, writing code that
+    depends on it is rarely recommended.)
 
 $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
 
@@ -45,8 +44,8 @@ $(GNAME CommaExpression):
 
     $(P The left operand of the $(D ,) is evaluated, then the right operand
         is evaluated. The type of the expression is the type of the right
-        operand, and the result is the result of the right operand. Using
-        the result is derecated.
+        operand, and the result is the result of the right operand.
+        Using the result of comma expressions isn't allowed.
     )
 
 $(H2 $(LNAME2 assign_expressions, Assign Expressions))
@@ -70,13 +69,41 @@ $(GNAME AssignExpression):
     $(GLINK ConditionalExpression) $(D ^^=) $(I AssignExpression)
 )
 
-    $(P The right operand is implicitly converted to the type of the
-        left operand, and assigned to it. The result type is the type
-        of the left operand, and the result value is the value of the left
-        operand after the assignment.
+    $(P For all assign expressions, the left operand must be a modifiable
+    lvalue. The type of the assign expression is the type of the left
+    operand, and the value is the value of the left operand after assignment
+    occurs. The resulting expression is a modifiable lvalue.
     )
 
-    $(P The left operand must be an lvalue.)
+    $(UNDEFINED_BEHAVIOR
+    $(OL
+    $(LI if the lvalue and rvalue have partially overlapping storage)
+    $(LI if the lvalue and rvalue's storage overlaps exactly but the types are different)
+    ))
+
+$(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
+
+    $(P If the operator is $(D =) then it is simple assignment.
+    The right operand is implicitly converted to the type of the
+    left operand, and assigned to it.)
+
+    $(P If the left and right operands are of the same struct type, and the struct
+    type has a $(GLINK2 struct, Postblit), then the copy operation is
+    as described in $(DDSUBLINK spec/struct, struct-postblit, Struct Postblit).
+    )
+
+    $(P If the lvalue is the `.length` property of a dynamic array, the behavior is
+    as described in $(DDSUBLINK spec/array, resize, Setting Dynamic Array Length).
+    )
+
+    $(P If the lvalue is a static array or a slice, the behavior is as
+    described in $(DDSUBLINK spec/array, array-copying, Array Copying) and
+    $(DDSUBLINK spec/array, array-setting, Array Setting).
+    )
+
+    $(P If the lvalue is a user-defined property, the behavior is as
+    described in $(DDSUBLINK spec/function, property-functions, Property Functions).
+    )
 
 $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
 
@@ -350,14 +377,6 @@ $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D <)$(D =) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >) $(GLINK ShiftExpression)
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D <>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !>) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !>=) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<) $(GLINK ShiftExpression)
-    $(GLINK ShiftExpression) $(D !<=) $(GLINK ShiftExpression)
 )
 
     $(P First, the integral promotions are done on the operands.
@@ -409,45 +428,19 @@ $(H3 $(LEGACY_LNAME2 floating_point_comparisons, floating-point-comparisons, Flo
         point comparison is performed.
     )
 
-    $(P Useful floating point operations must take into account NAN values.
-        In particular, a relational operator can have NAN operands.
-        The result of a relational operation on float
-        values is less, greater, equal, or unordered (unordered means
-        either or both of the
-        operands is a NAN). That means there are 14 possible comparison
-        conditions to test for:)
+    $(P A relational operator can have `NaN` operands.
+        If either or both operands is `NaN`, the floating point
+        comparison operation returns as follows:)
 
         $(TABLE2 Floating point comparison operators,
-        $(THEAD Operator, Greater, Less, Equal, Unordered, Exception, Relation)
-        $(TROW $(D ==),$(D F),$(D F),$(D T),$(D F),$(D no),equal)
-        $(TROW $(D !=),$(D T),$(D T),$(D F),$(D T),$(D no),$(ARGS unordered, less, or greater))
-        $(TROW $(D >),$(D T),$(D F),$(D F),$(D F),$(D yes),$(ARGS greater))
-        $(TROW $(D >=),$(D T),$(D F),$(D T),$(D F),$(D yes),$(ARGS greater or equal))
-        $(TROW $(D <),$(D F),$(D T),$(D F),$(D F),$(D yes),$(ARGS less))
-        $(TROW $(D <)$(D =),$(D F),$(D T),$(D T),$(D F),$(D yes),$(ARGS less or equal))
-        $(TROW $(D !)$(D <)$(D >)$(D =), $(D F),$(D F),$(D F),$(D T),$(D no),$(ARGS unordered))
-        $(TROW $(D <)$(D >),$(D T),$(D T),$(D F),$(D F),$(D yes),$(ARGS less or greater))
-        $(TROW $(D <)$(D >)$(D =),$(D T),$(D T),$(D T),$(D F),$(D yes),$(ARGS less, equal, or greater))
-        $(TROW $(D !<=),$(D T),$(D F),$(D F),$(D T),$(D no),$(ARGS unordered or greater))
-        $(TROW $(D !<),$(D T),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered, greater, or equal))
-        $(TROW $(D !>=),$(D F),$(D T),$(D F),$(D T),$(D no),$(ARGS unordered or less))
-        $(TROW $(D !>),$(D F),$(D T),$(D T),$(D T),$(D no),$(ARGS unordered, less, or equal))
-        $(TROW $(D !<>),$(D F),$(D F),$(D T),$(D T),$(D no),$(ARGS unordered or equal))
+        $(THEAD Operator, Relation, Returns)
+        $(TROW $(D <),$(ARGS less), `false`)
+        $(TROW $(D >),$(ARGS greater), `false`)
+        $(TROW $(D <)$(D =),$(ARGS less or equal), `false`)
+        $(TROW $(D >=),$(ARGS greater or equal), `false`)
+        $(TROW $(D ==),equal, `false`)
+        $(TROW $(D !=),$(ARGS unordered, less, or greater), `true`)
         )
-
-    $(H4 Notes:)
-
-    $(OL
-        $(LI For floating point comparison operators,
-         $(CODE (a !op b))
-         is not the same as $(CODE !(a op b)).)
-        $(LI "Unordered" means one or both of the operands is a NAN.)
-        $(LI "Exception" means the $(I Invalid Exception) is raised if one
-                of the operands is a NAN. It does not mean an exception
-                is thrown. The $(I Invalid Exception) can be checked
-                using the functions in $(D core.stdc.fenv).
-        )
-    )
 
 $(H3 $(LEGACY_LNAME2 class_comparisons, class-comparisons, Class comparisons))
 
@@ -654,7 +647,7 @@ $(GNAME ComplementExpression):
         All the bits in the value are complemented.
     )
 
-    $(P $(B Note:) unlike in C and C++, the usual integral promotions are not performed
+    $(P $(B Note:) the usual integral promotions are not performed
         prior to the complement operation.
     )
 
@@ -795,9 +788,6 @@ $(GNAME CastExpression):
         derived class reference is done with a runtime check to make sure it
         really is a downcast. $(D null) is the result if it isn't.
     )
-
-    $(P $(B Note:) This is equivalent to the behavior of the
-        $(D dynamic_cast) operator in C++.)
 
         -------------
         class A { ... }
@@ -1621,44 +1611,54 @@ $(GNAME AssertExpression):
     $(D assert $(LPAREN)) $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT) $(D $(RPAREN))
 )
 
-    $(P The assert expression is used to declare conditions that the
-        programmer asserts must hold at that point in the program if the
-        program logic has been correctly implemented. It can be used both as a
-        debugging tool and as a way of communicating to the compiler facts
-        about the code that it may employ to produce more efficient code.
+    $(P The first $(I AssignExpression) must evaluate to true. If it does not, an $(I Assert Failure)
+    has occurred and the program enters an $(I Invalid State).
     )
 
-    $(P Programs for which $(I AssignExpression) is false are invalid.
-        Subsequent to such a false result, the program is in an invalid,
-        non-recoverable state.
+    $(P If the first $(I AssignExpression) consists entirely of compile time constants,
+    and evaluates to false, it is a special case; it
+    signifies that it is unreachable code.
+    Compile Time Function Execution (CTFE) is not attempted.
     )
 
-    $(P As a debugging tool, the compiler may insert checks to verify that
-        the condition indeed holds by evaluating $(I AssignExpression) at
-        runtime.  If it evaluates to a non-null class reference, the class
-        invariant is run.  Otherwise, if it evaluates to a non-null pointer to
-        a struct, the struct invariant is run.  Otherwise, if the result is
-        false, an $(D AssertError) is thrown.  If the result is true, then no
-        exception is thrown. In this way, if a bug in the code causes the
-        assertion to fail, execution is aborted, prompting the programmer to
-        fix the problem.
-    )
-
-    $(P It is implementation defined whether the $(I AssignExpression) is
-        evaluated at run time or not. Programs that rely on side effects of $(I
-        AssignExpression) are invalid.
-    )
-
-    $(P The result type of an assert expression is $(D void).  Asserts are
-        a fundamental part of the $(DDLINK spec/contracts, Contract Programming,
-        Contract Programming) support in D.
+    $(P $(I AssertExpression) has different semantics if it is in a
+    $(DDLINK spec/unittest, Unit Tests, $(D unittest)) or
+    $(DDLINK spec/contracts, Contract Programming, $(D in) contract).
     )
 
     $(P The second $(I AssignExpression), if present, must be implicitly
         convertible to type $(D const(char)[]).
-        It is evaluated if the
-        result is false, and the string result is appended to the
-        $(D AssertError)'s message.)
+    )
+
+    $(P If the first $(I AssignExpression) is a reference to a class instance for
+    which a $(DDSUBLINK spec/class, invariants, Class Invariant) exists, the $(I Class Invariant) must hold.
+    )
+
+    $(P If the first $(I AssignExpression) is a pointer to a struct instance for
+    which a $(I Struct Invariant) exists, the $(I Struct Invariant) must hold.
+    )
+
+    $(P The type of an $(I AssertExpression) is $(D void).
+    )
+
+    $(UNDEFINED_BEHAVIOR Once in an $(I Invalid State) the behavior of the continuing execution
+    of the program is undefined.)
+
+    $(IMPLEMENTATION_DEFINED Whether the first $(I AssertExpression) is evaluated
+    or not at runtime is typically set with a compiler switch. If it is not evaluated,
+    any side effects specified by the $(I AssertExpression) may not occur.
+    The behavior if the first $(I AssertExpression) is evaluated and is false
+    is also typically set with a compiler switch and may include these options:
+    $(OL
+        $(LI continuing execution)
+        $(LI immediately halting via execution of a special CPU instruction)
+        $(LI aborting the program)
+        $(LI calling the assert failure function in the corresponding C
+        runtime library)
+        $(LI throwing the $(D AssertError) exception in the D runtime library)
+    )
+    If the optional second $(I AssignExpression) is provided, the implementation may
+    evaluate it and print the resulting message upon assert failure:
 
         ----
         void main()
@@ -1669,19 +1669,22 @@ $(GNAME AssertExpression):
 
     $(P When compiled and run, it will produce the message:)
 
-$(CONSOLE
-core.exception.AssertError@test.d(3) an error message
-)
+    $(CONSOLE core.exception.AssertError@test.d(3) an error message)
 
-    $(P The expression $(D assert(0)) is a special case; it
-        signifies that it is unreachable code.
-        Without optimizations, an $(D AssertError) is thrown at runtime.
-        In release mode ($(LINK2 $(ROOT_DIR)/dmd.html#switch-release, `-release`))
-        the execution is halted
-        (on the x86 processor, a $(D HLT) instruction can be used to halt
-        execution).
-        The optimization and code generation phases of compilation may
-        assume that it is unreachable code.
+    $(P The implementation may handle the case of the first $(I AssignExpression) evaluating at compile
+    time to false differently in that in release mode
+    it may simply generate a $(D HLT) instruction or equivalent.
+    )
+    )
+
+    $(BEST_PRACTICE
+    $(OL
+        $(LI Do not have side effects in either $(I AssignExpression) that subsequent code
+        depends on.)
+        $(LI $(I AssertExpressions) are intended to detect bugs in the program, do
+        not use for detecting input or environmental errors.)
+        $(LI Do not attempt to resume normal execution after an $(I Assert Failure).)
+    )
     )
 
 $(H3 $(LNAME2 mixin_expressions, Mixin Expressions))
