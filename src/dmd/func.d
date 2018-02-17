@@ -149,6 +149,7 @@ enum FUNCFLAG : uint
     inlineScanned    = 0x20,   /// function has been scanned for inline possibilities
     inferScope       = 0x40,   /// infer 'scope' for parameters
     hasCatches       = 0x80,   /// function has try-catch statements
+    compileTimeOnly  = 0x100,  /// is a compile time only function; no code will be generated for it
 }
 
 /***********************************************************

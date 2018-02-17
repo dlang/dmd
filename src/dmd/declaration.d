@@ -1550,16 +1550,21 @@ extern (C++) class VarDeclaration : Declaration
         }
 
         // Add this to fdv.closureVars[] if not already there
-        for (size_t i = 0; 1; i++)
+        if (!sc.intypeof && !(sc.flags & SCOPE.compile) &&
+            // https://issues.dlang.org/show_bug.cgi?id=17605
+            (fdv.flags & FUNCFLAG.compileTimeOnly || !(fdthis.flags & FUNCFLAG.compileTimeOnly))
+           )
         {
-            if (i == fdv.closureVars.dim)
+            for (size_t i = 0; 1; i++)
             {
-                if (!sc.intypeof && !(sc.flags & SCOPE.compile))
+                if (i == fdv.closureVars.dim)
+                {
                     fdv.closureVars.push(this);
-                break;
+                    break;
+                }
+                if (fdv.closureVars[i] == this)
+                    break;
             }
-            if (fdv.closureVars[i] == this)
-                break;
         }
 
         //printf("fdthis is %s\n", fdthis.toChars());
