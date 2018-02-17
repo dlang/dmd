@@ -71,6 +71,21 @@ SRCS=\
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\time.d \
 	\
+	src\core\sys\dragonflybsd\dlfcn.d \
+	src\core\sys\dragonflybsd\execinfo.d \
+	src\core\sys\dragonflybsd\netinet\in_.d \
+	src\core\sys\dragonflybsd\sys\_bitset.d \
+	src\core\sys\dragonflybsd\sys\_cpuset.d \
+	src\core\sys\dragonflybsd\sys\cdefs.d \
+	src\core\sys\dragonflybsd\sys\elf_common.d \
+	src\core\sys\dragonflybsd\sys\elf.d \
+	src\core\sys\dragonflybsd\sys\elf32.d \
+	src\core\sys\dragonflybsd\sys\elf64.d \
+	src\core\sys\dragonflybsd\sys\event.d \
+	src\core\sys\dragonflybsd\sys\link_elf.d \
+	src\core\sys\dragonflybsd\sys\mman.d \
+	src\core\sys\dragonflybsd\time.d \
+	\
 	src\core\sys\linux\netinet\in_.d \
 	src\core\sys\linux\netinet\tcp.d \
 	src\core\sys\linux\stdio.d \
@@ -283,6 +298,7 @@ SRCS=\
 	src\gc\proxy.d \
 	src\gc\impl\conservative\gc.d \
 	src\gc\impl\manual\gc.d \
+	src\gc\impl\proto\gc.d \
 	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \

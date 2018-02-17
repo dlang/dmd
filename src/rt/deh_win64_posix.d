@@ -344,14 +344,8 @@ extern (C) void _d_throwc(Throwable h)
                 {
                     debug(PRINTF) printf("replacing thrown %p with inflight %p\n", h, __inflight.t);
 
-                    auto t = curr.t;
-                    auto n = curr.t;
-
-                    while (n.next)
-                        n = n.next;
-                    n.next = cast(Throwable) h;
+                    h = Throwable.chainTogether(curr.t, cast(Throwable) h);
                     prev.next = curr.next;
-                    h = t;
                 }
             }
         }

@@ -4,7 +4,7 @@ set -uexo pipefail
 
 HOST_DMD_VER=2.072.2 # same as in dmd/src/posix.mak
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
-N=2
+N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-druntime}
 
@@ -73,12 +73,9 @@ setup_repos() {
    # merge upstream branch with changes, s.t. we check with the latest changes
     if [ -n "${CIRCLE_PR_NUMBER:-}" ]; then
         local head=$(git rev-parse HEAD)
-        git fetch https://github.com/dlang/$CIRCLE_PROJECT_REPONAME.git $base_branch
+        git remote add upstream "https://github.com/dlang/$CIRCLE_PROJECT_REPONAME.git"
+        git fetch -q upstream "+refs/pull/${CIRCLE_PR_NUMBER}/merge:"
         git checkout -f FETCH_HEAD
-        local base=$(git rev-parse HEAD)
-        git config user.name 'CI'
-        git config user.email '<>'
-        git merge -m "Merge $head into $base" $head
     fi
 
     for proj in dmd ; do
@@ -100,8 +97,9 @@ coverage() {
     # load environment for bootstrap compiler
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
 
-    # build dmd and druntime
-    make -j$N -C ../dmd/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD all
+    # build dmd and druntime (in debug and release)
+    make -j$N -C ../dmd/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD="debug" all
+    make -j$N -C ../dmd/src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD BUILD="release" all
     TEST_COVERAGE="1" make -j$N -C . -f posix.mak MODEL=$MODEL unittest-debug
 }
 

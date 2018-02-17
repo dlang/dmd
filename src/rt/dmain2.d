@@ -6,7 +6,7 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly
- * Source: $(DRUNTIMESRC src/rt/_dmain2.d)
+ * Source: $(DRUNTIMESRC rt/_dmain2.d)
  */
 
 module rt.dmain2;
@@ -39,6 +39,10 @@ version (NetBSD)
 {
     import core.stdc.fenv;
 }
+version (DragonFlyBSD)
+{
+    import core.stdc.fenv;
+}
 
 // not sure why we can't define this in one place, but this is to keep this
 // module from importing core.runtime.
@@ -56,6 +60,8 @@ extern (C) void _d_critical_init();
 extern (C) void _d_critical_term();
 extern (C) void gc_init();
 extern (C) void gc_term();
+extern (C) void thread_init() @nogc;
+extern (C) void thread_term() @nogc;
 extern (C) void lifetime_init();
 extern (C) void rt_moduleCtor();
 extern (C) void rt_moduleTlsCtor();
@@ -190,7 +196,8 @@ extern (C) int rt_init()
         // this initializes mono time before anything else to allow usage
         // in other druntime systems.
         _d_initMonoTime();
-        gc_init();
+        thread_init();
+        // TODO: fixme - calls GC.addRange -> Initializes GC
         initStaticDataGC();
         lifetime_init();
         rt_moduleCtor();
@@ -221,6 +228,7 @@ extern (C) int rt_term()
         thread_joinAll();
         rt_moduleDtor();
         gc_term();
+        thread_term();
         return 1;
     }
     catch (Throwable t)
@@ -534,15 +542,15 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 
 private void formatThrowable(Throwable t, scope void delegate(in char[] s) nothrow sink)
 {
-    for (; t; t = t.next)
+    foreach (u; t)
     {
-        t.toString(sink); sink("\n");
+        u.toString(sink); sink("\n");
 
-        auto e = cast(Error)t;
+        auto e = cast(Error)u;
         if (e is null || e.bypassedException is null) continue;
 
         sink("=== Bypassed ===\n");
-        for (auto t2 = e.bypassedException; t2; t2 = t2.next)
+        foreach (t2; e.bypassedException)
         {
             t2.toString(sink); sink("\n");
         }

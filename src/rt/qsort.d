@@ -3,7 +3,7 @@
  * qsort().
  *
  * Copyright: Copyright Digital Mars 2000 - 2010.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Martin Nowak
  */
 
@@ -43,6 +43,21 @@ version (CRuntime_Glibc)
     }
 }
 else version (FreeBSD)
+{
+    alias extern (C) int function(scope void *, scope const void *, scope const void *) Cmp;
+    extern (C) void qsort_r(scope void *base, size_t nmemb, size_t size, scope void *thunk, Cmp cmp);
+
+    extern (C) void[] _adSort(return scope void[] a, TypeInfo ti)
+    {
+        extern (C) int cmp(scope void* ti, scope const void* p1, scope const void* p2)
+        {
+            return (cast(TypeInfo)ti).compare(p1, p2);
+        }
+        qsort_r(a.ptr, a.length, ti.tsize, cast(void*)ti, &cmp);
+        return a;
+    }
+}
+else version (DragonFlyBSD)
 {
     alias extern (C) int function(scope void *, scope const void *, scope const void *) Cmp;
     extern (C) void qsort_r(scope void *base, size_t nmemb, size_t size, scope void *thunk, Cmp cmp);

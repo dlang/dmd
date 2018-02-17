@@ -4,7 +4,7 @@
     D header file for Solaris's extensions to POSIX's time.h.
 
     Copyright: Copyright 2014
-    License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+    License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Kai Nacke
  +/
 module core.sys.solaris.time;

@@ -164,6 +164,10 @@ else version (FreeBSD) {
     enum SIGRTMIN = 65;
     enum SIGRTMAX = 126;
 }
+else version (DragonFlyBSD) {
+    enum SIGRTMIN = 35;
+    enum SIGRTMAX = 126;
+}
 else version(NetBSD)
 {
     enum SIGRTMIN = 33;
@@ -180,6 +184,24 @@ else version (CRuntime_Bionic)
         enum SIGRTMAX = 128;
     else
         static assert(false, "Architecture not supported.");
+}
+else version( CRuntime_UClibc )
+{
+    private extern (C) nothrow @nogc
+    {
+        int __libc_current_sigrtmin();
+        int __libc_current_sigrtmax();
+    }
+
+    @property int SIGRTMIN() nothrow @nogc
+    {
+        return __libc_current_sigrtmin();
+    }
+
+    @property int SIGRTMAX() nothrow @nogc
+    {
+        return __libc_current_sigrtmax();
+    }
 }
 
 version( linux )
@@ -523,6 +545,30 @@ else version( OpenBSD )
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
+else version( DragonFlyBSD )
+{
+    //SIGABRT (defined in core.stdc.signal)
+    enum SIGALRM    = 14;
+    enum SIGBUS     = 10;
+    enum SIGCHLD    = 20;
+    enum SIGCONT    = 19;
+    //SIGFPE (defined in core.stdc.signal)
+    enum SIGHUP     = 1;
+    //SIGILL (defined in core.stdc.signal)
+    //SIGINT (defined in core.stdc.signal)
+    enum SIGKILL    = 9;
+    enum SIGPIPE    = 13;
+    enum SIGQUIT    = 3;
+    //SIGSEGV (defined in core.stdc.signal)
+    enum SIGSTOP    = 17;
+    //SIGTERM (defined in core.stdc.signal)
+    enum SIGTSTP    = 18;
+    enum SIGTTIN    = 21;
+    enum SIGTTOU    = 22;
+    enum SIGUSR1    = 30;
+    enum SIGUSR2    = 31;
+    enum SIGURG     = 16;
+}
 else version (Solaris)
 {
     enum SIGALRM = 14;
@@ -547,6 +593,28 @@ else
 }
 
 version( CRuntime_Glibc )
+{
+    struct sigaction_t
+    {
+        static if( true /* __USE_POSIX199309 */ )
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+        }
+        else
+        {
+            sigfn_t     sa_handler;
+        }
+        sigset_t        sa_mask;
+        int             sa_flags;
+
+        void function() sa_restorer;
+    }
+}
+else version( CRuntime_Musl )
 {
     struct sigaction_t
     {
@@ -609,6 +677,19 @@ else version(OpenBSD)
         int      sa_flags;
     }
 }
+else version( DragonFlyBSD )
+{
+    struct sigaction_t
+    {
+        union
+        {
+            sigfn_t     sa_handler;
+            sigactfn_t  sa_sigaction;
+        }
+        int      sa_flags;
+        sigset_t sa_mask;
+    }
+}
 else version (Solaris)
 {
     struct sigaction_t
@@ -625,6 +706,27 @@ else version (Solaris)
         version (D_LP64) {}
         else
             int[2] sa_resv;
+    }
+}
+else version( CRuntime_UClibc )
+{
+    struct sigaction_t
+    {
+        static if( true /* __USE_POSIX199309 */ )
+        {
+            union
+            {
+                sigfn_t     sa_handler;
+                sigactfn_t  sa_sigaction;
+            }
+        }
+        else
+        {
+            sigfn_t     sa_handler;
+        }
+        c_ulong         sa_flags;
+        void function() sa_restorer;
+        sigset_t        sa_mask;
     }
 }
 else version (linux)
@@ -1181,6 +1283,55 @@ else version( OpenBSD )
     int sigsuspend(in sigset_t *);
     int sigwait(in sigset_t*, int*);
 }
+else version( DragonFlyBSD )
+{
+    enum SIG_CATCH = cast(sigfn_t2) 2;
+    enum SIG_HOLD = cast(sigfn_t2) 3;
+
+    struct sigset_t
+    {
+        uint[4] __bits;
+    }
+
+    enum SA_NOCLDSTOP = 8;
+
+    enum SIG_BLOCK = 1;
+    enum SIG_UNBLOCK = 2;
+    enum SIG_SETMASK = 3;
+
+    struct siginfo_t
+    {
+        int si_signo;
+        int si_errno;
+        int si_code;
+        int si_pid;
+        uint si_uid;
+        int si_status;
+        void* si_addr;
+        sigval si_value;
+        c_long si_band;
+        int[7]   __spare;
+    }
+
+    enum SI_UNDEFINED = 0x00000;
+    enum SI_USER      =  0;
+    enum SI_QUEUE     = -1;
+    enum SI_TIMER     = -2;
+    enum SI_ASYNCIO   = -3;
+    enum SI_MESGQ     = -4;
+
+    int kill(pid_t, int);
+    int sigaction(int, in sigaction_t*, sigaction_t*);
+    int sigaddset(sigset_t*, int);
+    int sigdelset(sigset_t*, int);
+    int sigemptyset(sigset_t *);
+    int sigfillset(sigset_t *);
+    int sigismember(in sigset_t *, int);
+    int sigpending(sigset_t *);
+    int sigprocmask(int, in sigset_t*, sigset_t*);
+    int sigsuspend(in sigset_t *);
+    int sigwait(in sigset_t*, int*);
+}
 else version (Solaris)
 {
     enum SIG_HOLD = cast(sigfn_t2)2;
@@ -1413,6 +1564,228 @@ else version( CRuntime_Bionic )
         return cast(int) ((local_set[signum/LONG_BIT] >> (signum%LONG_BIT)) & 1);
     }
 
+    int sigpending(sigset_t*);
+    int sigprocmask(int, in sigset_t*, sigset_t*);
+    int sigsuspend(in sigset_t*);
+    int sigwait(in sigset_t*, int*);
+}
+else version( CRuntime_Musl )
+{
+    struct sigset_t {
+        ulong[128/long.sizeof] __bits;
+    }
+    struct siginfo_t {
+        int si_signo, si_errno, si_code;
+        union __si_fields_t {
+            char[128 - 2*int.sizeof - long.sizeof] __pad;
+            struct __si_common_t {
+                union __first_t {
+                    struct __piduid_t {
+                        pid_t si_pid;
+                        uid_t si_uid;
+                    }
+                    __piduid_t __piduid;
+
+                    struct __timer_t {
+                        int si_timerid;
+                        int si_overrun;
+                    }
+                    __timer_t __timer;
+                }
+                __first_t __first;
+
+                union __second_t {
+                    sigval si_value;
+                    struct __sigchld_t {
+                        int si_status;
+                        clock_t si_utime, si_stime;
+                    }
+                    __sigchld_t __sigchld;
+                }
+                __second_t __second;
+            }
+            __si_common_t __si_common;
+
+            struct __sigfault_t {
+                void *si_addr;
+                short si_addr_lsb;
+                union __first_t {
+                    struct __addr_bnd_t {
+                        void *si_lower;
+                        void *si_upper;
+                    }
+                    __addr_bnd_t __addr_bnd;
+                    uint si_pkey;
+                }
+                __first_t __first;
+            }
+            __sigfault_t __sigfault;
+
+            struct __sigpoll_t {
+                long si_band;
+                int si_fd;
+            }
+            __sigpoll_t __sigpoll;
+
+            struct __sigsys_t {
+                void *si_call_addr;
+                int si_syscall;
+                uint si_arch;
+            }
+            __sigsys_t __sigsys;
+        }
+        __si_fields_t __si_fields;
+    }
+
+    int kill(pid_t, int);
+    int sigaction(int, in sigaction_t*, sigaction_t*);
+    int sigaddset(sigset_t*, int);
+    int sigdelset(sigset_t*, int);
+    int sigemptyset(sigset_t*);
+    int sigfillset(sigset_t*);
+    int sigismember(in sigset_t*, int);
+    int sigpending(sigset_t*);
+    int sigprocmask(int, in sigset_t*, sigset_t*);
+    int sigsuspend(in sigset_t*);
+    int sigwait(in sigset_t*, int*);
+}
+else version( CRuntime_UClibc )
+{
+    enum SIG_HOLD = cast(sigfn_t2) 2;
+
+    version ( MIPS32 )
+        private enum _SIGSET_NWORDS = 128 / (8 * c_ulong.sizeof);
+    else
+        private enum _SIGSET_NWORDS = 64 / (8 * c_ulong.sizeof);
+
+    struct sigset_t
+    {
+        c_ulong[_SIGSET_NWORDS] __val;
+    }
+
+    enum SA_NOCLDSTOP   = 1;
+
+    enum SIG_BLOCK      = 0;
+    enum SIG_UNBLOCK    = 1;
+    enum SIG_SETMASK    = 2;
+
+    private enum __SI_MAX_SIZE = 128;
+
+    static if( false /* __WORDSIZE == 64 */ )
+    {
+        private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 4);
+    }
+    else
+    {
+        private enum __SI_PAD_SIZE = ((__SI_MAX_SIZE / int.sizeof) - 3);
+    }
+
+    struct siginfo_t
+    {
+        int si_signo;       // Signal number
+        int si_errno;       // If non-zero, an errno value associated with
+                            // this signal, as defined in <errno.h>
+        int si_code;        // Signal code
+
+        union _sifields_t
+        {
+            int[__SI_PAD_SIZE] _pad;
+
+            // kill()
+            struct _kill_t
+            {
+                pid_t si_pid; // Sending process ID
+                uid_t si_uid; // Real user ID of sending process
+            } _kill_t _kill;
+
+            // POSIX.1b timers.
+            struct _timer_t
+            {
+                int    si_tid;     // Timer ID
+                int    si_overrun; // Overrun count
+                sigval si_sigval;  // Signal value
+            } _timer_t _timer;
+
+            // POSIX.1b signals
+            struct _rt_t
+            {
+                pid_t  si_pid;    // Sending process ID
+                uid_t  si_uid;    // Real user ID of sending process
+                sigval si_sigval; // Signal value
+            } _rt_t _rt;
+
+            // SIGCHLD
+            struct _sigchild_t
+            {
+                pid_t   si_pid;    // Which child
+                uid_t   si_uid;    // Real user ID of sending process
+                int     si_status; // Exit value or signal
+                clock_t si_utime;
+                clock_t si_stime;
+            } _sigchild_t _sigchld;
+
+            // SIGILL, SIGFPE, SIGSEGV, SIGBUS
+            struct _sigfault_t
+            {
+                void*     si_addr;  // Faulting insn/memory ref
+            } _sigfault_t _sigfault;
+
+            // SIGPOLL
+            struct _sigpoll_t
+            {
+                c_long   si_band;   // Band event for SIGPOLL
+                int      si_fd;
+            } _sigpoll_t _sigpoll;
+
+            // SIGSYS
+            struct _sigsys_t
+            {
+                void*   _call_addr;   // Calling user insn.
+                int     _syscall;     // Triggering system call number.
+                uint    _arch;        // AUDIT_ARCH_* of syscall.
+            } _sigsys_t _sigsys;
+
+        } _sifields_t _sifields;
+
+    nothrow @nogc:
+        @property ref pid_t si_pid() return { return _sifields._kill.si_pid; }
+        @property ref uid_t si_uid() return { return _sifields._kill.si_uid; }
+        @property ref int si_timerid() return { return _sifields._timer.si_tid;}
+        @property ref int si_overrun() return { return _sifields._timer.si_overrun; }
+        @property ref int si_status() return { return _sifields._sigchld.si_status; }
+        @property ref clock_t si_utime() return { return _sifields._sigchld.si_utime; }
+        @property ref clock_t si_stime() return { return _sifields._sigchld.si_stime; }
+        @property ref sigval si_value() return { return _sifields._rt.si_sigval; }
+        @property ref int si_int() return { return _sifields._rt.si_sigval.sival_int; }
+        @property ref void* si_ptr() return { return _sifields._rt.si_sigval.sival_ptr; }
+        @property ref void* si_addr() return { return _sifields._sigfault.si_addr; }
+        @property ref c_long si_band() return { return _sifields._sigpoll.si_band; }
+        @property ref int  si_fd() return { return _sifields._sigpoll.si_fd; }
+        @property ref void*  si_call_addr() return { return _sifields._sigsys._call_addr; }
+        @property ref int  si_syscall() return { return _sifields._sigsys._syscall; }
+        @property ref uint  si_arch() return { return _sifields._sigsys._arch; }
+    }
+
+    enum
+    {
+        SI_ASYNCNL = -60,
+        SI_TKILL   = -6,
+        SI_SIGIO,
+        SI_ASYNCIO,
+        SI_MESGQ,
+        SI_TIMER,
+        SI_QUEUE,
+        SI_USER,
+        SI_KERNEL  = 0x80
+    }
+
+    int kill(pid_t, int);
+    int sigaction(int, in sigaction_t*, sigaction_t*);
+    int sigaddset(sigset_t*, int);
+    int sigdelset(sigset_t*, int);
+    int sigemptyset(sigset_t*);
+    int sigfillset(sigset_t*);
+    int sigismember(in sigset_t*, int);
     int sigpending(sigset_t*);
     int sigprocmask(int, in sigset_t*, sigset_t*);
     int sigsuspend(in sigset_t*);
@@ -2202,6 +2575,130 @@ else version (OpenBSD)
     int siginterrupt(int, int);
     int sigpause(int);
 }
+else version( DragonFlyBSD )
+{
+    // No SIGPOLL on *BSD
+    enum SIGPROF        = 27;
+    enum SIGSYS         = 12;
+    enum SIGTRAP        = 5;
+    enum SIGVTALRM      = 26;
+    enum SIGXCPU        = 24;
+    enum SIGXFSZ        = 25;
+
+    enum
+    {
+        SA_ONSTACK      = 0x0001,
+        SA_RESTART      = 0x0002,
+        SA_RESETHAND    = 0x0004,
+        SA_NODEFER      = 0x0010,
+        SA_NOCLDWAIT    = 0x0020,
+        SA_SIGINFO      = 0x0040,
+    }
+
+    enum
+    {
+        SS_ONSTACK = 0x0001,
+        SS_DISABLE = 0x0004,
+    }
+
+    enum MINSIGSTKSZ = 8192;
+    enum SIGSTKSZ    = (MINSIGSTKSZ + 32768);
+;
+    //ucontext_t (defined in core.sys.posix.ucontext)
+    //mcontext_t (defined in core.sys.posix.ucontext)
+
+    struct stack_t
+    {
+        void*   ss_sp;
+        size_t  ss_size;
+        int     ss_flags;
+    }
+
+    struct sigstack
+    {
+        void*   ss_sp;
+        int     ss_onstack;
+    }
+
+    enum
+    {
+        ILL_ILLOPC = 1,
+        ILL_ILLOPN,
+        ILL_ILLADR,
+        ILL_ILLTRP,
+        ILL_PRVOPC,
+        ILL_PRVREG,
+        ILL_COPROC,
+        ILL_BADSTK,
+    }
+
+    enum
+    {
+        BUS_ADRALN = 1,
+        BUS_ADRERR,
+        BUS_OBJERR,
+    }
+
+    enum
+    {
+        SEGV_MAPERR = 1,
+        SEGV_ACCERR,
+    }
+
+    enum
+    {
+        FPE_INTOVF = 1,
+        FPE_INTDIV,
+        FPE_FLTDIV,
+        FPE_FLTOVF,
+        FPE_FLTUND,
+        FPE_FLTRES,
+        FPE_FLTINV,
+        FPE_FLTSUB,
+    }
+
+    enum
+    {
+        TRAP_BRKPT = 1,
+        TRAP_TRACE,
+    }
+
+    enum
+    {
+        CLD_EXITED = 1,
+        CLD_KILLED,
+        CLD_DUMPED,
+        CLD_TRAPPED,
+        CLD_STOPPED,
+        CLD_CONTINUED,
+    }
+
+    enum
+    {
+        POLL_IN = 1,
+        POLL_OUT,
+        POLL_MSG,
+        POLL_ERR,
+        POLL_PRI,
+        POLL_HUP,
+    }
+
+    //sigfn_t bsd_signal(int sig, sigfn_t func);
+    sigfn_t sigset(int sig, sigfn_t func);
+
+  nothrow:
+  @nogc:
+    //sigfn_t2 bsd_signal(int sig, sigfn_t2 func);
+    sigfn_t2 sigset(int sig, sigfn_t2 func);
+
+    int killpg(pid_t, int);
+    int sigaltstack(in stack_t*, stack_t*);
+    int sighold(int);
+    int sigignore(int);
+    int siginterrupt(int, int);
+    int sigpause(int);
+    int sigrelse(int);
+}
 else version (Solaris)
 {
     enum SIGPOLL = 22;
@@ -2462,6 +2959,191 @@ else version (CRuntime_Bionic)
     int sigaltstack(in stack_t*, stack_t*);
     int siginterrupt(int, int);
 }
+else version( CRuntime_Musl )
+{
+}
+else version( CRuntime_UClibc )
+{
+    version (X86_64)
+    {
+        enum SIGTRAP         = 5;
+        enum SIGIOT          = 6;
+        enum SIGSTKFLT       = 16;
+        enum SIGCLD          = SIGCHLD;
+        enum SIGXCPU         = 24;
+        enum SIGXFSZ         = 25;
+        enum SIGVTALRM       = 26;
+        enum SIGPROF         = 27;
+        enum SIGWINCH        = 28;
+        enum SIGPOLL         = SIGIO;
+        enum SIGIO           = 29;
+        enum SIGPWR          = 30;
+        enum SIGSYS          = 31;
+        enum SIGUNUSED       = 31;
+    }
+    else version (MIPS32)
+    {
+        enum SIGTRAP = 5;
+        enum SIGIOT           = 6;
+        enum SIGEMT           = 7;
+        enum SIGFPE           = 8;
+        enum SIGSYS           = 12;
+        enum SIGCLD           = SIGCHLD;
+        enum SIGPWR           = 19;
+        enum SIGWINCH         = 20;
+        enum SIGIO            = 22;
+        enum SIGPOLL          = SIGIO;
+        enum SIGVTALRM        = 28;
+        enum SIGPROF          = 29;
+        enum SIGXCPU          = 30;
+        enum SIGXFSZ          = 31;
+    }
+    else version (ARM)
+    {
+        enum SIGTRAP = 5;
+        enum SIGIOT = 6;
+        enum SIGSTKFLT = 16;
+        enum SIGCLD = SIGCHLD;
+        enum SIGXCPU = 24;
+        enum SIGXFSZ = 25;
+        enum SIGVTALRM = 26;
+        enum SIGPROF = 27;
+        enum SIGWINCH = 28;
+        enum SIGPOLL = SIGIO;
+        enum SIGIO = 29;
+        enum SIGPWR = 30;
+        enum SIGSYS = 31;
+        enum SIGUNUSED = 31;
+    }
+    else
+        static assert(0, "unimplemented");
+
+    enum SA_ONSTACK     = 0x08000000;
+    enum SA_RESETHAND   = 0x80000000;
+    enum SA_RESTART     = 0x10000000;
+    enum SA_SIGINFO     = 4;
+    enum SA_NOCLDWAIT   = 2;
+    enum SA_NODEFER     = 0x40000000;
+    enum SS_ONSTACK     = 1;
+    enum SS_DISABLE     = 2;
+    enum MINSIGSTKSZ    = 2048;
+    enum SIGSTKSZ       = 8192;
+
+    enum SA_INTERRUPT   = 0x20000000;
+
+    enum SA_NOMASK      = SA_NODEFER;
+    enum SA_ONESHOT     = SA_RESETHAND;
+    enum SA_STACK       = SA_ONSTACK;
+
+    version (MIPS32)
+    {
+        struct stack_t
+        {
+            void *ss_sp;
+            size_t ss_size;
+            int ss_flags;
+        }
+    }
+    else
+    {
+        struct stack_t
+        {
+            void*   ss_sp;
+            int     ss_flags;
+            size_t  ss_size;
+        }
+     }
+
+    struct sigstack
+    {
+        void*   ss_sp;
+        int     ss_onstack;
+    }
+
+    // `si_code' values for SIGILL signal.
+    enum
+    {
+      ILL_ILLOPC = 1,       // Illegal opcode.
+      ILL_ILLOPN,           // Illegal operand.
+      ILL_ILLADR,           // Illegal addressing mode.
+      ILL_ILLTRP,           // Illegal trap.
+      ILL_PRVOPC,           // Privileged opcode.
+      ILL_PRVREG,           // Privileged register.
+      ILL_COPROC,           // Coprocessor error.
+      ILL_BADSTK            // Internal stack error.
+    }
+
+    // `si_code' values for SIGFPE signal.
+    enum
+    {
+      FPE_INTDIV = 1,       // Integer divide by zero.
+      FPE_INTOVF,           // Integer overflow.
+      FPE_FLTDIV,           // Floating point divide by zero.
+      FPE_FLTOVF,           // Floating point overflow.
+      FPE_FLTUND,           // Floating point underflow.
+      FPE_FLTRES,           // Floating point inexact result.
+      FPE_FLTINV,           // Floating point invalid operation.
+      FPE_FLTSUB            // Subscript out of range.
+    }
+
+    // `si_code' values for SIGSEGV signal.
+    enum
+    {
+      SEGV_MAPERR = 1,      // Address not mapped to object.
+      SEGV_ACCERR           // Invalid permissions for mapped object.
+    }
+
+    // `si_code' values for SIGBUS signal.
+    enum
+    {
+      BUS_ADRALN = 1,       // Invalid address alignment.
+      BUS_ADRERR,           // Non-existant physical address.
+      BUS_OBJERR            // Object specific hardware error.
+    }
+
+    // `si_code' values for SIGTRAP signal.
+    enum
+    {
+      TRAP_BRKPT = 1,       // Process breakpoint.
+      TRAP_TRACE            // Process trace trap.
+    }
+
+    // `si_code' values for SIGCHLD signal.
+    enum
+    {
+      CLD_EXITED = 1,       // Child has exited.
+      CLD_KILLED,           // Child was killed.
+      CLD_DUMPED,           // Child terminated abnormally.
+      CLD_TRAPPED,          // Traced child has trapped.
+      CLD_STOPPED,          // Child has stopped.
+      CLD_CONTINUED         // Stopped child has continued.
+    }
+
+    // `si_code' values for SIGPOLL signal.
+    enum
+    {
+      POLL_IN = 1,          // Data input available.
+      POLL_OUT,         // Output buffers available.
+      POLL_MSG,         // Input message available.
+      POLL_ERR,         // I/O error.
+      POLL_PRI,         // High priority input available.
+      POLL_HUP          // Device disconnected.
+    }
+
+    sigfn_t sigset(int sig, sigfn_t func);
+
+  nothrow:
+  @nogc:
+    sigfn_t2 sigset(int sig, sigfn_t2 func);
+
+    int killpg(pid_t, int);
+    int sigaltstack(in stack_t*, stack_t*);
+    int sighold(int);
+    int sigignore(int);
+    int siginterrupt(int, int);
+    int sigpause(int);
+    int sigrelse(int);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2514,6 +3196,14 @@ else version(NetBSD)
     }
 }
 else version( OpenBSD )
+{
+    struct timespec
+    {
+        time_t  tv_sec;
+        c_long  tv_nsec;
+    }
+}
+else version( DragonFlyBSD )
 {
     struct timespec
     {
@@ -2634,6 +3324,33 @@ else version(NetBSD)
 else version (OpenBSD)
 {
 }
+else version( DragonFlyBSD )
+{
+    union  _sigev_un_t
+    {
+        int                       sigev_signo;
+        int                       sigev_notify_kqueue;
+        void /*pthread_attr_t*/ * sigev_notify_attributes;
+    };
+    union _sigval_t
+    {
+        int                       sival_int;
+        void                    * sival_ptr;
+        int                       sigval_int;
+        void                    * sigval_ptr;
+    };
+    struct sigevent
+    {
+        int                       sigev_notify;
+        _sigev_un_t               sigev_un;
+        _sigval_t                 sigev_value;
+        void function(_sigval_t)  sigev_notify_function;
+    }
+
+    int sigqueue(pid_t, int, in sigval);
+    int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
+    int sigwaitinfo(in sigset_t*, siginfo_t*);
+}
 else version (Darwin)
 {
 }
@@ -2679,6 +3396,57 @@ else version( CRuntime_Bionic )
         } _sigev_un_t _sigev_un;
     }
 }
+else version( CRuntime_Musl )
+{
+    struct sigevent
+    {
+        sigval sigev_value;
+        int sigev_signo;
+        int sigev_notify;
+        void function(sigval) sigev_notify_function;
+        pthread_attr_t *sigev_notify_attributes;
+        char[56 - 3 * long.sizeof] __pad;
+    }
+}
+else version( CRuntime_UClibc )
+{
+    private enum __SIGEV_MAX_SIZE = 64;
+
+    static if( false /* __WORDSIZE == 64 */ )
+    {
+        private enum __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 4);
+    }
+    else
+    {
+        private enum __SIGEV_PAD_SIZE = ((__SIGEV_MAX_SIZE / int.sizeof) - 3);
+    }
+
+    struct sigevent
+    {
+        sigval      sigev_value;
+        int         sigev_signo;
+        int         sigev_notify;
+
+        union _sigev_un_t
+        {
+            int[__SIGEV_PAD_SIZE] _pad;
+            pid_t                 _tid;
+
+            struct _sigev_thread_t
+            {
+                void function(sigval)   _function;
+                void*                   _attribute;
+            } _sigev_thread_t _sigev_thread;
+        } _sigev_un_t _sigev_un;
+    }
+
+    @property void function(sigval) sigev_notify_function(ref sigevent _sigevent) { return _sigevent._sigev_un._sigev_thread._function; }
+    @property void* sigev_notify_attributes(ref sigevent _sigevent) { return  _sigevent._sigev_un._sigev_thread._attribute; }
+
+    int sigqueue(pid_t, int, in sigval);
+    int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
+    int sigwaitinfo(in sigset_t*, siginfo_t*);
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -2717,6 +3485,11 @@ else version( OpenBSD )
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
 }
+else version( DragonFlyBSD )
+{
+    int pthread_kill(pthread_t, int);
+    int pthread_sigmask(int, in sigset_t*, sigset_t*);
+}
 else version (Solaris)
 {
     int pthread_kill(pthread_t, int);
@@ -2726,6 +3499,17 @@ else version( CRuntime_Bionic )
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
+}
+else version( CRuntime_Musl )
+{
+    int pthread_kill(pthread_t, int);
+    int pthread_sigmask(int, in sigset_t*, sigset_t*);
+}
+else version( CRuntime_UClibc )
+{
+    int pthread_kill(pthread_t, int);
+    int pthread_sigmask(int, in sigset_t*, sigset_t*);
+    int pthread_sigqueue(pthread_t, int, sigval);
 }
 else
 {

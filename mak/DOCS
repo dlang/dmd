@@ -16,6 +16,7 @@ DOCS=\
 	$(DOCDIR)\core_vararg.html \
 	\
 	$(DOCDIR)\core_stdc_assert_.html \
+	$(DOCDIR)\core_stdc_config.html \
 	$(DOCDIR)\core_stdc_complex.html \
 	$(DOCDIR)\core_stdc_ctype.html \
 	$(DOCDIR)\core_stdc_errno.html \
@@ -46,4 +47,99 @@ DOCS=\
 	$(DOCDIR)\core_sync_exception.html \
 	$(DOCDIR)\core_sync_mutex.html \
 	$(DOCDIR)\core_sync_rwmutex.html \
-	$(DOCDIR)\core_sync_semaphore.html
+	$(DOCDIR)\core_sync_semaphore.html \
+	\
+    $(DOCDIR)\rt_aaA.html \
+    $(DOCDIR)\rt_aApply.html \
+    $(DOCDIR)\rt_aApplyR.html \
+    $(DOCDIR)\rt_adi.html \
+    $(DOCDIR)\rt_alloca.html \
+    $(DOCDIR)\rt_arrayassign.html \
+    $(DOCDIR)\rt_arraycast.html \
+    $(DOCDIR)\rt_arraycat.html \
+    \
+    $(DOCDIR)\rt_backtrace_dwarf.html \
+    $(DOCDIR)\rt_backtrace_elf.html \
+    \
+    $(DOCDIR)\rt_cast_.html \
+    $(DOCDIR)\rt_cmath2.html \
+    $(DOCDIR)\rt_config.html \
+    $(DOCDIR)\rt_cover.html \
+    $(DOCDIR)\rt_critical_.html \
+    $(DOCDIR)\rt_deh.html \
+    $(DOCDIR)\rt_deh_win32.html \
+    $(DOCDIR)\rt_deh_win64_posix.html \
+    $(DOCDIR)\rt_dmain2.html \
+    $(DOCDIR)\rt_dwarfeh.html \
+    $(DOCDIR)\rt_ehalloc.html \
+    $(DOCDIR)\rt_invariant.html \
+    $(DOCDIR)\rt_lifetime.html \
+    $(DOCDIR)\rt_llmath.html \
+    $(DOCDIR)\rt_memory.html \
+    $(DOCDIR)\rt_memset.html \
+    $(DOCDIR)\rt_minfo.html \
+    $(DOCDIR)\rt_monitor_.html \
+    $(DOCDIR)\rt_obj.html \
+    $(DOCDIR)\rt_profilegc.html \
+    $(DOCDIR)\rt_qsort.html \
+    $(DOCDIR)\rt_sections_android.html \
+    $(DOCDIR)\rt_sections.html \
+    $(DOCDIR)\rt_sections_elf_shared.html \
+    $(DOCDIR)\rt_sections_osx_x86_64.html \
+    $(DOCDIR)\rt_sections_osx_x86.html \
+    $(DOCDIR)\rt_sections_solaris.html \
+    $(DOCDIR)\rt_sections_win32.html \
+    $(DOCDIR)\rt_sections_win64.html \
+    $(DOCDIR)\rt_tlsgc.html \
+    $(DOCDIR)\rt_trace.html \
+    $(DOCDIR)\rt_tracegc.html \
+	\
+    $(DOCDIR)\rt_typeinfo_ti_Acdouble.html \
+    $(DOCDIR)\rt_typeinfo_ti_Acfloat.html \
+    $(DOCDIR)\rt_typeinfo_ti_Acreal.html \
+    $(DOCDIR)\rt_typeinfo_ti_Adouble.html \
+    $(DOCDIR)\rt_typeinfo_ti_Afloat.html \
+    $(DOCDIR)\rt_typeinfo_ti_Ag.html \
+    $(DOCDIR)\rt_typeinfo_ti_Aint.html \
+    $(DOCDIR)\rt_typeinfo_ti_Along.html \
+    $(DOCDIR)\rt_typeinfo_ti_Areal.html \
+    $(DOCDIR)\rt_typeinfo_ti_Ashort.html \
+    $(DOCDIR)\rt_typeinfo_ti_byte.html \
+    $(DOCDIR)\rt_typeinfo_ti_C.html \
+    $(DOCDIR)\rt_typeinfo_ti_cdouble.html \
+    $(DOCDIR)\rt_typeinfo_ti_cent.html \
+    $(DOCDIR)\rt_typeinfo_ti_cfloat.html \
+    $(DOCDIR)\rt_typeinfo_ti_char.html \
+    $(DOCDIR)\rt_typeinfo_ti_creal.html \
+    $(DOCDIR)\rt_typeinfo_ti_dchar.html \
+    $(DOCDIR)\rt_typeinfo_ti_delegate.html \
+    $(DOCDIR)\rt_typeinfo_ti_double.html \
+    $(DOCDIR)\rt_typeinfo_ti_float.html \
+    $(DOCDIR)\rt_typeinfo_ti_idouble.html \
+    $(DOCDIR)\rt_typeinfo_ti_ifloat.html \
+    $(DOCDIR)\rt_typeinfo_ti_int.html \
+    $(DOCDIR)\rt_typeinfo_ti_ireal.html \
+    $(DOCDIR)\rt_typeinfo_ti_long.html \
+    $(DOCDIR)\rt_typeinfo_ti_n.html \
+    $(DOCDIR)\rt_typeinfo_ti_ptr.html \
+    $(DOCDIR)\rt_typeinfo_ti_real.html \
+    $(DOCDIR)\rt_typeinfo_ti_short.html \
+    $(DOCDIR)\rt_typeinfo_ti_ubyte.html \
+    $(DOCDIR)\rt_typeinfo_ti_ucent.html \
+    $(DOCDIR)\rt_typeinfo_ti_uint.html \
+    $(DOCDIR)\rt_typeinfo_ti_ulong.html \
+    $(DOCDIR)\rt_typeinfo_ti_ushort.html \
+    $(DOCDIR)\rt_typeinfo_ti_void.html \
+    $(DOCDIR)\rt_typeinfo_ti_wchar.html \
+	\
+    $(DOCDIR)\rt_unwind.html \
+	\
+    $(DOCDIR)\rt_util_array.html \
+    $(DOCDIR)\rt_util_container_array.html \
+    $(DOCDIR)\rt_util_container_common.html \
+    $(DOCDIR)\rt_util_container_hashtab.html \
+    $(DOCDIR)\rt_util_container_treap.html \
+    $(DOCDIR)\rt_util_hash.html \
+    $(DOCDIR)\rt_util_random.html \
+    $(DOCDIR)\rt_util_typeinfo.html \
+    $(DOCDIR)\rt_util_utf.html \

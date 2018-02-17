@@ -4,7 +4,7 @@
  * imported.
  *
  * Copyright: Copyright Digital Mars 2000 - 2011.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  */
 
@@ -1704,11 +1704,38 @@ class Throwable : Object
      * caught $(D Exception) will be chained to the new $(D Throwable) via this
      * field.
      */
-    Throwable   next;
+    private Throwable   nextInChain;
 
     private uint _refcount;     // 0 : allocated by GC
                                 // 1 : allocated by _d_newThrowable()
                                 // 2.. : reference count + 1
+
+    /**
+     * Returns:
+     * A reference to the _next error in the list. This is used when a new
+     * $(D Throwable) is thrown from inside a $(D catch) block. The originally
+     * caught $(D Exception) will be chained to the new $(D Throwable) via this
+     * field.
+     */
+    @property inout(Throwable) next() @safe inout return scope pure nothrow @nogc { return nextInChain; }
+
+    /**
+     * Replace next in chain with `tail`.
+     * Use `chainTogether` instead if at all possible.
+     */
+    @property void next(Throwable tail) @safe scope pure nothrow @nogc
+    {
+        if (tail && tail._refcount)
+            ++tail._refcount;           // increment the replacement *first*
+
+        auto n = nextInChain;
+        nextInChain = null;             // sever the tail before deleting it
+
+        if (n && n._refcount)
+            _d_delThrowable(n);         // now delete the old tail
+
+        nextInChain = tail;             // and set the new tail
+    }
 
     /**
      * Returns:
@@ -1718,16 +1745,58 @@ class Throwable : Object
      */
     @system @nogc final pure nothrow ref uint refcount() return scope { return _refcount; }
 
-    @nogc @safe pure nothrow this(string msg, Throwable next = null)
+    /**
+     * Loop over the chain of Throwables.
+     */
+    int opApply(scope int delegate(Throwable) dg)
+    {
+        int result = 0;
+        for (Throwable t = this; t; t = t.nextInChain)
+        {
+            result = dg(t);
+            if (result)
+                break;
+        }
+        return result;
+    }
+
+    /**
+     * Append `e2` to chain of exceptions that starts with `e1`.
+     * Params:
+     *  e1 = start of chain (can be null)
+     *  e2 = second part of chain (can be null)
+     * Returns:
+     *  Throwable that is at the start of the chain; null if both `e1` and `e2` are null
+     */
+    static @__future @system @nogc pure nothrow Throwable chainTogether(return scope Throwable e1, return scope Throwable e2)
+    {
+        if (e2 && e2.refcount())
+            ++e2.refcount();
+        if (!e1)
+            return e2;
+        if (!e2)
+            return e1;
+        for (auto e = e1; 1; e = e.nextInChain)
+        {
+            if (!e.nextInChain)
+            {
+                e.nextInChain = e2;
+                break;
+            }
+        }
+        return e1;
+    }
+
+    @nogc @safe pure nothrow this(string msg, Throwable nextInChain = null)
     {
         this.msg = msg;
-        this.next = next;
+        this.nextInChain = nextInChain;
         //this.info = _d_traceContext();
     }
 
-    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable nextInChain = null)
     {
-        this(msg, next);
+        this(msg, nextInChain);
         this.file = file;
         this.line = line;
         //this.info = _d_traceContext();
@@ -1735,8 +1804,8 @@ class Throwable : Object
 
     @trusted nothrow ~this()
     {
-        if (next && next._refcount)
-            _d_delThrowable(next);
+        if (nextInChain && nextInChain._refcount)
+            _d_delThrowable(nextInChain);
     }
 
     /**
@@ -1815,19 +1884,19 @@ class Exception : Throwable
 {
 
     /**
-     * Creates a new instance of Exception. The next parameter is used
+     * Creates a new instance of Exception. The nextInChain parameter is used
      * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
      * Exception; the $(D throw) statement should be used for that purpose.
      */
-    @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable nextInChain = null)
     {
-        super(msg, file, line, next);
+        super(msg, file, line, nextInChain);
     }
 
-    @nogc @safe pure nothrow this(string msg, Throwable next, string file = __FILE__, size_t line = __LINE__)
+    @nogc @safe pure nothrow this(string msg, Throwable nextInChain, string file = __FILE__, size_t line = __LINE__)
     {
-        super(msg, file, line, next);
+        super(msg, file, line, nextInChain);
     }
 }
 
@@ -1837,7 +1906,7 @@ unittest
         auto e = new Exception("msg");
         assert(e.file == __FILE__);
         assert(e.line == __LINE__ - 2);
-        assert(e.next is null);
+        assert(e.nextInChain is null);
         assert(e.msg == "msg");
     }
 
@@ -1845,7 +1914,7 @@ unittest
         auto e = new Exception("msg", new Exception("It's an Exception!"), "hello", 42);
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
     }
 
@@ -1853,7 +1922,7 @@ unittest
         auto e = new Exception("msg", "hello", 42, new Exception("It's an Exception!"));
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
     }
 
@@ -1876,20 +1945,20 @@ unittest
 class Error : Throwable
 {
     /**
-     * Creates a new instance of Error. The next parameter is used
+     * Creates a new instance of Error. The nextInChain parameter is used
      * internally and should always be $(D null) when passed by user code.
      * This constructor does not automatically throw the newly-created
      * Error; the $(D throw) statement should be used for that purpose.
      */
-    @nogc @safe pure nothrow this(string msg, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, Throwable nextInChain = null)
     {
-        super(msg, next);
+        super(msg, nextInChain);
         bypassedException = null;
     }
 
-    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null)
+    @nogc @safe pure nothrow this(string msg, string file, size_t line, Throwable nextInChain = null)
     {
-        super(msg, file, line, next);
+        super(msg, file, line, nextInChain);
         bypassedException = null;
     }
 
@@ -1904,7 +1973,7 @@ unittest
         auto e = new Error("msg");
         assert(e.file is null);
         assert(e.line == 0);
-        assert(e.next is null);
+        assert(e.nextInChain is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -1913,7 +1982,7 @@ unittest
         auto e = new Error("msg", new Exception("It's an Exception!"));
         assert(e.file is null);
         assert(e.line == 0);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -1922,7 +1991,7 @@ unittest
         auto e = new Error("msg", "hello", 42, new Exception("It's an Exception!"));
         assert(e.file == "hello");
         assert(e.line == 42);
-        assert(e.next !is null);
+        assert(e.nextInChain !is null);
         assert(e.msg == "msg");
         assert(e.bypassedException is null);
     }
@@ -2853,12 +2922,12 @@ unittest
     assert(postblitRecurseOrder == order);
 }
 
-/++
-    Destroys the given object and puts it in an invalid state. It's used to
-    _destroy an object so that any cleanup which its destructor or finalizer
-    does is done and so that it no longer references any other objects. It does
-    $(I not) initiate a GC cycle or free any GC memory.
-  +/
+/********
+Destroys the given object and sets it back to its initial state. It's used to
+_destroy an object, calling its destructor or finalizer so it no longer
+references any other objects. It does $(I not) initiate a GC cycle or free
+any GC memory.
+*/
 void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
@@ -2870,7 +2939,39 @@ void destroy(T)(T obj) if (is(T == interface))
     destroy(cast(Object)obj);
 }
 
-version(unittest) unittest
+/// Reference type demonstration
+unittest
+{
+    class C
+    {
+        static int dtorCount;
+
+        string s = "S";
+        ~this() { dtorCount++; }
+    }
+
+    C c = new C();
+    assert(c.dtorCount == 0); // destructor not yet called
+    assert(c.s == "S");       // initial state `c.s` is `"S"`
+    c.s = "T";
+    assert(c.s == "T");       // `c.s` is `"T"`
+    destroy(c);
+    assert(c.dtorCount == 1); // `c`'s destructor was called
+    assert(c.s == "S");       // `c.s` is back to its inital state, `"S"`
+}
+
+/// Value type demonstration
+unittest
+{
+    int i;
+    assert(i == 0);           // `i`'s initial state is `0`
+    i = 1;
+    assert(i == 1);           // `i` changed to `1`
+    destroy(i);
+    assert(i == 0);           // `i` is back to its initial state `0`
+}
+
+unittest
 {
    interface I { }
    {
@@ -2939,7 +3040,7 @@ void destroy(T)(ref T obj) if (is(T == struct))
     } ();
 }
 
-version(unittest) nothrow @safe @nogc unittest
+nothrow @safe @nogc unittest
 {
    {
        struct A { string s = "A";  }
@@ -2985,7 +3086,7 @@ void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
         destroy(e);
 }
 
-version(unittest) unittest
+unittest
 {
     int[2] a;
     a[0] = 1;
@@ -3059,7 +3160,7 @@ template _isStaticArray(T)
     enum bool _isStaticArray = false;
 }
 
-version(unittest) unittest
+unittest
 {
    {
        int a = 42;
@@ -3084,7 +3185,7 @@ version (unittest)
 private
 {
     extern (C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow;
-    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
+    extern (C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* arrptr) pure nothrow;
 }
 
 /**
@@ -3100,7 +3201,7 @@ private
  */
 @property size_t capacity(T)(T[] arr) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
+    return _d_arraysetcapacity(typeid(T[]), 0, cast(void[]*)&arr);
 }
 ///
 @safe unittest
@@ -3135,7 +3236,7 @@ private
  */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
-    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
+    return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void[]*)&arr);
 }
 ///
 unittest
@@ -3963,6 +4064,19 @@ unittest
         assert(binarySearch("") == -1);
         assert(binarySearch("sth.") == -1);
         assert(binarySearch(null) == -1);
+
+        static int bug16739(immutable(T)[] s)
+        {
+            switch (s)
+            {
+                case "\u0100": return 1;
+                case "a": return 2;
+                default: return 3;
+            }
+        }
+        assert(bug16739("\u0100") == 1);
+        assert(bug16739("a") == 2);
+        assert(bug16739("foo") == 3);
     }
     testSwitch!char;
     testSwitch!wchar;

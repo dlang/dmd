@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -103,6 +103,21 @@ else version( OpenBSD )
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
+else version( DragonFlyBSD )
+{
+    struct sem_t
+    {
+        uint _magic;
+        struct _usem
+        {
+            shared uint _has_waiters;
+            shared uint _count;
+            uint _flags;
+        } _usem _kern;
+    }
+
+    enum SEM_FAILED = cast(sem_t*) null;
+}
 else version (Solaris)
 {
     struct sem_t
@@ -124,6 +139,24 @@ else version( CRuntime_Bionic )
     }
 
     enum SEM_FAILED = null;
+}
+else version( CRuntime_Musl )
+{
+    struct sem_t {
+        int[4*long.sizeof/int.sizeof] __val;
+    }
+}
+else version( CRuntime_UClibc )
+{
+    enum __SIZEOF_SEM_T  = 16;
+
+    union sem_t
+    {
+        byte[__SIZEOF_SEM_T] __size;
+        c_long __align;
+    }
+
+    enum SEM_FAILED      = cast(sem_t*) null;
 }
 else
 {
@@ -167,11 +200,23 @@ else version( OpenBSD )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
+else version( DragonFlyBSD )
+{
+    int sem_timedwait(sem_t*, in timespec*);
+}
 else version (Solaris)
 {
     int sem_timedwait(sem_t*, in timespec*);
 }
 else version( CRuntime_Bionic )
+{
+    int sem_timedwait(sem_t*, in timespec*);
+}
+else version( CRuntime_Musl )
+{
+    int sem_timedwait(sem_t*, in timespec*);
+}
+else version( CRuntime_UClibc )
 {
     int sem_timedwait(sem_t*, in timespec*);
 }

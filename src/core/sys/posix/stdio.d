@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -149,6 +149,37 @@ else version( CRuntime_Bionic )
     int   fseek(FILE*, c_long, int);
     int   fsetpos(FILE*, in fpos_t*);
 }
+else version( CRuntime_UClibc )
+{
+    static if( __USE_FILE_OFFSET64 )
+    {
+        int   fgetpos64(FILE*, fpos_t *);
+        alias fgetpos64 fgetpos;
+
+        FILE* fopen64(in char*, in char*);
+        alias fopen64 fopen;
+
+        FILE* freopen64(in char*, in char*, FILE*);
+        alias freopen64 freopen;
+
+        int   fseek(FILE*, c_long, int);
+
+        int   fsetpos64(FILE*, in fpos_t*);
+        alias fsetpos64 fsetpos;
+
+        FILE* tmpfile64();
+        alias tmpfile64 tmpfile;
+    }
+    else
+    {
+        int   fgetpos(FILE*, fpos_t *);
+        FILE* fopen(in char*, in char*);
+        FILE* freopen(in char*, in char*, FILE*);
+        int   fseek(FILE*, c_long, int);
+        int   fsetpos(FILE*, in fpos_t*);
+        FILE* tmpfile();
+    }
+}
 
 //
 // C Extension (CX)
@@ -169,6 +200,31 @@ FILE*  popen(in char*, in char*);
 version( CRuntime_Glibc )
 {
     enum L_ctermid = 9;
+
+  static if( __USE_FILE_OFFSET64 )
+  {
+    int   fseeko64(FILE*, off_t, int);
+    alias fseeko64 fseeko;
+  }
+  else
+  {
+    int   fseeko(FILE*, off_t, int);
+  }
+
+  static if( __USE_FILE_OFFSET64 )
+  {
+    off_t ftello64(FILE*);
+    alias ftello64 ftello;
+  }
+  else
+  {
+    off_t ftello(FILE*);
+  }
+}
+else version( CRuntime_UClibc )
+{
+    enum L_ctermid = 9;
+    enum L_cuserid = 9;
 
   static if( __USE_FILE_OFFSET64 )
   {
@@ -213,13 +269,18 @@ version( CRuntime_Glibc )                     // as of glibc 1.0x
     version = HaveMemstream;
 else version( FreeBSD )                      // as of FreeBSD 9.2
     version = HaveMemstream;
+else version( DragonFlyBSD )                 // for DragonFlyBSD
+    version = HaveMemstream;
 else version( OpenBSD )                      // as of OpenBSD 5.4
+    version = HaveMemstream;
+else version( CRuntime_UClibc )
     version = HaveMemstream;
 
 version( HaveMemstream )
 {
     FILE*  fmemopen(in void* buf, in size_t size, in char* mode);
     FILE*  open_memstream(char** ptr, size_t* sizeloc);
+    version( CRuntime_UClibc ) {} else
     FILE*  open_wmemstream(wchar_t** ptr, size_t* sizeloc);
 }
 
@@ -266,6 +327,16 @@ else version( Solaris )
     int    putc_unlocked(int, FILE*);
     int    putchar_unlocked(int);
 }
+else version( CRuntime_UClibc )
+{
+    void   flockfile(FILE*);
+    int    ftrylockfile(FILE*);
+    void   funlockfile(FILE*);
+    int    getc_unlocked(FILE*);
+    int    getchar_unlocked();
+    int    putc_unlocked(int, FILE*);
+    int    putchar_unlocked(int);
+}
 
 //
 // XOpen (XSI)
@@ -280,6 +351,10 @@ char*  tempnam(in char*, in char*);
 char*  tempnam(in char*, in char*);
 
 version( CRuntime_Glibc )
+{
+    enum P_tmpdir  = "/tmp";
+}
+version( CRuntime_Musl )
 {
     enum P_tmpdir  = "/tmp";
 }
@@ -299,9 +374,17 @@ version( OpenBSD )
 {
     enum P_tmpdir  = "/tmp/";
 }
+version( DragonFlyBSD )
+{
+    enum P_tmpdir  = "/var/tmp/";
+}
 version( Solaris )
 {
     enum P_tmpdir  = "/var/tmp/";
+}
+version( CRuntime_UClibc )
+{
+    enum P_tmpdir  = "/tmp";
 }
 
 version( HaveMemstream )
@@ -333,6 +416,7 @@ unittest
     assert(fclose(f) == 0);
 }
 
+version( CRuntime_UClibc ) {} else
 version( HaveMemstream )
 unittest
 { /* Note: open_wmemstream is only useful for writing */

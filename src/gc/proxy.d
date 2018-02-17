@@ -2,7 +2,7 @@
  * Contains the external GC interface.
  *
  * Copyright: Copyright Digital Mars 2005 - 2016.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  */
 
@@ -15,6 +15,7 @@ module gc.proxy;
 
 import gc.impl.conservative.gc;
 import gc.impl.manual.gc;
+import gc.impl.proto.gc;
 import gc.config;
 import gc.gcinterface;
 
@@ -25,35 +26,55 @@ private
     static import core.memory;
     alias BlkInfo = core.memory.GC.BlkInfo;
 
-    extern (C) void thread_init();
-    extern (C) void thread_term();
+    import core.internal.spinlock;
+    static SpinLock instanceLock;
 
-    __gshared GC instance;
+    __gshared bool isInstanceInit = false;
+    __gshared GC instance = new ProtoGC();
     __gshared GC proxiedGC; // used to iterate roots of Windows DLLs
-
 }
-
 
 extern (C)
 {
-
     void gc_init()
     {
-        config.initialize();
-        ManualGC.initialize(instance);
-        ConservativeGC.initialize(instance);
-        if (instance is null)
+        instanceLock.lock();
+        if (!isInstanceInit)
         {
-            import core.stdc.stdio : fprintf, stderr;
-            import core.stdc.stdlib : exit;
+            auto protoInstance = instance;
+            config.initialize();
+            ManualGC.initialize(instance);
+            ConservativeGC.initialize(instance);
 
-            fprintf(stderr, "No GC was initialized, please recheck the name of the selected GC ('%.*s').\n", cast(int)config.gc.length, config.gc.ptr);
-            exit(1);
+            if (instance is protoInstance)
+            {
+                import core.stdc.stdio : fprintf, stderr;
+                import core.stdc.stdlib : exit;
+
+                fprintf(stderr, "No GC was initialized, please recheck the name of the selected GC ('%.*s').\n", cast(int)config.gc.length, config.gc.ptr);
+                instanceLock.unlock();
+                exit(1);
+
+                // Shouldn't get here.
+                assert(0);
+            }
+
+            // Transfer all ranges and roots to the real GC.
+            (cast(ProtoGC) protoInstance).term();
+            isInstanceInit = true;
         }
+        instanceLock.unlock();
+    }
 
-        // NOTE: The GC must initialize the thread library
-        //       before its first collection.
-        thread_init();
+    void gc_init_nothrow() nothrow
+    {
+        scope(failure)
+        {
+            import core.internal.abort;
+            abort("Cannot initialize the garbage collector.\n");
+            assert(0);
+        }
+        gc_init();
     }
 
     void gc_term()
@@ -68,13 +89,14 @@ extern (C)
         // NOTE: Due to popular demand, this has been re-enabled.  It still has
         //       the problems mentioned above though, so I guess we'll see.
 
-        instance.collectNoStack(); // not really a 'collect all' -- still scans
-                                    // static data area, roots, and ranges.
+        if (isInstanceInit)
+        {
+            instance.collectNoStack();  // not really a 'collect all' -- still scans
+                                        // static data area, roots, and ranges.
 
-        thread_term();
-
-        ManualGC.finalize(instance);
-        ConservativeGC.finalize(instance);
+            ManualGC.finalize(instance);
+            ConservativeGC.finalize(instance);
+        }
     }
 
     void gc_enable()
@@ -167,12 +189,12 @@ extern (C)
         return instance.stats();
     }
 
-    void gc_addRoot( void* p ) nothrow
+    void gc_addRoot( void* p ) nothrow @nogc
     {
         return instance.addRoot( p );
     }
 
-    void gc_addRange( void* p, size_t sz, const TypeInfo ti = null ) nothrow
+    void gc_addRange( void* p, size_t sz, const TypeInfo ti = null ) nothrow @nogc
     {
         return instance.addRange( p, sz, ti );
     }

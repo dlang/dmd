@@ -1137,15 +1137,6 @@ struct Array
     byte*  data;
 }
 
-
-/**
- * This function has been replaced by _d_delarray_t
- */
-extern (C) void _d_delarray(void[]* p)
-{
-    _d_delarray_t(p, null);
-}
-
 debug(PRINTF)
 {
     extern(C) void printArrayCache()

@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly,
               Alex Rønne Petersn
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
@@ -221,6 +221,36 @@ else version( OpenBSD )
 
     dirent* readdir(DIR*);
 }
+else version( DragonFlyBSD )
+{
+    enum
+    {
+        DT_UNKNOWN  = 0,
+        DT_FIFO     = 1,
+        DT_CHR      = 2,
+        DT_DIR      = 4,
+        DT_BLK      = 6,
+        DT_REG      = 8,
+        DT_LNK      = 10,
+        DT_SOCK     = 12,
+        DT_WHT      = 14,
+        DT_DBF      = 15,         /* database record file */
+    }
+
+    struct dirent
+    {
+        ino_t     d_fileno;       /* file number of entry */
+        ushort    d_reclen;       /* strlen(d_name) */
+        ubyte     d_type;         /* file type, see blow */
+        ubyte     d_unused1;      /* padding, reserved */
+        uint      d_unused2;      /* reserved */
+        char[256] d_name;         /* name, NUL-terminated */
+    }
+
+    alias void* DIR;
+
+    dirent* readdir(DIR*);
+}
 else version (Solaris)
 {
     struct dirent
@@ -286,6 +316,93 @@ else version( CRuntime_Bionic )
     }
 
     dirent* readdir(DIR*);
+}
+else version( CRuntime_Musl )
+{
+    enum
+    {
+        DT_UNKNOWN  = 0,
+        DT_FIFO     = 1,
+        DT_CHR      = 2,
+        DT_DIR      = 4,
+        DT_BLK      = 6,
+        DT_REG      = 8,
+        DT_LNK      = 10,
+        DT_SOCK     = 12,
+        DT_WHT      = 14
+    }
+
+    struct dirent
+    {
+        ino_t       d_ino;
+        off_t       d_off;
+        ushort      d_reclen;
+        ubyte       d_type;
+        char[256]   d_name;
+    }
+
+    struct DIR
+    {
+    }
+
+    static if( __USE_FILE_OFFSET64 )
+    {
+        dirent* readdir64(DIR*);
+        alias   readdir64 readdir;
+    }
+    else
+    {
+        dirent* readdir(DIR*);
+    }
+}
+else version( CRuntime_UClibc )
+{
+    // NOTE: The following constants are non-standard Linux definitions
+    //       for dirent.d_type.
+    enum
+    {
+        DT_UNKNOWN  = 0,
+        DT_FIFO     = 1,
+        DT_CHR      = 2,
+        DT_DIR      = 4,
+        DT_BLK      = 6,
+        DT_REG      = 8,
+        DT_LNK      = 10,
+        DT_SOCK     = 12,
+        DT_WHT      = 14
+    }
+
+    struct dirent
+    {
+        static if (__USE_FILE_OFFSET64)
+        {
+            ino64_t d_ino;
+            off64_t d_off;
+        }
+        else
+        {
+            ino_t d_ino;
+            off_t d_off;
+        }
+        ushort      d_reclen;
+        ubyte       d_type;
+        char[256]   d_name;
+    }
+
+    struct DIR
+    {
+        // Managed by OS
+    }
+
+    static if( __USE_FILE_OFFSET64 )
+    {
+        dirent* readdir64(DIR*);
+        alias   readdir64 readdir;
+    }
+    else
+    {
+        dirent* readdir(DIR*);
+    }
 }
 else
 {
@@ -357,6 +474,10 @@ else version( FreeBSD )
 {
     int readdir_r(DIR*, dirent*, dirent**);
 }
+else version( DragonFlyBSD )
+{
+    int readdir_r(DIR*, dirent*, dirent**);
+}
 else version(NetBSD)
 {
     int __readdir_r30(DIR*, dirent*, dirent**);
@@ -381,6 +502,22 @@ else version (Solaris)
 else version( CRuntime_Bionic )
 {
     int readdir_r(DIR*, dirent*, dirent**);
+}
+else version( CRuntime_Musl )
+{
+
+}
+else version( CRuntime_UClibc )
+{
+  static if( __USE_LARGEFILE64 )
+  {
+    int   readdir64_r(DIR*, dirent*, dirent**);
+    alias readdir64_r readdir_r;
+  }
+  else
+  {
+    int readdir_r(DIR*, dirent*, dirent**);
+  }
 }
 else
 {
@@ -415,6 +552,11 @@ else version( OpenBSD )
     void   seekdir(DIR*, c_long);
     c_long telldir(DIR*);
 }
+else version( DragonFlyBSD )
+{
+    void   seekdir(DIR*, c_long);
+    c_long telldir(DIR*);
+}
 else version (Darwin)
 {
     version( OSX )
@@ -445,6 +587,14 @@ else version (Solaris)
 }
 else version (CRuntime_Bionic)
 {
+}
+else version (CRuntime_Musl)
+{
+}
+else version (CRuntime_UClibc)
+{
+    void   seekdir(DIR*, c_long);
+    c_long telldir(DIR*);
 }
 else
 {

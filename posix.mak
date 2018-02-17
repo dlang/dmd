@@ -57,7 +57,7 @@ endif
 
 # build with shared library support
 # (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
-SHARED=$(if $(findstring $(OS),linux freebsd),1,)
+SHARED=$(if $(findstring $(OS),linux freebsd dragonflybsd),1,)
 
 LINKDL=$(if $(findstring $(OS),linux),-L-ldl,)
 
@@ -161,8 +161,20 @@ $(DOCDIR)/core_stdcpp_%.html : src/core/stdcpp/%.d $(DMD)
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
-changelog.html: changelog.dd $(DMD)
-	$(DMD) -Df$@ $<
+$(DOCDIR)/rt_%.html : src/rt/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_backtrace_%.html : src/rt/backtrace/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_typeinfo_%.html : src/rt/typeinfo/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_util_container_%.html : src/rt/util/container/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOCDIR)/rt_util_%.html : src/rt/util/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
@@ -170,8 +182,6 @@ import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d $(DMD)
 	@mkdir -p $(dir $@)
-	echo $(BUILD)
-	echo $(DMD)
 	$(DMD) -conf= -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
@@ -194,7 +204,7 @@ $(IMPDIR)/%.d : src/%.d
 ######################## Build DMD if non-existent ##############################
 
 $(DMD):
-	make -C $(DMD_DIR)/src -f posix.mak BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL)
+	$(MAKE) -C $(DMD_DIR)/src -f posix.mak BUILD=$(BUILD) OS=$(OS) MODEL=$(MODEL)
 
 ################### C/ASM Targets ############################
 
@@ -341,7 +351,7 @@ druntime.zip: $(MANIFEST)
 install: target
 	mkdir -p $(INSTALL_DIR)/src/druntime/import
 	cp -r import/* $(INSTALL_DIR)/src/druntime/import/
-	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
+	cp LICENSE.txt $(INSTALL_DIR)/druntime-LICENSE.txt
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOCDIR) druntime.zip
@@ -352,7 +362,11 @@ test/%/.clean: test/%/Makefile
 # Submission to Druntime are required to conform to the DStyle
 # The tests below automate some, but not all parts of the DStyle guidelines.
 # See: http://dlang.org/dstyle.html
-style: checkwhitespace
+style: checkwhitespace style_lint
+
+style_lint:
+	@echo "Check for trailing whitespace"
+	$(GREP) -nr '[[:blank:]]$$' $(MANIFEST) ; test $$? -eq 1
 
 .PHONY : auto-tester-build
 auto-tester-build: target checkwhitespace

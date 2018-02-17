@@ -2,7 +2,7 @@
  * D header file for FreeBSD.
  *
  * Copyright: Copyright Martin Nowak 2012.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Martin Nowak
  */
 

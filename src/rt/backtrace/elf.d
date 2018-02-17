@@ -4,23 +4,25 @@
  * Reference: http://www.dwarfstd.org/
  *
  * Copyright: Copyright Digital Mars 2015 - 2015.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain
  * Source: $(DRUNTIMESRC src/rt/backtrace/elf.d)
  */
 
 module rt.backtrace.elf;
 
-version(linux) version = linux_or_freebsd;
-else version(FreeBSD) version = linux_or_freebsd;
+version(linux) version = linux_or_bsd;
+else version(FreeBSD) version = linux_or_bsd;
+else version(DragonFlyBSD) version = linux_or_bsd;
 
-version(linux_or_freebsd):
+version(linux_or_bsd):
 
 import core.sys.posix.fcntl;
 import core.sys.posix.unistd;
 
 version(linux) public import core.sys.linux.elf;
 version(FreeBSD) public import core.sys.freebsd.sys.elf;
+version(DragonFlyBSD) public import core.sys.dragonflybsd.sys.elf;
 
 struct ElfFile
 {
@@ -35,6 +37,10 @@ struct ElfFile
             char[1024] selfPathBuffer = void;
             auto selfPath = getFreeBSDExePath(selfPathBuffer[]);
             if (selfPath is null) return false;
+        }
+        else version (DragonFlyBSD)
+        {
+            auto selfPath = "/proc/curproc/file".ptr;
         }
 
         file.fd = open(selfPath, O_RDONLY);
@@ -214,6 +220,48 @@ version(X86)
     enum ELFCLASS = ELFCLASS32;
 }
 else version(X86_64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(ARM)
+{
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
+}
+else version(AArch64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(PPC)
+{
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
+}
+else version(PPC64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(MIPS)
+{
+    alias Elf_Ehdr = Elf32_Ehdr;
+    alias Elf_Shdr = Elf32_Shdr;
+    enum ELFCLASS = ELFCLASS32;
+}
+else version(MIPS64)
+{
+    alias Elf_Ehdr = Elf64_Ehdr;
+    alias Elf_Shdr = Elf64_Shdr;
+    enum ELFCLASS = ELFCLASS64;
+}
+else version(SystemZ)
 {
     alias Elf_Ehdr = Elf64_Ehdr;
     alias Elf_Shdr = Elf64_Shdr;

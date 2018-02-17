@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -130,6 +130,11 @@ else version(NetBSD)
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
 }
+else version( DragonFlyBSD )
+{
+    off_t lseek(int, off_t, int) @trusted;
+    int   ftruncate(int, off_t) @trusted;
+}
 else version( Solaris )
 {
     version ( D_LP64 )
@@ -166,6 +171,34 @@ else version( CRuntime_Bionic )
 {
     off_t lseek(int, off_t, int) @trusted;
     int   ftruncate(int, off_t) @trusted;
+}
+else version( CRuntime_Musl )
+{
+    int ftruncate(int, off_t) @trusted;
+    off_t lseek(int, off_t, int) @trusted;
+    alias ftruncate ftruncate64;
+    alias lseek lseek64;
+}
+else version( CRuntime_UClibc )
+{
+  static if( __USE_FILE_OFFSET64 )
+  {
+    off_t lseek64(int, off_t, int) @trusted;
+    alias lseek64 lseek;
+  }
+  else
+  {
+    off_t lseek(int, off_t, int) @trusted;
+  }
+  static if( __USE_LARGEFILE64 )
+  {
+    int   ftruncate64(int, off_t) @trusted;
+    alias ftruncate64 ftruncate;
+  }
+  else
+  {
+    int   ftruncate(int, off_t) @trusted;
+  }
 }
 
 version( CRuntime_Glibc )
@@ -959,6 +992,161 @@ else version(NetBSD)
         _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS =  14,
     }
 }
+else version( DragonFlyBSD )
+{
+    enum F_OK       = 0;
+    enum R_OK       = 0x04;
+    enum W_OK       = 0x02;
+    enum X_OK       = 0x01;
+
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
+
+    enum
+    {
+        _SC_ARG_MAX                        =   1,
+        _SC_CHILD_MAX                      =   2,
+        _SC_CLK_TCK                        =   3,
+        _SC_NGROUPS_MAX                    =   4,
+        _SC_OPEN_MAX                       =   5,
+        _SC_JOB_CONTROL                    =   6,
+        _SC_SAVED_IDS                      =   7,
+        _SC_VERSION                        =   8,
+        _SC_BC_BASE_MAX                    =   9,
+        _SC_BC_DIM_MAX                     =  10,
+        _SC_BC_SCALE_MAX                   =  11,
+        _SC_BC_STRING_MAX                  =  12,
+        _SC_COLL_WEIGHTS_MAX               =  13,
+        _SC_EXPR_NEST_MAX                  =  14,
+        _SC_LINE_MAX                       =  15,
+        _SC_RE_DUP_MAX                     =  16,
+        _SC_2_VERSION                      =  17,
+        _SC_2_C_BIND                       =  18,
+        _SC_2_C_DEV                        =  19,
+        _SC_2_CHAR_TERM                    =  20,
+        _SC_2_FORT_DEV                     =  21,
+        _SC_2_FORT_RUN                     =  22,
+        _SC_2_LOCALEDEF                    =  23,
+        _SC_2_SW_DEV                       =  24,
+        _SC_2_UPE                          =  25,
+        _SC_STREAM_MAX                     =  26,
+        _SC_TZNAME_MAX                     =  27,
+        _SC_ASYNCHRONOUS_IO                =  28,
+        _SC_MAPPED_FILES                   =  29,
+        _SC_MEMLOCK                        =  30,
+        _SC_MEMLOCK_RANGE                  =  31,
+        _SC_MEMORY_PROTECTION              =  32,
+        _SC_MESSAGE_PASSING                =  33,
+        _SC_PRIORITIZED_IO                 =  34,
+        _SC_PRIORITY_SCHEDULING            =  35,
+        _SC_REALTIME_SIGNALS               =  36,
+        _SC_SEMAPHORES                     =  37,
+        _SC_FSYNC                          =  38,
+        _SC_SHARED_MEMORY_OBJECTS          =  39,
+        _SC_SYNCHRONIZED_IO                =  40,
+        _SC_TIMERS                         =  41,
+        _SC_AIO_LISTIO_MAX                 =  42,
+        _SC_AIO_MAX                        =  43,
+        _SC_AIO_PRIO_DELTA_MAX             =  44,
+        _SC_DELAYTIMER_MAX                 =  45,
+        _SC_MQ_OPEN_MAX                    =  46,
+        _SC_PAGESIZE                       =  47,
+        _SC_RTSIG_MAX                      =  48,
+        _SC_SEM_NSEMS_MAX                  =  49,
+        _SC_SEM_VALUE_MAX                  =  50,
+        _SC_SIGQUEUE_MAX                   =  51,
+        _SC_TIMER_MAX                      =  52,
+        _SC_IOV_MAX                        =  56,
+        _SC_NPROCESSORS_CONF               =  57,
+        _SC_NPROCESSORS_ONLN               =  58,
+        _SC_2_PBS                          =  59,
+        _SC_2_PBS_ACCOUNTING               =  60,
+        _SC_2_PBS_CHECKPOINT               =  61,
+        _SC_2_PBS_LOCATE                   =  62,
+        _SC_2_PBS_MESSAGE                  =  63,
+        _SC_2_PBS_TRACK                    =  64,
+        _SC_ADVISORY_INFO                  =  65,
+        _SC_BARRIERS                       =  66,
+        _SC_CLOCK_SELECTION                =  67,
+        _SC_CPUTIME                        =  68,
+        _SC_FILE_LOCKING                   =  69,
+        _SC_GETGR_R_SIZE_MAX               =  70,
+        _SC_GETPW_R_SIZE_MAX               =  71,
+        _SC_HOST_NAME_MAX                  =  72,
+        _SC_LOGIN_NAME_MAX                 =  73,
+        _SC_MONOTONIC_CLOCK                =  74,
+        _SC_MQ_PRIO_MAX                    =  75,
+        _SC_READER_WRITER_LOCKS            =  76,
+        _SC_REGEXP                         =  77,
+        _SC_SHELL                          =  78,
+        _SC_SPAWN                          =  79,
+        _SC_SPIN_LOCKS                     =  80,
+        _SC_SPORADIC_SERVER                =  81,
+        _SC_THREAD_ATTR_STACKADDR          =  82,
+        _SC_THREAD_ATTR_STACKSIZE          =  83,
+        _SC_THREAD_CPUTIME                 =  84,
+        _SC_THREAD_DESTRUCTOR_ITERATIONS   =  85,
+        _SC_THREAD_KEYS_MAX                =  86,
+        _SC_THREAD_PRIO_INHERIT            =  87,
+        _SC_THREAD_PRIO_PROTECT            =  88,
+        _SC_THREAD_PRIORITY_SCHEDULING     =  89,
+        _SC_THREAD_PROCESS_SHARED          =  90,
+        _SC_THREAD_SAFE_FUNCTIONS          =  91,
+        _SC_THREAD_SPORADIC_SERVER         =  92,
+        _SC_THREAD_STACK_MIN               =  93,
+        _SC_THREAD_THREADS_MAX             =  94,
+        _SC_TIMEOUTS                       =  95,
+        _SC_THREADS                        =  96,
+        _SC_TRACE                          =  97,
+        _SC_TRACE_EVENT_FILTER             =  98,
+        _SC_TRACE_INHERIT                  =  99,
+        _SC_TRACE_LOG                      = 100,
+        _SC_TTY_NAME_MAX                   = 101,
+        _SC_TYPED_MEMORY_OBJECTS           = 102,
+        _SC_V6_ILP32_OFF32                 = 103,
+        _SC_V6_ILP32_OFFBIG                = 104,
+        _SC_V6_LP64_OFF64                  = 105,
+        _SC_V6_LPBIG_OFFBIG                = 106,
+        _SC_IPV6                           = 118,
+        _SC_RAW_SOCKETS                    = 119,
+        _SC_SYMLOOP_MAX                    = 120,
+        _SC_ATEXIT_MAX                     = 107,
+        _SC_XOPEN_CRYPT                    = 108,
+        _SC_XOPEN_ENH_I18N                 = 109,
+        _SC_XOPEN_LEGACY                   = 110,
+        _SC_XOPEN_REALTIME                 = 111,
+        _SC_XOPEN_REALTIME_THREADS         = 112,
+        _SC_XOPEN_SHM                      = 113,
+        _SC_XOPEN_STREAMS                  = 114,
+        _SC_XOPEN_UNIX                     = 115,
+        _SC_XOPEN_VERSION                  = 116,
+        _SC_XOPEN_XCU_VERSION              = 117,
+        _SC_CPUSET_SIZE                    = 122,
+        _SC_PHYS_PAGES                     = 121,
+    }
+
+    enum _SC_PAGE_SIZE = _SC_PAGESIZE;
+
+    enum
+    {
+        _CS_PATH                           =   1,
+        _CS_POSIX_V6_ILP32_OFF32_CFLAGS    =   2,
+        _CS_POSIX_V6_ILP32_OFF32_LDFLAGS   =   3,
+        _CS_POSIX_V6_ILP32_OFF32_LIBS      =   4,
+        _CS_POSIX_V6_ILP32_OFFBIG_CFLAGS   =   5,
+        _CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS  =   6,
+        _CS_POSIX_V6_ILP32_OFFBIG_LIBS     =   7,
+        _CS_POSIX_V6_LP64_OFF64_CFLAGS     =   8,
+        _CS_POSIX_V6_LP64_OFF64_LDFLAGS    =   9,
+        _CS_POSIX_V6_LP64_OFF64_LIBS       =  10,
+        _CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS   =  11,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS  =  12,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LIBS     =  13,
+        _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS =  14,
+    }
+}
 else version( CRuntime_Bionic )
 {
     enum F_OK       = 0;
@@ -1237,6 +1425,563 @@ else version( Solaris )
 
     enum _PC_LAST = 101;
 }
+else version( CRuntime_Musl )
+{
+    enum F_OK       = 0;
+    enum R_OK       = 4;
+    enum W_OK       = 2;
+    enum X_OK       = 1;
+
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
+
+    enum
+    {
+        _CS_PATH,
+        _CS_POSIX_V6_WIDTH_RESTRICTED_ENVS,
+        _CS_GNU_LIBC_VERSION,
+        _CS_GNU_LIBPTHREAD_VERSION,
+        _CS_POSIX_V5_WIDTH_RESTRICTED_ENVS,
+        _CS_POSIX_V7_WIDTH_RESTRICTED_ENVS,
+
+        _CS_POSIX_V6_ILP32_OFF32_CFLAGS = 1116,
+        _CS_POSIX_V6_ILP32_OFF32_LDFLAGS,
+        _CS_POSIX_V6_ILP32_OFF32_LIBS,
+        _CS_POSIX_V6_ILP32_OFF32_LINTFLAGS,
+        _CS_POSIX_V6_ILP32_OFFBIG_CFLAGS,
+        _CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS,
+        _CS_POSIX_V6_ILP32_OFFBIG_LIBS,
+        _CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS,
+        _CS_POSIX_V6_LP64_OFF64_CFLAGS,
+        _CS_POSIX_V6_LP64_OFF64_LDFLAGS,
+        _CS_POSIX_V6_LP64_OFF64_LIBS,
+        _CS_POSIX_V6_LP64_OFF64_LINTFLAGS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LIBS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS,
+        _CS_POSIX_V7_ILP32_OFF32_CFLAGS,
+        _CS_POSIX_V7_ILP32_OFF32_LDFLAGS,
+        _CS_POSIX_V7_ILP32_OFF32_LIBS,
+        _CS_POSIX_V7_ILP32_OFF32_LINTFLAGS,
+        _CS_POSIX_V7_ILP32_OFFBIG_CFLAGS,
+        _CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS,
+        _CS_POSIX_V7_ILP32_OFFBIG_LIBS,
+        _CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS,
+        _CS_POSIX_V7_LP64_OFF64_CFLAGS,
+        _CS_POSIX_V7_LP64_OFF64_LDFLAGS,
+        _CS_POSIX_V7_LP64_OFF64_LIBS,
+        _CS_POSIX_V7_LP64_OFF64_LINTFLAGS,
+        _CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS,
+        _CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS,
+        _CS_POSIX_V7_LPBIG_OFFBIG_LIBS,
+        _CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS,
+        _CS_V6_ENV,
+        _CS_V7_ENV
+    }
+
+    enum
+    {
+        _PC_LINK_MAX,
+        _PC_MAX_CANON,
+        _PC_MAX_INPUT,
+        _PC_NAME_MAX,
+        _PC_PATH_MAX,
+        _PC_PIPE_BUF,
+        _PC_CHOWN_RESTRICTED,
+        _PC_NO_TRUNC,
+        _PC_VDISABLE,
+        _PC_SYNC_IO,
+        _PC_ASYNC_IO,
+        _PC_PRIO_IO,
+        _PC_SOCK_MAXBUF,
+        _PC_FILESIZEBITS,
+        _PC_REC_INCR_XFER_SIZE,
+        _PC_REC_MAX_XFER_SIZE,
+        _PC_REC_MIN_XFER_SIZE,
+        _PC_REC_XFER_ALIGN,
+        _PC_ALLOC_SIZE_MIN,
+        _PC_SYMLINK_MAX,
+        _PC_2_SYMLINKS
+    }
+
+    enum
+    {
+        _SC_ARG_MAX,
+        _SC_CHILD_MAX,
+        _SC_CLK_TCK,
+        _SC_NGROUPS_MAX,
+        _SC_OPEN_MAX,
+        _SC_STREAM_MAX,
+        _SC_TZNAME_MAX,
+        _SC_JOB_CONTROL,
+        _SC_SAVED_IDS,
+        _SC_REALTIME_SIGNALS,
+        _SC_PRIORITY_SCHEDULING,
+        _SC_TIMERS,
+        _SC_ASYNCHRONOUS_IO,
+        _SC_PRIORITIZED_IO,
+        _SC_SYNCHRONIZED_IO,
+        _SC_FSYNC,
+        _SC_MAPPED_FILES,
+        _SC_MEMLOCK,
+        _SC_MEMLOCK_RANGE,
+        _SC_MEMORY_PROTECTION,
+        _SC_MESSAGE_PASSING,
+        _SC_SEMAPHORES,
+        _SC_SHARED_MEMORY_OBJECTS,
+        _SC_AIO_LISTIO_MAX,
+        _SC_AIO_MAX,
+        _SC_AIO_PRIO_DELTA_MAX,
+        _SC_DELAYTIMER_MAX,
+        _SC_MQ_OPEN_MAX,
+        _SC_MQ_PRIO_MAX,
+        _SC_VERSION,
+        _SC_PAGE_SIZE,
+        _SC_PAGESIZE = _SC_PAGE_SIZE,
+        _SC_RTSIG_MAX,
+        _SC_SEM_NSEMS_MAX,
+        _SC_SEM_VALUE_MAX,
+        _SC_SIGQUEUE_MAX,
+        _SC_TIMER_MAX,
+        _SC_BC_BASE_MAX,
+        _SC_BC_DIM_MAX,
+        _SC_BC_SCALE_MAX,
+        _SC_BC_STRING_MAX,
+        _SC_COLL_WEIGHTS_MAX,
+
+        _SC_EXPR_NEST_MAX = 42,
+        _SC_LINE_MAX,
+        _SC_RE_DUP_MAX,
+
+        _SC_2_VERSION = 46,
+        _SC_2_C_BIND,
+        _SC_2_C_DEV,
+        _SC_2_FORT_DEV,
+        _SC_2_FORT_RUN,
+        _SC_2_SW_DEV,
+        _SC_2_LOCALEDEF,
+
+        _SC_UIO_MAXIOV = 60,
+        _SC_IOV_MAX = _SC_UIO_MAXIOV,
+
+        _SC_THREADS = 67,
+        _SC_THREAD_SAFE_FUNCTIONS,
+        _SC_GETGR_R_SIZE_MAX,
+        _SC_GETPW_R_SIZE_MAX,
+        _SC_LOGIN_NAME_MAX,
+        _SC_TTY_NAME_MAX,
+        _SC_THREAD_DESTRUCTOR_ITERATIONS,
+        _SC_THREAD_KEYS_MAX,
+        _SC_THREAD_STACK_MIN,
+        _SC_THREAD_THREADS_MAX,
+        _SC_THREAD_ATTR_STACKADDR,
+        _SC_THREAD_ATTR_STACKSIZE,
+        _SC_THREAD_PRIORITY_SCHEDULING,
+        _SC_THREAD_PRIO_INHERIT,
+        _SC_THREAD_PRIO_PROTECT,
+        _SC_THREAD_PROCESS_SHARED,
+
+        _SC_NPROCESSORS_CONF,
+        _SC_NPROCESSORS_ONLN,
+        _SC_PHYS_PAGES,
+        _SC_AVPHYS_PAGES,
+        _SC_ATEXIT_MAX,
+        _SC_PASS_MAX,
+
+        _SC_XOPEN_VERSION,
+        _SC_XOPEN_XCU_VERSION,
+        _SC_XOPEN_UNIX,
+        _SC_XOPEN_CRYPT,
+        _SC_XOPEN_ENH_I18N,
+        _SC_XOPEN_SHM,
+
+        _SC_2_CHAR_TERM,
+        _SC_2_UPE = 97,
+
+        _SC_XOPEN_XPG2,
+        _SC_XOPEN_XPG3,
+        _SC_XOPEN_XPG4,
+
+        _SC_NZERO = 109,
+
+        _SC_XBS5_ILP32_OFF32 = 125,
+        _SC_XBS5_ILP32_OFFBIG,
+        _SC_XBS5_LP64_OFF64,
+        _SC_XBS5_LPBIG_OFFBIG,
+
+        _SC_XOPEN_LEGACY,
+        _SC_XOPEN_REALTIME,
+        _SC_XOPEN_REALTIME_THREADS,
+
+        _SC_ADVISORY_INFO,
+        _SC_BARRIERS,
+        _SC_CLOCK_SELECTION = 137,
+        _SC_CPUTIME,
+        _SC_THREAD_CPUTIME,
+        _SC_MONOTONIC_CLOCK = 149,
+        _SC_READER_WRITER_LOCKS = 153,
+        _SC_SPIN_LOCKS,
+        _SC_REGEXP,
+        _SC_SHELL = 157,
+        _SC_SPAWN = 159,
+        _SC_SPORADIC_SERVER,
+        _SC_THREAD_SPORADIC_SERVER,
+        _SC_TIMEOUTS = 164,
+        _SC_TYPED_MEMORY_OBJECTS,
+        _SC_2_PBS = 168,
+        _SC_2_PBS_ACCOUNTING,
+        _SC_2_PBS_LOCATE,
+        _SC_2_PBS_MESSAGE,
+        _SC_2_PBS_TRACK,
+        _SC_SYMLOOP_MAX,
+        _SC_STREAMS,
+        _SC_2_PBS_CHECKPOINT,
+
+        _SC_V6_ILP32_OFF32,
+        _SC_V6_ILP32_OFFBIG,
+        _SC_V6_LP64_OFF64,
+        _SC_V6_LPBIG_OFFBIG,
+
+        _SC_HOST_NAME_MAX,
+        _SC_TRACE,
+        _SC_TRACE_EVENT_FILTER,
+        _SC_TRACE_INHERIT,
+        _SC_TRACE_LOG,
+
+        _SC_IPV6 = 235,
+        _SC_RAW_SOCKETS,
+        _SC_V7_ILP32_OFF32,
+        _SC_V7_ILP32_OFFBIG,
+        _SC_V7_LP64_OFF64,
+        _SC_V7_LPBIG_OFFBIG,
+        _SC_SS_REPL_MAX,
+        _SC_TRACE_EVENT_NAME_MAX,
+        _SC_TRACE_NAME_MAX,
+        _SC_TRACE_SYS_MAX,
+        _SC_TRACE_USER_EVENT_MAX,
+        _SC_XOPEN_STREAMS,
+        _SC_THREAD_ROBUST_PRIO_INHERIT,
+        _SC_THREAD_ROBUST_PRIO_PROTECT
+    }
+}
+else version( CRuntime_UClibc )
+{
+    enum F_OK       = 0;
+    enum R_OK       = 4;
+    enum W_OK       = 2;
+    enum X_OK       = 1;
+
+    enum F_ULOCK    = 0;
+    enum F_LOCK     = 1;
+    enum F_TLOCK    = 2;
+    enum F_TEST     = 3;
+
+    enum
+    {
+        _CS_PATH,
+
+        _CS_V6_WIDTH_RESTRICTED_ENVS,
+
+        _CS_GNU_LIBC_VERSION,
+        _CS_GNU_LIBPTHREAD_VERSION,
+
+        _CS_LFS_CFLAGS = 1000,
+        _CS_LFS_LDFLAGS,
+        _CS_LFS_LIBS,
+        _CS_LFS_LINTFLAGS,
+        _CS_LFS64_CFLAGS,
+        _CS_LFS64_LDFLAGS,
+        _CS_LFS64_LIBS,
+        _CS_LFS64_LINTFLAGS,
+
+        _CS_XBS5_ILP32_OFF32_CFLAGS = 1100,
+        _CS_XBS5_ILP32_OFF32_LDFLAGS,
+        _CS_XBS5_ILP32_OFF32_LIBS,
+        _CS_XBS5_ILP32_OFF32_LINTFLAGS,
+        _CS_XBS5_ILP32_OFFBIG_CFLAGS,
+        _CS_XBS5_ILP32_OFFBIG_LDFLAGS,
+        _CS_XBS5_ILP32_OFFBIG_LIBS,
+        _CS_XBS5_ILP32_OFFBIG_LINTFLAGS,
+        _CS_XBS5_LP64_OFF64_CFLAGS,
+        _CS_XBS5_LP64_OFF64_LDFLAGS,
+        _CS_XBS5_LP64_OFF64_LIBS,
+        _CS_XBS5_LP64_OFF64_LINTFLAGS,
+        _CS_XBS5_LPBIG_OFFBIG_CFLAGS,
+        _CS_XBS5_LPBIG_OFFBIG_LDFLAGS,
+        _CS_XBS5_LPBIG_OFFBIG_LIBS,
+        _CS_XBS5_LPBIG_OFFBIG_LINTFLAGS,
+
+        _CS_POSIX_V6_ILP32_OFF32_CFLAGS,
+        _CS_POSIX_V6_ILP32_OFF32_LDFLAGS,
+        _CS_POSIX_V6_ILP32_OFF32_LIBS,
+        _CS_POSIX_V6_ILP32_OFF32_LINTFLAGS,
+        _CS_POSIX_V6_ILP32_OFFBIG_CFLAGS,
+        _CS_POSIX_V6_ILP32_OFFBIG_LDFLAGS,
+        _CS_POSIX_V6_ILP32_OFFBIG_LIBS,
+        _CS_POSIX_V6_ILP32_OFFBIG_LINTFLAGS,
+        _CS_POSIX_V6_LP64_OFF64_CFLAGS,
+        _CS_POSIX_V6_LP64_OFF64_LDFLAGS,
+        _CS_POSIX_V6_LP64_OFF64_LIBS,
+        _CS_POSIX_V6_LP64_OFF64_LINTFLAGS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_CFLAGS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LDFLAGS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LIBS,
+        _CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS
+    }
+
+    enum
+    {
+        _PC_LINK_MAX,
+        _PC_MAX_CANON,
+        _PC_MAX_INPUT,
+        _PC_NAME_MAX,
+        _PC_PATH_MAX,
+        _PC_PIPE_BUF,
+        _PC_CHOWN_RESTRICTED,
+        _PC_NO_TRUNC,
+        _PC_VDISABLE,
+        _PC_SYNC_IO,
+        _PC_ASYNC_IO,
+        _PC_PRIO_IO,
+        _PC_SOCK_MAXBUF,
+        _PC_FILESIZEBITS,
+        _PC_REC_INCR_XFER_SIZE,
+        _PC_REC_MAX_XFER_SIZE,
+        _PC_REC_MIN_XFER_SIZE,
+        _PC_REC_XFER_ALIGN,
+        _PC_ALLOC_SIZE_MIN,
+        _PC_SYMLINK_MAX,
+        _PC_2_SYMLINKS
+    }
+
+    enum
+    {
+        _SC_ARG_MAX,
+        _SC_CHILD_MAX,
+        _SC_CLK_TCK,
+        _SC_NGROUPS_MAX,
+        _SC_OPEN_MAX,
+        _SC_STREAM_MAX,
+        _SC_TZNAME_MAX,
+        _SC_JOB_CONTROL,
+        _SC_SAVED_IDS,
+        _SC_REALTIME_SIGNALS,
+        _SC_PRIORITY_SCHEDULING,
+        _SC_TIMERS,
+        _SC_ASYNCHRONOUS_IO,
+        _SC_PRIORITIZED_IO,
+        _SC_SYNCHRONIZED_IO,
+        _SC_FSYNC,
+        _SC_MAPPED_FILES,
+        _SC_MEMLOCK,
+        _SC_MEMLOCK_RANGE,
+        _SC_MEMORY_PROTECTION,
+        _SC_MESSAGE_PASSING,
+        _SC_SEMAPHORES,
+        _SC_SHARED_MEMORY_OBJECTS,
+        _SC_AIO_LISTIO_MAX,
+        _SC_AIO_MAX,
+        _SC_AIO_PRIO_DELTA_MAX,
+        _SC_DELAYTIMER_MAX,
+        _SC_MQ_OPEN_MAX,
+        _SC_MQ_PRIO_MAX,
+        _SC_VERSION,
+        _SC_PAGESIZE,
+        _SC_PAGE_SIZE = _SC_PAGESIZE,
+        _SC_RTSIG_MAX,
+        _SC_SEM_NSEMS_MAX,
+        _SC_SEM_VALUE_MAX,
+        _SC_SIGQUEUE_MAX,
+        _SC_TIMER_MAX,
+
+        _SC_BC_BASE_MAX,
+        _SC_BC_DIM_MAX,
+        _SC_BC_SCALE_MAX,
+        _SC_BC_STRING_MAX,
+        _SC_COLL_WEIGHTS_MAX,
+        _SC_EQUIV_CLASS_MAX,
+        _SC_EXPR_NEST_MAX,
+        _SC_LINE_MAX,
+        _SC_RE_DUP_MAX,
+        _SC_CHARCLASS_NAME_MAX,
+
+        _SC_2_VERSION,
+        _SC_2_C_BIND,
+        _SC_2_C_DEV,
+        _SC_2_FORT_DEV,
+        _SC_2_FORT_RUN,
+        _SC_2_SW_DEV,
+        _SC_2_LOCALEDEF,
+
+        _SC_PII,
+        _SC_PII_XTI,
+        _SC_PII_SOCKET,
+        _SC_PII_INTERNET,
+        _SC_PII_OSI,
+        _SC_POLL,
+        _SC_SELECT,
+        _SC_UIO_MAXIOV,
+        _SC_IOV_MAX = _SC_UIO_MAXIOV,
+        _SC_PII_INTERNET_STREAM,
+        _SC_PII_INTERNET_DGRAM,
+        _SC_PII_OSI_COTS,
+        _SC_PII_OSI_CLTS,
+        _SC_PII_OSI_M,
+        _SC_T_IOV_MAX,
+
+        _SC_THREADS,
+        _SC_THREAD_SAFE_FUNCTIONS,
+        _SC_GETGR_R_SIZE_MAX,
+        _SC_GETPW_R_SIZE_MAX,
+        _SC_LOGIN_NAME_MAX,
+        _SC_TTY_NAME_MAX,
+        _SC_THREAD_DESTRUCTOR_ITERATIONS,
+        _SC_THREAD_KEYS_MAX,
+        _SC_THREAD_STACK_MIN,
+        _SC_THREAD_THREADS_MAX,
+        _SC_THREAD_ATTR_STACKADDR,
+        _SC_THREAD_ATTR_STACKSIZE,
+        _SC_THREAD_PRIORITY_SCHEDULING,
+        _SC_THREAD_PRIO_INHERIT,
+        _SC_THREAD_PRIO_PROTECT,
+        _SC_THREAD_PROCESS_SHARED,
+
+        _SC_NPROCESSORS_CONF,
+        _SC_NPROCESSORS_ONLN,
+        _SC_PHYS_PAGES,
+        _SC_AVPHYS_PAGES,
+        _SC_ATEXIT_MAX,
+        _SC_PASS_MAX,
+
+        _SC_XOPEN_VERSION,
+        _SC_XOPEN_XCU_VERSION,
+        _SC_XOPEN_UNIX,
+        _SC_XOPEN_CRYPT,
+        _SC_XOPEN_ENH_I18N,
+        _SC_XOPEN_SHM,
+
+        _SC_2_CHAR_TERM,
+        _SC_2_C_VERSION,
+        _SC_2_UPE,
+
+        _SC_XOPEN_XPG2,
+        _SC_XOPEN_XPG3,
+        _SC_XOPEN_XPG4,
+
+        _SC_CHAR_BIT,
+        _SC_CHAR_MAX,
+        _SC_CHAR_MIN,
+        _SC_INT_MAX,
+        _SC_INT_MIN,
+        _SC_LONG_BIT,
+        _SC_WORD_BIT,
+        _SC_MB_LEN_MAX,
+        _SC_NZERO,
+        _SC_SSIZE_MAX,
+        _SC_SCHAR_MAX,
+        _SC_SCHAR_MIN,
+        _SC_SHRT_MAX,
+        _SC_SHRT_MIN,
+        _SC_UCHAR_MAX,
+        _SC_UINT_MAX,
+        _SC_ULONG_MAX,
+        _SC_USHRT_MAX,
+
+        _SC_NL_ARGMAX,
+        _SC_NL_LANGMAX,
+        _SC_NL_MSGMAX,
+        _SC_NL_NMAX,
+        _SC_NL_SETMAX,
+        _SC_NL_TEXTMAX,
+
+        _SC_XBS5_ILP32_OFF32,
+        _SC_XBS5_ILP32_OFFBIG,
+        _SC_XBS5_LP64_OFF64,
+        _SC_XBS5_LPBIG_OFFBIG,
+
+        _SC_XOPEN_LEGACY,
+        _SC_XOPEN_REALTIME,
+        _SC_XOPEN_REALTIME_THREADS,
+
+        _SC_ADVISORY_INFO,
+        _SC_BARRIERS,
+        _SC_BASE,
+        _SC_C_LANG_SUPPORT,
+        _SC_C_LANG_SUPPORT_R,
+        _SC_CLOCK_SELECTION,
+        _SC_CPUTIME,
+        _SC_THREAD_CPUTIME,
+        _SC_DEVICE_IO,
+        _SC_DEVICE_SPECIFIC,
+        _SC_DEVICE_SPECIFIC_R,
+        _SC_FD_MGMT,
+        _SC_FIFO,
+        _SC_PIPE,
+        _SC_FILE_ATTRIBUTES,
+        _SC_FILE_LOCKING,
+        _SC_FILE_SYSTEM,
+        _SC_MONOTONIC_CLOCK,
+        _SC_MULTI_PROCESS,
+        _SC_SINGLE_PROCESS,
+        _SC_NETWORKING,
+        _SC_READER_WRITER_LOCKS,
+        _SC_SPIN_LOCKS,
+        _SC_REGEXP,
+        _SC_REGEX_VERSION,
+        _SC_SHELL,
+        _SC_SIGNALS,
+        _SC_SPAWN,
+        _SC_SPORADIC_SERVER,
+        _SC_THREAD_SPORADIC_SERVER,
+        _SC_SYSTEM_DATABASE,
+        _SC_SYSTEM_DATABASE_R,
+        _SC_TIMEOUTS,
+        _SC_TYPED_MEMORY_OBJECTS,
+        _SC_USER_GROUPS,
+        _SC_USER_GROUPS_R,
+        _SC_2_PBS,
+        _SC_2_PBS_ACCOUNTING,
+        _SC_2_PBS_LOCATE,
+        _SC_2_PBS_MESSAGE,
+        _SC_2_PBS_TRACK,
+        _SC_SYMLOOP_MAX,
+        _SC_STREAMS,
+        _SC_2_PBS_CHECKPOINT,
+
+        _SC_V6_ILP32_OFF32,
+        _SC_V6_ILP32_OFFBIG,
+        _SC_V6_LP64_OFF64,
+        _SC_V6_LPBIG_OFFBIG,
+
+        _SC_HOST_NAME_MAX,
+        _SC_TRACE,
+        _SC_TRACE_EVENT_FILTER,
+        _SC_TRACE_INHERIT,
+        _SC_TRACE_LOG,
+
+        _SC_LEVEL1_ICACHE_SIZE,
+        _SC_LEVEL1_ICACHE_ASSOC,
+        _SC_LEVEL1_ICACHE_LINESIZE,
+        _SC_LEVEL1_DCACHE_SIZE,
+        _SC_LEVEL1_DCACHE_ASSOC,
+        _SC_LEVEL1_DCACHE_LINESIZE,
+        _SC_LEVEL2_CACHE_SIZE,
+        _SC_LEVEL2_CACHE_ASSOC,
+        _SC_LEVEL2_CACHE_LINESIZE,
+        _SC_LEVEL3_CACHE_SIZE,
+        _SC_LEVEL3_CACHE_ASSOC,
+        _SC_LEVEL3_CACHE_LINESIZE,
+        _SC_LEVEL4_CACHE_SIZE,
+        _SC_LEVEL4_CACHE_ASSOC,
+        _SC_LEVEL4_CACHE_LINESIZE,
+
+        _SC_IPV6 = _SC_LEVEL1_ICACHE_SIZE + 50,
+        _SC_RAW_SOCKETS
+    }
+}
 
 //
 // File Synchronization (FSC)
@@ -1261,11 +2006,23 @@ else version(NetBSD)
 {
     int fsync(int) @trusted;
 }
+else version( DragonFlyBSD )
+{
+    int fsync(int) @trusted;
+}
 else version( CRuntime_Bionic )
 {
     int fsync(int) @trusted;
 }
+else version( CRuntime_Musl )
+{
+    int fsync(int) @trusted;
+}
 else version( Solaris )
+{
+    int fsync(int) @trusted;
+}
+else version( CRuntime_UClibc )
 {
     int fsync(int) @trusted;
 }
@@ -1286,6 +2043,10 @@ else version( Solaris )
     int fdatasync(int) @trusted;
 }
 else version( CRuntime_Bionic )
+{
+    int fdatasync(int) @trusted;
+}
+else version( CRuntime_UClibc )
 {
     int fdatasync(int) @trusted;
 }
@@ -1365,6 +2126,12 @@ version( CRuntime_Glibc )
     int        truncate(in char*, off_t);
   }
 }
+else version( CRuntime_Musl )
+{
+    int fchdir(int) @trusted;
+    int lockf(int, int, off_t);
+    alias lockf lockf64;
+}
 else version( Darwin )
 {
     char*      crypt(in char*, in char*);
@@ -1416,6 +2183,31 @@ else version( FreeBSD )
     pid_t      vfork();
 }
 else version(NetBSD)
+{
+    char*      crypt(in char*, in char*);
+    //char*      ctermid(char*);
+    void       encrypt(ref char[64], int) @trusted;
+    int        fchdir(int) @trusted;
+    c_long     gethostid() @trusted;
+    int        getpgid(pid_t) @trusted;
+    int        getsid(pid_t) @trusted;
+    char*      getwd(char*); // LEGACY
+    int        lchown(in char*, uid_t, gid_t);
+    int        lockf(int, int, off_t) @trusted;
+    int        nice(int) @trusted;
+    ssize_t    pread(int, void*, size_t, off_t);
+    ssize_t    pwrite(int, in void*, size_t, off_t);
+    int        setpgrp(pid_t, pid_t) @trusted;
+    int        setregid(gid_t, gid_t) @trusted;
+    int        setreuid(uid_t, uid_t) @trusted;
+    void       swab(in void*, void*, ssize_t);
+    void       sync() @trusted;
+    int        truncate(in char*, off_t);
+    useconds_t ualarm(useconds_t, useconds_t) @trusted;
+    int        usleep(useconds_t) @trusted;
+    pid_t      vfork();
+}
+else version( DragonFlyBSD )
 {
     char*      crypt(in char*, in char*);
     //char*      ctermid(char*);
@@ -1515,4 +2307,47 @@ else version( Solaris )
             int        truncate(in char*, off_t);
         }
     }
+}
+else version( CRuntime_UClibc )
+{
+    char*      crypt(in char*, in char*);
+    char*      ctermid(char*);
+    void       encrypt(ref char[64], int) @trusted;
+    int        fchdir(int) @trusted;
+    c_long     gethostid() @trusted;
+    pid_t      getpgid(pid_t) @trusted;
+    pid_t      getsid(pid_t) @trusted;
+    char*      getwd(char*); // LEGACY
+    int        lchown(in char*, uid_t, gid_t);
+    int        nice(int) @trusted;
+    pid_t      setpgrp() @trusted;
+    int        setregid(gid_t, gid_t) @trusted;
+    int        setreuid(uid_t, uid_t) @trusted;
+    void       swab(in void*, void*, ssize_t);
+    void       sync() @trusted;
+    useconds_t ualarm(useconds_t, useconds_t) @trusted;
+    int        usleep(useconds_t) @trusted;
+    pid_t      vfork();
+
+  static if( __USE_FILE_OFFSET64 )
+  {
+    int        lockf64(int, int, off_t) @trusted;
+    alias      lockf64 lockf;
+
+    ssize_t    pread64(int, void*, size_t, off_t);
+    alias      pread64 pread;
+
+    ssize_t    pwrite64(int, in void*, size_t, off_t);
+    alias      pwrite64 pwrite;
+
+    int        truncate64(in char*, off_t);
+    alias      truncate64 truncate;
+  }
+  else
+  {
+    int        lockf(int, int, off_t) @trusted;
+    ssize_t    pread(int, void*, size_t, off_t);
+    ssize_t    pwrite(int, in void*, size_t, off_t);
+    int        truncate(in char*, off_t);
+  }
 }

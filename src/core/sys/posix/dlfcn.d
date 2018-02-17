@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -225,6 +225,27 @@ else version( OpenBSD )
         void*        dli_saddr;
     }
 }
+else version( DragonFlyBSD )
+{
+    enum RTLD_LAZY      = 1;
+    enum RTLD_NOW       = 2;
+    enum RTLD_GLOBAL    = 0x100;
+    enum RTLD_LOCAL     = 0;
+
+    int   dlclose(void*);
+    char* dlerror();
+    void* dlopen(in char*, int);
+    void* dlsym(void*, in char*);
+    int   dladdr(const(void)* addr, Dl_info* info);
+
+    struct Dl_info
+    {
+        const(char)* dli_fname;
+        void*        dli_fbase;
+        const(char)* dli_sname;
+        void*        dli_saddr;
+    }
+}
 else version( Solaris )
 {
     enum RTLD_LAZY      = 1;
@@ -269,4 +290,59 @@ else version( CRuntime_Bionic )
         const(char)* dli_sname;
         void*        dli_saddr;
     }
+}
+else version( CRuntime_Musl )
+{
+    enum {
+        RTLD_LAZY     = 1,
+        RTLD_NOW      = 2,
+        RTLD_NOLOAD   = 4,
+        RTLD_NODELETE = 4096,
+        RTLD_GLOBAL   = 256,
+        RTLD_LOCAL    = 0,
+    }
+    int          dlclose(void*);
+    const(char)* dlerror();
+    void*        dlopen(in char*, int);
+    void*        dlsym(void*, in char*);
+}
+else version( CRuntime_UClibc )
+{
+    version (X86_64)
+    {
+        enum RTLD_LAZY              = 0x0001;
+        enum RTLD_NOW               = 0x0002;
+        enum RTLD_BINDING_MASK      = 0x3;
+        enum RTLD_NOLOAD            = 0x00004;
+        enum RTLD_GLOBAL            = 0x00100;
+        enum RTLD_LOCAL             = 0;
+        enum RTLD_NODELETE          = 0x01000;
+    }
+    else version (MIPS32)
+    {
+        enum RTLD_LAZY              = 0x0001;
+        enum RTLD_NOW               = 0x0002;
+        enum RTLD_BINDING_MASK      = 0x3;
+        enum RTLD_NOLOAD            = 0x00008;
+        enum RTLD_GLOBAL            = 0x0004;
+        enum RTLD_LOCAL             = 0;
+        enum RTLD_NODELETE          = 0x01000;
+    }
+    else version (ARM)
+    {
+        enum RTLD_LAZY              = 0x0001;
+        enum RTLD_NOW               = 0x0002;
+        enum RTLD_BINDING_MASK      = 0x3;
+        enum RTLD_NOLOAD            = 0x00004;
+        enum RTLD_GLOBAL            = 0x00100;
+        enum RTLD_LOCAL             = 0;
+        enum RTLD_NODELETE          = 0x01000;
+    }
+    else
+        static assert(0, "unimplemented");
+
+    int   dlclose(void*);
+    char* dlerror();
+    void* dlopen(in char*, int);
+    void* dlsym(void*, in char*);
 }

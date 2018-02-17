@@ -103,11 +103,23 @@ else version( OpenBSD )
 {
     enum clock_t CLOCKS_PER_SEC = 100;
 }
+else version( DragonFlyBSD )
+{
+    enum clock_t CLOCKS_PER_SEC = 128;
+}
 else version (CRuntime_Glibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
 }
+else version (CRuntime_Musl)
+{
+    enum clock_t CLOCKS_PER_SEC = 1_000_000;
+}
 else version (CRuntime_Bionic)
+{
+    enum clock_t CLOCKS_PER_SEC = 1_000_000;
+}
+else version (CRuntime_UClibc)
 {
     enum clock_t CLOCKS_PER_SEC = 1_000_000;
 }
@@ -180,6 +192,13 @@ else version( OpenBSD )
     ///
     extern __gshared const(char)*[2] tzname; // non-standard
 }
+else version( DragonFlyBSD )
+{
+    ///
+    void tzset();                            // non-standard
+    ///
+    extern __gshared const(char)*[2] tzname; // non-standard
+}
 else version (Solaris)
 {
     ///
@@ -188,6 +207,20 @@ else version (Solaris)
     extern __gshared const(char)*[2] tzname;
 }
 else version( CRuntime_Bionic )
+{
+    ///
+    void tzset();
+    ///
+    extern __gshared const(char)*[2] tzname;
+}
+else version( CRuntime_Musl )
+{
+    ///
+    void tzset();                            // non-standard
+    ///
+    extern __gshared const(char)*[2] tzname; // non-standard
+}
+else version( CRuntime_UClibc )
 {
     ///
     void tzset();

@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -126,6 +126,23 @@ else version( OpenBSD )
         time_t  pw_expire;      /* account expiration */
     }
 }
+else version( DragonFlyBSD )
+{
+    struct passwd
+    {
+        char*   pw_name;        /* user name */
+        char*   pw_passwd;      /* encrypted password */
+        uid_t   pw_uid;         /* user uid */
+        gid_t   pw_gid;         /* user gid */
+        time_t  pw_change;      /* password change time */
+        char*   pw_class;       /* user access class */
+        char*   pw_gecos;       /* Honeywell login info */
+        char*   pw_dir;         /* home directory */
+        char*   pw_shell;       /* default shell */
+        time_t  pw_expire;      /* account expiration */
+        int pw_fields;          /* internal: fields filled in */
+    }
+}
 else version (Solaris)
 {
     struct passwd
@@ -149,6 +166,31 @@ else version( CRuntime_Bionic )
         char*   pw_passwd;
         uid_t   pw_uid;
         gid_t   pw_gid;
+        char*   pw_dir;
+        char*   pw_shell;
+    }
+}
+else version( CRuntime_Musl )
+{
+    struct passwd {
+        char *pw_name;
+        char *pw_passwd;
+        uid_t pw_uid;
+        gid_t pw_gid;
+        char *pw_gecos;
+        char *pw_dir;
+        char *pw_shell;
+    }
+}
+else version( CRuntime_UClibc )
+{
+    struct passwd
+    {
+        char*   pw_name;
+        char*   pw_passwd;
+        uid_t   pw_uid;
+        gid_t   pw_gid;
+        char*   pw_gecos;
         char*   pw_dir;
         char*   pw_shell;
     }
@@ -196,13 +238,30 @@ else version( OpenBSD )
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
-else version (Solaris)
+else version( DragonFlyBSD )
 {
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
+else version (Solaris)
+{
+    alias getpwnam_r = __posix_getpwnam_r;
+    alias getpwuid_r = __posix_getpwuid_r;
+
+    // POSIX.1c standard version of the functions
+    int __posix_getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int __posix_getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
+}
 else version( CRuntime_Bionic )
 {
+}
+else version( CRuntime_Musl )
+{
+}
+else version( CRuntime_UClibc )
+{
+    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
 else
 {
@@ -248,6 +307,12 @@ else version ( OpenBSD )
     passwd* getpwent();
     void    setpwent();
 }
+else version ( DragonFlyBSD )
+{
+    void    endpwent();
+    passwd* getpwent();
+    void    setpwent();
+}
 else version (Solaris)
 {
     void endpwent();
@@ -257,6 +322,17 @@ else version (Solaris)
 else version ( CRuntime_Bionic )
 {
     void    endpwent();
+}
+else version( CRuntime_Musl )
+{
+    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
+}
+else version( CRuntime_UClibc )
+{
+    void    endpwent();
+    passwd* getpwent();
+    void    setpwent();
 }
 else
 {

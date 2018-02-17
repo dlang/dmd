@@ -28,6 +28,11 @@ extern (C):
 nothrow:
 @nogc:
 
+version (PPC)
+    version = PPC_Any;
+else version (PPC64)
+    version = PPC_Any;
+
 version( MinGW )
     version = GNUFP;
 version( CRuntime_Glibc )
@@ -120,7 +125,7 @@ version( GNUFP )
         alias fexcept_t = uint;
     }
     // https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/powerpc/bits/fenv.h
-    else version (PPC64)
+    else version (PPC_Any)
     {
         alias fenv_t = double;
         alias fexcept_t = uint;
@@ -258,6 +263,24 @@ else version ( OpenBSD )
 
     alias fexcept_t = uint;
 }
+else version ( DragonFlyBSD )
+{
+    struct fenv_t
+    {
+        struct _x87
+        {
+                uint control;
+                uint status;
+                uint tag;
+                uint[4] others;
+        };
+        _x87 x87;
+
+        uint mxcsr;
+    }
+
+    alias uint fexcept_t;
+}
 else version( CRuntime_Bionic )
 {
     version(X86)
@@ -303,6 +326,90 @@ else version( Solaris )
     }
 
     alias int fexcept_t;
+}
+else version( CRuntime_Musl )
+{
+    version (X86_64)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+            uint   __mxcsr;
+        }
+        alias ushort fexcept_t;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+}
+else version( CRuntime_UClibc )
+{
+    version (X86)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else version (X86_64)
+    {
+        struct fenv_t
+        {
+            ushort __control_word;
+            ushort __unused1;
+            ushort __status_word;
+            ushort __unused2;
+            ushort __tags;
+            ushort __unused3;
+            uint   __eip;
+            ushort __cs_selector;
+            ushort __opcode;
+            uint   __data_offset;
+            ushort __data_selector;
+            ushort __unused5;
+            uint   __mxcsr;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else version(ARM)
+    {
+        struct fenv_t
+        {
+            uint __cw;
+        }
+
+        alias fexcept_t = uint;
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
 }
 else
 {
@@ -617,6 +724,12 @@ else version( OpenBSD )
     ///
     enum FE_DFL_ENV = &__fe_dfl_env;
 }
+else version( DragonFlyBSD )
+{
+    private extern const fenv_t __fe_dfl_env;
+    ///
+    enum FE_DFL_ENV = &__fe_dfl_env;
+}
 else version( CRuntime_Bionic )
 {
     private extern const fenv_t __fe_dfl_env;
@@ -628,6 +741,16 @@ else version( Solaris )
     private extern const fenv_t __fenv_def_env;
     ///
     enum FE_DFL_ENV = &__fenv_def_env;
+}
+else version( CRuntime_Musl )
+{
+    ///
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
+}
+else version( CRuntime_UClibc )
+{
+    ///
+    enum FE_DFL_ENV = cast(fenv_t*)(-1);
 }
 else
 {

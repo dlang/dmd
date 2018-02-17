@@ -53,6 +53,13 @@ else version (FreeBSD)
      */
     void __assert(const(char)* exp, const(char)* file, uint line);
 }
+else version (DragonFlyBSD)
+{
+    /***
+     * Assert failure function in the DragonFlyBSD C library.
+     */
+    void __assert(const(char)* exp, const(char)* file, uint line);
+}
 else version (CRuntime_Glibc)
 {
     /***
@@ -67,6 +74,21 @@ else version (CRuntime_Glibc)
 else version (CRuntime_Bionic)
 {
     void __assert(const(char)* __file, int __line, const(char)* __msg);
+}
+else version (CRuntime_Musl)
+{
+     /***
+     * Assert failure function in the Musl C library.
+     */
+    void __assert_fail(const(char)* exp, const(char)* file, uint line, const(char)* func);
+}
+else version (CRuntime_UClibc)
+{
+    void __assert(const(char)* exp, const(char)* file, uint line, const(char)* func);
+}
+else version (Solaris)
+{
+    void __assert_c99(const(char)* exp, const(char)* file, uint line, const(char)* func);
 }
 else
 {

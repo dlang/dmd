@@ -77,8 +77,11 @@ else version(Darwin)  enum RAND_MAX = 0x7fffffff;
 else version(FreeBSD) enum RAND_MAX = 0x7fffffff;
 else version(NetBSD)  enum RAND_MAX = 0x7fffffff;
 else version(OpenBSD) enum RAND_MAX = 0x7fffffff;
+else version(DragonFlyBSD) enum RAND_MAX = 0x7fffffff;
 else version(Solaris) enum RAND_MAX = 0x7fff;
 else version(CRuntime_Bionic) enum RAND_MAX = 0x7fffffff;
+else version(CRuntime_Musl) enum RAND_MAX = 0x7fffffff;
+else version(CRuntime_UClibc) enum RAND_MAX = 0x7fffffff;
 else static assert( false, "Unsupported platform" );
 
 ///
@@ -218,6 +221,11 @@ version( DigitalMars )
 else version( GNU )
 {
     void* alloca(size_t size) pure; // compiler intrinsic
+}
+else version( LDC )
+{
+    pragma(LDC_alloca)
+    void* alloca(size_t size) pure;
 }
 
 version( CRuntime_Microsoft )

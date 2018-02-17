@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -106,10 +106,40 @@ else version(NetBSD)
     if_nameindex_t* if_nameindex();
     void            if_freenameindex(if_nameindex_t*);
 }
+else version( DragonFlyBSD )
+{
+    struct if_nameindex_t
+    {
+        uint    if_index;
+        char*   if_name;
+    }
+
+    enum IF_NAMESIZE = 16;
+
+    uint            if_nametoindex(in char*);
+    char*           if_indextoname(uint, char*);
+    if_nameindex_t* if_nameindex();
+    void            if_freenameindex(if_nameindex_t*);
+}
 else version( CRuntime_Bionic )
 {
     enum IF_NAMESIZE = 16;
 
     uint            if_nametoindex(in char*);
     char*           if_indextoname(uint, char*);
+}
+else version( CRuntime_UClibc )
+{
+    struct if_nameindex_t
+    {
+        uint    if_index;
+        char*   if_name;
+    }
+
+    enum IF_NAMESIZE = 16;
+
+    uint            if_nametoindex(in char*);
+    char*           if_indextoname(uint, char*);
+    if_nameindex_t* if_nameindex();
+    void            if_freenameindex(if_nameindex_t*);
 }

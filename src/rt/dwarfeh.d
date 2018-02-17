@@ -413,13 +413,9 @@ extern (C) _Unwind_Reason_Code __dmd_personality_v0(int ver, _Unwind_Action acti
             {
                 //printf("chain\n");
                 // Append eh's object to ehn's object chain
-                Throwable n = ehn.object;
-                while (n.next)
-                    n = n.next;
-                n.next = eh.object;
+                // And replace our exception object with in-flight one
+                eh.object = Throwable.chainTogether(ehn.object, eh.object);
 
-                // Replace our exception object with in-flight one
-                eh.object = ehn.object;
                 if (ehn.handler != handler && !bypassed)
                 {
                     handler = ehn.handler;

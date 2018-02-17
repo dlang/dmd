@@ -1,7 +1,7 @@
 /**
  * D header file for POSIX.
  *
- * License: $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License: $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  */
 
 module core.sys.posix.sys.ttycom;

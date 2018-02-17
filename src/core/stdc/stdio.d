@@ -42,6 +42,10 @@ private
   {
     import core.sys.posix.sys.types;
   }
+  version (DragonFlyBSD)
+  {
+    import core.sys.posix.sys.types;
+  }
 }
 
 extern (C):
@@ -117,6 +121,24 @@ else version( CRuntime_Glibc )
         FILENAME_MAX = 4095,
         ///
         TMP_MAX      = 238328,
+        ///
+        L_tmpnam     = 20
+    }
+}
+else version( CRuntime_Musl )
+{
+    enum
+    {
+        ///
+        BUFSIZ       = 1024,
+        ///
+        EOF          = -1,
+        ///
+        FOPEN_MAX    = 1000,
+        ///
+        FILENAME_MAX = 4096,
+        ///
+        TMP_MAX      = 10000,
         ///
         L_tmpnam     = 20
     }
@@ -243,6 +265,45 @@ else version ( OpenBSD )
         long        __mbstateL;
     }
 }
+else version ( DragonFlyBSD )
+{
+    enum
+    {
+        BUFSIZ       = 1024,
+        EOF          = -1,
+        FOPEN_MAX    = 20,
+        FILENAME_MAX = 1024,
+        TMP_MAX      = 308915776,
+        L_tmpnam     = 1024
+    }
+
+    struct __sbuf {                     // <sys/sbuf.h>
+        byte*            s_buf;         // storage buffer
+        int function(void *, const char *, int) sbuf_drain_func;
+        void*            s_drain_arg;   // user-supplied drain argument
+        int              s_error;       // current error code
+        ssize_t          s_size;        // size of storage buffer
+        ssize_t          s_len;         // current length of string
+        int              s_flags;       // flags
+        ssize_t          s_sect_len;    // current length of section
+    };
+
+    enum {
+        SBUF_FIXEDLEN   = 0x00000000,   // fixed length buffer (default)
+        SBUF_AUTOEXTEND = 0x00000001,   // automatically extend buffer
+        SBUF_USRFLAGMSK = 0x0000ffff,   // mask of flags the user may specify
+        SBUF_DYNAMIC    = 0x00010000,   // s_buf must be freed
+        SBUF_FINISHED   = 0x00020000,   // set by sbuf_finish()
+        SBUF_DYNSTRUCT  = 0x00080000,   // sbuf must be freed
+        SBUF_INSECTION  = 0x00100000,   // set by sbuf_start_section()
+    }
+
+    union __mbstate_t                   // <sys/stdint.h>
+    {
+        char[128]   _mbstate8;
+        long        _mbstateL;
+    }
+}
 else version (Solaris)
 {
     enum
@@ -290,6 +351,24 @@ else version( CRuntime_Bionic )
     {
         ubyte* _base;
         int _size;
+    }
+}
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        ///
+        BUFSIZ       = 4096,
+        ///
+        EOF          = -1,
+        ///
+        FOPEN_MAX    = 16,
+        ///
+        FILENAME_MAX = 4095,
+        ///
+        TMP_MAX      = 238328,
+        ///
+        L_tmpnam     = 20
     }
 }
 else
@@ -380,6 +459,20 @@ else version( CRuntime_Glibc )
 
     ///
     alias _IO_FILE _iobuf;
+    ///
+    alias shared(_IO_FILE) FILE;
+}
+else version( CRuntime_Musl )
+{
+    union fpos_t
+    {
+        char[16] __opaque;
+        double __align;
+    }
+    struct _IO_FILE;
+
+    ///
+    alias _IO_FILE _iobuf; // needed for phobos
     ///
     alias shared(_IO_FILE) FILE;
 }
@@ -551,6 +644,24 @@ else version( OpenBSD )
     ///
     alias shared(__sFILE) FILE;
 }
+else version( DragonFlyBSD )
+{
+    alias off_t fpos_t;
+
+    /// See /usr/include/stdio.h
+    struct __FILE_public
+    {
+        ubyte*          *_p;            /* current position in (some) buffer */
+        int             _flags;         /* flags, below; this FILE is free if 0 */
+        int             _fileno;        /* fileno, if Unix descriptor, else -1 */
+        ssize_t         _r;             /* read space left for getc() */
+        ssize_t         _w;             /* write space left for putc() */
+        ssize_t         _lbfsize;       /* 0 or -_bf._size, for inline putc */
+    }
+
+    alias __FILE_public _iobuf;
+    alias shared(__FILE_public) FILE;
+}
 else version (Solaris)
 {
     import core.stdc.wchar_ : __mbstate_t;
@@ -638,6 +749,59 @@ else version( CRuntime_Bionic )
     alias __sFILE _iobuf;
     ///
     alias shared(__sFILE) FILE;
+}
+else version( CRuntime_UClibc )
+{
+    import core.stdc.wchar_ : mbstate_t;
+    import core.stdc.stddef : wchar_t;
+    import core.sys.posix.sys.types : ssize_t, pthread_mutex_t;
+
+    alias long off_t;
+
+    ///
+    struct fpos_t
+    {
+        off_t __pos;
+        mbstate_t __state;
+        int __mblen_pending;
+    }
+
+    struct _IO_cookie_io_functions_t
+    {
+       ssize_t function(void* __cookie, char* __buf, size_t __bufsize)          read;
+       ssize_t function(void* __cookie, const char* __buf, size_t __bufsize)    write;
+       int function(void* __cookie, off_t* __pos, int __whence)                 seek;
+       int function(void* __cookie)                                             close;
+    }
+
+    alias _IO_cookie_io_functions_t cookie_io_functions_t;
+
+    ///
+    struct __STDIO_FILE_STRUCT
+    {
+        ushort __modeflags;
+        char[2] __ungot_width;
+        int __filedes;
+        char* __bufstart;
+        char* __bufend;
+        char* __bufpos;
+        char* __bufread;
+        char* __bufgetc_u;
+        char*__bufputc_u;
+        __STDIO_FILE_STRUCT* __nextopen;
+        void *__cookie;
+        _IO_cookie_io_functions_t __gcs;
+        wchar_t[2] __ungot;
+        mbstate_t __state;
+        void *__unused;
+        int __user_locking;
+        pthread_mutex_t __lock;
+    }
+
+    ///
+    alias __STDIO_FILE_STRUCT _iobuf;
+    ///
+    alias shared(__STDIO_FILE_STRUCT) FILE;
 }
 else
 {
@@ -863,6 +1027,23 @@ else version( OpenBSD )
     ///
     shared stderr = &__sF[2];
 }
+else version( DragonFlyBSD )
+{
+    enum
+    {
+        _IOFBF = 0,
+        _IOLBF = 1,
+        _IONBF = 2,
+    }
+
+    private extern shared FILE* __stdinp;
+    private extern shared FILE* __stdoutp;
+    private extern shared FILE* __stderrp;
+
+    alias __stdinp  stdin;
+    alias __stdoutp stdout;
+    alias __stderrp stderr;
+}
 else version (Solaris)
 {
     enum
@@ -916,6 +1097,43 @@ else version( CRuntime_Bionic )
     shared stdout = &__sF[1];
     ///
     shared stderr = &__sF[2];
+}
+else version( CRuntime_Musl )
+{
+    // needs tail const
+    extern shared FILE* stdin;
+    ///
+    extern shared FILE* stdout;
+    ///
+    extern shared FILE* stderr;
+    enum
+    {
+        ///
+        _IOFBF = 0,
+        ///
+        _IOLBF = 1,
+        ///
+        _IONBF = 2,
+    }
+}
+else version( CRuntime_UClibc )
+{
+    enum
+    {
+        ///
+        _IOFBF = 0,
+        ///
+        _IOLBF = 1,
+        ///
+        _IONBF = 2,
+    }
+
+    ///
+    extern shared FILE* stdin;
+    ///
+    extern shared FILE* stdout;
+    ///
+    extern shared FILE* stderr;
 }
 else
 {
@@ -1372,6 +1590,37 @@ else version( OpenBSD )
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
 }
+else version( DragonFlyBSD )
+{
+  // No unsafe pointer manipulation.
+  @trusted
+  {
+    void rewind(FILE*);
+    pure void clearerr(FILE*);
+    pure int  feof(FILE*);
+    pure int  ferror(FILE*);
+    int  fileno(FILE*);
+  }
+  enum __SLBF = 0x0001;
+  enum __SNBF = 0x0002;
+  enum __SRD  = 0x0004;
+  enum __SWR  = 0x0008;
+  enum __SRW  = 0x0010;
+  enum __SEOF = 0x0020;
+  enum __SERR = 0x0040;
+  enum __SMBF = 0x0080;
+  enum __SAPP = 0x0100;
+  enum __SSTR = 0x0200;
+  enum __SOPT = 0x0400;
+  enum __SNPT = 0x0800;
+  enum __SOFF = 0x1000;
+  enum __SMOD = 0x2000;
+  enum __SALC = 0x4000;
+  enum __SIGN = 0x8000;
+
+  int  snprintf(scope char* s, size_t n, scope const char* format, ...);
+  int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
+}
 else version (Solaris)
 {
   // No unsafe pointer manipulation.
@@ -1412,6 +1661,52 @@ else version( CRuntime_Bionic )
   }
 
   ///
+    int  snprintf(scope char* s, size_t n, scope const char* format, ...);
+    ///
+    int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
+}
+else version( CRuntime_Musl )
+{
+    import core.sys.posix.sys.types : off_t;
+    ///
+    int fseeko(FILE *, off_t, int);
+    @trusted
+    {
+        ///
+        void rewind(FILE* stream);
+        ///
+        pure void clearerr(FILE* stream);
+        ///
+        pure int  feof(FILE* stream);
+        ///
+        pure int  ferror(FILE* stream);
+        ///
+        int  fileno(FILE *);
+    }
+
+    ///
+    int snprintf(scope char* s, size_t n, scope const char* format, ...);
+    ///
+    int vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);
+}
+else version( CRuntime_UClibc )
+{
+  // No unsafe pointer manipulation.
+  @trusted
+  {
+    ///
+    void rewind(FILE* stream);
+    ///
+    pure void clearerr(FILE* stream);
+    ///
+    pure int  feof(FILE* stream);
+    ///
+    pure int  ferror(FILE* stream);
+    ///
+    int  fileno(FILE *);
+  }
+
+    ///
     int  snprintf(scope char* s, size_t n, scope const char* format, ...);
     ///
     int  vsnprintf(scope char* s, size_t n, scope const char* format, va_list arg);

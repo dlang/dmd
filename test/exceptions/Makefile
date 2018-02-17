@@ -8,6 +8,9 @@ endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
 	TESTS:=$(TESTS) line_trace
 endif
+ifeq ($(OS)-$(BUILD),dragonflybsd-debug)
+	TESTS:=$(TESTS) line_trace
+endif
 
 DIFF:=diff
 SED:=sed

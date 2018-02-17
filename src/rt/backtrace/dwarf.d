@@ -5,17 +5,18 @@
  * Reference: http://www.dwarfstd.org/
  *
  * Copyright: Copyright Digital Mars 2015 - 2015.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Sean Kelly
  * Source: $(DRUNTIMESRC src/rt/backtrace/dwarf.d)
  */
 
 module rt.backtrace.dwarf;
 
-version(CRuntime_Glibc) version = linux_or_freebsd;
-else version(FreeBSD) version = linux_or_freebsd;
+version(CRuntime_Glibc) version = glibc_or_bsdlibc;
+else version(FreeBSD) version = glibc_or_bsdlibc;
+else version(DragonFlyBSD) version = glibc_or_bsdlibc;
 
-version(linux_or_freebsd):
+version(glibc_or_bsdlibc):
 
 import rt.util.container.array;
 import rt.backtrace.elf;
@@ -36,6 +37,7 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
     import core.stdc.stdio : snprintf;
     version(linux) import core.sys.linux.execinfo : backtrace_symbols;
     else version(FreeBSD) import core.sys.freebsd.execinfo : backtrace_symbols;
+    else version(DragonFlyBSD) import core.sys.dragonflybsd.execinfo : backtrace_symbols;
     import core.sys.posix.stdlib : free;
 
     const char** frameList = backtrace_symbols(callstack.ptr, cast(int) callstack.length);
@@ -386,6 +388,13 @@ const(char)[] getDemangledSymbol(const(char)[] btSymbol, ref char[1024] buffer)
         auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
     }
     else version(FreeBSD)
+    {
+        // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
+        auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);
+        auto eptr = cast(char*) memchr(btSymbol.ptr, '>', btSymbol.length);
+        auto pptr = cast(char*) memchr(btSymbol.ptr, '+', btSymbol.length);
+    }
+    else version(DragonFlyBSD)
     {
         // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
         auto bptr = cast(char*) memchr(btSymbol.ptr, '<', btSymbol.length);

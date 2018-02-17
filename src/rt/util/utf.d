@@ -14,7 +14,7 @@
  *      $(LINK http://anubis.dkuug.dk/JTC1/SC2/WG2/docs/n1335)
  *
  * Copyright: Copyright Digital Mars 2003 - 2016.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, Sean Kelly
  * Source:    $(DRUNTIMESRC src/rt/util/_utf.d)
  */
@@ -723,8 +723,14 @@ wstring toUTF16(in char[] s)
     wchar[] r;
     size_t slen = s.length;
 
-    r.length = slen;
-    r.length = 0;
+    if (!__ctfe)
+    {
+        // Reserve still does a lot if slen is zero.
+        // Return early for that case.
+        if (0 == slen)
+            return ""w;
+        r.reserve(slen);
+    }
     for (size_t i = 0; i < slen; )
     {
         dchar c = s[i];
@@ -750,8 +756,14 @@ wptr toUTF16z(in char[] s)
     wchar[] r;
     size_t slen = s.length;
 
-    r.length = slen + 1;
-    r.length = 0;
+    if (!__ctfe)
+    {
+        // Reserve still does a lot if slen is zero.
+        // Return early for that case.
+        if (0 == slen)
+            return &"\0"w[0];
+        r.reserve(slen + 1);
+    }
     for (size_t i = 0; i < slen; )
     {
         dchar c = s[i];
@@ -789,8 +801,14 @@ wstring toUTF16(in dchar[] s)
     wchar[] r;
     size_t slen = s.length;
 
-    r.length = slen;
-    r.length = 0;
+    if (!__ctfe)
+    {
+        // Reserve still does a lot if slen is zero.
+        // Return early for that case.
+        if (0 == slen)
+            return ""w;
+        r.reserve(slen);
+    }
     for (size_t i = 0; i < slen; i++)
     {
         encode(r, s[i]);

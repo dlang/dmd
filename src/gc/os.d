@@ -2,7 +2,7 @@
  * Contains OS-level routines needed by the garbage collector.
  *
  * Copyright: Copyright Digital Mars 2005 - 2013.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright, David Friedman, Sean Kelly, Leandro Lucarella
  */
 
@@ -40,6 +40,7 @@ else version (Posix)
 
     import core.sys.posix.sys.mman;
     version (FreeBSD) import core.sys.freebsd.sys.mman : MAP_ANON;
+    version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
     version (NetBSD) import core.sys.netbsd.sys.mman : MAP_ANON;
     version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
     version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;

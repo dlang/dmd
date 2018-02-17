@@ -1,11 +1,11 @@
 /**
  * Contains support code for code profiling.
  *
- * Copyright: Copyright Digital Mars 1995 - 2015.
+ * Copyright: Copyright Digital Mars 1995 - 2017.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
- * Authors:   Walter Bright, Sean Kelly
+ * Authors:   Walter Bright, Sean Kelly, the LDC team
  * Source: $(DRUNTIMESRC src/rt/_trace.d)
  */
 
@@ -289,18 +289,31 @@ private void trace_times(FILE* fplog, Symbol*[] psymbols)
     // Sort array
     qsort(psymbols.ptr, psymbols.length, (Symbol *).sizeof, &symbol_cmp);
 
-    // Print array
-    timer_t freq;
-    QueryPerformanceFrequency(&freq);
-    fprintf(fplog,"\n======== Timer Is %lld Ticks/Sec, Times are in Microsecs ========\n\n",freq);
+    // Print array header
+    timer_t time_scale;
+    static if (is(typeof(&QueryPerformanceFrequency)))
+    {
+        timer_t freq;
+        QueryPerformanceFrequency(&freq);
+        time_scale = freq / 1_000_000;
+        fprintf(fplog,"\n======== Timer Is %lld Ticks/Sec, Times are in Microsecs ========\n\n",freq);
+    }
+    else
+    {
+        // The exact frequency is unknown (and may vary), so do the reporting in Mega Ticks,
+        // which corresponds to 1 microsecond on a 1GHz clock.
+        time_scale = 1_000_000;
+        fprintf(fplog,"\n======== Timer frequency unknown, Times are in Megaticks ========\n\n");
+    }
     fprintf(fplog,"  Num          Tree        Func        Per\n");
     fprintf(fplog,"  Calls        Time        Time        Call\n\n");
+
+    // Print array
     foreach (s; psymbols)
     {
         timer_t tl,tr;
         timer_t fl,fr;
         timer_t pl,pr;
-        timer_t percall;
         char[8192] buf = void;
         SymPair* sp;
         ulong calls;
@@ -313,10 +326,9 @@ private void trace_times(FILE* fplog, Symbol*[] psymbols)
         if (calls == 0)
             calls = 1;
 
-        tl = (s.totaltime * 1000000) / freq;
-        fl = (s.functime  * 1000000) / freq;
-        percall = s.functime / calls;
-        pl = (s.functime * 1000000) / calls / freq;
+        tl = s.totaltime / time_scale;
+        fl = s.functime / time_scale;
+        pl = s.functime / calls / time_scale;
 
         fprintf(fplog,"%7llu%12lld%12lld%12lld     %.*s\n",
                       calls, tl, fl, pl, id.length, id.ptr);
@@ -827,11 +839,11 @@ version (Windows)
         export int QueryPerformanceFrequency(timer_t *);
     }
 }
-else version (D_InlineAsm_X86)
+else
 {
-    extern (D)
+    extern (D) void QueryPerformanceCounter(timer_t* ctr)
     {
-        void QueryPerformanceCounter(timer_t* ctr)
+        version (D_InlineAsm_X86)
         {
             asm
             {
@@ -843,18 +855,7 @@ else version (D_InlineAsm_X86)
                 ret                     ;
             }
         }
-
-        void QueryPerformanceFrequency(timer_t* freq)
-        {
-            *freq = 3579545;
-        }
-    }
-}
-else version (D_InlineAsm_X86_64)
-{
-    extern (D)
-    {
-        void QueryPerformanceCounter(timer_t* ctr)
+        else version (D_InlineAsm_X86_64)
         {
             asm
             {
@@ -865,14 +866,14 @@ else version (D_InlineAsm_X86_64)
                 ret                     ;
             }
         }
-
-        void QueryPerformanceFrequency(timer_t* freq)
+        else version (LDC)
         {
-            *freq = 3579545;
+            import ldc.intrinsics: llvm_readcyclecounter;
+            *ctr = llvm_readcyclecounter();
+        }
+        else
+        {
+            static assert(0);
         }
     }
-}
-else
-{
-    static assert(0);
 }

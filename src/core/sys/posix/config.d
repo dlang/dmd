@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly,
               Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
@@ -59,6 +59,32 @@ version (CRuntime_Glibc)
     enum __USE_ATFILE        = _ATFILE_SOURCE;
     enum __USE_GNU           = _GNU_SOURCE;
     enum __USE_REENTRANT     = _REENTRANT;
+
+    version(D_LP64)
+        enum __WORDSIZE=64;
+    else
+        enum __WORDSIZE=32;
+}
+else version (CRuntime_Musl)
+{
+    enum _FILE_OFFSET_BITS   = 64;
+
+    enum __REDIRECT          = false;
+
+    enum __USE_FILE_OFFSET64 = _FILE_OFFSET_BITS == 64;
+    enum __USE_LARGEFILE     = __USE_FILE_OFFSET64 && !__REDIRECT;
+    enum __USE_LARGEFILE64   = __USE_FILE_OFFSET64 && !__REDIRECT;
+
+    enum __WORDSIZE=64;
+}
+else version (CRuntime_UClibc)
+{
+    enum _FILE_OFFSET_BITS   = 64;
+    enum __REDIRECT          = false;
+
+    enum __USE_FILE_OFFSET64 = _FILE_OFFSET_BITS == 64;
+    enum __USE_LARGEFILE     = __USE_FILE_OFFSET64 && !__REDIRECT;
+    enum __USE_LARGEFILE64   = __USE_FILE_OFFSET64 && !__REDIRECT;
 
     version(D_LP64)
         enum __WORDSIZE=64;

@@ -169,6 +169,23 @@ else version(OpenBSD)
     ///
     enum LC_MESSAGES       = 6;
 }
+else version(DragonFlyBSD)
+{
+    ///
+    enum LC_ALL            = 0;
+    ///
+    enum LC_COLLATE        = 1;
+    ///
+    enum LC_CTYPE          = 2;
+    ///
+    enum LC_MONETARY       = 3;
+    ///
+    enum LC_NUMERIC        = 4;
+    ///
+    enum LC_TIME           = 5;
+    ///
+    enum LC_MESSAGES       = 6;
+}
 else version(CRuntime_Bionic)
 {
     enum
@@ -217,6 +234,52 @@ else version(Solaris)
     enum LC_MESSAGES    = 5;
     ///
     enum LC_ALL         = 6;
+}
+else version(CRuntime_Musl)
+{
+    ///
+    enum LC_CTYPE          = 0;
+    ///
+    enum LC_NUMERIC        = 1;
+    ///
+    enum LC_TIME           = 2;
+    ///
+    enum LC_COLLATE        = 3;
+    ///
+    enum LC_MONETARY       = 4;
+    ///
+    enum LC_MESSAGES       = 5;
+    ///
+    enum LC_ALL            = 6;
+}
+else version(CRuntime_UClibc)
+{
+    ///
+    enum LC_CTYPE          = 0;
+    ///
+    enum LC_NUMERIC        = 1;
+    ///
+    enum LC_TIME           = 2;
+    ///
+    enum LC_COLLATE        = 3;
+    ///
+    enum LC_MONETARY       = 4;
+    ///
+    enum LC_MESSAGES       = 5;
+    ///
+    enum LC_ALL            = 6;
+    ///
+    enum LC_PAPER          = 7;
+    ///
+    enum LC_NAME           = 8;
+    ///
+    enum LC_ADDRESS        = 9;
+    ///
+    enum LC_TELEPHONE      = 10;
+    ///
+    enum LC_MEASUREMENT    = 11;
+    ///
+    enum LC_IDENTIFICATION = 12;
 }
 else
 {

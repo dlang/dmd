@@ -2,7 +2,7 @@
  * D header file for POSIX.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+ * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sean Kelly
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
@@ -54,6 +54,16 @@ version( CRuntime_Glibc )
 
     int utime(in char*, in utimbuf*);
 }
+else version( CRuntime_Musl )
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(in char*, in utimbuf*);
+}
 else version( Darwin )
 {
     struct utimbuf
@@ -84,6 +94,16 @@ else version(NetBSD)
 
     int utime(in char*, in utimbuf*);
 }
+else version( DragonFlyBSD )
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(in char*, in utimbuf*);
+}
 else version( Solaris )
 {
     struct utimbuf
@@ -95,6 +115,16 @@ else version( Solaris )
     int utime(in char*, in utimbuf*);
 }
 else version( CRuntime_Bionic )
+{
+    struct utimbuf
+    {
+        time_t  actime;
+        time_t  modtime;
+    }
+
+    int utime(in char*, in utimbuf*);
+}
+else version( CRuntime_UClibc )
 {
     struct utimbuf
     {
