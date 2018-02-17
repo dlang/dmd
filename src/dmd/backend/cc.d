@@ -65,6 +65,19 @@ enum WM
     WM_undefined_inline = 30, // static inline not expanded or defined
 }
 
+/+
+static if (MEMMODELS == 1)
+{
+    enum LARGEDATA = 0;     // don't want 48 bit pointers
+    enum LARGECODE = 0;
+}
+else
+{
+    bool LARGEDATA() { return (config.memmodel & 6) != 0; }
+    bool LARGECODE() { return (config.memmodel & 5) != 0; }
+}
++/
+
 // Language for error messages
 enum LANG
 {
@@ -74,11 +87,6 @@ enum LANG
     LANGjapanese,
 }
 
-
-//#if MEMMODELS == 1
-//#define LARGEDATA 0     /* don't want 48 bit pointers */
-//#define LARGECODE 0
-//#endif
 
 //#if SPP || SCPP
 //#include        "msgs2.h"
@@ -92,16 +100,21 @@ enum LANG
 //#include        "list.h"
 //#include        "vec.h"
 
-//#if SPP
-//#define COMPILER "Preprocessor"
-//#define ACTIVITY "preprocessing..."
-//#elif HTOD
-//#define COMPILER ".h to D Migration Tool"
-//#define ACTIVITY "migrating..."
-//#else
-//#define COMPILER "C/C++ Compiler"
-//#define ACTIVITY "compiling..."
-//#endif
+version (SPP)
+{
+    enum COMPILER = "Preprocessor";
+    enum ACTIVITY = "preprocessing...";
+}
+else version (HTOD)
+{
+    enum COMPILER = ".h to D Migration Tool";
+    enum ACTIVITY = "migrating...";
+}
+else version (SCPP)
+{
+    enum COMPILER = "C/C++ Compiler";
+    enum ACTIVITY = "compiling...";
+}
 
 //#ifdef DEBUG
 //#   define debug(a)     (a)
@@ -138,8 +151,20 @@ enum STRMAX = 65000;           // max length of string (determined by
                                // max ph size)
 
 //enum SC;
-struct Thunk;
-struct token_t;
+struct Thunk
+{   Symbol *sfunc;
+    Symbol *sthunk;
+    targ_size_t d;
+    targ_size_t d2;
+    int i;
+}
+
+
+version (MARS)
+    struct token_t;
+else
+    import dtoken : token_t;
+
 //struct param_t;
 //struct block;
 //struct Classsym;
@@ -152,7 +177,10 @@ struct token_t;
 alias Funcsym = Symbol;
 //#if !MARS
 //typedef struct MACRO macro_t;
-struct blklst;
+version (MARS)
+    struct blklst;
+else
+    import parser : blklst;
 //#endif
 //typedef list_t symlist_t;       /* list of pointers to Symbols          */
 alias symlist_t = list_t;
@@ -161,18 +189,30 @@ alias enum_TK = ubyte;
 
 __gshared Config config;
 
+uint CPP() { return config.flags3 & CFG3cpp; }
+
+
 /////////// Position in source file
 
 struct Srcpos
 {
     uint Slinnum;           // 0 means no info available
     uint Scharnum;
-//#if SPP || SCPP
-//    struct Sfile **Sfilptr;     // file
-//    #define srcpos_sfile(p)     (**(p).Sfilptr)
-//    #define srcpos_name(p)      (srcpos_sfile(p).SFname)
-//    short Sfilnum;              // file number
-//#endif
+    version (SCPP)
+    {
+        Sfile **Sfilptr;            // file
+        short Sfilnum;              // file number
+    }
+    version (SPP)
+    {
+        Sfile **Sfilptr;            // file
+        short Sfilnum;              // file number
+    }
+    version (HTOD)
+    {
+        Sfile **Sfilptr;            // file
+        short Sfilnum;              // file number
+    }
 
     version (MARS)
     {
@@ -196,6 +236,23 @@ struct Srcpos
     static uint sizeCheck();
     unittest { assert(sizeCheck() == Srcpos.sizeof); }
 }
+
+version (SCPP)
+{
+    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
+    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
+}
+version (SPP)
+{
+    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
+    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
+}
+version (HTOD)
+{
+    static Sfile srcpos_sfile(Srcpos p) { return **(p).Sfilptr; }
+    static char* srcpos_name(Srcpos p)   { return srcpos_sfile(p).SFname; }
+}
+
 
 //#include "token.h"
 
@@ -317,6 +374,7 @@ struct Pstate
     unittest { assert(sizeCheck() == Pstate.sizeof); }
 }
 
+void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
 
 stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
@@ -462,6 +520,14 @@ struct block
             }                           // BCcatch
         }
 
+        version (HTOD)
+        {
+            struct
+            {
+                type *Bcatchtype;       // one type for each catch block
+            }                           // BCcatch
+        }
+
         version (MARS)
         {
             struct
@@ -473,7 +539,10 @@ struct block
 
         struct
         {
-            Symbol *jcatchvar;          // __d_throw() fills in this
+            version (MARS)
+            {
+                Symbol *jcatchvar;      // __d_throw() fills in this
+            }
             int Bscope_index;           // index into scope table
             int Blast_index;            // enclosing index into scope table
         }                               // BC_try
@@ -1164,11 +1233,9 @@ struct Symbol
 {
 //#ifdef DEBUG
     debug ushort      id;
-//#define IDsymbol 0x5678
-//#define symbol_debug(s) assert((s)->id == IDsymbol)
+    enum IDsymbol = 0x5678;
 //#define class_debug(s) assert((s)->id == IDsymbol)
 //#else
-//#define symbol_debug(s)
 //#define class_debug(s)
 //#endif
 
@@ -1178,7 +1245,7 @@ struct Symbol
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
     int Salignsize();           // variables: return alignment
     type* Stype;                // type of Symbol
-    //#define ty() Stype->Tty
+    tym_t ty() { return Stype.Tty; }
 
     union                       // variants for different Symbol types
     {
@@ -1201,6 +1268,15 @@ struct Symbol
         //#define Senumlist Senum->SEenumlist
 
         version (SCPP)
+        {
+            struct               // SClinkage
+            {
+                uint Slinkage;   // tym linkage bits
+                uint Smangle;
+            }
+        }
+
+        version (HTOD)
         {
             struct               // SClinkage
             {
@@ -1244,6 +1320,26 @@ struct Symbol
             Symbol* Simport ;       // SCextern: if dllimport Symbol, this is the
                                     // Symbol it was imported from
         }
+        version (HTOD)
+        {
+            struct                  // SCnamespace
+            {
+                Symbol* Snameroot;  // the Symbol table for the namespace
+                list_t Susing;      // other namespaces from using-directives
+            }
+            struct
+            {
+                Symbol* Smemalias;  // SCalias: pointer to Symbol to use instead
+                                    // (generated by using-declarations and
+                                    // namespace-alias-definitions)
+                                    // SCmemalias: pointer to member of base class
+                                    // to use instead (using-declarations)
+                symlist_t Spath;    // SCmemalias: path of classes to get to base
+                                    // class of which Salias is a member
+            }
+            Symbol* Simport ;       // SCextern: if dllimport Symbol, this is the
+                                    // Symbol it was imported from
+        }
 
         struct                  // SCfastpar, SCshadowreg
         {
@@ -1258,7 +1354,6 @@ struct Symbol
     Symbol *Sscope;             // enclosing scope (could be struct tag,
                                 // enclosing inline function for statics,
                                 // or namespace)
-//#define isclassmember(s)        ((s)->Sscope && (s)->Sscope->Sclass == SCstruct)
 //#endif
 
     version (SCPP)
@@ -1267,7 +1362,15 @@ struct Symbol
                                     // of the same identifier, Scover is the tag
                                     // Scover can be SCstruct, SCenum, SCtemplate
                                     // or an SCalias to them.
-        //#define isscover(s)             ((s)->Sclass == SCstruct || (s)->Sclass == SCenum || (s)->Sclass == SCtemplate)
+        uint Ssequence;             // sequence number (used for 2 level lookup)
+                                    // also used as 'parameter number' for SCTtemparg
+    }
+    version (HTOD)
+    {
+        Symbol *Scover;             // if there is a tag name and a regular name
+                                    // of the same identifier, Scover is the tag
+                                    // Scover can be SCstruct, SCenum, SCtemplate
+                                    // or an SCalias to them.
         uint Ssequence;             // sequence number (used for 2 level lookup)
                                     // also used as 'parameter number' for SCTtemparg
     }
@@ -1327,6 +1430,13 @@ struct Symbol
     unittest { assert(sizeCheck() == Symbol.sizeof); }
 }
 
+void symbol_debug(Symbol* s)
+{
+    debug assert(s.id == s.IDsymbol);
+}
+
+bool isclassmember(Symbol* s) { return s.Sscope && s.Sscope.Sclass == SCstruct; }
+
 // Class, struct or union
 
 alias Classsym = Symbol;
@@ -1355,7 +1465,19 @@ alias Aliassym = Symbol;
 version (SCPP)
 {
     char *cpp_prettyident (Symbol *s);
-    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : s.Sident; }
+    char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : &s.Sident[0]; }
+}
+
+version (SPP)
+{
+    char *cpp_prettyident (Symbol *s);
+    char *prettyident(Symbol *s) { return &s.Sident[0]; }
+}
+
+version (HTOD)
+{
+    char *cpp_prettyident (Symbol *s);
+    char *prettyident(Symbol *s) { return &s.Sident[0]; }
 }
 
 version (MARS)
@@ -1392,13 +1514,8 @@ enum
 
 struct param_t
 {
-//#ifdef DEBUG
     debug ushort      id;
-//#define IDparam 0x7050
-//#define param_debug(s) assert((s)->id == IDparam)
-//#else
-//#define param_debug(s)
-//#endif
+    enum IDparam = 0x7050;
 
     char* Pident;               // identifier
     type* Ptype;                // type of parameter (NULL if not known yet)
@@ -1420,6 +1537,11 @@ struct param_t
 
     static uint sizeCheck();
     unittest { assert(sizeCheck() == param_t.sizeof); }
+}
+
+void param_debug(param_t *p)
+{
+    debug assert(p.id == p.IDparam);
 }
 
 /**************************************
@@ -1482,64 +1604,79 @@ enum
 
 ////////// Srcfiles
 
-//#if !MARS
-//// Collect information about a source file.
-//typedef unsigned sfile_flags_t;
-//enum
-//{
-//    SFonce    = 1,      // file is to be #include'd only once
-//    SFhx      = 2,      // file is in an HX file and has not been loaded
-//    SFtop     = 4,      // file is a top level source file
-//    SFloaded  = 8,      // read from PH file
-//};
-//
-//struct Sfile
-//{
-//#ifdef DEBUG
-//    unsigned short      id;
-//#define IDsfile (('f' << 8) | 's')
-//#define sfile_debug(sf) assert((sf)->id == IDsfile)
-//#else
-//#define sfile_debug(sf)
-//#endif
-//
-//    char     *SFname;           // name of file
-//    sfile_flags_t  SFflags;
-//    list_t    SFfillist;        // file pointers of Sfile's that this Sfile is
-//                                //     dependent on (i.e. they were #include'd).
-//                                //     Does not include nested #include's
-//    macro_t  *SFmacdefs;        // threaded list of macros #defined by this file
-//    macro_t **SFpmacdefs;       // end of macdefs list
-//    Symbol   *SFsymdefs;        // threaded list of global symbols declared by this file
-//    symlist_t SFcomdefs;        // comdefs defined in PH
-//    symlist_t SFtemp_ft;        // template_ftlist
-//    symlist_t SFtemp_class;     // template_class_list
-//    Symbol   *SFtagsymdefs;     // list of tag names (C only)
-//    char     *SFinc_once_id;    // macro include guard identifier
-//    unsigned SFhashval;         // hash of file name
-//};
-//
-//// Source files are referred to by a pointer into pfiles[]. This is so that
-//// when PH files are hydrated, only pfiles[] needs updating. Of course, this
-//// means that pfiles[] cannot be reallocated to larger numbers, its size is
-//// fixed at SRCFILES_MAX.
-//
-//struct Srcfiles
-//{
-////  Sfile *arr;         // array of Sfiles
-//    Sfile **pfiles;     // parallel array of pointers into arr[]
-//#if SPP
-//    #define SRCFILES_MAX (2*512*4)      // no precompiled headers for SPP
-//#else
-//    #define SRCFILES_MAX (2*512)
-//#endif
-//    unsigned dim;       // dimension of array
-//    unsigned idx;       // # used in array
-//};
-//
-//#define sfile(fi)               (*srcfiles.pfiles[fi])
-//#define srcfiles_name(fi)       (sfile(fi).SFname)
-//#endif
+version (MARS)
+{
+}
+else
+{
+// Collect information about a source file.
+alias sfile_flags_t = uint;
+enum
+{
+    SFonce    = 1,      // file is to be #include'd only once
+    SFhx      = 2,      // file is in an HX file and has not been loaded
+    SFtop     = 4,      // file is a top level source file
+    SFloaded  = 8,      // read from PH file
+}
+
+private import parser : macro_t;
+
+struct Sfile
+{
+    debug ushort      id;
+    enum IDsfile = (('f' << 8) | 's');
+
+    char     *SFname;           // name of file
+    sfile_flags_t  SFflags;
+    list_t    SFfillist;        // file pointers of Sfile's that this Sfile is
+                                //     dependent on (i.e. they were #include'd).
+                                //     Does not include nested #include's
+    macro_t  *SFmacdefs;        // threaded list of macros #defined by this file
+    macro_t **SFpmacdefs;       // end of macdefs list
+    Symbol   *SFsymdefs;        // threaded list of global symbols declared by this file
+    symlist_t SFcomdefs;        // comdefs defined in PH
+    symlist_t SFtemp_ft;        // template_ftlist
+    symlist_t SFtemp_class;     // template_class_list
+    Symbol   *SFtagsymdefs;     // list of tag names (C only)
+    char     *SFinc_once_id;    // macro include guard identifier
+    uint SFhashval;             // hash of file name
+}
+
+void sfile_debug(Sfile* sf)
+{
+    debug assert(sf.id == Sfile.IDsfile);
+}
+
+// Source files are referred to by a pointer into pfiles[]. This is so that
+// when PH files are hydrated, only pfiles[] needs updating. Of course, this
+// means that pfiles[] cannot be reallocated to larger numbers, its size is
+// fixed at SRCFILES_MAX.
+
+version (SPP)
+{
+    enum SRCFILES_MAX = (2*512*4);      // no precompiled headers for SPP
+}
+else
+{
+    enum SRCFILES_MAX = (2*512);
+}
+
+struct Srcfiles
+{
+//  Sfile *arr;         // array of Sfiles
+    Sfile **pfiles;     // parallel array of pointers into arr[]
+    uint dim;       // dimension of array
+    uint idx;       // # used in array
+}
+
+Sfile* sfile(uint fi)
+{
+    import dmd.backend.global : srcfiles;
+    return srcfiles.pfiles[fi];
+}
+
+char* srcfiles_name(uint fi) { return sfile(fi).SFname; }
+}
 
 /**************************************************
  * This is to support compiling expressions within the context of a function.
@@ -1550,10 +1687,10 @@ struct EEcontext
     uint EElinnum;              // line number to insert expression
     char *EEexpr;               // expression
     char *EEtypedef;            // typedef identifier
-    char EEpending;             // !=0 means we haven't compiled it yet
-    char EEimminent;            // we've installed it in the source text
-    char EEcompile;             // we're compiling for the EE expression
-    char EEin;                  // we are parsing an EE expression
+    byte EEpending;             // !=0 means we haven't compiled it yet
+    byte EEimminent;            // we've installed it in the source text
+    byte EEcompile;             // we're compiling for the EE expression
+    byte EEin;                  // we are parsing an EE expression
     elem *EEelem;               // compiled version of EEexpr
     Symbol *EEfunc;             // function expression is in
     code *EEcode;               // generated code
