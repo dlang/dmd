@@ -2175,6 +2175,85 @@ private size_t replaceMarkdownEmphasis(OutBuffer *buf, ref size_t i, ref Markdow
 }
 
 /****************************************************
+ * Start a code block
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  i =             the index within `buf` to end the Markdown heading at. Its value changes to accommodate the code block macro.
+ *  iCodeStart =    gets set to the index within `buf` that the code block starts at
+ *  codeIndent =    gets set to the amount the code block is indented
+ *  codeLanguage =  the language the code is in; defaults to `"dlang"`
+ * Returns: the amount `i` was moved
+ */
+private void startCodeBlock(OutBuffer *buf, ref size_t i, out size_t iCodeStart, string codeLanguage)
+{
+    if (codeLanguage.length && codeLanguage != "dlang")
+    {
+        i = buf.insert(i, "$(OTHER_CODE ");
+        i = buf.insert(i, codeLanguage);
+        i = buf.insert(i, ",");
+    }
+    else
+        i = buf.insert(i, "$(D_CODE ");
+    iCodeStart = i;
+    i--;
+}
+
+/****************************************************
+ * End a code block
+ * Params:
+ *  buf =           an OutputBuffer containing the DDoc
+ *  i =             the index within `buf` to end the Markdown heading at. Its value changes if the function succeeds.
+ *  iCodeStart =    the index within `buf` that the code block started at
+ *  codeIndent =    the amount the code block is indented
+ *  codeLanguage =  the language the code is in; defaults to `"dlang"`
+ *  sc =            the parsing scope
+ *  a =             the D symbols defined in the current scope
+ * Returns: whether a non-empty code block was ended
+ */
+private bool endCodeBlock(OutBuffer *buf, ref size_t i, size_t iCodeStart, size_t codeIndent, string codeLanguage, Scope* sc, Dsymbols* a)
+{
+    if (i <= iCodeStart)
+    {
+        // Empty code section, just remove it completely.
+        return false;
+    }
+
+    // The code section is from iCodeStart to i
+    OutBuffer codebuf;
+    codebuf.write(buf.data + iCodeStart, i - iCodeStart);
+    codebuf.writeByte(0);
+    // Remove leading indentations from all lines
+    bool lineStart = true;
+    char* endp = cast(char*)codebuf.data + codebuf.offset;
+    for (char* p = cast(char*)codebuf.data; p < endp;)
+    {
+        if (lineStart)
+        {
+            size_t j = codeIndent;
+            char* q = p;
+            while (j-- > 0 && q < endp && isIndentWS(q))
+                ++q;
+            codebuf.remove(p - cast(char*)codebuf.data, q - p);
+            assert(cast(char*)codebuf.data <= p);
+            assert(p < cast(char*)codebuf.data + codebuf.offset);
+            lineStart = false;
+            endp = cast(char*)codebuf.data + codebuf.offset; // update
+            continue;
+        }
+        if (*p == '\n')
+            lineStart = true;
+        ++p;
+    }
+    if (!codeLanguage.length || codeLanguage == "dlang")
+        highlightCode2(sc, a, &codebuf, 0);
+    buf.remove(iCodeStart, i - iCodeStart);
+    i = buf.insert(iCodeStart, codebuf.peekSlice());
+    i = buf.insert(i, ")\n");
+    --i;
+    return true;
+}
+
+/****************************************************
  */
 extern (C++) bool isIdentifier(Dsymbols* a, const(char)* p, size_t len)
 {
@@ -2428,9 +2507,10 @@ private struct MarkdownList
     *  i =              the index within `buf` of the list item. If this function succeeds `i` will be adjusted to fit the inserted macro.
     *  nestedLists =    a set of nested lists. If this function succeeds it may contain a new nested list.
     *  macroLevel =     the current macro nesting level
+    *  indent =         set to the list item's content indent
     * Returns: whether a list was created
     */
-    static bool startItem(OutBuffer *buf, ref size_t iLineStart, ref size_t i, ref MarkdownList[] nestedLists, int macroLevel)
+    static bool startItem(OutBuffer *buf, ref size_t iLineStart, ref size_t i, ref MarkdownList[] nestedLists, int macroLevel, out int indent)
     {
         MarkdownList list;
         if (buf.data[i] == '+' || buf.data[i] == '-' || buf.data[i] == '*')
@@ -2443,7 +2523,25 @@ private struct MarkdownList
 
         const itemIndent = getMarkdownIndent(buf, iLineStart, i);
 
-        buf.remove(list.iStart, list.iContentStart - list.iStart);
+        int delimiterLength = 2;
+        if (list.type == '.' || list.type == ')')
+        {
+            immutable length = list.orderedStart.length;
+            delimiterLength += length ? length : 1;
+        }
+        // see if the list starts with an indented code block
+        if (list.indent - itemIndent + delimiterLength < 4)
+        {
+            // if not, the indent is the list item's indent
+            indent = list.indent;
+            buf.remove(list.iStart, list.iContentStart - list.iStart);
+        }
+        else
+        {
+            // if so, the indent starts just after the delimiter plus space
+            indent = itemIndent + delimiterLength;
+            buf.remove(list.iStart, (i + delimiterLength) - list.iStart);
+        }
 
         if (!nestedLists.length || itemIndent >= nestedLists[$-1].indent)
         {
@@ -3043,6 +3141,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     int headingMacroLevel = 0;
     int quoteLevel = 0;
     bool lineQuoted = false;
+    int previousIndent = int.max;
     MarkdownQuote[] nestedQuotes;
     MarkdownList[] nestedLists;
     MarkdownDelimiter[] inlineDelimiters;
@@ -3066,8 +3165,52 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         {
         case ' ':
         case '\t':
+            // Try an indented code block if the next character isn't whitespace
+            if (leadingBlank &&
+                iParagraphStart >= iLineStart &&
+                i+1 < buf.offset &&
+                buf.data[i+1] != ' ' &&
+                buf.data[i+1] != '\t' &&
+                buf.data[i+1] != '\r' &&
+                buf.data[i+1] != '\n')
+            {
+                int indent = getMarkdownIndent(buf, iLineStart, i+1);
+                if (indent < previousIndent)
+                {
+                    previousIndent = indent;
+                }
+                else if (!inCode && indent - previousIndent >= 4)
+                {
+                    inCode = ' ';
+
+                    codeIndent = indent;
+                    ++i;
+                    buf.remove(iLineStart, i - iLineStart);
+                    i = iLineStart;
+                    startCodeBlock(buf, i, iCodeStart, codeLanguage);
+                }
+                else if (inCode == ' ' && indent < codeIndent)
+                {
+                    inCode = false;
+                    endCodeBlock(buf, i, iCodeStart, codeIndent, codeLanguage, sc, a);
+                    iParagraphStart = skipChars(buf, i + 1, " \t\r\n");
+                }
+            }
             break;
         case '\n':
+            if (inCode == ' ' &&
+                i+1 < buf.offset &&
+                buf.data[i+1] != ' ' &&
+                buf.data[i+1] != '\t' &&
+                buf.data[i+1] != '\r' &&
+                buf.data[i+1] != '\n' &&
+                buf.data[i+1] != '>')
+            {
+                inCode = false;
+                endCodeBlock(buf, i, iCodeStart, codeIndent, codeLanguage, sc, a);
+                ++i;
+                iParagraphStart = skipChars(buf, i, " \t\r\n");
+            }
             if (inBacktick)
             {
                 // `inline code` is only valid if contained on a single line
@@ -3134,6 +3277,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             leadingBlank = true;
             lineQuoted = false;
             iLineStart = i + 1;
+            if (previousIndent == int.max)
+                previousIndent = 0;
 
             if (previousMacroLevel < macroLevel && iParagraphStart < iLineStart)
                 iParagraphStart = iLineStart;
@@ -3231,8 +3376,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 {
                     lineQuoted = true;
                     ++quoteLevel;
-                    size_t iQuotedStart = skipChars(buf, i + 1, " \t");
-                    buf.remove(i, iQuotedStart - i);
+                    size_t iEnd = (i+1 < buf.offset && buf.data[i+1] == ' ') ? i + 2 : i + 1;
+                    buf.remove(i, iEnd - i);
                     if (quoteLevel > nestedQuotes.length)
                     {
                         i = buf.insert(i, "$(QUOTE\n");
@@ -3349,7 +3494,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
              */
             if (leadingBlank)
             {
-                if (!inCode && c == '-' && MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
+                if (!inCode && c == '-' && MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel, previousIndent))
                     break;
 
                 size_t istart = i;
@@ -3426,63 +3571,18 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     leadingBlank = true;
                     quoteLevel = 0;
                 }
-                if (inCode && (i <= iCodeStart))
-                {
-                    // Empty code section, just remove it completely.
-                    inCode = 0;
-                    break;
-                }
                 if (inCode)
                 {
-                    inCode = 0;
-                    // The code section is from iCodeStart to i
-                    OutBuffer codebuf;
-                    codebuf.write(buf.data + iCodeStart, i - iCodeStart);
-                    codebuf.writeByte(0);
-                    // Remove leading indentations from all lines
-                    bool lineStart = true;
-                    char* endp = cast(char*)codebuf.data + codebuf.offset;
-                    for (char* p = cast(char*)codebuf.data; p < endp;)
-                    {
-                        if (lineStart)
-                        {
-                            size_t j = codeIndent;
-                            char* q = p;
-                            while (j-- > 0 && q < endp && isIndentWS(q))
-                                ++q;
-                            codebuf.remove(p - cast(char*)codebuf.data, q - p);
-                            assert(cast(char*)codebuf.data <= p);
-                            assert(p < cast(char*)codebuf.data + codebuf.offset);
-                            lineStart = false;
-                            endp = cast(char*)codebuf.data + codebuf.offset; // update
-                            continue;
-                        }
-                        if (*p == '\n')
-                            lineStart = true;
-                        ++p;
-                    }
-                    if (!codeLanguage.length || codeLanguage == "dlang")
-                        highlightCode2(sc, a, &codebuf, 0);
-                    buf.remove(iCodeStart, i - iCodeStart);
-                    i = buf.insert(iCodeStart, codebuf.peekSlice());
-                    i = buf.insert(i, ")\n");
-                    i -= 2; // in next loop, c should be '\n'
+                    inCode = false;
+                    endCodeBlock(buf, i, iCodeStart, codeIndent, codeLanguage, sc, a);
+                    --i; // in next loop, c should be '\n'
                 }
                 else
                 {
                     inCode = c0;
-                    codeIndent = istart - iLineStart; // save indent count
-                    if (codeLanguage.length && codeLanguage != "dlang")
-                    {
-                        i = buf.insert(i, "$(OTHER_CODE ");
-                        i = buf.insert(i, codeLanguage);
-                        i = buf.insert(i, ",");
-                    }
-                    else
-                        i = buf.insert(i, "$(D_CODE ");
-                    iCodeStart = i;
-                    i--; // place i on >
+                    codeIndent = istart - iLineStart; // save indent coun
                     leadingBlank = true;
+                    startCodeBlock(buf, i, iCodeStart, codeLanguage);
                 }
             }
             break;
@@ -3571,7 +3671,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '9':
         {
             if (leadingBlank && !inCode)
-                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
+                if (!MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel, previousIndent))
                     leadingBlank = false;
             break;
         }
@@ -3579,7 +3679,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '=':
         {
             /* A line consisting solely of == indicates a Markdown heading on the previous line. */
-            if (leadingBlank && !inCode)
+            if (leadingBlank && !inCode && iParagraphStart < iLineStart)
             {
                 leadingBlank = false;
                 size_t iAfterUnderline = skipChars(buf, i, "=");
@@ -3636,7 +3736,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         goto case '=';
                     }
                 }
-                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel))
+                else if (MarkdownList.startItem(buf, iLineStart, i, nestedLists, macroLevel, previousIndent))
                 {
                     break;
                 }
@@ -3856,12 +3956,16 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
     }
 
+    size_t i = buf.offset;
+
     if (inCode == '-')
         error(s ? s.loc : Loc.initial, "unmatched --- in DDoc comment");
     else if (inCode)
-        buf.insert(buf.offset, ")");
-
-    size_t i = buf.offset;
+    {
+        inCode = false;
+        endCodeBlock(buf, i, iCodeStart, codeIndent, codeLanguage, sc, a);
+        ++i;
+    }
     replaceMarkdownEmphasis(buf, i, inlineDelimiters);
     if (headingLevel)
         endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
