@@ -56,7 +56,7 @@ int myDfunction(char[] s)
         or other such C
         $(LINK2 http://www.digitalmars.com/ctg/ctgLanguageImplementation.html#extended, extended type modifiers)
         in D. These are handled by
-        $(DPLLINK attribute.html#linkage, linkage attributes),
+        $(LINK2 attribute.html#linkage, linkage attributes),
         such as $(D extern (C)).)
 
         $(LI There is no volatile type modifier in D. To declare a C function that uses

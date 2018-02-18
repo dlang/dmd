@@ -925,7 +925,7 @@ unittest
 ------
 
     $(P For more information please see the full section on
-    $(DPLLINK unittest.html#documented-unittests, documented unit tests).
+    $(LINK2 unittest.html#documented-unittests, documented unit tests).
 )
 
 $(H2 $(LNAME2 using_ddoc_for_other_documentation, Using Ddoc for other Documentation))
