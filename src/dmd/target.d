@@ -42,16 +42,16 @@ struct Target
     extern (C++) __gshared
     {
         // D ABI
-        int ptrsize;              /// size of a pointer in bytes
-        int realsize;             /// size a real consumes in memory
-        int realpad;              /// padding added to the CPU real size to bring it up to realsize
-        int realalignsize;        /// alignment for reals
-        int classinfosize;        /// size of `ClassInfo`
+        uint ptrsize;             /// size of a pointer in bytes
+        uint realsize;            /// size a real consumes in memory
+        uint realpad;             /// padding added to the CPU real size to bring it up to realsize
+        uint realalignsize;       /// alignment for reals
+        uint classinfosize;       /// size of `ClassInfo`
         ulong maxStaticDataSize;  /// maximum size of static data
 
         // C ABI
-        int c_longsize;           /// size of a C `long` or `unsigned long` type
-        int c_long_doublesize;    /// size of a C `long double`
+        uint c_longsize;          /// size of a C `long` or `unsigned long` type
+        uint c_long_doublesize;   /// size of a C `long double`
 
         // C++ ABI
         bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
