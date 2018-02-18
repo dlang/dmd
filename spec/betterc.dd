@@ -4,38 +4,88 @@ $(SPEC_S Better C,
 
 $(HEADERNAV_TOC)
 
-`-betterC` is a command-line flag for `dmd`,
-which restricts the compiler's support of certain runtime features.
-Notably, D programs or libraries compiled with `betterC` aren't linked with Druntime.
-The use of compile-time features is not restricted in any way.
+    $(P It is straightforward to link C functions and libraries into D programs.
+    But linking D functions and libraries into C programs is not straightforward.
+    )
 
-Limiting a program or library to this subset of runtime features is useful
-when targeting constrained environments where the use of such features is not practical or possible.
-Additionally, this also makes embedding D libraries in larger projects easier by:
+    $(P D programs generally require:)
 
-$(OL
-    $(LI Simplifying the process of integration at the build-system level)
-    $(LI Removing the need to ensure that Druntime is properly initialized on calls to the library, when an initialization step is not performed before the library is used.)
-    $(LI Mixing memory management strategies (GC + manual memory management) can sometimes be tricky, hence removing D's GC from the equation may be a good solution)
-)
+    $(OL
+    $(LI The D runtime library (Phobos) to be linked in, because many features of
+    the core language require runtime library support.)
+    $(LI The `main()` function to be written in D, to ensure that the required
+    runtime library support is properly initialized.)
+    )
 
----
-extern(C) void main()
-{
-    import core.stdc.stdio : printf;
-    printf("Hello betterC\n");
-}
----
+    $(P To link D functions and libraries into C programs, it's necessary to only
+    require the C runtime library to be linked in. This is accomplished by defining
+    a subset of D that fits this requirement, called $(B BetterC).
+    )
+
+    $(IMPLEMENTATION_DEFINED $(B BetterC) is typically enabled by setting the $(TT -betterC)
+    command line flag for the implementation.
+    )
+
+    $(P When $(B BetterC) is enabled, the predefined $(LINK2 version.html, version) `D_BetterC`
+    can be used for conditional compilation.
+    )
+
+
+    $(P An entire program can be written in $(B BetterC) by supplying a C `main()` function:)
+
+    ---
+    extern(C) void main()
+    {
+        import core.stdc.stdio : printf;
+        printf("Hello betterC\n");
+    }
+    ---
 
 $(CONSOLE
 > dmd -betterC hello.d && ./hello
 Hello betterC
 )
 
-$(H2 $(LNAME2 consequences, Consequences))
+    $(P Limiting a program to this subset of runtime features is useful
+    when targeting constrained environments where the use of such features
+    is not practical or possible.
+    )
 
-As no Druntime is available, many D features won't work.
-For example:
+    $(P $(B BetterC) makes embedding D libraries in existing larger projects easier by:
+    )
+
+    $(OL
+    $(LI Simplifying the process of integration at the build-system level)
+    $(LI Removing the need to ensure that Druntime is properly initialized on
+    calls to the library, when an initialization step is not performed before
+    the library is used.)
+    $(LI Mixing memory management strategies (GC + manual memory management) can
+    be tricky, hence removing D's GC from the equation may be a good solution.)
+    )
+
+
+$(H2 $(LNAME2 retained, Retained Features))
+
+    $(P Nearly the full language remains available. Highlights include:)
+
+    $(OL
+    $(LI Unrestricted use of compile-time features)
+    $(LI Full metaprogramming facilities)
+    $(LI Nested functions, nested structs, delegates and lambdas)
+    $(LI Member functions, constructors, destructors, operating overloading, etc.)
+    $(LI The full module system)
+    $(LI Dynamic arrays, array slicing, and array bounds checking)
+    $(LI RAII (yes, it can work without exceptions))
+    $(LI `scope(exit)`)
+    $(LI Memory safety protections)
+    $(LI Interfacing with C++)
+    $(LI COM classes and C++ classes)
+    $(LI `assert` failures are directed to the C runtime library)
+    )
+
+$(H2 $(LNAME2 consequences, Not Available))
+
+    $(P D features not available with $(B BetterC):)
 
 $(OL
     $(LI Garbage Collection)
@@ -50,10 +100,10 @@ $(OL
     $(LI `synchronized` and $(MREF core, sync))
     $(LI Static module constructors or deconstructors)
     $(LI Struct deconstructors)
-    $(LI `unittest` (testing can be done without the `-betterC` flag))
+    $(LI `unittest` (testing can be done without the $(TT -betterC) flag))
 )
 
-The predefined $(LINK2 version.html, version) `D_BetterC` can be used for conditional compilation.
+
 
 $(SPEC_SUBNAV_PREV simd, Vector Extensions)
 
