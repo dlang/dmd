@@ -18,9 +18,11 @@ import dmd.cppmanglewin;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
+import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
+import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.typesem;
@@ -570,6 +572,161 @@ struct Target
     extern (C++) static TypeTuple toArgTypes(Type t)
     {
         return .toArgTypes(t);
+    }
+
+    /**
+     * Params:
+     *   tf = function type to check
+     * Returns:
+     *   true if return value from function is on the stack
+     */
+    extern (C++) static bool isReturnOnStack(TypeFunction tf)
+    {
+        if (tf.isref)
+        {
+            //printf("  ref false\n");
+            return false;                 // returns a pointer
+        }
+
+        Type tn = tf.next.toBasetype();
+        //printf("tn = %s\n", tn.toChars());
+        d_uns64 sz = tn.size();
+        Type tns = tn;
+
+        if (global.params.isWindows && global.params.is64bit)
+        {
+            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            if (tns.ty == Tcomplex32)
+                return true;
+            if (tns.isscalar())
+                return false;
+
+            tns = tns.baseElemOf();
+            if (tns.ty == Tstruct)
+            {
+                StructDeclaration sd = (cast(TypeStruct)tns).sym;
+                if (sd.ident == Id.__c_long_double)
+                    return false;
+                if (!sd.isPOD() || sz > 8)
+                    return true;
+                if (sd.fields.dim == 0)
+                    return true;
+            }
+            if (sz <= 16 && !(sz & (sz - 1)))
+                return false;
+            return true;
+        }
+        else if (global.params.isWindows && global.params.mscoff)
+        {
+            Type tb = tns.baseElemOf();
+            if (tb.ty == Tstruct)
+            {
+                StructDeclaration sd = (cast(TypeStruct)tb).sym;
+                if (sd.ident == Id.__c_long_double)
+                    return false;
+            }
+        }
+
+    Lagain:
+        if (tns.ty == Tsarray)
+        {
+            tns = tns.baseElemOf();
+            if (tns.ty != Tstruct)
+            {
+    L2:
+                if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
+                {
+                                                    // 32 bit C/C++ structs always on stack
+                }
+                else
+                {
+                    switch (sz)
+                    {
+                        case 1:
+                        case 2:
+                        case 4:
+                        case 8:
+                            //printf("  sarray false\n");
+                            return false; // return small structs in regs
+                                                // (not 3 byte structs!)
+                        default:
+                            break;
+                    }
+                }
+                //printf("  sarray true\n");
+                return true;
+            }
+        }
+
+        if (tns.ty == Tstruct)
+        {
+            StructDeclaration sd = (cast(TypeStruct)tns).sym;
+            if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
+            {
+                if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
+                    return false;
+
+                //printf("  2 true\n");
+                return true;            // 32 bit C/C++ structs always on stack
+            }
+            if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
+                     sd.isPOD() && sd.ctor)
+            {
+                // win32 returns otherwise POD structs with ctors via memory
+                // unless it's not really a struct
+                if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
+                    return false;
+                return true;
+            }
+            if (sd.arg1type && !sd.arg2type)
+            {
+                tns = sd.arg1type;
+                if (tns.ty != Tstruct)
+                    goto L2;
+                goto Lagain;
+            }
+            else if (global.params.is64bit && !sd.arg1type && !sd.arg2type)
+                return true;
+            else if (sd.isPOD())
+            {
+                switch (sz)
+                {
+                    case 1:
+                    case 2:
+                    case 4:
+                    case 8:
+                        //printf("  3 false\n");
+                        return false;     // return small structs in regs
+                                            // (not 3 byte structs!)
+                    case 16:
+                        if (!global.params.isWindows && global.params.is64bit)
+                           return false;
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            //printf("  3 true\n");
+            return true;
+        }
+        else if ((global.params.isLinux || global.params.isOSX ||
+                  global.params.isFreeBSD || global.params.isSolaris ||
+                  global.params.isDragonFlyBSD) &&
+                 tf.linkage == LINK.c &&
+                 tns.iscomplex())
+        {
+            if (tns.ty == Tcomplex32)
+                return false;     // in EDX:EAX, not ST1:ST0
+            else
+                return true;
+        }
+        else
+        {
+            //assert(sz <= 16);
+            //printf("  4 false\n");
+            return false;
+        }
     }
 }
 

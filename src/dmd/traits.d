@@ -37,6 +37,7 @@ import dmd.nogc;
 import dmd.root.array;
 import dmd.root.speller;
 import dmd.root.stringtable;
+import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
@@ -120,6 +121,7 @@ shared static this()
         "isRef",
         "isOut",
         "isLazy",
+        "isReturnOnStack",
         "hasMember",
         "identifier",
         "getProtection",
@@ -1029,7 +1031,9 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.getFunctionAttributes)
     {
-        // extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
+        /* Extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
+         * https://dlang.org/spec/traits.html#getFunctionAttributes
+         */
         if (dim != 1)
             return dimError(1);
 
@@ -1050,6 +1054,27 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto tup = new TupleExp(e.loc, mods);
         return tup.expressionSemantic(sc);
+    }
+    if (e.ident == Id.isReturnOnStack)
+    {
+        /* Extract as a boolean if function return value is on the stack
+         * https://dlang.org/spec/traits.html#isReturnOnStack
+         */
+        if (dim != 1)
+            return dimError(1);
+
+        RootObject o = (*e.args)[0];
+        FuncDeclaration fd;
+        TypeFunction tf = toTypeFunction(o, fd);
+
+        if (!tf)
+        {
+            e.error("argument to `__traits(isReturnOnStack, %s)` is not a function", o.toChars());
+            return new ErrorExp();
+        }
+
+        bool value = Target.isReturnOnStack(tf);
+        return new IntegerExp(e.loc, value, Type.tbool);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
     {

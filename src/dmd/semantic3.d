@@ -41,7 +41,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -564,7 +563,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                if (!funcdecl.inferRetType && retStyle(f) != RET.stack)
+                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f))
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
@@ -618,7 +617,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (retStyle(f) != RET.stack)
+                if (!Target.isReturnOnStack(f))
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
