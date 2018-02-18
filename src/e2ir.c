@@ -3847,52 +3847,58 @@ elem *toElem(Expression *e, IRState *irs)
             printf("\tto  : %s\n", ve->to->toChars());
         #endif
 
-            elem *e = el_calloc();
-            e->Eoper = OPconst;
-            e->Ety = totym(ve->type);
-
-            for (size_t i = 0; i < ve->dim; i++)
+            elem *e;
+            if (ve->e1->op == TOKarrayliteral)
             {
-                Expression *elem;
-                if (ve->e1->op == TOKarrayliteral)
-                    elem = ((ArrayLiteralExp *)ve->e1)->getElement(i);
-                else
-                    elem = ve->e1;
-                switch (elem->type->toBasetype()->ty)
+                e = el_calloc();
+                e->Eoper = OPconst;
+                e->Ety = totym(ve->type);
+
+                for (size_t i = 0; i < ve->dim; i++)
                 {
-                    case Tfloat32:
-                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        e->EV.Vfloat4[i] = creall(elem->toComplex());
-                        break;
+                    Expression *elem = ((ArrayLiteralExp *)ve->e1)->getElement(i);
+                    switch (elem->type->toBasetype()->ty)
+                    {
+                        case Tfloat32:
+                            // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                            e->EV.Vfloat4[i] = creall(elem->toComplex());
+                            break;
 
-                    case Tfloat64:
-                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        e->EV.Vdouble2[i] = creall(elem->toComplex());
-                        break;
+                        case Tfloat64:
+                            // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                            e->EV.Vdouble2[i] = creall(elem->toComplex());
+                            break;
 
-                    case Tint64:
-                    case Tuns64:
-                        ((targ_ullong *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint64:
+                        case Tuns64:
+                            ((targ_ullong *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    case Tint32:
-                    case Tuns32:
-                        ((targ_ulong *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint32:
+                        case Tuns32:
+                            ((targ_ulong *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    case Tint16:
-                    case Tuns16:
-                        ((targ_ushort *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint16:
+                        case Tuns16:
+                            ((targ_ushort *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    case Tint8:
-                    case Tuns8:
-                        ((targ_uchar *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint8:
+                        case Tuns8:
+                            ((targ_uchar *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    default:
-                        assert(0);
+                        default:
+                            assert(0);
+                    }
                 }
+            }
+            else
+            {
+                // Create vecfill(e1)
+                elem *e1 = toElem(ve->e1, irs);
+                e = el_una(OPvecfill, totym(ve->type), e1);
             }
             el_setLoc(e, ve->loc);
             result = e;
