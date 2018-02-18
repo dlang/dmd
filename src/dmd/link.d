@@ -957,6 +957,26 @@ version (Windows)
         }
 
         /**
+         * retrieve the name of the default C runtime library
+         * Params:
+         *   x64 = target architecture (x86 if false)
+         * Returns:
+         *   name of the default C runtime library
+         */
+        const(char)* defaultRuntimeLibrary(bool x64)
+        {
+            if (VCInstallDir is null)
+            {
+                detectVCInstallDir();
+                detectVCToolsInstallDir();
+            }
+            if (getVCLibDir(x64))
+                return "libcmt";
+            else
+                return "msvcrt100"; // mingw replacement
+        }
+
+        /**
          * retrieve options to be passed to the Microsoft linker
          * Params:
          *   x64 = target architecture (x86 if false)
@@ -966,7 +986,7 @@ version (Windows)
         const(char)* linkOptions(bool x64)
         {
             OutBuffer cmdbuf;
-            if (auto vclibdir = getVCDir(VCDir.Lib, x64))
+            if (auto vclibdir = getVCLibDir(x64))
             {
                 cmdbuf.writestring(" /LIBPATH:\"");
                 cmdbuf.writestring(vclibdir);
@@ -984,7 +1004,6 @@ version (Windows)
                     }
                 }
             }
-            const(char)* windowssdkdir = getenv("WindowsSdkDir");
             if (auto p = getSDKLibPath(x64))
             {
                 cmdbuf.writestring(" /LIBPATH:\"");
@@ -1011,28 +1030,37 @@ version (Windows)
          */
         const(char)* linkerPath(bool x64)
         {
-            if (auto p = getVCDir(VCDir.Bin, false)) // prefer 32-bit linker in case of cross-compilation
+            const(char)* addpath;
+            if (auto p = getVCBinDir(x64, addpath))
             {
                 OutBuffer cmdbuf;
                 cmdbuf.writestring(p);
                 cmdbuf.writestring(r"\link.exe");
-                if (VSInstallDir)
+                if (addpath)
                 {
                     // debug info needs DLLs from $(VSInstallDir)\Common7\IDE for most linker versions
                     //  so prepend it too the PATH environment variable
                     const char* path = getenv("PATH");
-                    const char* idepath = FileName.combine(VSInstallDir, r"Common7\IDE");
-                    auto pathlen = strlen(path);
-                    auto idepathlen = strlen(idepath);
+                    const pathlen = strlen(path);
+                    const addpathlen = strlen(addpath);
 
-                    char* npath = cast(char*)mem.xmalloc(5 + pathlen + 1 + idepathlen + 1);
+                    char* npath = cast(char*)mem.xmalloc(5 + pathlen + 1 + addpathlen + 1);
                     memcpy(npath, "PATH=".ptr, 5);
-                    memcpy(npath + 5, idepath, idepathlen);
-                    npath[5 + idepathlen] = ';';
-                    memcpy(npath + 5 + idepathlen + 1, path, pathlen + 1);
+                    memcpy(npath + 5, addpath, addpathlen);
+                    npath[5 + addpathlen] = ';';
+                    memcpy(npath + 5 + addpathlen + 1, path, pathlen + 1);
                     putenv(npath);
                 }
                 return cmdbuf.extractString();
+            }
+
+            // try lld-link.exe alongside dmd.exe
+            char[MAX_PATH + 1] dmdpath = void;
+            if (GetModuleFileNameA(null, dmdpath.ptr, dmdpath.length) <= MAX_PATH)
+            {
+                auto lldpath = FileName.replaceName(dmdpath.ptr, "lld-link.exe");
+                if (FileName.exists(lldpath))
+                    return lldpath;
             }
 
             // search PATH to avoid createProcess preferring "link.exe" from the dmd folder
@@ -1194,31 +1222,108 @@ version (Windows)
             }
         }
 
-        enum VCDir { Base, Bin, Lib }
-
         /**
-         * get Visual C folders
+         * get Visual C bin folder
          * Params:
-         *   dir = select bin,lib or base folder
          *   x64 = target architecture (x86 if false)
+         *   addpath = [out] path that needs to be added to the PATH environment variable
          * Returns:
-         *   folder containing the VC executables, the VC runtime libraries or the VC root folder
+         *   folder containing the VC executables
+         *
+         * Selects the binary path according to the host and target OS, but verifies
+         * that link.exe exists in that folder and falls back to 32-bit host/target if
+         * missing
+         * Note: differences for the linker binaries are small, they all
+         * allow cross compilation
          */
-        const(char)* getVCDir(VCDir dir, bool x64)
+        const(char)* getVCBinDir(bool x64, out const(char)* addpath)
         {
+            static const(char)* linkExists(const(char)* p)
+            {
+                auto lp = FileName.combine(p, "link.exe");
+                return FileName.exists(lp) ? p : null;
+            }
+
+            bool isHost64 = isWin64Host();
             if (VCToolsInstallDir !is null)
             {
-                if (dir == VCDir.Bin)
-                    return FileName.combine(VCToolsInstallDir, x64 ? r"bin\HostX86\x64" : r"bin\HostX86\x86");
-                if (dir == VCDir.Lib)
-                    return FileName.combine(VCToolsInstallDir, x64 ? r"lib\x64" : r"lib\x86");
-                return VCToolsInstallDir;
+                if (isHost64)
+                {
+                    if (x64)
+                    {
+                        if (auto p = linkExists(FileName.combine(VCToolsInstallDir, r"bin\HostX64\x64")))
+                            return p;
+                        // in case of missing linker, prefer other host binaries over other target architecture
+                    }
+                    else
+                    {
+                        if (auto p = linkExists(FileName.combine(VCToolsInstallDir, r"bin\HostX64\x86")))
+                        {
+                            addpath = FileName.combine(VCToolsInstallDir, r"bin\HostX64\x64");
+                            return p;
+                        }
+                    }
+                }
+                if (x64)
+                {
+                    if (auto p = linkExists(FileName.combine(VCToolsInstallDir, r"bin\HostX86\x64")))
+                    {
+                        addpath = FileName.combine(VCToolsInstallDir, r"bin\HostX86\x86");
+                        return p;
+                    }
+                }
+                if (auto p = linkExists(FileName.combine(VCToolsInstallDir, r"bin\HostX86\x86")))
+                    return p;
             }
-            if (dir == VCDir.Bin)
-                return FileName.combine(VCInstallDir, x64 ? r"bin\amd64" : "bin");
-            if (dir == VCDir.Lib)
+            if (VCInstallDir !is null)
+            {
+                if (isHost64)
+                {
+                    if (x64)
+                    {
+                        if (auto p = linkExists(FileName.combine(VCInstallDir, r"bin\amd64")))
+                            return p;
+                        // in case of missing linker, prefer other host binaries over other target architecture
+                    }
+                    else
+                    {
+                        if (auto p = linkExists(FileName.combine(VCInstallDir, r"bin\amd64_x86")))
+                        {
+                            addpath = FileName.combine(VCInstallDir, r"bin\amd64");
+                            return p;
+                        }
+                    }
+                }
+
+                if (VSInstallDir)
+                    addpath = FileName.combine(VSInstallDir, r"Common7\IDE");
+                else
+                    addpath = FileName.combine(VCInstallDir, r"bin");
+
+                if (x64)
+                    if (auto p = linkExists(FileName.combine(VCInstallDir, r"x86_amd64")))
+                        return p;
+
+                if (auto p = linkExists(FileName.combine(VCInstallDir, r"bin\HostX86\x86")))
+                    return p;
+            }
+            return null;
+        }
+
+        /**
+        * get Visual C Library folder
+        * Params:
+        *   x64 = target architecture (x86 if false)
+        * Returns:
+        *   folder containing the the VC runtime libraries
+        */
+        const(char)* getVCLibDir(bool x64)
+        {
+            if (VCToolsInstallDir !is null)
+                return FileName.combine(VCToolsInstallDir, x64 ? r"lib\x64" : r"lib\x86");
+            if (VCInstallDir !is null)
                 return FileName.combine(VCInstallDir, x64 ? r"lib\amd64" : "lib");
-            return VCInstallDir;
+            return null;
         }
 
         /**
@@ -1260,6 +1365,12 @@ version (Windows)
                 else if (!x64 && FileName.exists(FileName.buildPath(sdk, "kernel32.lib"))) // SDK 7.1 or earlier
                     return sdk;
             }
+
+            // try mingw fallback relative to phobos library folder that's part of LIB
+            Strings* libpaths = FileName.splitPath(getenv("LIB"));
+            if (auto p = FileName.searchPath(libpaths, r"mingw\kernel32.lib", false))
+                return FileName.path(p);
+
             return null;
         }
 
@@ -1338,6 +1449,36 @@ version (Windows)
             scope char[] pbuf = new char[cnt + 1];
             RegQueryValueExA(key, valueName, null, &type, cast(ubyte*) pbuf.ptr, &cnt);
             return pbuf.ptr;
+        }
+
+        /***
+         * get architecture of host OS
+         */
+        static bool isWin64Host()
+        {
+            version (Win64)
+            {
+                return true;
+            }
+            else
+            {
+                // running as a 32-bit process on a 64-bit host?
+                alias fnIsWow64Process = extern(Windows) BOOL function(HANDLE, PBOOL);
+                static fnIsWow64Process pIsWow64Process;
+
+                if (!pIsWow64Process)
+                {
+                    //IsWow64Process is not available on all supported versions of Windows.
+                    pIsWow64Process = cast(fnIsWow64Process) GetProcAddress(GetModuleHandleA("kernel32"), "IsWow64Process");
+                    if (!pIsWow64Process)
+                        return false;
+                }
+                BOOL bIsWow64 = FALSE;
+                if (!pIsWow64Process(GetCurrentProcess(), &bIsWow64))
+                    return false;
+
+                return bIsWow64 != 0;
+            }
         }
     }
 }
