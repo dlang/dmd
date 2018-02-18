@@ -116,10 +116,10 @@ $(H2 $(LNAME2 storage_allocation, Storage Allocation))
 
         $(LI Registering the pointer with the garbage collector with the
 
-        $(DPLLINK $(ROOT_DIR)phobos/core_memory.html#addRoot, std.gc.addRoot())
+        $(DPLLINK phobos/core_memory.html#addRoot, std.gc.addRoot())
         or
 
-        $(DPLLINK $(ROOT_DIR)phobos/core_memory.html#addRange, std.gc.addRange())
+        $(DPLLINK phobos/core_memory.html#addRange, std.gc.addRange())
         calls.)
 
         )
@@ -253,7 +253,7 @@ $(H2 $(LNAME2 structs_and_unions, Structs and Unions))
         with shift and mask operations,
         or use the $(LINK2 $(ROOT_DIR)phobos/std_bitmanip.html#bitfields, std.bitmanip.bitfields)
         library type.
-        $(DPLLINK $(ROOT_DIR)htod.html, htod) will convert bit fields to inline
+        $(DPLLINK htod.html, htod) will convert bit fields to inline
         functions that
         do the right shift and masks.
         )

@@ -89,8 +89,8 @@ $(HEADERNAV_TOC)
 
     $(P
         The attribute is defined in druntime in
-        $(LINK2 ../phobos/core_attribute.html, `core.attribute`) and aliased in
-        $(LINK2 ../phobos/object.html, `object`), meaning it will be implicitly
+        $(DPLLINK phobos/core_attribute.html, `core.attribute`) and aliased in
+        $(DPLLINK phobos/object.html, `object`), meaning it will be implicitly
         imported. The attribute is only defined when the version identifier
         $(LINK2 #objc-version-identifier, `D_ObjectiveC`) is enabled.
     )

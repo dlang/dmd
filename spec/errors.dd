@@ -175,7 +175,7 @@ $(DL
 )
 
 Using exceptions to handle errors leads to another issue - how to write
-exception safe programs. $(DPLLINK $(ROOT_DIR)exception-safe.html, Here's how).
+exception safe programs. $(DPLLINK exception-safe.html, Here's how).
 
 $(COMMENT
         $(OL
