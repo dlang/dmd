@@ -93,7 +93,7 @@ version (X86_64)
         chkArgTypes!(S5)();
 
         struct S6 { align(1): int a; void* b; }
-        chkArgTypes!(S5)();
+        chkArgTypes!(S6)();
 
         struct S7 { union { void* p; real r; }}
         chkArgTypes!(S7)();
