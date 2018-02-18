@@ -58,11 +58,8 @@ type *Type_toCtype(Type *t);
 void toObjFile(Dsymbol *ds, bool multiobj);
 void genModuleInfo(Module *m);
 void genObjFile(Module *m, bool multiobj);
-Symbol *toModuleAssert(Module *m);
-Symbol *toModuleUnittest(Module *m);
-Symbol *toModuleArray(Module *m);
 Symbol *toSymbolX(Dsymbol *ds, const char *prefix, int sclass, type *t, const char *suffix);
-static void genhelpers(Module *m);
+int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow);
 
 elem *eictor;
 symbol *ictorlocalgot;
@@ -142,9 +139,6 @@ void obj_write_deferred(Library *library)
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
-            md->massert = m->massert;
-            md->munittest = m->munittest;
-            md->marray = m->marray;
 
             genObjFile(md, false);
         }
@@ -479,72 +473,7 @@ void genObjFile(Module *m, bool multiobj)
     if (!global.params.betterC /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
-    /* Always generate helper functions b/c of later templates instantiations
-     * with different -release/-debug/-boundscheck/-unittest flags.
-     */
-    if (!global.params.betterC)
-        genhelpers(m);
-
     objmod->termfile();
-}
-
-static void genhelpers(Module *m)
-{
-    // If module assert
-    for (int i = 0; i < 3; i++)
-    {
-        Symbol *ma;
-        unsigned rt;
-        unsigned bc;
-        switch (i)
-        {
-            case 0:     ma = toModuleArray(m);    rt = RTLSYM_DARRAY;     bc = BCexit; break;
-            case 1:     ma = toModuleAssert(m);   rt = RTLSYM_DASSERT;    bc = BCexit; break;
-            case 2:     ma = toModuleUnittest(m); rt = RTLSYM_DUNITTEST;  bc = BCret;  break;
-            default:    assert(0);
-        }
-
-        if (!ma)
-            continue;
-
-
-        localgot = NULL;
-
-        // Call dassert(filename, line)
-        // Get sole parameter, linnum
-        Symbol *sp = symbol_calloc("linnum");
-        sp->Stype = type_fake(TYint);
-        sp->Stype->Tcount++;
-        sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-
-        FuncParamRegs fpr(TYjfunc);
-        fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
-
-        sp->Sflags &= ~SFLspill;
-        sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
-        cstate.CSpsymtab = &ma->Sfunc->Flocsym;
-        symbol_add(sp);
-
-        elem *elinnum = el_var(sp);
-
-
-        elem *efilename = toEfilename(m);
-        if (config.exe == EX_WIN64)
-            efilename = addressElem(efilename, Type::tstring, true);
-
-        elem *e = el_var(getRtlsym(rt));
-        e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
-
-        block *b = block_calloc();
-        b->BC = bc;
-        b->Belem = e;
-        ma->Sfunc->Fstartline.Sfilename = m->arg;
-        ma->Sfunc->Fstartblock = b;
-        ma->Sclass = SCglobal;
-        ma->Sfl = 0;
-        ma->Sflags |= getRtlsym(rt)->Sflags & SFLexit;
-        writefunc(ma);
-    }
 }
 
 /**************************************
@@ -1197,7 +1126,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration *fd, bool multiobj)
             Statement *sf = ExpStatement::create(fd->loc, e);
 
             Statement *stf;
-            if (sbody->blockExit(fd, false) == BEfallthru)
+            if (blockExit(sbody, fd, false) == BEfallthru)
                 stf = CompoundStatement::create(Loc(), sbody, sf);
             else
                 stf = TryFinallyStatement::create(Loc(), sbody, sf);
@@ -1551,4 +1480,13 @@ elem *toEfilename(Module *m)
 
     // Turn static array into dynamic array
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m->sfilename));
+}
+
+elem *toEfilenamePtr(Module *m)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    const char *id = m->srcfile->toChars();
+    size_t len = strlen(id);
+    Symbol *s = toStringSymbol(id, len, 1);
+    return el_ptr(s);
 }

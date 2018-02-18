@@ -2,7 +2,7 @@
 
 set -exo pipefail
 
-VERSION=v2.072.2
+VERSION=dmd-cxx
 N=2
 
 ## build dmd.

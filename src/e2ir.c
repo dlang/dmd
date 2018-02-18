@@ -58,9 +58,6 @@ dt_t **Expression_toDt(Expression *e, dt_t **pdt);
 Symbol *toStringSymbol(const char *str, size_t len, size_t sz);
 Symbol *toStringSymbol(StringExp *se);
 void toObjFile(Dsymbol *ds, bool multiobj);
-Symbol *toModuleAssert(Module *m);
-Symbol *toModuleUnittest(Module *m);
-Symbol *toModuleArray(Module *m);
 Symbol *toImport(Dsymbol *ds);
 Symbol *toInitializer(AggregateDeclaration *ad);
 Symbol *aaGetSymbol(TypeAArray *taa, const char *func, int flags);
@@ -70,6 +67,8 @@ elem *filelinefunction(IRState *irs, Expression *e);
 void toTraceGC(IRState *irs, elem *e, Loc *loc);
 void genTypeInfo(Type *t, Scope *sc);
 void setClosureVarOffset(FuncDeclaration *fd);
+elem *buildArrayBoundsError(IRState *irs, const Loc& loc);
+elem *toEfilenamePtr(Module *m);
 
 int callSideEffectLevel(FuncDeclaration *f);
 int callSideEffectLevel(Type *t);
@@ -1921,9 +1920,10 @@ elem *toElem(Expression *e, IRState *irs)
                 }
                 else
                 {
-                    Symbol *sassert = ud ? toModuleUnittest(m) : toModuleAssert(m);
-                    ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ae->loc.linnum));
+                    elem *eassert = el_var(getRtlsym(ud ? RTLSYM_DUNITTESTP : RTLSYM_DASSERTP));
+                    elem *efile = toEfilenamePtr(m);
+                    elem *eline = el_long(TYint, ae->loc.linnum);
+                    ea = el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
                 }
                 if (einv)
                 {
@@ -2596,9 +2596,8 @@ elem *toElem(Expression *e, IRState *irs)
                         elem *c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                         c1 = el_bin(OPandand, TYint, c1, c2);
 
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(irs->blx->module);
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert), el_long(TYint, ae->loc.linnum));
+                        // Construct: (c1 || arrayBoundsError)
+                        elem *ea = buildArrayBoundsError(irs, ae->loc);
                         elem *eb = el_bin(OPoror,TYvoid,c1,ea);
                         einit = el_combine(einit, eb);
                     }
@@ -3848,52 +3847,58 @@ elem *toElem(Expression *e, IRState *irs)
             printf("\tto  : %s\n", ve->to->toChars());
         #endif
 
-            elem *e = el_calloc();
-            e->Eoper = OPconst;
-            e->Ety = totym(ve->type);
-
-            for (size_t i = 0; i < ve->dim; i++)
+            elem *e;
+            if (ve->e1->op == TOKarrayliteral)
             {
-                Expression *elem;
-                if (ve->e1->op == TOKarrayliteral)
-                    elem = ((ArrayLiteralExp *)ve->e1)->getElement(i);
-                else
-                    elem = ve->e1;
-                switch (elem->type->toBasetype()->ty)
+                e = el_calloc();
+                e->Eoper = OPconst;
+                e->Ety = totym(ve->type);
+
+                for (size_t i = 0; i < ve->dim; i++)
                 {
-                    case Tfloat32:
-                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        e->EV.Vfloat4[i] = creall(elem->toComplex());
-                        break;
+                    Expression *elem = ((ArrayLiteralExp *)ve->e1)->getElement(i);
+                    switch (elem->type->toBasetype()->ty)
+                    {
+                        case Tfloat32:
+                            // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                            e->EV.Vfloat4[i] = creall(elem->toComplex());
+                            break;
 
-                    case Tfloat64:
-                        // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
-                        e->EV.Vdouble2[i] = creall(elem->toComplex());
-                        break;
+                        case Tfloat64:
+                            // Must not call toReal directly, to avoid dmd bug 14203 from breaking ddmd
+                            e->EV.Vdouble2[i] = creall(elem->toComplex());
+                            break;
 
-                    case Tint64:
-                    case Tuns64:
-                        ((targ_ullong *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint64:
+                        case Tuns64:
+                            ((targ_ullong *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    case Tint32:
-                    case Tuns32:
-                        ((targ_ulong *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint32:
+                        case Tuns32:
+                            ((targ_ulong *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    case Tint16:
-                    case Tuns16:
-                        ((targ_ushort *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint16:
+                        case Tuns16:
+                            ((targ_ushort *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    case Tint8:
-                    case Tuns8:
-                        ((targ_uchar *)&e->EV.Vcent)[i] = elem->toInteger();
-                        break;
+                        case Tint8:
+                        case Tuns8:
+                            ((targ_uchar *)&e->EV.Vcent)[i] = elem->toInteger();
+                            break;
 
-                    default:
-                        assert(0);
+                        default:
+                            assert(0);
+                    }
                 }
+            }
+            else
+            {
+                // Create vecfill(e1)
+                elem *e1 = toElem(ve->e1, irs);
+                e = el_una(OPvecfill, totym(ve->type), e1);
             }
             el_setLoc(e, ve->loc);
             result = e;
@@ -4694,9 +4699,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                     if (c1)
                     {
-                        // Construct: (c1 || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(irs->blx->module);
-                        elem *ea = el_bin(OPcall, TYvoid, el_var(sassert), el_long(TYint, se->loc.linnum));
+                        // Construct: (c1 || arrayBoundsError)
+                        elem *ea = buildArrayBoundsError(irs, se->loc);
                         elem *eb = el_bin(OPoror, TYvoid, c1, ea);
 
                         elwr = el_combine(elwr, eb);
@@ -4797,10 +4801,8 @@ elem *toElem(Expression *e, IRState *irs)
                 {
                     elem *n = el_same(&e);
 
-                    // Construct: ((e || ModuleArray(line)), n)
-                    Symbol *sassert = toModuleArray(irs->blx->module);
-                    elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                        el_long(TYint, ie->loc.linnum));
+                    // Construct: ((e || arrayBoundsError), n)
+                    elem *ea = buildArrayBoundsError(irs, ie->loc);
                     e = el_bin(OPoror,TYvoid,e,ea);
                     e = el_bin(OPcomma, TYnptr, e, n);
                 }
@@ -4835,10 +4837,8 @@ elem *toElem(Expression *e, IRState *irs)
                         n2 = el_same(&n2x);
                         n2x = el_bin(OPlt, TYint, n2x, elength);
 
-                        // Construct: (n2x || ModuleArray(line))
-                        Symbol *sassert = toModuleArray(irs->blx->module);
-                        elem *ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                            el_long(TYint, ie->loc.linnum));
+                        // Construct: (n2x || arrayBoundsError)
+                        elem *ea = buildArrayBoundsError(irs, ie->loc);
                         eb = el_bin(OPoror,TYvoid,n2x,ea);
                     }
                 }
@@ -5713,6 +5713,19 @@ elem *filelinefunction(IRState *irs, Loc *loc)
         efunction = addressElem(efunction, Type::tstring, true);
 
     return el_params(efunction, elinnum, efilename, NULL);
+}
+
+/******************************************************
+ * Construct elem to run when an array bounds check fails.
+ * Returns:
+ *      elem generated
+ */
+elem *buildArrayBoundsError(IRState *irs, const Loc& loc)
+{
+    elem *eassert = el_var(getRtlsym(RTLSYM_DARRAYP));
+    elem *efile = toEfilenamePtr((Module *)irs->blx->module);
+    elem *eline = el_long(TYint, loc.linnum);
+    return el_bin(OPcall, TYvoid, eassert, el_param(eline, efile));
 }
 
 /******************************************************

@@ -120,6 +120,9 @@ const char *asm_opstr(OP *pop);
 OP *asm_op_lookup(const char *s);
 void init_optab();
 
+// From expressionsem.c
+Expression *semantic(Expression *e, Scope *sc);
+
 static unsigned char asm_TKlbra_seen = 0;
 
 struct REG
@@ -3583,7 +3586,7 @@ static code *asm_db_parse(OP *pop)
             {
                 Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
                 Scope *sc = asmstate.sc->startCTFE();
-                e = e->semantic(sc);
+                e = semantic(e, sc);
                 sc->endCTFE();
                 e = e->ctfeInterpret();
                 if (e->op == TOKint64)
@@ -3669,7 +3672,7 @@ int asm_getnum()
         {
             Expression *e = IdentifierExp::create(asmstate.loc, asmtok->ident);
             Scope *sc = asmstate.sc->startCTFE();
-            e = e->semantic(sc);
+            e = semantic(e, sc);
             sc->endCTFE();
             e = e->ctfeInterpret();
             i = e->toInteger();
@@ -4372,7 +4375,7 @@ static OPND *asm_primary_exp()
                         }
                     }
                     Scope *sc = asmstate.sc->startCTFE();
-                    e = e->semantic(sc);
+                    e = semantic(e, sc);
                     sc->endCTFE();
                     e = e->ctfeInterpret();
                     if (e->isConst())
