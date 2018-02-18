@@ -3499,7 +3499,7 @@ else
 
         // set the explicit __critsecNNN alignment after semantic()
         if (!ss.exp) tmp.alignment = Target.ptrsize;
-        }
+
     }
 
     override void visit(WithStatement ws)
