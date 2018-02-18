@@ -466,7 +466,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * Bugs:
  * This doesn't appear to do anything.
  */
-private bool checkPropertyCall(Expression e, Expression emsg)
+private bool checkPropertyCall(Expression e)
 {
     while (e.op == TOK.comma)
         e = (cast(CommaExp)e).e2;
@@ -884,7 +884,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             e = e.trySemantic(sc);
             if (!e)
             {
-                checkPropertyCall(ex, e1);
+                checkPropertyCall(ex);
                 ex = new AssignExp(loc, ex, e2);
                 return ex.expressionSemantic(sc);
             }
@@ -894,7 +894,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             // strict setter prints errors if fails
             e = e.expressionSemantic(sc);
         }
-        checkPropertyCall(e, e1);
+        checkPropertyCall(e);
         return e;
     }
     else
@@ -906,7 +906,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
         e = e.expressionSemantic(sc);
-        checkPropertyCall(e, e1);
+        checkPropertyCall(e);
         return e.expressionSemantic(sc);
     }
 }
