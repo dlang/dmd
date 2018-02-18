@@ -27,21 +27,6 @@ Symbol *toInitializer(AggregateDeclaration *ad)
     return NULL;
 }
 
-Symbol *toModuleAssert(Module *m)
-{
-    return NULL;
-}
-
-Symbol *toModuleUnittest(Module *m)
-{
-    return NULL;
-}
-
-Symbol *toModuleArray(Module *m)
-{
-    return NULL;
-}
-
 // glue
 
 void obj_write_deferred(Library *library)

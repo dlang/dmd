@@ -862,7 +862,6 @@ void MsCoffObj::term(const char *objfilename)
                     {
                         if (I64)
                         {
-//printf("test1 %s %d\n", s->Sident, r->val);
                             rel.r_type = (r->rtype == RELrel)
                                     ? IMAGE_REL_AMD64_REL32
                                     : IMAGE_REL_AMD64_REL32;
@@ -923,7 +922,6 @@ void MsCoffObj::term(const char *objfilename)
                     }
                     else
                     {
-//printf("test2\n");
                         if (I64)
                         {
                             if (pdata)
@@ -1404,12 +1402,18 @@ segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
     }
     assert(seg_count < seg_max);
     if (SegData[seg])
-    {   seg_data *pseg = SegData[seg];
+    {
+        seg_data *pseg = SegData[seg];
         Outbuffer *b1 = pseg->SDbuf;
         Outbuffer *b2 = pseg->SDrel;
         memset(pseg, 0, sizeof(seg_data));
         if (b1)
             b1->setsize(0);
+        else
+        {
+            b1 = new Outbuffer(4096);
+            b1->reserve(4096);
+        }
         if (b2)
             b2->setsize(0);
         pseg->SDbuf = b1;
