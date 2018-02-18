@@ -154,9 +154,6 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
  */
 void assignInPlace(Expression *dest, Expression *src);
 
-/// Create a new struct literal, which is the same as se except that se.field[offset] = elem
-Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval);
-
 /// Given an AA literal aae,  set arr[index] = newval and return the new array.
 Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     Expression *index, Expression *newval);
