@@ -6069,7 +6069,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * https://issues.dlang.org/show_bug.cgi?id=2684
                  * see also bug https://issues.dlang.org/show_bug.cgi?id=2954 b
                  */
-                if (!arrayTypeCompatibleWithoutCasting(exp.e2.loc, exp.e2.type, taa.index))
+                if (!arrayTypeCompatibleWithoutCasting(exp.e2.type, taa.index))
                 {
                     exp.e2 = exp.e2.implicitCastTo(sc, taa.index); // type checking
                     if (exp.e2.type == Type.terror)

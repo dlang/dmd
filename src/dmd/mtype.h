@@ -888,6 +888,6 @@ public:
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
-bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
 
 #endif /* DMD_MTYPE_H */
