@@ -126,7 +126,7 @@ extern (C++) final class VoidInitExp : Expression
 {
     VarDeclaration var;
 
-    extern (D) this(VarDeclaration var, Type type)
+    extern (D) this(VarDeclaration var)
     {
         super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
         this.var = var;
@@ -1997,6 +1997,6 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         se.ownedByCtfe = OwnedBy.ctfe;
     }
     else
-        emplaceExp!(VoidInitExp)(&ue, var, t);
+        emplaceExp!(VoidInitExp)(&ue, var);
     return ue;
 }
