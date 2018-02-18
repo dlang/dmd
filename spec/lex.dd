@@ -1029,12 +1029,12 @@ $(MULTICOLS 4,
     $(LINK2 statement.html#WhileStatement, $(D while))
     $(LINK2 statement.html#WithStatement, $(D with))
 
-    $(LINK2 traits.html#specialkeywords, $(D __FILE__))
-    $(LINK2 traits.html#specialkeywords, $(D __FILE_FULL_PATH__))
-    $(LINK2 traits.html#specialkeywords, $(D __MODULE__))
-    $(LINK2 traits.html#specialkeywords, $(D __LINE__))
-    $(LINK2 traits.html#specialkeywords, $(D __FUNCTION__))
-    $(LINK2 traits.html#specialkeywords, $(D __PRETTY_FUNCTION__))
+    $(LINK2 expression.html#specialkeywords, $(D __FILE__))
+    $(LINK2 expression.html#specialkeywords, $(D __FILE_FULL_PATH__))
+    $(LINK2 expression.html#specialkeywords, $(D __MODULE__))
+    $(LINK2 expression.html#specialkeywords, $(D __LINE__))
+    $(LINK2 expression.html#specialkeywords, $(D __FUNCTION__))
+    $(LINK2 expression.html#specialkeywords, $(D __PRETTY_FUNCTION__))
 
     $(LINK2 attribute.html#gshared, $(D __gshared))
     $(LINK2 traits.html, $(D __traits))
