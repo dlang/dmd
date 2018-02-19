@@ -124,7 +124,7 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
     $(UL
         $(LI operand $(D a) is only evaluated once,)
         $(LI overloading $(I op) uses a different function than overloading $(I op)= does, and)
-        $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting.)
+        $(LI the left operand of $(D >>>=) does not undergo $(INTEGER_PROMOTIONS) before shifting.)
     )
 
     $(P For user-defined types, assignment operator expressions are overloaded separately from
@@ -216,7 +216,7 @@ $(H2 $(LNAME2 bitwise_expressions, Bitwise Expressions))
 
     $(P Bit wise expressions perform a bitwise operation on their operands.
         Their operands must be integral types.
-        First, the default integral promotions are done. Then, the bitwise
+        First, the $(USUAL_ARITHMETIC_CONVERSIONS) are done. Then, the bitwise
         operation is done.
     )
 
@@ -272,7 +272,7 @@ $(GNAME EqualExpression):
     $(P Equality expressions compare the two operands for equality ($(D ==))
         or inequality ($(D !=)).
         The type of the result is $(D bool). The operands
-        go through the usual conversions to bring them to a common type before
+        undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
         comparison.
     )
 
@@ -345,7 +345,7 @@ $(GNAME IdentityExpression):
     $(P The $(D is) compares for identity.
         To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
-        go through the usual conversions to bring them to a common type before
+        undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
         comparison.
     )
 
@@ -379,7 +379,7 @@ $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
 )
 
-    $(P First, the integral promotions are done on the operands.
+    $(P First, the $(USUAL_ARITHMETIC_CONVERSIONS) are done on the operands.
         The result type of a relational expression is $(D bool).
     )
 
@@ -495,8 +495,8 @@ $(GNAME ShiftExpression):
     $(I ShiftExpression) $(D >)$(D >)$(D >) $(GLINK AddExpression)
 )
 
-    $(P The operands must be integral types, and undergo the usual integral
-        promotions. The result type is the type of the left operand after
+    $(P The operands must be integral types, and undergo the $(USUAL_ARITHMETIC_CONVERSIONS).
+        The result type is the type of the left operand after
         the promotions. The result value is the result of shifting the bits
         by the right operand's value.
     )
@@ -524,14 +524,14 @@ $(GNAME AddExpression):
     $(GLINK CatExpression)
 )
 
-    $(P If the operands are of integral types, they undergo integral
-        promotions, and then are brought to a common type using the
-        usual arithmetic conversions.
+    $(P If the operands are of integral types, they undergo the $(USUAL_ARITHMETIC_CONVERSIONS),
+        and then are brought to a common type using the
+        $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
     $(P If either operand is a floating point type, the other is implicitly
         converted to floating point and they are brought to a common type
-        via the usual arithmetic conversions.
+        via the $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
     $(P If the operator is $(D +) or $(D -), and
@@ -591,9 +591,8 @@ $(GNAME MulExpression):
     $(I MulExpression) $(D %) $(GLINK UnaryExpression)
 )
 
-    $(P The operands must be arithmetic types. They undergo integral
-        promotions, and then are brought to a common type using the
-        usual arithmetic conversions.
+    $(P The operands must be arithmetic types.
+        They undergo the $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
     $(P For integral operands, the $(D *), $(D /), and $(D %)
@@ -647,7 +646,7 @@ $(GNAME ComplementExpression):
         All the bits in the value are complemented.
     )
 
-    $(P $(B Note:) the usual integral promotions are not performed
+    $(P $(B Note:) the usual $(INTEGER_PROMOTIONS) are not performed
         prior to the complement operation.
     )
 
@@ -2173,4 +2172,6 @@ Macros:
         CHAPTER=10
         TITLE=Expressions
         IDENTIFIER=$(GLINK2 lex, Identifier)
+        USUAL_ARITHMETIC_CONVERSIONS=$(DDSUBLINK spec/types, usual-arithmetic-conversions, Usual Arithmetic Conversions)
+        INTEGER_PROMOTIONS=$(DDSUBLINK spec/types, integer-promotions, Integer Promotions)
         _=
