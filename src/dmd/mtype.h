@@ -415,7 +415,7 @@ class TypeVector : public Type
 public:
     Type *basetype;
 
-    static TypeVector *create(Loc loc, Type *basetype);
+    static TypeVector *create(Type *basetype);
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);

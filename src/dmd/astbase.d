@@ -3550,7 +3550,7 @@ struct ASTBase
     {
         Type basetype;
 
-        extern (D) this(Loc loc, Type baseType)
+        extern (D) this(Type baseType)
         {
             super(Tvector);
             this.basetype = basetype;
@@ -3558,7 +3558,7 @@ struct ASTBase
 
         override Type syntaxCopy()
         {
-            return new TypeVector(Loc.initial, basetype.syntaxCopy());
+            return new TypeVector(basetype.syntaxCopy());
         }
 
         override void accept(Visitor v)

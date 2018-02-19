@@ -2109,12 +2109,11 @@ final class Parser(AST) : Lexer
      */
     AST.Type parseVector()
     {
-        const loc = token.loc;
         nextToken();
         check(TOK.leftParentheses);
         AST.Type tb = parseType();
         check(TOK.rightParentheses);
-        return new AST.TypeVector(loc, tb);
+        return new AST.TypeVector(tb);
     }
 
     /***********************************
