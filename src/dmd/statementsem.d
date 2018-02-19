@@ -3461,9 +3461,9 @@ else
             args.push(new Parameter(0, t.pointerTo(), null, null));
             // Assignment of the alignment is delayed until after semantic
         }
-        
+
         cs.push(new ExpStatement(ss.loc, tmp));
-        
+
         if (!ss.exp)
         {
             /* This is just a dummy variable for "goto skips declaration" error.
@@ -3473,7 +3473,7 @@ else
             v.dsymbolSemantic(sc);
             cs.push(new ExpStatement(ss.loc, v));
         }
-        
+
         Expression argExp()
         {
             if (ss.exp)
@@ -3500,7 +3500,7 @@ else
         cs.push(new ExpStatement(ss.loc, genCall(ienter,argExp(), stc)));
         Statement fin = new ExpStatement(ss.loc, genCall(iexit ,argExp(), stc));
         cs.push(new TryFinallyStatement(ss.loc, ss._body, fin));
-        
+
         result = new CompoundStatement(ss.loc, cs).statementSemantic(sc);
 
         // set the explicit __critsecNNN alignment after semantic()
