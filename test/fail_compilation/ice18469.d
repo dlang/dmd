@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice18649.d(10): Error: no property `opCall` for type `void`
+fail_compilation/ice18469.d(10): Error: no property `opCall` for type `void`
 ---
 */
 class Bar
