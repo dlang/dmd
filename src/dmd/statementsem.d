@@ -3482,7 +3482,7 @@ else
         Expression genCall(Identifier id, Expression argexp, STC stc)
         {
             FuncDeclaration fd = FuncDeclaration.genCfunc(args, Type.tvoid, id, stc);
-            CallExp e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), argexp);
+            CallExp e = new CallExp(ss.loc, new VarExp(ss.loc, fd, false), argexp);
             e.f = fd;
             e.type = Type.tvoid; // do not run semantic on e
             return e;
@@ -3499,7 +3499,6 @@ else
 
         // set the explicit __critsecNNN alignment after semantic()
         if (!ss.exp) tmp.alignment = Target.ptrsize;
-
     }
 
     override void visit(WithStatement ws)
