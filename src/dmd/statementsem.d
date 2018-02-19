@@ -3480,7 +3480,7 @@ else
                 return new VarExp(ss.loc, tmp);
             else
             {
-                auto e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
+                Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
                 e = e.expressionSemantic(sc);
                 return e;
             }
