@@ -29,13 +29,22 @@ version (Windows) extern (C) int putenv(const char*);
 private enum LOG = false;
 
 /*****************************
- * Find the config file
- * Params:
- *      argv0 = program name (argv[0])
- *      inifile = .ini file name
- * Returns:
- *      file path of the config file or NULL
- *      Note: this is a memory leak
+Find the config file
+Look for inifile in the following sequence of places:
+$(OL
+  $(LI current directory)
+  $(LI exe directory (windows))
+  $(LI directory of argv0)
+  $(LI home directory)
+  $(LI SYSCONFDIR=/etc (non-windows))
+)
+
+Params:
+     argv0 = program name (argv[0])
+     inifile = .ini file name
+Returns:
+     file path of the config file or NULL
+     Note: this is a memory leak
  */
 const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
 {
@@ -47,16 +56,6 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
         return inifile;
     if (FileName.exists(inifile))
         return inifile;
-    /* Look for inifile in the following sequence of places:
-     *      o current directory
-     *      o home directory
-     *      o exe directory (windows)
-     *      o directory off of argv0
-     *      o SYSCONFDIR=/etc (non-windows)
-     */
-    auto filename = FileName.combine(getenv("HOME"), inifile);
-    if (FileName.exists(filename))
-        return filename;
     version (Windows)
     {
         // This fix by Tim Matthews
@@ -95,6 +94,14 @@ const(char)* findConfFile(const(char)* argv0, const(char)* inifile)
             if (FileName.exists(filename))
                 return filename;
         }
+    }
+
+    auto filename = FileName.combine(getenv("HOME"), inifile);
+    if (FileName.exists(filename))
+        return filename;
+
+    version (Posix)
+    {
         // Search SYSCONFDIR=/etc for inifile
         filename = FileName.combine(import("SYSCONFDIR.imp"), inifile);
     }
