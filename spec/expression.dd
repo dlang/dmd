@@ -732,6 +732,9 @@ $(GRAMMAR
 $(GNAME DeleteExpression):
     $(D delete) $(GLINK UnaryExpression)
 )
+    $(P NOTE: `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
+    if feasible, or $(REF __delete, core, memory) as a last resort.)
+
     $(P If the $(I UnaryExpression) is a class object reference, and
         there is a destructor for that class, the destructor
         is called for that object instance.

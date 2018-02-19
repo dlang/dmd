@@ -632,11 +632,10 @@ $(GNAME Destructor):
         object.
         )
 
-        $(P The  program can explicitly inform the garbage collector that an
-        object is no longer referred to (with the delete expression), and
-        then the garbage collector calls the destructor
-        immediately, and adds the object's memory to the free storage.
-        The destructor is guaranteed to never be called twice.
+        $(P The program can explicitly inform the garbage collector that an
+        object is no longer referred to with $(REF1 destroy, object), and
+        then the garbage collector calls the destructor immediately.  The
+        destructor is guaranteed to never be called twice.
         )
 
         $(P The destructor for the super class automatically gets called when
@@ -654,8 +653,8 @@ $(GNAME Destructor):
         members that are references to garbage collected objects, those
         references may no longer be valid. This means that destructors
         cannot reference sub objects.
-        This rule does not apply to auto objects or objects deleted
-        with the $(I DeleteExpression), as the destructor is not being run
+        This rule does not apply to auto objects or objects destructed
+        with $(REF1 destroy, object), as the destructor is not being run
         by the garbage collector, meaning all references are valid.
         )
 
