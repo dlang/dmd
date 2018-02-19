@@ -3479,7 +3479,7 @@ else
             if (ss.exp) return new VarExp(ss.loc, tmp);
             else        return new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
         }
-        Expression genCall(Identifier id, Expression argexp, STC stc = STC.undefined_)
+        Expression genCall(Identifier id, Expression argexp, STC stc)
         {
             FuncDeclaration fd = FuncDeclaration.genCfunc(args, Type.tvoid, id, stc);
             CallExp e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), argexp);
