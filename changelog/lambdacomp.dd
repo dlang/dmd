@@ -1,7 +1,7 @@
-Lambda comparison using __traits(isSame, ...)
+Lambda comparison using `__traits(isSame, ...)`
 
 It is now possible to compare two lambda functions, under certain
-constraints, using __traits(isSame, lamda1, lambda2). In order to
+constraints, using `__traits(isSame, lamda1, lambda2)`. In order to
 correctly compare two lambdas, the following conditions must be
 satisfied:
 
@@ -17,6 +17,6 @@ $(UL
 
 These limitations might be lifted in the next release version.
 
-Whenver a lambda is considered uncomparable, the __traits(isSame, ...) expression
+Whenever a lambda is considered uncomparable, the `__traits(isSame, ...)` expression
 in which it's used will return false, no matter what other lambda is used in
 the comparison.
