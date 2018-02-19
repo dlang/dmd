@@ -3205,6 +3205,7 @@ extern (C) @nogc nothrow
     version (Solaris) int thr_stksegment(stack_t* stk);
     version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
     version (CRuntime_Musl) int pthread_getattr_np(pthread_t, pthread_attr_t*);
+    version (CRuntime_UClibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
 }
 
 
@@ -3303,6 +3304,16 @@ private void* getStackBottom() nothrow @nogc
         return addr + size;
     }
     else version (CRuntime_Musl)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_getattr_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else version (CRuntime_UClibc)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -4531,6 +4542,7 @@ private:
             version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
             version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
             version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
+            version (CRuntime_UClibc) import core.sys.linux.sys.mman : MAP_ANON;
 
             static if( __traits( compiles, mmap ) )
             {

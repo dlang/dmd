@@ -594,6 +594,8 @@ extern (C) UnitTestResult runModuleUnitTests()
         import core.sys.windows.stacktrace;
     else version( Solaris )
         import core.sys.solaris.execinfo;
+    else version( CRuntime_UClibc )
+        import core.sys.linux.execinfo;
 
     static if( __traits( compiles, backtrace ) )
     {
@@ -713,6 +715,8 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         import core.sys.windows.stacktrace;
     else version( Solaris )
         import core.sys.solaris.execinfo;
+    else version( CRuntime_UClibc )
+        import core.sys.linux.execinfo;
 
     // avoid recursive GC calls in finalizer, trace handlers should be made @nogc instead
     import core.memory : gc_inFinalizer;
