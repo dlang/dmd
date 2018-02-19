@@ -3464,7 +3464,7 @@ else
         
         cs.push(new ExpStatement(ss.loc, tmp));
         
-        if (ss.exp)
+        if (!ss.exp)
         {
             /* This is just a dummy variable for "goto skips declaration" error.
              * Backend optimizer could remove this unused variable.
@@ -3476,8 +3476,14 @@ else
         
         Expression argExp()
         {
-            if (ss.exp) return new VarExp(ss.loc, tmp);
-            else        return new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
+            if (ss.exp)
+                return new VarExp(ss.loc, tmp);
+            else
+            {
+                auto e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
+                e = e.expressionSemantic(sc);
+                return e;
+            }
         }
         Expression genCall(Identifier id, Expression argexp, STC stc)
         {
