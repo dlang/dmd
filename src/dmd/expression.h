@@ -813,6 +813,7 @@ public:
     static CallExp *create(Loc loc, Expression *e, Expressions *exps);
     static CallExp *create(Loc loc, Expression *e);
     static CallExp *create(Loc loc, Expression *e, Expression *earg1);
+    static CallExp *create(Loc loc, FuncDeclaration *fd, Expression *earg1);
 
     Expression *syntaxCopy();
     bool isLvalue();
