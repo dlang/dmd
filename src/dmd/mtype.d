@@ -9051,24 +9051,6 @@ extern (C++) final class Parameter : RootObject
         return params;
     }
 
-    /****************************************
-     * Determine if parameter list is really a template parameter list
-     * (i.e. it has auto or alias parameters)
-     */
-    extern (D) static int isTPL(Parameters* parameters)
-    {
-        //printf("Parameter::isTPL()\n");
-
-        int isTPLDg(size_t n, Parameter p)
-        {
-            if (p.storageClass & (STC.alias_ | STC.auto_ | STC.static_))
-                return 1;
-            return 0;
-        }
-
-        return _foreach(parameters, &isTPLDg);
-    }
-
     /***************************************
      * Determine number of arguments, folding in tuples.
      */
