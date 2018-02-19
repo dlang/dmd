@@ -3437,7 +3437,7 @@ else
          *  _d_monitorenter(tmp);
          *  try { foo(); } finally { _d_monitorexit(tmp); }
          *
-         *  Rewrite synchonized() { foo(); } as:
+         *  Rewrite synchonized { foo(); } as:
          *  // NNN == line number
          *  __gshared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsecNNN;
          *  _d_criticalenter(__critsecNNN.ptr);
