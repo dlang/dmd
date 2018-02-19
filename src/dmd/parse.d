@@ -2109,12 +2109,11 @@ final class Parser(AST) : Lexer
      */
     AST.Type parseVector()
     {
-        const loc = token.loc;
         nextToken();
         check(TOK.leftParentheses);
         AST.Type tb = parseType();
         check(TOK.rightParentheses);
-        return new AST.TypeVector(loc, tb);
+        return new AST.TypeVector(tb);
     }
 
     /***********************************
@@ -4428,16 +4427,6 @@ final class Parser(AST) : Lexer
             else if (t.ty == AST.Tfunction)
             {
                 AST.Expression constraint = null;
-                version (none)
-                {
-                    TypeFunction tf = cast(TypeFunction)t;
-                    if (Parameter.isTPL(tf.parameters))
-                    {
-                        if (!tpl)
-                            tpl = new TemplateParameters();
-                    }
-                }
-
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
                 auto f = new AST.FuncDeclaration(loc, Loc.initial, ident, storage_class | (disable ? AST.STC.disable : 0), t);
                 if (pAttrs)

@@ -344,7 +344,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
      */
-    final int checkModify(Loc loc, Scope* sc, Type t, Expression e1, int flag)
+    final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)

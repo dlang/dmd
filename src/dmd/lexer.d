@@ -399,7 +399,7 @@ class Lexer
                 else
                     goto case_ident;
             case '"':
-                t.value = escapeStringConstant(t, 0);
+                t.value = escapeStringConstant(t);
                 return;
             case 'a':
             case 'b':
@@ -1620,7 +1620,7 @@ class Lexer
 
     /**************************************
      */
-    final TOK escapeStringConstant(Token* t, int wide)
+    final TOK escapeStringConstant(Token* t)
     {
         const start = loc();
         p++;

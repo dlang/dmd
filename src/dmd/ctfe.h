@@ -154,9 +154,6 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
  */
 void assignInPlace(Expression *dest, Expression *src);
 
-/// Create a new struct literal, which is the same as se except that se.field[offset] = elem
-Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval);
-
 /// Given an AA literal aae,  set arr[index] = newval and return the new array.
 Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     Expression *index, Expression *newval);
@@ -192,7 +189,7 @@ UnionExp pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2);
 
 /// Return 1 if true, 0 if false
 /// -1 if comparison is illegal because they point to non-comparable memory blocks
-int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2);
+int comparePointers(TOK op, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2);
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin

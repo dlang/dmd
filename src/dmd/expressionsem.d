@@ -452,7 +452,7 @@ private bool arrayExpressionToCommonType(Scope* sc, Expressions* exps, Type* pt)
  * Returns:
  *      true    a semantic error occurred
  */
-private bool preFunctionParameters(Loc loc, Scope* sc, Expressions* exps)
+private bool preFunctionParameters(Scope* sc, Expressions* exps)
 {
     bool err = false;
     if (exps)
@@ -2077,12 +2077,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         //printf("tb: %s, deco = %s\n", tb.toChars(), tb.deco);
 
         if (arrayExpressionSemantic(exp.newargs, sc) ||
-            preFunctionParameters(exp.loc, sc, exp.newargs))
+            preFunctionParameters(sc, exp.newargs))
         {
             return setError();
         }
         if (arrayExpressionSemantic(exp.arguments, sc) ||
-            preFunctionParameters(exp.loc, sc, exp.arguments))
+            preFunctionParameters(sc, exp.arguments))
         {
             return setError();
         }
@@ -2748,7 +2748,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         if (exp.e1.op == TOK.function_)
         {
-            if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(exp.loc, sc, exp.arguments))
+            if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
@@ -2947,7 +2947,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.e1;
             return;
         }
-        if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(exp.loc, sc, exp.arguments))
+        if (arrayExpressionSemantic(exp.arguments, sc) || preFunctionParameters(sc, exp.arguments))
             return setError();
 
         // Check for call operator overload
@@ -6069,7 +6069,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  * https://issues.dlang.org/show_bug.cgi?id=2684
                  * see also bug https://issues.dlang.org/show_bug.cgi?id=2954 b
                  */
-                if (!arrayTypeCompatibleWithoutCasting(exp.e2.loc, exp.e2.type, taa.index))
+                if (!arrayTypeCompatibleWithoutCasting(exp.e2.type, taa.index))
                 {
                     exp.e2 = exp.e2.implicitCastTo(sc, taa.index); // type checking
                     if (exp.e2.type == Type.terror)

@@ -466,7 +466,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * Bugs:
  * This doesn't appear to do anything.
  */
-private bool checkPropertyCall(Expression e, Expression emsg)
+private bool checkPropertyCall(Expression e)
 {
     while (e.op == TOK.comma)
         e = (cast(CommaExp)e).e2;
@@ -884,7 +884,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             e = e.trySemantic(sc);
             if (!e)
             {
-                checkPropertyCall(ex, e1);
+                checkPropertyCall(ex);
                 ex = new AssignExp(loc, ex, e2);
                 return ex.expressionSemantic(sc);
             }
@@ -894,7 +894,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             // strict setter prints errors if fails
             e = e.expressionSemantic(sc);
         }
-        checkPropertyCall(e, e1);
+        checkPropertyCall(e);
         return e;
     }
     else
@@ -906,7 +906,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
         e = e.expressionSemantic(sc);
-        checkPropertyCall(e, e1);
+        checkPropertyCall(e);
         return e.expressionSemantic(sc);
     }
 }
@@ -4209,7 +4209,7 @@ extern (C++) final class VarExp : SymbolExp
     {
         //printf("VarExp::checkModifiable %s", toChars());
         assert(type);
-        return var.checkModify(loc, sc, type, null, flag);
+        return var.checkModify(loc, sc, null, flag);
     }
 
     bool checkReadModifyWrite();
@@ -5249,7 +5249,7 @@ extern (C++) final class DotVarExp : UnaExp
             return 2;
 
         if (e1.op == TOK.this_)
-            return var.checkModify(loc, sc, type, e1, flag);
+            return var.checkModify(loc, sc, e1, flag);
 
         //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
@@ -5598,7 +5598,7 @@ extern (C++) final class PtrExp : UnaExp
         if (e1.op == TOK.symbolOffset)
         {
             SymOffExp se = cast(SymOffExp)e1;
-            return se.var.checkModify(loc, sc, type, null, flag);
+            return se.var.checkModify(loc, sc, null, flag);
         }
         else if (e1.op == TOK.address)
         {

@@ -388,7 +388,7 @@ extern (C++) void gendocfile(Module m)
     }
     DocComment.parseMacros(&m.escapetable, &m.macrotable, mbuf.peekSlice().ptr, mbuf.peekSlice().length);
     Scope* sc = Scope.createGlobal(m); // create root scope
-    DocComment* dc = DocComment.parse(sc, m, m.comment);
+    DocComment* dc = DocComment.parse(m, m.comment);
     dc.pmacrotable = &m.macrotable;
     dc.pescapetable = &m.escapetable;
     sc.lastdc = dc;
@@ -921,7 +921,7 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
             }
             if (s)
             {
-                DocComment* dc = DocComment.parse(sc, s, com);
+                DocComment* dc = DocComment.parse(s, com);
                 dc.pmacrotable = &sc._module.macrotable;
                 sc.lastdc = dc;
             }
@@ -1407,7 +1407,7 @@ struct DocComment
     Escape** pescapetable;
     Dsymbols a;
 
-    extern (C++) static DocComment* parse(Scope* sc, Dsymbol s, const(char)* comment)
+    extern (C++) static DocComment* parse(Dsymbol s, const(char)* comment)
     {
         //printf("parse(%s): '%s'\n", s.toChars(), comment);
         auto dc = new DocComment();

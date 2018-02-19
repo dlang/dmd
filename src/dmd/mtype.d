@@ -4339,15 +4339,15 @@ extern (C++) final class TypeVector : Type
 {
     Type basetype;
 
-    extern (D) this(const ref Loc loc, Type basetype)
+    extern (D) this(Type basetype)
     {
         super(Tvector);
         this.basetype = basetype;
     }
 
-    static TypeVector create(const ref Loc loc, Type basetype)
+    static TypeVector create(Type basetype)
     {
-        return new TypeVector(loc, basetype);
+        return new TypeVector(basetype);
     }
 
     override const(char)* kind() const
@@ -4357,7 +4357,7 @@ extern (C++) final class TypeVector : Type
 
     override Type syntaxCopy()
     {
-        return new TypeVector(Loc.initial, basetype.syntaxCopy());
+        return new TypeVector(basetype.syntaxCopy());
     }
 
     override d_uns64 size(const ref Loc loc)
@@ -9049,24 +9049,6 @@ extern (C++) final class Parameter : RootObject
                 (*params)[i] = (*parameters)[i].syntaxCopy();
         }
         return params;
-    }
-
-    /****************************************
-     * Determine if parameter list is really a template parameter list
-     * (i.e. it has auto or alias parameters)
-     */
-    extern (D) static int isTPL(Parameters* parameters)
-    {
-        //printf("Parameter::isTPL()\n");
-
-        int isTPLDg(size_t n, Parameter p)
-        {
-            if (p.storageClass & (STC.alias_ | STC.auto_ | STC.static_))
-                return 1;
-            return 0;
-        }
-
-        return _foreach(parameters, &isTPLDg);
     }
 
     /***************************************

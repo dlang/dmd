@@ -36,7 +36,7 @@ import dmd.tokens;
 
 //version=LOGSEARCH;
 
-extern (C++) bool mergeFieldInit(Loc loc, ref uint fieldInit, uint fi, bool mustInit)
+private bool mergeFieldInit(ref uint fieldInit, uint fi, bool mustInit)
 {
     if (fi != fieldInit)
     {
@@ -422,7 +422,7 @@ struct Scope
             {
                 VarDeclaration v = ad.fields[i];
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (!.mergeFieldInit(loc, fieldinit[i], fies[i], mustInit))
+                if (!.mergeFieldInit(fieldinit[i], fies[i], mustInit))
                 {
                     .error(loc, "one path skips field `%s`", ad.fields[i].toChars());
                 }
