@@ -3425,85 +3425,81 @@ else
                 ss.exp = new CastExp(ss.loc, ss.exp, t);
                 ss.exp = ss.exp.expressionSemantic(sc);
             }
-            version (all)
-            {
-                /* Rewrite as:
-                 *  auto tmp = exp;
-                 *  _d_monitorenter(tmp);
-                 *  try { body } finally { _d_monitorexit(tmp); }
-                 */
-                auto tmp = copyToTemp(0, "__sync", ss.exp);
-                tmp.dsymbolSemantic(sc);
-
-                auto cs = new Statements();
-                cs.push(new ExpStatement(ss.loc, tmp));
-
-                auto args = new Parameters();
-                args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
-
-                FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
-                Expression e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), new VarExp(ss.loc, tmp));
-                e.type = Type.tvoid; // do not run semantic on e
-
-                cs.push(new ExpStatement(ss.loc, e));
-                FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
-                e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), new VarExp(ss.loc, tmp));
-                e.type = Type.tvoid; // do not run semantic on e
-                Statement s = new ExpStatement(ss.loc, e);
-                s = new TryFinallyStatement(ss.loc, ss._body, s);
-                cs.push(s);
-
-                s = new CompoundStatement(ss.loc, cs);
-                result = s.statementSemantic(sc);
-            }
+        }
+        /*
+         * Rewrite synchonized(exp) { foo(); } as:
+         *  auto tmp = exp;
+         *  _d_monitorenter(tmp);
+         *  try { foo(); } finally { _d_monitorexit(tmp); }
+         *
+         *  Rewrite synchonized { foo(); } as:
+         *  // NNN == line number
+         *  __gshared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsecNNN;
+         *  _d_criticalenter(__critsecNNN.ptr);
+         *  try { foo(); } finally { _d_criticalexit(__critsec.ptr); }
+         */
+        VarDeclaration tmp;
+        auto cs = new Statements();
+        auto args = new Parameters();
+        if (ss.exp)
+        {
+            tmp = copyToTemp(0, "__sync", ss.exp);
+            tmp.dsymbolSemantic(sc);
+            args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
         }
         else
         {
-            /* Generate our own critical section, then rewrite as:
-             *  __gshared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
-             *  _d_criticalenter(__critsec.ptr);
-             *  try { body } finally { _d_criticalexit(__critsec.ptr); }
-             */
             auto id = Identifier.generateId("__critsec");
             auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
-            auto tmp = new VarDeclaration(ss.loc, t, id, null);
+            tmp = new VarDeclaration(ss.loc, t, id, null);
             tmp.storage_class |= STC.temp | STC.gshared | STC.static_;
+            args.push(new Parameter(0, t.pointerTo(), null, null));
+            // Assignment of the alignment is delayed until after semantic
+        }
 
-            auto cs = new Statements();
-            cs.push(new ExpStatement(ss.loc, tmp));
+        cs.push(new ExpStatement(ss.loc, tmp));
 
+        if (!ss.exp)
+        {
             /* This is just a dummy variable for "goto skips declaration" error.
              * Backend optimizer could remove this unused variable.
              */
             auto v = new VarDeclaration(ss.loc, Type.tvoidptr, Identifier.generateId("__sync"), null);
             v.dsymbolSemantic(sc);
             cs.push(new ExpStatement(ss.loc, v));
-
-            auto args = new Parameters();
-            args.push(new Parameter(0, t.pointerTo(), null, null));
-
-            FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
-            Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
-            e = e.expressionSemantic(sc);
-            e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), e);
-            e.type = Type.tvoid; // do not run semantic on e
-            cs.push(new ExpStatement(ss.loc, e));
-
-            FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STC.nothrow_);
-            e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
-            e = e.expressionSemantic(sc);
-            e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), e);
-            e.type = Type.tvoid; // do not run semantic on e
-            Statement s = new ExpStatement(ss.loc, e);
-            s = new TryFinallyStatement(ss.loc, ss._body, s);
-            cs.push(s);
-
-            s = new CompoundStatement(ss.loc, cs);
-            result = s.statementSemantic(sc);
-
-            // set the explicit __critsec alignment after semantic()
-            tmp.alignment = Target.ptrsize;
         }
+
+        Expression argExp()
+        {
+            if (ss.exp)
+                return new VarExp(ss.loc, tmp);
+            else
+            {
+                Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
+                e = e.expressionSemantic(sc);
+                return e;
+            }
+        }
+        Expression genCall(Identifier id, Expression argexp, STC stc)
+        {
+            FuncDeclaration fd = FuncDeclaration.genCfunc(args, Type.tvoid, id, stc);
+            CallExp e = new CallExp(ss.loc, new VarExp(ss.loc, fd, false), argexp);
+            e.f = fd;
+            e.type = Type.tvoid; // do not run semantic on e
+            return e;
+        }
+        auto stc    = ss.exp ? STC.undefined_  : STC.nothrow_;
+        auto ienter = ss.exp ? Id.monitorenter : Id.criticalenter;
+        auto iexit  = ss.exp ? Id.monitorexit  : Id.criticalexit;
+
+        cs.push(new ExpStatement(ss.loc, genCall(ienter,argExp(), stc)));
+        Statement fin = new ExpStatement(ss.loc, genCall(iexit ,argExp(), stc));
+        cs.push(new TryFinallyStatement(ss.loc, ss._body, fin));
+
+        result = new CompoundStatement(ss.loc, cs).statementSemantic(sc);
+
+        // set the explicit __critsecNNN alignment after semantic()
+        if (!ss.exp) tmp.alignment = Target.ptrsize;
     }
 
     override void visit(WithStatement ws)
