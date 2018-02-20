@@ -2434,10 +2434,11 @@ void functionResolve(Match* m, Dsymbol dstart, Loc loc, Scope* sc, Objects* tiar
         {
             auto dtmod = dt.type.toTypeFunction();
             auto shared_dtor = dtmod.mod & MODFlags.shared_;
-            auto shared_this = tthis_fd.mod & MODFlags.shared_;
+            auto shared_this = tthis_fd !is null ?
+                tthis_fd.mod & MODFlags.shared_ : 0;
             if (shared_dtor && !shared_this)
                 tthis_fd = dtmod;
-            else if (shared_this && !shared_dtor)
+            else if (shared_this && !shared_dtor && tthis_fd !is null)
                 tf.mod = tthis_fd.mod;
         }
         MATCH mfa = tf.callMatch(tthis_fd, fargs, 0, pMessage);
