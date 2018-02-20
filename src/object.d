@@ -3877,7 +3877,7 @@ template _arrayOp(Args...)
                    strings are sorted by length first, and then lexicographically.
  *      condition = string to look up in table
  * Returns:
- *      index of match in caseLabels, -1 if not found
+ *      index of match in caseLabels, a negative integer if not found
 */
 int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @safe @nogc
 {
