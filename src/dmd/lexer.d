@@ -517,27 +517,8 @@ class Lexer
                         }
                         else if (id == Id.VERSIONX)
                         {
-                            uint major = 0;
-                            uint minor = 0;
-                            bool point = false;
-                            for (const(char)* p = global._version + 1; 1; p++)
-                            {
-                                const c = *p;
-                                if (isdigit(cast(char)c))
-                                    minor = minor * 10 + c - '0';
-                                else if (c == '.')
-                                {
-                                    if (point)
-                                        break; // ignore everything after second '.'
-                                    point = true;
-                                    major = minor;
-                                    minor = 0;
-                                }
-                                else
-                                    break;
-                            }
                             t.value = TOK.int64Literal;
-                            t.unsvalue = major * 1000 + minor;
+                            t.unsvalue = global.versionNumber();
                         }
                         else if (id == Id.EOFX)
                         {

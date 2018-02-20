@@ -257,6 +257,11 @@ struct Global
     void increaseErrorCount();
 
     void _init();
+
+    /**
+    Returns: the version as the number that would be returned for __VERSION__
+    */
+    unsigned versionNumber();
 };
 
 extern Global global;
