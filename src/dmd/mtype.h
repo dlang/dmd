@@ -319,9 +319,7 @@ public:
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual structalign_t alignment();
-    Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
@@ -352,7 +350,6 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
@@ -392,7 +389,6 @@ public:
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating() /*const*/;
     bool isreal() /*const*/;
@@ -420,7 +416,6 @@ public:
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
     bool isscalar();
@@ -438,7 +433,6 @@ public:
 class TypeArray : public TypeNext
 {
 public:
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -452,7 +446,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
     structalign_t alignment();
@@ -475,7 +468,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize() /*const*/;
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
@@ -497,7 +489,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
@@ -531,7 +522,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc) /*const*/;
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     void accept(Visitor *v) { v->visit(this); }
@@ -629,7 +619,6 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool hasPointers() /*const*/;
 
     void accept(Visitor *v) { v->visit(this); }
@@ -729,7 +718,6 @@ public:
     unsigned alignsize();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -758,7 +746,6 @@ public:
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
@@ -795,7 +782,6 @@ public:
     d_uns64 size(Loc loc) /*const*/;
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     ClassDeclaration *isClassHandle();
     bool isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
