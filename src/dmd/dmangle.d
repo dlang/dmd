@@ -171,8 +171,8 @@ private extern (C++) final class Mangler : Visitor
     alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
-    AA* types;
-    AA* idents;
+    AssocArray!(Type, size_t) types;
+    AssocArray!(Identifier, size_t) idents;
     OutBuffer* buf;
 
     extern (D) this(OutBuffer* buf)
@@ -225,7 +225,7 @@ public:
     {
         if (!t.isTypeBasic())
         {
-            auto p = cast(size_t*)dmd_aaGet(&types, cast(Key)t);
+            auto p = types.getLvalue(t);
             if (*p)
             {
                 writeBackRef(buf.offset - *p);
@@ -251,7 +251,7 @@ public:
     */
     final bool backrefIdentifier(Identifier id)
     {
-        auto p = cast(size_t*)dmd_aaGet(&idents, cast(Key)id);
+        auto p = idents.getLvalue(id);
         if (*p)
         {
             writeBackRef(buf.offset - *p);
