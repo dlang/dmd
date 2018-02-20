@@ -24,11 +24,17 @@ extern (C++) size_t hash(size_t a)
 alias Key = void*;
 alias Value = void*;
 
+struct KeyValue
+{
+    Key key;
+    Value value;
+}
+
 struct aaA
 {
     aaA* next;
-    Key key;
-    Value value;
+    KeyValue keyValue;
+    alias keyValue this;
 }
 
 struct AA
@@ -119,6 +125,92 @@ extern (C++) Value dmd_aaGetRvalue(AA* aa, Key key)
         }
     }
     return null; // not found
+}
+
+debug
+{
+    /**
+    Gets a range of key/values for `aa`.
+
+    Returns: a range of key/values for `aa`.
+    */
+    @property auto asRange(AA* aa)
+    {
+        return AARange(aa);
+    }
+
+    private struct AARange
+    {
+        AA* aa;
+        // current index into bucket array `aa.b`
+        size_t bIndex;
+        aaA* current;
+
+        this(AA* aa)
+        {
+            if (aa)
+            {
+                this.aa = aa;
+                toNext();
+            }
+        }
+
+        @property bool empty() const { return current is null; }
+
+        @property auto front() { return current.keyValue; }
+
+        void popFront()
+        {
+            if (current.next)
+                current = current.next;
+            else
+            {
+                bIndex++;
+                toNext();
+            }
+        }
+
+        private void toNext()
+        {
+            for (; bIndex < aa.b_length; bIndex++)
+            {
+                if (auto next = aa.b[bIndex])
+                {
+                    current = next;
+                    return;
+                }
+            }
+            current = null;
+        }
+    }
+    unittest
+    {
+        AA* aa = null;
+        foreach(keyValue; aa.asRange)
+            assert(0);
+
+        enum totalKeyLength = 50;
+        foreach (i; 1 .. totalKeyLength + 1)
+        {
+            auto key = cast(void*)i;
+            {
+                auto valuePtr = dmd_aaGet(&aa, key);
+                assert(valuePtr);
+                *valuePtr = key;
+            }
+            bool[totalKeyLength] found;
+            size_t rangeCount = 0;
+            foreach (keyValue; aa.asRange)
+            {
+                assert(keyValue.key <= key);
+                assert(keyValue.key == keyValue.value);
+                rangeCount++;
+                assert(!found[cast(size_t)keyValue.key - 1]);
+                found[cast(size_t)keyValue.key - 1] = true;
+            }
+            assert(rangeCount == i);
+        }
+    }
 }
 
 /********************************************

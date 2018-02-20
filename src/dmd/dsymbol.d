@@ -2114,6 +2114,22 @@ extern (C++) final class DsymbolTable : RootObject
         return s;
     }
 
+    debug
+    {
+        /**
+        print the symbol table contents
+        */
+        override void print()
+        {
+            printf("SYMBOL TABLE (%d entries)\n------------------------------\n", dmd_aaLen(tab));
+            foreach (keyValue; tab.asRange)
+            {
+                auto ident = cast(Identifier)keyValue.key;
+                printf("%s\n", ident.toChars());
+            }
+        }
+    }
+
     // Look for Dsymbol in table. If there, return it. If not, insert s and return that.
     Dsymbol update(Dsymbol s)
     {
