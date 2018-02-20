@@ -12,11 +12,12 @@
 
 module rt.backtrace.dwarf;
 
-version(CRuntime_Glibc) version = glibc_or_bsdlibc;
-else version(FreeBSD) version = glibc_or_bsdlibc;
-else version(DragonFlyBSD) version = glibc_or_bsdlibc;
+version(CRuntime_Glibc) version = has_backtrace;
+else version(FreeBSD) version = has_backtrace;
+else version(DragonFlyBSD) version = has_backtrace;
+else version(CRuntime_UClibc) version = has_backtrace;
 
-version(glibc_or_bsdlibc):
+version(has_backtrace):
 
 import rt.util.container.array;
 import rt.backtrace.elf;
