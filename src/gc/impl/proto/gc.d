@@ -63,14 +63,14 @@ class ProtoGC : GC
 
     void enable()
     {
-        gc_init_nothrow();
-        gc_enable();
+        .gc_init_nothrow();
+        .gc_enable();
     }
 
     void disable()
     {
-        gc_init_nothrow();
-        gc_disable();
+        .gc_init_nothrow();
+        .gc_disable();
     }
 
     void collect() nothrow
@@ -102,26 +102,26 @@ class ProtoGC : GC
 
     void* malloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        gc_init_nothrow();
-        return gc_malloc(size, bits, ti);
+        .gc_init_nothrow();
+        return .gc_malloc(size, bits, ti);
     }
 
     BlkInfo qalloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        gc_init_nothrow();
-        return gc_qalloc(size, bits, ti);
+        .gc_init_nothrow();
+        return .gc_qalloc(size, bits, ti);
     }
 
     void* calloc(size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        gc_init_nothrow();
-        return gc_calloc(size, bits, ti);
+        .gc_init_nothrow();
+        return .gc_calloc(size, bits, ti);
     }
 
     void* realloc(void* p, size_t size, uint bits, const TypeInfo ti) nothrow
     {
-        gc_init_nothrow();
-        return gc_realloc(p, size, bits, ti);
+        .gc_init_nothrow();
+        return .gc_realloc(p, size, bits, ti);
     }
 
     size_t extend(void* p, size_t minsize, size_t maxsize, const TypeInfo ti) nothrow
@@ -131,8 +131,8 @@ class ProtoGC : GC
 
     size_t reserve(size_t size) nothrow
     {
-        gc_init_nothrow();
-        return reserve(size);
+        .gc_init_nothrow();
+        return .gc_reserve(size);
     }
 
     void free(void* p) nothrow @nogc
