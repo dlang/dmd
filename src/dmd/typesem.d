@@ -47,6 +47,84 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 
+/************************************
+ * Strip all parameter's idenfiers and their default arguments for merging types.
+ * If some of parameter types or return type are function pointer, delegate, or
+ * the types which contains either, then strip also from them.
+ */
+private Type stripDefaultArgs(Type t)
+{
+    static Parameters* stripParams(Parameters* parameters)
+    {
+        Parameters* params = parameters;
+        if (params && params.dim > 0)
+        {
+            foreach (i; 0 .. params.dim)
+            {
+                Parameter p = (*params)[i];
+                Type ta = stripDefaultArgs(p.type);
+                if (ta != p.type || p.defaultArg || p.ident)
+                {
+                    if (params == parameters)
+                    {
+                        params = new Parameters();
+                        params.setDim(parameters.dim);
+                        foreach (j; 0 .. params.dim)
+                            (*params)[j] = (*parameters)[j];
+                    }
+                    (*params)[i] = new Parameter(p.storageClass, ta, null, null);
+                }
+            }
+        }
+        return params;
+    }
+
+    if (t is null)
+        return t;
+
+    if (t.ty == Tfunction)
+    {
+        TypeFunction tf = cast(TypeFunction)t;
+        Type tret = stripDefaultArgs(tf.next);
+        Parameters* params = stripParams(tf.parameters);
+        if (tret == tf.next && params == tf.parameters)
+            goto Lnot;
+        tf = cast(TypeFunction)tf.copy();
+        tf.parameters = params;
+        tf.next = tret;
+        //printf("strip %s\n   <- %s\n", tf.toChars(), t.toChars());
+        t = tf;
+    }
+    else if (t.ty == Ttuple)
+    {
+        TypeTuple tt = cast(TypeTuple)t;
+        Parameters* args = stripParams(tt.arguments);
+        if (args == tt.arguments)
+            goto Lnot;
+        t = t.copy();
+        (cast(TypeTuple)t).arguments = args;
+    }
+    else if (t.ty == Tenum)
+    {
+        // TypeEnum::nextOf() may be != NULL, but it's not necessary here.
+        goto Lnot;
+    }
+    else
+    {
+        Type tn = t.nextOf();
+        Type n = stripDefaultArgs(tn);
+        if (n == tn)
+            goto Lnot;
+        t = t.copy();
+        (cast(TypeNext)t).next = n;
+    }
+    //printf("strip %s\n", t.toChars());
+Lnot:
+    return t;
+}
+
+
+
 /******************************************
  * Perform semantic analysis on a type.
  * Params:
