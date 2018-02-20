@@ -266,7 +266,7 @@ dmd -cov -unittest myprog.d
         ),
         Option("fPIC",
             "generate position independent code",
-            TargetOS.linux
+            TargetOS.all & ~(TargetOS.windows | TargetOS.macOS)
         ),
         Option("g",
             "add symbolic debug info",
