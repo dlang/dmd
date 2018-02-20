@@ -315,7 +315,7 @@ Lnot:
     return t;
 }
 
-enum TFlags
+private enum TFlags
 {
     integral     = 1,
     floating     = 2,
