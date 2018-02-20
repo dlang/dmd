@@ -6,4 +6,4 @@ $(CONSOLE dmd -i=foo -i=-foo.bar)
 
 The option -i by itself is equivalent to:
 
-$(CONSOLE dmd -i=-std,-core,-etc,-object)
+$(CONSOLE dmd -i=-std -i=-core -i=-etc -i=-object)

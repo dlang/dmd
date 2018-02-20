@@ -310,11 +310,32 @@ dmd -cov -unittest myprog.d
         Option("I=<directory>",
             "look for imports also in directory"
         ),
-        Option("i",
-            "include imported modules except from druntime/phobos (equivalent to -i=-std -i=-core -i=-etc -i=-object)"
-        ),
-        Option("i=[-]<pattern>",
-            "include (or exclude if prefixed with '-') imported modules whose names match <pattern>"
+        Option("i[=<pattern>]",
+            "include imported modules in the compilation",
+            q"{$(P Enables "include imports" mode, where the compiler will include imported
+             modules in the compilation, as if they were given on the command line. By default, when
+             this option is enabled, all imported modules are included except those in
+             druntime/phobos. This behavior can be overriden by providing patterns via `-i=<pattern>`.
+             A pattern of the form `-i=<package>` is an "inclusive pattern", whereas a pattern
+             of the form `-i=-<package>` is an "exclusive pattern". Inclusive patterns will include
+             all module's whose names match the pattern, whereas exclusive patterns will exclude them.
+             For example. all modules in the package `foo.bar` can be included using `-i=foo.bar` or excluded
+             using `-i=-foo.bar`. Note that each component of the fully qualified name must match the
+             pattern completely, so the pattern `foo.bar` would not match a module named `foo.barx`.)
+
+             $(P The default behavior of excluding druntime/phobos is accomplished by internally adding a
+             set of standard exclusions, namely, `-i=-std -i=-core -i=-etc -i=-object`. Note that these
+             can be overriden with `-i=std -i=core -i=etc -i=object`.)
+
+             $(P When a module matches multiple patterns, matches are prioritized by their component length, where
+             a match with more components takes priority (i.e. pattern `foo.bar.baz` has priority over `foo.bar`).)
+
+             $(P By default modules that don't match any pattern will be included. However, if at
+             least one inclusive pattern is given, then modules not matching any pattern will
+             be excluded. This behavior can be overriden by usig `-i=.` to include by default or `-i=-.` to
+             exclude by default.)
+
+             $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
         Option("ignore",
             "ignore unsupported pragmas"
