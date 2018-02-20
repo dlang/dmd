@@ -83,7 +83,7 @@ void sanitize(JSONValue root)
 
 void removeString(JSONValue* value)
 {
-    assert(value.type == JSON_TYPE.STRING);
+    assert(value.type == JSON_TYPE.STRING || value.type == JSON_TYPE.NULL);
     *value = JSONValue("VALUE_REMOVED_FOR_TEST");
 }
 void removeNumber(JSONValue* value)
@@ -96,17 +96,28 @@ void removeStringIfExists(JSONValue* value)
     if (value !is null)
         removeString(value);
 }
+void removeArray(JSONValue* value)
+{
+    assert(value.type == JSON_TYPE.ARRAY);
+    *value = JSONValue([JSONValue("VALUES_REMOVED_FOR_TEST")]);
+}
 
 void sanitizeCompilerInfo(ref JSONValue[string] buildInfo)
 {
-    removeString(&buildInfo["binary"]);
     removeString(&buildInfo["version"]);
+    removeNumber(&buildInfo["__VERSION__"]);
+    removeString(&buildInfo["vendor"]);
+    removeNumber(&buildInfo["size_t"]);
+    removeArray(&buildInfo["platforms"]);
+    removeArray(&buildInfo["architectures"]);
+    removeArray(&buildInfo["predefinedVersions"]);
 }
 void sanitizeBuildInfo(ref JSONValue[string] buildInfo)
 {
     removeString(&buildInfo["cwd"]);
-    removeStringIfExists("config" in buildInfo);
-    removeStringIfExists("lib" in buildInfo);
+    removeString(&buildInfo["argv0"]);
+    removeString(&buildInfo["config"]);
+    removeString(&buildInfo["libName"]);
     {
         auto importPaths = buildInfo["importPaths"].array;
         foreach(ref path; importPaths)
@@ -114,6 +125,9 @@ void sanitizeBuildInfo(ref JSONValue[string] buildInfo)
             path = JSONValue(normalizeFile(path.str));
         }
     }
+    removeArray(&buildInfo["objectFiles"]);
+    removeArray(&buildInfo["libraryFiles"]);
+    removeString(&buildInfo["mapFile"]);
 }
 void sanitizeSyntaxNode(ref JSONValue value)
 {
