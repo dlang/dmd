@@ -123,8 +123,6 @@ Lnot:
     return t;
 }
 
-
-
 /******************************************
  * Perform semantic analysis on a type.
  * Params:
