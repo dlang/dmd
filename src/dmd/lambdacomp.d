@@ -23,6 +23,7 @@ import core.stdc.string;
 import dmd.declaration;
 import dmd.denum;
 import dmd.dsymbol;
+import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
 import dmd.dmangle;
@@ -33,6 +34,8 @@ import dmd.dscope;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+
+enum LOG = false;
 
 /**
  * The type of the visited expression.
@@ -83,6 +86,8 @@ public:
     override void visit(FuncLiteralDeclaration fld)
     {
         assert(fld.type.ty != Terror);
+        static if (LOG)
+            printf("FuncLiteralDeclaration: %s\n", fld.toChars());
 
         TypeFunction tf = cast(TypeFunction)fld.type;
         uint dim = cast(uint)Parameter.dim(tf.parameters);
@@ -111,9 +116,7 @@ public:
         }
 
         // Now the function body can be serialized.
-        CompoundStatement cs = fld.fbody.isCompoundStatement();
-        Statement s = !cs ? fld.fbody : null;
-        ReturnStatement rs = s ? s.isReturnStatement() : null;
+        ReturnStatement rs = fld.fbody.isReturnStatement();
         if (rs && rs.exp)
         {
             rs.exp.accept(this);
@@ -122,6 +125,8 @@ public:
 
     override void visit(DotIdExp exp)
     {
+        static if (LOG)
+            printf("DotIdExp: %s\n", exp.toChars());
         if (buf.offset == 0)
             return;
 
@@ -156,13 +161,9 @@ public:
         }
     }
 
-    override void visit(IdentifierExp exp)
+    bool checkArgument(const(char)* id)
     {
-        if (buf.offset == 0)
-            return;
-
         // The identifier may be an argument
-        auto id = exp.ident.toChars;
         auto stringtable_value = arg_hash.lookup(id, strlen(id));
         if (stringtable_value)
         {
@@ -171,10 +172,25 @@ public:
             buf.writestring(gen_id);
             buf.writeByte('_');
             et = ExpType.Arg;
+            return true;
         }
-        else
+        return false;
+    }
+
+    override void visit(IdentifierExp exp)
+    {
+        static if (LOG)
+            printf("IdentifierExp: %s\n", exp.toChars());
+
+        if (buf.offset == 0)
+            return;
+
+        auto id = exp.ident.toChars();
+
+        // If it's not an argument
+        if (!checkArgument(id))
         {
-            // Or it may be something else
+            // we must check what the identifier expression is.
             Dsymbol scopesym;
             Dsymbol s = sc.search(exp.loc, exp.ident, &scopesym);
             if (s)
@@ -196,6 +212,37 @@ public:
                     buf.reset();
                 }
             }
+        }
+    }
+
+    override void visit(DotVarExp exp)
+    {
+        static if (LOG)
+            printf("DotVarExp: %s, var: %s, e1: %s\n", exp.toChars(),
+                    exp.var.toChars(), exp.e1.toChars());
+
+        exp.e1.accept(this);
+        if (buf.offset == 0)
+            return;
+
+        buf.setsize(buf.offset -1);
+        buf.writeByte('.');
+        buf.writestring(exp.var.toChars());
+        buf.writeByte('_');
+    }
+
+    override void visit(VarExp exp)
+    {
+        static if (LOG)
+            printf("VarExp: %s, var: %s\n", exp.toChars(), exp.var.toChars());
+
+        if (buf.offset == 0)
+            return;
+
+        auto id = exp.var.ident.toChars();
+        if (!checkArgument(id))
+        {
+            buf.offset = 0;
         }
     }
 
@@ -224,6 +271,9 @@ public:
 
     override void visit(BinExp exp)
     {
+        static if (LOG)
+            printf("BinExp: %s\n", exp.toChars());
+
         if (buf.offset == 0)
             return;
 
@@ -247,11 +297,9 @@ public:
         buf.writeByte('_');
     }
 
-    override void visit(TypeIdentifier t)
+    void writeMangledName(Dsymbol s)
     {
-        Dsymbol scopesym;
-        Dsymbol s = sc.search(t.loc, t.ident, &scopesym);
-        if (s && s.semanticRun == PASS.semantic3done)
+        if (s)
         {
             OutBuffer mangledName;
             mangleToBuffer(s, &mangledName);
@@ -262,9 +310,33 @@ public:
             buf.reset();
     }
 
-    override void visit(TypeInstance t)
+    private bool checkTemplateInstance(T)(T t)
+        if (is(T == TypeStruct) || is(T == TypeClass))
     {
-        buf.reset();
+        if (t.sym.parent && t.sym.parent.isTemplateInstance())
+        {
+            buf.reset();
+            return true;
+        }
+        return false;
+    }
+
+    override void visit(TypeStruct t)
+    {
+        static if (LOG)
+            printf("TypeStruct: %s\n", t.toChars);
+
+        if (!checkTemplateInstance!TypeStruct(t))
+            writeMangledName(t.sym);
+    }
+
+    override void visit(TypeClass t)
+    {
+        static if (LOG)
+            printf("TypeClass: %s\n", t.toChars());
+
+        if (!checkTemplateInstance!TypeClass(t))
+            writeMangledName(t.sym);
     }
 
     override void visit(Parameter p)

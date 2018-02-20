@@ -4342,15 +4342,7 @@ extern (C++) final class FuncExp : Expression
             if (fd.fes)
                 s = "__foreachbody";
             else if (fd.tok == TOK.reserved)
-            {
-                import dmd.lambdacomp;
-
                 s = "__lambda";
-                auto serVisitor = new SerializeVisitor(sc);
-                fd.accept(serVisitor);
-                fd.serialization = serVisitor.buf.offset == 0 ? "uncomparable" : serVisitor.buf.extractString();
-                //printf("serialization: %s\n", fd.serialization);
-            }
             else if (fd.tok == TOK.delegate_)
                 s = "__dgliteral";
             else
