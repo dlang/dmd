@@ -319,14 +319,11 @@ public:
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual structalign_t alignment();
-    Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual bool isZeroInit(Loc loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent();
-    virtual void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps);
     virtual int hasWild() const;
     virtual bool hasPointers();
@@ -353,7 +350,6 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
@@ -393,7 +389,6 @@ public:
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating() /*const*/;
     bool isreal() /*const*/;
@@ -421,7 +416,6 @@ public:
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
     bool isscalar();
@@ -439,7 +433,6 @@ public:
 class TypeArray : public TypeNext
 {
 public:
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -453,8 +446,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc);
     structalign_t alignment();
@@ -477,8 +468,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(Loc loc) /*const*/;
     unsigned alignsize() /*const*/;
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
@@ -500,8 +489,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
@@ -535,7 +522,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc) /*const*/;
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     void accept(Visitor *v) { v->visit(this); }
@@ -633,7 +619,6 @@ public:
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
     bool isBoolean() /*const*/;
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool hasPointers() /*const*/;
 
     void accept(Visitor *v) { v->visit(this); }
@@ -669,7 +654,6 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -683,7 +667,6 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -697,7 +680,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     d_uns64 size(Loc loc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -708,7 +690,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -737,7 +718,6 @@ public:
     unsigned alignsize();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -766,7 +746,6 @@ public:
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
@@ -803,7 +782,6 @@ public:
     d_uns64 size(Loc loc) /*const*/;
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     ClassDeclaration *isClassHandle();
     bool isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
@@ -841,7 +819,6 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 
