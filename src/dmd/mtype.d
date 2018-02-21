@@ -2484,7 +2484,12 @@ extern (C++) abstract class Type : RootObject
                 if (s)
                     error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toPrettyChars());
                 else
-                    error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
+                {
+                    if (ident == Id.call && ty == Tclass)
+                        error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), toChars(), toPrettyChars());
+                    else
+                        error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
+                }
             }
             e = new ErrorExp();
         }
