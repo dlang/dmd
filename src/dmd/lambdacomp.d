@@ -48,7 +48,33 @@ private enum ExpType
 }
 
 /**
- * The serialize visitor computes the string representation of a
+ * Compares 2 lambda functions described by their serialization.
+ *
+ * Params:
+ *  l1 = first lambda to be compared
+ *  l2 = second lambda to be compared
+ *  sc = the scope where the lambdas are compared
+ *
+ * Returns:
+ *  `true` if the 2 lambda functions are equal, `false` otherwise
+ */
+bool isSameFuncLiteral(FuncLiteralDeclaration l1, FuncLiteralDeclaration l2, Scope* sc)
+{
+    if (auto ser1 = getSerialization(l1, sc))
+    {
+        //printf("l1 serialization: %s\n", &ser1[0]);
+        if (auto ser2 = getSerialization(l2, sc))
+        {
+            //printf("l2 serialization: %s\n", &ser2[0]);
+            if (ser1 == ser2)
+                return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Computes the string representation of a
  * lambda function described by the subtree starting from a
  * $(REF dmd, func, FuncLiteralDeclaration).
  *
@@ -59,8 +85,26 @@ private enum ExpType
  * variable or a template instance is encountered, the
  * serialization is dropped and the function is considered
  * uncomparable.
+ *
+ * Params:
+ *  fld = the starting AST node for the lambda function
+ *  sc = the scope in which the lambda function is located
+ *
+ * Returns:
+ *  The serielization of `fld`.
  */
-extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
+private string getSerialization(FuncLiteralDeclaration fld, Scope* sc)
+{
+    scope serVisitor = new SerializeVisitor(sc);
+    fld.accept(serVisitor);
+    const len = serVisitor.buf.offset;
+    if (len == 0)
+        return null;
+
+    return cast(string)serVisitor.buf.extractString()[0 .. len];
+}
+
+private extern (C++) class SerializeVisitor : SemanticTimeTransitiveVisitor
 {
 private:
     StringTable arg_hash;
@@ -120,6 +164,10 @@ public:
         if (rs && rs.exp)
         {
             rs.exp.accept(this);
+        }
+        else
+        {
+            buf.offset = 0;
         }
     }
 
@@ -206,6 +254,10 @@ public:
                     d = em;
                     et = ExpType.EnumDecl;
                 }
+                else if (auto fd = s.isFuncDeclaration())
+                {
+                    writeMangledName(fd);
+                }
                 // For anything else, the function is deemed uncomparable
                 else
                 {
@@ -246,6 +298,32 @@ public:
         }
     }
 
+    // serialize function calls
+    override void visit(CallExp exp)
+    {
+        static if (LOG)
+            printf("CallExp: %s\n", exp.toChars());
+
+        if (buf.offset == 0)
+            return;
+
+        if (!exp.f)
+        {
+            exp.e1.accept(this);
+        }
+        else
+        {
+            writeMangledName(exp.f);
+        }
+
+        buf.writeByte('(');
+        foreach (arg; *(exp.arguments))
+        {
+            arg.accept(this);
+        }
+        buf.writeByte(')');
+    }
+
     override void visit(UnaExp exp)
     {
         if (buf.offset == 0)
@@ -266,6 +344,15 @@ public:
         exp.normalize();
         auto val = exp.value;
         buf.print(val);
+        buf.writeByte('_');
+    }
+
+    override void visit(RealExp exp)
+    {
+        if (buf.offset == 0)
+            return;
+
+        buf.writestring(exp.toChars());
         buf.writeByte('_');
     }
 

@@ -671,7 +671,6 @@ class FuncLiteralDeclaration : public FuncDeclaration
 public:
     TOK tok;                       // TOKfunction or TOKdelegate
     Type *treq;                         // target of return type inference
-    const utf8_t *serialization;
 
     // backend
     bool deferToObj;
