@@ -164,6 +164,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ExpStatement s)
     {
+        /* https://dlang.org/spec/statement.html#expression-statement
+         */
+
         if (s.exp)
         {
             //printf("ExpStatement::semantic() %s\n", exp.toChars());
@@ -194,6 +197,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(CompileStatement cs)
     {
+        /* https://dlang.org/spec/statement.html#mixin-statement
+         */
+
         //printf("CompileStatement::semantic() %s\n", exp.toChars());
         Statements* a = cs.flatten(sc);
         if (!a)
@@ -451,6 +457,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     override void visit(WhileStatement ws)
     {
         /* Rewrite as a for(;condition;) loop
+         * https://dlang.org/spec/statement.html#while-statement
          */
         Statement s = new ForStatement(ws.loc, null, ws.condition, null, ws._body, ws.endloc);
         s = s.statementSemantic(sc);
@@ -459,6 +466,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(DoStatement ds)
     {
+        /* https://dlang.org/spec/statement.html#do-statement
+         */
         sc.noctor++;
         if (ds._body)
             ds._body = ds._body.semanticScope(sc, ds, ds);
@@ -492,6 +501,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ForStatement fs)
     {
+        /* https://dlang.org/spec/statement.html#for-statement
+         */
         //printf("ForStatement::semantic %s\n", fs.toChars());
 
         if (fs._init)
@@ -592,7 +603,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     }
 
     /*******************
-     * Tpe check and unroll `foreach` over an expression tuple as well
+     * Type check and unroll `foreach` over an expression tuple as well
      * as `static foreach` statements and `static foreach`
      * declarations. For `static foreach` statements and `static
      * foreach` declarations, the visitor interface is used (and the
@@ -998,6 +1009,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
     override void visit(ForeachStatement fs)
     {
+        /* https://dlang.org/spec/statement.html#foreach-statement
+         */
+
         //printf("ForeachStatement::semantic() %p\n", fs);
         ScopeDsymbol sym;
         Statement s = fs;
@@ -1891,6 +1905,9 @@ else
 
     override void visit(ForeachRangeStatement fs)
     {
+        /* https://dlang.org/spec/statement.html#foreach-range-statement
+         */
+
         //printf("ForeachRangeStatement::semantic() %p\n", fs);
         auto loc = fs.loc;
         fs.lwr = fs.lwr.expressionSemantic(sc);
@@ -2074,6 +2091,9 @@ else
 
     override void visit(IfStatement ifs)
     {
+        /* https://dlang.org/spec/statement.html#IfStatement
+         */
+
         // Evaluate at runtime
         uint cs0 = sc.callSuper;
         uint cs1;
@@ -2186,6 +2206,8 @@ else
 
     override void visit(PragmaStatement ps)
     {
+        /* https://dlang.org/spec/statement.html#pragma-statement
+         */
         // Should be merged with PragmaDeclaration
 
         //printf("PragmaStatement::semantic() %s\n", ps.toChars());
@@ -2335,6 +2357,9 @@ else
 
     override void visit(SwitchStatement ss)
     {
+        /* https://dlang.org/spec/statement.html#switch-statement
+         */
+
         //printf("SwitchStatement::semantic(%p)\n", ss);
         ss.tf = sc.tf;
         if (ss.cases)
@@ -2854,6 +2879,9 @@ else
 
     override void visit(GotoDefaultStatement gds)
     {
+        /* https://dlang.org/spec/statement.html#goto-statement
+         */
+
         gds.sw = sc.sw;
         if (!gds.sw)
         {
@@ -2870,6 +2898,9 @@ else
 
     override void visit(GotoCaseStatement gcs)
     {
+        /* https://dlang.org/spec/statement.html#goto-statement
+         */
+
         if (!sc.sw)
         {
             gcs.error("`goto case` not in `switch` statement");
@@ -2891,6 +2922,9 @@ else
 
     override void visit(ReturnStatement rs)
     {
+        /* https://dlang.org/spec/statement.html#return-statement
+         */
+
         //printf("ReturnStatement.dsymbolSemantic() %p, %s\n", rs, rs.toChars());
 
         FuncDeclaration fd = sc.parent.isFuncDeclaration();
@@ -3229,6 +3263,9 @@ else
 
     override void visit(BreakStatement bs)
     {
+        /* https://dlang.org/spec/statement.html#break-statement
+         */
+
         //printf("BreakStatement::semantic()\n");
 
         // If:
@@ -3304,6 +3341,9 @@ else
 
     override void visit(ContinueStatement cs)
     {
+        /* https://dlang.org/spec/statement.html#continue-statement
+         */
+
         //printf("ContinueStatement::semantic() %p\n", cs);
         if (cs.ident)
         {
@@ -3388,6 +3428,9 @@ else
 
     override void visit(SynchronizedStatement ss)
     {
+        /* https://dlang.org/spec/statement.html#synchronized-statement
+         */
+
         if (ss.exp)
         {
             ss.exp = ss.exp.expressionSemantic(sc);
@@ -3508,6 +3551,9 @@ else
 
     override void visit(WithStatement ws)
     {
+        /* https://dlang.org/spec/statement.html#with-statement
+         */
+
         ScopeDsymbol sym;
         Initializer _init;
 
@@ -3755,6 +3801,9 @@ else
 
     override void visit(OnScopeStatement oss)
     {
+        /* https://dlang.org/spec/statement.html#scope-guard-statement
+         */
+
         if (oss.tok != TOK.onScopeExit)
         {
             // scope(success) and scope(failure) are rewritten to try-catch(-finally) statement,
@@ -3795,6 +3844,9 @@ else
 
     override void visit(ThrowStatement ts)
     {
+        /* https://dlang.org/spec/statement.html#throw-statement
+         */
+
         //printf("ThrowStatement::semantic()\n");
 
         if (!global.params.useExceptions)
@@ -3850,6 +3902,9 @@ else
 
     override void visit(GotoStatement gs)
     {
+        /* https://dlang.org/spec/statement.html#goto-statement
+         */
+
         //printf("GotoStatement::semantic()\n");
         FuncDeclaration fd = sc.func;
 
@@ -3924,6 +3979,9 @@ else
 
     override void visit(AsmStatement s)
     {
+        /* https://dlang.org/spec/statement.html#asm
+         */
+
         result = asmSemantic(s, sc);
     }
 
@@ -3949,6 +4007,9 @@ else
 
     override void visit(ImportStatement imps)
     {
+        /* https://dlang.org/spec/module.html#ImportDeclaration
+         */
+
         foreach (i; 0 .. imps.imports.dim)
         {
             Import s = (*imps.imports)[i].isImport();
