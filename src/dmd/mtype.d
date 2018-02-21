@@ -25,7 +25,6 @@ import dmd.arrayop;
 import dmd.arraytypes;
 import dmd.gluelayer;
 import dmd.complex;
-import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -2659,19 +2658,6 @@ extern (C++) abstract class Type : RootObject
     }
 
     /***************************************
-     * Resolve 'this' type to either type, symbol, or expression.
-     * If errors happened, resolved to Type.terror.
-     */
-    void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        //printf("Type::resolve() %s, %d\n", toChars(), ty);
-        Type t = typeSemantic(this, loc, sc);
-        *pt = t;
-        *pe = null;
-        *ps = null;
-    }
-
-    /***************************************
      * Normalize `e` as the result of Type.resolve() process.
      */
     final void resolveExp(Expression e, Type *pt, Expression *pe, Dsymbol* ps)
@@ -4050,90 +4036,6 @@ extern (C++) final class TypeSArray : TypeArray
         return next.alignsize();
     }
 
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        //printf("TypeSArray::resolve() %s\n", toChars());
-        next.resolve(loc, sc, pe, pt, ps, intypeid);
-        //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
-        if (*pe)
-        {
-            // It's really an index expression
-            if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s);
-            *pe = new ArrayExp(loc, *pe, dim);
-        }
-        else if (*ps)
-        {
-            Dsymbol s = *ps;
-            if (auto tup = s.isTupleDeclaration())
-            {
-                dim = semanticLength(sc, tup, dim);
-                dim = dim.ctfeInterpret();
-                if (dim.op == TOK.error)
-                {
-                    *ps = null;
-                    *pt = Type.terror;
-                    return;
-                }
-                uinteger_t d = dim.toUInteger();
-                if (d >= tup.objects.dim)
-                {
-                    error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
-                    *ps = null;
-                    *pt = Type.terror;
-                    return;
-                }
-
-                RootObject o = (*tup.objects)[cast(size_t)d];
-                if (o.dyncast() == DYNCAST.dsymbol)
-                {
-                    *ps = cast(Dsymbol)o;
-                    return;
-                }
-                if (o.dyncast() == DYNCAST.expression)
-                {
-                    Expression e = cast(Expression)o;
-                    if (e.op == TOK.dSymbol)
-                    {
-                        *ps = (cast(DsymbolExp)e).s;
-                        *pe = null;
-                    }
-                    else
-                    {
-                        *ps = null;
-                        *pe = e;
-                    }
-                    return;
-                }
-                if (o.dyncast() == DYNCAST.type)
-                {
-                    *ps = null;
-                    *pt = (cast(Type)o).addMod(this.mod);
-                    return;
-                }
-
-                /* Create a new TupleDeclaration which
-                 * is a slice [d..d+1] out of the old one.
-                 * Do it this way because TemplateInstance::semanticTiargs()
-                 * can handle unresolved Objects this way.
-                 */
-                auto objects = new Objects();
-                objects.setDim(1);
-                (*objects)[0] = o;
-                *ps = new TupleDeclaration(loc, tup.ident, objects);
-            }
-            else
-                goto Ldefault;
-        }
-        else
-        {
-            if ((*pt).ty != Terror)
-                next = *pt; // prevent re-running semantic() on 'next'
-        Ldefault:
-            Type.resolve(loc, sc, pe, pt, ps, intypeid);
-        }
-    }
-
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
@@ -4356,36 +4258,6 @@ extern (C++) final class TypeDArray : TypeArray
         return Target.ptrsize;
     }
 
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        //printf("TypeDArray::resolve() %s\n", toChars());
-        next.resolve(loc, sc, pe, pt, ps, intypeid);
-        //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
-        if (*pe)
-        {
-            // It's really a slice expression
-            if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s);
-            *pe = new ArrayExp(loc, *pe);
-        }
-        else if (*ps)
-        {
-            if (auto tup = (*ps).isTupleDeclaration())
-            {
-                // keep *ps
-            }
-            else
-                goto Ldefault;
-        }
-        else
-        {
-            if ((*pt).ty != Terror)
-                next = *pt; // prevent re-running semantic() on 'next'
-        Ldefault:
-            Type.resolve(loc, sc, pe, pt, ps, intypeid);
-        }
-    }
-
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
@@ -4537,33 +4409,6 @@ extern (C++) final class TypeAArray : TypeArray
     override d_uns64 size(const ref Loc loc)
     {
         return Target.ptrsize;
-    }
-
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        //printf("TypeAArray::resolve() %s\n", toChars());
-        // Deal with the case where we thought the index was a type, but
-        // in reality it was an expression.
-        if (index.ty == Tident || index.ty == Tinstance || index.ty == Tsarray)
-        {
-            Expression e;
-            Type t;
-            Dsymbol s;
-            index.resolve(loc, sc, &e, &t, &s, intypeid);
-            if (e)
-            {
-                // It was an expression -
-                // Rewrite as a static array
-                auto tsa = new TypeSArray(next, e);
-                tsa.mod = this.mod; // just copy mod field so tsa's semantic is not yet done
-                return tsa.resolve(loc, sc, pe, pt, ps, intypeid);
-            }
-            else if (t)
-                index = t;
-            else
-                index.error(loc, "index is not a type or an expression");
-        }
-        Type.resolve(loc, sc, pe, pt, ps, intypeid);
     }
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
@@ -6281,72 +6126,6 @@ extern (C++) final class TypeIdentifier : TypeQualified
         return t;
     }
 
-    /*************************************
-     * Takes an array of Identifiers and figures out if
-     * it represents a Type or an Expression.
-     * Output:
-     *      if expression, *pe is set
-     *      if type, *pt is set
-     */
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
-        if ((ident.equals(Id._super) || ident.equals(Id.This)) && !hasThis(sc))
-        {
-            AggregateDeclaration ad = sc.getStructClassScope();
-            if (ad)
-            {
-                ClassDeclaration cd = ad.isClassDeclaration();
-                if (cd)
-                {
-                    if (ident.equals(Id.This))
-                        ident = cd.ident;
-                    else if (cd.baseClass && ident.equals(Id._super))
-                        ident = cd.baseClass.ident;
-                }
-                else
-                {
-                    StructDeclaration sd = ad.isStructDeclaration();
-                    if (sd && ident.equals(Id.This))
-                        ident = sd.ident;
-                }
-            }
-        }
-        if (ident == Id.ctfe)
-        {
-            error(loc, "variable `__ctfe` cannot be read at compile time");
-            *pe = null;
-            *ps = null;
-            *pt = Type.terror;
-            return;
-        }
-
-        Dsymbol scopesym;
-        Dsymbol s = sc.search(loc, ident, &scopesym);
-
-        if (s)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=16042
-            // If `f` is really a function template, then replace `f`
-            // with the function template declaration.
-            if (auto f = s.isFuncDeclaration())
-            {
-                if (auto td = getFuncTemplateDecl(f))
-                {
-                    // If not at the beginning of the overloaded list of
-                    // `TemplateDeclaration`s, then get the beginning
-                    if (td.overroot)
-                        td = td.overroot;
-                    s = td;
-                }
-            }
-        }
-
-        resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
-        if (*pt)
-            (*pt) = (*pt).addMod(mod);
-    }
-
     /*****************************************
      * See if type resolves to a symbol, if so,
      * return that symbol.
@@ -6360,7 +6139,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         Type t;
         Expression e;
         Dsymbol s;
-        resolve(loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, &e, &t, &s);
         if (t && t.ty != Tident)
             s = t.toDsymbol(sc);
         if (e)
@@ -6402,34 +6181,13 @@ extern (C++) final class TypeInstance : TypeQualified
         return t;
     }
 
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        // Note close similarity to TypeIdentifier::resolve()
-        *pe = null;
-        *pt = null;
-        *ps = null;
-
-        //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, tempinst.toChars());
-        tempinst.dsymbolSemantic(sc);
-        if (!global.gag && tempinst.errors)
-        {
-            *pt = terror;
-            return;
-        }
-
-        resolveHelper(loc, sc, tempinst, null, pe, pt, ps, intypeid);
-        if (*pt)
-            *pt = (*pt).addMod(mod);
-        //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
-    }
-
     override Dsymbol toDsymbol(Scope* sc)
     {
         Type t;
         Expression e;
         Dsymbol s;
         //printf("TypeInstance::semantic(%s)\n", toChars());
-        resolve(loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, &e, &t, &s);
         if (t && t.ty != Tinstance)
             s = t.toDsymbol(sc);
         return s;
@@ -6474,107 +6232,8 @@ extern (C++) final class TypeTypeof : TypeQualified
         Expression e;
         Type t;
         Dsymbol s;
-        resolve(loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, &e, &t, &s);
         return s;
-    }
-
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        *pe = null;
-        *pt = null;
-        *ps = null;
-
-        //printf("TypeTypeof::resolve(this = %p, sc = %p, idents = '%s')\n", this, sc, toChars());
-        //static int nest; if (++nest == 50) *(char*)0=0;
-        if (inuse)
-        {
-            inuse = 2;
-            error(loc, "circular `typeof` definition");
-        Lerr:
-            *pt = Type.terror;
-            inuse--;
-            return;
-        }
-        inuse++;
-
-        /* Currently we cannot evaluate 'exp' in speculative context, because
-         * the type implementation may leak to the final execution. Consider:
-         *
-         * struct S(T) {
-         *   string toString() const { return "x"; }
-         * }
-         * void main() {
-         *   alias X = typeof(S!int());
-         *   assert(typeid(X).xtoString(null) == "x");
-         * }
-         */
-        Scope* sc2 = sc.push();
-        sc2.intypeof = 1;
-        auto exp2 = exp.expressionSemantic(sc2);
-        exp2 = resolvePropertiesOnly(sc2, exp2);
-        sc2.pop();
-
-        if (exp2.op == TOK.error)
-        {
-            if (!global.gag)
-                exp = exp2;
-            goto Lerr;
-        }
-        exp = exp2;
-
-        if (exp.op == TOK.type ||
-            exp.op == TOK.scope_)
-        {
-            if (exp.checkType())
-                goto Lerr;
-
-            /* Today, 'typeof(func)' returns void if func is a
-             * function template (TemplateExp), or
-             * template lambda (FuncExp).
-             * It's actually used in Phobos as an idiom, to branch code for
-             * template functions.
-             */
-        }
-        if (auto f = exp.op == TOK.variable    ? (cast(   VarExp)exp).var.isFuncDeclaration()
-                   : exp.op == TOK.dotVariable ? (cast(DotVarExp)exp).var.isFuncDeclaration() : null)
-        {
-            if (f.checkForwardRef(loc))
-                goto Lerr;
-        }
-        if (auto f = isFuncAddress(exp))
-        {
-            if (f.checkForwardRef(loc))
-                goto Lerr;
-        }
-
-        Type t = exp.type;
-        if (!t)
-        {
-            error(loc, "expression `%s` has no type", exp.toChars());
-            goto Lerr;
-        }
-        if (t.ty == Ttypeof)
-        {
-            error(loc, "forward reference to `%s`", toChars());
-            goto Lerr;
-        }
-        if (idents.dim == 0)
-            *pt = t;
-        else
-        {
-            if (Dsymbol s = t.toDsymbol(sc))
-                resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
-            else
-            {
-                auto e = typeToExpressionHelper(this, new TypeExp(loc, t));
-                e = e.expressionSemantic(sc);
-                resolveExp(e, pt, pe, ps);
-            }
-        }
-        if (*pt)
-            (*pt) = (*pt).addMod(mod);
-        inuse--;
-        return;
     }
 
     override d_uns64 size(const ref Loc loc)
@@ -6618,54 +6277,8 @@ extern (C++) final class TypeReturn : TypeQualified
         Expression e;
         Type t;
         Dsymbol s;
-        resolve(loc, sc, &e, &t, &s);
+        resolve(this, loc, sc, &e, &t, &s);
         return s;
-    }
-
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        *pe = null;
-        *pt = null;
-        *ps = null;
-
-        //printf("TypeReturn::resolve(sc = %p, idents = '%s')\n", sc, toChars());
-        Type t;
-        {
-            FuncDeclaration func = sc.func;
-            if (!func)
-            {
-                error(loc, "`typeof(return)` must be inside function");
-                goto Lerr;
-            }
-            if (func.fes)
-                func = func.fes.func;
-            t = func.type.nextOf();
-            if (!t)
-            {
-                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toChars());
-                goto Lerr;
-            }
-        }
-        if (idents.dim == 0)
-            *pt = t;
-        else
-        {
-            if (Dsymbol s = t.toDsymbol(sc))
-                resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
-            else
-            {
-                auto e = typeToExpressionHelper(this, new TypeExp(loc, t));
-                e = e.expressionSemantic(sc);
-                resolveExp(e, pt, pe, ps);
-            }
-        }
-        if (*pt)
-            (*pt) = (*pt).addMod(mod);
-        return;
-
-    Lerr:
-        *pt = Type.terror;
-        return;
     }
 
     override void accept(Visitor v)
@@ -8254,76 +7867,6 @@ extern (C++) final class TypeSlice : TypeNext
         Type t = new TypeSlice(next.syntaxCopy(), lwr.syntaxCopy(), upr.syntaxCopy());
         t.mod = mod;
         return t;
-    }
-
-    override void resolve(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
-    {
-        next.resolve(loc, sc, pe, pt, ps, intypeid);
-        if (*pe)
-        {
-            // It's really a slice expression
-            if (Dsymbol s = getDsymbol(*pe))
-                *pe = new DsymbolExp(loc, s);
-            *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, lwr, upr));
-        }
-        else if (*ps)
-        {
-            Dsymbol s = *ps;
-            TupleDeclaration td = s.isTupleDeclaration();
-            if (td)
-            {
-                /* It's a slice of a TupleDeclaration
-                 */
-                ScopeDsymbol sym = new ArrayScopeSymbol(sc, td);
-                sym.parent = sc.scopesym;
-                sc = sc.push(sym);
-                sc = sc.startCTFE();
-                lwr = lwr.expressionSemantic(sc);
-                upr = upr.expressionSemantic(sc);
-                sc = sc.endCTFE();
-                sc = sc.pop();
-
-                lwr = lwr.ctfeInterpret();
-                upr = upr.ctfeInterpret();
-                uinteger_t i1 = lwr.toUInteger();
-                uinteger_t i2 = upr.toUInteger();
-                if (!(i1 <= i2 && i2 <= td.objects.dim))
-                {
-                    error(loc, "slice `[%llu..%llu]` is out of range of [0..%u]", i1, i2, td.objects.dim);
-                    *ps = null;
-                    *pt = Type.terror;
-                    return;
-                }
-
-                if (i1 == 0 && i2 == td.objects.dim)
-                {
-                    *ps = td;
-                    return;
-                }
-
-                /* Create a new TupleDeclaration which
-                 * is a slice [i1..i2] out of the old one.
-                 */
-                auto objects = new Objects();
-                objects.setDim(cast(size_t)(i2 - i1));
-                for (size_t i = 0; i < objects.dim; i++)
-                {
-                    (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
-                }
-
-                auto tds = new TupleDeclaration(loc, td.ident, objects);
-                *ps = tds;
-            }
-            else
-                goto Ldefault;
-        }
-        else
-        {
-            if ((*pt).ty != Terror)
-                next = *pt; // prevent re-running semantic() on 'next'
-        Ldefault:
-            Type.resolve(loc, sc, pe, pt, ps, intypeid);
-        }
     }
 
     override void accept(Visitor v)

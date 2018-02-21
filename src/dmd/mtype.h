@@ -325,7 +325,6 @@ public:
     virtual Expression *defaultInitLiteral(const Loc &loc);
     virtual bool isZeroInit(const Loc &loc = Loc());                // if initializer is 0
     Identifier *getTypeInfoIdent();
-    virtual void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void resolveExp(Expression *e, Type **pt, Expression **pe, Dsymbol **ps);
     virtual int hasWild() const;
     virtual bool hasPointers();
@@ -449,7 +448,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(const Loc &loc);
@@ -473,7 +471,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc) /*const*/;
     unsigned alignsize() /*const*/;
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isString();
     bool isZeroInit(const Loc &loc) /*const*/;
@@ -496,7 +493,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(const Loc &loc);
     bool isZeroInit(const Loc &loc) /*const*/;
@@ -665,7 +661,6 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -679,7 +674,6 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -693,7 +687,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     d_uns64 size(const Loc &loc);
     void accept(Visitor *v) { v->visit(this); }
 };
@@ -704,7 +697,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 
@@ -835,7 +827,6 @@ public:
 
     const char *kind();
     Type *syntaxCopy();
-    void resolve(const Loc &loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     void accept(Visitor *v) { v->visit(this); }
 };
 

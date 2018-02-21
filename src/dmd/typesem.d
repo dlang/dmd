@@ -26,6 +26,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
+import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
@@ -2047,5 +2048,498 @@ private extern (C++) final class GetPropertyVisitor : Visitor
             e = new ErrorExp();
         }
         result = e;
+    }
+}
+
+/************************************
+ * Resolve type 'mt' to either type, symbol, or expression.
+ * If errors happened, resolved to Type.terror.
+ *
+ * Params:
+ *  mt = type to be resolved
+ *  loc = the location where the type is encountered
+ *  sc = the scope of the type
+ *  pe = is set if t is an expression
+ *  pt = is set if t is a type
+ *  ps = is set if t is a symbol
+ *  intypeid = true if in type id
+ */
+extern(C++) void resolve(Type mt, const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid = false)
+{
+    scope v = new ResolveVisitor(loc, sc, pe, pt, ps, intypeid);
+    mt.accept(v);
+}
+
+private extern(C++) final class ResolveVisitor : Visitor
+{
+    alias visit = super.visit;
+    Loc loc;
+    Scope* sc;
+    Expression* pe;
+    Type* pt;
+    Dsymbol* ps;
+    bool intypeid;
+
+    this(const ref Loc loc, Scope* sc, Expression* pe, Type* pt, Dsymbol* ps, bool intypeid)
+    {
+        this.loc = loc;
+        this.sc = sc;
+        this.pe = pe;
+        this.pt = pt;
+        this.ps = ps;
+        this.intypeid = intypeid;
+    }
+
+    override void visit(Type mt)
+    {
+        //printf("Type::resolve() %s, %d\n", mt.toChars(), mt.ty);
+        Type t = typeSemantic(mt, loc, sc);
+        assert(t);
+        *pt = t;
+        *pe = null;
+        *ps = null;
+    }
+
+    override void visit(TypeSArray mt)
+    {
+        //printf("TypeSArray::resolve() %s\n", mt.toChars());
+        mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
+        //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
+        if (*pe)
+        {
+            // It's really an index expression
+            if (Dsymbol s = getDsymbol(*pe))
+                *pe = new DsymbolExp(loc, s);
+            *pe = new ArrayExp(loc, *pe, mt.dim);
+        }
+        else if (*ps)
+        {
+            Dsymbol s = *ps;
+            if (auto tup = s.isTupleDeclaration())
+            {
+                mt.dim = semanticLength(sc, tup, mt.dim);
+                mt.dim = mt.dim.ctfeInterpret();
+                if (mt.dim.op == TOK.error)
+                {
+                    *ps = null;
+                    *pt = Type.terror;
+                    return;
+                }
+                uinteger_t d = mt.dim.toUInteger();
+                if (d >= tup.objects.dim)
+                {
+                    error(loc, "tuple index `%llu` exceeds length %u", d, tup.objects.dim);
+                    *ps = null;
+                    *pt = Type.terror;
+                    return;
+                }
+
+                RootObject o = (*tup.objects)[cast(size_t)d];
+                if (o.dyncast() == DYNCAST.dsymbol)
+                {
+                    *ps = cast(Dsymbol)o;
+                    return;
+                }
+                if (o.dyncast() == DYNCAST.expression)
+                {
+                    Expression e = cast(Expression)o;
+                    if (e.op == TOK.dSymbol)
+                    {
+                        *ps = (cast(DsymbolExp)e).s;
+                        *pe = null;
+                    }
+                    else
+                    {
+                        *ps = null;
+                        *pe = e;
+                    }
+                    return;
+                }
+                if (o.dyncast() == DYNCAST.type)
+                {
+                    *ps = null;
+                    *pt = (cast(Type)o).addMod(mt.mod);
+                    return;
+                }
+
+                /* Create a new TupleDeclaration which
+                 * is a slice [d..d+1] out of the old one.
+                 * Do it this way because TemplateInstance::semanticTiargs()
+                 * can handle unresolved Objects this way.
+                 */
+                auto objects = new Objects();
+                objects.setDim(1);
+                (*objects)[0] = o;
+                *ps = new TupleDeclaration(loc, tup.ident, objects);
+            }
+            else
+                goto Ldefault;
+        }
+        else
+        {
+            if ((*pt).ty != Terror)
+                mt.next = *pt; // prevent re-running semantic() on 'next'
+        Ldefault:
+            visit(cast(Type)mt);
+        }
+
+    }
+
+    override void visit(TypeDArray mt)
+    {
+        //printf("TypeDArray::resolve() %s\n", mt.toChars());
+        mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
+        //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
+        if (*pe)
+        {
+            // It's really a slice expression
+            if (Dsymbol s = getDsymbol(*pe))
+                *pe = new DsymbolExp(loc, s);
+            *pe = new ArrayExp(loc, *pe);
+        }
+        else if (*ps)
+        {
+            if (auto tup = (*ps).isTupleDeclaration())
+            {
+                // keep *ps
+            }
+            else
+                goto Ldefault;
+        }
+        else
+        {
+            if ((*pt).ty != Terror)
+                mt.next = *pt; // prevent re-running semantic() on 'next'
+        Ldefault:
+            visit(cast(Type)mt);
+        }
+    }
+
+    override void visit(TypeAArray mt)
+    {
+        //printf("TypeAArray::resolve() %s\n", mt.toChars());
+        // Deal with the case where we thought the index was a type, but
+        // in reality it was an expression.
+        if (mt.index.ty == Tident || mt.index.ty == Tinstance || mt.index.ty == Tsarray)
+        {
+            Expression e;
+            Type t;
+            Dsymbol s;
+            mt.index.resolve(loc, sc, &e, &t, &s, intypeid);
+            if (e)
+            {
+                // It was an expression -
+                // Rewrite as a static array
+                auto tsa = new TypeSArray(mt.next, e);
+                tsa.mod = mt.mod; // just copy mod field so tsa's semantic is not yet done
+                return tsa.resolve(loc, sc, pe, pt, ps, intypeid);
+            }
+            else if (t)
+                mt.index = t;
+            else
+                mt.index.error(loc, "index is not a type or an expression");
+        }
+        visit(cast(Type)mt);
+    }
+
+    /*************************************
+     * Takes an array of Identifiers and figures out if
+     * it represents a Type or an Expression.
+     * Output:
+     *      if expression, *pe is set
+     *      if type, *pt is set
+     */
+    override void visit(TypeIdentifier mt)
+    {
+        //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
+        if ((mt.ident.equals(Id._super) || mt.ident.equals(Id.This)) && !hasThis(sc))
+        {
+            AggregateDeclaration ad = sc.getStructClassScope();
+            if (ad)
+            {
+                ClassDeclaration cd = ad.isClassDeclaration();
+                if (cd)
+                {
+                    if (mt.ident.equals(Id.This))
+                        mt.ident = cd.ident;
+                    else if (cd.baseClass && mt.ident.equals(Id._super))
+                        mt.ident = cd.baseClass.ident;
+                }
+                else
+                {
+                    StructDeclaration sd = ad.isStructDeclaration();
+                    if (sd && mt.ident.equals(Id.This))
+                        mt.ident = sd.ident;
+                }
+            }
+        }
+        if (mt.ident == Id.ctfe)
+        {
+            error(loc, "variable `__ctfe` cannot be read at compile time");
+            *pe = null;
+            *ps = null;
+            *pt = Type.terror;
+            return;
+        }
+
+        Dsymbol scopesym;
+        Dsymbol s = sc.search(loc, mt.ident, &scopesym);
+
+        if (s)
+        {
+            // https://issues.dlang.org/show_bug.cgi?id=16042
+            // If `f` is really a function template, then replace `f`
+            // with the function template declaration.
+            if (auto f = s.isFuncDeclaration())
+            {
+                if (auto td = getFuncTemplateDecl(f))
+                {
+                    // If not at the beginning of the overloaded list of
+                    // `TemplateDeclaration`s, then get the beginning
+                    if (td.overroot)
+                        td = td.overroot;
+                    s = td;
+                }
+            }
+        }
+
+        mt.resolveHelper(loc, sc, s, scopesym, pe, pt, ps, intypeid);
+        if (*pt)
+            (*pt) = (*pt).addMod(mt.mod);
+    }
+
+    override void visit(TypeInstance mt)
+    {
+        // Note close similarity to TypeIdentifier::resolve()
+        *pe = null;
+        *pt = null;
+        *ps = null;
+
+        //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, mt.tempinst.toChars());
+        mt.tempinst.dsymbolSemantic(sc);
+        if (!global.gag && mt.tempinst.errors)
+        {
+            *pt = Type.terror;
+            return;
+        }
+
+        mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
+        if (*pt)
+            *pt = (*pt).addMod(mt.mod);
+        //if (*pt) printf("*pt = %d '%s'\n", (*pt).ty, (*pt).toChars());
+    }
+
+    override void visit(TypeTypeof mt)
+    {
+        *pe = null;
+        *pt = null;
+        *ps = null;
+
+        //printf("TypeTypeof::resolve(this = %p, sc = %p, idents = '%s')\n", mt, sc, mt.toChars());
+        //static int nest; if (++nest == 50) *(char*)0=0;
+        if (mt.inuse)
+        {
+            mt.inuse = 2;
+            error(loc, "circular `typeof` definition");
+        Lerr:
+            *pt = Type.terror;
+            mt.inuse--;
+            return;
+        }
+        mt.inuse++;
+
+        /* Currently we cannot evaluate 'exp' in speculative context, because
+         * the type implementation may leak to the final execution. Consider:
+         *
+         * struct S(T) {
+         *   string toString() const { return "x"; }
+         * }
+         * void main() {
+         *   alias X = typeof(S!int());
+         *   assert(typeid(X).xtoString(null) == "x");
+         * }
+         */
+        Scope* sc2 = sc.push();
+        sc2.intypeof = 1;
+        auto exp2 = mt.exp.expressionSemantic(sc2);
+        exp2 = resolvePropertiesOnly(sc2, exp2);
+        sc2.pop();
+
+        if (exp2.op == TOK.error)
+        {
+            if (!global.gag)
+                mt.exp = exp2;
+            goto Lerr;
+        }
+        mt.exp = exp2;
+
+        if (mt.exp.op == TOK.type ||
+            mt.exp.op == TOK.scope_)
+        {
+            if (mt.exp.checkType())
+                goto Lerr;
+
+            /* Today, 'typeof(func)' returns void if func is a
+             * function template (TemplateExp), or
+             * template lambda (FuncExp).
+             * It's actually used in Phobos as an idiom, to branch code for
+             * template functions.
+             */
+        }
+        if (auto f = mt.exp.op == TOK.variable    ? (cast(   VarExp)mt.exp).var.isFuncDeclaration()
+                   : mt.exp.op == TOK.dotVariable ? (cast(DotVarExp)mt.exp).var.isFuncDeclaration() : null)
+        {
+            if (f.checkForwardRef(loc))
+                goto Lerr;
+        }
+        if (auto f = isFuncAddress(mt.exp))
+        {
+            if (f.checkForwardRef(loc))
+                goto Lerr;
+        }
+
+        Type t = mt.exp.type;
+        if (!t)
+        {
+            error(loc, "expression `%s` has no type", mt.exp.toChars());
+            goto Lerr;
+        }
+        if (t.ty == Ttypeof)
+        {
+            error(loc, "forward reference to `%s`", mt.toChars());
+            goto Lerr;
+        }
+        if (mt.idents.dim == 0)
+            *pt = t;
+        else
+        {
+            if (Dsymbol s = t.toDsymbol(sc))
+                mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
+            else
+            {
+                auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
+                e = e.expressionSemantic(sc);
+                mt.resolveExp(e, pt, pe, ps);
+            }
+        }
+        if (*pt)
+            (*pt) = (*pt).addMod(mt.mod);
+        mt.inuse--;
+        return;
+    }
+
+    override void visit(TypeReturn mt)
+    {
+        *pe = null;
+        *pt = null;
+        *ps = null;
+
+        //printf("TypeReturn::resolve(sc = %p, idents = '%s')\n", sc, mt.toChars());
+        Type t;
+        {
+            FuncDeclaration func = sc.func;
+            if (!func)
+            {
+                error(loc, "`typeof(return)` must be inside function");
+                goto Lerr;
+            }
+            if (func.fes)
+                func = func.fes.func;
+            t = func.type.nextOf();
+            if (!t)
+            {
+                error(loc, "cannot use `typeof(return)` inside function `%s` with inferred return type", sc.func.toChars());
+                goto Lerr;
+            }
+        }
+        if (mt.idents.dim == 0)
+            *pt = t;
+        else
+        {
+            if (Dsymbol s = t.toDsymbol(sc))
+               mt.resolveHelper(loc, sc, s, null, pe, pt, ps, intypeid);
+            else
+            {
+                auto e = typeToExpressionHelper(mt, new TypeExp(loc, t));
+                e = e.expressionSemantic(sc);
+                mt.resolveExp(e, pt, pe, ps);
+            }
+        }
+        if (*pt)
+            (*pt) = (*pt).addMod(mt.mod);
+        return;
+
+    Lerr:
+        *pt = Type.terror;
+    }
+
+    override void visit(TypeSlice mt)
+    {
+        mt.next.resolve(loc, sc, pe, pt, ps, intypeid);
+        if (*pe)
+        {
+            // It's really a slice expression
+            if (Dsymbol s = getDsymbol(*pe))
+                *pe = new DsymbolExp(loc, s);
+            *pe = new ArrayExp(loc, *pe, new IntervalExp(loc, mt.lwr, mt.upr));
+        }
+        else if (*ps)
+        {
+            Dsymbol s = *ps;
+            TupleDeclaration td = s.isTupleDeclaration();
+            if (td)
+            {
+                /* It's a slice of a TupleDeclaration
+                 */
+                ScopeDsymbol sym = new ArrayScopeSymbol(sc, td);
+                sym.parent = sc.scopesym;
+                sc = sc.push(sym);
+                sc = sc.startCTFE();
+                mt.lwr = mt.lwr.expressionSemantic(sc);
+                mt.upr = mt.upr.expressionSemantic(sc);
+                sc = sc.endCTFE();
+                sc = sc.pop();
+
+                mt.lwr = mt.lwr.ctfeInterpret();
+                mt.upr = mt.upr.ctfeInterpret();
+                uinteger_t i1 = mt.lwr.toUInteger();
+                uinteger_t i2 = mt.upr.toUInteger();
+                if (!(i1 <= i2 && i2 <= td.objects.dim))
+                {
+                    error(loc, "slice `[%llu..%llu]` is out of range of [0..%u]", i1, i2, td.objects.dim);
+                    *ps = null;
+                    *pt = Type.terror;
+                    return;
+                }
+
+                if (i1 == 0 && i2 == td.objects.dim)
+                {
+                    *ps = td;
+                    return;
+                }
+
+                /* Create a new TupleDeclaration which
+                 * is a slice [i1..i2] out of the old one.
+                 */
+                auto objects = new Objects();
+                objects.setDim(cast(size_t)(i2 - i1));
+                for (size_t i = 0; i < objects.dim; i++)
+                {
+                    (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
+                }
+
+                auto tds = new TupleDeclaration(loc, td.ident, objects);
+                *ps = tds;
+            }
+            else
+                goto Ldefault;
+        }
+        else
+        {
+            if ((*pt).ty != Terror)
+                mt.next = *pt; // prevent re-running semantic() on 'next'
+        Ldefault:
+            visit(cast(Type)mt);
+        }
     }
 }
