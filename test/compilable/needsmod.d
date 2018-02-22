@@ -1,4 +1,5 @@
 // ARG_SETS: -i
+// ARG_SETS: -i=
 // ARG_SETS: -i=.
 // ARG_SETS: -i=imports
 // ARG_SETS: -i=imports.foofunc
