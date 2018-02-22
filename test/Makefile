@@ -216,15 +216,13 @@ $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created test_tools
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
 
 $(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created test_tools $(DMD)
-	$(QUIET) echo " ... $(<D)/$*.sh"
-	$(QUIET) ./$(<D)/$*.sh
+	$(QUIET) ./sh_do_test.sh $(<D) $*
 
 $(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created test_tools $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
 
 $(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created test_tools $(DMD)
-	$(QUIET) echo " ... $(<D)/$*.sh"
-	$(QUIET) ./$(<D)/$*.sh
+	$(QUIET) ./sh_do_test.sh $(<D) $*
 
 $(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created test_tools $(DMD)
 	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d

@@ -2,9 +2,8 @@
 
 # Test CRLF and mixed line ending handling in D lexer.
 
-name=`basename $0 .sh`
 dir=${RESULTS_DIR}/compilable
-fn=${dir}/${name}.d
+fn=${TEST_DIR}/${TEST_NAME}.d
 
 printf '%s\r\n' \
        '#!/usr/bin/env dmd -run' \
@@ -46,8 +45,8 @@ printf 'static assert(wstr == "%s");\n' 'foo\nbar\nbaz\n' >> ${fn}
 printf 'enum dstr = q"(\r\nfoo\r\nbar\nbaz\r\n)";\n' >> ${fn}
 printf 'static assert(dstr == "%s");\n' '\nfoo\nbar\nbaz\n' >> ${fn}
 
-$DMD -c -D -Dd${dir} -m${MODEL} -of${dir}/${name}a${OBJ} ${fn} || exit 1
+$DMD -c -D -Dd${TEST_DIR} -m${MODEL} -of${TEST_DIR}/${TEST_NAME}a${OBJ} ${fn} || exit 1
 
-rm -f ${dir}/${name}a${OBJ} ${dir}/${name}.html ${fn}
+rm -f ${TEST_DIR}/${TEST_NAME}a${OBJ} ${TEST_DIR}/${TEST_NAME}.html ${fn}
 
-echo Success >${dir}/`basename $0`.out
+echo Success

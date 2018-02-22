@@ -3,7 +3,6 @@
 set -euo pipefail
 
 dir=${RESULTS_DIR}${SEP}compilable
-output_file=${dir}/testclidflags.sh.out
 
 unset DFLAGS
 
@@ -14,4 +13,4 @@ unset DFLAGS
 ( DFLAGS="-O -D" "$DMD" -v foo.d 2> /dev/null || true) | grep -q "DFLAGS    -O -D"
 ( DFLAGS="-O '-Ifoo bar' -c" "$DMD" -v foo.d 2> /dev/null || true) | grep -q "DFLAGS    -O '-Ifoo bar' -c"
 
-echo Success >${output_file}
+echo Success
