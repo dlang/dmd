@@ -3275,14 +3275,9 @@ final class Parser(AST) : Lexer
                         _alias = null;
                     }
                     s.addAlias(name, _alias);
-                    if (token.value != TOK.comma)
-                        break;
-                    // recognize import pkg.mod1 : a, b, pkg.mod2;
-                    if (peekNext2 == TOK.dot ||      // pkg . mod2
-                        peekNext2 == TOK.colon)      // mod2 : c
-                        break;  // parse another import
                 }
                 while (token.value == TOK.comma);
+                break; // no comma-separated imports of this form
             }
             aliasid = null;
         }
