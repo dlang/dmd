@@ -2033,6 +2033,23 @@ Lno:
 }
 
 /****************************************************
+ * Remove a previously-inserted blank line macro.
+ *  buf =           an OutputBuffer containing the DDoc
+ *  iAt =           the index within `buf` to remove the blank line from.
+ *  i =             the index within `buf` of the current index. Its value changes when function returns.
+ */
+private void removeBlankLineMacro(OutBuffer *buf, ref size_t iAt, ref size_t i)
+{
+    if (!iAt)
+        return;
+
+    buf.remove(iAt, 17); // length of "$(DDOC_BLANKLINE)"
+    if (i > iAt)
+        i -= 17;
+    iAt = 0;
+}
+
+/****************************************************
  * Replace a Markdown thematic break (HR).
  * Params:
  *  buf =           an OutputBuffer containing the DDoc
@@ -3085,6 +3102,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 replaceMarkdownEmphasis(buf, i, inlineDelimiters);
                 endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
+                removeBlankLineMacro(buf, iPreceedingBlankLine, i);
                 ++i;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
             }
@@ -3387,6 +3405,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         if (c0 == '-' && !iInfoString && replaceMarkdownThematicBreak(buf, istart, iLineStart))
                         {
                             i = istart;
+                            removeBlankLineMacro(buf, iPreceedingBlankLine, i);
                             break;
                         }
                         else if (!iInfoString && !inCode && c0 != '-' && i - istart >= 3)
@@ -3561,7 +3580,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         case '_':
         {
             if (leadingBlank && !inCode && replaceMarkdownThematicBreak(buf, i, iLineStart))
+            {
+                removeBlankLineMacro(buf, iPreceedingBlankLine, i);
                 break;
+            }
             goto default;
         }
 
@@ -3626,6 +3648,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     {
                         // if in a new paragraph then treat it as a thematic break
                         replaceMarkdownThematicBreak(buf, i, iLineStart);
+                        removeBlankLineMacro(buf, iPreceedingBlankLine, i);
                         break;
                     }
                     else if (skipChars(buf, i, "*") - i >= 2)
@@ -3775,7 +3798,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 replaceMarkdownEmphasis(buf, i, inlineDelimiters);
                 if (headingLevel && headingMacroLevel >= macroLevel)
+                {
                     endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
+                    removeBlankLineMacro(buf, iPreceedingBlankLine, i);
+                }
                 while (nestedQuotes.length && nestedQuotes[$-1].macroLevel >= macroLevel)
                 {
                     i = buf.insert(i, ")");
@@ -3864,7 +3890,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t i = buf.offset;
     replaceMarkdownEmphasis(buf, i, inlineDelimiters);
     if (headingLevel)
+    {
         endMarkdownHeading(buf, i, headingLevel, iParagraphStart);
+        removeBlankLineMacro(buf, iPreceedingBlankLine, i);
+    }
     for (; nestedQuotes.length; --nestedQuotes.length)
         i = buf.insert(i, ")");
     nestedQuotes.length = 0;
