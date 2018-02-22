@@ -2411,91 +2411,6 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
-    /***************************************
-     * Calculate built-in properties which just the type is necessary.
-     *
-     * If flag & 1, don't report "not a property" error and just return NULL.
-     */
-    Expression getProperty(const ref Loc loc, Identifier ident, int flag)
-    {
-        Expression e;
-        static if (LOGDOTEXP)
-        {
-            printf("Type::getProperty(type = '%s', ident = '%s')\n", toChars(), ident.toChars());
-        }
-        if (ident == Id.__sizeof)
-        {
-            d_uns64 sz = size(loc);
-            if (sz == SIZE_INVALID)
-                return new ErrorExp();
-            e = new IntegerExp(loc, sz, Type.tsize_t);
-        }
-        else if (ident == Id.__xalignof)
-        {
-            const explicitAlignment = alignment();
-            const naturalAlignment = alignsize();
-            const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
-            e = new IntegerExp(loc, actualAlignment, Type.tsize_t);
-        }
-        else if (ident == Id._init)
-        {
-            Type tb = toBasetype();
-            e = defaultInitLiteral(loc);
-            if (tb.ty == Tstruct && tb.needsNested())
-            {
-                StructLiteralExp se = cast(StructLiteralExp)e;
-                se.useStaticInit = true;
-            }
-        }
-        else if (ident == Id._mangleof)
-        {
-            if (!deco)
-            {
-                error(loc, "forward reference of type `%s.mangleof`", toChars());
-                e = new ErrorExp();
-            }
-            else
-            {
-                e = new StringExp(loc, deco);
-                Scope sc;
-                e = e.expressionSemantic(&sc);
-            }
-        }
-        else if (ident == Id.stringof)
-        {
-            const s = toChars();
-            e = new StringExp(loc, cast(char*)s);
-            Scope sc;
-            e = e.expressionSemantic(&sc);
-        }
-        else if (flag && this != Type.terror)
-        {
-            return null;
-        }
-        else
-        {
-            Dsymbol s = null;
-            if (ty == Tstruct || ty == Tclass || ty == Tenum)
-                s = toDsymbol(null);
-            if (s)
-                s = s.search_correct(ident);
-            if (this != Type.terror)
-            {
-                if (s)
-                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), toChars(), s.toPrettyChars());
-                else
-                {
-                    if (ident == Id.call && ty == Tclass)
-                        error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), toChars(), toPrettyChars());
-                    else
-                        error(loc, "no property `%s` for type `%s`", ident.toChars(), toChars());
-                }
-            }
-            e = new ErrorExp();
-        }
-        return e;
-    }
-
     /****************
      * dotExp() bit flags
      */
@@ -2571,7 +2486,7 @@ extern (C++) abstract class Type : RootObject
             e = new StringExp(e.loc, cast(char*)s);
         }
         else
-            e = getProperty(e.loc, ident, flag & DotExpFlag.gag);
+            e = getProperty(this, e.loc, ident, flag & DotExpFlag.gag);
 
     Lreturn:
         if (e)
@@ -3035,11 +2950,6 @@ extern (C++) final class TypeError : Type
     override d_uns64 size(const ref Loc loc)
     {
         return SIZE_INVALID;
-    }
-
-    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
-    {
-        return new ErrorExp();
     }
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
@@ -3596,362 +3506,6 @@ extern (C++) final class TypeBasic : Type
         return Target.alignsize(this);
     }
 
-    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
-    {
-        Expression e;
-        dinteger_t ivalue;
-        real_t fvalue;
-        //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
-        if (ident == Id.max)
-        {
-            switch (ty)
-            {
-            case Tint8:
-                ivalue = 0x7F;
-                goto Livalue;
-            case Tuns8:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Tint16:
-                ivalue = 0x7FFFU;
-                goto Livalue;
-            case Tuns16:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tint32:
-                ivalue = 0x7FFFFFFFU;
-                goto Livalue;
-            case Tuns32:
-                ivalue = 0xFFFFFFFFU;
-                goto Livalue;
-            case Tint64:
-                ivalue = 0x7FFFFFFFFFFFFFFFL;
-                goto Livalue;
-            case Tuns64:
-                ivalue = 0xFFFFFFFFFFFFFFFFUL;
-                goto Livalue;
-            case Tbool:
-                ivalue = 1;
-                goto Livalue;
-            case Tchar:
-                ivalue = 0xFF;
-                goto Livalue;
-            case Twchar:
-                ivalue = 0xFFFFU;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0x10FFFFU;
-                goto Livalue;
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                fvalue = Target.FloatProperties.max;
-                goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                fvalue = Target.DoubleProperties.max;
-                goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                fvalue = Target.RealProperties.max;
-                goto Lfvalue;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.min)
-        {
-            switch (ty)
-            {
-            case Tint8:
-                ivalue = -128;
-                goto Livalue;
-            case Tuns8:
-                ivalue = 0;
-                goto Livalue;
-            case Tint16:
-                ivalue = -32768;
-                goto Livalue;
-            case Tuns16:
-                ivalue = 0;
-                goto Livalue;
-            case Tint32:
-                ivalue = -2147483647 - 1;
-                goto Livalue;
-            case Tuns32:
-                ivalue = 0;
-                goto Livalue;
-            case Tint64:
-                ivalue = (-9223372036854775807L - 1L);
-                goto Livalue;
-            case Tuns64:
-                ivalue = 0;
-                goto Livalue;
-            case Tbool:
-                ivalue = 0;
-                goto Livalue;
-            case Tchar:
-                ivalue = 0;
-                goto Livalue;
-            case Twchar:
-                ivalue = 0;
-                goto Livalue;
-            case Tdchar:
-                ivalue = 0;
-                goto Livalue;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.min_normal)
-        {
-        Lmin_normal:
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                fvalue = Target.FloatProperties.min_normal;
-                goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                fvalue = Target.DoubleProperties.min_normal;
-                goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                fvalue = Target.RealProperties.min_normal;
-                goto Lfvalue;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.nan)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-            case Timaginary32:
-            case Timaginary64:
-            case Timaginary80:
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
-                fvalue = Target.RealProperties.nan;
-                goto Lfvalue;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.infinity)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Tcomplex64:
-            case Tcomplex80:
-            case Timaginary32:
-            case Timaginary64:
-            case Timaginary80:
-            case Tfloat32:
-            case Tfloat64:
-            case Tfloat80:
-                fvalue = Target.RealProperties.infinity;
-                goto Lfvalue;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.dig)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = Target.FloatProperties.dig;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = Target.DoubleProperties.dig;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = Target.RealProperties.dig;
-                goto Lint;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.epsilon)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                fvalue = Target.FloatProperties.epsilon;
-                goto Lfvalue;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                fvalue = Target.DoubleProperties.epsilon;
-                goto Lfvalue;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                fvalue = Target.RealProperties.epsilon;
-                goto Lfvalue;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.mant_dig)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = Target.FloatProperties.mant_dig;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = Target.DoubleProperties.mant_dig;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = Target.RealProperties.mant_dig;
-                goto Lint;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.max_10_exp)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = Target.FloatProperties.max_10_exp;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = Target.DoubleProperties.max_10_exp;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = Target.RealProperties.max_10_exp;
-                goto Lint;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.max_exp)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = Target.FloatProperties.max_exp;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = Target.DoubleProperties.max_exp;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = Target.RealProperties.max_exp;
-                goto Lint;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.min_10_exp)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = Target.FloatProperties.min_10_exp;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = Target.DoubleProperties.min_10_exp;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = Target.RealProperties.min_10_exp;
-                goto Lint;
-            default:
-                break;
-            }
-        }
-        else if (ident == Id.min_exp)
-        {
-            switch (ty)
-            {
-            case Tcomplex32:
-            case Timaginary32:
-            case Tfloat32:
-                ivalue = Target.FloatProperties.min_exp;
-                goto Lint;
-            case Tcomplex64:
-            case Timaginary64:
-            case Tfloat64:
-                ivalue = Target.DoubleProperties.min_exp;
-                goto Lint;
-            case Tcomplex80:
-            case Timaginary80:
-            case Tfloat80:
-                ivalue = Target.RealProperties.min_exp;
-                goto Lint;
-            default:
-                break;
-            }
-        }
-        return Type.getProperty(loc, ident, flag);
-
-    Livalue:
-        e = new IntegerExp(loc, ivalue, this);
-        return e;
-
-    Lfvalue:
-        if (isreal() || isimaginary())
-            e = new RealExp(loc, fvalue, this);
-        else
-        {
-            const cvalue = complex_t(fvalue, fvalue);
-            //for (int i = 0; i < 20; i++)
-            //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
-            //printf("\n");
-            e = new ComplexExp(loc, cvalue, this);
-        }
-        return e;
-
-    Lint:
-        e = new IntegerExp(loc, ivalue, Type.tint32);
-        return e;
-    }
-
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
     {
         static if (LOGDOTEXP)
@@ -3999,7 +3553,7 @@ extern (C++) final class TypeBasic : Type
                 break;
 
             default:
-                e = Type.getProperty(e.loc, ident, flag);
+                e = getProperty(cast(Type)this, e.loc, ident, flag);
                 break;
             }
         }
@@ -4050,7 +3604,7 @@ extern (C++) final class TypeBasic : Type
                 break;
 
             default:
-                e = Type.getProperty(e.loc, ident, flag);
+                e = getProperty(cast(Type)this, e.loc, ident, flag);
                 break;
             }
         }
@@ -4297,11 +3851,6 @@ extern (C++) final class TypeVector : Type
     override uint alignsize()
     {
         return cast(uint)basetype.size();
-    }
-
-    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
-    {
-        return Type.getProperty(loc, ident, flag);
     }
 
     override Expression dotExp(Scope* sc, Expression e, Identifier ident, int flag)
@@ -7192,7 +6741,7 @@ extern (C++) final class TypeStruct : Type
 
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
-            return getProperty(e.loc, ident, flag & 1);
+            return getProperty(this, e.loc, ident, flag & 1);
 
         /* If e.tupleof
          */
@@ -7753,7 +7302,7 @@ extern (C++) final class TypeEnum : Type
         }
         // https://issues.dlang.org/show_bug.cgi?id=14010
         if (ident == Id._mangleof)
-            return getProperty(e.loc, ident, flag & 1);
+            return getProperty(this, e.loc, ident, flag & 1);
 
         if (sym.semanticRun < PASS.semanticdone)
             sym.dsymbolSemantic(null);
@@ -7774,7 +7323,7 @@ extern (C++) final class TypeEnum : Type
         {
             if (ident == Id.max || ident == Id.min || ident == Id._init)
             {
-                return getProperty(e.loc, ident, flag & 1);
+                return getProperty(this, e.loc, ident, flag & 1);
             }
 
             Expression res = sym.getMemtype(Loc.initial).dotExp(sc, e, ident, 1);
@@ -7793,35 +7342,6 @@ extern (C++) final class TypeEnum : Type
         }
         EnumMember m = s.isEnumMember();
         return m.getVarExp(e.loc, sc);
-    }
-
-    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
-    {
-        Expression e;
-        if (ident == Id.max || ident == Id.min)
-        {
-            return sym.getMaxMinValue(loc, ident);
-        }
-        else if (ident == Id._init)
-        {
-            e = defaultInitLiteral(loc);
-        }
-        else if (ident == Id.stringof)
-        {
-            const s = toChars();
-            e = new StringExp(loc, cast(char*)s);
-            Scope sc;
-            e = e.expressionSemantic(&sc);
-        }
-        else if (ident == Id._mangleof)
-        {
-            e = Type.getProperty(loc, ident, flag);
-        }
-        else
-        {
-            e = toBasetype().getProperty(loc, ident, flag);
-        }
-        return e;
     }
 
     override bool isintegral()
@@ -8000,7 +7520,7 @@ extern (C++) final class TypeClass : Type
         // https://issues.dlang.org/show_bug.cgi?id=12543
         if (ident == Id.__sizeof || ident == Id.__xalignof || ident == Id._mangleof)
         {
-            return Type.getProperty(e.loc, ident, 0);
+            return getProperty(cast(Type)this, e.loc, ident, 0);
         }
 
         /* If e.tupleof
@@ -8082,7 +7602,7 @@ extern (C++) final class TypeClass : Type
             if (sym.ident == ident)
             {
                 if (e.op == TOK.type)
-                    return Type.getProperty(e.loc, ident, 0);
+                    return getProperty(cast(Type)this, e.loc, ident, 0);
                 e = new DotTypeExp(e.loc, e, sym);
                 e = e.expressionSemantic(sc);
                 return e;
@@ -8090,7 +7610,7 @@ extern (C++) final class TypeClass : Type
             if (auto cbase = sym.searchBase(ident))
             {
                 if (e.op == TOK.type)
-                    return Type.getProperty(e.loc, ident, 0);
+                    return getProperty(cast(Type)this, e.loc, ident, 0);
                 if (auto ifbase = cbase.isInterfaceDeclaration())
                     e = new CastExp(e.loc, e, ifbase.type);
                 else
@@ -8684,33 +8204,6 @@ extern (C++) final class TypeTuple : Type
             }
         }
         return false;
-    }
-
-    override Expression getProperty(const ref Loc loc, Identifier ident, int flag)
-    {
-        Expression e;
-        static if (LOGDOTEXP)
-        {
-            printf("TypeTuple::getProperty(type = '%s', ident = '%s')\n", toChars(), ident.toChars());
-        }
-        if (ident == Id.length)
-        {
-            e = new IntegerExp(loc, arguments.dim, Type.tsize_t);
-        }
-        else if (ident == Id._init)
-        {
-            e = defaultInitLiteral(loc);
-        }
-        else if (flag)
-        {
-            e = null;
-        }
-        else
-        {
-            error(loc, "no property `%s` for tuple `%s`", ident.toChars(), toChars());
-            e = new ErrorExp();
-        }
-        return e;
     }
 
     override Expression defaultInit(const ref Loc loc)
