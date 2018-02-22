@@ -1040,10 +1040,6 @@ void main()
     int b;
     static assert(!__traits(isSame, a => a + b, a => a + b));
 
-    // lambdas calling a function inside their body are considered incomparable
-    int f() { return 3;}
-    static assert(!__traits(isSame, a => a + f(), a => a + f()));
-
     class A
     {
         int a;
