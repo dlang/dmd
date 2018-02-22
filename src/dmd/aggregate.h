@@ -122,7 +122,7 @@ public:
     bool determineFields();
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
-    d_uns64 size(Loc loc);
+    d_uns64 size(const Loc &loc);
     bool checkOverlappedFields();
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
@@ -191,7 +191,7 @@ public:
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
     void finalizeSize();
-    bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
+    bool fit(const Loc &loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
 
     StructDeclaration *isStructDeclaration() { return this; }

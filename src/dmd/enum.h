@@ -57,9 +57,9 @@ public:
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     bool isDeprecated();                // is Dsymbol deprecated?
     Prot prot();
-    Expression *getMaxMinValue(Loc loc, Identifier *id);
-    Expression *getDefaultValue(Loc loc);
-    Type *getMemtype(Loc loc);
+    Expression *getMaxMinValue(const Loc &loc, Identifier *id);
+    Expression *getDefaultValue(const Loc &loc);
+    Type *getMemtype(const Loc &loc);
 
     EnumDeclaration *isEnumDeclaration() { return this; }
 
@@ -88,7 +88,7 @@ public:
 
     Dsymbol *syntaxCopy(Dsymbol *s);
     const char *kind() const;
-    Expression *getVarExp(Loc loc, Scope *sc);
+    Expression *getVarExp(const Loc &loc, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
     void accept(Visitor *v) { v->visit(this); }
