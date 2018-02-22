@@ -301,7 +301,7 @@ $(GNAME WhileStatement):
     $(D while $(LPAREN)) $(EXPRESSION) $(D $(RPAREN)) $(PSSCOPE)
 )
 
-$(P While statements implement simple loops.)
+$(P A $(I While Statement) implements a simple loop.)
 
 $(P $(EXPRESSION) is evaluated and must have a type that can be converted to a
 boolean. If it's true the $(PSSCOPE) is executed. After the $(PSSCOPE) is
@@ -313,12 +313,19 @@ int i = 0;
 while (i < 10)
 {
     foo(i);
-    i++;
+    ++i;
 }
 ---
 
-$(P A $(GLINK BreakStatement) will exit the loop. A $(GLINK ContinueStatement)
-will transfer directly to evaluating $(EXPRESSION) again.)
+    $(P A $(GLINK BreakStatement) will exit the loop.)
+
+    $(P A $(GLINK ContinueStatement) will transfer directly to evaluating $(EXPRESSION) again.)
+
+    $(P A $(I While Statement) is equivalent to:)
+
+    ---
+    for (; Expression; ) ScopeStatement
+    ---
 
 $(H2 $(LEGACY_LNAME2 DoStatement, do-statement, Do Statement))
 
