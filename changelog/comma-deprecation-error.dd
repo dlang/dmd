@@ -39,14 +39,18 @@ $(P If possible, split the comma operator in two statements. Otherwise use
 $(H4 Rationale)
 $(P The comma operator leads to unintended behavior (see below for a selection)
     Moreover it is not commonly used and it blocks the ability to implement tuples
-    as a language features using commas.
+    as a language feature using commas.
 
     A selection of problems through the accidental use of the comma operator:
     ---
     writeln( 6, mixin("7,8"), 9 ); // 6, 8, 9
 
-    template vec(T...)(T args) { ... }
-    vec v = (0, 0, 3); // 3, because vec is variadic
+    struct Vec
+    {
+        this(T...)(T args) { ... }
+    }
+    // missing type name
+    Vec v = (0, 0, 3); // Vec(3)
 
     int a = 0;
     int b = 2;
@@ -55,9 +59,9 @@ $(P The comma operator leads to unintended behavior (see below for a selection)
     }
 
     void foo(int x, int y=0) {}
-    foo((a, b)); // Oops, foo is called with x=b
+    foo((a, b)); // Oops, foo(b) is called
 
     synchronized (lockA, lockB) {}
-    // isn't currently implemented, but still compiles due to the comma operator
+    // multiple expressions aren't currently implemented, but it compiles due to the comma operator
     ---
 )

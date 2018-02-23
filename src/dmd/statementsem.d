@@ -3503,14 +3503,15 @@ else
         else
         {
             /* Generate our own critical section, then rewrite as:
-             *  __gshared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
-             *  _d_criticalenter(__critsec.ptr);
-             *  try { body } finally { _d_criticalexit(__critsec.ptr); }
+             *  shared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
+             *  _d_criticalenter(&__critsec[0]);
+             *  try { body } finally { _d_criticalexit(&__critsec[0]); }
              */
             auto id = Identifier.generateId("__critsec");
             auto t = Type.tint8.sarrayOf(Target.ptrsize + Target.critsecsize());
             auto tmp = new VarDeclaration(ss.loc, t, id, null);
-            tmp.storage_class |= STC.temp | STC.gshared | STC.static_;
+            tmp.storage_class |= STC.temp | STC.shared_ | STC.static_;
+            Expression tmpExp = new VarExp(ss.loc, tmp);
 
             auto cs = new Statements();
             cs.push(new ExpStatement(ss.loc, tmp));
@@ -3526,14 +3527,15 @@ else
             args.push(new Parameter(0, t.pointerTo(), null, null));
 
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
-            Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
+            Expression int0 = new IntegerExp(ss.loc, dinteger_t(0), Type.tint8);
+            Expression e = new AddrExp(ss.loc, new IndexExp(ss.loc, tmpExp, int0));
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, fdenter, e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STC.nothrow_);
-            e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
+            e = new AddrExp(ss.loc, new IndexExp(ss.loc, tmpExp, int0));
             e = e.expressionSemantic(sc);
             e = new CallExp(ss.loc, fdexit, e);
             e.type = Type.tvoid; // do not run semantic on e
