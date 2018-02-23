@@ -458,7 +458,7 @@ $(GNAME ForeachAggregate):
 $(P
         $(I ForeachAggregate) is evaluated. It must evaluate to an expression
         of type static array, dynamic array, associative array,
-        struct, class, delegate, or tuple.
+        struct, class, delegate, or sequence.
         The $(PS0) is executed, once for each element of the
         aggregate.
         At the start of each iteration, the variables declared by
@@ -835,25 +835,25 @@ void main()
         that is confusing to read. Therefore, using $(D foreach_reverse) with a
         delegate is now deprecated, and will be rejected in the future.)
 
-$(H3 $(LNAME2 foreach_over_tuples, Foreach over Tuples))
+$(H3 $(LNAME2 foreach_over_tuples, Foreach over Sequences))
 
 $(P
-        If the aggregate expression is a tuple, there
+        If the aggregate expression is a sequence, there
         can be one or two variables declared. If one, then the variable
-        is said to be the $(I value) set to the elements of the tuple,
+        is said to be the $(I value) set to the elements of the sequence,
         one by one. If the type of the
-        variable is given, it must match the type of the tuple contents.
+        variable is given, it must match the type of the sequence contents.
         If it is not given, the type of the variable is set to the type
-        of the tuple element, which may change from iteration to iteration.
+        of the sequence element, which may change from iteration to iteration.
         If there are
         two variables declared, the first is said to be the $(I index)
         and the second is said to be the $(I value). The $(I index)
         must be of $(D int) or $(D uint) type, it cannot be $(I ref),
-        and it is set to be the index of the tuple element.
+        and it is set to be the index of the sequence element.
 )
 
 $(P
-        If the tuple is a list of types, then the foreach statement
+        If the sequence is a $(I TypeSeq), then the foreach statement
         is executed once for each type, and the value is aliased to that
         type.
 )
