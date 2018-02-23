@@ -5431,6 +5431,19 @@ extern (C++) final class CallExp : UnaExp
         this.arguments = arguments;
     }
 
+    /***********************************************************
+    * Instatiates a new function call expression
+    * Params:
+    *       loc   = location
+    *       fd    = the declaration of the function to call
+    *       earg1 = the function argument
+    */
+    extern(D) this(const ref Loc loc, FuncDeclaration fd, Expression earg1)
+    {
+        this(loc, new VarExp(loc, fd, false), earg1);
+        this.f = fd;
+    }
+
     static CallExp create(Loc loc, Expression e, Expressions* exps)
     {
         return new CallExp(loc, e, exps);
@@ -5444,6 +5457,18 @@ extern (C++) final class CallExp : UnaExp
     static CallExp create(Loc loc, Expression e, Expression earg1)
     {
         return new CallExp(loc, e, earg1);
+    }
+
+    /***********************************************************
+    * Creates a new function call expression
+    * Params:
+    *       loc   = location
+    *       fd    = the declaration of the function to call
+    *       earg1 = the function argument
+    */
+    static CallExp create(Loc loc, FuncDeclaration fd, Expression earg1)
+    {
+        return new CallExp(loc, fd, earg1);
     }
 
     override Expression syntaxCopy()

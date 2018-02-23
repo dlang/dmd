@@ -3485,12 +3485,12 @@ else
                 args.push(new Parameter(0, ClassDeclaration.object.type, null, null));
 
                 FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorenter);
-                Expression e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), new VarExp(ss.loc, tmp));
+                Expression e = new CallExp(ss.loc, fdenter, new VarExp(ss.loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
 
                 cs.push(new ExpStatement(ss.loc, e));
                 FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.monitorexit);
-                e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), new VarExp(ss.loc, tmp));
+                e = new CallExp(ss.loc, fdexit, new VarExp(ss.loc, tmp));
                 e.type = Type.tvoid; // do not run semantic on e
                 Statement s = new ExpStatement(ss.loc, e);
                 s = new TryFinallyStatement(ss.loc, ss._body, s);
@@ -3528,14 +3528,14 @@ else
             FuncDeclaration fdenter = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalenter, STC.nothrow_);
             Expression e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
             e = e.expressionSemantic(sc);
-            e = new CallExp(ss.loc, new VarExp(ss.loc, fdenter, false), e);
+            e = new CallExp(ss.loc, fdenter, e);
             e.type = Type.tvoid; // do not run semantic on e
             cs.push(new ExpStatement(ss.loc, e));
 
             FuncDeclaration fdexit = FuncDeclaration.genCfunc(args, Type.tvoid, Id.criticalexit, STC.nothrow_);
             e = new DotIdExp(ss.loc, new VarExp(ss.loc, tmp), Id.ptr);
             e = e.expressionSemantic(sc);
-            e = new CallExp(ss.loc, new VarExp(ss.loc, fdexit, false), e);
+            e = new CallExp(ss.loc, fdexit, e);
             e.type = Type.tvoid; // do not run semantic on e
             Statement s = new ExpStatement(ss.loc, e);
             s = new TryFinallyStatement(ss.loc, ss._body, s);
