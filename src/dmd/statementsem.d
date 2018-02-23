@@ -2597,6 +2597,9 @@ else
             // The type & label no.
             compileTimeArgs.push(new TypeExp(ss.loc, ss.condition.type.nextOf()));
 
+            // Binary search base
+            compileTimeArgs.push(new IntegerExp(0));
+
             // The switch labels
             foreach (caseString; *csCopy)
             {
