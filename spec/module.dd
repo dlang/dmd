@@ -178,15 +178,19 @@ $(GNAME ImportDeclaration):
 
 $(GNAME ImportList):
     $(I Import)
+    $(I ImportBindings)
     $(I Import) $(D ,) $(I ImportList)
 
 $(GNAME Import):
     $(I ModuleFullyQualifiedName)
     $(I ModuleAliasIdentifier) $(D =) $(I ModuleFullyQualifiedName)
-    $(I ImportBindings)
 
 $(GNAME ImportBindings):
-    $(I Import) $(D :) $(I ImportBind)
+    $(I Import) $(D :) $(I ImportBindList)
+
+$(GNAME ImportBindList):
+    $(I ImportBind)
+    $(I ImportBind) $(D ,) $(I ImportBindList)
 
 $(GNAME ImportBind):
     $(I Identifier)
@@ -402,23 +406,6 @@ void main()
 )
 
 $(P $(D static) cannot be used with selective imports.)
-
-$(P Selective `import`s can be made from multiple modules if
-all `import`s are selective, or when the imported module has a qualified name:)
-
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
----
-import std.stdio : writeln, writefln, std.file : write, std.ascii;
-
-void main()
-{
-    writeln("hello!");           // ok, writeln from std.stdio
-    writefln("%s!", "hello");    // ok, writefln from std.stdio
-    write("world.txt", "hello"); // ok, write from std.file
-    writeln(digits);             // ok, digits from std.ascii
-}
----
-)
 
 $(H2 $(LNAME2 renamed_selective_imports, Renamed and Selective Imports))
 
