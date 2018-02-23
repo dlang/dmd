@@ -2172,6 +2172,6 @@ Macros:
         CHAPTER=10
         TITLE=Expressions
         IDENTIFIER=$(GLINK2 lex, Identifier)
-        USUAL_ARITHMETIC_CONVERSIONS=$(DDSUBLINK spec/types, usual-arithmetic-conversions, Usual Arithmetic Conversions)
-        INTEGER_PROMOTIONS=$(DDSUBLINK spec/types, integer-promotions, Integer Promotions)
+        USUAL_ARITHMETIC_CONVERSIONS=$(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions)
+        INTEGER_PROMOTIONS=$(DDSUBLINK spec/type, integer-promotions, Integer Promotions)
         _=
