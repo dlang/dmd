@@ -1010,14 +1010,16 @@ void __delete(T)(ref T x) @system
         static assert(0, "It is not possible to delete: `" ~ T.stringof ~ "`");
     }
 
-    static if (is(T == interface) || is(T == class))
+    static if (is(T == interface) ||
+              is(T == class) ||
+              is(T == U2*, U2))
     {
         GC.free(cast(void*) x);
         x = null;
     }
-    else static if (is(T == U2*, U2) || is(T : E2[], E2))
+    else static if (is(T : E2[], E2))
     {
-        GC.free(&x);
+        GC.free(x.ptr);
         x = null;
     }
 }
@@ -1151,4 +1153,17 @@ unittest
 {
     Object x = null;
     __delete(x);
+
+    struct S { ~this() { } }
+    class C { }
+    interface I { }
+
+    int[] a; __delete(a);
+    S[] as; __delete(as);
+    C c; __delete(c);
+    I i; __delete(i);
+    C* pc = &c; __delete(*pc);
+    I* pi = &i; __delete(*pi);
+    int* pint; __delete(pint);
+    S* ps; __delete(ps);
 }
