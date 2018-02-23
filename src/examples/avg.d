@@ -11,7 +11,7 @@ module examples.avg;
 
 import dmd.astbase;
 import dmd.parse;
-import dmd.transitivevisitor;
+import dmd.visitor.transitive;
 
 import dmd.globals;
 import dmd.id;

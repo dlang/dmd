@@ -29,7 +29,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.root.rmem;
 import dmd.target;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum Abstract : int
 {
@@ -989,7 +989,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1132,7 +1132,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

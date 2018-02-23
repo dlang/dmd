@@ -64,7 +64,7 @@ public:
     EnumDeclaration *isEnumDeclaration() { return this; }
 
     Symbol *sinit;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 
@@ -91,7 +91,7 @@ public:
     Expression *getVarExp(Loc loc, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_ENUM_H */

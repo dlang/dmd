@@ -68,7 +68,7 @@ import dmd.typesem;
 import dmd.typinf;
 import dmd.utf;
 import dmd.utils;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOGSEMANTIC = false;
 
@@ -1161,9 +1161,9 @@ private Module loadStdMath()
     return impStdMath.mod;
 }
 
-private extern (C++) final class ExpressionSemanticVisitor : Visitor
+private extern (C++) final class ExpressionSemanticVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Scope* sc;
     Expression result;

@@ -27,7 +27,7 @@ import dmd.init;
 import dmd.mtype;
 import dmd.root.rootobject;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.arraytypes;
 
 /****************************************
@@ -792,9 +792,9 @@ private void inferReturn(FuncDeclaration fd, VarDeclaration v)
 private void escapeByValue(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
-    extern (C++) final class EscapeVisitor : Visitor
+    extern (C++) final class EscapeVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         EscapeByResults* er;
 
@@ -1076,9 +1076,9 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 private void escapeByRef(Expression e, EscapeByResults* er)
 {
     //printf("[%s] escapeByRef, e: %s\n", e.loc.toChars(), e.toChars());
-    extern (C++) final class EscapeRefVisitor : Visitor
+    extern (C++) final class EscapeRefVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         EscapeByResults* er;
 

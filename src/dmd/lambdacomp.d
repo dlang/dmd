@@ -33,7 +33,7 @@ import dmd.root.stringtable;
 import dmd.dscope;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.transitive;
 
 enum LOG = false;
 

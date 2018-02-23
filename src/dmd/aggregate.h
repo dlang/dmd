@@ -146,7 +146,7 @@ public:
     Symbol *sinit;
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 struct StructFlags
@@ -195,7 +195,7 @@ public:
     bool isPOD();
 
     StructDeclaration *isStructDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class UnionDeclaration : public StructDeclaration
@@ -205,7 +205,7 @@ public:
     const char *kind() const;
 
     UnionDeclaration *isUnionDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 struct BaseClass
@@ -321,7 +321,7 @@ public:
     Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class InterfaceDeclaration : public ClassDeclaration
@@ -337,7 +337,7 @@ public:
     bool isCOMinterface() const;
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_AGGREGATE_H */

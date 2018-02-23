@@ -55,7 +55,7 @@ import dmd.todt;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -281,9 +281,9 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 void toObjFile(Dsymbol ds, bool multiobj)
 {
     //printf("toObjFile(%s)\n", ds.toChars());
-    extern (C++) final class ToObjFile : Visitor
+    extern (C++) final class ToObjFile : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         bool multiobj;
 

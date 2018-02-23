@@ -21,7 +21,7 @@ import dmd.dsymbolsem;
 import dmd.globals;
 import dmd.identifier;
 import dmd.root.outbuffer;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  * DebugSymbol's happen for statements like:
@@ -106,7 +106,7 @@ extern (C++) final class DebugSymbol : Dsymbol
         return "debug";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -196,7 +196,7 @@ extern (C++) final class VersionSymbol : Dsymbol
         return "version";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

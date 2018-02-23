@@ -56,7 +56,7 @@ import dmd.sideeffect;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOGDOTEXP = 0;         // log ::dotExp()
 enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
@@ -3004,7 +3004,7 @@ extern (C++) abstract class Type : RootObject
         return null;
     }
 
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3057,7 +3057,7 @@ extern (C++) final class TypeError : Type
         return new ErrorExp();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3356,7 +3356,7 @@ extern (C++) abstract class TypeNext : Type
         next = next.addMod(mod);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4252,7 +4252,7 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4411,7 +4411,7 @@ extern (C++) final class TypeVector : Type
         return basetype.isZeroInit(loc);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4440,7 +4440,7 @@ extern (C++) class TypeArray : TypeNext
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4759,7 +4759,7 @@ extern (C++) final class TypeSArray : TypeArray
         return next.needsNested();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4941,7 +4941,7 @@ extern (C++) final class TypeDArray : TypeArray
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5108,7 +5108,7 @@ extern (C++) final class TypeAArray : TypeArray
         return Type.constConv(to);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5256,7 +5256,7 @@ extern (C++) final class TypePointer : TypeNext
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5319,7 +5319,7 @@ extern (C++) final class TypeReference : TypeNext
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6145,7 +6145,7 @@ extern (C++) final class TypeFunction : TypeNext
         return new ErrorExp();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6304,7 +6304,7 @@ extern (C++) final class TypeDelegate : TypeNext
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6698,7 +6698,7 @@ extern (C++) abstract class TypeQualified : Type
         }
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6820,7 +6820,7 @@ extern (C++) final class TypeIdentifier : TypeQualified
         return s;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6886,7 +6886,7 @@ extern (C++) final class TypeInstance : TypeQualified
         return s;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7036,7 +7036,7 @@ extern (C++) final class TypeTypeof : TypeQualified
             return TypeQualified.size(loc);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7119,7 +7119,7 @@ extern (C++) final class TypeReturn : TypeQualified
         return;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7699,7 +7699,7 @@ extern (C++) final class TypeStruct : Type
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7948,7 +7948,7 @@ extern (C++) final class TypeEnum : Type
         return sym.getMemtype(Loc.initial).nextOf();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -8565,7 +8565,7 @@ extern (C++) final class TypeClass : Type
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -8729,7 +8729,7 @@ extern (C++) final class TypeTuple : Type
         return new TupleExp(loc, exps);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -8833,7 +8833,7 @@ extern (C++) final class TypeSlice : TypeNext
         }
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -8895,7 +8895,7 @@ extern (C++) final class TypeNull : Type
         return new NullExp(Loc.initial, Type.tnull);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -8962,7 +8962,7 @@ extern (C++) final class Parameter : RootObject
         return DYNCAST.parameter;
     }
 
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

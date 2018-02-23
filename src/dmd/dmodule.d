@@ -38,7 +38,7 @@ import dmd.root.port;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);
@@ -265,7 +265,7 @@ extern (C++) class Package : ScopeDsymbol
         return ScopeDsymbol.search(loc, ident, flags);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1317,7 +1317,7 @@ extern (C++) final class Module : Package
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

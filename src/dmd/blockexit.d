@@ -26,7 +26,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /**
  * BE stands for BlockExit.
@@ -62,9 +62,9 @@ enum BE : int
  */
 int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 {
-    extern (C++) final class BlockExit : Visitor
+    extern (C++) final class BlockExit : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         FuncDeclaration func;
         bool mustNotThrow;

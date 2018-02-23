@@ -69,7 +69,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum LOG = false;
 
@@ -83,9 +83,9 @@ extern(C++) void semantic3(Dsymbol dsym, Scope* sc)
     dsym.accept(v);
 }
 
-private extern(C++) final class Semantic3Visitor : Visitor
+private extern(C++) final class Semantic3Visitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Scope* sc;
     this(Scope* sc)

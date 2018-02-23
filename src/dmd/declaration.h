@@ -164,7 +164,7 @@ public:
     Prot prot();
 
     Declaration *isDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -184,7 +184,7 @@ public:
     bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -206,7 +206,7 @@ public:
     bool isOverloadable();
 
     AliasDeclaration *isAliasDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -227,7 +227,7 @@ public:
     bool isOverloadable();
 
     OverDeclaration *isOverDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -283,7 +283,7 @@ public:
     Dsymbol *toAlias();
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -297,7 +297,7 @@ public:
 
     // Eliminate need for dynamic_cast
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoDeclaration : public VarDeclaration
@@ -310,7 +310,7 @@ public:
     const char *toChars();
 
     TypeInfoDeclaration *isTypeInfoDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoStructDeclaration : public TypeInfoDeclaration
@@ -318,7 +318,7 @@ class TypeInfoStructDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoStructDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoClassDeclaration : public TypeInfoDeclaration
@@ -326,7 +326,7 @@ class TypeInfoClassDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoClassDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
@@ -334,7 +334,7 @@ class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoInterfaceDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoPointerDeclaration : public TypeInfoDeclaration
@@ -342,7 +342,7 @@ class TypeInfoPointerDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoPointerDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoArrayDeclaration : public TypeInfoDeclaration
@@ -350,7 +350,7 @@ class TypeInfoArrayDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoArrayDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
@@ -358,7 +358,7 @@ class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoStaticArrayDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
@@ -366,7 +366,7 @@ class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoAssociativeArrayDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoEnumDeclaration : public TypeInfoDeclaration
@@ -374,7 +374,7 @@ class TypeInfoEnumDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoEnumDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
@@ -382,7 +382,7 @@ class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoFunctionDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
@@ -390,7 +390,7 @@ class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoDelegateDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoTupleDeclaration : public TypeInfoDeclaration
@@ -398,7 +398,7 @@ class TypeInfoTupleDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoTupleDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoConstDeclaration : public TypeInfoDeclaration
@@ -406,7 +406,7 @@ class TypeInfoConstDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoConstDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
@@ -414,7 +414,7 @@ class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoInvariantDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoSharedDeclaration : public TypeInfoDeclaration
@@ -422,7 +422,7 @@ class TypeInfoSharedDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoSharedDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoWildDeclaration : public TypeInfoDeclaration
@@ -430,7 +430,7 @@ class TypeInfoWildDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoWildDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeInfoVectorDeclaration : public TypeInfoDeclaration
@@ -438,7 +438,7 @@ class TypeInfoVectorDeclaration : public TypeInfoDeclaration
 public:
     static TypeInfoVectorDeclaration *create(Type *tinfo);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -448,7 +448,7 @@ class ThisDeclaration : public VarDeclaration
 public:
     Dsymbol *syntaxCopy(Dsymbol *);
     ThisDeclaration *isThisDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 enum ILS
@@ -644,7 +644,7 @@ public:
     FuncDeclaration *isFuncDeclaration() { return this; }
 
     virtual FuncDeclaration *toAliasFunc() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
@@ -663,7 +663,7 @@ public:
     const char *kind() const;
 
     FuncDeclaration *toAliasFunc();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class FuncLiteralDeclaration : public FuncDeclaration
@@ -688,7 +688,7 @@ public:
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind() const;
     const char *toPrettyChars(bool QualifyTypes = false);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CtorDeclaration : public FuncDeclaration
@@ -702,7 +702,7 @@ public:
     bool addPostInvariant();
 
     CtorDeclaration *isCtorDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PostBlitDeclaration : public FuncDeclaration
@@ -715,7 +715,7 @@ public:
     bool overloadInsert(Dsymbol *s);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DtorDeclaration : public FuncDeclaration
@@ -730,7 +730,7 @@ public:
     bool overloadInsert(Dsymbol *s);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticCtorDeclaration : public FuncDeclaration
@@ -744,7 +744,7 @@ public:
     bool hasStaticCtorOrDtor();
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SharedStaticCtorDeclaration : public StaticCtorDeclaration
@@ -753,7 +753,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
 
     SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticDtorDeclaration : public FuncDeclaration
@@ -769,7 +769,7 @@ public:
     bool addPostInvariant();
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SharedStaticDtorDeclaration : public StaticDtorDeclaration
@@ -778,7 +778,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
 
     SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class InvariantDeclaration : public FuncDeclaration
@@ -790,7 +790,7 @@ public:
     bool addPostInvariant();
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class UnitTestDeclaration : public FuncDeclaration
@@ -808,7 +808,7 @@ public:
     bool addPostInvariant();
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class NewDeclaration : public FuncDeclaration
@@ -824,7 +824,7 @@ public:
     bool addPostInvariant();
 
     NewDeclaration *isNewDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 
@@ -841,7 +841,7 @@ public:
     bool addPostInvariant();
 
     DeleteDeclaration *isDeleteDeclaration() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_DECLARATION_H */

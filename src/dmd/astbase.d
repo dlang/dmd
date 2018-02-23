@@ -5,7 +5,7 @@ module dmd.astbase;
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/astbase.d
  */
 
-import dmd.parsetimevisitor;
+import dmd.visitor.parse_time;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
   * no semantic information. It defines all the AST nodes that the parser needs
@@ -287,7 +287,7 @@ struct ASTBase
         tracingDT    = 0x8,  // mark in progress of deduceType
     }
 
-    alias Visitor = ParseTimeVisitor!ASTBase;
+    alias SemanticVisitor = ParseTimeVisitor!ASTBase;
 
     extern (C++) class Dsymbol : RootObject
     {
@@ -449,7 +449,7 @@ struct ASTBase
             return DYNCAST.dsymbol;
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -466,7 +466,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -492,7 +492,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -507,7 +507,7 @@ struct ASTBase
             super(id);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -561,7 +561,7 @@ struct ASTBase
             aliases.push(_alias);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -581,7 +581,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -616,7 +616,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -637,7 +637,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -668,7 +668,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -718,7 +718,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -749,7 +749,7 @@ struct ASTBase
             return true;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -766,7 +766,7 @@ struct ASTBase
             this.objects = objects;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -789,7 +789,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -802,7 +802,7 @@ struct ASTBase
             super(loc, endloc, id, stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -815,7 +815,7 @@ struct ASTBase
             super(loc, endloc, Id.ctor, stc, type);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -832,7 +832,7 @@ struct ASTBase
             super(loc, endloc, id, stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -846,7 +846,7 @@ struct ASTBase
             this.fbody = fbody;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -864,7 +864,7 @@ struct ASTBase
             this.codedoc = codedoc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -882,7 +882,7 @@ struct ASTBase
             this.varargs = varargs;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -898,7 +898,7 @@ struct ASTBase
             this.parameters = fparams;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -915,7 +915,7 @@ struct ASTBase
             super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -932,7 +932,7 @@ struct ASTBase
             super(loc, endloc, Identifier.generateId(name), STC.static_ | stc, null);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -945,7 +945,7 @@ struct ASTBase
             super(loc, endloc, "_sharedStaticCtor", stc);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -958,7 +958,7 @@ struct ASTBase
             super(loc, endloc, "_sharedStaticDtor", stc);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -977,7 +977,7 @@ struct ASTBase
             this.tag = packageTag++;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -998,7 +998,7 @@ struct ASTBase
             protection = Prot(Prot.Kind.undefined);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1023,7 +1023,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1073,7 +1073,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1147,7 +1147,7 @@ struct ASTBase
             return ti;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1162,7 +1162,7 @@ struct ASTBase
             this.members = members;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1179,7 +1179,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1211,7 +1211,7 @@ struct ASTBase
             return udas;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1227,7 +1227,7 @@ struct ASTBase
             linkage = p;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1244,7 +1244,7 @@ struct ASTBase
             this.isunion = isunion;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1261,7 +1261,7 @@ struct ASTBase
             this.ealign = ealign;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1277,7 +1277,7 @@ struct ASTBase
             cppmangle = p;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1303,7 +1303,7 @@ struct ASTBase
             this.pkg_identifiers = pkg_identifiers;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1321,7 +1321,7 @@ struct ASTBase
             this.args = args;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1337,7 +1337,7 @@ struct ASTBase
             this.stc = stc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1355,7 +1355,7 @@ struct ASTBase
             this.elsedecl = elsedecl;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1371,7 +1371,7 @@ struct ASTBase
             this.msg = msg;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1384,7 +1384,7 @@ struct ASTBase
             super(condition, decl, elsedecl);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1400,7 +1400,7 @@ struct ASTBase
             this.sfe = sfe;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1420,7 +1420,7 @@ struct ASTBase
             this.origType = origType;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1441,7 +1441,7 @@ struct ASTBase
             srcfile = new File(srcfilename);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1465,7 +1465,7 @@ struct ASTBase
             }
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1478,7 +1478,7 @@ struct ASTBase
             super(loc, id, false);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1677,7 +1677,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1690,7 +1690,7 @@ struct ASTBase
             super(loc, id, baseclasses, null, false);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1709,7 +1709,7 @@ struct ASTBase
             this.tqual = tqual;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1799,7 +1799,7 @@ struct ASTBase
             return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null);
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1843,7 +1843,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1859,7 +1859,7 @@ struct ASTBase
             this.imports = imports;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1877,7 +1877,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1898,7 +1898,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1916,7 +1916,7 @@ struct ASTBase
             this.statement = statement;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1932,7 +1932,7 @@ struct ASTBase
             this.sa = sa;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1948,7 +1948,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1968,7 +1968,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -1992,7 +1992,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2012,7 +2012,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2039,7 +2039,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2063,7 +2063,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2088,7 +2088,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2106,7 +2106,7 @@ struct ASTBase
             this.statement = statement;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2126,7 +2126,7 @@ struct ASTBase
             this.elsebody = elsebody;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2142,7 +2142,7 @@ struct ASTBase
             this.sfe = sfe;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2162,7 +2162,7 @@ struct ASTBase
             this._body = _body;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2182,7 +2182,7 @@ struct ASTBase
             this.isFinal = isFinal;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2202,7 +2202,7 @@ struct ASTBase
             this.statement = s;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2220,7 +2220,7 @@ struct ASTBase
             this.statement = s;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2236,7 +2236,7 @@ struct ASTBase
             this.statement = s;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2252,7 +2252,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2268,7 +2268,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2281,7 +2281,7 @@ struct ASTBase
             super(loc);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2297,7 +2297,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2313,7 +2313,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2331,7 +2331,7 @@ struct ASTBase
             this._body = _body;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2351,7 +2351,7 @@ struct ASTBase
             this.endloc = endloc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2369,7 +2369,7 @@ struct ASTBase
             this.catches = catches;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2387,7 +2387,7 @@ struct ASTBase
             this.finalbody = finalbody;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2403,7 +2403,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2419,7 +2419,7 @@ struct ASTBase
             this.tokens = tokens;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2445,7 +2445,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2474,7 +2474,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2487,7 +2487,7 @@ struct ASTBase
             super(loc, statements);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -2503,7 +2503,7 @@ struct ASTBase
             this.stc = stc;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3351,7 +3351,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3503,7 +3503,7 @@ struct ASTBase
             return (flags & (TFlags.integral | TFlags.floating)) != 0;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3521,7 +3521,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3540,7 +3540,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3561,7 +3561,7 @@ struct ASTBase
             return new TypeVector(basetype.syntaxCopy());
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3582,7 +3582,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3625,7 +3625,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3647,7 +3647,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3669,7 +3669,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3696,7 +3696,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3717,7 +3717,7 @@ struct ASTBase
             return next;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3742,7 +3742,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3769,7 +3769,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3795,7 +3795,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3871,7 +3871,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3884,7 +3884,7 @@ struct ASTBase
             super(ty, next);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3910,7 +3910,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3953,7 +3953,7 @@ struct ASTBase
             return null;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -3986,7 +3986,7 @@ struct ASTBase
             return e;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4079,7 +4079,7 @@ struct ASTBase
             return e;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4108,7 +4108,7 @@ struct ASTBase
             return toExpressionHelper(new IdentifierExp(loc, ident));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4129,7 +4129,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4153,7 +4153,7 @@ struct ASTBase
             return t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4182,7 +4182,7 @@ struct ASTBase
             return toExpressionHelper(new ScopeExp(loc, tempinst));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4235,7 +4235,7 @@ struct ASTBase
             return DYNCAST.expression;
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4251,7 +4251,7 @@ struct ASTBase
             this.declaration = declaration;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4340,7 +4340,7 @@ struct ASTBase
             }
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4362,7 +4362,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4388,7 +4388,7 @@ struct ASTBase
             this.parameters = parameters;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4405,7 +4405,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4419,7 +4419,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4435,7 +4435,7 @@ struct ASTBase
             this.obj = o;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4453,7 +4453,7 @@ struct ASTBase
             this.args = args;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4496,7 +4496,7 @@ struct ASTBase
             this.sz = 1;                    // work around LDC bug #1286
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4518,7 +4518,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4537,7 +4537,7 @@ struct ASTBase
             this.values = values;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4568,7 +4568,7 @@ struct ASTBase
             this.elements = elements;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4595,7 +4595,7 @@ struct ASTBase
             assert(fd.fbody);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4613,7 +4613,7 @@ struct ASTBase
             this.upr = upr;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4627,7 +4627,7 @@ struct ASTBase
             this.type = type;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4644,7 +4644,7 @@ struct ASTBase
             assert(!sds.isTemplateDeclaration());
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4660,7 +4660,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4676,7 +4676,7 @@ struct ASTBase
             this.e1 = e1;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4692,7 +4692,7 @@ struct ASTBase
             this.subop = subop;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4710,7 +4710,7 @@ struct ASTBase
             this.e2 = e2;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4728,7 +4728,7 @@ struct ASTBase
             this.hasOverloads = hasOverloads;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4747,7 +4747,7 @@ struct ASTBase
             this.fd = fd;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4766,7 +4766,7 @@ struct ASTBase
             this.hasOverloads = hasOverloads;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4783,7 +4783,7 @@ struct ASTBase
             this.type = var.type;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4882,7 +4882,7 @@ struct ASTBase
             return sa;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4895,7 +4895,7 @@ struct ASTBase
             super(loc, Id.dollar);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4908,7 +4908,7 @@ struct ASTBase
             super(loc, TOK.this_, __traits(classInstanceSize, ThisExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4922,7 +4922,7 @@ struct ASTBase
             op = TOK.super_;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4935,7 +4935,7 @@ struct ASTBase
             super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4948,7 +4948,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, PreExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4966,7 +4966,7 @@ struct ASTBase
             type = t;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4979,7 +4979,7 @@ struct ASTBase
             super(loc, TOK.negate, __traits(classInstanceSize, NegExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -4992,7 +4992,7 @@ struct ASTBase
             super(loc, TOK.uadd, __traits(classInstanceSize, UAddExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5005,7 +5005,7 @@ struct ASTBase
             super(loc, TOK.not, __traits(classInstanceSize, NotExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5018,7 +5018,7 @@ struct ASTBase
             super(loc, TOK.tilde, __traits(classInstanceSize, ComExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5034,7 +5034,7 @@ struct ASTBase
             this.isRAII = isRAII;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5056,7 +5056,7 @@ struct ASTBase
             this.mod = mod;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5099,7 +5099,7 @@ struct ASTBase
             this.arguments = arguments;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5115,7 +5115,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5131,7 +5131,7 @@ struct ASTBase
             this.msg = msg;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5144,7 +5144,7 @@ struct ASTBase
             super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5157,7 +5157,7 @@ struct ASTBase
             super(loc, TOK.import_, __traits(classInstanceSize, ImportExp), e);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5178,7 +5178,7 @@ struct ASTBase
             this.ti = ti;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5202,7 +5202,7 @@ struct ASTBase
             arguments = args;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5215,7 +5215,7 @@ struct ASTBase
             super(loc, TOK.functionString, __traits(classInstanceSize, FuncInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5228,7 +5228,7 @@ struct ASTBase
             super(loc, TOK.prettyFunction, __traits(classInstanceSize, PrettyFuncInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5241,7 +5241,7 @@ struct ASTBase
             super(loc, tok, __traits(classInstanceSize, FileInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5254,7 +5254,7 @@ struct ASTBase
             super(loc, TOK.line, __traits(classInstanceSize, LineInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5267,7 +5267,7 @@ struct ASTBase
             super(loc, TOK.moduleString, __traits(classInstanceSize, ModuleInitExp));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5284,7 +5284,7 @@ struct ASTBase
             allowCommaExp = isGenerated = generated;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5297,7 +5297,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5310,7 +5310,7 @@ struct ASTBase
             super(loc, TOK.pow, __traits(classInstanceSize, PowExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5323,7 +5323,7 @@ struct ASTBase
             super(loc, TOK.mul, __traits(classInstanceSize, MulExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5336,7 +5336,7 @@ struct ASTBase
             super(loc, TOK.div, __traits(classInstanceSize, DivExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5349,7 +5349,7 @@ struct ASTBase
             super(loc, TOK.mod, __traits(classInstanceSize, ModExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5362,7 +5362,7 @@ struct ASTBase
             super(loc, TOK.add, __traits(classInstanceSize, AddExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5375,7 +5375,7 @@ struct ASTBase
             super(loc, TOK.min, __traits(classInstanceSize, MinExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5388,7 +5388,7 @@ struct ASTBase
             super(loc, TOK.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5401,7 +5401,7 @@ struct ASTBase
             super(loc, TOK.leftShift, __traits(classInstanceSize, ShlExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5414,7 +5414,7 @@ struct ASTBase
             super(loc, TOK.rightShift, __traits(classInstanceSize, ShrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5427,7 +5427,7 @@ struct ASTBase
             super(loc, TOK.unsignedRightShift, __traits(classInstanceSize, UshrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5441,7 +5441,7 @@ struct ASTBase
             assert(op == TOK.equal || op == TOK.notEqual);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5454,7 +5454,7 @@ struct ASTBase
             super(loc, TOK.in_, __traits(classInstanceSize, InExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5467,7 +5467,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5480,7 +5480,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5493,7 +5493,7 @@ struct ASTBase
             super(loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5506,7 +5506,7 @@ struct ASTBase
             super(loc, TOK.xor, __traits(classInstanceSize, XorExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5519,7 +5519,7 @@ struct ASTBase
             super(loc, TOK.or, __traits(classInstanceSize, OrExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5532,7 +5532,7 @@ struct ASTBase
             super(loc, op, __traits(classInstanceSize, LogicalExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5548,7 +5548,7 @@ struct ASTBase
             this.econd = econd;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5561,7 +5561,7 @@ struct ASTBase
             super(loc, TOK.assign, __traits(classInstanceSize, AssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5574,7 +5574,7 @@ struct ASTBase
             super(loc, op, size, e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5587,7 +5587,7 @@ struct ASTBase
             super(loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5600,7 +5600,7 @@ struct ASTBase
             super(loc, TOK.minAssign, __traits(classInstanceSize, MinAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5613,7 +5613,7 @@ struct ASTBase
             super(loc, TOK.mulAssign, __traits(classInstanceSize, MulAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5626,7 +5626,7 @@ struct ASTBase
             super(loc, TOK.divAssign, __traits(classInstanceSize, DivAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5639,7 +5639,7 @@ struct ASTBase
             super(loc, TOK.modAssign, __traits(classInstanceSize, ModAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5652,7 +5652,7 @@ struct ASTBase
             super(loc, TOK.powAssign, __traits(classInstanceSize, PowAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5665,7 +5665,7 @@ struct ASTBase
             super(loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5678,7 +5678,7 @@ struct ASTBase
             super(loc, TOK.orAssign, __traits(classInstanceSize, OrAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5691,7 +5691,7 @@ struct ASTBase
             super(loc, TOK.xorAssign, __traits(classInstanceSize, XorAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5704,7 +5704,7 @@ struct ASTBase
             super(loc, TOK.leftShiftAssign, __traits(classInstanceSize, ShlAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5717,7 +5717,7 @@ struct ASTBase
             super(loc, TOK.rightShiftAssign, __traits(classInstanceSize, ShrAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5730,7 +5730,7 @@ struct ASTBase
             super(loc, TOK.unsignedRightShiftAssign, __traits(classInstanceSize, UshrAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5743,7 +5743,7 @@ struct ASTBase
             super(loc, TOK.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5762,7 +5762,7 @@ struct ASTBase
 
         abstract TemplateParameter syntaxCopy(){ return null;}
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5783,7 +5783,7 @@ struct ASTBase
             this.defaultAlias = defaultAlias;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5802,7 +5802,7 @@ struct ASTBase
             this.defaultType = defaultType;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5816,7 +5816,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5838,7 +5838,7 @@ struct ASTBase
             this.defaultValue = defaultValue;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5851,7 +5851,7 @@ struct ASTBase
             super(loc, ident, specType, defaultType);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5866,7 +5866,7 @@ struct ASTBase
             this.loc = loc;
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5902,7 +5902,7 @@ struct ASTBase
             this.exp = exp;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5921,7 +5921,7 @@ struct ASTBase
             this.ident = ident;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5934,7 +5934,7 @@ struct ASTBase
             super(mod, level, ident);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5947,7 +5947,7 @@ struct ASTBase
             super(mod, level, ident);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5973,7 +5973,7 @@ struct ASTBase
             return null;
         }
 
-        void accept(Visitor v)
+        void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -5994,7 +5994,7 @@ struct ASTBase
             return this;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -6016,7 +6016,7 @@ struct ASTBase
             this.value.push(value);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -6042,7 +6042,7 @@ struct ASTBase
             type = null;
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }
@@ -6055,7 +6055,7 @@ struct ASTBase
             super(loc);
         }
 
-        override void accept(Visitor v)
+        override void accept(SemanticVisitor v)
         {
             v.visit(this);
         }

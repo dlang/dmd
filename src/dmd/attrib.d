@@ -30,7 +30,7 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.target;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  */
@@ -266,7 +266,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -371,7 +371,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -423,7 +423,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return AttribDeclaration.setScope(sc);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -464,7 +464,7 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
         return "extern ()";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -500,7 +500,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
         return "extern ()";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -600,7 +600,7 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -634,7 +634,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
         return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.protection, sc.explicitProtection, this, sc.inlining);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -756,7 +756,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -822,7 +822,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         return "pragma";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -917,7 +917,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         }
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1016,7 +1016,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
         return "static if";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1138,7 +1138,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         return "static foreach";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1245,7 +1245,7 @@ extern (C++) final class CompileDeclaration : AttribDeclaration
         return "mixin";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -1332,7 +1332,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return "UserAttribute";
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

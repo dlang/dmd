@@ -19,7 +19,7 @@
 
 #include "arraytypes.h"
 #include "dsymbol.h"
-#include "visitor.h"
+#include "visitors.h"
 #include "tokens.h"
 
 struct OutBuffer;
@@ -109,7 +109,7 @@ public:
     virtual BreakStatement *isBreakStatement() { return NULL; }
     virtual DtorExpStatement *isDtorExpStatement() { return NULL; }
     virtual ForwardingStatement *isForwardingStatement() { return NULL; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /** Any Statement that fails semantic() or has a component that is an ErrorExp or
@@ -121,7 +121,7 @@ public:
     Statement *syntaxCopy();
 
     ErrorStatement *isErrorStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PeelStatement : public Statement
@@ -129,7 +129,7 @@ class PeelStatement : public Statement
 public:
     Statement *s;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ExpStatement : public Statement
@@ -143,7 +143,7 @@ public:
     Statements *flatten(Scope *sc);
 
     ExpStatement *isExpStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DtorExpStatement : public ExpStatement
@@ -155,7 +155,7 @@ public:
     VarDeclaration *var;
 
     Statement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 
     DtorExpStatement *isDtorExpStatement() { return this; }
 };
@@ -167,7 +167,7 @@ public:
 
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CompoundStatement : public Statement
@@ -182,14 +182,14 @@ public:
     Statement *last();
 
     CompoundStatement *isCompoundStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CompoundDeclarationStatement : public CompoundStatement
 {
 public:
     Statement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /* The purpose of this is so that continue will go to the next
@@ -204,7 +204,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ScopeStatement : public Statement
@@ -219,7 +219,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ForwardingStatement : public Statement
@@ -230,7 +230,7 @@ class ForwardingStatement : public Statement
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
     ForwardingStatement *isForwardingStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class WhileStatement : public Statement
@@ -244,7 +244,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DoStatement : public Statement
@@ -258,7 +258,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ForStatement : public Statement
@@ -281,7 +281,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ForeachStatement : public Statement
@@ -306,7 +306,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ForeachRangeStatement : public Statement
@@ -325,7 +325,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class IfStatement : public Statement
@@ -341,7 +341,7 @@ public:
     Statement *syntaxCopy();
     IfStatement *isIfStatement() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ConditionalStatement : public Statement
@@ -354,7 +354,7 @@ public:
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticForeachStatement : public Statement
@@ -365,7 +365,7 @@ public:
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PragmaStatement : public Statement
@@ -377,7 +377,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StaticAssertStatement : public Statement
@@ -387,7 +387,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SwitchStatement : public Statement
@@ -409,7 +409,7 @@ public:
     bool hasBreak();
     bool checkLabel();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CaseStatement : public Statement
@@ -425,7 +425,7 @@ public:
     int compare(RootObject *obj);
     CaseStatement *isCaseStatement() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 
@@ -437,7 +437,7 @@ public:
     Statement *statement;
 
     Statement *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 
@@ -450,7 +450,7 @@ public:
     Statement *syntaxCopy();
     DefaultStatement *isDefaultStatement() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class GotoDefaultStatement : public Statement
@@ -461,7 +461,7 @@ public:
     Statement *syntaxCopy();
     GotoDefaultStatement *isGotoDefaultStatement() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class GotoCaseStatement : public Statement
@@ -473,14 +473,14 @@ public:
     Statement *syntaxCopy();
     GotoCaseStatement *isGotoCaseStatement() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SwitchErrorStatement : public Statement
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ReturnStatement : public Statement
@@ -492,7 +492,7 @@ public:
     Statement *syntaxCopy();
 
     ReturnStatement *isReturnStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class BreakStatement : public Statement
@@ -503,7 +503,7 @@ public:
     Statement *syntaxCopy();
 
     BreakStatement *isBreakStatement() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ContinueStatement : public Statement
@@ -513,7 +513,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SynchronizedStatement : public Statement
@@ -526,7 +526,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class WithStatement : public Statement
@@ -539,7 +539,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TryCatchStatement : public Statement
@@ -551,7 +551,7 @@ public:
     Statement *syntaxCopy();
     bool hasBreak();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class Catch : public RootObject
@@ -584,7 +584,7 @@ public:
     bool hasBreak();
     bool hasContinue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class OnScopeStatement : public Statement
@@ -596,7 +596,7 @@ public:
     Statement *syntaxCopy();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ThrowStatement : public Statement
@@ -609,7 +609,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DebugStatement : public Statement
@@ -619,7 +619,7 @@ public:
 
     Statement *syntaxCopy();
     Statements *flatten(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class GotoStatement : public Statement
@@ -634,7 +634,7 @@ public:
     Statement *syntaxCopy();
     bool checkLabel();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class LabelStatement : public Statement
@@ -655,7 +655,7 @@ public:
 
     LabelStatement *isLabelStatement() { return this; }
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class LabelDsymbol : public Dsymbol
@@ -665,7 +665,7 @@ public:
 
     static LabelDsymbol *create(Identifier *ident);
     LabelDsymbol *isLabel();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 Statement* asmSemantic(AsmStatement *s, Scope *sc);
@@ -682,7 +682,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // a complete asm {} block
@@ -694,7 +694,7 @@ public:
     CompoundAsmStatement *syntaxCopy();
     Statements *flatten(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ImportStatement : public Statement
@@ -704,7 +704,7 @@ public:
 
     Statement *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_STATEMENT_H */

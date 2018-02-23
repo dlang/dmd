@@ -19,7 +19,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.globals;
 import dmd.identifier;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import core.stdc.stdio;
 
 private enum LOG = false;
@@ -169,7 +169,7 @@ extern (C++) final class Nspace : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

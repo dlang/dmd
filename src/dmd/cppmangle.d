@@ -41,7 +41,7 @@ import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 extern (C++):
 
@@ -64,9 +64,9 @@ const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     return buf.extractString();
 }
 
-private final class CppMangleVisitor : Visitor
+private final class CppMangleVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
     Objects components;         // array of components available for substitution
     OutBuffer* buf;             // append the mangling to buf[]
     Loc loc;                    // location for use in error messages

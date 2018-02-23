@@ -58,7 +58,7 @@ public:
     bool overloadInsert(Dsymbol *s);
 
     Import *isImport() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 #endif /* DMD_IMPORT_H */

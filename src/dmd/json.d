@@ -33,7 +33,7 @@ import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.root.outbuffer;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 version(Windows) {
     extern (C) char* getcwd(char* buffer, size_t maxlen);
@@ -41,9 +41,9 @@ version(Windows) {
     import core.sys.posix.unistd : getcwd;
 }
 
-private extern (C++) final class ToJsonVisitor : Visitor
+private extern (C++) final class ToJsonVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     OutBuffer* buf;
     int indentLevel;

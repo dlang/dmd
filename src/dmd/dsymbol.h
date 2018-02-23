@@ -20,7 +20,7 @@
 
 #include "mars.h"
 #include "arraytypes.h"
-#include "visitor.h"
+#include "visitors.h"
 
 class Identifier;
 struct Scope;
@@ -283,7 +283,7 @@ public:
     virtual ProtDeclaration *isProtDeclaration() { return NULL; }
     virtual AnonDeclaration *isAnonDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Dsymbol that generates a scope
@@ -320,7 +320,7 @@ public:
     static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // With statement scope
@@ -333,7 +333,7 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags = SearchLocalsOnly);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Array Index/Slice scope
@@ -349,7 +349,7 @@ public:
     Dsymbol *search(Loc loc, Identifier *ident, int flags = IgnoreNone);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Overload Sets
@@ -362,7 +362,7 @@ public:
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
     const char *kind() const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Forwarding ScopeDsymbol

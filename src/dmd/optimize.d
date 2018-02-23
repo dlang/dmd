@@ -28,7 +28,7 @@ import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.sideeffect;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /*************************************
  * If variable has a const initializer,
@@ -264,9 +264,9 @@ package void setLengthVarIfKnown(VarDeclaration lengthVar, Type type)
  */
 extern (C++) Expression Expression_optimize(Expression e, int result, bool keepLvalue)
 {
-    extern (C++) final class OptimizeVisitor : Visitor
+    extern (C++) final class OptimizeVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         Expression ret;
         private const int result;

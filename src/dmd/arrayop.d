@@ -27,7 +27,7 @@ import dmd.mtype;
 import dmd.root.outbuffer;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /**********************************************
  * Check that there are no uses of arrays without [].
@@ -175,9 +175,9 @@ extern (C++) Expression arrayOp(BinAssignExp e, Scope* sc)
  */
 private void buildArrayOp(Scope* sc, Expression e, Objects* tiargs, Expressions* args)
 {
-    extern (C++) final class BuildArrayOpVisitor : Visitor
+    extern (C++) final class BuildArrayOpVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
         Scope* sc;
         Objects* tiargs;
         Expressions* args;

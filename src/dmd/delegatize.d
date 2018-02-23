@@ -25,7 +25,7 @@ import dmd.initsem;
 import dmd.mtype;
 import dmd.statement;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.stoppable;
 
 
 /*********************************

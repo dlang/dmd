@@ -23,7 +23,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.opover;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  * alias ident this;
@@ -55,7 +55,7 @@ extern (C++) final class AliasThis : Dsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

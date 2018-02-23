@@ -49,7 +49,7 @@ import dmd.staticassert;
 import dmd.target;
 import dmd.tokens;
 import dmd.utils;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 struct HdrGenState
 {
@@ -81,9 +81,9 @@ extern (C++) void genhdrfile(Module m)
     writeFile(m.loc, m.hdrfile);
 }
 
-extern (C++) final class PrettyPrintVisitor : Visitor
+extern (C++) final class PrettyPrintVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     OutBuffer* buf;
     HdrGenState* hgs;

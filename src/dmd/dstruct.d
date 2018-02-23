@@ -34,7 +34,7 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.typinf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***************************************
  * Search sd for a member function of the form:
@@ -69,9 +69,9 @@ extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
  */
 extern (C++) void semanticTypeInfo(Scope* sc, Type t)
 {
-    extern (C++) final class FullTypeInfoVisitor : Visitor
+    extern (C++) final class FullTypeInfoVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Scope* sc;
 
@@ -575,7 +575,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -608,7 +608,7 @@ extern (C++) final class UnionDeclaration : StructDeclaration
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

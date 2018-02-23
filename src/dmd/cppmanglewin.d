@@ -29,7 +29,7 @@ import dmd.root.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /* Do mangling for C++ linkage for Digital Mars C++ and Microsoft Visual C++
  */
@@ -49,12 +49,12 @@ const(char)* cppTypeInfoMangleMSVC(Dsymbol s)
     assert(0);
 }
 
-private final class VisualCPPMangler : Visitor
+private final class VisualCPPMangler : SemanticVisitor
 {
     enum VC_SAVED_TYPE_CNT = 10u;
     enum VC_SAVED_IDENT_CNT = 10u;
 
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
     const(char)*[VC_SAVED_IDENT_CNT] saved_idents;
     Type[VC_SAVED_TYPE_CNT] saved_types;
 

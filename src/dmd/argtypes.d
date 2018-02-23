@@ -18,7 +18,7 @@ import core.checkedint;
 import dmd.declaration;
 import dmd.globals;
 import dmd.mtype;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function
@@ -35,9 +35,9 @@ import dmd.visitor;
  */
 TypeTuple toArgTypes(Type t)
 {
-    extern (C++) final class ToArgTypes : Visitor
+    extern (C++) final class ToArgTypes : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         TypeTuple result;
 

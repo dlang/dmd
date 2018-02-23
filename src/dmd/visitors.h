@@ -4,7 +4,7 @@
  * http://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
  * http://www.boost.org/LICENSE_1_0.txt
- * https://github.com/dlang/dmd/blob/master/src/visitor.h
+ * https://github.com/dlang/dmd/blob/master/src/visitors.h
  */
 
 #ifndef DMD_VISITOR_H
@@ -559,7 +559,7 @@ public:
     virtual void visit(VoidInitializer *i) { visit((Initializer *)i); }
 };
 
-class Visitor : public ParseTimeVisitor
+class SemanticVisitor : public ParseTimeVisitor
 {
 public:
     using ParseTimeVisitor::visit;
@@ -623,7 +623,7 @@ public:
     virtual void visit(ThrownExceptionExp *e) { visit((Expression *)e); }
 };
 
-class StoppableVisitor : public Visitor
+class StoppableVisitor : public SemanticVisitor
 {
 public:
     bool stop;

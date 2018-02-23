@@ -53,7 +53,7 @@ import dmd.statement;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /*****************************************
  * CTFE requires FuncDeclaration::labtab for the interpretation.
@@ -127,9 +127,9 @@ extern(C++) Statement statementSemantic(Statement s, Scope* sc)
     return v.result;
 }
 
-private extern (C++) final class StatementSemanticVisitor : Visitor
+private extern (C++) final class StatementSemanticVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     Statement result;
     Scope* sc;

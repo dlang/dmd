@@ -21,7 +21,7 @@
 
 #include "arraytypes.h"
 #include "expression.h"
-#include "visitor.h"
+#include "visitors.h"
 
 struct Scope;
 class Identifier;
@@ -343,7 +343,7 @@ public:
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeError : public Type
@@ -356,7 +356,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeNext : public Type
@@ -379,7 +379,7 @@ public:
     MATCH constConv(Type *to);
     unsigned char deduceWild(Type *t, bool isRef);
     void transitive();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeBasic : public Type
@@ -407,7 +407,7 @@ public:
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeVector : public Type
@@ -433,14 +433,14 @@ public:
     TypeBasic *elementType();
     bool isZeroInit(Loc loc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeArray : public TypeNext
 {
 public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Static array, one with a fixed dimension
@@ -466,7 +466,7 @@ public:
     bool needsDestruction();
     bool needsNested();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Dynamic array, no dimension
@@ -486,7 +486,7 @@ public:
     Expression *defaultInit(Loc loc);
     bool hasPointers() /*const*/;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeAArray : public TypeArray
@@ -509,7 +509,7 @@ public:
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypePointer : public TypeNext
@@ -526,7 +526,7 @@ public:
     bool isZeroInit(Loc loc) /*const*/;
     bool hasPointers() /*const*/;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeReference : public TypeNext
@@ -538,7 +538,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     bool isZeroInit(Loc loc) /*const*/;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 enum RET
@@ -615,7 +615,7 @@ public:
     bool checkRetType(Loc loc);
 
     Expression *defaultInit(Loc loc) /*const*/;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeDelegate : public TypeNext
@@ -636,7 +636,7 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool hasPointers() /*const*/;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeQualified : public Type
@@ -658,7 +658,7 @@ public:
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeIdentifier : public TypeQualified
@@ -671,7 +671,7 @@ public:
     Type *syntaxCopy();
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -685,7 +685,7 @@ public:
     Type *syntaxCopy();
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     Dsymbol *toDsymbol(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeTypeof : public TypeQualified
@@ -699,7 +699,7 @@ public:
     Dsymbol *toDsymbol(Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
     d_uns64 size(Loc loc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeReturn : public TypeQualified
@@ -709,7 +709,7 @@ public:
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Whether alias this dependency is recursive or not.
@@ -753,7 +753,7 @@ public:
     unsigned char deduceWild(Type *t, bool isRef);
     Type *toHeadMutable();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeEnum : public Type
@@ -789,7 +789,7 @@ public:
     bool hasVoidInitPointers();
     Type *nextOf();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeClass : public Type
@@ -816,7 +816,7 @@ public:
     bool isBoolean() /*const*/;
     bool hasPointers() /*const*/;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeTuple : public Type
@@ -830,7 +830,7 @@ public:
     bool equals(RootObject *o);
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeSlice : public TypeNext
@@ -842,7 +842,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps, bool intypeid = false);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeNull : public Type
@@ -856,7 +856,7 @@ public:
 
     d_uns64 size(Loc loc) /*const*/;
     Expression *defaultInit(Loc loc) /*const*/;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /**************************************************************/
@@ -877,7 +877,7 @@ public:
     Type *isLazyArray();
     // kludge for template.isType()
     int dyncast() const { return DYNCAST_PARAMETER; }
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 
     static Parameters *arraySyntaxCopy(Parameters *parameters);
     static size_t dim(Parameters *parameters);

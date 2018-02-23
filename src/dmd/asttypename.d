@@ -39,7 +39,7 @@ import dmd.root.rootobject;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.nspace;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /// Returns: the typename of the dynamic ast-node-type
 /// (this is a development tool, do not use in actual code)
@@ -74,7 +74,7 @@ mixin
     string astTypeNameFunctions;
     string visitOverloads;
 
-    foreach (ov; __traits(getOverloads, Visitor, "visit"))
+    foreach (ov; __traits(getOverloads, SemanticVisitor, "visit"))
     {
         static if (is(typeof(ov) P == function))
         {
@@ -100,9 +100,9 @@ string astTypeName(` ~ P[0].stringof ~ ` node)
     }
 
     return astTypeNameFunctions ~ `
-private extern(C++) final class AstTypeNameVisitor : Visitor
+private extern(C++) final class AstTypeNameVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public :
     string typeName;
 ` ~ visitOverloads ~ "}";

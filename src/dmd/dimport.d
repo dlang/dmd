@@ -23,7 +23,7 @@ import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /***********************************************************
  */
@@ -304,7 +304,7 @@ extern (C++) final class Import : Dsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

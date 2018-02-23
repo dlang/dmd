@@ -15,7 +15,7 @@ module dmd.statement_rewrite_walker;
 import core.stdc.stdio;
 
 import dmd.statement;
-import dmd.visitor;
+import dmd.visitor.permissive;
 
 
 /** A visitor to walk entire statements and provides ability to replace any sub-statements.

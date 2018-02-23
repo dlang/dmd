@@ -38,7 +38,7 @@ import dmd.id;
 import dmd.mtype;
 import dmd.target;
 import dmd.toctype;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -774,7 +774,7 @@ void toDebug(ClassDeclaration cd)
 
 int cvMember(Dsymbol s, ubyte *p)
 {
-    extern (C++) class CVMember : Visitor
+    extern (C++) class CVMember : SemanticVisitor
     {
         ubyte *p;
         int result;
@@ -785,7 +785,7 @@ int cvMember(Dsymbol s, ubyte *p)
             result = 0;
         }
 
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
 
         override void visit(Dsymbol s)
         {

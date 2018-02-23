@@ -15,7 +15,7 @@
 #include "identifier.h"
 #include "arraytypes.h"
 #include "intrange.h"
-#include "visitor.h"
+#include "visitors.h"
 #include "tokens.h"
 
 #include "rmem.h"
@@ -217,7 +217,7 @@ public:
         return true;
     }
 
-    virtual void accept(Visitor *v) { v->visit(this); }
+    virtual void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class IntegerExp : public Expression
@@ -233,7 +233,7 @@ public:
     complex_t toComplex();
     bool isBool(bool result);
     Expression *toLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
     dinteger_t getInteger() { return value; }
     void setInteger(dinteger_t value);
     void normalize();
@@ -243,7 +243,7 @@ class ErrorExp : public Expression
 {
 public:
     Expression *toLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 
     static ErrorExp *errorexp; // handy shared value
 };
@@ -261,7 +261,7 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     bool isBool(bool result);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ComplexExp : public Expression
@@ -277,7 +277,7 @@ public:
     real_t toImaginary();
     complex_t toComplex();
     bool isBool(bool result);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class IdentifierExp : public Expression
@@ -288,13 +288,13 @@ public:
     static IdentifierExp *create(Loc loc, Identifier *ident);
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DollarExp : public IdentifierExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DsymbolExp : public Expression
@@ -305,7 +305,7 @@ public:
 
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ThisExp : public Expression
@@ -317,14 +317,14 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SuperExp : public ThisExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class NullExp : public Expression
@@ -335,7 +335,7 @@ public:
     bool equals(RootObject *o);
     bool isBool(bool result);
     StringExp *toStringExp();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class StringExp : public Expression
@@ -359,7 +359,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     unsigned charAt(uinteger_t i) const;
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
     size_t numberOfCodeUnits(int tynto = 0) const;
     void writeTo(void* dest, bool zero, int tyto = 0) const;
     char *toPtr();
@@ -383,7 +383,7 @@ public:
     Expression *syntaxCopy();
     bool equals(RootObject *o);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ArrayLiteralExp : public Expression
@@ -401,7 +401,7 @@ public:
     bool isBool(bool result);
     StringExp *toStringExp();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AssocArrayLiteralExp : public Expression
@@ -415,7 +415,7 @@ public:
     Expression *syntaxCopy();
     bool isBool(bool result);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // scrubReturnValue is running
@@ -465,7 +465,7 @@ public:
     int getFieldIndex(Type *type, unsigned offset);
     Expression *addDtorHook(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DotIdExp;
@@ -477,7 +477,7 @@ public:
     Expression *syntaxCopy();
     bool checkType();
     bool checkValue();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ScopeExp : public Expression
@@ -488,7 +488,7 @@ public:
     Expression *syntaxCopy();
     bool checkType();
     bool checkValue();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TemplateExp : public Expression
@@ -501,7 +501,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     bool checkType();
     bool checkValue();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class NewExp : public Expression
@@ -524,7 +524,7 @@ public:
     static NewExp *create(Loc loc, Expression *thisexp, Expressions *newargs, Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class NewAnonClassExp : public Expression
@@ -538,7 +538,7 @@ public:
     Expressions *arguments;     // Array of Expression's to call class constructor
 
     Expression *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SymbolExp : public Expression
@@ -547,7 +547,7 @@ public:
     Declaration *var;
     bool hasOverloads;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Offset from symbol
@@ -559,7 +559,7 @@ public:
 
     bool isBool(bool result);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Variable
@@ -575,7 +575,7 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Overload Set
@@ -587,7 +587,7 @@ public:
 
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Function/Delegate literal
@@ -607,7 +607,7 @@ public:
     bool checkType();
     bool checkValue();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // Declaration of a symbol
@@ -624,7 +624,7 @@ public:
 
     bool hasCode();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TypeidExp : public Expression
@@ -633,7 +633,7 @@ public:
     RootObject *obj;
 
     Expression *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class TraitsExp : public Expression
@@ -643,14 +643,14 @@ public:
     Objects *args;
 
     Expression *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class HaltExp : public Expression
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class IsExp : public Expression
@@ -667,7 +667,7 @@ public:
     TemplateParameters *parameters;
 
     Expression *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/
@@ -682,7 +682,7 @@ public:
     Expression *incompatibleTypes();
     Expression *resolveLoc(Loc loc, Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 typedef UnionExp (*fp_t)(Loc loc, Type *, Expression *, Expression *);
@@ -705,7 +705,7 @@ public:
 
     Expression *reorderSettingAAElem(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class BinAssignExp : public BinExp
@@ -715,7 +715,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/
@@ -723,13 +723,13 @@ public:
 class CompileExp : public UnaExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ImportExp : public UnaExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AssertExp : public UnaExp
@@ -739,7 +739,7 @@ public:
 
     Expression *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DotIdExp : public UnaExp
@@ -750,7 +750,7 @@ public:
     bool wantsym;       // do not replace Symbol with its initializer during semantic()
 
     static DotIdExp *create(Loc loc, Expression *e, Identifier *ident);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DotTemplateExp : public UnaExp
@@ -758,7 +758,7 @@ class DotTemplateExp : public UnaExp
 public:
     TemplateDeclaration *td;
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DotVarExp : public UnaExp
@@ -772,7 +772,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DotTemplateInstanceExp : public UnaExp
@@ -782,7 +782,7 @@ public:
 
     Expression *syntaxCopy();
     bool findTempDecl(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DelegateExp : public UnaExp
@@ -792,7 +792,7 @@ public:
     bool hasOverloads;
 
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DotTypeExp : public UnaExp
@@ -800,7 +800,7 @@ class DotTypeExp : public UnaExp
 public:
     Dsymbol *sym;               // symbol that represents a type
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CallExp : public UnaExp
@@ -819,14 +819,14 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *addDtorHook(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AddrExp : public UnaExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PtrExp : public UnaExp
@@ -837,34 +837,34 @@ public:
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class NegExp : public UnaExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class UAddExp : public UnaExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ComExp : public UnaExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class NotExp : public UnaExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DeleteExp : public UnaExp
@@ -872,7 +872,7 @@ class DeleteExp : public UnaExp
 public:
     bool isRAII;
     Expression *toBoolean(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CastExp : public UnaExp
@@ -884,7 +884,7 @@ public:
 
     Expression *syntaxCopy();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class VectorExp : public UnaExp
@@ -895,7 +895,7 @@ public:
 
     static VectorExp *create(Loc loc, Expression *e, Type *t);
     Expression *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class SliceExp : public UnaExp
@@ -915,7 +915,7 @@ public:
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     bool isBool(bool result);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ArrayLengthExp : public UnaExp
@@ -923,7 +923,7 @@ class ArrayLengthExp : public UnaExp
 public:
 
     static Expression *rewriteOpAssign(BinExp *exp);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class IntervalExp : public Expression
@@ -933,7 +933,7 @@ public:
     Expression *upr;
 
     Expression *syntaxCopy();
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DelegatePtrExp : public UnaExp
@@ -942,7 +942,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DelegateFuncptrExp : public UnaExp
@@ -951,7 +951,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // e1[a0,a1,a2,a3,...]
@@ -967,7 +967,7 @@ public:
     bool isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/
@@ -975,7 +975,7 @@ public:
 class DotExp : public BinExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CommaExp : public BinExp
@@ -990,7 +990,7 @@ public:
     bool isBool(bool result);
     Expression *toBoolean(Scope *sc);
     Expression *addDtorHook(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class IndexExp : public BinExp
@@ -1008,7 +1008,7 @@ public:
 
     Expression *markSettingAAElem();
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /* For both i++ and i--
@@ -1016,7 +1016,7 @@ public:
 class PostExp : public BinExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /* For both ++i and --i
@@ -1024,7 +1024,7 @@ public:
 class PreExp : public UnaExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 enum MemorySet
@@ -1042,215 +1042,215 @@ public:
     Expression *toLvalue(Scope *sc, Expression *ex);
     Expression *toBoolean(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ConstructExp : public AssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class BlitExp : public AssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AddAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class MinAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class MulAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DivAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ModAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AndAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class OrAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class XorAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PowAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ShlAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ShrAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class UshrAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CatAssignExp : public BinAssignExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AddExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class MinExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CatExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class MulExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class DivExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ModExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PowExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ShlExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ShrExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class UshrExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class AndExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class OrExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class XorExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class LogicalExp : public BinExp
 {
 public:
     Expression *toBoolean(Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class CmpExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class InExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class RemoveExp : public BinExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // == and !=
@@ -1259,7 +1259,7 @@ class EqualExp : public BinExp
 {
 public:
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 // is and !is
@@ -1267,7 +1267,7 @@ public:
 class IdentityExp : public BinExp
 {
 public:
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/
@@ -1285,7 +1285,7 @@ public:
     Expression *toBoolean(Scope *sc);
     void hookDtors(Scope *sc);
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/
@@ -1295,42 +1295,42 @@ class DefaultInitExp : public Expression
 public:
     TOK subop;             // which of the derived classes this is
 
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class FileInitExp : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(Loc loc, Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class LineInitExp : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(Loc loc, Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class ModuleInitExp : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(Loc loc, Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class FuncInitExp : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(Loc loc, Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 class PrettyFuncInitExp : public DefaultInitExp
 {
 public:
     Expression *resolveLoc(Loc loc, Scope *sc);
-    void accept(Visitor *v) { v->visit(this); }
+    void accept(SemanticVisitor *v) { v->visit(this); }
 };
 
 /****************************************************************/

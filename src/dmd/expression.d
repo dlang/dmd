@@ -62,7 +62,8 @@ import dmd.target;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.stoppable;
+import dmd.visitor.semantic;
 
 enum LOGSEMANTIC = false;
 void emplaceExp(T : Expression, Args...)(void* p, Args args)
@@ -2451,7 +2452,7 @@ extern (C++) abstract class Expression : RootObject
         return true;
     }
 
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2548,7 +2549,7 @@ extern (C++) final class IntegerExp : Expression
         return new ErrorExp();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2641,7 +2642,7 @@ extern (C++) final class ErrorExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2713,7 +2714,7 @@ extern (C++) final class RealExp : Expression
         return result ? cast(bool)value : !cast(bool)value;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2786,7 +2787,7 @@ extern (C++) final class ComplexExp : Expression
             return !value;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2819,7 +2820,7 @@ extern (C++) class IdentifierExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2834,7 +2835,7 @@ extern (C++) final class DollarExp : IdentifierExp
         super(loc, Id.dollar);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2865,7 +2866,7 @@ extern (C++) final class DsymbolExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2905,7 +2906,7 @@ extern (C++) class ThisExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2922,7 +2923,7 @@ extern (C++) final class SuperExp : ThisExp
         op = TOK.super_;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -2970,7 +2971,7 @@ extern (C++) final class NullExp : Expression
         return null;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3336,7 +3337,7 @@ extern (C++) final class StringExp : Expression
         return this.string[0 .. len];
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3436,7 +3437,7 @@ extern (C++) final class TupleExp : Expression
         return false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3629,7 +3630,7 @@ extern (C++) final class ArrayLiteralExp : Expression
         return null;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3693,7 +3694,7 @@ extern (C++) final class AssocArrayLiteralExp : Expression
         return result ? (dim != 0) : (dim == 0);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3893,7 +3894,7 @@ extern (C++) final class StructLiteralExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3928,7 +3929,7 @@ extern (C++) final class TypeExp : Expression
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3987,7 +3988,7 @@ extern (C++) final class ScopeExp : Expression
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4035,7 +4036,7 @@ extern (C++) final class TemplateExp : Expression
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4080,7 +4081,7 @@ extern (C++) final class NewExp : Expression
             arraySyntaxCopy(arguments));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4110,7 +4111,7 @@ extern (C++) final class NewAnonClassExp : Expression
         return new NewAnonClassExp(loc, thisexp ? thisexp.syntaxCopy() : null, arraySyntaxCopy(newargs), cast(ClassDeclaration)cd.syntaxCopy(null), arraySyntaxCopy(arguments));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4131,7 +4132,7 @@ extern (C++) class SymbolExp : Expression
         this.hasOverloads = hasOverloads;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4163,7 +4164,7 @@ extern (C++) final class SymOffExp : SymbolExp
         return result ? true : false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4258,7 +4259,7 @@ extern (C++) final class VarExp : SymbolExp
         return Expression.modifiableLvalue(sc, e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4289,7 +4290,7 @@ extern (C++) final class OverExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4576,7 +4577,7 @@ extern (C++) final class FuncExp : Expression
         return false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4613,7 +4614,7 @@ extern (C++) final class DeclarationExp : Expression
         return false;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4637,7 +4638,7 @@ extern (C++) final class TypeidExp : Expression
         return new TypeidExp(loc, objectSyntaxCopy(obj));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4663,7 +4664,7 @@ extern (C++) final class TraitsExp : Expression
         return new TraitsExp(loc, ident, TemplateInstance.arraySyntaxCopy(args));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4678,7 +4679,7 @@ extern (C++) final class HaltExp : Expression
         super(loc, TOK.halt, __traits(classInstanceSize, HaltExp));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4722,7 +4723,7 @@ extern (C++) final class IsExp : Expression
         return new IsExp(loc, targ.syntaxCopy(), id, tok, tspec ? tspec.syntaxCopy() : null, tok2, p);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -4789,7 +4790,7 @@ extern (C++) class UnaExp : Expression
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5080,7 +5081,7 @@ extern (C++) abstract class BinExp : Expression
         return Expression.combine(e0, be);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5112,7 +5113,7 @@ extern (C++) class BinAssignExp : BinExp
         return toLvalue(sc, this);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5127,7 +5128,7 @@ extern (C++) final class CompileExp : UnaExp
         super(loc, TOK.mixin_, __traits(classInstanceSize, CompileExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5142,7 +5143,7 @@ extern (C++) final class ImportExp : UnaExp
         super(loc, TOK.import_, __traits(classInstanceSize, ImportExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5166,7 +5167,7 @@ extern (C++) final class AssertExp : UnaExp
         return new AssertExp(loc, e1.syntaxCopy(), msg ? msg.syntaxCopy() : null);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5191,7 +5192,7 @@ extern (C++) final class DotIdExp : UnaExp
         return new DotIdExp(loc, e, ident);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5210,7 +5211,7 @@ extern (C++) final class DotTemplateExp : UnaExp
         this.td = td;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5272,7 +5273,7 @@ extern (C++) final class DotVarExp : UnaExp
         return Expression.modifiableLvalue(sc, e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5346,7 +5347,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
         return ti.updateTempDecl(sc, s);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5366,7 +5367,7 @@ extern (C++) final class DelegateExp : UnaExp
         this.hasOverloads = hasOverloads;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5384,7 +5385,7 @@ extern (C++) final class DotTypeExp : UnaExp
         this.sym = s;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5507,7 +5508,7 @@ extern (C++) final class CallExp : UnaExp
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5562,7 +5563,7 @@ extern (C++) final class AddrExp : UnaExp
         super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5616,7 +5617,7 @@ extern (C++) final class PtrExp : UnaExp
         return Expression.modifiableLvalue(sc, e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5631,7 +5632,7 @@ extern (C++) final class NegExp : UnaExp
         super(loc, TOK.negate, __traits(classInstanceSize, NegExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5646,7 +5647,7 @@ extern (C++) final class UAddExp : UnaExp
         super(loc, TOK.uadd, __traits(classInstanceSize, UAddExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5661,7 +5662,7 @@ extern (C++) final class ComExp : UnaExp
         super(loc, TOK.tilde, __traits(classInstanceSize, ComExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5676,7 +5677,7 @@ extern (C++) final class NotExp : UnaExp
         super(loc, TOK.not, __traits(classInstanceSize, NotExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5700,7 +5701,7 @@ extern (C++) final class DeleteExp : UnaExp
         return new ErrorExp();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5733,7 +5734,7 @@ extern (C++) final class CastExp : UnaExp
         return to ? new CastExp(loc, e1.syntaxCopy(), to.syntaxCopy()) : new CastExp(loc, e1.syntaxCopy(), mod);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5763,7 +5764,7 @@ extern (C++) final class VectorExp : UnaExp
         return new VectorExp(loc, e1.syntaxCopy(), to.syntaxCopy());
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5841,7 +5842,7 @@ extern (C++) final class SliceExp : UnaExp
         return e1.isBool(result);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5892,7 +5893,7 @@ extern (C++) final class ArrayLengthExp : UnaExp
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5945,7 +5946,7 @@ extern (C++) final class ArrayExp : UnaExp
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5960,7 +5961,7 @@ extern (C++) final class DotExp : BinExp
         super(loc, TOK.dot, __traits(classInstanceSize, DotExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6030,7 +6031,7 @@ extern (C++) final class CommaExp : BinExp
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6076,7 +6077,7 @@ extern (C++) final class IntervalExp : Expression
         return new IntervalExp(loc, lwr.syntaxCopy(), upr.syntaxCopy());
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6110,7 +6111,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
         return Expression.modifiableLvalue(sc, e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6146,7 +6147,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
         return Expression.modifiableLvalue(sc, e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6226,7 +6227,7 @@ extern (C++) final class IndexExp : BinExp
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6242,7 +6243,7 @@ extern (C++) final class PostExp : BinExp
         super(loc, op, __traits(classInstanceSize, PostExp), e, new IntegerExp(loc, 1, Type.tint32));
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6258,7 +6259,7 @@ extern (C++) final class PreExp : UnaExp
         super(loc, op, __traits(classInstanceSize, PreExp), e);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6318,7 +6319,7 @@ extern (C++) class AssignExp : BinExp
         return new ErrorExp();
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6348,7 +6349,7 @@ extern (C++) final class ConstructExp : AssignExp
             memset |= MemorySet.referenceInit;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6378,7 +6379,7 @@ extern (C++) final class BlitExp : AssignExp
             memset |= MemorySet.referenceInit;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6393,7 +6394,7 @@ extern (C++) final class AddAssignExp : BinAssignExp
         super(loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6408,7 +6409,7 @@ extern (C++) final class MinAssignExp : BinAssignExp
         super(loc, TOK.minAssign, __traits(classInstanceSize, MinAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6423,7 +6424,7 @@ extern (C++) final class MulAssignExp : BinAssignExp
         super(loc, TOK.mulAssign, __traits(classInstanceSize, MulAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6438,7 +6439,7 @@ extern (C++) final class DivAssignExp : BinAssignExp
         super(loc, TOK.divAssign, __traits(classInstanceSize, DivAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6453,7 +6454,7 @@ extern (C++) final class ModAssignExp : BinAssignExp
         super(loc, TOK.modAssign, __traits(classInstanceSize, ModAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6468,7 +6469,7 @@ extern (C++) final class AndAssignExp : BinAssignExp
         super(loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6483,7 +6484,7 @@ extern (C++) final class OrAssignExp : BinAssignExp
         super(loc, TOK.orAssign, __traits(classInstanceSize, OrAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6498,7 +6499,7 @@ extern (C++) final class XorAssignExp : BinAssignExp
         super(loc, TOK.xorAssign, __traits(classInstanceSize, XorAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6513,7 +6514,7 @@ extern (C++) final class PowAssignExp : BinAssignExp
         super(loc, TOK.powAssign, __traits(classInstanceSize, PowAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6528,7 +6529,7 @@ extern (C++) final class ShlAssignExp : BinAssignExp
         super(loc, TOK.leftShiftAssign, __traits(classInstanceSize, ShlAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6543,7 +6544,7 @@ extern (C++) final class ShrAssignExp : BinAssignExp
         super(loc, TOK.rightShiftAssign, __traits(classInstanceSize, ShrAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6558,7 +6559,7 @@ extern (C++) final class UshrAssignExp : BinAssignExp
         super(loc, TOK.unsignedRightShiftAssign, __traits(classInstanceSize, UshrAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6581,7 +6582,7 @@ extern (C++) final class CatAssignExp : BinAssignExp
         super(loc, TOK.concatenateAssign, __traits(classInstanceSize, CatAssignExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6597,7 +6598,7 @@ extern (C++) final class AddExp : BinExp
         super(loc, TOK.add, __traits(classInstanceSize, AddExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6612,7 +6613,7 @@ extern (C++) final class MinExp : BinExp
         super(loc, TOK.min, __traits(classInstanceSize, MinExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6628,7 +6629,7 @@ extern (C++) final class CatExp : BinExp
         super(loc, TOK.concatenate, __traits(classInstanceSize, CatExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6644,7 +6645,7 @@ extern (C++) final class MulExp : BinExp
         super(loc, TOK.mul, __traits(classInstanceSize, MulExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6660,7 +6661,7 @@ extern (C++) final class DivExp : BinExp
         super(loc, TOK.div, __traits(classInstanceSize, DivExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6676,7 +6677,7 @@ extern (C++) final class ModExp : BinExp
         super(loc, TOK.mod, __traits(classInstanceSize, ModExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6692,7 +6693,7 @@ extern (C++) final class PowExp : BinExp
         super(loc, TOK.pow, __traits(classInstanceSize, PowExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6707,7 +6708,7 @@ extern (C++) final class ShlExp : BinExp
         super(loc, TOK.leftShift, __traits(classInstanceSize, ShlExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6722,7 +6723,7 @@ extern (C++) final class ShrExp : BinExp
         super(loc, TOK.rightShift, __traits(classInstanceSize, ShrExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6737,7 +6738,7 @@ extern (C++) final class UshrExp : BinExp
         super(loc, TOK.unsignedRightShift, __traits(classInstanceSize, UshrExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6752,7 +6753,7 @@ extern (C++) final class AndExp : BinExp
         super(loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6767,7 +6768,7 @@ extern (C++) final class OrExp : BinExp
         super(loc, TOK.or, __traits(classInstanceSize, OrExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6782,7 +6783,7 @@ extern (C++) final class XorExp : BinExp
         super(loc, TOK.xor, __traits(classInstanceSize, XorExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6808,7 +6809,7 @@ extern (C++) final class LogicalExp : BinExp
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6828,7 +6829,7 @@ extern (C++) final class CmpExp : BinExp
         super(loc, op, __traits(classInstanceSize, CmpExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6843,7 +6844,7 @@ extern (C++) final class InExp : BinExp
         super(loc, TOK.in_, __traits(classInstanceSize, InExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6860,7 +6861,7 @@ extern (C++) final class RemoveExp : BinExp
         type = Type.tbool;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6881,7 +6882,7 @@ extern (C++) final class EqualExp : BinExp
         assert(op == TOK.equal || op == TOK.notEqual);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -6901,7 +6902,7 @@ extern (C++) final class IdentityExp : BinExp
         super(loc, op, __traits(classInstanceSize, IdentityExp), e1, e2);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7037,7 +7038,7 @@ extern (C++) final class CondExp : BinExp
         //printf("-%s\n", toChars());
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7055,7 +7056,7 @@ extern (C++) class DefaultInitExp : Expression
         this.subop = subop;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7085,7 +7086,7 @@ extern (C++) final class FileInitExp : DefaultInitExp
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7107,7 +7108,7 @@ extern (C++) final class LineInitExp : DefaultInitExp
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7135,7 +7136,7 @@ extern (C++) final class ModuleInitExp : DefaultInitExp
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7165,7 +7166,7 @@ extern (C++) final class FuncInitExp : DefaultInitExp
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7207,7 +7208,7 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         return e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

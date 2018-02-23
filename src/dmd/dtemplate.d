@@ -46,7 +46,7 @@ import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 import dmd.templateparamsem;
 
@@ -2266,7 +2266,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return true;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -3203,9 +3203,9 @@ __gshared Expression emptyArrayElement = null;
  */
 MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* parameters, Objects* dedtypes, uint* wm = null, size_t inferStart = 0)
 {
-    extern (C++) final class DeduceType : Visitor
+    extern (C++) final class DeduceType : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         Scope* sc;
         Type tparam;
@@ -4657,9 +4657,9 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
  */
 bool reliesOnTident(Type t, TemplateParameters* tparams = null, size_t iStart = 0)
 {
-    extern (C++) final class ReliesOnTident : Visitor
+    extern (C++) final class ReliesOnTident : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         TemplateParameters* tparams;
         size_t iStart;
@@ -5125,7 +5125,7 @@ extern (C++) class TemplateParameter
      */
     abstract void* dummyArg();
 
-    void accept(Visitor v)
+    void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5293,7 +5293,7 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
         return cast(void*)t;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5320,7 +5320,7 @@ extern (C++) final class TemplateThisParameter : TemplateTypeParameter
         return new TemplateThisParameter(loc, ident, specType ? specType.syntaxCopy() : null, defaultType ? defaultType.syntaxCopy() : null);
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5549,7 +5549,7 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return cast(void*)e;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5767,7 +5767,7 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return cast(void*)s;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -5901,7 +5901,7 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
         return null;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7503,7 +7503,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }
@@ -7801,7 +7801,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

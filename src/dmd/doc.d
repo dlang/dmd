@@ -47,7 +47,7 @@ import dmd.root.rmem;
 import dmd.tokens;
 import dmd.utf;
 import dmd.utils;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 struct Escape
 {
@@ -818,9 +818,9 @@ extern (C++) void emitProtection(OutBuffer* buf, Prot prot)
 
 private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
-    extern (C++) final class EmitComment : Visitor
+    extern (C++) final class EmitComment : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         OutBuffer* buf;
         Scope* sc;
@@ -1093,9 +1093,9 @@ private void emitComment(Dsymbol s, OutBuffer* buf, Scope* sc)
 
 private void toDocBuffer(Dsymbol s, OutBuffer* buf, Scope* sc)
 {
-    extern (C++) final class ToDocBuffer : Visitor
+    extern (C++) final class ToDocBuffer : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         OutBuffer* buf;
         Scope* sc;

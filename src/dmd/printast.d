@@ -16,7 +16,7 @@ import core.stdc.stdio;
 
 import dmd.expression;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /********************
  * Print AST data structure in a nice format.
@@ -32,9 +32,9 @@ void printAST(Expression e, int indent = 0)
 
 private:
 
-extern (C++) final class PrintASTVisitor : Visitor
+extern (C++) final class PrintASTVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 
     int indent;
 

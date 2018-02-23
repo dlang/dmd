@@ -35,7 +35,7 @@ import dmd.root.aav;
 import dmd.target;
 import dmd.tokens;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 private immutable char[TMAX] mangleChar =
 [
@@ -166,9 +166,9 @@ private void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
     }
 }
 
-private extern (C++) final class Mangler : Visitor
+private extern (C++) final class Mangler : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
     AA* types;

@@ -41,7 +41,9 @@ import dmd.root.rootobject;
 import dmd.statement;
 import dmd.tokens;
 import dmd.utf;
-import dmd.visitor;
+import dmd.visitor.stoppable;
+import dmd.visitor.transitive;
+import dmd.visitor.semantic;
 
 enum CtfeGoal : int
 {
@@ -982,9 +984,9 @@ private Expression interpret(FuncDeclaration fd, InterState* istate, Expressions
     return e;
 }
 
-private extern (C++) final class Interpreter : Visitor
+private extern (C++) final class Interpreter : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     InterState* istate;
     CtfeGoal goal;

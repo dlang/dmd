@@ -39,7 +39,7 @@ import dmd.root.speller;
 import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
+import dmd.visitor.semantic;
 import dmd.root.rootobject;
 
 enum LOGSEMANTIC = false;
@@ -183,9 +183,9 @@ extern (C++) d_uns64 getTypePointerBitmap(Loc loc, Type t, Array!(d_uns64)* data
     data.setDim(cast(size_t)cntdata);
     data.zero();
 
-    extern (C++) final class PointerBitmapVisitor : Visitor
+    extern (C++) final class PointerBitmapVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         extern (D) this(Array!(d_uns64)* _data, d_uns64 _sz_size_t)
         {

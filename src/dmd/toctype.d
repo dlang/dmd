@@ -25,11 +25,11 @@ import dmd.glue;
 import dmd.id;
 import dmd.mtype;
 import dmd.tocvdebug;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
-private extern (C++) final class ToCtypeVisitor : Visitor
+private extern (C++) final class ToCtypeVisitor : SemanticVisitor
 {
-    alias visit = Visitor.visit;
+    alias visit = SemanticVisitor.visit;
 public:
     extern (D) this()
     {

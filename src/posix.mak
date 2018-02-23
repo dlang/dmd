@@ -296,10 +296,11 @@ FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argt
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
 	hdrgen id impcnvtab imphint init initsem inline inlinecost intrange	\
-	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse permissivevisitor sapply templateparamsem	\
-	sideeffect statement staticassert target typesem traits transitivevisitor parsetimevisitor visitor	\
+	json lambdacomp lib libelf libmach link mars mtype nogc nspace objc opover optimize parse sapply templateparamsem	\
+	sideeffect statement staticassert target typesem traits \
 	typinf utils scanelf scanmach statement_rewrite_walker statementsem staticcond safe blockexit printast \
-	semantic2 semantic3))
+	semantic2 semantic3 \
+	$(addprefix visitor/, parse_time permissive semantic stoppable transitive)))
 
 LEXER_SRCS=$(addsuffix .d, $(addprefix $D/, console entity errors globals id identifier lexer tokens utf))
 
@@ -402,7 +403,7 @@ SRC = $(addprefix $D/, aggregate.h aliasthis.h arraytypes.h	\
 	id.h import.h init.h intrange.h json.h \
 	mars.h module.h mtype.h nspace.h objc.h                         \
 	scope.h statement.h staticassert.h target.h template.h tokens.h	\
-	version.h visitor.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
+	version.h visitors.h libomf.d scanomf.d libmscoff.d scanmscoff.d)         \
 	$(DMD_SRCS)
 
 ROOT_SRC = $(addprefix $(ROOT)/, array.h ctfloat.h file.h filename.h \
@@ -466,7 +467,7 @@ unittest: $G/dmd-unittest
 ######## DMD as a library examples
 
 EXAMPLES=$(addprefix $G/examples/, avg impvisitor)
-PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase parsetimevisitor transitivevisitor permissivevisitor strictvisitor))
+PARSER_SRCS=$(addsuffix .d, $(addprefix $D/,parse astbase $(addprefix visitor/, parse_time transitive permissive strict)))
 
 $G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_MAKE)
 	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)

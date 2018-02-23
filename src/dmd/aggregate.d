@@ -33,7 +33,7 @@ import dmd.mtype;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 enum Sizeok : int
 {
@@ -737,7 +737,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return this;
     }
 
-    override void accept(Visitor v)
+    override void accept(SemanticVisitor v)
     {
         v.visit(this);
     }

@@ -21,7 +21,7 @@ import dmd.errors;
 import dmd.globals;
 import dmd.gluelayer;
 import dmd.mtype;
-import dmd.visitor;
+import dmd.visitor.semantic;
 
 /****************************************************
  * Generates the `TypeInfo` object associated with `torig` if it
@@ -139,9 +139,9 @@ extern (C++) TypeInfoDeclaration getTypeInfoDeclaration(Type t)
 
 extern (C++) bool isSpeculativeType(Type t)
 {
-    extern (C++) final class SpeculativeTypeVisitor : Visitor
+    extern (C++) final class SpeculativeTypeVisitor : SemanticVisitor
     {
-        alias visit = Visitor.visit;
+        alias visit = SemanticVisitor.visit;
     public:
         bool result;
 
