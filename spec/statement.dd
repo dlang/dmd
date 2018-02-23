@@ -839,47 +839,48 @@ $(H3 $(LNAME2 foreach_over_tuples, Foreach over Sequences))
 
 $(P
         If the aggregate expression is a sequence, there
-        can be one or two variables declared. If one, then the variable
-        is said to be the $(I value) set to the elements of the sequence,
-        one by one. If the type of the
-        variable is given, it must match the type of the sequence contents.
-        If it is not given, the type of the variable is set to the type
-        of the sequence element, which may change from iteration to iteration.
-        If there are
-        two variables declared, the first is said to be the $(I index)
-        and the second is said to be the $(I value). The $(I index)
-        must be of $(D int) or $(D uint) type, it cannot be $(I ref),
-        and it is set to be the index of the sequence element.
-)
-
-$(P
+        can be one or two iteration symbols declared. If one, then the symbol
+        is an $(I element alias) of each element in the sequence in turn.
+)$(P
         If the sequence is a $(I TypeSeq), then the foreach statement
-        is executed once for each type, and the value is aliased to that
+        is executed once for each type, and the element alias is set to each
         type.
+)$(P
+        When the sequence is a $(I ValueSeq), the element alias is a variable
+        and is set to each value in the sequence. If the type of the
+        variable is given, it must match the type of the sequence contents.
+        If no type is given, the type of the variable is set to the type
+        of the sequence element, which may change from iteration to iteration.
+)$(P
+        If there are
+        two symbols declared, the first is the $(I index variable)
+        and the second is the $(I element alias). The index
+        must be of $(D int) or $(D uint) type, it cannot be `ref`,
+        and it is set to the index of each sequence element.
 )
-
+        $(P Example:)
 -----
-import std.stdio;
 import std.meta : AliasSeq;
 
 void main()
 {
-    alias TL = AliasSeq!(int, long, double);
+    alias Seq = AliasSeq!(int, "literal", main);
 
-    foreach (T; TL)
+    foreach (sym; Seq)
     {
-        writeln(typeid(T));
+        pragma(msg, sym.stringof);
     }
 }
 -----
-
-        $(P Prints:)
+        $(P Output:)
 
 $(CONSOLE
 int
-long
-double
+"literal"
+main()
 )
+
+        $(P See also: $(DDSUBLINK spec/version, staticforeach, Static Foreach).)
 
 $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
