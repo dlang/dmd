@@ -1676,32 +1676,6 @@ struct bar5574b
 }
 
 /**********************************/
-// 5777
-
-int sdtor58 = 0;
-S58* ps58;
-
-struct S58
-{
-    @disable this(this);
-    ~this(){ ++sdtor58; }
-}
-
-S58 makeS58()
-{
-    S58 s;
-    ps58 = &s;
-    return s;
-}
-
-void test58()
-{
-    auto s1 = makeS58();
-    assert(ps58 == &s1);
-    assert(sdtor58 == 0);
-}
-
-/**********************************/
 // 6308
 
 struct C59
@@ -2781,26 +2755,8 @@ void test9907()
 /**********************************/
 // 9985
 
-struct S9985
-{
-    ubyte* b;
-    ubyte[128] buf;
-    this(this) { assert(0); }
-
-    static void* ptr;
-}
-auto ref makeS9985() @system
-{
-    S9985 s;
-    s.b = s.buf.ptr;
-    S9985.ptr = &s;
-    return s;
-}
 void test9985()
 {
-    S9985 s = makeS9985();
-    assert(S9985.ptr == &s);    // NRVO
-
     static const int n = 1;
     static auto ref retN()
     {
@@ -2819,33 +2775,6 @@ void test9985()
     static assert(!__traits(compiles, { auto q = &(retX()); }));
     alias pure nothrow @nogc @safe const(int) F2();
     static assert(is(typeof(retX) == F2));
-}
-
-/**********************************/
-
-// https://issues.dlang.org/show_bug.cgi?id=17457
-
-void delegate() dg17457;
-
-struct S17457 {
-    ulong[10] data;
-
-    this(int seconds) {
-        dg17457 = &mfunc;
-    }
-    void mfunc() {}
-}
-
-auto foo17457() {
-    pragma(inline, false);
-    return S17457(18);
-}
-
-void test17457()
-{
-    auto x = foo17457();
-    //printf("%p vs %p\n", &x, dg17457.ptr);
-    assert(&x == dg17457.ptr);
 }
 
 /**********************************/
@@ -2995,28 +2924,6 @@ void test10160()
 {
     X10160a xa;
     X10160b xb;
-}
-
-/**********************************/
-// 10094
-
-void test10094()
-{
-    static void* p;
-    const string[4] i2s = ()
-    {
-        string[4] tmp;
-        p = &tmp[0];
-        for (int i = 0; i < 4; ++i)
-        {
-            char[1] buf = [cast(char)('0' + i)];
-            string str = buf.idup;
-            tmp[i] = str;
-        }
-        return tmp; // NRVO should work
-    }();
-    assert(p == cast(void*)&i2s[0]);
-    assert(i2s == ["0", "1", "2", "3"]);
 }
 
 /**********************************/
@@ -3369,57 +3276,6 @@ void test11505()
 }
 
 /**********************************/
-// 12045
-
-bool test12045()
-{
-    string dtor;
-    void* ptr;
-
-    struct S12045
-    {
-        string val;
-
-        this(this) { assert(0); }
-        ~this() { dtor ~= val; }
-    }
-
-    auto makeS12045(bool thrown)
-    {
-        auto s1 = S12045("1");
-        auto s2 = S12045("2");
-        ptr = &s1;
-
-        if (thrown)
-            throw new Exception("");
-
-        return s1;  // NRVO
-    }
-
-    dtor = null, ptr = null;
-    try
-    {
-        S12045 s = makeS12045(true);
-        assert(0);
-    }
-    catch (Exception e)
-    {
-        assert(dtor == "21", dtor);
-    }
-
-    dtor = null, ptr = null;
-    {
-        S12045 s = makeS12045(false);
-        assert(dtor == "2");
-        if (!__ctfe) assert(ptr is &s);   // NRVO
-    }
-    assert(dtor == "21");
-
-    return true;
-}
-static assert(test12045());
-
-/**********************************/
 // 12591
 
 struct S12591(T)
@@ -3509,30 +3365,6 @@ void test12686()
     { }
     else
         assert(Foo12686.count == 2);
-}
-
-/**********************************/
-// 13089
-
-struct S13089
-{
-    @disable this(this);    // non nothrow
-    int val;
-}
-
-void* p13089;
-
-S13089[1000] foo13089() nothrow
-{
-    typeof(return) data;
-    p13089 = &data;
-    return data;
-}
-
-void test13089() nothrow
-{
-    immutable data = foo13089();
-    assert(p13089 == &data);
 }
 
 /**********************************/
@@ -4622,7 +4454,6 @@ int main()
     test55();
     test56();
     test57();
-    test58();
     test59();
     test5737();
     test6119();
@@ -4655,9 +4486,7 @@ int main()
     test9899();
     test9907();
     test9985();
-    test17457();
     test9994();
-    test10094();
     test10244();
     test10694();
     test10789();
@@ -4666,11 +4495,9 @@ int main()
     test11197();
     test7474();
     test11505();
-    test12045();
     test12591();
     test12660();
     test12686();
-    test13089();
     test11763();
     test13303();
     test13673();
