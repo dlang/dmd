@@ -68,33 +68,48 @@ version (CRuntime_Microsoft)
   }
 }
 
-/****************************************
- * Write filename to cmdbuf, quoting if necessary.
- */
+/**
+Returns: true if the given filename needs a quote
+*/
+private bool optlinkNeedsQuote(const(char)[] filename)
+{
+    foreach (c; filename)
+    {
+        if (!isalnum(c) && c != '_' && c != '.')
+            return true; // needs quote
+    }
+    return false; // does not need quote
+}
+
+/**
+Write filename to cmdbuf, quoting if necessary.
+*/
 private void writeFilename(OutBuffer* buf, const(char)* filename, size_t len)
 {
-    /* Loop and see if we need to quote
-     */
-    for (size_t i = 0; i < len; i++)
+    if (optlinkNeedsQuote(filename[0 .. len]))
     {
-        char c = filename[i];
-        if (isalnum(c) || c == '_')
-            continue;
-        /* Need to quote
-         */
+        // TODO: add some tests in this case to make sure
+        //       that backslashes in the name work (don't need to be escaped)
+        //       especially if the backslash is at the end of the filename because
+        //       that could be interpreted as an escaped quote.
         buf.writeByte('"');
         buf.write(filename, len);
         buf.writeByte('"');
-        return;
     }
-    /* No quoting necessary
-     */
-    buf.write(filename, len);
+    else
+    {
+        buf.write(filename, len);
+    }
 }
 
 private void writeFilename(OutBuffer* buf, const(char)* filename)
 {
     writeFilename(buf, filename, strlen(filename));
+}
+
+private void writeDelimiter(OutBuffer* buf, bool* first)
+{
+    if (*first) *first = false; else buf.writeByte('+');
 }
 
 version (Posix)
@@ -337,11 +352,38 @@ public int runLINK()
             else
                 cmdbuf.writestring("nul");
             cmdbuf.writeByte(',');
-            for (size_t i = 0; i < global.params.libfiles.dim; i++)
+
+            static bool isLibrarySearchPath(const(char)* option)
             {
-                if (i)
-                    cmdbuf.writeByte('+');
-                writeFilename(&cmdbuf, global.params.libfiles[i]);
+                return option[0] == '+' && option[strlen(option) - 1] == '\\';
+            }
+            {
+                bool first = true;
+                // Add library search paths specified by `-L+<path>\`
+                for (size_t i = 0; i < global.params.linkswitches.dim; i++)
+                {
+                    auto option = global.params.linkswitches[i];
+                    if (isLibrarySearchPath(option))
+                    {
+                        writeDelimiter(&cmdbuf, &first);
+                        // Need to ad an EXTRA trailing slash after the quotes if the path uses quotes
+                        if (optlinkNeedsQuote(option[0 .. strlen(option)]))
+                        {
+                            cmdbuf.writeByte('"');
+                            cmdbuf.writestring(option + 1);
+                            cmdbuf.writestring(`"\`);
+                        }
+                        else
+                        {
+                            cmdbuf.writestring(option + 1);
+                        }
+                    }
+                }
+                for (size_t i = 0; i < global.params.libfiles.dim; i++)
+                {
+                    writeDelimiter(&cmdbuf, &first);
+                    writeFilename(&cmdbuf, global.params.libfiles[i]);
+                }
             }
             if (global.params.deffile)
             {
@@ -382,7 +424,8 @@ public int runLINK()
             cmdbuf.writestring("/noi");
             for (size_t i = 0; i < global.params.linkswitches.dim; i++)
             {
-                cmdbuf.writestring(global.params.linkswitches[i]);
+                if (!isLibrarySearchPath(global.params.linkswitches[i]))
+                    cmdbuf.writestring(global.params.linkswitches[i]);
             }
             cmdbuf.writeByte(';');
             char* p = cmdbuf.peekString();
