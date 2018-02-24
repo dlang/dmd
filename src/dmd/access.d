@@ -547,8 +547,8 @@ public Dsymbol mostVisibleOverload(Dsymbol s)
 {
     if (!s.isOverloadable())
         return s;
-    Dsymbol next, fstart = s, mostVisible = s, previous = null;
-    AliasDeclaration adOrig = null;
+
+    Dsymbol next, fstart = s, mostVisible = s;
     for (; s; s = next)
     {
         // void func() {}
@@ -593,13 +593,7 @@ public Dsymbol mostVisibleOverload(Dsymbol s)
                  */
                 auto aliasee = ad.toAlias();
                 if (aliasee.isFuncAliasDeclaration || aliasee.isOverDeclaration)
-                {
-                    if(ad.toChars() == aliasee.toChars())
-                    {
-                        adOrig = ad;
-                    }
                     next = aliasee;
-                }
                 else
                 {
                     /* A simple alias can be at the end of a function or template overload chain.
@@ -619,15 +613,6 @@ public Dsymbol mostVisibleOverload(Dsymbol s)
 
         if (next && mostVisible.prot().isMoreRestrictiveThan(next.prot()))
             mostVisible = next;
-
-        // fixes https://issues.dlang.org/show_bug.cgi?id=18480
-        if(next && next == previous)
-        {
-            assert(adOrig);
-            error(adOrig.loc, "`alias X = X` not allowed (with `X = %s`)", adOrig.toChars());
-            return next;
-        }
-        previous = s;
     }
     return mostVisible;
 }
