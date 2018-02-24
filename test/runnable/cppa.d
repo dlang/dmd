@@ -255,6 +255,13 @@ extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4,
             assert(arg6 == 6);
         // fails on OSX 32-bit
     }
+    else version (FreeBSD)
+    {
+        version (D_LP64)
+            assert(arg6 == 6);
+        // fails on FreeBSD 32-bit
+        // https://issues.dlang.org/show_bug.cgi?id=16243
+    }
     else
         assert(arg6 == 6);
 }
