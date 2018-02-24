@@ -571,7 +571,8 @@ public Dsymbol mostVisibleOverload(Dsymbol s)
         // private void name(int) {}
         else if (auto ad = s.isAliasDeclaration())
         {
-            assert(ad.isOverloadable, "Non overloadable Aliasee in overload list");
+            assert(ad.isOverloadable || ad.type && ad.type.ty == Terror,
+                "Non overloadable Aliasee in overload list");
             // Yet unresolved aliases store overloads in overnext.
             if (ad.semanticRun < PASS.semanticdone)
                 next = ad.overnext;
