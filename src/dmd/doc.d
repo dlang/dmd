@@ -3757,9 +3757,15 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             else if (!headingLevel && (c1 == '\r' || c1 == '\n'))
             {
-// TODO: nor if preceeding a setext header
-                buf.remove(i, 1);
-                i = buf.insert(i, "$(BR)");
+                size_t iAfterBlanks = skipChars(buf, i + 2, " \t\r\n");
+                size_t iAfterSetextHeader = skipChars(buf, iAfterBlanks, "*");
+                if (iAfterSetextHeader == iAfterBlanks)
+                    iAfterSetextHeader = skipChars(buf, iAfterBlanks, "=");
+                if (iAfterSetextHeader - iAfterBlanks < 3)
+                {
+                    buf.remove(i, 1);
+                    i = buf.insert(i, "$(BR)");
+                }
             }
             leadingBlank = false;
             break;
