@@ -3,36 +3,36 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14486.d(81): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(82): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(83): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(84): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(85): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(99): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(100): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(101): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(102): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(103): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(123): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(124): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(125): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(126): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(127): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(141): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(142): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(143): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(144): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(145): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(164): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(165): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(166): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(167): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(168): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(181): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(182): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(183): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(184): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/fail14486.d(185): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+fail_compilation/fail14486.d(81): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(82): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(83): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(84): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(85): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(99): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(100): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(101): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(102): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(103): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(123): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(124): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(125): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(126): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(127): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(141): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(142): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(143): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(144): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(145): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(164): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(165): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(166): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(167): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(168): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(181): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(182): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(183): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(184): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/fail14486.d(185): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 

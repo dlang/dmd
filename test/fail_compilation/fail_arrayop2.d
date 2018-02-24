@@ -3,7 +3,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(281): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+fail_compilation/fail_arrayop2.d(281): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail_arrayop2.d(13): Error: array operation `[1, 2, 3] - [1, 2, 3]` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(16): Error: invalid array operation `"a" - "b"` (possible missing [])
 ---
