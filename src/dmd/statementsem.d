@@ -1833,7 +1833,7 @@ version (none)
 {
                     if (global.params.vsafe)
                     {
-                        message("%s: To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`", loc.toChars());
+                        message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
                     }
                     fld.tookAddressOf = 1;
 }

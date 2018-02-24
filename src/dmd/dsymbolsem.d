@@ -654,9 +654,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 if (global.params.vfield && dsym.storage_class & (STC.const_ | STC.immutable_) && dsym._init && !dsym._init.isVoidInitializer())
                 {
-                    const(char)* p = dsym.loc.toChars();
                     const(char)* s = (dsym.storage_class & STC.immutable_) ? "immutable" : "const";
-                    message("%s: %s.%s is %s field", p ? p : "", ad.toPrettyChars(), dsym.toChars(), s);
+                    message(dsym.loc, "`%s.%s` is `%s` field", ad.toPrettyChars(), dsym.toChars(), s);
                 }
                 dsym.storage_class |= STC.field;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)

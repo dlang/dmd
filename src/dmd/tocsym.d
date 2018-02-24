@@ -205,10 +205,7 @@ Symbol *toSymbol(Dsymbol s)
 
                     if (global.params.vtls)
                     {
-                        const(char)* p = vd.loc.toChars();
-                        message("%s: %s is thread local", p ? p : "", vd.toChars());
-                        if (p)
-                            mem.xfree(cast(void*)p);
+                        message(vd.loc, "`%s` is thread local", vd.toChars());
                     }
                 }
                 s.Sclass = SCextern;
