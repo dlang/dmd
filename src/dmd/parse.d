@@ -7756,7 +7756,7 @@ final class Parser(AST) : Lexer
             // 1. Deprecation for 1 year
             // 2. Error for 1 year
             // 3. Removal, "delete" can be used for other identities
-            deprecation("The `delete` keyword has been deprecated.  Use `object.destroy()` instead.");
+            deprecation("The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.");
             e = new AST.DeleteExp(loc, e, false);
             break;
 

@@ -4,9 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/vgc1.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-compilable/vgc1.d(94): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-compilable/vgc1.d(95): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+compilable/vgc1.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+compilable/vgc1.d(94): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+compilable/vgc1.d(95): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 

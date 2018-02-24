@@ -4,9 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(91): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/nogc1.d(92): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
-fail_compilation/nogc1.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` instead.
+fail_compilation/nogc1.d(91): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/nogc1.d(92): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/nogc1.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 ---
 */
 
