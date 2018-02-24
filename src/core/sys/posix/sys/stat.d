@@ -804,6 +804,8 @@ else version( Darwin )
 }
 else version( FreeBSD )
 {
+    // https://github.com/freebsd/freebsd/blob/master/sys/sys/stat.h
+
     struct stat_t
     {
         dev_t       st_dev;
