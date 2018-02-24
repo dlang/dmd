@@ -35,7 +35,7 @@ $G/$(DMD_MAN_PAGE): $(G_BIN)/gen_man
 
 $(G_BIN)/gen_man: gen_man.d $(DMD_ROOT)/src/dmd/cli.d
 	@mkdir -p $(dir $@)
-	$(DMD) -I$(DMD_ROOT)/src -of$@ $^
+	$(DMD) $(MODEL_FLAG) -I$(DMD_ROOT)/src -of$@ $^
 
 $G/%: %
 	@mkdir -p $(dir $@)
