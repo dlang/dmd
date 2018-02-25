@@ -3503,7 +3503,7 @@ else
         else
         {
             /* Generate our own critical section, then rewrite as:
-             *  shared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
+             *  static shared align(D_CRITICAL_SECTION.alignof) byte[D_CRITICAL_SECTION.sizeof] __critsec;
              *  _d_criticalenter(&__critsec[0]);
              *  try { body } finally { _d_criticalexit(&__critsec[0]); }
              */
