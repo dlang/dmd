@@ -127,6 +127,16 @@ else version( CRuntime_Bionic )
         char**  gr_mem;
     }
 }
+else version( CRuntime_UClibc )
+{
+    struct group
+    {
+        char*   gr_name;
+        char*   gr_passwd;
+        gid_t   gr_gid;
+        char**  gr_mem;
+    }
+}
 else
 {
     static assert(false, "Unsupported platform");
@@ -180,6 +190,11 @@ else version( Solaris )
 }
 else version( CRuntime_Bionic )
 {
+}
+else version( CRuntime_UClibc )
+{
+    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgrgid_r(gid_t, group*, char*, size_t, group**);
 }
 else
 {
@@ -239,6 +254,12 @@ else version( Solaris )
 }
 else version( CRuntime_Bionic )
 {
+}
+else version( CRuntime_UClibc )
+{
+    group* getgrent();
+    @trusted void endgrent();
+    @trusted void setgrent();
 }
 else
 {
