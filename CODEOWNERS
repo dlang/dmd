@@ -1,0 +1,13 @@
+# See also:
+# - https://github.com/blog/2392-introducing-code-owners
+# - https://help.github.com/articles/about-codeowners/
+
+# Each line is a file pattern followed by one or more owners (sorted alphabetically).
+# Please feel free to add yourself to a module or create a new mapping.
+# Ideally each module should have two or more owners.
+
+# Code owners are automatically requested for review
+# when someone opens a pull request that modifies code that they own.
+# Later matches take precedence.
+
+* @ibuclaw
