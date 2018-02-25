@@ -303,6 +303,15 @@ extern (C++) final class Module : Package
         modules = new DsymbolTable();
     }
 
+    extern (C++) void releaseResources()
+    {
+      // printf("Module::releaseResources %s\n", this.toChars());
+      if (srcfile._ref == 0)
+        .free(srcfile.buffer);
+      srcfile.buffer = null;
+      srcfile.len = 0;
+    }
+
     extern (C++) static __gshared AggregateDeclaration moduleinfo;
 
     const(char)* arg;           // original argument name
@@ -858,10 +867,12 @@ extern (C++) final class Module : Package
             if (p.errors)
                 ++global.errors;
         }
-        if (srcfile._ref == 0)
-            .free(srcfile.buffer);
-        srcfile.buffer = null;
-        srcfile.len = 0;
+
+        if(global.params.disposeSrcContent)
+        {
+          releaseResources();
+        }
+
         /* The symbol table into which the module is to be inserted.
          */
         DsymbolTable dst;

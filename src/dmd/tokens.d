@@ -81,7 +81,7 @@ enum TOK : int
     delegatePointer,
     delegateFunctionPointer,
 
-    // 54
+    // 54 // TODO: instead of these non robust numbers, use `cast(TOK) number`
     // Operators
     lessThan,
     greaterThan,
@@ -302,10 +302,12 @@ enum TOK : int
     vector,
     pound,
 
-    // 239
+    // 240
     interval,
     voidExpression,
     cantExpression,
+
+    getCallerSource,
 
     max_,
 }
@@ -710,6 +712,8 @@ extern (C++) struct Token
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
+
+        TOK.getCallerSource: "getCallerSource",
     ];
 
     static assert(() {

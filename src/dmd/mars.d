@@ -876,6 +876,14 @@ private int tryMain(size_t argc, const(char)** argv)
             printf("%.*s", cast(int)ob.offset, ob.data);
     }
 
+    if (!global.params.disposeSrcContent)
+    {
+      // We didn't dispose greedily after parsing, so lets do it now
+      // TODO: can we do it at some earlier point?
+      foreach (m; Module.amodules)
+        m.releaseResources();
+    }
+
     printCtfePerformanceStats();
 
     Library library = null;
@@ -1693,6 +1701,10 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.vtls = true;
             else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
                 params.showColumns = true;
+            else if (arg == "-vbytes") // https://dlang.org/dmd.html#switch-bytes
+                params.showBytes = true;
+            else if (arg == "-disposesrc")
+                params.disposeSrcContent = true;
             else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
                 params.vgc = true;
             else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors

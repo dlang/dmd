@@ -790,6 +790,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
             result = mtype;
             return;
         }
+
         //printf("TypeFunction::semantic() this = %p\n", this);
         //printf("TypeFunction::semantic() %s, sc.stc = %llx, fargs = %p\n", toChars(), sc.stc, fargs);
 

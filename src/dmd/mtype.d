@@ -5417,6 +5417,14 @@ extern (C++) final class TypeFunction : TypeNext
             this.trust = TRUST.trusted;
     }
 
+    extern(D) Parameter searchByName(const(char)[] name){
+        foreach(i;0..parameters.dim){
+            auto pi=(*parameters)[i];
+            if(pi.ident && pi.ident.toString() == name) return pi;
+        }
+        return null;
+    }
+
     static TypeFunction create(Parameters* parameters, Type treturn, int varargs, LINK linkage, StorageClass stc = 0)
     {
         return new TypeFunction(parameters, treturn, varargs, linkage, stc);

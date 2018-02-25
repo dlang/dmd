@@ -1,0 +1,16 @@
+Stringify caller's function argument, analog to C's `#` stringification macro (except it's type safe).
+
+NOTE: it also works with UFCS, with tuples (string static array) and non-tuples (string)
+
+Eg:
+---
+string logSimple(T...)(T a, string[T.length] names = __traits(getCallerSource, a))
+{
+  import std.conv;
+  return text(names, ": ", a);  // see testargnames for a better log function
+}
+
+double x = 1.5;
+logSimple(x * 2, 'a') // ["x * 2", "'a'"]: 3a
+logSimple(__LINE__) // ["__LINE__"]: 9
+---

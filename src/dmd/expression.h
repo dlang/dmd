@@ -1306,6 +1306,12 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class ArgStringInitExp : public DefaultInitExp
+{
+public:
+    void accept(Visitor *v) { v->visit(this); }
+};
+
 class LineInitExp : public DefaultInitExp
 {
 public:

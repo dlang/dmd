@@ -6235,7 +6235,7 @@ final class Parser(AST) : Lexer
 
     /*****************************************
      * Parses default argument initializer expression that is an assign expression,
-     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
+     * with special handling for __FILE__, __FILE_DIR__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__.
      */
     AST.Expression parseDefaultInitExp()
     {
@@ -6264,7 +6264,16 @@ final class Parser(AST) : Lexer
                 return e;
             }
         }
+
         AST.Expression e = parseAssignExp();
+        if(auto e2=cast(AST.TraitsExp)e)// TODO: why not just TraitsExp?
+        {
+            if(e2.ident==Id.getCallerSource)
+            {
+                import dmd.traits:traitsGetSource;
+                return traitsGetSource(e2);
+            }
+        }
         return e;
     }
 
