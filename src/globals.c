@@ -71,8 +71,6 @@ void Global::_init()
 
     main_d = "__main.d";
 
-    memset(&params, 0, sizeof(Param));
-
     errorLimit = 20;
 }
 

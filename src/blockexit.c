@@ -39,7 +39,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             result = BEany;
         }
 
-        void visit(ErrorStatement *s)
+        void visit(ErrorStatement *)
         {
             result = BEany;
         }
@@ -68,7 +68,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             }
         }
 
-        void visit(CompileStatement *s)
+        void visit(CompileStatement *)
         {
             assert(global.errors);
             result = BEfallthru;
@@ -144,7 +144,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             result = s->statement ? blockExit(s->statement, func, mustNotThrow) : BEfallthru;
         }
 
-        void visit(WhileStatement *s)
+        void visit(WhileStatement *)
         {
             assert(global.errors);
             result = BEfallthru;
@@ -215,7 +215,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
                 result |= blockExit(s->_body, func, mustNotThrow) & ~(BEbreak | BEcontinue);
         }
 
-        void visit(ForeachRangeStatement *s)
+        void visit(ForeachRangeStatement *)
         {
             assert(global.errors);
             result = BEfallthru;
@@ -263,12 +263,12 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
                 result |= blockExit(s->elsebody, func, mustNotThrow);
         }
 
-        void visit(PragmaStatement *s)
+        void visit(PragmaStatement *)
         {
             result = BEfallthru;
         }
 
-        void visit(StaticAssertStatement *s)
+        void visit(StaticAssertStatement *)
         {
             result = BEfallthru;
         }
@@ -301,17 +301,17 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             result = blockExit(s->statement, func, mustNotThrow);
         }
 
-        void visit(GotoDefaultStatement *s)
+        void visit(GotoDefaultStatement *)
         {
             result = BEgoto;
         }
 
-        void visit(GotoCaseStatement *s)
+        void visit(GotoCaseStatement *)
         {
             result = BEgoto;
         }
 
-        void visit(SwitchErrorStatement *s)
+        void visit(SwitchErrorStatement *)
         {
             // Switch errors are non-recoverable
             result = BEhalt;
@@ -436,7 +436,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             result |= finalresult & ~BEfallthru;
         }
 
-        void visit(OnScopeStatement *s)
+        void visit(OnScopeStatement *)
         {
             // At this point, this statement is just an empty placeholder
             result = BEfallthru;
@@ -467,7 +467,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             result = BEthrow;
         }
 
-        void visit(GotoStatement *s)
+        void visit(GotoStatement *)
         {
             //printf("GotoStatement::blockExit(%p)\n", s);
             result = BEgoto;
@@ -491,7 +491,7 @@ int blockExit(Statement *s, FuncDeclaration *func, bool mustNotThrow)
             if (!(s->stc & STCnothrow)) result |= BEthrow;
         }
 
-        void visit(ImportStatement *s)
+        void visit(ImportStatement *)
         {
             result = BEfallthru;
         }

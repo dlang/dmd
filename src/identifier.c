@@ -53,7 +53,7 @@ int Identifier::compare(RootObject *o)
 
 const char *Identifier::toChars()
 {
-    return (char *)string;
+    return string;
 }
 
 int Identifier::getValue() const
@@ -164,7 +164,7 @@ bool Identifier::isValidIdentifier(const char *p)
     while (p[idx])
     {
         dchar_t dc;
-        const char *q = utf_decodeChar((utf8_t *)p, len, &idx, &dc);
+        const char *q = utf_decodeChar((const utf8_t *)p, len, &idx, &dc);
         if (q)
             goto Linvalid;
 

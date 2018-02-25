@@ -2317,10 +2317,11 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
   /* create mask of what's in csextab[] */
   csemask = 0;
   for (size_t i = 0; i < cstop; i++)
-  {     if (csextab[i].e)
-            elem_debug(csextab[i].e);
-        if (csextab[i].e == e)
-                csemask |= csextab[i].regm;
+  {
+      if (csextab[i].e)
+          elem_debug(csextab[i].e);
+      if (csextab[i].e == e)
+          csemask |= csextab[i].regm;
   }
   csemask &= ~emask;            /* stuff already in registers   */
 

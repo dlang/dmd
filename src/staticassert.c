@@ -40,12 +40,12 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return new StaticAssert(loc, exp->syntaxCopy(), msg ? msg->syntaxCopy() : NULL);
 }
 
-void StaticAssert::addMember(Scope *sc, ScopeDsymbol *sds)
+void StaticAssert::addMember(Scope *, ScopeDsymbol *)
 {
     // we didn't add anything
 }
 
-void StaticAssert::semantic(Scope *sc)
+void StaticAssert::semantic(Scope *)
 {
 }
 
@@ -91,7 +91,7 @@ void StaticAssert::semantic2(Scope *sc)
     }
 }
 
-bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
+bool StaticAssert::oneMember(Dsymbol **ps, Identifier *)
 {
     //printf("StaticAssert::oneMember())\n");
     *ps = NULL;

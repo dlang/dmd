@@ -170,7 +170,7 @@ bool CtfeStack::isInCurrentFrame(VarDeclaration *v)
 {
     if (v->isDataseg() && !v->isCTFE())
         return false;   // It's a global
-    return v->ctfeAdrOnStack >= framepointer;
+    return v->ctfeAdrOnStack >= (int)framepointer;
 }
 
 Expression *CtfeStack::getValue(VarDeclaration *v)
@@ -178,25 +178,25 @@ Expression *CtfeStack::getValue(VarDeclaration *v)
     if ((v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE())
     {
         assert(v->ctfeAdrOnStack >= 0 &&
-        v->ctfeAdrOnStack < globalValues.dim);
+        v->ctfeAdrOnStack < (int)globalValues.dim);
         return globalValues[v->ctfeAdrOnStack];
     }
-    assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < stackPointer());
+    assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < (int)stackPointer());
     return values[v->ctfeAdrOnStack];
 }
 
 void CtfeStack::setValue(VarDeclaration *v, Expression *e)
 {
     assert(!v->isDataseg() || v->isCTFE());
-    assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < stackPointer());
+    assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < (int)stackPointer());
     values[v->ctfeAdrOnStack] = e;
 }
 
 void CtfeStack::push(VarDeclaration *v)
 {
     assert(!v->isDataseg() || v->isCTFE());
-    if (v->ctfeAdrOnStack != (size_t)-1 &&
-        v->ctfeAdrOnStack >= framepointer)
+    if (v->ctfeAdrOnStack != -1 &&
+        v->ctfeAdrOnStack >= (int)framepointer)
     {
         // Already exists in this frame, reuse it.
         values[v->ctfeAdrOnStack] = NULL;
@@ -214,7 +214,7 @@ void CtfeStack::pop(VarDeclaration *v)
     assert(!(v->storage_class & (STCref | STCout)));
     int oldid = v->ctfeAdrOnStack;
     v->ctfeAdrOnStack = (int)(size_t)(savedId[oldid]);
-    if (v->ctfeAdrOnStack == values.dim - 1)
+    if (v->ctfeAdrOnStack == (int)values.dim - 1)
     {
         values.pop();
         vars.pop();
@@ -296,7 +296,7 @@ struct CompiledCtfeFunction
         numVars = 0;
     }
 
-    void onDeclaration(VarDeclaration *v)
+    void onDeclaration(VarDeclaration *)
     {
         //printf("%s CTFE declare %s\n", v->loc.toChars(), v->toChars());
         ++numVars;
@@ -314,7 +314,7 @@ struct CompiledCtfeFunction
             {
             }
 
-            void visit(Expression *e)
+            void visit(Expression *)
             {
             }
 
@@ -394,7 +394,7 @@ public:
     {
     }
 
-    void visit(Statement *s)
+    void visit(Statement *)
     {
     #if LOGCOMPILE
         printf("%s Statement::ctfeCompile %s\n", s->loc.toChars(), s->toChars());
@@ -459,7 +459,7 @@ public:
             ctfeCompile(s->statement);
     }
 
-    void visit(OnScopeStatement *s)
+    void visit(OnScopeStatement *)
     {
     #if LOGCOMPILE
         printf("%s OnScopeStatement::ctfeCompile\n", s->loc.toChars());
@@ -478,7 +478,7 @@ public:
             ctfeCompile(s->_body);
     }
 
-    void visit(WhileStatement *s)
+    void visit(WhileStatement *)
     {
     #if LOGCOMPILE
         printf("%s WhileStatement::ctfeCompile\n", s->loc.toChars());
@@ -503,7 +503,7 @@ public:
             ctfeCompile(s->_body);
     }
 
-    void visit(ForeachStatement *s)
+    void visit(ForeachStatement *)
     {
     #if LOGCOMPILE
         printf("%s ForeachStatement::ctfeCompile\n", s->loc.toChars());
@@ -546,21 +546,21 @@ public:
             ctfeCompile(s->statement);
     }
 
-    void visit(GotoDefaultStatement *s)
+    void visit(GotoDefaultStatement *)
     {
     #if LOGCOMPILE
         printf("%s GotoDefaultStatement::ctfeCompile\n", s->loc.toChars());
     #endif
     }
 
-    void visit(GotoCaseStatement *s)
+    void visit(GotoCaseStatement *)
     {
     #if LOGCOMPILE
         printf("%s GotoCaseStatement::ctfeCompile\n", s->loc.toChars());
     #endif
     }
 
-    void visit(SwitchErrorStatement *s)
+    void visit(SwitchErrorStatement *)
     {
     #if LOGCOMPILE
         printf("%s SwitchErrorStatement::ctfeCompile\n", s->loc.toChars());
@@ -576,14 +576,14 @@ public:
             ccf->onExpression(s->exp);
     }
 
-    void visit(BreakStatement *s)
+    void visit(BreakStatement *)
     {
     #if LOGCOMPILE
         printf("%s BreakStatement::ctfeCompile\n", s->loc.toChars());
     #endif
     }
 
-    void visit(ContinueStatement *s)
+    void visit(ContinueStatement *)
     {
     #if LOGCOMPILE
         printf("%s ContinueStatement::ctfeCompile\n", s->loc.toChars());
@@ -644,7 +644,7 @@ public:
         ccf->onExpression(s->exp);
     }
 
-    void visit(GotoStatement *s)
+    void visit(GotoStatement *)
     {
     #if LOGCOMPILE
         printf("%s GotoStatement::ctfeCompile\n", s->loc.toChars());
@@ -660,7 +660,7 @@ public:
             ctfeCompile(s->statement);
     }
 
-    void visit(ImportStatement *s)
+    void visit(ImportStatement *)
     {
     #if LOGCOMPILE
         printf("%s ImportStatement::ctfeCompile\n", s->loc.toChars());
@@ -668,7 +668,7 @@ public:
         // Contains no variables or executable code
     }
 
-    void visit(ForeachRangeStatement *s)
+    void visit(ForeachRangeStatement *)
     {
     #if LOGCOMPILE
         printf("%s ForeachRangeStatement::ctfeCompile\n", s->loc.toChars());
@@ -677,7 +677,7 @@ public:
         assert(0);
     }
 
-    void visit(AsmStatement *s)
+    void visit(AsmStatement *)
     {
     #if LOGCOMPILE
         printf("%s AsmStatement::ctfeCompile\n", s->loc.toChars());
@@ -1421,7 +1421,7 @@ public:
         result = CTFEExp::continueexp;
     }
 
-    void visit(WhileStatement *s)
+    void visit(WhileStatement *)
     {
     #if LOG
         printf("WhileStatement::interpret()\n");
@@ -1552,12 +1552,12 @@ public:
         assert(result == NULL);
     }
 
-    void visit(ForeachStatement *s)
+    void visit(ForeachStatement *)
     {
         assert(0);                  // rewritten to ForStatement
     }
 
-    void visit(ForeachRangeStatement *s)
+    void visit(ForeachRangeStatement *)
     {
         assert(0);                  // rewritten to ForStatement
     }
@@ -1900,7 +1900,7 @@ public:
         result = new ThrownExceptionExp(s->loc, (ClassReferenceExp *)e);
     }
 
-    void visit(OnScopeStatement *s)
+    void visit(OnScopeStatement *)
     {
         assert(0);
     }
@@ -2586,7 +2586,7 @@ public:
     #if LOG
         printf("%s TypeidExp::interpret() %s\n", e->loc.toChars(), e->toChars());
     #endif
-        if (Type *t = isType(e->obj))
+        if (isType(e->obj))
         {
             result = e;
             return;
@@ -2917,7 +2917,7 @@ public:
             return lenExpr;
         size_t len = (size_t)(lenExpr->toInteger());
         Type *elemType = ((TypeArray *)newtype)->next;
-        if (elemType->ty == Tarray && argnum < arguments->dim - 1)
+        if (elemType->ty == Tarray && argnum < (int)arguments->dim - 1)
         {
             Expression *elem = recursivelyCreateArrayLiteral(loc, elemType, istate,
                 arguments, argnum + 1);
@@ -2933,7 +2933,7 @@ public:
             ae->ownedByCtfe = OWNEDctfe;
             return ae;
         }
-        assert(argnum == arguments->dim - 1);
+        assert(argnum == (int)arguments->dim - 1);
         if (elemType->ty == Tchar || elemType->ty == Twchar || elemType->ty == Tdchar)
         {
             const unsigned ch = (unsigned)elemType->defaultInitLiteral(loc)->toInteger();
@@ -3224,7 +3224,7 @@ public:
         {
             sinteger_t i2 = e2->toInteger();
             d_uns64 sz = e1->type->size() * 8;
-            if (i2 < 0 || i2 >= sz)
+            if (i2 < 0 || (d_uns64)i2 >= sz)
             {
                 e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
                 result = CTFEExp::cantexp;
@@ -3254,7 +3254,7 @@ public:
             Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
             Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
             //printf("agg1 = %p %s, agg2 = %p %s\n", agg1, agg1->toChars(), agg2, agg2->toChars());
-            int cmp = comparePointers(e->loc, e->op, e->type, agg1, ofs1, agg2, ofs2);
+            int cmp = comparePointers(e->op, agg1, ofs1, agg2, ofs2);
             if (cmp == -1)
             {
                 char dir = (e->op == TOKgt || e->op == TOKge) ? '<' : '>';
@@ -3776,7 +3776,7 @@ public:
             e1->op == TOKvector ||
             e1->op == TOKarrayliteral ||
             e1->op == TOKstring ||
-            e1->op == TOKnull && e1->type->toBasetype()->ty == Tarray)
+            (e1->op == TOKnull && e1->type->toBasetype()->ty == Tarray))
         {
             // Note that slice assignments don't support things like ++, so
             // we don't need to remember 'returnValue'.
@@ -3875,7 +3875,7 @@ public:
                 e->error("CTFE internal error: cannot find field %s in %s", v->toChars(), ex->toChars());
                 return CTFEExp::cantexp;
             }
-            assert(0 <= fieldi && fieldi < sle->elements->dim);
+            assert(0 <= fieldi && fieldi < (int)sle->elements->dim);
 
             // If it's a union, set all other members of this union to void
             stompOverlappedFields(sle, v);
@@ -4028,11 +4028,11 @@ public:
     Expression *interpretAssignToSlice(BinExp *e,
         Expression *e1, Expression *newval, bool isBlockAssignment)
     {
-        int lowerbound;
-        size_t upperbound;
+        dinteger_t lowerbound;
+        dinteger_t upperbound;
 
         Expression *aggregate;
-        sinteger_t firstIndex;
+        dinteger_t firstIndex;
 
         if (e1->op == TOKvector)
             e1 = ((VectorExp *)e1)->e1;
@@ -4647,11 +4647,11 @@ public:
         TOK cmpop = ex->op;
         if (nott)
             cmpop = reverseRelation(cmpop);
-        int cmp = comparePointers(e->loc, cmpop, e->e1->type, agg1, ofs1, agg2, ofs2);
+        int cmp = comparePointers(cmpop, agg1, ofs1, agg2, ofs2);
         // We already know this is a valid comparison.
         assert(cmp >= 0);
-        if (e->op == TOKandand && cmp == 1 ||
-            e->op == TOKoror   && cmp == 0)
+        if ((e->op == TOKandand && cmp == 1) ||
+            (e->op == TOKoror   && cmp == 0))
         {
             result = interpret(e->e2, istate);
             return;
@@ -5153,7 +5153,7 @@ public:
             if (agg->op == TOKsymoff)
             {
                 e->error("mutable variable %s cannot be %s at compile time, even through a pointer",
-                    (char *)(modify ? "modified" : "read"), ((SymOffExp *)agg)->var->toChars());
+                    (modify ? "modified" : "read"), ((SymOffExp *)agg)->var->toChars());
                 return false;
             }
 
@@ -7047,7 +7047,7 @@ Expression *evaluateDtor(InterState *istate, Expression *e)
  */
 bool hasValue(VarDeclaration *vd)
 {
-    if (vd->ctfeAdrOnStack == (size_t)-1)
+    if (vd->ctfeAdrOnStack == -1)
         return false;
     return NULL != getValue(vd);
 }

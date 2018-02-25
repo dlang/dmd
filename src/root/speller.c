@@ -230,7 +230,7 @@ void *speller(const char *seed, fp_speller_t fp, void *fparg, const char *charse
 {
     size_t seedlen = strlen(seed);
     size_t maxdist = seedlen < 4 ? seedlen / 2 : 2;
-    for (int distance = 0; distance < maxdist; distance++)
+    for (size_t distance = 0; distance < maxdist; distance++)
     {   void *p = spellerX(seed, seedlen, fp, fparg, charset, distance);
         if (p)
             return p;

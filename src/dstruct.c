@@ -76,7 +76,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
             if (t->next)
                 t->next->accept(this);
         }
-        void visit(TypeBasic *t) { }
+        void visit(TypeBasic *) { }
         void visit(TypeVector *t)
         {
             t->basetype->accept(this);
@@ -149,7 +149,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
                 }
             }
         }
-        void visit(TypeClass *t) { }
+        void visit(TypeClass *) { }
         void visit(TypeTuple *t)
         {
             if (t->arguments)
@@ -694,7 +694,7 @@ bool AggregateDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                  * union U { int a; int b = 2; }
                  * U u;    // OK (u.b == 2)
                  */
-                if (!vx || !vx->_init && v2->_init)
+                if (!vx || (!vx->_init && v2->_init))
                 {
                     vx = v2;
                     fieldi = j;
@@ -710,7 +710,7 @@ bool AggregateDeclaration::fill(Loc loc, Expressions *elements, bool ctorinit)
                     errors = true;
                 }
                 else
-                    assert(vx->_init || !vx->_init && !v2->_init);
+                    assert(vx->_init || (!vx->_init && !v2->_init));
             }
         }
         if (vx)
@@ -949,7 +949,7 @@ Dsymbol *AggregateDeclaration::searchCtor()
         // Finish all constructors semantics to determine this->noDefaultCtor.
         struct SearchCtor
         {
-            static int fp(Dsymbol *s, void *ctxt)
+            static int fp(Dsymbol *s, void *)
             {
                 CtorDeclaration *f = s->isCtorDeclaration();
                 if (f && f->semanticRun == PASSinit)
@@ -1017,7 +1017,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
-    int errors = global.errors;
+    unsigned errors = global.errors;
 
     //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
     Scope *scx = NULL;
@@ -1341,7 +1341,7 @@ bool StructDeclaration::fit(Loc loc, Scope *sc, Expressions *elements, Type *sty
                 // CTFE sometimes creates null as hidden pointer; we'll allow this.
                 continue;
             }
-            ::error(loc, "more initializers than fields (%d) of %s", nfields, toChars());
+            ::error(loc, "more initializers than fields (%d) of %s", (int)nfields, toChars());
             return false;
         }
         VarDeclaration *v = fields[i];

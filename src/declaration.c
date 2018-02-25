@@ -84,7 +84,7 @@ Declaration::Declaration(Identifier *id)
     mangleOverride = NULL;
 }
 
-void Declaration::semantic(Scope *sc)
+void Declaration::semantic(Scope *)
 {
 }
 
@@ -93,7 +93,7 @@ const char *Declaration::kind()
     return "declaration";
 }
 
-d_uns64 Declaration::size(Loc loc)
+d_uns64 Declaration::size(Loc)
 {
     assert(type);
     return type->size();
@@ -129,7 +129,7 @@ Prot Declaration::prot()
  * Issue error if not.
  */
 
-int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag)
+int Declaration::checkModify(Loc loc, Scope *sc, Type *, Expression *e1, int flag)
 {
     VarDeclaration *v = isVarDeclaration();
     if (v && v->canassign)
@@ -183,7 +183,7 @@ TupleDeclaration::TupleDeclaration(Loc loc, Identifier *id, Objects *objects)
     this->tupletype = NULL;
 }
 
-Dsymbol *TupleDeclaration::syntaxCopy(Dsymbol *s)
+Dsymbol *TupleDeclaration::syntaxCopy(Dsymbol *)
 {
     assert(0);
     return NULL;
@@ -355,7 +355,7 @@ void AliasDeclaration::aliasSemantic(Scope *sc)
     {
         FuncDeclaration *fd = aliassym->isFuncLiteralDeclaration();
         TemplateDeclaration *td = aliassym->isTemplateDeclaration();
-        if (fd || td && td->literal)
+        if (fd || (td && td->literal))
         {
             if (fd && fd->semanticRun >= PASSsemanticdone)
                 return;
@@ -690,7 +690,7 @@ bool AliasDeclaration::isOverloadable()
 {
     // assume overloadable until alias is resolved
     return semanticRun < PASSsemanticdone ||
-        aliassym && aliassym->isOverloadable();
+        (aliassym && aliassym->isOverloadable());
 }
 
 /****************************** OverDeclaration **************************/
@@ -719,7 +719,7 @@ const char *OverDeclaration::kind()
     return "overload alias";    // todo
 }
 
-void OverDeclaration::semantic(Scope *sc)
+void OverDeclaration::semantic(Scope *)
 {
 }
 
@@ -2113,7 +2113,7 @@ bool VarDeclaration::needsScopeDtor()
  * Otherwise, return NULL.
  */
 
-Expression *VarDeclaration::callScopeDtor(Scope *sc)
+Expression *VarDeclaration::callScopeDtor(Scope *)
 {
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
@@ -2263,13 +2263,13 @@ TypeInfoDeclaration *TypeInfoDeclaration::create(Type *tinfo)
     return new TypeInfoDeclaration(tinfo);
 }
 
-Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *s)
+Dsymbol *TypeInfoDeclaration::syntaxCopy(Dsymbol *)
 {
     assert(0);          // should never be produced by syntax
     return NULL;
 }
 
-void TypeInfoDeclaration::semantic(Scope *sc)
+void TypeInfoDeclaration::semantic(Scope *)
 {
     assert(linkage == LINKc);
 }
@@ -2566,7 +2566,7 @@ ThisDeclaration::ThisDeclaration(Loc loc, Type *t)
     storage_class |= STCnodtor;
 }
 
-Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)
+Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *)
 {
     assert(0);          // should never be produced by syntax
     return NULL;

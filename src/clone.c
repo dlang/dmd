@@ -790,7 +790,7 @@ FuncDeclaration *buildXtoHash(StructDeclaration *sd, Scope *sc)
         "foreach (i, T; typeof(p.tupleof))"
         "    h += typeid(T).getHash(cast(const void*)&p.tupleof[i]);"
         "return h;";
-    fop->fbody = new CompileStatement(loc, new StringExp(loc, (char *)code));
+    fop->fbody = new CompileStatement(loc, new StringExp(loc, const_cast<char *>(code)));
 
     Scope *sc2 = sc->push();
     sc2->stc = 0;

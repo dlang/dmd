@@ -102,7 +102,7 @@ bool Dsymbol::equals(RootObject *o)
  * If s is NULL, allocate the new object, otherwise fill it in.
  */
 
-Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
+Dsymbol *Dsymbol::syntaxCopy(Dsymbol *)
 {
     print();
     printf("%s %s\n", kind(), toChars());
@@ -118,7 +118,7 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
  *      true,  *ps = symbol: The one and only one symbol
  */
 
-bool Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
+bool Dsymbol::oneMember(Dsymbol **ps, Identifier *)
 {
     //printf("Dsymbol::oneMember()\n");
     *ps = this;
@@ -203,7 +203,7 @@ bool Dsymbol::hasStaticCtorOrDtor()
     return false;
 }
 
-void Dsymbol::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
+void Dsymbol::setFieldOffset(AggregateDeclaration *, unsigned *, bool)
 {
 }
 
@@ -214,7 +214,7 @@ Identifier *Dsymbol::getIdent()
 
 const char *Dsymbol::toChars()
 {
-    return ident ? ident->toChars() : (char *)"__anonymous";
+    return ident ? ident->toChars() : "__anonymous";
 }
 
 const char *Dsymbol::toPrettyCharsHelper()
@@ -225,14 +225,14 @@ const char *Dsymbol::toPrettyCharsHelper()
 const char *Dsymbol::toPrettyChars(bool QualifyTypes)
 {
     if (prettystring && !QualifyTypes)
-        return (char *)prettystring;
+        return (const char *)prettystring;
 
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
     if (!parent)
     {
         const char *s = toChars();
         if (!QualifyTypes)
-            prettystring = (utf8_t *)s;
+            prettystring = (const utf8_t *)s;
         return s;
     }
 
@@ -432,7 +432,7 @@ void Dsymbol::setScope(Scope *sc)
         userAttribDecl = sc->userAttribDecl;
 }
 
-void Dsymbol::importAll(Scope *sc)
+void Dsymbol::importAll(Scope *)
 {
 }
 
@@ -440,7 +440,7 @@ void Dsymbol::importAll(Scope *sc)
  * Does semantic analysis on the public face of declarations.
  */
 
-void Dsymbol::semantic(Scope *sc)
+void Dsymbol::semantic(Scope *)
 {
     error("%p has no semantic routine", this);
 }
@@ -449,7 +449,7 @@ void Dsymbol::semantic(Scope *sc)
  * Does semantic analysis on initializers and members of aggregates.
  */
 
-void Dsymbol::semantic2(Scope *sc)
+void Dsymbol::semantic2(Scope *)
 {
     // Most Dsymbols have no further semantic analysis needed
 }
@@ -458,7 +458,7 @@ void Dsymbol::semantic2(Scope *sc)
  * Does semantic analysis on function bodies.
  */
 
-void Dsymbol::semantic3(Scope *sc)
+void Dsymbol::semantic3(Scope *)
 {
     // Most Dsymbols have no further semantic analysis needed
 }
@@ -473,7 +473,7 @@ void Dsymbol::semantic3(Scope *sc)
  *  NULL if not found
  */
 
-Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Dsymbol::search(Loc, Identifier *, int)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
@@ -576,13 +576,13 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
     return sm;
 }
 
-bool Dsymbol::overloadInsert(Dsymbol *s)
+bool Dsymbol::overloadInsert(Dsymbol *)
 {
     //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
     return false;
 }
 
-d_uns64 Dsymbol::size(Loc loc)
+d_uns64 Dsymbol::size(Loc)
 {
     error("Dsymbol '%s' has no size", toChars());
     return SIZE_INVALID;
@@ -674,7 +674,7 @@ int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
     return (*fp)(this, param);
 }
 
-void Dsymbol::addMember(Scope *sc, ScopeDsymbol *sds)
+void Dsymbol::addMember(Scope *, ScopeDsymbol *sds)
 {
     //printf("Dsymbol::addMember('%s')\n", toChars());
     //printf("Dsymbol::addMember(this = %p, '%s' scopesym = '%s')\n", this, toChars(), sds->toChars());
@@ -875,7 +875,7 @@ void Dsymbol::addComment(const utf8_t *comment)
 
     if (!this->comment)
         this->comment = comment;
-    else if (comment && strcmp((char *)comment, (char *)this->comment) != 0)
+    else if (comment && strcmp((const char *)comment, (const char *)this->comment) != 0)
     {   // Concatenate the two
         this->comment = Lexer::combineComments(this->comment, comment);
     }
@@ -889,7 +889,7 @@ bool Dsymbol::inNonRoot()
     Dsymbol *s = parent;
     for (; s; s = s->toParent())
     {
-        if (TemplateInstance *ti = s->isTemplateInstance())
+        if (s->isTemplateInstance())
         {
             return false;
         }
@@ -1022,7 +1022,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             /* Don't find private members if ss is a module
              */
             Dsymbol *s2 = ss->search(loc, ident, sflags | (ss->isModule() ? IgnorePrivateImports : IgnoreNone));
-            if (!s2 || !(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2))
+            if (!s2 || (!(flags & IgnoreSymbolVisibility) && !symbolIsVisible(this, s2)))
                 continue;
             if (!s)
             {
@@ -1033,7 +1033,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             else if (s2 && s != s2)
             {
                 if (s->toAlias() == s2->toAlias() ||
-                    s->getType() == s2->getType() && s->getType())
+                    (s->getType() == s2->getType() && s->getType()))
                 {
                     /* After following aliases, we found the same
                      * symbol, so it's not an ambiguity.  But if one
@@ -1041,7 +1041,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                      * the other.
                      */
                     if (s->isDeprecated() ||
-                        s->prot().isMoreRestrictiveThan(s2->prot()) && s2->prot().kind != PROTnone)
+                        (s->prot().isMoreRestrictiveThan(s2->prot()) && s2->prot().kind != PROTnone))
                         s = s2;
                 }
                 else
@@ -1104,7 +1104,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 AliasDeclaration *ad;
                 // accessing private selective and renamed imports is
                 // deprecated by restricting the symbol visibility
-                if (s->isImport() || (ad = s->isAliasDeclaration()) != NULL && ad->_import != NULL)
+                if (s->isImport() || ((ad = s->isAliasDeclaration()) != NULL && ad->_import != NULL))
                 {}
                 else
                     error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
@@ -1232,7 +1232,7 @@ void ScopeDsymbol::addAccessiblePackage(Package *p, Prot protection)
     bitArraySet(pary, p->tag);
 }
 
-bool ScopeDsymbol::isPackageAccessible(Package *p, Prot protection, int flags)
+bool ScopeDsymbol::isPackageAccessible(Package *p, Prot protection, int)
 {
     if ((p->tag < accessiblePackages.len && bitArrayGet(&accessiblePackages, p->tag)) ||
         (protection.kind == PROTprivate && p->tag < privateAccessiblePackages.len && bitArrayGet(&privateAccessiblePackages, p->tag)))
@@ -1293,7 +1293,7 @@ Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
  * Look up identifier in symbol table.
  */
 
-Dsymbol *ScopeDsymbol::symtabLookup(Dsymbol *s, Identifier *id)
+Dsymbol *ScopeDsymbol::symtabLookup(Dsymbol *, Identifier *id)
 {
     return symtab->lookup(id);
 }
@@ -1321,7 +1321,7 @@ bool ScopeDsymbol::hasStaticCtorOrDtor()
  * Determine number of Dsymbols, folding in AttribDeclaration members.
  */
 
-static int dimDg(void *ctx, size_t n, Dsymbol *)
+static int dimDg(void *ctx, size_t, Dsymbol *)
 {
     ++*(size_t *)ctx;
     return 0;
@@ -1358,7 +1358,7 @@ static int getNthSymbolDg(void *ctx, size_t n, Dsymbol *sym)
     return 0;
 }
 
-Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
+Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *)
 {
     GetNthSymbolCtx ctx = { nth, NULL };
     int res = ScopeDsymbol_foreach(NULL, members, &getNthSymbolDg, &ctx);
@@ -1513,7 +1513,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
     this->sc = sc;
 }
 
-Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::dollar)
@@ -1706,7 +1706,7 @@ DsymbolTable::DsymbolTable()
 Dsymbol *DsymbolTable::lookup(Identifier const * const ident)
 {
     //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
-    return (Dsymbol *)dmd_aaGetRvalue(tab, (void *)ident);
+    return (Dsymbol *)dmd_aaGetRvalue(tab, const_cast<void *>((const void *)ident));
 }
 
 Dsymbol *DsymbolTable::insert(Dsymbol *s)
@@ -1723,7 +1723,7 @@ Dsymbol *DsymbolTable::insert(Dsymbol *s)
 Dsymbol *DsymbolTable::insert(Identifier const * const ident, Dsymbol *s)
 {
     //printf("DsymbolTable::insert()\n");
-    Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, (void *)ident);
+    Dsymbol **ps = (Dsymbol **)dmd_aaGet(&tab, const_cast<void *>((const void *)ident));
     if (*ps)
         return NULL;            // already in table
     *ps = s;

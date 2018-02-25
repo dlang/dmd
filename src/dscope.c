@@ -108,7 +108,7 @@ Scope::Scope()
 Scope *Scope::copy()
 {
     Scope *sc = Scope::alloc();
-    memcpy(sc, this, sizeof(Scope));
+    *sc = *this;    // memcpy
 
     /* Bugzilla 11777: The copied scope should not inherit fieldinit.
      */
@@ -120,7 +120,7 @@ Scope *Scope::copy()
 Scope *Scope::createGlobal(Module *_module)
 {
     Scope *sc = Scope::alloc();
-    memset(sc, 0, sizeof(Scope));
+    *sc = Scope();  // memset
 
     sc->aligndecl = NULL;
     sc->linkage = LINKd;
@@ -287,14 +287,14 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
             // have been ctor calls in the other.
             ok = false;
         }
-        else if (aHalt || aRet && aAll)
+        else if (aHalt || (aRet && aAll))
         {
             // If one branch has called a ctor and then exited, anything the
             // other branch has done is OK (except returning without a
             // ctor call, but we already checked that).
             callSuper |= cs & (CSXany_ctor | CSXlabel);
         }
-        else if (bHalt || bRet && bAll)
+        else if (bHalt || (bRet && bAll))
         {
             callSuper = cs | (callSuper & (CSXany_ctor | CSXlabel));
         }
@@ -326,7 +326,7 @@ unsigned *Scope::saveFieldInit()
     return fi;
 }
 
-bool mergeFieldInit(Loc loc, unsigned &fieldInit, unsigned fi, bool mustInit)
+static bool mergeFieldInit(unsigned &fieldInit, unsigned fi, bool mustInit)
 {
     if (fi != fieldInit)
     {
@@ -391,7 +391,7 @@ void Scope::mergeFieldInit(Loc loc, unsigned *fies)
             bool mustInit = (v->storage_class & STCnodefaultctor ||
                              v->type->needsNested());
 
-            if (!::mergeFieldInit(loc, fieldinit[i], fies[i], mustInit))
+            if (!::mergeFieldInit(fieldinit[i], fies[i], mustInit))
             {
                 ::error(loc, "one path skips field %s", ad->fields[i]->toChars());
             }
@@ -729,7 +729,7 @@ void Scope::deprecation10378(Loc loc, Dsymbol *sold, Dsymbol *snew)
     else
         buf.writestring("nothing");
 
-    deprecation(loc, buf.peekString());
+    deprecation(loc, "%s", buf.peekString());
 }
 
 Dsymbol *Scope::search_correct(Identifier *ident)

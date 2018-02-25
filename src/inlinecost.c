@@ -84,7 +84,7 @@ public:
         cost = 0;   // zero start for subsequent AST
     }
 
-    void visit(Statement *s)
+    void visit(Statement *)
     {
         //printf("Statement::inlineCost = %d\n", COST_MAX);
         //printf("%p\n", s->isScopeStatement());
@@ -190,7 +190,7 @@ public:
         }
     }
 
-    void visit(ImportStatement *s)
+    void visit(ImportStatement *)
     {
     }
 
@@ -242,7 +242,7 @@ public:
         }
     }
 
-    void visit(Expression *e)
+    void visit(Expression *)
     {
         cost++;
     }
@@ -275,7 +275,7 @@ public:
             cost++;
     }
 
-    void visit(ThisExp *e)
+    void visit(ThisExp *)
     {
         //printf("ThisExp::inlineCost3() %s\n", toChars());
         if (!fd)
@@ -313,14 +313,14 @@ public:
             cost++;
     }
 
-    void visit(FuncExp *e)
+    void visit(FuncExp *)
     {
         //printf("FuncExp::inlineCost3()\n");
         // Right now, this makes the function be output to the .obj file twice.
         cost = COST_MAX;
     }
 
-    void visit(DelegateExp *e)
+    void visit(DelegateExp *)
     {
         //printf("DelegateExp::inlineCost3()\n");
         cost = COST_MAX;

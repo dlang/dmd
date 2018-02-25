@@ -168,11 +168,11 @@ bool Statement::usesEH()
     class UsesEH : public StoppableVisitor
     {
     public:
-        void visit(Statement *s)             {}
-        void visit(TryCatchStatement *s)     { stop = true; }
-        void visit(TryFinallyStatement *s)   { stop = true; }
-        void visit(OnScopeStatement *s)      { stop = true; }
-        void visit(SynchronizedStatement *s) { stop = true; }
+        void visit(Statement *)             {}
+        void visit(TryCatchStatement *)     { stop = true; }
+        void visit(TryFinallyStatement *)   { stop = true; }
+        void visit(OnScopeStatement *)      { stop = true; }
+        void visit(SynchronizedStatement *) { stop = true; }
     };
 
     UsesEH ueh;
@@ -187,11 +187,11 @@ bool Statement::comeFrom()
     class ComeFrom : public StoppableVisitor
     {
     public:
-        void visit(Statement *s)        {}
-        void visit(CaseStatement *s)    { stop = true; }
-        void visit(DefaultStatement *s) { stop = true; }
-        void visit(LabelStatement *s)   { stop = true; }
-        void visit(AsmStatement *s)     { stop = true; }
+        void visit(Statement *)        {}
+        void visit(CaseStatement *)    { stop = true; }
+        void visit(DefaultStatement *) { stop = true; }
+        void visit(LabelStatement *)   { stop = true; }
+        void visit(AsmStatement *)     { stop = true; }
     };
 
     ComeFrom cf;
@@ -206,7 +206,7 @@ bool Statement::hasCode()
     class HasCode : public StoppableVisitor
     {
     public:
-        void visit(Statement *s)
+        void visit(Statement *)
         {
             stop = true;
         }
@@ -219,9 +219,9 @@ bool Statement::hasCode()
             }
         }
 
-        void visit(CompoundStatement *s) {}
-        void visit(ScopeStatement *s)    {}
-        void visit(ImportStatement *s)   {}
+        void visit(CompoundStatement *) {}
+        void visit(ScopeStatement *)    {}
+        void visit(ImportStatement *)   {}
     };
 
     HasCode hc;
@@ -243,7 +243,7 @@ Statement *Statement::last()
  *      *sfinally       code executed in finally block
  */
 
-Statement *Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *Statement::scopeCode(Scope *, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("Statement::scopeCode()\n");
     //print();
@@ -259,7 +259,7 @@ Statement *Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexce
  * Returns NULL if no flattening necessary.
  */
 
-Statements *Statement::flatten(Scope *sc)
+Statements *Statement::flatten(Scope *)
 {
     return NULL;
 }
@@ -310,7 +310,7 @@ Statement *ExpStatement::syntaxCopy()
     return new ExpStatement(loc, exp ? exp->syntaxCopy() : NULL);
 }
 
-Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *ExpStatement::scopeCode(Scope *, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("ExpStatement::scopeCode()\n");
     //print();
@@ -412,9 +412,9 @@ Statement *toStatement(Dsymbol *s)
         void visit(AlignDeclaration *d)         { result = visitMembers(d->loc, d->decl); }
         void visit(UserAttributeDeclaration *d) { result = visitMembers(d->loc, d->decl); }
 
-        void visit(StaticAssert *s) {}
-        void visit(Import *s) {}
-        void visit(PragmaDeclaration *d) {}
+        void visit(StaticAssert *) {}
+        void visit(Import *) {}
+        void visit(PragmaDeclaration *) {}
 
         void visit(ConditionalDeclaration *d)
         {
@@ -580,7 +580,7 @@ Statement *CompoundStatement::syntaxCopy()
     return new CompoundStatement(loc, a);
 }
 
-Statements *CompoundStatement::flatten(Scope *sc)
+Statements *CompoundStatement::flatten(Scope *)
 {
     return statements;
 }
@@ -1330,7 +1330,7 @@ Statement *OnScopeStatement::syntaxCopy()
     return new OnScopeStatement(loc, tok, statement->syntaxCopy());
 }
 
-Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *OnScopeStatement::scopeCode(Scope *, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("OnScopeStatement::scopeCode()\n");
     //print();
@@ -1608,7 +1608,7 @@ CompoundAsmStatement *CompoundAsmStatement::syntaxCopy()
     return new CompoundAsmStatement(loc, a, stc);
 }
 
-Statements *CompoundAsmStatement::flatten(Scope *sc)
+Statements *CompoundAsmStatement::flatten(Scope *)
 {
     return NULL;
 }

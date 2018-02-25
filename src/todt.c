@@ -173,7 +173,7 @@ dt_t **Initializer_toDt(Initializer *init, dt_t **pdt)
                     }
                     else if (ai->dim > tadim)
                     {
-                        error(ai->loc, "too many initializers, %d, for array[%d]", ai->dim, tadim);
+                        error(ai->loc, "too many initializers, %d, for array[%lu]", ai->dim, tadim);
                     }
                     *pdt = d;
                     pdt = pdtend;

@@ -53,7 +53,7 @@ StringValue *StringTable::getValue(uint32_t vptr)
     if (!vptr) return NULL;
 
     const size_t idx = (vptr >> POOL_BITS) - 1;
-    const size_t off = vptr & POOL_SIZE - 1;
+    const size_t off = vptr & (POOL_SIZE - 1);
     return (StringValue *)&pools[idx][off];
 }
 
@@ -109,9 +109,9 @@ size_t StringTable::findSlot(hash_t hash, const char *s, size_t length)
     {
         StringValue *sv;
         if (!table[i].vptr ||
-            table[i].hash == hash &&
-            (sv = getValue(table[i].vptr))->length == length &&
-            ::memcmp(s, sv->lstring(), length) == 0)
+            (table[i].hash == hash &&
+             (sv = getValue(table[i].vptr))->length == length &&
+             ::memcmp(s, sv->lstring(), length) == 0))
             return i;
         i = (i + j) & (tabledim - 1);
     }

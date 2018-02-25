@@ -56,7 +56,7 @@ public:
             walkPostorder(exp, this);
     }
 
-    void visit(Expression *e)
+    void visit(Expression *)
     {
     }
 
@@ -73,7 +73,7 @@ public:
         }
     }
 
-    void visit(CallExp *e)
+    void visit(CallExp *)
     {
     }
 
@@ -229,7 +229,7 @@ Expression *checkGC(Scope *sc, Expression *e)
     FuncDeclaration *f = sc->func;
     if (e && e->op != TOKerror &&
         f && sc->intypeof != 1 && !(sc->flags & SCOPEctfe) &&
-        (f->type->ty == Tfunction && ((TypeFunction *)f->type)->isnogc ||
+        ((f->type->ty == Tfunction && ((TypeFunction *)f->type)->isnogc) ||
          (f->flags & FUNCFLAGnogcInprocess) ||
          global.params.vgc))
     {

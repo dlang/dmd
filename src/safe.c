@@ -58,7 +58,7 @@ bool checkUnsafeAccess(Scope *sc, Expression *e, bool readonly, bool printmsg)
 
         if (v->type->hasPointers() && v->type->toBasetype()->ty != Tstruct)
         {
-            if ((ad->type->alignment() < Target::ptrsize ||
+            if ((ad->type->alignment() < (unsigned)Target::ptrsize ||
                  (v->offset & (Target::ptrsize - 1))) &&
                 sc->func->setUnsafe())
             {
@@ -99,7 +99,6 @@ bool isSafeCast(Expression *e, Type *tfrom, Type *tto)
     if (!tto->hasPointers())
         return true;
 
-    Type *tfromb = tfrom->toBasetype();
     Type *ttob = tto->toBasetype();
 
     if (ttob->ty == Tclass && tfrom->ty == Tclass)
@@ -122,8 +121,8 @@ bool isSafeCast(Expression *e, Type *tfrom, Type *tto)
     if (ttob->ty == Tarray && tfrom->ty == Tsarray) // Bugzilla 12502
         tfrom = tfrom->nextOf()->arrayOf();
 
-    if (ttob->ty == Tarray   && tfrom->ty == Tarray ||
-        ttob->ty == Tpointer && tfrom->ty == Tpointer)
+    if ((ttob->ty == Tarray   && tfrom->ty == Tarray) ||
+        (ttob->ty == Tpointer && tfrom->ty == Tpointer))
     {
         Type *ttobn = ttob->nextOf()->toBasetype();
         Type *tfromn = tfrom->nextOf()->toBasetype();
@@ -143,8 +142,8 @@ bool isSafeCast(Expression *e, Type *tfrom, Type *tto)
         }
 
         // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
-        if (ttobn->ty == Tstruct && !((TypeStruct *)ttobn)->sym->members ||
-            tfromn->ty == Tstruct && !((TypeStruct *)tfromn)->sym->members)
+        if ((ttobn->ty == Tstruct && !((TypeStruct *)ttobn)->sym->members) ||
+            (tfromn->ty == Tstruct && !((TypeStruct *)tfromn)->sym->members))
             return false;
 
         const bool frompointers = tfromn->hasPointers();

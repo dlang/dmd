@@ -2384,7 +2384,7 @@ int HtmlNamedEntity(const utf8_t *p, size_t length)
 
         for (size_t i = 0; names[i].name; i++)
         {
-            if (strncmp(names[i].name, (char *)p, length) == 0)
+            if (strncmp(names[i].name, (const char *)p, length) == 0)
                 return names[i].value;
         }
     }

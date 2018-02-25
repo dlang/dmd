@@ -54,7 +54,7 @@ const char *FileName::combine(const char *path, const char *name)
     size_t namelen;
 
     if (!path || !*path)
-        return (char *)name;
+        return name;
     pathlen = strlen(path);
     namelen = strlen(name);
     f = (char *)mem.xmalloc(pathlen + 1 + namelen + 1);
@@ -533,16 +533,16 @@ const char *FileName::safeSearchPath(Strings *path, const char *name)
             // exists and name is *really* a "child" of path
             if (exists(cname) && strncmp(cpath, cname, strlen(cpath)) == 0)
             {
-                ::free((void *)cpath);
+                ::free(const_cast<char *>(cpath));
                 const char *p = mem.xstrdup(cname);
-                ::free((void *)cname);
+                ::free(const_cast<char *>(cname));
                 return p;
             }
 cont:
             if (cpath)
-                ::free((void *)cpath);
+                ::free(const_cast<char *>(cpath));
             if (cname)
-                ::free((void *)cname);
+                ::free(const_cast<char *>(cname));
         }
     }
     return NULL;
@@ -593,12 +593,12 @@ bool FileName::ensurePathExists(const char *path)
                 size_t len = strlen(path);
                 if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) ||
                     len == strlen(p))
-                {   mem.xfree((void *)p);
+                {   mem.xfree(const_cast<void *>(p));
                     return 0;
                 }
 #endif
                 bool r = ensurePathExists(p);
-                mem.xfree((void *)p);
+                mem.xfree(const_cast<char *>(p));
                 if (r)
                     return r;
             }
@@ -669,9 +669,9 @@ void FileName::free(const char *str)
 {
     if (str)
     {   assert(str[0] != (char)0xAB);
-        memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
+        memset(const_cast<char *>(str), 0xAB, strlen(str) + 1);     // stomp
     }
-    mem.xfree((void *)str);
+    mem.xfree(const_cast<char *>(str));
 }
 
 const char *FileName::toChars() const

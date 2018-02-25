@@ -55,8 +55,8 @@ public:
     TOK hexStringConstant(Token *t);
     TOK delimitedStringConstant(Token *t);
     TOK tokenStringConstant(Token *t);
-    TOK escapeStringConstant(Token *t, int wide);
-    TOK charConstant(Token *t, int wide);
+    TOK escapeStringConstant(Token *t);
+    TOK charConstant(Token *t);
     void stringPostfix(Token *t);
     TOK number(Token *t);
     TOK inreal(Token *t);

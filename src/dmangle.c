@@ -578,7 +578,7 @@ public:
             /* These are reserved to the compiler, so keep simple
              * names for them.
              */
-            if (cd->ident == Id::Exception && cd->parent->ident == Id::object ||
+            if ((cd->ident == Id::Exception && cd->parent->ident == Id::object) ||
                 cd->ident == Id::TypeInfo ||
                 cd->ident == Id::TypeInfo_Struct ||
                 cd->ident == Id::TypeInfo_Class ||
@@ -697,6 +697,7 @@ public:
                     case '0':
                         if (i < 2)
                             break;          // skip leading 0X
+                        /* fall through */
                     default:
                         buf->writeByte(c);
                         break;
@@ -713,7 +714,7 @@ public:
         realToMangleBuffer(e->toImaginary());
     }
 
-    void visit(NullExp *e)
+    void visit(NullExp *)
     {
         buf->writeByte('n');
     }
@@ -825,7 +826,7 @@ public:
         Parameter_foreach(parameters, &paramsToDecoBufferDg, (void *)this);
     }
 
-    static int paramsToDecoBufferDg(void *ctx, size_t n, Parameter *p)
+    static int paramsToDecoBufferDg(void *ctx, size_t, Parameter *p)
     {
         p->accept((Visitor *)ctx);
         return 0;

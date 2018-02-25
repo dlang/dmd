@@ -59,7 +59,7 @@ void OutBuffer::write(const void *data, size_t nbytes)
         if (level)
         {
             reserve(level);
-            for (size_t i=0; i<level; i++)
+            for (int i = 0; i < level; i++)
             {
                 this->data[offset] = '\t';
                 offset++;
@@ -110,7 +110,7 @@ void OutBuffer::writeByte(unsigned b)
         if (level)
         {
             reserve(level);
-            for (size_t i=0; i<level; i++)
+            for (int i = 0; i < level; i++)
             {
                 this->data[offset] = '\t';
                 offset++;
@@ -205,7 +205,7 @@ void OutBuffer::writeword(unsigned w)
         if (level)
         {
             reserve(level);
-            for (size_t i=0; i<level; i++)
+            for (int i = 0; i < level; i++)
             {
                 this->data[offset] = '\t';
                 offset++;
@@ -248,7 +248,7 @@ void OutBuffer::write4(unsigned w)
         if (level)
         {
             reserve(level);
-            for (size_t i=0; i<level; i++)
+            for (int i = 0; i < level; i++)
             {
                 this->data[offset] = '\t';
                 offset++;
@@ -291,7 +291,7 @@ void OutBuffer::vprintf(const char *format, va_list args)
 
     if (doindent)
         write(NULL, 0); // perform indent
-    unsigned psize = 128;
+    int psize = 128;
     for (;;)
     {
         reserve(psize);

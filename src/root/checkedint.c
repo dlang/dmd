@@ -85,8 +85,8 @@ void unittest1()
 int64_t adds(int64_t x, int64_t y, bool& overflow)
 {
     int64_t r = (uint64_t)x + (uint64_t)y;
-    if (x <  0 && y <  0 && r >= 0 ||
-        x >= 0 && y >= 0 && r <  0)
+    if ((x <  0 && y <  0 && r >= 0) ||
+        (x >= 0 && y >= 0 && r <  0))
         overflow = true;
     return r;
 }
@@ -228,8 +228,8 @@ void unittest5()
 int64_t subs(int64_t x, int64_t y, bool& overflow)
 {
     int64_t r = (uint64_t)x - (uint64_t)y;
-    if (x <  0 && y >= 0 && r >= 0 ||
-        x >= 0 && y <  0 && (r <  0 || y == INT64_MIN))
+    if ((x <  0 && y >= 0 && r >= 0) ||
+        (x >= 0 && y <  0 && (r <  0 || y == INT64_MIN)))
         overflow = true;
     return r;
 }

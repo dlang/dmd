@@ -81,7 +81,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
             result = NULL;
         }
 
-        void visit(Statement *s)
+        void visit(Statement *)
         {
             assert(0); // default is we can't inline it
         }
@@ -162,7 +162,7 @@ Statement *inlineAsStatement(Statement *s, InlineDoState *ids)
                 result = new ReturnStatement(s->loc, doInline(s->exp, ids));
         }
 
-        void visit(ImportStatement *s)
+        void visit(ImportStatement *)
         {
             result = NULL;
         }
@@ -303,7 +303,7 @@ Expression *doInline(Statement *s, InlineDoState *ids)
             result = s->exp ? doInline(s->exp, ids) : NULL;
         }
 
-        void visit(ImportStatement *s)
+        void visit(ImportStatement *)
         {
         }
     };
@@ -514,8 +514,8 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                             }
                         }
                     }
-                    VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
-                    memcpy((void *)vto, (void *)vd, sizeof(VarDeclaration));
+                    void *pvto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
+                    VarDeclaration *vto = (VarDeclaration *)memcpy(pvto, (void*)vd, sizeof(VarDeclaration));
                     vto->parent = ids->parent;
                     vto->csym = NULL;
                     vto->isym = NULL;
@@ -671,8 +671,8 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 //printf("lengthVar\n");
                 VarDeclaration *vd = e->lengthVar;
 
-                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
-                memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+                void *pvto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
+                VarDeclaration *vto = (VarDeclaration *)memcpy(pvto, (void*)vd, sizeof(VarDeclaration));
                 vto->parent = ids->parent;
                 vto->csym = NULL;
                 vto->isym = NULL;
@@ -704,8 +704,8 @@ Expression *doInline(Expression *e, InlineDoState *ids)
                 //printf("lengthVar\n");
                 VarDeclaration *vd = e->lengthVar;
 
-                VarDeclaration *vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
-                memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
+                void *pvto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->_init);
+                VarDeclaration *vto = (VarDeclaration *)memcpy(pvto, (void*)vd, sizeof(VarDeclaration));
                 vto->parent = ids->parent;
                 vto->csym = NULL;
                 vto->isym = NULL;
@@ -825,7 +825,7 @@ public:
         this->again = false;
     }
 
-    void visit(Statement *s)
+    void visit(Statement *)
     {
     }
 
@@ -1053,7 +1053,7 @@ public:
         }
     }
 
-    void visit(Expression *e)
+    void visit(Expression *)
     {
     }
 
@@ -1288,7 +1288,7 @@ public:
      * Look for function inlining possibilities.
      */
 
-    void visit(Dsymbol *d)
+    void visit(Dsymbol *)
     {
         // Most Dsymbols aren't functions
     }
@@ -1298,7 +1298,7 @@ public:
     #if LOG
         printf("FuncDeclaration::inlineScan('%s')\n", fd->toPrettyChars());
     #endif
-        if (fd->isUnitTestDeclaration() && !global.params.useUnitTests ||
+        if ((fd->isUnitTestDeclaration() && !global.params.useUnitTests) ||
             fd->flags & FUNCFLAGinlineScanned)
             return;
 
@@ -1492,13 +1492,10 @@ bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, bool statementsToo
         (fd->ident == Id::require &&
          fd->toParent()->isFuncDeclaration() &&
          fd->toParent()->isFuncDeclaration()->needThis()) ||
-        !hdrscan &&
-        (
-        fd->isSynchronized() ||
-        fd->isImportedSymbol() ||
-        fd->hasNestedFrameRefs() ||
-        (fd->isVirtual() && !fd->isFinalFunc())
-       ))
+        (!hdrscan && (fd->isSynchronized() ||
+                      fd->isImportedSymbol() ||
+                      fd->hasNestedFrameRefs() ||
+                      (fd->isVirtual() && !fd->isFinalFunc()))))
     {
         goto Lno;
     }
@@ -1596,7 +1593,7 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
         Expression *eret, Expression *ethis, Expressions *arguments, bool asStatements,
         Expression **eresult, Statement **sresult, bool *again)
 {
-    InlineDoState ids;
+    InlineDoState ids = {};
     TypeFunction *tf = (TypeFunction*)fd->type;
 
 #define EXPANDINLINE_LOG 0
@@ -1609,7 +1606,6 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
     if (ethis) printf("\tethis = %s\n", ethis->toChars());
 #endif
 
-    memset(&ids, 0, sizeof(ids));
     ids.parent = parent;
     ids.fd = fd;
 
@@ -1754,7 +1750,7 @@ static void expandInline(Loc callLoc, FuncDeclaration *fd, FuncDeclaration *pare
              * any calls to the fp or dg can be inlined.
              */
             if (vfrom->type->ty == Tdelegate ||
-                vfrom->type->ty == Tpointer && vfrom->type->nextOf()->ty == Tfunction)
+                (vfrom->type->ty == Tpointer && vfrom->type->nextOf()->ty == Tfunction))
             {
                 if (arg->op == TOKvar)
                 {
@@ -1930,8 +1926,7 @@ Expression *inlineCopy(Expression *e, Scope *sc)
         e->error("cannot inline default argument %s", e->toChars());
         return new ErrorExp();
     }
-    InlineDoState ids;
-    memset(&ids, 0, sizeof(ids));
+    InlineDoState ids = {};
     ids.parent = sc->parent;
     return doInline(e, &ids);
 }

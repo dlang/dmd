@@ -232,7 +232,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             return ret->op == TOKerror;
         }
 
-        void visit(Expression *e)
+        void visit(Expression *)
         {
             //printf("Expression::optimize(result = x%x) %s\n", result, e->toChars());
         }
@@ -689,7 +689,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                     d_uns64 sz = e->e1->type->size(e->e1->loc);
                     assert(sz != SIZE_INVALID);
                     sz *= 8;
-                    if (i2 < 0 || i2 >= sz)
+                    if (i2 < 0 || (d_uns64)i2 >= sz)
                     {
                         e->error("shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
                         return error();
@@ -774,7 +774,7 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
                 d_uns64 sz = e->e1->type->size();
                 assert(sz != SIZE_INVALID);
                 sz *= 8;
-                if (i2 < 0 || i2 >= sz)
+                if (i2 < 0 || (d_uns64)i2 >= sz)
                 {
                     e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
                     return error();

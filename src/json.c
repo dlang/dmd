@@ -493,7 +493,7 @@ public:
 
     /* ========================================================================== */
 
-    void visit(Dsymbol *s)
+    void visit(Dsymbol *)
     {
     }
 
@@ -617,8 +617,8 @@ public:
         }
     }
 
-    void visit(TypeInfoDeclaration *d) {}
-    void visit(PostBlitDeclaration *d) {}
+    void visit(TypeInfoDeclaration *) {}
+    void visit(PostBlitDeclaration *) {}
 
     void visit(Declaration *d)
     {

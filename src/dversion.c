@@ -62,7 +62,7 @@ Dsymbol *DebugSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
+void DebugSymbol::addMember(Scope *, ScopeDsymbol *sds)
 {
     //printf("DebugSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
     Module *m = sds->isModule();
@@ -100,7 +100,7 @@ void DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
     }
 }
 
-void DebugSymbol::semantic(Scope *sc)
+void DebugSymbol::semantic(Scope *)
 {
     //printf("DebugSymbol::semantic() %s\n", toChars());
     if (semanticRun < PASSsemanticdone)
@@ -152,7 +152,7 @@ Dsymbol *VersionSymbol::syntaxCopy(Dsymbol *s)
     return ds;
 }
 
-void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
+void VersionSymbol::addMember(Scope *, ScopeDsymbol *sds)
 {
     //printf("VersionSymbol::addMember('%s') %s\n", sds->toChars(), toChars());
     Module *m = sds->isModule();
@@ -191,7 +191,7 @@ void VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sds)
     }
 }
 
-void VersionSymbol::semantic(Scope *sc)
+void VersionSymbol::semantic(Scope *)
 {
     if (semanticRun < PASSsemanticdone)
         semanticRun = PASSsemanticdone;

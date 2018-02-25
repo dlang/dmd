@@ -422,7 +422,7 @@ class TypeVector : public Type
 public:
     Type *basetype;
 
-    TypeVector(Loc loc, Type *basetype);
+    TypeVector(Type *basetype);
     static TypeVector *create(Loc loc, Type *basetype);
     const char *kind();
     Type *syntaxCopy();
@@ -937,6 +937,6 @@ public:
 };
 
 bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
-bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2);
 
 #endif /* DMD_MTYPE_H */

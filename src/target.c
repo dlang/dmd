@@ -460,7 +460,7 @@ int Target::isVectorTypeSupported(int sz, Type *type)
  * Returns:
  *      true if the operation is supported or type is not a vector
  */
-bool Target::isVectorOpSupported(Type *type, TOK op, Type *t2)
+bool Target::isVectorOpSupported(Type *type, TOK op, Type *)
 {
     if (type->ty != Tvector)
         return true; // not a vector op
@@ -511,6 +511,7 @@ bool Target::isVectorOpSupported(Type *type, TOK op, Type *t2)
 
         case TOKnot:
             supported = false;
+            break;
 
         case TOKtilde:
             supported = tvec->isintegral();
@@ -532,7 +533,7 @@ bool Target::isVectorOpSupported(Type *type, TOK op, Type *t2)
  * modules whose source are empty, but code gets injected
  * immediately after loading.
  */
-void Target::loadModule(Module *m)
+void Target::loadModule(Module *)
 {
 }
 
@@ -580,7 +581,7 @@ const char *Target::cppTypeInfoMangle(ClassDeclaration *cd)
  * For a vendor-specific type, return a string containing the C++ mangling.
  * In all other cases, return null.
  */
-const char* Target::cppTypeMangle(Type *t)
+const char* Target::cppTypeMangle(Type *)
 {
     return NULL;
 }
