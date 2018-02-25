@@ -4378,7 +4378,9 @@ extern (C++) public Statement asmSemantic(AsmStatement s, Scope *sc)
     if (!s.tokens)
         return null;
 
-    memset(&asmstate, 0, asmstate.sizeof);
+    asmstate.ucItype = 0;
+    asmstate.bReturnax = false;
+    asmstate.lbracketNestCount = 0;
 
     asmstate.statement = s;
     asmstate.sc = sc;
