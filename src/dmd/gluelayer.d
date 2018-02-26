@@ -47,7 +47,6 @@ version (NoBackend)
         Statement asmSemantic(AsmStatement s, Scope* sc) { assert(0); }
 
         // toir
-        RET retStyle(TypeFunction tf)               { return RET.regs; }
         void toObjFile(Dsymbol ds, bool multiobj)   {}
 
         extern(C++) abstract class ObjcGlue
@@ -77,7 +76,6 @@ else version (MARS)
 
         Statement asmSemantic(AsmStatement s, Scope* sc);
 
-        RET retStyle(TypeFunction tf);
         void toObjFile(Dsymbol ds, bool multiobj);
 
         extern(C++) abstract class ObjcGlue
@@ -96,7 +94,6 @@ else version (IN_GCC)
 
     extern (C++)
     {
-        RET retStyle(TypeFunction tf);
         Statement asmSemantic(AsmStatement s, Scope* sc);
     }
 
