@@ -156,6 +156,32 @@ else version(NetBSD)
     int   shmdt(in void*);
     int   shmget(key_t, size_t, int);
 }
+else version(DragonFlyBSD)
+{
+    enum SHM_RDONLY     = 0x01000; // 010000
+    enum SHM_RND        = 0x02000; // 020000
+    enum SHMLBA         = 1 << 12; // PAGE_SIZE = (1<<PAGE_SHIFT)
+
+    alias c_ulong   shmatt_t;
+
+    struct shmid_ds
+    {
+         ipc_perm       shm_perm;
+         int            shm_segsz;
+         pid_t          shm_lpid;
+         pid_t          shm_cpid;
+         short          shm_nattch;
+         time_t         shm_atime;
+         time_t         shm_dtime;
+         time_t         shm_ctime;
+         private void*  shm_internal;
+    }
+
+    void* shmat(int, in void*, int);
+    int   shmctl(int, int, shmid_ds*);
+    int   shmdt(in void*);
+    int   shmget(key_t, size_t, int);
+}
 else version( Darwin )
 {
 
