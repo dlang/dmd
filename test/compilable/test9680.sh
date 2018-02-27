@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-name=`basename $0 .sh`
 dir=${RESULTS_DIR}/compilable
 
 if [ "${OS}" == "win32" -o "${OS}" == "Windows_NT" ]; then
@@ -11,7 +10,7 @@ fi
 
 for kind in "${kinds[@]}"
 do
-	file_name=${name}${kind}
+	file_name=${TEST_NAME}${kind}
 	src_file=compilable/extra-files/${file_name}.d
 	expect_file=compilable/extra-files/${file_name}.out
 	output_file=${dir}/${file_name}.out
@@ -28,4 +27,4 @@ do
 	rm ${output_file}{,.2}
 done
 
-echo Success >${dir}/`basename $0`.out
+echo Success

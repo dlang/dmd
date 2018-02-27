@@ -2,9 +2,6 @@
 
 set -u -o pipefail
 
-name=$(basename "$0" .sh)
-dir=${RESULTS_DIR}/compilable/
-
 # dmd should not segfault on -X with libraries, but no source files
 out=$("$DMD" -conf= -X foo.a 2>&1)
 [ $? -eq 1 ] || exit 1

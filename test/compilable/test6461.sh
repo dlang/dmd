@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-name=`basename $0 .sh`
 dir=${RESULTS_DIR}/compilable
-src=compilable/extra-files/${name}
+src=compilable/extra-files/${TEST_NAME}
 
 if [ "${OS}" == "win32" -o "${OS}" == "win64" ]; then
     LIBEXT=.lib
@@ -17,5 +16,4 @@ $DMD -m${MODEL} -od${dir} -I${src} ${src}/main.d ${dir}/a${LIBEXT} ${dir}/b${LIB
 
 rm -f ${dir}/{a${LIBEXT} b${LIBEXT} main${EXE} main${OBJ}}
 
-echo Success >${dir}/`basename $0`.out
-
+echo Success

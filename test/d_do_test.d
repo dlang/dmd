@@ -792,10 +792,11 @@ int tryMain(string[] args)
 
             f.writeln();
             f.writeln("==============================");
-            f.writeln("Test failed: ", e.msg);
+            f.writef("Test %s/%s.%s failed: ", input_dir, test_name, test_extension);
+            f.writeln(e.msg);
             f.close();
 
-            writeln("Test failed.  The logged output:");
+            writefln("Test %s/%s.%s failed.  The logged output:", input_dir, test_name, test_extension);
             writeln(cast(string)std.file.read(output_file));
             std.file.remove(output_file);
             return Result.return1;
