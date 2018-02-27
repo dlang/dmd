@@ -1,6 +1,6 @@
 Argument mismatch errors have been improved
 
-$(P `dmd` now shows which argument failed to match a parameter and why.)
+$(P `dmd` now shows which argument failed to match a parameter with an explanatory error message.)
 ---
 void fill(ref char[16] buf, char c);
 
