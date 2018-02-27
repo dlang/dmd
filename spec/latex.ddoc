@@ -8,6 +8,7 @@ AMP=\&
 _=
 
 B=\textbf{$0}
+BEST_PRACTICE= $(P $(B Best Practices:) $0)
 BIG=\large{$0}
 BLACK={\color{black}$0}
 BLUE={\color{blue}$0}
@@ -117,6 +118,7 @@ HTMLTAG3=
 _=
 
 I=\textit{$0}
+IMPLEMENTATION_DEFINED=$(P $(B Implementation Defined): $0)
 _=
 
 LAYOUT=
@@ -361,6 +363,8 @@ $0
 \end{itemize}
 _=
 
+
+UNDEFINED_BEHAVIOR=$(P $(B Undefined Behavior): $0)
 UNDERSCORE=\_
 _=
 
