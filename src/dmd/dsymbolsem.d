@@ -5491,6 +5491,19 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         global.gag = 0;
     }
 
+    // https://issues.dlang.org/show_bug.cgi?id=18480
+    // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
+    // Selective imports are allowed to alias to the same name `import mod : sym=sym`.
+    if (ds.type.ty == Tident && !ds._import)
+    {
+        auto tident = cast(TypeIdentifier)ds.type;
+        if (tident.ident is ds.ident && !tident.idents.dim)
+        {
+            error(ds.loc, "`alias %s = %s;` cannot alias itself, use a qualified name to create an overload set",
+                ds.ident.toChars(), tident.ident.toChars());
+            ds.type = Type.terror;
+        }
+    }
     /* This section is needed because Type.resolve() will:
      *   const x = 3;
      *   alias y = x;
