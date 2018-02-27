@@ -161,22 +161,12 @@ public int runLINK()
         if (global.params.mscoff)
         {
             OutBuffer cmdbuf;
-            cmdbuf.writestring("/NOLOGO ");
+            cmdbuf.writestring("/NOLOGO");
             for (size_t i = 0; i < global.params.objfiles.dim; i++)
             {
-                if (i)
-                    cmdbuf.writeByte(' ');
+                cmdbuf.writeByte(' ');
                 const(char)* p = global.params.objfiles[i];
-                const(char)* basename = FileName.removeExt(FileName.name(p));
-                const(char)* ext = FileName.ext(p);
-                if (ext && !strchr(basename, '.'))
-                {
-                    // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p, ext - p - 1);
-                }
-                else
-                    writeFilename(&cmdbuf, p);
-                FileName.free(basename);
+                writeFilename(&cmdbuf, p);
             }
             if (global.params.resfile)
             {
