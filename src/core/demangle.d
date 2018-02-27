@@ -2576,6 +2576,21 @@ unittest
     }
 }
 
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=18300
+    string s = "_D1";
+    string expected = "int ";
+    foreach (_; 0..10_000)
+    {
+        s ~= "a1";
+        expected ~= "a.";
+    }
+    s ~= "FiZi";
+    expected ~= "F";
+    assert(s.demangle == expected);
+}
+
 /*
  *
  */
