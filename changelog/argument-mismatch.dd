@@ -1,0 +1,22 @@
+Argument mismatch errors have been improved
+
+$(P `dmd` now shows which argument failed to match a parameter and why.)
+---
+void fill(ref char[16] buf, char c);
+
+void main()
+{
+    fill("1234567890123456", '*');
+
+    const char[16] s;
+    fill(s, '*');
+}
+---
+$(P Output:)
+$(CONSOLE
+fillchar.d(5): Error: function `fillchar.fill(ref char[16] buf, char c)` is not callable using argument types `(string, char)`
+fillchar.d(5):        cannot pass rvalue argument `"1234567890123456"` of type `string` to parameter `ref char[16] buf`
+fillchar.d(8): Error: function `fillchar.fill(ref char[16] buf, char c)` is not callable using argument types `(const(char[16]), char)`
+fillchar.d(8):        cannot pass argument `s` of type `const(char[16])` to parameter `ref char[16] buf`
+)
+$(P Note: Currently this change doesn't apply when the function has overloads.)
