@@ -385,7 +385,8 @@ void genObjFile(Module m, bool multiobj)
         /* Create coverage identifier:
          *  uint[numlines] __coverage;
          */
-        m.cov = toSymbolX(m, "__coverage", SCglobal, type_fake(TYint), "Z");
+        m.cov = toSymbolX(m, "__coverage", SCstatic, type_fake(TYint), "Z");
+        m.cov.Sflags |= SFLhidden;
         m.cov.Stype.Tmangle = mTYman_d;
         m.cov.Sfl = FLdata;
 

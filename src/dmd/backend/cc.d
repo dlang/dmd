@@ -1185,6 +1185,7 @@ enum
     SFLnodebug      = 0x20000,     // don't generate debug info
     SFLwasstatic    = 0x800000,    // was an uninitialized static
     SFLweak         = 0x1000000,   // resolve to NULL if not found
+    SFLhidden       = 0x2000000,   // not visible outside of DSOs (-fvisibility=hidden)
     SFLartifical    = 0x4000000,   // compiler generated symbol
 
     // CPP
@@ -1207,7 +1208,7 @@ enum
     // OPTIMIZER and CODGEN
     GTregcand       = 0x100,       // if Symbol is a register candidate
     SFLdead         = 0x800,       // this variable is dead
-    GTunregister    = 0x2000000,   // 'unregister' a previous register assignment
+    GTunregister    = 0x8000000,   // 'unregister' a previous register assignment
 
     // OPTIMIZER only
     SFLunambig      = 0x400,       // only accessible by unambiguous reference,

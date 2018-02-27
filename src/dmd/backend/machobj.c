@@ -1349,6 +1349,8 @@ void Obj::term(const char *objfilename)
         struct nlist_64 sym;
         sym.n_un.n_strx = elf_addmangled(s);
         sym.n_type = N_EXT | N_SECT;
+        if (s->Sflags & SFLhidden)
+            sym.n_type |= N_PEXT; // private extern
         sym.n_desc = 0;
         if (s->Sclass == SCcomdat)
             sym.n_desc = N_WEAK_DEF;
@@ -2264,6 +2266,13 @@ void Obj::pubdef(int seg, Symbol *s, targ_size_t offset)
         case SCcomdef:
             public_symbuf->write(&s, sizeof(s));
             break;
+        case SCstatic:
+            if (s->Sflags & SFLhidden)
+            {
+                public_symbuf->write(&s, sizeof(s));
+                break;
+            }
+            // fallthrough
         default:
             local_symbuf->write(&s, sizeof(s));
             break;
@@ -2328,6 +2337,8 @@ int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
 
     // can't have code or thread local comdef's
     assert(!(s->ty() & (mTYcs | mTYthread)));
+    // support for hidden comdefs not implemented
+    assert(!(s->Sflags & SFLhidden));
 
     struct Comdef comdef;
     comdef.sym = s;
