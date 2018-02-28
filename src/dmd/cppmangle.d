@@ -584,7 +584,20 @@ private final class CppMangleVisitor : Visitor
              */
             TemplateInstance ti = d.parent.isTemplateInstance();
             assert(ti);
-            source_name(ti);
+            Dsymbol p = ti.toParent();
+            if (p && !p.isModule() && tf.linkage == LINK.cpp)
+            {
+                buf.writeByte('N');
+                CV_qualifiers(d.type);
+                prefix_name(p);
+                if (d.isDtorDeclaration())
+                    buf.writestring("D1");
+                else
+                    source_name(ti);
+                buf.writeByte('E');
+            }
+            else
+                source_name(ti);
             headOfType(tf.nextOf());  // mangle return type
         }
         else
