@@ -3671,6 +3671,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     unsigned char rex = I64 ? REX_W : 0;
 
+    bool e2E2isConst = false;
     if (e2->E2->Eoper == OPconst)
     {
         value = el_tolong(e2->E2);
@@ -3678,6 +3679,12 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         value |= value << 8;
         value |= value << 16;
         value |= value << 32;
+        e2E2isConst = true;
+    }
+    else if (e2->E2->Eoper == OPstrpar)  // happens if e2->E2 is a struct of 0 size
+    {
+        value = 0;
+        e2E2isConst = true;
     }
     else
         value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
@@ -3687,7 +3694,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         numbytes = el_tolong(e2->E1);
         if (numbytes <= REP_THRESHOLD &&
             !I16 &&                     // doesn't work for 16 bits
-            e2->E2->Eoper == OPconst)
+            e2E2isConst)
         {
             targ_uns offset = 0;
             retregs1 = *pretregs;
@@ -3758,7 +3765,7 @@ fixres:
 
     // Get nbytes into CX
     retregs2 = mCX;
-    if (!I16 && e2->E1->Eoper == OPconst && e2->E2->Eoper == OPconst)
+    if (!I16 && e2->E1->Eoper == OPconst && e2E2isConst)
     {
         remainder = numbytes & (4 - 1);
         numwords  = numbytes / 4;               // number of words
@@ -3776,7 +3783,7 @@ fixres:
     // Get val into AX
 
     retregs3 = mAX;
-    if (!I16 && e2->E2->Eoper == OPconst)
+    if (!I16 && e2E2isConst)
     {
         regwithvalue(cdb, mAX, value, NULL, I64?64:0);
         freenode(e2->E2);

@@ -6685,7 +6685,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                          * initializer
                          */
                         Expression einit;
-                        if (sd.zeroInit == 1 && !sd.isNested())
+                        if (sd.zeroInit && !sd.isNested())
                         {
                             // https://issues.dlang.org/show_bug.cgi?id=14606
                             // Always use BlitExp for the special expression: (struct = 0)

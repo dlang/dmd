@@ -1167,7 +1167,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (global.params.is64bit &&
                 !global.params.isWindows)
             {
-                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true);
+                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
                 // The backend will pick this up by name
                 Symbol *sv = symbol_name("__va_argsave", SCauto, t);
                 sv.Stype.Tty |= mTYvolatile;

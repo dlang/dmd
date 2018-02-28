@@ -728,6 +728,36 @@ struct Target
             return false;
         }
     }
+
+    /***
+     * Determine the size a value of type `t` will be when it
+     * is passed on the function parameter stack.
+     * Params:
+     *  loc = location to use for error messages
+     *  t = type of parameter
+     * Returns:
+     *  size used on parameter stack
+     */
+    extern (C++) static ulong parameterSize(const ref Loc loc, Type t)
+    {
+        if (!global.params.is64bit &&
+            (global.params.isFreeBSD || global.params.isOSX))
+        {
+            /* These platforms use clang, which regards a struct
+             * with size 0 as being of size 0 on the parameter stack,
+             * even while sizeof(struct) is 1.
+             * It's an ABI incompatibility with gcc.
+             */
+            if (t.ty == Tstruct)
+            {
+                auto ts = cast(TypeStruct)t;
+                if (ts.sym.hasNoFields)
+                    return 0;
+            }
+        }
+        const sz = t.size(loc);
+        return global.params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
+    }
 }
 
 /******************************

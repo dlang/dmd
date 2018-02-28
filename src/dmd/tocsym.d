@@ -533,7 +533,7 @@ Classsym *fake_classsym(Identifier id)
 {
     auto t = type_struct_class(id.toChars(),8,0,
         null,null,
-        false, false, true);
+        false, false, true, false);
 
     t.Ttag.Sstruct.Sflags = STRglobal;
     t.Tflags |= TFsizeunknown | TFforward;
