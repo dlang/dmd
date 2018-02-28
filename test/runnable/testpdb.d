@@ -2,6 +2,7 @@
 // PERMUTE_ARGS:
 
 import core.time;
+import core.demangle;
 
 void main(string[] args)
 {
@@ -73,7 +74,7 @@ void testSymbolHasChildren(IDiaSymbol sym, string name)
 
 void testLineNumbers(IDiaSession session, IDiaSymbol globals)
 {
-    IDiaSymbol funcsym = searchSymbol(globals, test15432.mangleof);
+    IDiaSymbol funcsym = searchSymbol(globals, cPrefix ~ test15432.mangleof);
     assert(funcsym, "symbol test15432 not found");
     ubyte[] funcRange;
     Line[] lines = findSymbolLineNumbers(session, funcsym, &funcRange);
