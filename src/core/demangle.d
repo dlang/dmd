@@ -208,11 +208,11 @@ pure @safe:
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
-
             size_t v = &val[0] - &dst[0];
+            assert( len >= val.length && len <= dst.length );
+            len -= val.length;
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
-            len -= val.length;
         }
     }
 
@@ -2561,6 +2561,15 @@ version(unittest)
         enum r = demangle( table[i][0] );
         static assert( r == table[i][1],
                 "demangled \"" ~ table[i][0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ table[i][1] ~ "\"");
+    }
+
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=18531
+        auto symbol = `_D3std3uni__T6toCaseS_DQvQt12toLowerIndexFNaNbNiNewZtVii1043S_DQCjQCi10toLowerTabFNaNbNiNemZwSQDo5ascii7toLowerTAyaZQDzFNaNeQmZ14__foreachbody2MFNaNeKmKwZ14__foreachbody3MFNaNeKwZi`;
+        auto demangled = `pure @trusted int std.uni.toCase!(std.uni.toLowerIndex(dchar), 1043, std.uni.toLowerTab(ulong), std.ascii.toLower, immutable(char)[]).toCase(immutable(char)[]).__foreachbody2(ref ulong, ref dchar).__foreachbody3(ref dchar)`;
+        auto dst = new char[200];
+        auto ret = demangle( symbol, dst);
+        assert( ret == demangled );
     }
 }
 
