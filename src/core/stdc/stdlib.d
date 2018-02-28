@@ -32,12 +32,24 @@ extern (C):
 /* Placed outside @nogc in order to not constrain what the callback does.
  */
 ///
-alias int function(scope const void*, scope const void*) _compare_fp_t;
+alias int function(const void*, const void*) _compare_fp_t;
 ///
-inout(void)* bsearch(scope const void* key, scope inout(void)* base, size_t nmemb, size_t size, _compare_fp_t compar);
+inout(void)* bsearch(const void* key, inout(void)* base, size_t nmemb, size_t size, _compare_fp_t compar);
 ///
-void    qsort(scope void* base, size_t nmemb, size_t size, _compare_fp_t compar);
+void    qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
+// https://issues.dlang.org/show_bug.cgi?id=17188
+@system unittest
+{
+    struct S
+    {
+        extern(C) static int cmp(const void*, const void*) { return 0; }
+    }
+    int[4] arr;
+    qsort(arr.ptr, arr[0].sizeof, arr.length, &S.cmp);
+    int key;
+    bsearch(&key, arr.ptr, arr[0].sizeof, arr.length, &S.cmp);
+}
 
 nothrow:
 @nogc:
