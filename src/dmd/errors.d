@@ -166,6 +166,21 @@ extern (C++) void deprecationSupplemental(const ref Loc loc, const(char)* format
  * Print a verbose message.
  * Doesn't prefix or highlight messages.
  * Params:
+ *      loc    = location of message
+ *      format = printf-style format specification
+ *      ...    = printf-style variadic arguments
+ */
+extern (C++) void message(const ref Loc loc, const(char)* format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vmessage(loc, format, ap);
+    va_end(ap);
+}
+
+/**
+ * Same as above, but doesn't take a location argument.
+ * Params:
  *      format = printf-style format specification
  *      ...    = printf-style variadic arguments
  */
@@ -173,7 +188,7 @@ extern (C++) void message(const(char)* format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    vmessage(format, ap);
+    vmessage(Loc.initial, format, ap);
     va_end(ap);
 }
 
@@ -327,11 +342,18 @@ extern (C++) void vdeprecation(const ref Loc loc, const(char)* format, va_list a
 /**
  * Same as $(D message), but takes a va_list parameter.
  * Params:
- *      format = printf-style format specification
- *      ap     = printf-style variadic arguments
+ *      loc       = location of message
+ *      format    = printf-style format specification
+ *      ap        = printf-style variadic arguments
  */
-extern (C++) void vmessage(const(char)* format, va_list ap)
+extern (C++) void vmessage(const ref Loc loc, const(char)* format, va_list ap)
 {
+    const p = loc.toChars();
+    if (*p)
+    {
+        fprintf(stdout, "%s: ", p);
+        mem.xfree(cast(void*)p);
+    }
     OutBuffer tmp;
     tmp.vprintf(format, ap);
     fputs(tmp.peekString(), stdout);
