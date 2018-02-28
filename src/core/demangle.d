@@ -227,8 +227,7 @@ pure @safe:
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if( &dst[len] == &val[0] &&
-                dst.length - len >= val.length )
+            if( dst.length - len >= val.length && &dst[len] == &val[0] )
             {
                 // data is already in place
                 auto t = dst[len .. len + val.length];
@@ -2565,6 +2564,32 @@ version(unittest)
     }
 }
 
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=18300
+    string s = demangle.mangleof;
+    foreach(i; 1..77)
+    {
+        char[] buf = new char[i];
+        auto ds = demangle(s, buf);
+        assert(ds == "pure nothrow @safe char[] core.demangle.demangle(const(char)[], char[])");
+    }
+}
+
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=18300
+    string s = "_D1";
+    string expected = "int ";
+    foreach (_; 0..10_000)
+    {
+        s ~= "a1";
+        expected ~= "a.";
+    }
+    s ~= "FiZi";
+    expected ~= "F";
+    assert(s.demangle == expected);
+}
 
 /*
  *
