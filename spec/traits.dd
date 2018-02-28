@@ -42,6 +42,7 @@ $(GNAME TraitsKeyword):
     $(GLINK isRef)
     $(GLINK isOut)
     $(GLINK isLazy)
+    $(GLINK isReturnOnStack)
     $(GLINK hasMember)
     $(GLINK identifier)
     $(GLINK getAliasThis)
@@ -398,6 +399,39 @@ static assert(__traits(isTemplate,foo));
 static assert(!__traits(isTemplate,foo!int()));
 static assert(!__traits(isTemplate,"string"));
 ---
+
+$(H2 $(GNAME isReturnOnStack))
+
+    $(P
+        Takes one argument which must either be a function symbol, function literal,
+        a delegate, or a function pointer.
+        It returns a `bool` which is `true` if the return value of the function is
+        returned on the stack via a pointer to it passed as a hidden extra
+        parameter to the function.
+    )
+
+    ---
+    struct S { int[20] a; }
+    int test1();
+    S test2();
+
+    static assert(__traits(isReturnOnStack, test1) == false);
+    static assert(__traits(isReturnOnStack, test2) == true);
+    ---
+
+    $(IMPLEMENTATION_DEFINED
+        This is determined by the function ABI calling convention in use,
+        which is often complex.
+    )
+
+    $(BEST_PRACTICE This has applications in:
+    $(OL
+    $(LI Returning values in registers is often faster, so this can be used as
+    a check on a hot function to ensure it is using the fastest method.)
+    $(LI When using inline assembly to correctly call a function.)
+    $(LI Testing that the compiler does this correctly is normally hackish and awkward,
+    this enables efficient, direct, and simple testing.)
+    ))
 
 $(H2 $(GNAME hasMember))
 
