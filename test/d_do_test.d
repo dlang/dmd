@@ -9,6 +9,7 @@ import std.file;
 import std.format;
 import std.process;
 import std.random;
+import std.range : chain;
 import std.regex;
 import std.stdio;
 import std.string;
@@ -637,7 +638,8 @@ int tryMain(string[] args)
         }
     }
 
-    if (testArgs.disabledPlatforms.canFind(envData.os, envData.os ~ envData.model))
+    // allows partial matching, e.g. win for both win32 and win64
+    if (testArgs.disabledPlatforms.any!(a => envData.os.chain(envData.model).canFind(a)))
     {
         testArgs.disabled = true;
         writefln("!!! [DISABLED on %s]", envData.os);
