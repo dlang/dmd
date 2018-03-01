@@ -17,6 +17,7 @@ import core.stdc.string;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.complex;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -38,6 +39,7 @@ import dmd.initsem;
 import dmd.visitor;
 import dmd.mtype;
 import dmd.opover;
+import dmd.root.ctfloat;
 import dmd.root.rmem;
 import dmd.root.outbuffer;
 import dmd.root.rootobject;
@@ -1503,4 +1505,547 @@ static Type merge(Type type)
         }
     }
     return t;
+}
+
+/***************************************
+ * Calculate built-in properties which just the type is necessary.
+ *
+ * Params:
+ *  t = the type for which the property is calculated
+ *  loc = the location where the property is encountered
+ *  ident = the identifier of the property
+ *  flag = if flag & 1, don't report "not a property" error and just return NULL.
+ */
+extern(C++) Expression getProperty(Type t, const ref Loc loc, Identifier ident, int flag)
+{
+    scope v = new GetPropertyVisitor(loc, ident, flag);
+    t.accept(v);
+    return  v.result;
+}
+
+private extern (C++) final class GetPropertyVisitor : Visitor
+{
+    alias visit = super.visit;
+    Loc loc;
+    Identifier ident;
+    int flag;
+    Expression result;
+
+    this(const ref Loc loc, Identifier ident, int flag)
+    {
+        this.loc = loc;
+        this.ident = ident;
+        this.flag = flag;
+    }
+
+    override void visit(Type mt)
+    {
+        Expression e;
+        static if (LOGDOTEXP)
+        {
+            printf("Type::getProperty(type = '%s', ident = '%s')\n", mt.toChars(), ident.toChars());
+        }
+        if (ident == Id.__sizeof)
+        {
+            d_uns64 sz = mt.size(loc);
+            if (sz == SIZE_INVALID)
+            {
+                result = new ErrorExp();
+                return;
+            }
+            e = new IntegerExp(loc, sz, Type.tsize_t);
+        }
+        else if (ident == Id.__xalignof)
+        {
+            const explicitAlignment = mt.alignment();
+            const naturalAlignment = mt.alignsize();
+            const actualAlignment = (explicitAlignment == STRUCTALIGN_DEFAULT ? naturalAlignment : explicitAlignment);
+            e = new IntegerExp(loc, actualAlignment, Type.tsize_t);
+        }
+        else if (ident == Id._init)
+        {
+            Type tb = mt.toBasetype();
+            e = mt.defaultInitLiteral(loc);
+            if (tb.ty == Tstruct && tb.needsNested())
+            {
+                StructLiteralExp se = cast(StructLiteralExp)e;
+                se.useStaticInit = true;
+            }
+        }
+        else if (ident == Id._mangleof)
+        {
+            if (!mt.deco)
+            {
+                error(loc, "forward reference of type `%s.mangleof`", mt.toChars());
+                e = new ErrorExp();
+            }
+            else
+            {
+                e = new StringExp(loc, mt.deco);
+                Scope sc;
+                e = e.expressionSemantic(&sc);
+            }
+        }
+        else if (ident == Id.stringof)
+        {
+            const s = mt.toChars();
+            e = new StringExp(loc, cast(char*)s);
+            Scope sc;
+            e = e.expressionSemantic(&sc);
+        }
+        else if (flag && mt != Type.terror)
+        {
+            result = null;
+            return;
+        }
+        else
+        {
+            Dsymbol s = null;
+            if (mt.ty == Tstruct || mt.ty == Tclass || mt.ty == Tenum)
+                s = mt.toDsymbol(null);
+            if (s)
+                s = s.search_correct(ident);
+            if (mt != Type.terror)
+            {
+                if (s)
+                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), mt.toChars(), s.toPrettyChars());
+                else
+                {
+                    if (ident == Id.call && mt.ty == Tclass)
+                        error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
+                    else
+                        error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toChars());
+                }
+            }
+            e = new ErrorExp();
+        }
+        result = e;
+    }
+
+    override void visit(TypeError)
+    {
+        result = new ErrorExp();
+    }
+
+    override void visit(TypeBasic mt)
+    {
+        Expression e;
+        dinteger_t ivalue;
+        real_t fvalue;
+        //printf("TypeBasic::getProperty('%s')\n", ident.toChars());
+        if (ident == Id.max)
+        {
+            switch (mt.ty)
+            {
+            case Tint8:
+                ivalue = 0x7F;
+                goto Livalue;
+            case Tuns8:
+                ivalue = 0xFF;
+                goto Livalue;
+            case Tint16:
+                ivalue = 0x7FFFU;
+                goto Livalue;
+            case Tuns16:
+                ivalue = 0xFFFFU;
+                goto Livalue;
+            case Tint32:
+                ivalue = 0x7FFFFFFFU;
+                goto Livalue;
+            case Tuns32:
+                ivalue = 0xFFFFFFFFU;
+                goto Livalue;
+            case Tint64:
+                ivalue = 0x7FFFFFFFFFFFFFFFL;
+                goto Livalue;
+            case Tuns64:
+                ivalue = 0xFFFFFFFFFFFFFFFFUL;
+                goto Livalue;
+            case Tbool:
+                ivalue = 1;
+                goto Livalue;
+            case Tchar:
+                ivalue = 0xFF;
+                goto Livalue;
+            case Twchar:
+                ivalue = 0xFFFFU;
+                goto Livalue;
+            case Tdchar:
+                ivalue = 0x10FFFFU;
+                goto Livalue;
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                fvalue = Target.FloatProperties.max;
+                goto Lfvalue;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                fvalue = Target.DoubleProperties.max;
+                goto Lfvalue;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                fvalue = Target.RealProperties.max;
+                goto Lfvalue;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.min)
+        {
+            switch (mt.ty)
+            {
+            case Tint8:
+                ivalue = -128;
+                goto Livalue;
+            case Tuns8:
+                ivalue = 0;
+                goto Livalue;
+            case Tint16:
+                ivalue = -32768;
+                goto Livalue;
+            case Tuns16:
+                ivalue = 0;
+                goto Livalue;
+            case Tint32:
+                ivalue = -2147483647 - 1;
+                goto Livalue;
+            case Tuns32:
+                ivalue = 0;
+                goto Livalue;
+            case Tint64:
+                ivalue = (-9223372036854775807L - 1L);
+                goto Livalue;
+            case Tuns64:
+                ivalue = 0;
+                goto Livalue;
+            case Tbool:
+                ivalue = 0;
+                goto Livalue;
+            case Tchar:
+                ivalue = 0;
+                goto Livalue;
+            case Twchar:
+                ivalue = 0;
+                goto Livalue;
+            case Tdchar:
+                ivalue = 0;
+                goto Livalue;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.min_normal)
+        {
+        Lmin_normal:
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                fvalue = Target.FloatProperties.min_normal;
+                goto Lfvalue;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                fvalue = Target.DoubleProperties.min_normal;
+                goto Lfvalue;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                fvalue = Target.RealProperties.min_normal;
+                goto Lfvalue;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.nan)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Tcomplex64:
+            case Tcomplex80:
+            case Timaginary32:
+            case Timaginary64:
+            case Timaginary80:
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                fvalue = Target.RealProperties.nan;
+                goto Lfvalue;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.infinity)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Tcomplex64:
+            case Tcomplex80:
+            case Timaginary32:
+            case Timaginary64:
+            case Timaginary80:
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+                fvalue = Target.RealProperties.infinity;
+                goto Lfvalue;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.dig)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                ivalue = Target.FloatProperties.dig;
+                goto Lint;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                ivalue = Target.DoubleProperties.dig;
+                goto Lint;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                ivalue = Target.RealProperties.dig;
+                goto Lint;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.epsilon)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                fvalue = Target.FloatProperties.epsilon;
+                goto Lfvalue;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                fvalue = Target.DoubleProperties.epsilon;
+                goto Lfvalue;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                fvalue = Target.RealProperties.epsilon;
+                goto Lfvalue;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.mant_dig)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                ivalue = Target.FloatProperties.mant_dig;
+                goto Lint;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                ivalue = Target.DoubleProperties.mant_dig;
+                goto Lint;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                ivalue = Target.RealProperties.mant_dig;
+                goto Lint;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.max_10_exp)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                ivalue = Target.FloatProperties.max_10_exp;
+                goto Lint;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                ivalue = Target.DoubleProperties.max_10_exp;
+                goto Lint;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                ivalue = Target.RealProperties.max_10_exp;
+                goto Lint;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.max_exp)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                ivalue = Target.FloatProperties.max_exp;
+                goto Lint;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                ivalue = Target.DoubleProperties.max_exp;
+                goto Lint;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                ivalue = Target.RealProperties.max_exp;
+                goto Lint;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.min_10_exp)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                ivalue = Target.FloatProperties.min_10_exp;
+                goto Lint;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                ivalue = Target.DoubleProperties.min_10_exp;
+                goto Lint;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                ivalue = Target.RealProperties.min_10_exp;
+                goto Lint;
+            default:
+                break;
+            }
+        }
+        else if (ident == Id.min_exp)
+        {
+            switch (mt.ty)
+            {
+            case Tcomplex32:
+            case Timaginary32:
+            case Tfloat32:
+                ivalue = Target.FloatProperties.min_exp;
+                goto Lint;
+            case Tcomplex64:
+            case Timaginary64:
+            case Tfloat64:
+                ivalue = Target.DoubleProperties.min_exp;
+                goto Lint;
+            case Tcomplex80:
+            case Timaginary80:
+            case Tfloat80:
+                ivalue = Target.RealProperties.min_exp;
+                goto Lint;
+            default:
+                break;
+            }
+        }
+        visit(cast(Type)mt);
+        return;
+
+    Livalue:
+        e = new IntegerExp(loc, ivalue, mt);
+        result = e;
+        return;
+
+    Lfvalue:
+        if (mt.isreal() || mt.isimaginary())
+            e = new RealExp(loc, fvalue, mt);
+        else
+        {
+            const cvalue = complex_t(fvalue, fvalue);
+            //for (int i = 0; i < 20; i++)
+            //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
+            //printf("\n");
+            e = new ComplexExp(loc, cvalue, mt);
+        }
+        result = e;
+        return;
+
+    Lint:
+        e = new IntegerExp(loc, ivalue, Type.tint32);
+        result = e;
+    }
+
+    override void visit(TypeVector mt)
+    {
+        visit(cast(Type)mt);
+    }
+
+    override void visit(TypeEnum mt)
+    {
+        Expression e;
+        if (ident == Id.max || ident == Id.min)
+        {
+            result = mt.sym.getMaxMinValue(loc, ident);
+            return;
+        }
+        else if (ident == Id._init)
+        {
+            e = mt.defaultInitLiteral(loc);
+        }
+        else if (ident == Id.stringof)
+        {
+            const s = mt.toChars();
+            e = new StringExp(loc, cast(char*)s);
+            Scope sc;
+            e = e.expressionSemantic(&sc);
+        }
+        else if (ident == Id._mangleof)
+        {
+            visit(cast(Type)mt);
+            e = result;
+        }
+        else
+        {
+            e = mt.toBasetype().getProperty(loc, ident, flag);
+        }
+        result = e;
+    }
+
+    override void visit(TypeTuple mt)
+    {
+        Expression e;
+        static if (LOGDOTEXP)
+        {
+            printf("TypeTuple::getProperty(type = '%s', ident = '%s')\n", mt.toChars(), ident.toChars());
+        }
+        if (ident == Id.length)
+        {
+            e = new IntegerExp(loc, mt.arguments.dim, Type.tsize_t);
+        }
+        else if (ident == Id._init)
+        {
+            e = mt.defaultInitLiteral(loc);
+        }
+        else if (flag)
+        {
+            e = null;
+        }
+        else
+        {
+            error(loc, "no property `%s` for tuple `%s`", ident.toChars(), mt.toChars());
+            e = new ErrorExp();
+        }
+        result = e;
+    }
 }

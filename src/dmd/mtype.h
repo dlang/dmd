@@ -318,7 +318,6 @@ public:
 
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
-    virtual Expression *getProperty(const Loc &loc, Identifier *ident, int flag);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual structalign_t alignment();
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
@@ -352,7 +351,6 @@ public:
     Type *syntaxCopy();
 
     d_uns64 size(const Loc &loc);
-    Expression *getProperty(const Loc &loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(const Loc &loc);
     Expression *defaultInitLiteral(const Loc &loc);
@@ -392,7 +390,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc) /*const*/;
     unsigned alignsize();
-    Expression *getProperty(const Loc &loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating() /*const*/;
@@ -420,7 +417,6 @@ public:
     Type *syntaxCopy();
     d_uns64 size(const Loc &loc);
     unsigned alignsize();
-    Expression *getProperty(const Loc &loc, Identifier *ident, int flag);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
@@ -767,7 +763,6 @@ public:
     unsigned alignsize();
     Dsymbol *toDsymbol(Scope *sc);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    Expression *getProperty(const Loc &loc, Identifier *ident, int flag);
     bool isintegral();
     bool isfloating();
     bool isreal();
@@ -828,7 +823,6 @@ public:
     const char *kind();
     Type *syntaxCopy();
     bool equals(RootObject *o);
-    Expression *getProperty(const Loc &loc, Identifier *ident, int flag);
     Expression *defaultInit(const Loc &loc);
     void accept(Visitor *v) { v->visit(this); }
 };
