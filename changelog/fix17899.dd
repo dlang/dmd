@@ -1,8 +1,0 @@
-Fix issue 17899 - Allow delegates to be initialised at compile time
-
-delegates may now be initialised at module scope. This changes the effect of the fix for 13259 (turning the ICE that resulted into an error) making the follow legal:
----
-void delegate() bar = (){};
----
-
-The function pointer is set to the function of the delegate, the context pointer is set to null.

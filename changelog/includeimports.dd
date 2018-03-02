@@ -1,9 +1,0 @@
-Added the `-i` command line option to automatically include imports
-
-Added the command line option `-i` which causes the compiler to treat imported modules as if they were given on the command line.  The option also accepts "module patterns" that include/exclude modules based on their name.  For example, the following will include all modules whose names start with `foo`, except for those that start with `foo.bar`:
-
-$(CONSOLE dmd -i=foo -i=-foo.bar)
-
-The option `-i` by itself is equivalent to:
-
-$(CONSOLE dmd -i=-std -i=-core -i=-etc -i=-object)
