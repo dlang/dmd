@@ -40,7 +40,7 @@ T[] arrayOp(T : T[], Args...)(T[] res, Filter!(isType, Args) args) @trusted @nog
         // Given that there are at most as many scalars broadcast as there are
         // operations in any `ary[] = ary[] op const op const`, it should always be
         // worthwhile to choose vector operations.
-        if (res.length >= vec.length)
+        if (!__ctfe && res.length >= vec.length)
         {
             mixin(initScalarVecs!Args);
 
@@ -573,4 +573,16 @@ unittest
     arrayOp!(float[], const(float)[], const(float)[], "*", float, "+", "=")(res[], a[], b[], c);
     foreach (v; res[])
         assert(v == 2 * 3 + 4);
+}
+
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=17964
+    uint bug(){
+        uint[] a = [1, 2, 3, 5, 6, 7];
+        uint[] b = [1, 2, 3, 5, 6, 7];
+        a[] |= ~b[];
+        return a[1];
+    }
+    enum x = bug();
 }

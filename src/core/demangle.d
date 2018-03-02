@@ -208,11 +208,11 @@ pure @safe:
         {
             assert( contains( dst[0 .. len], val ) );
             debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
-
             size_t v = &val[0] - &dst[0];
+            assert( len >= val.length && len <= dst.length );
+            len -= val.length;
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
-            len -= val.length;
         }
     }
 
@@ -227,8 +227,7 @@ pure @safe:
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if( &dst[len] == &val[0] &&
-                dst.length - len >= val.length )
+            if( dst.length - len >= val.length && &dst[len] == &val[0] )
             {
                 // data is already in place
                 auto t = dst[len .. len + val.length];
@@ -2563,8 +2562,43 @@ version(unittest)
         static assert( r == table[i][1],
                 "demangled \"" ~ table[i][0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ table[i][1] ~ "\"");
     }
+
+    {
+        // https://issues.dlang.org/show_bug.cgi?id=18531
+        auto symbol = `_D3std3uni__T6toCaseS_DQvQt12toLowerIndexFNaNbNiNewZtVii1043S_DQCjQCi10toLowerTabFNaNbNiNemZwSQDo5ascii7toLowerTAyaZQDzFNaNeQmZ14__foreachbody2MFNaNeKmKwZ14__foreachbody3MFNaNeKwZi`;
+        auto demangled = `pure @trusted int std.uni.toCase!(std.uni.toLowerIndex(dchar), 1043, std.uni.toLowerTab(ulong), std.ascii.toLower, immutable(char)[]).toCase(immutable(char)[]).__foreachbody2(ref ulong, ref dchar).__foreachbody3(ref dchar)`;
+        auto dst = new char[200];
+        auto ret = demangle( symbol, dst);
+        assert( ret == demangled );
+    }
 }
 
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=18300
+    string s = demangle.mangleof;
+    foreach(i; 1..77)
+    {
+        char[] buf = new char[i];
+        auto ds = demangle(s, buf);
+        assert(ds == "pure nothrow @safe char[] core.demangle.demangle(const(char)[], char[])");
+    }
+}
+
+unittest
+{
+    // https://issues.dlang.org/show_bug.cgi?id=18300
+    string s = "_D1";
+    string expected = "int ";
+    foreach (_; 0..10_000)
+    {
+        s ~= "a1";
+        expected ~= "a.";
+    }
+    s ~= "FiZi";
+    expected ~= "F";
+    assert(s.demangle == expected);
+}
 
 /*
  *

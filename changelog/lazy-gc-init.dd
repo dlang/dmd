@@ -1,3 +1,0 @@
-The garbage collector is now lazily initialized on first use
-
-The runtime now lazily initializes the GC on first use, thus allowing applications that do not use the GC to skip its initialization.
