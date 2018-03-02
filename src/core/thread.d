@@ -4286,18 +4286,18 @@ class Fiber
     ///////////////////////////////////////////////////////////////////////////
 
 
-    /**
-     * A fiber may occupy one of three states: HOLD, EXEC, and TERM.  The HOLD
-     * state applies to any fiber that is suspended and ready to be called.
-     * The EXEC state will be set for any fiber that is currently executing.
-     * And the TERM state is set when a fiber terminates.  Once a fiber
-     * terminates, it must be reset before it may be called again.
-     */
+    /// A fiber may occupy one of three states: HOLD, EXEC, and TERM.
     enum State
     {
-        HOLD,   ///
-        EXEC,   ///
-        TERM    ///
+        /** The HOLD state applies to any fiber that is suspended and ready to
+        be called. */
+        HOLD,
+        /** The EXEC state will be set for any fiber that is currently
+        executing. */
+        EXEC,
+        /** The TERM state is set when a fiber terminates. Once a fiber
+        terminates, it must be reset before it may be called again. */
+        TERM
     }
 
 
