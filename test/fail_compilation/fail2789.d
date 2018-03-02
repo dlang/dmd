@@ -1,4 +1,7 @@
 /*
+DISABLED: win32 win64 osx linux freebsd dragonflybsd
+https://issues.dlang.org/show_bug.cgi?id=18385
+Disabled for 2.079, s.t. a deprecation cycle can be started with 2.080
 TEST_OUTPUT:
 ---
 fail_compilation/fail2789.d(15): Error: function `fail2789.A2789.m()` conflicts with previous declaration at fail_compilation/fail2789.d(10)

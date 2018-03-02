@@ -1,7 +1,0 @@
-Windows: Visual C++ and the Windows SDK are no longer required to build 64-bit executables
-
-The Windows installer now adds platform libraries built from the MinGW definitions and
-a wrapper library for the VC2010 shared C runtime. When building COFF object files with
-`-m64` or `-m32mscoff` and no Visual Studio installation is detected or
-no platform libraries are found these will be used as replacements. If the Microsoft linker
-is not found, the LLVM linker LLD will be used.
