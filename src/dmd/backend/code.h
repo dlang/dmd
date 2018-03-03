@@ -365,7 +365,7 @@ void fltregs(CodeBuilder& cdb, code *pcs, tym_t tym);
 void tstresult(CodeBuilder& cdb, regm_t regm, tym_t tym, unsigned saveflag);
 void fixresult(CodeBuilder& cdb, elem *e, regm_t retregs, regm_t *pretregs);
 void callclib(CodeBuilder& cdb, elem *e, unsigned clib, regm_t *pretregs, regm_t keepmask);
-void pushParams(CodeBuilder& cdb,elem *, unsigned);
+void pushParams(CodeBuilder& cdb,elem *, unsigned, tym_t tyf);
 void offsetinreg(CodeBuilder& cdb, elem *e, regm_t *pretregs);
 
 /* cod2.c */

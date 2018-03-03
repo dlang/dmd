@@ -1588,7 +1588,7 @@ elem *toElem(Expression e, IRState *irs)
                         .type *tc = type_struct_class(tclass.sym.toChars(),
                                 tclass.sym.alignsize, tclass.sym.structsize,
                                 null, null,
-                                false, false, true);
+                                false, false, true, false);
                         tc.Tcount--;
                         Symbol *stmp = symbol_genauto(tc);
                         ex = el_ptr(stmp);

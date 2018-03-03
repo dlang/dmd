@@ -161,9 +161,10 @@ struct StructFlags
 class StructDeclaration : public AggregateDeclaration
 {
 public:
-    int zeroInit;               // !=0 if initialize with 0 fill
+    bool zeroInit;              // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
+    bool hasNoFields;           // has no fields
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 

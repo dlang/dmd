@@ -9,7 +9,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.c, backend/cgcod.c)
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -1128,25 +1128,32 @@ void stackoffsets(int flags)
     for (int si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
 
-        if (s->Sisdead(anyiasm))
+        /* Don't allocate space for dead or zero size parameters
+         */
+        switch (s->Sclass)
         {
-            /* The variable is dead. Don't allocate space for it if we don't
-             * need to.
-             */
-            switch (s->Sclass)
-            {
-                case SCfastpar:
-                    if (!(funcsym_p->Sfunc->Fflags3 & Ffakeeh))
-                        continue;   // don't need consistent stack frame
-                    break;
+            case SCfastpar:
+                if (!(funcsym_p->Sfunc->Fflags3 & Ffakeeh))
+                    goto Ldefault;   // don't need consistent stack frame
+                break;
 
-                case SCshadowreg:
-                case SCparameter:
-                    break;          // have to allocate space for parameters
+            case SCparameter:
+                if (type_zeroSize(s->Stype, tybasic(funcsym_p->Stype->Tty)))
+                {
+                    Para.offset = _align(REGSIZE,Para.offset); // align on word stack boundary
+                    s->Soffset = Para.offset;
+                    continue;
+                }
+                break;          // allocate even if it's dead
 
-                default:
+            case SCshadowreg:
+                break;          // allocate even if it's dead
+
+            default:
+            Ldefault:
+                if (s->Sisdead(anyiasm))
                     continue;       // don't allocate space
-            }
+                break;
         }
 
         targ_size_t sz = type_size(s->Stype);

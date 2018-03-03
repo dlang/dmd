@@ -48,6 +48,7 @@ extern elem * evalu8(elem *, goal_t goal);
 
 static bool again;
 static bool topair;
+static tym_t global_tyf;
 
 /*****************************
  */
@@ -3177,7 +3178,7 @@ elem * elstruct(elem *e, goal_t goal)
     tym_t tym = ~0;
     tym_t ty = tybasic(t->Tty);
 
-    unsigned sz = type_size(t);
+    unsigned sz = (e->Eoper == OPstrpar && type_zeroSize(t, global_tyf)) ? 0 : type_size(t);
     //printf("\tsz = %d\n", (int)sz);
     if (sz == 16)
     {
@@ -5197,6 +5198,33 @@ beg:
                 }
                 leftgoal = rightgoal;
                 break;
+
+            case OPcall:
+            case OPcallns:
+            {
+                tym_t tyf = tybasic(e->E1->Ety);
+                leftgoal = rightgoal;
+                elem *e1 = e->E1 = optelem(e->E1, leftgoal);
+
+                // Need argument to type_zeroSize()
+                tym_t tyf_save = global_tyf;
+                global_tyf = tyf;
+                elem *e2 = e->E2 = optelem(e->E2, rightgoal);
+                global_tyf = tyf_save;
+
+                if (!e1)
+                {   if (!e2)
+                        goto retnull;
+                    return el_selecte2(e);
+                }
+                if (!e2)
+                {
+                    if (!leftgoal)
+                        e->Ety = e1->Ety;
+                    return el_selecte1(e);
+                }
+                return (*elxxx[op])(e, goal);
+            }
         }
 
         elem *e1 = e->E1;
@@ -5229,6 +5257,7 @@ beg:
                 e->Ety = e1->Ety;
             return el_selecte1(e);
         }
+
         if (op == OPparam && !goal)
             e->Eoper = OPcomma; // DMD bug 6733
 

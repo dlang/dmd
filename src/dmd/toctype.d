@@ -134,7 +134,7 @@ public:
                 t.ctype.Tcount++;
                 return;
             }
-            t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0);
+            t.ctype = type_struct_class(sym.toPrettyChars(true), sym.alignsize, sym.structsize, sym.arg1type ? Type_toCtype(sym.arg1type) : null, sym.arg2type ? Type_toCtype(sym.arg2type) : null, sym.isUnionDeclaration() !is null, false, sym.isPOD() != 0, sym.hasNoFields);
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
@@ -214,7 +214,7 @@ public:
         if (t.mod == 0)
         {
             //printf("TypeClass::toCtype() %s\n", toChars());
-            type* tc = type_struct_class(t.sym.toPrettyChars(true), t.sym.alignsize, t.sym.structsize, null, null, false, true, true);
+            type* tc = type_struct_class(t.sym.toPrettyChars(true), t.sym.alignsize, t.sym.structsize, null, null, false, true, true, false);
             t.ctype = type_pointer(tc);
             /* Add in fields of the class
              * (after setting ctype to avoid infinite recursion)
