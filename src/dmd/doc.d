@@ -2477,11 +2477,12 @@ private struct MarkdownList
     *  buf =            an OutputBuffer containing the DDoc
     *  iLineStart =     the index within `buf` of the first character of the line. If this function succeeds it will equal `i`.
     *  i =              the index within `buf` of the list item. If this function succeeds `i` will be adjusted to fit the inserted macro.
+    *  iPreceedingBlankLine = the index within `buf` of the preceeding blank line. If non-zero and a new list was started, the preceeding blank line is removed and this value is set to `0`.
     *  nestedLists =    a set of nested lists. If this function succeeds it may contain a new nested list.
     *  macroLevel =     the current macro nesting level
     * Returns: whether a list was created
     */
-    bool startItem(OutBuffer *buf, ref size_t iLineStart, ref size_t i, ref MarkdownList[] nestedLists, int macroLevel)
+    bool startItem(OutBuffer *buf, ref size_t iLineStart, ref size_t i, ref size_t iPreceedingBlankLine, ref MarkdownList[] nestedLists, int macroLevel)
     {
         this.macroLevel = macroLevel;
 
@@ -2506,6 +2507,8 @@ private struct MarkdownList
             }
             else
                 iStart = buf.insert(iStart, "$(UL\n");
+
+            removeBlankLineMacro(buf, iPreceedingBlankLine, iStart);
         }
         else if (nestedLists.length)
         {
@@ -3710,7 +3713,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         list.iContentStart += delta;
                     }
 
-                    list.startItem(buf, iLineStart, i, nestedLists, macroLevel);
+                    list.startItem(buf, iLineStart, i, iPreceedingBlankLine, nestedLists, macroLevel);
                 }
                 else
                     leadingBlank = false;
@@ -3768,45 +3771,45 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 /* A line consisting solely of ** indicates a Markdown heading on the previous line, or a thematic break after an empty line. */
                 leadingBlank = false;
-                size_t iAfterUnderline = skipChars(buf, i, "* \t\r");
-                if (iAfterUnderline >= buf.offset || buf.data[iAfterUnderline] == '\n')
+                size_t iAfterAsterisks = skipChars(buf, i, "* \t\r");
+                if (iAfterAsterisks >= buf.offset || buf.data[iAfterAsterisks] == '\n')
                 {
                     // see if there was whitespace within the ** line
                     size_t iStrictAfterUnderline = skipChars(buf, i, "*");
                     iStrictAfterUnderline = skipChars(buf, iStrictAfterUnderline, " \t\r");
 
                     if (iPreceedingBlankLine ||
-                        iStrictAfterUnderline != iAfterUnderline ||
+                        iStrictAfterUnderline != iAfterAsterisks ||
                         iParagraphStart == iLineStart ||
                         (!lineQuoted && quoteLevel))
                     {
                         // if in a new paragraph then treat it as a thematic break
-                        if (!lineQuoted && quoteLevel)
+                        if (replaceMarkdownThematicBreak(buf, i, iLineStart))
                         {
-                            i += MarkdownList.endAllNestedLists(buf, iLineStart, nestedLists);
-                            i += endAllMarkdownQuotes(buf, iLineStart, quoteLevel, quoteMacroLevel);
+                            if (!lineQuoted && quoteLevel)
+                            {
+                                i += MarkdownList.endAllNestedLists(buf, iLineStart, nestedLists);
+                                i += endAllMarkdownQuotes(buf, iLineStart, quoteLevel, quoteMacroLevel);
+                            }
+                            removeBlankLineMacro(buf, iPreceedingBlankLine, i);
+                            iParagraphStart = skipChars(buf, i+1, " \t\r\n");
+                            break;
                         }
-                        replaceMarkdownThematicBreak(buf, i, iLineStart);
-                        removeBlankLineMacro(buf, iPreceedingBlankLine, i);
-                        iParagraphStart = skipChars(buf, i+1, " \t\r\n");
-                        break;
                     }
                     else if (skipChars(buf, i, "*") - i >= 2)
                     {
                         // otherwise treat it as a 2nd-level heading
                         leadingBlank = true;
-                        i = iAfterUnderline;
+                        i = iAfterAsterisks;
                         goto case '=';
                     }
                 }
-                else
+
+                MarkdownList list = MarkdownList.parseItem(buf, iLineStart, i);
+                if (list.isValid)
                 {
-                    MarkdownList list = MarkdownList.parseItem(buf, iLineStart, i);
-                    if (list.isValid)
-                    {
-                        leadingBlank = true;
-                        goto case '+';
-                    }
+                    leadingBlank = true;
+                    goto case '+';
                 }
             }
 
