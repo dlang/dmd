@@ -1,7 +1,6 @@
 /**
  * D header file to interface with the
- * $(HTTP pubs.opengroup.org/onlinepubs/9699919799/basedefs/aio.h.html, Linux aio API).
- * Available since Linux 2.6
+ * $(HTTP pubs.opengroup.org/onlinepubs/9699919799/basedefs/aio.h.html, Posix AIO API).
  *
  * Copyright: Copyright D Language Foundation 2018.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -11,27 +10,36 @@ module core.sys.posix.aio;
 
 private import core.sys.posix.signal;
 
-version (CRuntime_Glibc):
-version (X86_64):
+version (Posix):
 
 extern (C):
 @system:
 @nogc:
 nothrow:
 
-struct aiocb
+version (CRuntime_Glibc)
 {
-    int aio_fildes;
-    int aio_lio_opcode;
-    int aio_reqprio;
-    void *aio_buf;   //volatile
-    size_t aio_nbytes;
-    sigevent aio_sigevent;
+    version (X86_64)
+    {
+        struct aiocb
+        {
+            int aio_fildes;
+            int aio_lio_opcode;
+            int aio_reqprio;
+            void *aio_buf;   //volatile
+            size_t aio_nbytes;
+            sigevent aio_sigevent;
 
-    ubyte[24] internal_members_padding;
-    off_t aio_offset;
-    ubyte[32] __glibc_reserved;
+            ubyte[24] internal_members_padding;
+            off_t aio_offset;
+            ubyte[32] __glibc_reserved;
+        }
+    }
+    else
+        static assert(0);
 }
+else
+    static assert(false, "Unsupported platform");
 
 /* Return values of cancelation function.  */
 enum
@@ -59,8 +67,8 @@ enum
 int aio_read(aiocb *aiocbp);
 int aio_write(aiocb *aiocbp);
 int aio_fsync(int op, aiocb *aiocbp);
-int aio_error(aiocb *aiocbp);
-ssize_t aio_return(aiocb *aiocbp);
-int aio_suspend(aiocb*[] aiocb_list, int nitems, timespec *timeout);
+int aio_error(const(aiocb)* aiocbp);
+ssize_t aio_return(const(aiocb)* aiocbp);
+int aio_suspend(const(aiocb*)* aiocb_list, int nitems, const(timespec)* timeout);
 int aio_cancel(int fd, aiocb *aiocbp);
-int lio_listio(int mode, aiocb*[] aiocb_list, int nitems, sigevent *sevp);
+int lio_listio(int mode, const(aiocb*)* aiocb_list, int nitems, sigevent *sevp);
