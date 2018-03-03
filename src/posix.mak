@@ -74,54 +74,78 @@ endif
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
-	-Wno-attributes \
-	-Wno-char-subscripts \
-	-Wno-deprecated \
-	-Wno-empty-body \
+	-Wno-narrowing \
+	-Wwrite-strings \
+	-Wno-long-long \
+	-Wno-variadic-macros \
+	-Wno-overlength-strings
+# Frontend specific
+DMD_WARNINGS := -Wcast-qual \
+	-Wuninitialized
+ROOT_WARNINGS := -Wno-sign-compare \
+	-Wno-unused-parameter
+# Backend specific
+GLUE_WARNINGS := $(ROOT_WARNINGS) \
 	-Wno-format \
-	-Wno-missing-braces \
-	-Wno-missing-field-initializers \
-	-Wno-overloaded-virtual \
 	-Wno-parentheses \
-	-Wno-reorder \
-	-Wno-return-type \
-	-Wno-sign-compare \
-	-Wno-strict-aliasing \
 	-Wno-switch \
-	-Wno-type-limits \
-	-Wno-unknown-pragmas \
 	-Wno-unused-function \
-	-Wno-unused-label \
-	-Wno-unused-parameter \
-	-Wno-unused-value \
 	-Wno-unused-variable
+BACK_WARNINGS := $(GLUE_WARNINGS) \
+	-Wno-char-subscripts \
+	-Wno-empty-body \
+	-Wno-missing-field-initializers \
+	-Wno-type-limits \
+	-Wno-unused-label \
+	-Wno-unused-value \
+	-Wno-varargs
 # GCC Specific
 ifeq ($(CXX_KIND), g++)
-WARNINGS := $(WARNINGS) \
-	-Wno-logical-op \
-	-Wno-narrowing \
+BACK_WARNINGS += \
 	-Wno-unused-but-set-variable \
+	-Wno-implicit-fallthrough \
+	-Wno-class-memaccess \
 	-Wno-uninitialized
 endif
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
-WARNINGS := $(WARNINGS) \
-	-Wno-tautological-constant-out-of-range-compare \
-	-Wno-tautological-compare \
-	-Wno-constant-logical-operand \
-	-Wno-self-assign -Wno-self-assign
-# -Wno-sometimes-uninitialized
+WARNINGS += \
+	-Wno-undefined-var-template \
+	-Wno-absolute-value \
+	-Wno-missing-braces \
+	-Wno-self-assign \
+	-Wno-unused-const-variable \
+	-Wno-constant-conversion \
+	-Wno-overloaded-virtual
 endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
+# Frontend specific
+DMD_WARNINGS := -Wuninitialized
+ROOT_WARNINGS :=
+# Backend specific
+GLUE_WARNINGS := $(ROOT_WARNINGS) \
+	-Wno-switch
+BACK_WARNINGS := $(GLUE_WARNINGS) \
+	-Wno-unused-value \
+	-Wno-varargs
 # Clang Specific
 ifeq ($(CXX_KIND), clang++)
-WARNINGS := $(WARNINGS) \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
+WARNINGS += \
+	-Wno-undefined-var-template \
+	-Wno-absolute-value
+GLUE_WARNINGS += \
+	-Wno-logical-op-parentheses
+BACK_WARNINGS += \
+	-Wno-logical-op-parentheses \
+	-Wno-constant-conversion
 endif
+endif
+
+# Treat warnings as errors
+ifdef ENABLE_WERROR
+WARNINGS += -Werror
 endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
@@ -199,10 +223,10 @@ endif
 endif
 
 # Unique extra flags if necessary
-DMD_FLAGS  := -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1
-ROOT_FLAGS := -I$(ROOT)
+DMD_FLAGS  := -I$(ROOT) $(DMD_WARNINGS)
+GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C) $(GLUE_WARNINGS)
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1 $(BACK_WARNINGS)
+ROOT_FLAGS := -I$(ROOT) $(ROOT_WARNINGS)
 
 ifeq ($(OS), osx)
 ifeq ($(MODEL), 64)
@@ -406,7 +430,7 @@ dmd.conf:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(HOST_CXX) $(CXXFLAGS) -I$(TK) $< -o optabgen
+	$(HOST_CXX) $(CXXFLAGS) $(BACK_WARNINGS) -I$(TK) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -418,7 +442,7 @@ idgen_output = id.h id.c id.d
 $(idgen_output) : idgen
 
 idgen : idgen.c
-	$(HOST_CXX) idgen.c -o idgen
+	$(HOST_CXX) $(CXXFLAGS) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
