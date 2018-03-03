@@ -2972,7 +2972,7 @@ private struct MarkdownLinkReferences
     *  i =      the index within `buf` that points to the `[` character at the start of the reference label
     * Returns: whether a reference was extracted
     */
-    bool extractReference(OutBuffer *buf, size_t i)
+    bool extractReference(OutBuffer *buf, ref size_t i, size_t iLineStart)
     {
         size_t iEnd = i;
         string label = MarkdownLink.parseLabel(buf, iEnd);
@@ -3006,6 +3006,7 @@ private struct MarkdownLinkReferences
         if (requireNewline && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
             return false;
         iEnd = skipChars(buf, iEnd, " \t\r\n");
+        i = iLineStart;
         buf.remove(i, iEnd - i);
 
         if (label !in references)
@@ -3031,6 +3032,7 @@ private struct MarkdownLinkReferences
         }
 
         bool leadingBlank = false;
+        size_t iLineStart = 0;
         bool inCode = false;
         bool newParagraph = true;
         for (; i < buf.offset; ++i)
@@ -3045,6 +3047,7 @@ private struct MarkdownLinkReferences
                 if (leadingBlank && !inCode)
                     newParagraph = true;
                 leadingBlank = true;
+                iLineStart = i + 1;
                 break;
             case '\\':
                 ++i;
@@ -3103,8 +3106,10 @@ private struct MarkdownLinkReferences
                     goto case '`';
             case '[':
                 if (leadingBlank && !inCode && newParagraph &&
-                    extractReference(buf, i))
+                    extractReference(buf, i, iLineStart))
+                {
                     --i;
+                }
                 break;
             default:
                 if (leadingBlank)
@@ -3852,9 +3857,10 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            if (leadingBlank && iParagraphStart >= iLineStart && linkReferences.extractReference(buf, i))
+            if (leadingBlank && iParagraphStart >= iLineStart &&
+                linkReferences.extractReference(buf, i, iLineStart))
             {
-                --i;
+                i -= 2;
             }
             else
             {
@@ -4047,7 +4053,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     }
     MarkdownList.endAllNestedLists(buf, i, nestedLists);
     endAllMarkdownQuotes(buf, i, quoteLevel, quoteMacroLevel);
-    nestedLists.length = 0;
 }
 
 /**************************************************
