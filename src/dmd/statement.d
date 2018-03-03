@@ -1610,6 +1610,11 @@ extern (C++) final class SwitchStatement : Statement
                 // All good, the label's scope has no variables
                 return false;
             }
+            else if (vd.storage_class & STC.temp)
+            {
+                // Lifetime ends at end of expression, so no issue with skipping the statement
+                return false;
+            }
             else if (vd.ident == Id.withSym)
             {
                 deprecation("`switch` skips declaration of `with` temporary at %s", vd.loc.toChars());
