@@ -4347,7 +4347,8 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             }
             else if (!isTopRef(e.type))
             {
-                /* Bugzilla 15653, In IFTI, recognize top-qualifier conversions
+                /* https://issues.dlang.org/show_bug.cgi?id=15653
+                 * In IFTI, recognize top-qualifier conversions
                  * through the value copy, e.g.
                  *      int --> immutable(int)
                  *      immutable(string[]) --> immutable(string)[]
