@@ -442,7 +442,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     //printf("declaring parameter %s of type %s\n", v.toChars(), v.type.toChars());
                     stc |= STC.parameter;
                     if (f.varargs == 2 && i + 1 == nparams)
+                    {
                         stc |= STC.variadic;
+                        auto vtypeb = vtype.toBasetype();
+                        if (vtypeb.ty == Tarray)
+                        {
+                            /* Since it'll be pointing into the stack for the array
+                             * contents, it needs to be `scope`
+                             */
+                            stc |= STC.scope_;
+                        }
+                    }
                     if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
                     stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);

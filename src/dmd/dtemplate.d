@@ -739,7 +739,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (fvarargs == 2 && i + 1 == nfparams)
+                {
                     fparam.storageClass |= STC.variadic;
+                    /* Don't need to set STC.scope_ because this will only
+                     * be evaluated at compile time
+                     */
+                }
             }
             for (size_t i = 0; i < fparameters.dim; i++)
             {
