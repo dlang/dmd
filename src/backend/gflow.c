@@ -1370,7 +1370,9 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                         t->EV.sp.Voffset == 0 &&
                         tsz == type_size(s->Stype)
                        )
-                    {   assert((unsigned)s->Ssymnum < globsym.top);
+                    {
+                        // printf("%s\n", s->Sident);
+                        assert((unsigned)s->Ssymnum < globsym.top);
                         vec_setbit(s->Ssymnum,KILL);
                     }
                 }
