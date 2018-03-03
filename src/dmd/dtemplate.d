@@ -4324,6 +4324,16 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
             }
 
+            /* Returns `true` if `t` is a reference type, or an array of reference types
+             */
+            bool isTopRef(Type t)
+            {
+                auto tb = t.baseElemOf();
+                return tb.ty == Tclass ||
+                       tb.ty == Taarray ||
+                       tb.ty == Tstruct && tb.hasPointers();
+            }
+
             Type at = cast(Type)(*dedtypes)[i];
             Type tt;
             if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
@@ -4334,6 +4344,16 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             else if (MATCH m = deduceTypeHelper(e.type, &tt, tparam))
             {
                 result = m;
+            }
+            else if (!isTopRef(e.type))
+            {
+                /* Bugzilla 15653, In IFTI, recognize top-qualifier conversions
+                 * through the value copy, e.g.
+                 *      int --> immutable(int)
+                 *      immutable(string[]) --> immutable(string)[]
+                 */
+                tt = e.type.mutableOf();
+                result = MATCH.convert;
             }
             else
                 return; // nomatch
