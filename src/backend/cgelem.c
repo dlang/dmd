@@ -4760,6 +4760,42 @@ STATIC elem * elvalist(elem *e, goal_t goal)
 {
     assert(e->Eoper == OPva_start);
 
+    if (I32)
+    {
+        // (OPva_start &va)
+        // (OPeq (OPind E1) (OPptr lastNamed+T.sizeof))
+        //elem_print(e);
+
+        // Find last named parameter
+        symbol *lastNamed = NULL;
+        symbol *arguments_typeinfo = NULL;
+        for (SYMIDX si = 0; si < globsym.top; si++)
+        {
+            symbol *s = globsym.tab[si];
+
+            if (s->Sclass == SCparameter || s->Sclass == SCregpar)
+                lastNamed = s;
+            if (s->Sident[0] == '_' && strcmp(s->Sident, "_arguments_typeinfo") == 0)
+                arguments_typeinfo = s;
+        }
+
+        if (!lastNamed)
+            lastNamed = arguments_typeinfo;
+
+        e->Eoper = OPeq;
+        e->E1 = el_una(OPind, TYnptr, e->E1);
+        if (lastNamed)
+        {
+            e->E2 = el_ptr(lastNamed);
+            e->E2->EV.sp.Voffset = (type_size(lastNamed->Stype) + 3) & ~3;
+        }
+        else
+            e->E2 = el_long(TYnptr, 0);
+        // elem_print(e);
+
+        return e;
+    }
+
 #if TARGET_WINDOS
 
     assert(config.exe == EX_WIN64); // va_start is not an intrinsic on 32-bit
