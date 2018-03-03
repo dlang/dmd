@@ -168,7 +168,7 @@ void semanticTypeInfo(Scope *sc, Type *t)
     {
         if (!sc->func)
             return;
-        if (!sc->intypeof)
+        if (sc->intypeof)
             return;
         if (sc->flags & (SCOPEctfe | SCOPEcompile))
             return;
