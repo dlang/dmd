@@ -142,6 +142,8 @@ immutable Msgtable[] msgtable =
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
 
+    { "Class" },
+
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
     { "MODULE", "__MODULE__" },

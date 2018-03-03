@@ -307,6 +307,8 @@ enum TOK : int
     voidExpression,
     cantExpression,
 
+    objcClassReference,
+
     max_,
 }
 
@@ -710,6 +712,8 @@ extern (C++) struct Token
         TOK.interval: "interval",
         TOK.voidExpression: "voidexp",
         TOK.cantExpression: "cantexp",
+
+        TOK.objcClassReference: "class",
     ];
 
     static assert(() {

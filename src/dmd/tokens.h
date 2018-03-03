@@ -184,6 +184,8 @@ enum TOK
         TOKvoidexp,
         TOKcantexp,
 
+        TOKobjc_class_reference,
+
         TOKMAX
 };
 

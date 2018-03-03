@@ -7857,7 +7857,15 @@ extern (C++) final class TypeClass : Type
                 e = e.expressionSemantic(sc);
                 return e;
             }
-            if (d.needThis() && sc.intypeof != 1)
+            if (sym.classKind == ClassKind.objc
+                && d.isFuncDeclaration()
+                && d.isFuncDeclaration().isStatic
+                && d.isFuncDeclaration().selector)
+            {
+                auto classRef = new ObjcClassReferenceExp(e.loc, sym);
+                return new DotVarExp(e.loc, classRef, d).expressionSemantic(sc);
+            }
+            else if (d.needThis() && sc.intypeof != 1)
             {
                 /* Rewrite as:
                  *  this.d

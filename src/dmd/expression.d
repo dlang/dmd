@@ -49,6 +49,7 @@ import dmd.identifier;
 import dmd.inline;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.ctfloat;
@@ -96,6 +97,18 @@ extern (C++) Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDecl
 L1:
     Type t = e1.type.toBasetype();
     //printf("e1.type = %s, var.type = %s\n", e1.type.toChars(), var.type.toChars());
+
+    if (e1.op == TOK.objcClassReference)
+    {
+        // We already have an Objective-C class reference, just use that as 'this'.
+        return e1;
+    }
+    else if (ad && ad.isClassDeclaration && ad.isClassDeclaration.classKind == ClassKind.objc &&
+             var.isFuncDeclaration && var.isFuncDeclaration.isStatic &&
+             var.isFuncDeclaration.selector)
+    {
+        return new ObjcClassReferenceExp(e1.loc, cast(ClassDeclaration) ad);
+    }
 
     /* If e1 is not the 'this' pointer for ad
      */
@@ -7230,6 +7243,29 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/**
+ * Objective-C class reference expression.
+ *
+ * Used to get the metaclass of an Objective-C class, `NSObject.Class`.
+ */
+extern (C++) final class ObjcClassReferenceExp : Expression
+{
+    ClassDeclaration classDeclaration;
+
+    extern (D) this(Loc loc, ClassDeclaration classDeclaration)
+    {
+        super(loc, TOK.objcClassReference,
+            __traits(classInstanceSize, ObjcClassReferenceExp));
+        this.classDeclaration = classDeclaration;
+        type = objc.getRuntimeMetaclass(classDeclaration).getType();
     }
 
     override void accept(Visitor v)

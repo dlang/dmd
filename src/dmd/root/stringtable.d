@@ -168,6 +168,11 @@ public:
         return 0;
     }
 
+    StringValue* update(const(char)[] name) nothrow
+    {
+        return update(name.ptr, name.length);
+    }
+
 private:
 nothrow:
     uint allocValue(const(char)* s, size_t length, void* ptrvalue)
