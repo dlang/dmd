@@ -127,7 +127,7 @@ struct Param
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool useDIP25;          // implement http://wiki.dlang.org/DIP25
-    bool release;           // build release version
+    bool optimizeLinking;   // use optimized linker settings
     bool preservePaths;     // true means don't strip path from source file
     // 0: disable warnings
     // 1: warnings as errors

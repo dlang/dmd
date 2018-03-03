@@ -509,12 +509,15 @@ dmd -cov -unittest myprog.d
                 to the file $(TT profilegc.log) upon program termination.)
             )`,
         ),
-        Option("release",
-            "compile release version",
-            `Compile release version, which means not emitting run-time
-            checks for contracts and asserts. Array bounds checking is not
-            done for system and trusted functions, and assertion failures
-            are undefined behaviour.`
+        Option("release[=<assert,in,out,invariant>]",
+            "disable run-time checks",
+            `Disable in-/out-contracts, invariants, and assertions.
+            It is possible to disable only some run-time checks by specifying them
+            as comma separated arguments (e.g. $(TT -release=assert,invariant)).
+            By default $(TT $(SWLINK -release)) will disable all run-time checks.
+            Any $(TT $(SWLINK -release)) switch furthermore sets the default of
+            $(SWLINK -boundscheck) to safeonly.
+            $(P Note that $(SWLINK -unittest) (re-)enables assertions in unittests and function bodies.)`
         ),
         Option("run <srcfile>",
             "compile, link, and run the program srcfile",

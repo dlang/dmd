@@ -396,21 +396,6 @@ private int tryMain(size_t argc, const(char)** argv)
             global.params.mscrtlib = vsopt.defaultRuntimeLibrary(global.params.is64bit);
         }
     }
-    if (global.params.release)
-    {
-        global.params.useInvariants = false;
-        global.params.useIn = false;
-        global.params.useOut = false;
-
-        if (global.params.useArrayBounds == CHECKENABLE._default)
-            global.params.useArrayBounds = CHECKENABLE.safeonly;
-
-        if (global.params.useAssert == CHECKENABLE._default)
-            global.params.useAssert = CHECKENABLE.off;
-
-        if (global.params.useSwitchError == CHECKENABLE._default)
-            global.params.useSwitchError = CHECKENABLE.off;
-    }
     if (global.params.betterC)
     {
         global.params.checkAction = CHECKACTION.C;
@@ -418,14 +403,15 @@ private int tryMain(size_t argc, const(char)** argv)
         global.params.useTypeInfo = false;
         global.params.useExceptions = false;
     }
+    // -release -unittest enables assertions in unittests AND function bodies
     if (global.params.useUnitTests)
+        global.params.useAssert = CHECKENABLE.on;
+
+    if (global.params.useAssert == CHECKENABLE._default)
         global.params.useAssert = CHECKENABLE.on;
 
     if (global.params.useArrayBounds == CHECKENABLE._default)
         global.params.useArrayBounds = CHECKENABLE.on;
-
-    if (global.params.useAssert == CHECKENABLE._default)
-        global.params.useAssert = CHECKENABLE.on;
 
     if (global.params.useSwitchError == CHECKENABLE._default)
         global.params.useSwitchError = CHECKENABLE.on;
@@ -1503,9 +1489,9 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
 {
     bool errors;
 
-    void error(const(char)* format, const(char*) arg = null)
+    void error(Args...)(const(char)* format, Args args)
     {
-        dmd.errors.error(Loc.initial, format, arg);
+        dmd.errors.error(Loc.initial, format, args);
         errors = true;
     }
 
@@ -2005,8 +1991,66 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 // Ignore
             }
-            else if (arg == "-release")     // https://dlang.org/dmd.html#switch-release
-                params.release = true;
+            else if (startsWith(p + 1, "release")) // https://dlang.org/dmd.html#switch-release
+            {
+                // Parse:
+                //      -release[=assert[,in,out,invariant]]
+                if (p["-release".length] == '=')
+                {
+                    if (arg.length == "-release=".length)
+                        goto Lnoarg;
+
+                    auto tail = arg["-release=".length .. $];
+                    while (true)
+                    {
+                        auto delim = strchr(tail.ptr, ',');
+                        auto check = tail[0 .. delim ? delim - tail.ptr : $];
+                        switch (check)
+                        {
+                        case "assert":
+                            // can be overridden by -unittest
+                            if (params.useAssert == CHECKENABLE._default)
+                                params.useAssert = CHECKENABLE.off;
+                            break;
+                        case "in":
+                            params.useIn = false;
+                            break;
+                        case "out":
+                            params.useOut = false;
+                            break;
+                        case "invariant":
+                            params.useInvariants = false;
+                            break;
+                        default:
+                            error("unrecognized argument '%.*s' for -release=", cast(int)check.length, check.ptr);
+                            break;
+                        }
+                        if (check.length == tail.length)
+                            break;
+                        tail = tail[check.length + ",".length .. $];
+                    }
+                }
+                else if (arg.length > "-release".length)
+                    goto Lerror;
+                else // -release
+                {
+                    if (params.useAssert == CHECKENABLE._default)
+                        params.useAssert = CHECKENABLE.off;
+                    params.useIn = false;
+                    params.useOut = false;
+                    params.useInvariants = false;
+                }
+
+                // for additional linker flags
+                params.optimizeLinking = true;
+
+                if (params.useArrayBounds == CHECKENABLE._default)
+                    params.useArrayBounds = CHECKENABLE.safeonly;
+
+                // switch without default is now a compile-time error anyhow
+                if (params.useSwitchError == CHECKENABLE._default)
+                    params.useSwitchError = CHECKENABLE.off;
+            }
             else if (arg == "-betterC")     // https://dlang.org/dmd.html#switch-betterC
                 params.betterC = true;
             else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
@@ -2245,6 +2289,53 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
     return errors;
 }
 
+unittest
+{
+    global.gag = 1;
+    immutable errorsave = global.errors;
+    scope (exit) { global.gag = 0; global.errors = errorsave; }
+
+    static bool test(const(char*)[] args, out Param params, out Strings files)
+    {
+        Strings sargs;
+        sargs.setDim(args.length + 1);
+        sargs[0] = "dmd";
+        foreach (i, ref sarg; sargs[1 .. sargs.dim])
+            sarg = args[i];
+        return !parseCommandLine(sargs, sargs.dim, params, files);
+    }
+
+    Param params;
+    Strings files;
+    assert(test(["-release"], params, files));
+    assert(params.optimizeLinking);
+    assert(params.useAssert == CHECKENABLE.off && !params.useIn && !params.useOut && !params.useInvariants);
+    assert(params.useArrayBounds == CHECKENABLE.safeonly && params.useSwitchError == CHECKENABLE.off);
+    assert(test(["-release=assert,in,out,invariant"], params, files));
+    assert(params.optimizeLinking);
+    assert(params.useAssert == CHECKENABLE.off && !params.useIn && !params.useOut && !params.useInvariants);
+    assert(params.useArrayBounds == CHECKENABLE.safeonly && params.useSwitchError == CHECKENABLE.off);
+    assert(test(["-release=in"], params, files));
+    assert(params.optimizeLinking);
+    assert(params.useAssert == CHECKENABLE._default);
+    assert(!params.useIn && params.useOut && params.useInvariants);
+    assert(params.useArrayBounds == CHECKENABLE.safeonly && params.useSwitchError == CHECKENABLE.off);
+    assert(test(["-release=in,out"], params, files));
+    assert(params.optimizeLinking);
+    assert(params.useAssert == CHECKENABLE._default && !params.useIn && !params.useOut && params.useInvariants);
+    assert(params.useArrayBounds == CHECKENABLE.safeonly && params.useSwitchError == CHECKENABLE.off);
+    assert(test(["-release=in,out,assert,invariant"], params, files));
+    assert(params.optimizeLinking);
+    assert(params.useAssert == CHECKENABLE.off && !params.useIn && !params.useOut && !params.useInvariants);
+    assert(params.useArrayBounds == CHECKENABLE.safeonly && params.useSwitchError == CHECKENABLE.off);
+
+    assert(!test(["-release="], params, files));
+    assert(!test(["-release=in,"], params, files));
+    assert(!test(["-release=foo"], params, files));
+    assert(!test(["-release=assert,in,put"], params, files));
+    assert(!test(["-release=assert;in"], params, files));
+    assert(!test(["-release:in,out"], params, files));
+}
 
 private __gshared bool includeImports = false;
 // array of module patterns used to include/exclude imported modules
