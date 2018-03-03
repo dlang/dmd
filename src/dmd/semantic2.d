@@ -351,6 +351,10 @@ private extern(C++) final class Semantic2Visitor : Visitor
         fd.semanticRun = PASS.semantic2;
 
         //printf("FuncDeclaration::semantic2 [%s] fd0 = %s %s\n", loc.toChars(), toChars(), type.toChars());
+
+        // https://issues.dlang.org/show_bug.cgi?id=18385
+        // Disable for 2.079, s.t. a deprecation cycle can be started with 2.080
+        if (0)
         if (fd.overnext && !fd.errors)
         {
             OutBuffer buf1;
