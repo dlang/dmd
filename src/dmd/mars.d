@@ -62,6 +62,8 @@ import dmd.target;
 import dmd.tokens;
 import dmd.utils;
 
+import dmd.trace;
+
 /**
  * Print DMD's logo on stdout
  */
@@ -934,6 +936,79 @@ private int tryMain(size_t argc, const(char)** argv)
             cgFile._ref = 1;
             cgFile.write();
         }
+    }
+
+    static if (SYMBOL_TRACE)
+    {
+        // this is debug code we simply hope that we will not need more
+        // then 32 Megabyte of log-buffer;
+        char* fileBuffer = cast(char*)malloc(ushort.max * 512 * 64);
+        char* bufferPos = fileBuffer;
+
+        char[255] fileNameBuffer;
+        import core.stdc.time : ctime, time;
+        auto now = time(null);
+        auto timeString = ctime(&now);
+        // replace the ' ' by _ and '\n' or '\r' by '\0'
+        {
+            int len = 0;
+            char c = void;
+            for(;;)
+            {
+                c = timeString[len++];
+                // break on null, just to be safe;
+                if (!c)
+                    break;
+
+                if (c == ' ')
+                    timeString[len - 1] = '_';
+
+                if (c == '\r' || c == '\n')
+                {
+                    timeString[len - 1] = '\0';
+                    break;
+                }
+            }
+        }
+
+        sprintf(&fileNameBuffer[0],
+             "symbol-%s.log".ptr, timeString);
+
+        auto f = File(&fileNameBuffer[0]);
+
+        bufferPos += sprintf(cast(char*) bufferPos, "//");
+        foreach(arg;arguments)
+        {
+            bufferPos += sprintf(bufferPos, "%s ", arg);
+        }
+        bufferPos += sprintf(cast(char*) bufferPos, "\n");
+
+        bufferPos += sprintf(cast(char*) bufferPos,
+            "%s|%s|%s|%s|%s|%s|%s|%s|%s|\n",
+            "inclusive ticks".ptr,
+            "name".ptr, "kind".ptr, "phase".ptr,
+            "location".ptr, "begin_ticks".ptr, "end_ticks".ptr,
+            "begin_mem".ptr, "end_mem".ptr
+        );
+
+        foreach(dp;dsymbol_profile_array[0 .. dsymbol_profile_array_count])
+        {
+            if (dp.sym is null)
+                continue;
+            // Identifier id = dp.sym.ident ? dp.sym.ident : dp.sym.getIdent();
+
+            bufferPos += sprintf(cast(char*) bufferPos,
+                "%lld|%s|%s|%s|%s|%lld|%lld|%lld|%lld|\n",
+                dp.end_ticks - dp.begin_ticks,
+                dp.sym.toChars(), &dp.kind[0], &dp.fn[0],
+                dp.sym.loc.toChars(), dp.begin_ticks, dp.end_ticks,
+                dp.begin_mem, dp.end_mem);
+        }
+
+        f.setbuffer(fileBuffer, bufferPos - fileBuffer);
+        f._ref = 1;
+        f.write();
+        free(fileBuffer);
     }
     if (!global.params.obj)
     {

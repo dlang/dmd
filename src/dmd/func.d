@@ -48,6 +48,8 @@ import dmd.statementsem;
 import dmd.tokens;
 import dmd.visitor;
 
+import dmd.trace;
+
 /// Inline Status
 enum ILS : int
 {
@@ -290,6 +292,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     final bool functionSemantic()
     {
+        mixin(traceString("this", "functionSemantic"));
         if (!_scope)
             return !errors;
 

@@ -14,6 +14,8 @@ module dmd.root.rmem;
 
 import core.stdc.string;
 
+__gshared ulong allocated;
+
 version (GC)
 {
     import core.memory : GC;
@@ -148,8 +150,11 @@ else
 
     extern (C) void* allocmemory(size_t m_size) nothrow
     {
+
         // 16 byte alignment is better (and sometimes needed) for doubles
         m_size = (m_size + 15) & ~15;
+
+        allocated += m_size;
 
         // The layout of the code is selected so the most common case is straight through
         if (m_size <= heapleft)
