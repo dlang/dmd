@@ -46,7 +46,8 @@ import dmd.arraytypes;
  */
 bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Expression arg, bool gag)
 {
-    //printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg.toChars(), par.toChars());
+    enum log = false;
+    if (log) printf("checkParamArgumentEscape(arg: %s par: %s)\n", arg.toChars(), par.toChars());
     //printf("type = %s, %d\n", arg.type.toChars(), arg.type.hasPointers());
 
     if (!arg.type.hasPointers())
@@ -78,7 +79,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
 
     foreach (VarDeclaration v; er.byvalue)
     {
-        //printf("byvalue %s\n", v.toChars());
+        if (log) printf("byvalue %s\n", v.toChars());
         if (v.isDataseg())
             continue;
 
@@ -103,6 +104,8 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
             /* v is not 'scope', and is assigned to a parameter that may escape.
              * Therefore, v can never be 'scope'.
              */
+            if (log) printf("no infer for %s in %s, fdc %s, %d\n",
+                v.toChars(), sc.func.ident.toChars(), fdc.ident.toChars(),  __LINE__);
             v.doNotInferScope = true;
         }
     }
@@ -315,6 +318,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
             /* v is not 'scope', and we didn't check the scope of where we assigned it to.
              * It may escape via that assignment, therefore, v can never be 'scope'.
              */
+            //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
             v.doNotInferScope = true;
         }
     }
@@ -389,6 +393,14 @@ ByRef:
         if (log) printf("byfunc: %s, %d\n", fd.toChars(), fd.tookAddressOf);
         VarDeclarations vars;
         findAllOuterAccessedVariables(fd, &vars);
+
+        /* https://issues.dlang.org/show_bug.cgi?id=16037
+         * If assigning the address of a delegate to a scope variable,
+         * then uncount that address of. This is so it won't cause a
+         * closure to be allocated.
+         */
+        if (va && va.isScope() && fd.tookAddressOf && global.params.vsafe)
+            --fd.tookAddressOf;
 
         foreach (v; vars)
         {
@@ -504,7 +516,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
         }
         else
         {
-            //printf("no infer for %s\n", v.toChars());
+            //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
             v.doNotInferScope = true;
         }
     }
@@ -623,7 +635,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
         }
         else
         {
-            //printf("no infer for %s\n", v.toChars());
+            //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
             v.doNotInferScope = true;
         }
     }
