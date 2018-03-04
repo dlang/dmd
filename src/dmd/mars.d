@@ -1958,19 +1958,15 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-i")
                 includeImports = true;
-            else if (startsWith(p + 1, "i="))
+            else if (p[1] == 'i' && (p[2] == '=' || p[2] == ','))
             {
                 includeImports = true;
-                if (!p[3])
-                {
-                    error("invalid option '%s', module patterns cannot be empty", p);
-                }
-                else
+                foreach (option; optionRange(p + 2))
                 {
                     // NOTE: we could check that the argument only contains valid "module-pattern" characters.
                     //       Invalid characters doesn't break anything but an error message to the user might
                     //       be nice.
-                    includeModulePatterns.push(p + 3);
+                    includeModulePatterns.push(option.ptr);
                 }
             }
             else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
@@ -2030,7 +2026,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 if (!params.imppath)
                     params.imppath = new Strings();
-                params.imppath.push(p + 2 + (p[2] == '='));
+                foreach (imppath; optionRange(p + 2))
+                    params.imppath.push(imppath.ptr);
             }
             else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
             {
@@ -2047,7 +2044,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             {
                 if (!params.fileImppath)
                     params.fileImppath = new Strings();
-                params.fileImppath.push(p + 2 + (p[2] == '='));
+                foreach (fileImppath; optionRange(p + 2))
+                    params.fileImppath.push(fileImppath.ptr);
             }
             else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
             {
@@ -2130,7 +2128,8 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 params.debugy = true;
             else if (p[1] == 'L')                        // https://dlang.org/dmd.html#switch-L
             {
-                params.linkswitches.push(p + 2 + (p[2] == '='));
+                foreach (linkswitch; optionRange(p + 2))
+                    params.linkswitches.push(linkswitch.ptr);
             }
             else if (startsWith(p + 1, "defaultlib="))   // https://dlang.org/dmd.html#switch-defaultlib
             {
@@ -2495,5 +2494,95 @@ private void parseModulePattern(const(char)* modulePattern, MatcherNode* dst, us
                 break;
             }
         }
+    }
+}
+
+auto optionRange(bool mustBeNullTerminated = true)(const(char)* args)
+{
+    return OptionRange!(mustBeNullTerminated)(args);
+}
+// TODO: support array range or pointer range
+struct OptionRange(bool mustBeNullTerminated)
+{
+    char[] current;
+    bool atLast;
+    this(const(char)* args)
+    {
+        if (*args == '\0')
+        {
+            current = null; // no arguments
+        }
+        else if (*args == ',')
+        {
+            args++;
+            auto next = args;
+            for (;; next++)
+            {
+                if (*next == '\0')
+                {
+                    current = cast(char[])args[0 .. next - args];
+                    atLast = true;
+                    return;
+                }
+                if (*next == ',')
+                    break;
+            }
+
+            auto firstComma = next - args;
+
+            static if (mustBeNullTerminated)
+            {
+                // make a copy of args so we can replace commas ',' with '\0'
+                auto argsCopy = strdup(args);
+                argsCopy[firstComma] = '\0';
+                current = argsCopy[0 .. firstComma];
+            }
+            else
+            {
+                current = args[0 .. firstComma];
+            }
+        }
+        else
+        {
+            if (*args == '=')
+            {
+                args++;
+                if (*args == '\0')
+                {
+                    current = null;
+                    return;
+                }
+            }
+            current = cast(char[])args[0 .. strlen(args)];
+            atLast = true;
+        }
+    }
+    @property bool empty() const { return current is null; }
+    @property const(char)[] front() { return current; }
+    void popFront()
+    {
+        if (atLast)
+        {
+            current = null;
+            return;
+        }
+
+        auto next = current.ptr + current.length + 1;
+        auto start = next;
+        for (;; next++)
+        {
+            if (*next == ',')
+            {
+                static if (mustBeNullTerminated)
+                    *next = '\0'; // replace ',' with '\0'
+                break;
+            }
+            if (*next == '\0')
+            {
+                atLast = true;
+                break;
+            }
+        }
+        current = start[0 .. next - start];
     }
 }
