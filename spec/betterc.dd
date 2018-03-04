@@ -11,7 +11,7 @@ $(HEADERNAV_TOC)
     $(P D programs generally require:)
 
     $(OL
-    $(LI The D runtime library (Phobos) to be linked in, because many features of
+    $(LI The D runtime library to be linked in, because many features of
     the core language require runtime library support.)
     $(LI The `main()` function to be written in D, to ensure that the required
     runtime library support is properly initialized.)
@@ -57,10 +57,10 @@ Hello betterC
     $(OL
     $(LI Simplifying the process of integration at the build-system level)
     $(LI Removing the need to ensure that Druntime is properly initialized on
-    calls to the library, when an initialization step is not performed before
-    the library is used.)
+    calls to the library, for situations when an initialization step is not
+    performed or would be difficult to insert before the library is used.)
     $(LI Mixing memory management strategies (GC + manual memory management) can
-    be tricky, hence removing D's GC from the equation may be a good solution.)
+    be tricky, hence removing D's GC from the equation may be worthwhile sometimes.)
     )
 
 
@@ -89,17 +89,16 @@ $(H2 $(LNAME2 consequences, Not Available))
 
 $(OL
     $(LI Garbage Collection)
-    $(LI Thread-local storage)
     $(LI TypeInfo and ModuleInfo)
     $(LI Classes)
     $(LI Built-in threading (e.g. $(MREF core, thread)))
-    $(LI Dynamic arrays (but not slices) and associative arrays)
+    $(LI Dynamic arrays (though slices of static arrays work) and associative arrays)
     $(LI Exceptions)
     $(LI `switch` with strings)
     $(LI `final switch`)
     $(LI `synchronized` and $(MREF core, sync))
-    $(LI Static module constructors or deconstructors)
-    $(LI Struct deconstructors)
+    $(LI Static module constructors or destructors)
+    $(LI Struct destructors)
     $(LI `unittest` (testing can be done without the $(TT -betterC) flag))
 )
 
