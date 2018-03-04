@@ -42,6 +42,11 @@ C=backend
 TK=tk
 ROOT=root
 
+GENERATED = ../generated
+BUILD=release
+G = $(GENERATED)/$(OS)/$(BUILD)/$(MODEL)
+$(shell mkdir -p $G)
+
 ifeq (osx,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
@@ -328,9 +333,11 @@ backend.a: $(BACK_OBJS)
 ifdef ENABLE_LTO
 dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
 	$(HOST_CC) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
+	cp dmd $G/dmd
 else
 dmd: frontend.a root.a glue.a backend.a
 	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
+	cp dmd $G/dmd
 endif
 
 clean:
