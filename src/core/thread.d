@@ -4071,6 +4071,14 @@ class Fiber
     // Initialization
     ///////////////////////////////////////////////////////////////////////////
 
+    version(Windows)
+        // exception handling walks the stack, invoking DbgHelp.dll which
+        // needs up to 16k of stack space depending on the version of DbgHelp.dll,
+        // the existence of debug symbols and other conditions. Avoid causing
+        // stack overflows by defaulting to a larger stack size
+        enum defaultStackPages = 8;
+    else
+        enum defaultStackPages = 4;
 
     /**
      * Initializes a fiber object which is associated with a static
@@ -4087,7 +4095,7 @@ class Fiber
      * In:
      *  fn must not be null.
      */
-    this( void function() fn, size_t sz = PAGESIZE*4,
+    this( void function() fn, size_t sz = PAGESIZE * defaultStackPages,
           size_t guardPageSize = PAGESIZE ) nothrow
     in
     {
@@ -4115,7 +4123,7 @@ class Fiber
      * In:
      *  dg must not be null.
      */
-    this( void delegate() dg, size_t sz = PAGESIZE*4,
+    this( void delegate() dg, size_t sz = PAGESIZE * defaultStackPages,
           size_t guardPageSize = PAGESIZE ) nothrow
     in
     {
@@ -4123,7 +4131,7 @@ class Fiber
     }
     do
     {
-        allocStack( sz, guardPageSize);
+        allocStack( sz, guardPageSize );
         reset( dg );
     }
 
