@@ -3605,6 +3605,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     codeIndent = istart - iLineStart; // save indent count
                     if (codeLanguage.length && codeLanguage != "dlang")
                     {
+                        // backslash-escape
+                        for (size_t j; j < codeLanguage.length - 1; ++j)
+                            if (codeLanguage[j] == '\\' && isPunctuation(codeLanguage[j + 1]))
+                                codeLanguage = codeLanguage[0..j] ~ codeLanguage[j + 1..$];
+
                         i = buf.insert(i, "$(OTHER_CODE ");
                         i = buf.insert(i, codeLanguage);
                         i = buf.insert(i, ",");
