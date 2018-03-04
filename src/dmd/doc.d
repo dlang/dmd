@@ -2427,7 +2427,8 @@ private struct MarkdownList
     string orderedStart;    /// an optional start number--if present then the list starts at this number
     size_t iStart;          /// the index where the list item starts
     size_t iContentStart;   /// the index where the content starts after the list delimiter
-    int indent;             /// the level of indent the content starts at
+    int delimiterIndent;    /// the level of indent the list delimiter starts at
+    int contentIndent;      /// the level of indent the content starts at
     int macroLevel;         /// the count of nested DDoc macros when the list is started
     char type;              /// the type of list, defined by its starting character
 
@@ -2467,7 +2468,7 @@ private struct MarkdownList
             parseOrderedListItem(buf, iLineStart, i) :
             parseUnorderedListItem(buf, iLineStart, i);
         if (item.type == type)
-            return getMarkdownIndent(buf, iLineStart, i) < indent;
+            return item.delimiterIndent < contentIndent && item.contentIndent > delimiterIndent;
         return false;
     }
 
@@ -2486,11 +2487,9 @@ private struct MarkdownList
     {
         this.macroLevel = macroLevel;
 
-        const itemIndent = getMarkdownIndent(buf, iLineStart, i);
-
         buf.remove(iStart, iContentStart - iStart);
 
-        if (!nestedLists.length || itemIndent >= nestedLists[$-1].indent)
+        if (!nestedLists.length || delimiterIndent >= nestedLists[$-1].contentIndent)
         {
             // start a list macro
             nestedLists ~= this;
@@ -2512,7 +2511,8 @@ private struct MarkdownList
         }
         else if (nestedLists.length)
         {
-            nestedLists[$-1].indent = indent;
+            nestedLists[$-1].delimiterIndent = delimiterIndent;
+            nestedLists[$-1].contentIndent = contentIndent;
         }
 
         iStart = buf.insert(iStart, "$(LI\n");
@@ -2563,11 +2563,18 @@ private struct MarkdownList
         {
             // end nested lists that are indented more than this content
             int indent = getMarkdownIndent(buf, i + 1, iAfterSpaces);
-            while (nestedLists.length && nestedLists[$-1].indent > indent)
+            while (nestedLists.length && nestedLists[$-1].contentIndent > indent)
             {
                 i = buf.insert(i, ")\n)");
                 --nestedLists.length;
                 iParagraphStart = skipChars(buf, i, " \t\r\n");
+
+                if (nestedLists.length && nestedLists[$-1].isAtItemInThisList(buf, i + 1, iParagraphStart))
+                {
+                    i = buf.insert(i, ")");
+                    ++iParagraphStart;
+                    break;
+                }
             }
         }
     }
@@ -2582,18 +2589,22 @@ private struct MarkdownList
     */
     private static MarkdownList parseUnorderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
     {
-        if (i < buf.offset-1 &&
+        if ((buf.data[i] == '-' ||
+                buf.data[i] == '*' ||
+                buf.data[i] == '+') &&
+            i+1 < buf.offset &&
             (buf.data[i+1] == ' ' ||
                 buf.data[i+1] == '\t' ||
                 buf.data[i+1] == '\r' ||
                 buf.data[i+1] == '\n'))
         {
             size_t iContentStart = skipChars(buf, i + 1, " \t");
-            const indent = getMarkdownIndent(buf, iLineStart, iContentStart);
-            auto list = MarkdownList(null, iLineStart, iContentStart, indent, 0, buf.data[i]);
+            const delimiterIndent = getMarkdownIndent(buf, iLineStart, i);
+            const contentIndent = getMarkdownIndent(buf, iLineStart, iContentStart);
+            auto list = MarkdownList(null, iLineStart, iContentStart, delimiterIndent, contentIndent, 0, buf.data[i]);
             return list;
         }
-        return MarkdownList(null, 0, 0, 0, 0, 0);
+        return MarkdownList(null, 0, 0, 0, 0, 0, 0);
     }
 
     /****************************************************
@@ -2607,7 +2618,8 @@ private struct MarkdownList
     private static MarkdownList parseOrderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
     {
         size_t iAfterNumbers = skipChars(buf, i, "0123456789");
-        if (iAfterNumbers - i <= 9 &&
+        if (iAfterNumbers - i > 0 &&
+            iAfterNumbers - i <= 9 &&
             iAfterNumbers + 1 < buf.offset &&
             buf.data[iAfterNumbers] == '.' &&
             (buf.data[iAfterNumbers+1] == ' ' ||
@@ -2616,13 +2628,14 @@ private struct MarkdownList
                 buf.data[iAfterNumbers+1] == '\n'))
         {
             size_t iContentStart = skipChars(buf, iAfterNumbers + 1, " \t");
-            const indent = getMarkdownIndent(buf, iLineStart, iContentStart);
+            const delimiterIndent = getMarkdownIndent(buf, iLineStart, i);
+            const contentIndent = getMarkdownIndent(buf, iLineStart, iContentStart);
             size_t iNumberStart = skipChars(buf, i, "0");
             if (iNumberStart == iAfterNumbers)
                 --iNumberStart;
-            return MarkdownList(cast(string) buf.data[iNumberStart..iAfterNumbers].idup, iLineStart, iContentStart, indent, 0, buf.data[iAfterNumbers]);
+            return MarkdownList(cast(string) buf.data[iNumberStart..iAfterNumbers].idup, iLineStart, iContentStart, delimiterIndent, contentIndent, 0, buf.data[iAfterNumbers]);
         }
-        return MarkdownList(null, 0, 0, 0, 0, 0);
+        return MarkdownList(null, 0, 0, 0, 0, 0, 0);
     }
 }
 
@@ -3329,7 +3342,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         if (nestedLists.length)
                         {
                             const indent = getMarkdownIndent(buf, iLineStart, i);
-                            if (indent < nestedLists[$-1].indent)
+                            if (indent < nestedLists[$-1].contentIndent)
                                 MarkdownList.endAllNestedLists(buf, i, nestedLists);
                         }
 
