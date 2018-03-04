@@ -757,15 +757,11 @@ $(GNAME DeleteExpression):
 
     $(P Otherwise, the garbage collector is called to immediately free the
         memory allocated for the class instance or struct instance.
-        If the garbage collector was not used to allocate the memory for
-        the instance, undefined behavior will result.
     )
 
     $(P If the $(I UnaryExpression) is a pointer or a dynamic array,
         the garbage collector is called to immediately release the
         memory.
-        If the garbage collector was not used to allocate the memory for
-        the instance, undefined behavior will result.
     )
 
     $(P The pointer, dynamic array, or reference is set to $(D null)
@@ -779,6 +775,12 @@ $(GNAME DeleteExpression):
         instance. Neither the garbage collector nor any class deallocator
         is called.
     )
+
+    $(UNDEFINED_BEHAVIOR
+    $(OL
+    $(LI Using `delete` to free memory not allocated by the garbage collector.)
+    $(LI Referring to data that has been the operand of `delete`.)
+    ))
 
 $(H3 $(LNAME2 cast_expressions, Cast Expressions))
 

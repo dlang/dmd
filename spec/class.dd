@@ -389,6 +389,20 @@ $(GNAME Constructor):
         $(P The following restrictions apply to class construction:)
 
     $(OL
+        $(LI It is illegal for constructors to mutually call each other.
+
+        ------
+        this() { this(1); }
+        this(int i) { this(); } // illegal, cyclic constructor calls
+        ------
+
+        $(IMPLEMENTATION_DEFINED The compiler is not required to detect
+        cyclic constructor calls.)
+
+        $(UNDEFINED_BEHAVIOR If the program executes with cyclic constructor
+        calls.)
+        )
+
         $(LI If a constructor's code contains a delegate constructor call, all
         possible execution paths through the constructor must make exactly one
         delegate constructor call:
