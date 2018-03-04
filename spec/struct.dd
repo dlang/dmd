@@ -62,6 +62,8 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     the first field and the start of the object.
     )
 
+    $(P Structs with no fields of non-zero size (aka $(I Empty Structs)) have a size of one byte.)
+
     $(P Non-static $(RELATIVE_LINK2 nested, function-nested D structs), which access the context of
     their enclosing scope, have an extra field.
     )
@@ -70,11 +72,21 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     $(OL
     $(LI The default layout of the fields of a struct is an exact
     match with the $(I associated C compiler).)
+    $(LI g++ and clang++ differ in how empty structs are handled. Both return `1` from `sizeof`,
+    however, clang++ does not push them onto the parameter stack while g++ does. This is a
+    binary incompatibility between g++ and clang++.
+    dmd follows clang++ behavior for OSX and FreeBSD, and g++ behavior for Linux and other
+    Posix platforms.
+    )
+    $(LI clang and gcc both return `0` from `sizeof` for empty structs. Using `extern "C++"`
+    in clang++ and g++ does not cause them to conform to the behavior of their respective C compilers.)
     ))
 
     $(UNDEFINED_BEHAVIOR
     $(OL
     $(LI The padding data can be accessed, but its contents are undefined.)
+    $(LI Do not pass or return structs with no fields of non-zero size to `extern (C)` functions.
+    According to C11 6.7.2.1p8 this is undefined behavior.)
     ))
 
     $(BEST_PRACTICE
@@ -83,6 +95,8 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     attributes to describe an exact match. Using a $(DDSUBLINK spec/version, static-assert, Static Assert)
     to ensure the result is as expected.)
     $(LI Although the contents of the padding are often zero, do not rely on that.)
+    $(LI Avoid using empty structs when interfacing with C and C++ code.)
+    $(LI Avoid using empty structs as parameters or arguments to variadic functions.)
     ))
 
 $(H2 $(LNAME2 POD, Plain Old Data))
