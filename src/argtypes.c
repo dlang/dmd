@@ -340,6 +340,7 @@ TypeTuple *toArgTypes(Type *t)
                 case 3:
                     if (!global.params.is64bit)
                         goto Lmemory;
+                    /* fall through */
                 case 4:
                     t1 = Type::tint32;
                     break;
@@ -348,6 +349,7 @@ TypeTuple *toArgTypes(Type *t)
                 case 7:
                     if (!global.params.is64bit)
                         goto Lmemory;
+                    /* fall through */
                 case 8:
                     t1 = Type::tint64;
                     break;
@@ -453,7 +455,8 @@ TypeTuple *toArgTypes(Type *t)
                     else if (t2->isfloating())
                         goto Lmemory;
                     else
-                        ;
+                    {
+                    }
                 }
         #else
                 if (t->sym->fields.dim == 1)

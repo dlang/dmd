@@ -1479,7 +1479,7 @@ public:
                     if (sym->Sclass == SCauto && sym->Ssymnum == -1)
                         symbol_add(sym);
                     c->IEVsym1 = sym;
-                    c->IFL1 = sym->Sfl ? sym->Sfl : FLauto;
+                    c->IFL1 = sym->Sfl ? (FL)sym->Sfl : FLauto;
                     break;
             }
 
@@ -1501,7 +1501,7 @@ public:
                     if (sym->Sclass == SCauto && sym->Ssymnum == -1)
                         symbol_add(sym);
                     c->IEVsym2 = sym;
-                    c->IFL2 = sym->Sfl ? sym->Sfl : FLauto;
+                    c->IFL2 = sym->Sfl ? (FL)sym->Sfl : FLauto;
                     if (d->isDataseg())
                         sym->Sflags |= SFLlivexit;
                     break;

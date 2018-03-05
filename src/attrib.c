@@ -43,7 +43,7 @@ AttribDeclaration::AttribDeclaration(Dsymbols *decl)
     this->decl = decl;
 }
 
-Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sds)
+Dsymbols *AttribDeclaration::include(Scope *, ScopeDsymbol *)
 {
     return decl;
 }
@@ -538,7 +538,7 @@ Scope *LinkDeclaration::newScope(Scope *sc)
 
 const char *LinkDeclaration::toChars()
 {
-    return (char *)"extern ()";
+    return "extern ()";
 }
 
 /********************************* CPPMangleDeclaration ****************************/
@@ -565,7 +565,7 @@ Scope *CPPMangleDeclaration::newScope(Scope *sc)
 
 const char *CPPMangleDeclaration::toChars()
 {
-    return (char *)"extern ()";
+    return "extern ()";
 }
 
 /********************************* ProtDeclaration ****************************/
@@ -684,12 +684,6 @@ void AlignDeclaration::semantic2(Scope *sc)
 {
     getAlignment(sc);
     AttribDeclaration::semantic2(sc);
-}
-
-static structalign_t errorPositiveInteger(Loc loc, Expression *ealign)
-{
-    error(loc, "positive integer expected, not %s", ealign->toChars());
-    return STRUCTALIGN_DEFAULT;
 }
 
 structalign_t AlignDeclaration::getAlignment(Scope *sc)
@@ -1099,10 +1093,10 @@ void PragmaDeclaration::semantic(Scope *sc)
             dchar_t c = p[i];
             if (c < 0x80)
             {
-                if (c >= 'A' && c <= 'Z' ||
-                    c >= 'a' && c <= 'z' ||
-                    c >= '0' && c <= '9' ||
-                    c != 0 && strchr("$%().:?@[]_", c))
+                if ((c >= 'A' && c <= 'Z') ||
+                    (c >= 'a' && c <= 'z') ||
+                    (c >= '0' && c <= '9') ||
+                    (c != 0 && strchr("$%().:?@[]_", c)))
                 {
                     ++i;
                     continue;
@@ -1318,7 +1312,7 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
  * Different from other AttribDeclaration subclasses, include() call requires
  * the completion of addMember and setScope phases.
  */
-Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
+Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *)
 {
     //printf("StaticIfDeclaration::include(sc = %p) _scope = %p\n", sc, _scope);
 
@@ -1355,7 +1349,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sds)
     }
 }
 
-void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
+void StaticIfDeclaration::addMember(Scope *, ScopeDsymbol *sds)
 {
     //printf("StaticIfDeclaration::addMember() '%s'\n", toChars());
     /* This is deferred until the condition evaluated later (by the include() call),
@@ -1372,7 +1366,7 @@ void StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
     this->scopesym = sds;
 }
 
-void StaticIfDeclaration::importAll(Scope *sc)
+void StaticIfDeclaration::importAll(Scope *)
 {
     // do not evaluate condition before semantic pass
 }
@@ -1409,13 +1403,13 @@ CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     this->compiled = false;
 }
 
-Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
+Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *)
 {
     //printf("CompileDeclaration::syntaxCopy('%s')\n", toChars());
     return new CompileDeclaration(loc, exp->syntaxCopy());
 }
 
-void CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sds)
+void CompileDeclaration::addMember(Scope *, ScopeDsymbol *sds)
 {
     //printf("CompileDeclaration::addMember(sc = %p, sds = %p, memnum = %d)\n", sc, sds, memnum);
     this->scopesym = sds;

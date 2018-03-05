@@ -81,44 +81,44 @@ static Identifier *opId(Expression *e)
     {
     public:
         Identifier *id;
-        void visit(Expression *e)    { assert(0); }
-        void visit(UAddExp *e)       { id = Id::uadd; }
-        void visit(NegExp *e)        { id = Id::neg; }
-        void visit(ComExp *e)        { id = Id::com; }
-        void visit(CastExp *e)       { id = Id::_cast; }
-        void visit(InExp *e)         { id = Id::opIn; }
-        void visit(PostExp *e)       { id = (e->op == TOKplusplus) ? Id::postinc : Id::postdec; }
-        void visit(AddExp *e)        { id = Id::add; }
-        void visit(MinExp *e)        { id = Id::sub; }
-        void visit(MulExp *e)        { id = Id::mul; }
-        void visit(DivExp *e)        { id = Id::div; }
-        void visit(ModExp *e)        { id = Id::mod; }
-        void visit(PowExp *e)        { id = Id::pow; }
-        void visit(ShlExp *e)        { id = Id::shl; }
-        void visit(ShrExp *e)        { id = Id::shr; }
-        void visit(UshrExp *e)       { id = Id::ushr; }
-        void visit(AndExp *e)        { id = Id::iand; }
-        void visit(OrExp *e)         { id = Id::ior; }
-        void visit(XorExp *e)        { id = Id::ixor; }
-        void visit(CatExp *e)        { id = Id::cat; }
-        void visit(AssignExp *e)     { id = Id::assign; }
-        void visit(AddAssignExp *e)  { id = Id::addass; }
-        void visit(MinAssignExp *e)  { id = Id::subass; }
-        void visit(MulAssignExp *e)  { id = Id::mulass; }
-        void visit(DivAssignExp *e)  { id = Id::divass; }
-        void visit(ModAssignExp *e)  { id = Id::modass; }
-        void visit(AndAssignExp *e)  { id = Id::andass; }
-        void visit(OrAssignExp *e)   { id = Id::orass; }
-        void visit(XorAssignExp *e)  { id = Id::xorass; }
-        void visit(ShlAssignExp *e)  { id = Id::shlass; }
-        void visit(ShrAssignExp *e)  { id = Id::shrass; }
-        void visit(UshrAssignExp *e) { id = Id::ushrass; }
-        void visit(CatAssignExp *e)  { id = Id::catass; }
-        void visit(PowAssignExp *e)  { id = Id::powass; }
-        void visit(EqualExp *e)      { id = Id::eq; }
-        void visit(CmpExp *e)        { id = Id::cmp; }
-        void visit(ArrayExp *e)      { id = Id::index; }
-        void visit(PtrExp *e)        { id = Id::opStar; }
+        void visit(Expression *)    { assert(0); }
+        void visit(UAddExp *)       { id = Id::uadd; }
+        void visit(NegExp *)        { id = Id::neg; }
+        void visit(ComExp *)        { id = Id::com; }
+        void visit(CastExp *)       { id = Id::_cast; }
+        void visit(InExp *)         { id = Id::opIn; }
+        void visit(PostExp *e)      { id = (e->op == TOKplusplus) ? Id::postinc : Id::postdec; }
+        void visit(AddExp *)        { id = Id::add; }
+        void visit(MinExp *)        { id = Id::sub; }
+        void visit(MulExp *)        { id = Id::mul; }
+        void visit(DivExp *)        { id = Id::div; }
+        void visit(ModExp *)        { id = Id::mod; }
+        void visit(PowExp *)        { id = Id::pow; }
+        void visit(ShlExp *)        { id = Id::shl; }
+        void visit(ShrExp *)        { id = Id::shr; }
+        void visit(UshrExp *)       { id = Id::ushr; }
+        void visit(AndExp *)        { id = Id::iand; }
+        void visit(OrExp *)         { id = Id::ior; }
+        void visit(XorExp *)        { id = Id::ixor; }
+        void visit(CatExp *)        { id = Id::cat; }
+        void visit(AssignExp *)     { id = Id::assign; }
+        void visit(AddAssignExp *)  { id = Id::addass; }
+        void visit(MinAssignExp *)  { id = Id::subass; }
+        void visit(MulAssignExp *)  { id = Id::mulass; }
+        void visit(DivAssignExp *)  { id = Id::divass; }
+        void visit(ModAssignExp *)  { id = Id::modass; }
+        void visit(AndAssignExp *)  { id = Id::andass; }
+        void visit(OrAssignExp *)   { id = Id::orass; }
+        void visit(XorAssignExp *)  { id = Id::xorass; }
+        void visit(ShlAssignExp *)  { id = Id::shlass; }
+        void visit(ShrAssignExp *)  { id = Id::shrass; }
+        void visit(UshrAssignExp *) { id = Id::ushrass; }
+        void visit(CatAssignExp *)  { id = Id::catass; }
+        void visit(PowAssignExp *)  { id = Id::powass; }
+        void visit(EqualExp *)      { id = Id::eq; }
+        void visit(CmpExp *)        { id = Id::cmp; }
+        void visit(ArrayExp *)      { id = Id::index; }
+        void visit(PtrExp *)        { id = Id::opStar; }
     };
     OpIdVisitor v;
     e->accept(&v);
@@ -136,21 +136,21 @@ static Identifier *opId_r(Expression *e)
     {
     public:
         Identifier *id;
-        void visit(Expression *e) { id = NULL; }
-        void visit(InExp *e)      { id = Id::opIn_r; }
-        void visit(AddExp *e)     { id = Id::add_r; }
-        void visit(MinExp *e)     { id = Id::sub_r; }
-        void visit(MulExp *e)     { id = Id::mul_r; }
-        void visit(DivExp *e)     { id = Id::div_r; }
-        void visit(ModExp *e)     { id = Id::mod_r; }
-        void visit(PowExp *e)     { id = Id::pow_r; }
-        void visit(ShlExp *e)     { id = Id::shl_r; }
-        void visit(ShrExp *e)     { id = Id::shr_r; }
-        void visit(UshrExp *e)    { id = Id::ushr_r; }
-        void visit(AndExp *e)     { id = Id::iand_r; }
-        void visit(OrExp *e)      { id = Id::ior_r; }
-        void visit(XorExp *e)     { id = Id::ixor_r; }
-        void visit(CatExp *e)     { id = Id::cat_r; }
+        void visit(Expression *) { id = NULL; }
+        void visit(InExp *)      { id = Id::opIn_r; }
+        void visit(AddExp *)     { id = Id::add_r; }
+        void visit(MinExp *)     { id = Id::sub_r; }
+        void visit(MulExp *)     { id = Id::mul_r; }
+        void visit(DivExp *)     { id = Id::div_r; }
+        void visit(ModExp *)     { id = Id::mod_r; }
+        void visit(PowExp *)     { id = Id::pow_r; }
+        void visit(ShlExp *)     { id = Id::shl_r; }
+        void visit(ShrExp *)     { id = Id::shr_r; }
+        void visit(UshrExp *)    { id = Id::ushr_r; }
+        void visit(AndExp *)     { id = Id::iand_r; }
+        void visit(OrExp *)      { id = Id::ior_r; }
+        void visit(XorExp *)     { id = Id::ixor_r; }
+        void visit(CatExp *)     { id = Id::cat_r; }
     };
     OpIdRVisitor v;
     e->accept(&v);
@@ -197,8 +197,9 @@ Objects *opToArg(Scope *sc, TOK op)
         case TOKushrass: op = TOKushr; break;
         case TOKcatass: op = TOKcat; break;
         case TOKpowass: op = TOKpow; break;
+        default:                     break;
     }
-    Expression *e = new StringExp(Loc(), (char *)Token::toChars(op));
+    Expression *e = new StringExp(Loc(), const_cast<char *>(Token::toChars(op)));
     e = semantic(e, sc);
     Objects *tiargs = new Objects();
     tiargs->push(e);
@@ -226,7 +227,7 @@ Expression *op_overload(Expression *e, Scope *sc)
             result = NULL;
         }
 
-        void visit(Expression *e)
+        void visit(Expression *)
         {
             assert(0);
         }
@@ -244,7 +245,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                 const bool maybeSlice =
                     (ae->arguments->dim == 0 ||
-                     ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
+                     (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval));
                 IntervalExp *ie = NULL;
                 if (maybeSlice && ae->arguments->dim)
                 {
@@ -402,7 +403,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
             const bool maybeSlice =
                 (ae->arguments->dim == 0 ||
-                 ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
+                 (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval));
             IntervalExp *ie = NULL;
             if (maybeSlice && ae->arguments->dim)
             {
@@ -728,7 +729,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                     // Rewrite (e1 -- e2) as e1.postdec()
                     result = build_overload(e->loc, sc, e->e1, NULL, m.lastf ? m.lastf : s);
                 }
-                else if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+                else if ((lastf && m.lastf == lastf) || (!s_r && m.last <= MATCHnomatch))
                 {
                     // Rewrite (e1 op e2) as e1.opfunc(e2)
                     result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);
@@ -815,7 +816,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         m.lastf = m.anyf;
                     }
 
-                    if (lastf && m.lastf == lastf || !s && m.last <= MATCHnomatch)
+                    if ((lastf && m.lastf == lastf) || (!s && m.last <= MATCHnomatch))
                     {
                         // Rewrite (e1 op e2) as e1.opfunc_r(e2)
                         result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s_r);
@@ -834,6 +835,7 @@ Expression *op_overload(Expression *e, Scope *sc)
                         case TOKgt:     e->op = TOKlt;     break;
                         case TOKle:     e->op = TOKge;     break;
                         case TOKge:     e->op = TOKle;     break;
+                        default:                           break;
                     }
 
                     return;
@@ -940,8 +942,8 @@ Expression *op_overload(Expression *e, Scope *sc)
 
             /* Check for class equality with null literal or typeof(null).
              */
-            if (t1->ty == Tclass && e->e2->op == TOKnull ||
-                t2->ty == Tclass && e->e1->op == TOKnull)
+            if ((t1->ty == Tclass && e->e2->op == TOKnull) ||
+                (t2->ty == Tclass && e->e1->op == TOKnull))
             {
                 e->error("use '%s' instead of '%s' when comparing with null",
                     Token::toChars(e->op == TOKequal ? TOKidentity : TOKnotidentity),
@@ -949,8 +951,8 @@ Expression *op_overload(Expression *e, Scope *sc)
                 result = new ErrorExp();
                 return;
             }
-            if (t1->ty == Tclass && t2->ty == Tnull ||
-                t1->ty == Tnull && t2->ty == Tclass)
+            if ((t1->ty == Tclass && t2->ty == Tnull) ||
+                (t1->ty == Tnull && t2->ty == Tclass))
             {
                 // Comparing a class with typeof(null) should not call opEquals
                 return;
@@ -1142,7 +1144,7 @@ Expression *op_overload(Expression *e, Scope *sc)
 
                 const bool maybeSlice =
                     (ae->arguments->dim == 0 ||
-                     ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval);
+                     (ae->arguments->dim == 1 && (*ae->arguments)[0]->op == TOKinterval));
                 IntervalExp *ie = NULL;
                 if (maybeSlice && ae->arguments->dim)
                 {
@@ -1486,7 +1488,7 @@ Expression *compare_overload(BinExp *e, Scope *sc, Identifier *id)
         }
 
         Expression *result;
-        if (lastf && m.lastf == lastf || !s_r && m.last <= MATCHnomatch)
+        if ((lastf && m.lastf == lastf) || (!s_r && m.last <= MATCHnomatch))
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             result = build_overload(e->loc, sc, e->e1, e->e2, m.lastf ? m.lastf : s);

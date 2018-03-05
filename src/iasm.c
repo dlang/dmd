@@ -103,7 +103,6 @@ struct ASM_STATE
     bool bInit;
     LabelDsymbol *psDollar;
     Dsymbol *psLocalsize;
-    jmp_buf env;
     bool bReturnax;
     AsmStatement *statement;
     Scope *sc;
@@ -896,19 +895,19 @@ TYPE_SIZE_ERROR:
                     {
                         case 0:
                             if (!table4->usOp1)
-                                goto Lfound3;
+                                goto Lfound4;
                             break;
                         case 1:
                             if (bMatch1 && !table4->usOp2)
-                                goto Lfound3;
+                                goto Lfound4;
                             break;
                         case 2:
                             if (bMatch1 && bMatch2 && !table4->usOp3)
-                                goto Lfound3;
+                                goto Lfound4;
                             break;
                         case 3:
                             if (bMatch1 && bMatch2 && bMatch3 && !table4->usOp4)
-                                goto Lfound3;
+                                goto Lfound4;
                             break;
                         case 4:
                             break;
@@ -1205,7 +1204,7 @@ static code *asm_emit(Loc loc,
     code *pc = NULL;
     OPND *popndTmp = NULL;
     ASM_OPERAND_TYPE    aoptyTmp;
-    unsigned  uSizemaskTmp;
+    unsigned  uSizemaskTmp = 0;
     REG     *pregSegment;
     code    *pcPrefix = NULL;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
@@ -1303,13 +1302,13 @@ static code *asm_emit(Loc loc,
                 popnd2->usFlags &= ~CONSTRUCT_FLAGS(0,0,7,0);
                 popnd2->usFlags |= CONSTRUCT_FLAGS(0,0,amod2,0);
             }
+        /* fall through */
 
-
-        /* Fall through, operand 1 controls the opsize, but the
-            address size can be in either operand 1 or operand 2,
-            hence the extra checking the flags tested for SHOULD
-            be mutex on operand 1 and operand 2 because there is
-            only one MOD R/M byte
+        /* Operand 1 controls the opsize, but the
+           address size can be in either operand 1 or operand 2,
+           hence the extra checking the flags tested for SHOULD
+           be mutex on operand 1 and operand 2 because there is
+           only one MOD R/M byte
          */
 
         case 1:
@@ -2165,7 +2164,7 @@ ILLEGAL_ADDRESS_ERROR:
         size_t index = o2->disp;
         if (index >= tup->objects->dim)
         {
-            error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
+            error(asmstate.loc, "tuple index %lu exceeds length %lu", index, tup->objects->dim);
         }
         else
         {
@@ -2553,7 +2552,7 @@ static void asm_make_modrm_byte(
     }
     else if (amod == _addr16)
     {
-        unsigned rm;
+        unsigned rm = 0;
 
 #ifdef DEBUG
         if (debuga)
@@ -4534,7 +4533,8 @@ Statement* asmSemantic(AsmStatement *s, Scope *sc)
     if (!s->tokens)
         return NULL;
 
-    memset(&asmstate, 0, sizeof(asmstate));
+    asmstate.ucItype = 0;
+    asmstate.bReturnax = false;
 
     asmstate.statement = s;
     asmstate.sc = sc;

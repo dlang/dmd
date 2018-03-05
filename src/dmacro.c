@@ -107,7 +107,7 @@ size_t extractArgN(const utf8_t *p, size_t end, const utf8_t **pmarg, size_t *pm
     unsigned incomment = 0;
     unsigned intag = 0;
     unsigned inexp = 0;
-    unsigned argn = 0;
+    int argn = 0;
 
     size_t v = 0;
 
@@ -445,7 +445,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
                         buf->remove(u, v + 1 - u);
                         end -= v + 1 - u;
                         u += mend - (v + 1);
-                        mem.xfree((utf8_t *)marg);
+                        mem.xfree(const_cast<utf8_t *>(marg));
                         //printf("u = %d, end = %d\n", u, end);
                         //printf("#%.*s#\n", end - u, &buf->data[u]);
                         continue;
@@ -462,7 +462,7 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
         }
         u++;
     }
-    mem.xfree((utf8_t *)arg);
+    mem.xfree(const_cast<utf8_t *>(arg));
     *pend = end;
     nest--;
 }

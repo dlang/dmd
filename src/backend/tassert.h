@@ -24,7 +24,7 @@
 
 void util_assert(const char * , int) __attribute__((noreturn));
 
-static void local_assert(int line)
+__attribute__((noreturn)) static void local_assert(int line)
 {
     util_assert(__file__,line);
     __builtin_unreachable();

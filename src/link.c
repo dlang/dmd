@@ -521,10 +521,10 @@ int runLINK()
             ex[e - n] = 0;
             // If generating dll then force dll extension
             if (global.params.dll)
-                ex = (char *)FileName::forceExt(ex, global.dll_ext);
+                ex = const_cast<char *>(FileName::forceExt(ex, global.dll_ext));
         }
         else
-            ex = (char *)"a.out";       // no extension, so give up
+            ex = const_cast<char *>("a.out");       // no extension, so give up
         argv.push(ex);
         global.params.exefile = ex;
     }
@@ -559,7 +559,7 @@ int runLINK()
             else
                 p = fn;
 
-            global.params.mapfile = (char *)p;
+            global.params.mapfile = const_cast<char *>(p);
         }
         argv.push("-Xlinker");
         argv.push(global.params.mapfile);
@@ -681,7 +681,7 @@ int runLINK()
         dup2(fds[1], STDERR_FILENO);
         close(fds[0]);
 
-        execvp(argv[0], (char **)argv.tdata());
+        execvp(argv[0], const_cast<char **>(argv.tdata()));
         perror(argv[0]);           // failed to execute
         return -1;
     }
@@ -887,7 +887,7 @@ int runProgram()
         {   // Make it "./fn"
             fn = FileName::combine(".", fn);
         }
-        execv(fn, (char **)argv.tdata());
+        execv(fn, const_cast<char **>(argv.tdata()));
         perror(fn);             // failed to execute
         return -1;
     }

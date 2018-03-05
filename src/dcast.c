@@ -49,7 +49,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
         Expression *result;
 
         ImplicitCastTo(Scope *sc, Type *t)
-            : sc(sc), t(t)
+            : t(t), sc(sc)
         {
             result = NULL;
         }
@@ -63,7 +63,7 @@ Expression *implicitCastTo(Expression *e, Scope *sc, Type *t)
             {
                 if (match == MATCHconst &&
                     (e->type->constConv(t) ||
-                     !e->isLvalue() && e->type->equivalent(t)))
+                     (!e->isLvalue() && e->type->equivalent(t))))
                 {
                     /* Do not emit CastExp for const conversions and
                      * unique conversions on rvalue.
@@ -369,13 +369,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 case Tint8:
                     if (ty == Tuns64 && value & ~0x7FUL)
                         return;
-                    else if ((signed char)value != value)
+                    else if ((signed char)value != (sinteger_t)value)
                         return;
                     break;
 
                 case Tchar:
                     if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
                         return;
+                    /* fall through */
                 case Tuns8:
                     //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
                     if ((unsigned char)value != value)
@@ -385,13 +386,14 @@ MATCH implicitConvTo(Expression *e, Type *t)
                 case Tint16:
                     if (ty == Tuns64 && value & ~0x7FFFUL)
                         return;
-                    else if ((short)value != value)
+                    else if ((short)value != (sinteger_t)value)
                         return;
                     break;
 
                 case Twchar:
                     if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
                         return;
+                    /* fall through */
                 case Tuns16:
                     if ((unsigned short)value != value)
                         return;
@@ -403,7 +405,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                     }
                     else if (ty == Tuns64 && value & ~0x7FFFFFFFUL)
                         return;
-                    else if ((int)value != value)
+                    else if ((int)value != (sinteger_t)value)
                         return;
                     break;
 
@@ -486,6 +488,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
                          */
                         break;
                     }
+                    /* fall through */
 
                 default:
                     visit((Expression *)e);
@@ -496,7 +499,7 @@ MATCH implicitConvTo(Expression *e, Type *t)
             result = MATCHconvert;
         }
 
-        void visit(ErrorExp *e)
+        void visit(ErrorExp *)
         {
             // no match
         }
@@ -1417,7 +1420,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
         Expression *result;
 
         CastTo(Scope *sc, Type *t)
-            : sc(sc), t(t)
+            : t(t), sc(sc)
         {
             result = NULL;
         }
@@ -1525,15 +1528,15 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
             // arithmetic values vs. other arithmetic values
             // arithmetic values vs. T*
-            if (tob_isA && (t1b_isA || t1b->ty == Tpointer) ||
-                t1b_isA && (tob_isA || tob->ty == Tpointer))
+            if ((tob_isA && (t1b_isA || t1b->ty == Tpointer)) ||
+                (t1b_isA && (tob_isA || tob->ty == Tpointer)))
             {
                 goto Lok;
             }
 
             // arithmetic values vs. references or fat values
-            if (tob_isA && (t1b_isR || t1b_isFV) ||
-                t1b_isA && (tob_isR || tob_isFV))
+            if ((tob_isA && (t1b_isR || t1b_isFV)) ||
+                (t1b_isA && (tob_isR || tob_isFV)))
             {
                 goto Lfail;
             }
@@ -1550,8 +1553,8 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
             }
 
             // Fat values vs. null or references
-            if (tob_isFV && (t1b->ty == Tnull || t1b_isR) ||
-                t1b_isFV && (tob->ty == Tnull || tob_isR))
+            if ((tob_isFV && (t1b->ty == Tnull || t1b_isR)) ||
+                (t1b_isFV && (tob->ty == Tnull || tob_isR)))
             {
                 if (tob->ty == Tpointer && t1b->ty == Tsarray)
                 {
@@ -1600,8 +1603,7 @@ Expression *castTo(Expression *e, Scope *sc, Type *t)
 
             // Check size mismatch of references.
             // Tarray and Tdelegate are (void*).sizeof*2, but others have (void*).sizeof.
-            if (tob_isFR && t1b_isR ||
-                t1b_isFR && tob_isR)
+            if ((tob_isFR && t1b_isR) || (t1b_isFR && tob_isR))
             {
                 if (tob->ty == Tpointer && t1b->ty == Tarray)
                 {
@@ -2546,7 +2548,7 @@ Expression *inferType(Expression *e, Type *t, int flag)
         {
             //printf("FuncExp::inferType('%s'), to=%s\n", fe->type ? fe->type->toChars() : "null", t->toChars());
             if (t->ty == Tdelegate ||
-                t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+                (t->ty == Tpointer && t->nextOf()->ty == Tfunction))
             {
                 fe->fd->treq = t;
             }
@@ -2704,7 +2706,7 @@ bool typeMerge(Scope *sc, TOK op, Type **pt, Expression **pe1, Expression **pe2)
     Type *t2b = e2->type->toBasetype();
 
     if (op != TOKquestion ||
-        t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic()))
+        (t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic())))
     {
         e1 = integralPromotions(e1, sc);
         e2 = integralPromotions(e2, sc);
@@ -2897,9 +2899,9 @@ Lagain:
         }
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
-             (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||
-              e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0 ||
-              isVoidArrayLiteral(e2, t1))
+             ((e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid) ||
+              (e2->op == TOKarrayliteral && t2->ty == Tsarray && t2->nextOf()->ty == Tvoid && ((TypeSArray *)t2)->dim->toInteger() == 0) ||
+              (isVoidArrayLiteral(e2, t1)))
             )
     {
         /*  (T[n] op void*)   => T[]
@@ -2912,9 +2914,9 @@ Lagain:
         goto Lx1;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) &&
-             (e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid ||
-              e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0 ||
-              isVoidArrayLiteral(e1, t2))
+             ((e1->op == TOKnull && t1->ty == Tpointer && t1->nextOf()->ty == Tvoid) ||
+              (e1->op == TOKarrayliteral && t1->ty == Tsarray && t1->nextOf()->ty == Tvoid && ((TypeSArray *)t1)->dim->toInteger() == 0) ||
+              (isVoidArrayLiteral(e1, t2)))
             )
     {
         /*  (void*   op T[n]) => T[]
@@ -3468,7 +3470,7 @@ bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatibleWithoutCasting(Type *t1, Type *t2)
 {
     t1 = t1->toBasetype();
     t2 = t2->toBasetype();

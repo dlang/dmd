@@ -2532,8 +2532,8 @@ elem *toElem(Expression *e, IRState *irs)
 
                     elem *n1x = n1;
 
-                    elem *enbytes;
-                    elem *einit;
+                    elem *enbytes = NULL;
+                    elem *einit = NULL;
                     // Look for array[]=n
                     if (ta->ty == Tsarray)
                     {
@@ -4660,7 +4660,7 @@ elem *toElem(Expression *e, IRState *irs)
                         eupr2 = el_same(&eupr);
                         eupr2->Ety = TYsize_t;  // make sure unsigned comparison
 
-                        elem *elen;
+                        elem *elen = NULL;
                         if (t1->ty == Tsarray)
                         {
                             TypeSArray *tsa = (TypeSArray *)t1;

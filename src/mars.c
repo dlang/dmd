@@ -452,7 +452,7 @@ int tryMain(size_t argc, const char *argv[])
                     {   long percent;
 
                         errno = 0;
-                        percent = strtol(p + 5, (char **)&p, 10);
+                        percent = strtol(p + 5, const_cast<char **>(&p), 10);
                         if (*p || errno || percent > 100)
                             goto Lerror;
                         global.params.covPercent = (unsigned char)percent;
@@ -550,7 +550,7 @@ int tryMain(size_t argc, const char *argv[])
                 {
                     long num;
                     errno = 0;
-                    num = strtol(p + 9, (char **)&p, 10);
+                    num = strtol(p + 9, const_cast<char **>(&p), 10);
                     if (*p || errno || num > INT_MAX)
                         goto Lerror;
                     // Bugzilla issue number
@@ -580,7 +580,7 @@ Language changes listed by -transition=id:\n\
                     {   long num;
 
                         errno = 0;
-                        num = strtol(p + 12, (char **)&p, 10);
+                        num = strtol(p + 12, const_cast<char **>(&p), 10);
                         if (*p || errno || num > INT_MAX)
                             goto Lerror;
                         // Bugzilla issue number
@@ -835,7 +835,7 @@ Language changes listed by -transition=id:\n\
                     {   long level;
 
                         errno = 0;
-                        level = strtol(p + 7, (char **)&p, 10);
+                        level = strtol(p + 7, const_cast<char **>(&p), 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
                         DebugCondition::setGlobalLevel((int)level);
@@ -861,7 +861,7 @@ Language changes listed by -transition=id:\n\
                     {   long level;
 
                         errno = 0;
-                        level = strtol(p + 9, (char **)&p, 10);
+                        level = strtol(p + 9, const_cast<char **>(&p), 10);
                         if (*p || errno || level > INT_MAX)
                             goto Lerror;
                         VersionCondition::setGlobalLevel((int)level);
@@ -1071,7 +1071,7 @@ Language changes listed by -transition=id:\n\
              */
             if (global.params.objdir)
             {   const char *name = FileName::name(global.params.objname);
-                global.params.objname = (char *)FileName::combine(global.params.objdir, name);
+                global.params.objname = const_cast<char *>(FileName::combine(global.params.objdir, name));
             }
         }
     }
@@ -1354,7 +1354,7 @@ Language changes listed by -transition=id:\n\
             if (strcmp(m->srcfile->name->str, global.main_d) == 0)
             {
                 static const char buf[] = "int main(){return 0;}";
-                m->srcfile->setbuffer((void *)buf, sizeof(buf));
+                m->srcfile->setbuffer(const_cast<char *>(buf), sizeof(buf));
                 m->srcfile->ref = 1;
                 break;
             }
@@ -1623,7 +1623,7 @@ Language changes listed by -transition=id:\n\
     else if (global.params.oneobj)
     {
         if (modules.dim)
-            obj_start((char*)modules[0]->srcfile->toChars());
+            obj_start(const_cast<char *>(modules[0]->srcfile->toChars()));
         for (size_t i = 0; i < modules.dim; i++)
         {
             Module *m = modules[i];
@@ -1646,7 +1646,7 @@ Language changes listed by -transition=id:\n\
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
 
-            obj_start((char*)m->srcfile->toChars());
+            obj_start(const_cast<char*>(m->srcfile->toChars()));
             genObjFile(m, global.params.multiobj);
             if (entrypoint && m == rootHasMain)
                 genObjFile(entrypoint, global.params.multiobj);

@@ -122,6 +122,7 @@ const char *Token::toChars() const
                     case '"':
                     case '\\':
                         buf.writeByte('\\');
+                        /* fall through */
                     default:
                         if (c <= 0x7F)
                         {
@@ -366,7 +367,7 @@ TokenInitializer::TokenInitializer()
         const char *s = keywords[nkeywords].name;
         size_t len = strlen(s);
         TOK v = keywords[nkeywords].value;
-        Identifier *id = Identifier::idPool(s, len, v);
+        Identifier::idPool(s, len, v);
 
         //printf("tochars[%d] = '%s'\n",v, s);
         Token::tochars[v] = s;

@@ -36,7 +36,7 @@ void RootObject::print()
 
 const char *RootObject::toChars()
 {
-    return (char *)"Object";
+    return "Object";
 }
 
 int RootObject::dyncast() const

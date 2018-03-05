@@ -27,7 +27,7 @@ public:
         this->itype = itype;
     }
 
-    void visit(Type *t)
+    void visit(Type *)
     {
         result = NULL;
     }

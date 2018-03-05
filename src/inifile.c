@@ -306,7 +306,7 @@ void parseConfFile(StringTable *environment, const char *path, size_t length, un
                     }
                     const char *sectionname = (*sections)[j];
                     size_t len = strlen(sectionname);
-                    if (pn - p == len &&
+                    if ((size_t)(pn - p) == len &&
                         Port::memicmp(p, sectionname, len) == 0)
                     {
                         envsection = true;

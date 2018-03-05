@@ -344,7 +344,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (semanticRun >= PASSsemanticdone)
         return;
-    int errors = global.errors;
+    unsigned errors = global.errors;
 
     //printf("+ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 
@@ -1280,7 +1280,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     return fdmatch;
 }
 
-void ClassDeclaration::interfaceSemantic(Scope *sc)
+void ClassDeclaration::interfaceSemantic(Scope *)
 {
     vtblInterfaces = new BaseClasses();
     vtblInterfaces->reserve(interfaces.length);
@@ -1330,7 +1330,7 @@ bool ClassDeclaration::isAbstract()
      */
     struct SearchAbstract
     {
-        static int fp(Dsymbol *s, void* param)
+        static int fp(Dsymbol *s, void *)
         {
             FuncDeclaration *fd = s->isFuncDeclaration();
             if (!fd)
@@ -1443,7 +1443,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
     if (semanticRun >= PASSsemanticdone)
         return;
-    int errors = global.errors;
+    unsigned errors = global.errors;
 
     //printf("+InterfaceDeclaration.semantic(%s), type = %p\n", toChars(), type);
 
@@ -1848,7 +1848,12 @@ const char *InterfaceDeclaration::kind()
 
 BaseClass::BaseClass()
 {
-    memset(this, 0, sizeof(BaseClass));
+    this->type = NULL;
+    this->sym = NULL;
+    this->offset = 0;
+
+    this->baseInterfaces.length = 0;
+    this->baseInterfaces.ptr = NULL;
 }
 
 BaseClass::BaseClass(Type *type)
@@ -1939,11 +1944,11 @@ void BaseClass::copyBaseInterfaces(BaseClasses *vtblInterfaces)
     //printf("%s.copyBaseInterfaces()\n", sym->toChars());
     for (size_t i = 0; i < baseInterfaces.length; i++)
     {
-        BaseClass *b = &baseInterfaces.ptr[i];
+        void *pb = &baseInterfaces.ptr[i];
         BaseClass *b2 = sym->interfaces.ptr[i];
 
         assert(b2->vtbl.dim == 0);      // should not be filled yet
-        memcpy(b, b2, sizeof(BaseClass));
+        BaseClass *b = (BaseClass *)memcpy(pb, b2, sizeof(BaseClass));
 
         if (i)                          // single inheritance is i==0
             vtblInterfaces->push(b);    // only need for M.I.

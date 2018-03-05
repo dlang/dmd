@@ -119,7 +119,7 @@ void error(const Loc& loc, const char *format, ...)
 void error(const char *filename, unsigned linnum, unsigned charnum, const char *format, ...)
 {
     Loc loc;
-    loc.filename = (char *)filename;
+    loc.filename = filename;
     loc.linnum = linnum;
     loc.charnum = charnum;
     va_list ap;
@@ -178,7 +178,7 @@ void verrorPrint(const Loc& loc, COLOR headerColor, const char *header, const ch
         setConsoleColorBright(true);
     if (*p)
         fprintf(stderr, "%s: ", p);
-    mem.xfree((void*)p);
+    mem.xfree(const_cast<char *>(p));
 
     if (global.params.color)
         setConsoleColor(headerColor, true);
@@ -278,4 +278,5 @@ void halt()
 #ifdef DEBUG
     *(volatile char*)0=0;
 #endif
+    assert(0);
 }

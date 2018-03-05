@@ -142,6 +142,8 @@ bool response_expand(Strings *args)
                         continue;
                     }
                     recurse = 1;
+
+                /* fall through */
                 default:      /* start of new argument   */
                     if (comment)
                     {
@@ -210,6 +212,8 @@ bool response_expand(Strings *args)
                                     *d = 0;      // terminate argument
                                     goto Lnextarg;
                                 }
+
+                            /* fall through */
                             default:
                             Ladd:
                                 if (c == '\\')

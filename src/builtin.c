@@ -41,47 +41,47 @@ builtin_fp builtin_lookup(const char *mangle)
     return NULL;
 }
 
-Expression *eval_unimp(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_unimp(Loc, FuncDeclaration *, Expressions *)
 {
     return NULL;
 }
 
-Expression *eval_sin(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_sin(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
     return new RealExp(loc, sinl(arg0->toReal()), arg0->type);
 }
 
-Expression *eval_cos(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_cos(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
     return new RealExp(loc, cosl(arg0->toReal()), arg0->type);
 }
 
-Expression *eval_tan(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_tan(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
     return new RealExp(loc, tanl(arg0->toReal()), arg0->type);
 }
 
-Expression *eval_sqrt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_sqrt(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
     return new RealExp(loc, CTFloat::sqrt(arg0->toReal()), arg0->type);
 }
 
-Expression *eval_fabs(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_fabs(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
     return new RealExp(loc, fabsl(arg0->toReal()), arg0->type);
 }
 
-Expression *eval_bsf(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_bsf(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKint64);
@@ -97,7 +97,7 @@ Expression *eval_bsf(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new IntegerExp(loc, k, Type::tint32);
 }
 
-Expression *eval_bsr(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_bsr(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKint64);
@@ -112,7 +112,7 @@ Expression *eval_bsr(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new IntegerExp(loc, k, Type::tint32);
 }
 
-Expression *eval_bswap(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_bswap(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKint64);
@@ -131,7 +131,7 @@ Expression *eval_bswap(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new IntegerExp(loc, n, arg0->type);
 }
 
-Expression *eval_popcnt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_popcnt(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKint64);
@@ -145,7 +145,7 @@ Expression *eval_popcnt(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new IntegerExp(loc, cnt, arg0->type);
 }
 
-Expression *eval_yl2x(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_yl2x(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);
@@ -158,7 +158,7 @@ Expression *eval_yl2x(Loc loc, FuncDeclaration *fd, Expressions *arguments)
     return new RealExp(loc, result, arg0->type);
 }
 
-Expression *eval_yl2xp1(Loc loc, FuncDeclaration *fd, Expressions *arguments)
+Expression *eval_yl2xp1(Loc loc, FuncDeclaration *, Expressions *arguments)
 {
     Expression *arg0 = (*arguments)[0];
     assert(arg0->op == TOKfloat64);

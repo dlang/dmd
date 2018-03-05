@@ -52,66 +52,100 @@ ifeq (osx,$(OS))
 endif
 LDFLAGS=-lm -lstdc++ -lpthread
 
-#ifeq (osx,$(OS))
-#	HOST_CC=clang++
-#else
-	HOST_CC=g++
-#endif
-CC=$(HOST_CC)
+HOST_CXX=c++
+# compatibility with old behavior
+ifneq ($(HOST_CC),)
+  $(warning ===== WARNING: Please use HOST_CXX=$(HOST_CC) instead of HOST_CC=$(HOST_CC). =====)
+  HOST_CXX=$(HOST_CC)
+endif
+CXX=$(HOST_CXX)
 AR=ar
 GIT=git
+
+# determine whether CXX is gcc or clang based
+CXX_VERSION:=$(shell $(CXX) --version)
+ifneq (,$(findstring g++,$(CXX_VERSION))$(findstring gcc,$(CXX_VERSION))$(findstring Free Software,$(CXX_VERSION)))
+	CXX_KIND=g++
+endif
+ifneq (,$(findstring clang,$(CXX_VERSION)))
+	CXX_KIND=clang++
+endif
 
 # Compiler Warnings
 ifdef ENABLE_WARNINGS
 WARNINGS := -Wall -Wextra \
-	-Wno-attributes \
-	-Wno-char-subscripts \
-	-Wno-deprecated \
-	-Wno-empty-body \
-	-Wno-format \
-	-Wno-missing-braces \
-	-Wno-missing-field-initializers \
-	-Wno-overloaded-virtual \
-	-Wno-parentheses \
-	-Wno-reorder \
-	-Wno-return-type \
-	-Wno-sign-compare \
-	-Wno-strict-aliasing \
-	-Wno-switch \
-	-Wno-type-limits \
-	-Wno-unknown-pragmas \
-	-Wno-unused-function \
-	-Wno-unused-label \
-	-Wno-unused-parameter \
-	-Wno-unused-value \
-	-Wno-unused-variable
-# GCC Specific
-ifeq ($(HOST_CC), g++)
-WARNINGS := $(WARNINGS) \
-	-Wno-logical-op \
 	-Wno-narrowing \
+	-Wwrite-strings \
+	-Wno-long-long \
+	-Wno-variadic-macros \
+	-Wno-overlength-strings
+# Frontend specific
+DMD_WARNINGS := -Wcast-qual \
+	-Wuninitialized
+ROOT_WARNINGS := -Wno-sign-compare \
+	-Wno-unused-parameter
+# Backend specific
+GLUE_WARNINGS := $(ROOT_WARNINGS) \
+	-Wno-format \
+	-Wno-parentheses \
+	-Wno-switch \
+	-Wno-unused-function \
+	-Wno-unused-variable
+BACK_WARNINGS := $(GLUE_WARNINGS) \
+	-Wno-char-subscripts \
+	-Wno-empty-body \
+	-Wno-missing-field-initializers \
+	-Wno-type-limits \
+	-Wno-unused-label \
+	-Wno-unused-value \
+	-Wno-varargs
+# GCC Specific
+ifeq ($(CXX_KIND), g++)
+BACK_WARNINGS += \
 	-Wno-unused-but-set-variable \
+	-Wno-implicit-fallthrough \
+	-Wno-class-memaccess \
 	-Wno-uninitialized
 endif
 # Clang Specific
-ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) \
-	-Wno-tautological-constant-out-of-range-compare \
-	-Wno-tautological-compare \
-	-Wno-constant-logical-operand \
-	-Wno-self-assign -Wno-self-assign
-# -Wno-sometimes-uninitialized
+ifeq ($(CXX_KIND), clang++)
+WARNINGS += \
+	-Wno-undefined-var-template \
+	-Wno-absolute-value \
+	-Wno-missing-braces \
+	-Wno-self-assign \
+	-Wno-unused-const-variable \
+	-Wno-constant-conversion \
+	-Wno-overloaded-virtual
 endif
 else
 # Default Warnings
 WARNINGS := -Wno-deprecated -Wstrict-aliasing
+# Frontend specific
+DMD_WARNINGS := -Wuninitialized
+ROOT_WARNINGS :=
+# Backend specific
+GLUE_WARNINGS := $(ROOT_WARNINGS) \
+	-Wno-switch
+BACK_WARNINGS := $(GLUE_WARNINGS) \
+	-Wno-unused-value \
+	-Wno-varargs
 # Clang Specific
-ifeq ($(HOST_CC), clang++)
-WARNINGS := $(WARNINGS) \
-    -Wno-logical-op-parentheses \
-    -Wno-dynamic-class-memaccess \
-    -Wno-switch
+ifeq ($(CXX_KIND), clang++)
+WARNINGS += \
+	-Wno-undefined-var-template \
+	-Wno-absolute-value
+GLUE_WARNINGS += \
+	-Wno-logical-op-parentheses
+BACK_WARNINGS += \
+	-Wno-logical-op-parentheses \
+	-Wno-constant-conversion
 endif
+endif
+
+# Treat warnings as errors
+ifdef ENABLE_WERROR
+WARNINGS += -Werror
 endif
 
 OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
@@ -119,50 +153,80 @@ OS_UPCASE := $(shell echo $(OS) | tr '[a-z]' '[A-Z]')
 MMD=-MMD -MF $(basename $@).deps
 
 # Default compiler flags for all source files
-CFLAGS := $(WARNINGS) \
+CXXFLAGS := $(WARNINGS) \
 	-fno-exceptions -fno-rtti \
 	-D__pascal= -DMARS=1 -DTARGET_$(OS_UPCASE)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 \
 	$(MODEL_FLAG) $(PIC)
 # GCC Specific
-ifeq ($(HOST_CC), g++)
-CFLAGS := $(CFLAGS) \
-    -std=gnu++98
+ifeq ($(CXX_KIND), g++)
+CXXFLAGS += \
+	-std=gnu++98
+endif
+# Clang Specific
+ifeq ($(CXX_KIND), clang++)
+CXXFLAGS += \
+	-xc++
 endif
 # Default D compiler flags for all source files
-DFLAGS=
+DFLAGS := -version=MARS $(PIC)
+# Enable D warnings
+DFLAGS += -w -de
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
 endif
+ifneq (,$(RELEASE))
+ENABLE_RELEASE := 1
+endif
 
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
-CFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
+CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
 DFLAGS += -g -debug
-else
-CFLAGS += -O2
-DFLAGS += -O -inline
+endif
+ifdef ENABLE_RELEASE
+CXXFLAGS += -O2
+DFLAGS += -O -release -inline
 endif
 ifdef ENABLE_PROFILING
-CFLAGS  += -pg -fprofile-arcs -ftest-coverage
-LDFLAGS += -pg -fprofile-arcs -ftest-coverage
+CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
 endif
 ifdef ENABLE_PGO_GENERATE
-CFLAGS  += -fprofile-generate=${PGO_DIR}
+CXXFLAGS  += -fprofile-generate=${PGO_DIR}
 endif
 ifdef ENABLE_PGO_USE
-CFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
+CXXFLAGS  += -fprofile-use=${PGO_DIR} -freorder-blocks-and-partition
 endif
 ifdef ENABLE_LTO
-CFLAGS  += -flto
-LDFLAGS += -flto
+CXXFLAGS  += -flto
+endif
+ifdef ENABLE_UNITTEST
+DFLAGS  += -unittest -cov
+endif
+ifdef ENABLE_PROFILE
+DFLAGS  += -profile
+endif
+ifdef ENABLE_COVERAGE
+DFLAGS  += -cov -L-lgcov
+CXXFLAGS += --coverage
+endif
+ifdef ENABLE_SANITIZERS
+CXXFLAGS += -fsanitize=${ENABLE_SANITIZERS}
+
+ifeq ($(HOST_DMD_KIND), dmd)
+HOST_CXX += -fsanitize=${ENABLE_SANITIZERS}
+endif
+ifneq (,$(findstring gdc,$(HOST_DMD_KIND))$(findstring ldc,$(HOST_DMD_KIND)))
+DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
 endif
 
-# Uniqe extra flags if necessary
-DMD_FLAGS  := -I$(ROOT) -Wuninitialized
-GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C)
-BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1
-ROOT_FLAGS := -I$(ROOT)
+endif
+
+# Unique extra flags if necessary
+DMD_FLAGS  := -I$(ROOT) $(DMD_WARNINGS)
+GLUE_FLAGS := -I$(ROOT) -I$(TK) -I$(C) $(GLUE_WARNINGS)
+BACK_FLAGS := -I$(ROOT) -I$(TK) -I$(C) -I. -DDMDV2=1 $(BACK_WARNINGS)
+ROOT_FLAGS := -I$(ROOT) $(ROOT_WARNINGS)
 
 ifeq ($(OS), osx)
 ifeq ($(MODEL), 64)
@@ -332,11 +396,11 @@ backend.a: $(BACK_OBJS)
 
 ifdef ENABLE_LTO
 dmd: $(DMD_OBJS) $(ROOT_OBJS) $(GLUE_OBJS) $(BACK_OBJS)
-	$(HOST_CC) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
+	$(CXX) -o dmd $(MODEL_FLAG) $^ $(LDFLAGS)
 	cp dmd $G/dmd
 else
 dmd: frontend.a root.a glue.a backend.a
-	$(HOST_CC) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
+	$(CXX) -o dmd $(MODEL_FLAG) frontend.a root.a glue.a backend.a $(LDFLAGS)
 	cp dmd $G/dmd
 endif
 
@@ -366,7 +430,7 @@ dmd.conf:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(CC) $(CFLAGS) -I$(TK) $< -o optabgen
+	$(HOST_CXX) $(CXXFLAGS) $(BACK_WARNINGS) -I$(TK) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -378,7 +442,7 @@ idgen_output = id.h id.c id.d
 $(idgen_output) : idgen
 
 idgen : idgen.c
-	$(CC) idgen.c -o idgen
+	$(HOST_CXX) $(CXXFLAGS) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
@@ -387,7 +451,7 @@ impcnvtab_output = impcnvtab.c impcnvtab.d
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	$(CC) $(CFLAGS) -I$(ROOT) impcnvgen.c -o impcnvgen
+	$(HOST_CXX) $(CXXFLAGS) -I$(ROOT) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
 #########
@@ -428,9 +492,9 @@ cgelem.o: elxxx.c
 
 debug.o: debtab.c
 
-iasm.o: CFLAGS += -fexceptions
+iasm.o: CXXFLAGS += -fexceptions
 
-inifile.o: CFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"'
+inifile.o: CXXFLAGS += -DSYSCONFDIR='"$(SYSCONFDIR)"'
 
 mars.o: verstr.h
 
@@ -445,19 +509,19 @@ vpath %.c $(C)
 
 $(DMD_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  DMD_OBJS   $<"
-	$(CC) -c $(CFLAGS) $(DMD_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(DMD_FLAGS) $(MMD) $<
 
 $(BACK_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  BACK_OBJS  $<"
-	$(CC) -c $(CFLAGS) $(BACK_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
 
 $(GLUE_OBJS): %.o: %.c posix.mak
 	@echo "  (CC)  GLUE_OBJS  $<"
-	$(CC) -c $(CFLAGS) $(GLUE_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(GLUE_FLAGS) $(MMD) $<
 
 $(ROOT_OBJS): %.o: $(ROOT)/%.c posix.mak
 	@echo "  (CC)  ROOT_OBJS  $<"
-	$(CC) -c $(CFLAGS) $(ROOT_FLAGS) $(MMD) $<
+	$(CXX) -c $(CXXFLAGS) $(ROOT_FLAGS) $(MMD) $<
 
 
 -include $(DEPS)

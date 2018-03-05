@@ -66,15 +66,15 @@ public:
     void visitStmt(Statement *&s) { ps = &s; s->accept(this); }
     void replaceCurrent(Statement *s) { *ps = s; }
 
-    void visit(ErrorStatement *s) {  }
+    void visit(ErrorStatement *) {  }
     void visit(PeelStatement *s)
     {
         if (s->s)
             visitStmt(s->s);
     }
-    void visit(ExpStatement *s) {  }
-    void visit(DtorExpStatement *s) {  }
-    void visit(CompileStatement *s) {  }
+    void visit(ExpStatement *) {  }
+    void visit(DtorExpStatement *) {  }
+    void visit(CompileStatement *) {  }
     void visit(CompoundStatement *s)
     {
         if (s->statements && s->statements->dim)
@@ -137,9 +137,9 @@ public:
         if (s->elsebody)
             visitStmt(s->elsebody);
     }
-    void visit(ConditionalStatement *s) {  }
-    void visit(PragmaStatement *s) {  }
-    void visit(StaticAssertStatement *s) {  }
+    void visit(ConditionalStatement *) {  }
+    void visit(PragmaStatement *) {  }
+    void visit(StaticAssertStatement *) {  }
     void visit(SwitchStatement *s)
     {
         if (s->_body)
@@ -160,12 +160,12 @@ public:
         if (s->statement)
             visitStmt(s->statement);
     }
-    void visit(GotoDefaultStatement *s) {  }
-    void visit(GotoCaseStatement *s) {  }
-    void visit(SwitchErrorStatement *s) {  }
-    void visit(ReturnStatement *s) {  }
-    void visit(BreakStatement *s) {  }
-    void visit(ContinueStatement *s) {  }
+    void visit(GotoDefaultStatement *) {  }
+    void visit(GotoCaseStatement *) {  }
+    void visit(SwitchErrorStatement *) {  }
+    void visit(ReturnStatement *) {  }
+    void visit(BreakStatement *) {  }
+    void visit(ContinueStatement *) {  }
     void visit(SynchronizedStatement *s)
     {
         if (s->_body)
@@ -197,21 +197,21 @@ public:
         if (s->finalbody)
             visitStmt(s->finalbody);
     }
-    void visit(OnScopeStatement *s) {  }
-    void visit(ThrowStatement *s) {  }
+    void visit(OnScopeStatement *) {  }
+    void visit(ThrowStatement *) {  }
     void visit(DebugStatement *s)
     {
         if (s->statement)
             visitStmt(s->statement);
     }
-    void visit(GotoStatement *s) {  }
+    void visit(GotoStatement *) {  }
     void visit(LabelStatement *s)
     {
         if (s->statement)
             visitStmt(s->statement);
     }
-    void visit(AsmStatement *s) {  }
-    void visit(ImportStatement *s) {  }
+    void visit(AsmStatement *) {  }
+    void visit(ImportStatement *) {  }
 };
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
@@ -391,7 +391,7 @@ static bool canInferAttributes(FuncDeclaration *fd, Scope *sc)
 
     if (sc->func &&
         /********** this is for backwards compatibility for the moment ********/
-        (!fd->isMember() || sc->func->isSafeBypassingInference() && !fd->isInstantiated()))
+        (!fd->isMember() || (sc->func->isSafeBypassingInference() && !fd->isInstantiated())))
         return true;
 
     if (fd->isFuncLiteralDeclaration() ||               // externs are not possible with literals
@@ -705,7 +705,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
     f = (TypeFunction *)type;
-    size_t nparams = Parameter::dim(f->parameters);
 
     if ((storage_class & STCauto) && !f->isref && !inferRetType)
         error("storage class 'auto' has no effect if return type is not inferred");
@@ -791,7 +790,7 @@ void FuncDeclaration::semantic(Scope *sc)
     if (!fbody && (fensure || frequire) && !(id && isVirtual()))
         error("in and out contracts require function body");
 
-    if (StructDeclaration *sd = parent->isStructDeclaration())
+    if (parent->isStructDeclaration())
     {
         if (isCtorDeclaration())
         {
@@ -911,7 +910,7 @@ void FuncDeclaration::semantic(Scope *sc)
                     {
                         // with dmc, overloaded functions are grouped and in reverse order
                         vtblIndex = (int)cd->vtbl.dim;
-                        for (size_t i = 0; i < cd->vtbl.dim; i++)
+                        for (int i = 0; i < (int)cd->vtbl.dim; i++)
                         {
                             if (cd->vtbl[i]->ident == ident && cd->vtbl[i]->parent == parent)
                             {
@@ -920,7 +919,7 @@ void FuncDeclaration::semantic(Scope *sc)
                             }
                         }
                         // shift all existing functions back
-                        for (size_t i = cd->vtbl.dim; i > vtblIndex; i--)
+                        for (int i = (int)cd->vtbl.dim; i > vtblIndex; i--)
                         {
                             FuncDeclaration *fd = cd->vtbl[i-1]->isFuncDeclaration();
                             assert(fd);
@@ -1237,7 +1236,7 @@ void FuncDeclaration::semantic2(Scope *sc)
     objc()->setSelector(this, sc);
     objc()->validateSelector(this);
 
-    if (ClassDeclaration *cd = parent->isClassDeclaration())
+    if (parent->isClassDeclaration())
     {
         objc()->checkLinkage(this);
     }
@@ -1347,7 +1346,6 @@ static void buildEnsureRequire(FuncDeclaration *fdx)
 
 void FuncDeclaration::semantic3(Scope *sc)
 {
-    VarDeclaration *argptr = NULL;
     VarDeclaration *_arguments = NULL;
 
     if (!parent)
@@ -1906,7 +1904,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         e = new AssertExp(
                               endloc,
                               new IntegerExp(0),
-                              new StringExp(loc, (char *)"missing return expression")
+                              new StringExp(loc, const_cast<char *>("missing return expression"))
                             );
                     }
                     else
@@ -2227,7 +2225,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // If declaration has no body, don't set sbody to prevent incorrect codegen.
             InterfaceDeclaration *id = parent->isInterfaceDeclaration();
-            if (fbody || id && (fdensure || fdrequire) && isVirtual())
+            if (fbody || (id && (fdensure || fdrequire) && isVirtual()))
                 fbody = sbody;
         }
 
@@ -3212,7 +3210,6 @@ FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Type *tthis, bool &h
             if (m->lastf->overrides(f)) goto LlastIsBetter;
             if (f->overrides(m->lastf)) goto LfIsBetter;
 
-        Lambiguous:
             //printf("\tambiguous\n");
             m->nextf = f;
             m->count++;
@@ -3398,7 +3395,7 @@ struct TemplateCandidateWalker
     {
         int numOverloads;
 
-        static int fp(void *param, Dsymbol *s)
+        static int fp(void *param, Dsymbol *)
         {
             CountWalker *p = (CountWalker *)param;
             ++(p->numOverloads);
@@ -3444,7 +3441,7 @@ struct FuncCandidateWalker
     {
         int numOverloads;
 
-        static int fp(void *param, Dsymbol *s)
+        static int fp(void *param, Dsymbol *)
         {
             CountWalker *p = (CountWalker *)param;
             ++(p->numOverloads);
@@ -3519,8 +3516,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
 #endif
 
-    if (tiargs && arrayObjectIsError(tiargs) ||
-        fargs  && arrayObjectIsError((Objects *)fargs))
+    if ((tiargs && arrayObjectIsError(tiargs)) ||
+        (fargs  && arrayObjectIsError((Objects *)fargs)))
     {
         return NULL;
     }
@@ -4278,7 +4275,7 @@ Expression *addInvariant(Loc loc, Scope *sc, AggregateDeclaration *ad, VarDeclar
         v->type = vthis->type;
         if (ad->isStructDeclaration())
             v = v->addressOf();
-        e = new StringExp(Loc(), (char *)"null this");
+        e = new StringExp(Loc(), const_cast<char *>("null this"));
         e = new AssertExp(loc, v, e);
         e = semantic(e, sc);
     }
@@ -4860,8 +4857,7 @@ void FuncLiteralDeclaration::modifyReturns(Scope *sc, Type *tret)
 
 const char *FuncLiteralDeclaration::kind()
 {
-    // GCC requires the (char*) casts
-    return (tok != TOKfunction) ? (char*)"delegate" : (char*)"function";
+    return (tok != TOKfunction) ? "delegate" : "function";
 }
 
 const char *FuncLiteralDeclaration::toPrettyChars(bool QualifyTypes)
@@ -4979,7 +4975,7 @@ const char *CtorDeclaration::kind()
 
 const char *CtorDeclaration::toChars()
 {
-    return (char *)"this";
+    return "this";
 }
 
 bool CtorDeclaration::isVirtual()
@@ -5050,7 +5046,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
+bool PostBlitDeclaration::overloadInsert(Dsymbol *)
 {
     return false;       // cannot overload postblits
 }
@@ -5127,7 +5123,7 @@ void DtorDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-bool DtorDeclaration::overloadInsert(Dsymbol *s)
+bool DtorDeclaration::overloadInsert(Dsymbol *)
 {
     return false;       // cannot overload destructors
 }
@@ -5149,7 +5145,7 @@ const char *DtorDeclaration::kind()
 
 const char *DtorDeclaration::toChars()
 {
-    return (char *)"~this";
+    return "~this";
 }
 
 bool DtorDeclaration::isVirtual()

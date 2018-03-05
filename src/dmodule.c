@@ -212,7 +212,7 @@ static void checkModFileAlias(OutBuffer *buf, OutBuffer *dotmods,
         const char *m = (*ms)[j];
         const char *q = strchr(m, '=');
         assert(q);
-        if (dotmods->offset <= q - m && memcmp(dotmods->peekString(), m, q - m) == 0)
+        if (dotmods->offset <= (size_t)(q - m) && memcmp(dotmods->peekString(), m, q - m) == 0)
         {
             buf->reset();
             size_t qlen = strlen(q + 1);
@@ -722,7 +722,7 @@ Module *Module::parse()
     return this;
 }
 
-void Module::importAll(Scope *prevsc)
+void Module::importAll(Scope *)
 {
     //printf("+Module::importAll(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 
@@ -1262,7 +1262,7 @@ bool Package::isAncestorPackageOf(const Package * const pkg) const
     return isAncestorPackageOf(pkg->parent->isPackage());
 }
 
-void Package::semantic(Scope *sc)
+void Package::semantic(Scope *)
 {
     if (semanticRun < PASSsemanticdone)
         semanticRun = PASSsemanticdone;

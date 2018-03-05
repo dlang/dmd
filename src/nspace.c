@@ -27,7 +27,7 @@ Nspace::Nspace(Loc loc, Identifier *ident, Dsymbols *members)
     this->members = members;
 }
 
-Dsymbol *Nspace::syntaxCopy(Dsymbol *s)
+Dsymbol *Nspace::syntaxCopy(Dsymbol *)
 {
     Nspace *ns = new Nspace(loc, ident, NULL);
     return ScopeDsymbol::syntaxCopy(ns);

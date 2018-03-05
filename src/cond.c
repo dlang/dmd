@@ -79,7 +79,7 @@ void DebugCondition::addGlobalIdent(const char *ident)
 {
     if (!global.params.debugids)
         global.params.debugids = new Strings();
-    global.params.debugids->push((char *)ident);
+    global.params.debugids->push(ident);
 }
 
 
@@ -109,7 +109,7 @@ void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType
 }
 
 
-int DebugCondition::include(Scope *sc, ScopeDsymbol *sds)
+int DebugCondition::include(Scope *sc, ScopeDsymbol *)
 {
     //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
     if (inc == 0)
@@ -267,7 +267,7 @@ void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 {
     if (!global.params.versionids)
         global.params.versionids = new Strings();
-    global.params.versionids->push((char *)ident);
+    global.params.versionids->push(ident);
 }
 
 
@@ -276,7 +276,7 @@ VersionCondition::VersionCondition(Module *mod, unsigned level, Identifier *iden
 {
 }
 
-int VersionCondition::include(Scope *sc, ScopeDsymbol *sds)
+int VersionCondition::include(Scope *sc, ScopeDsymbol *)
 {
     //printf("VersionCondition::include() level = %d, versionlevel = %d\n", level, global.params.versionlevel);
     //if (ident) printf("\tident = '%s'\n", ident->toChars());

@@ -84,7 +84,7 @@ void Import::addAlias(Identifier *name, Identifier *alias)
 
 const char *Import::kind()
 {
-    return isstatic ? (char *)"static import" : (char *)"import";
+    return isstatic ? "static import" : "import";
 }
 
 Prot Import::prot()

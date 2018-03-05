@@ -251,9 +251,9 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
 
             // If va's lifetime encloses v's, then error
             if (va &&
-                (va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter) ||
+                ((va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter)) ||
                  // va is class reference
-                 ae->e1->op == TOKdotvar && va->type->toBasetype()->ty == Tclass && (va->enclosesLifetimeOf(v) || !va->isScope()) ||
+                 (ae->e1->op == TOKdotvar && va->type->toBasetype()->ty == Tclass && (va->enclosesLifetimeOf(v) || !va->isScope())) ||
                  va->storage_class & STCref) &&
                 sc->func->setUnsafe())
             {
@@ -320,7 +320,7 @@ bool checkAssignEscape(Scope *sc, Expression *e, bool gag)
 
         // If va's lifetime encloses v's, then error
         if (va &&
-            (va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter) || va->storage_class & STCref) &&
+            ((va->enclosesLifetimeOf(v) && !(v->storage_class & STCparameter)) || va->storage_class & STCref) &&
             sc->func->setUnsafe())
         {
             if (!gag)
@@ -443,8 +443,6 @@ bool checkThrowEscape(Scope *sc, Expression *e, bool gag)
         //printf("byvalue %s\n", v->toChars());
         if (v->isDataseg())
             continue;
-
-        Dsymbol *p = v->toParent2();
 
         if (v->isScope())
         {
@@ -757,7 +755,7 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
         {
         }
 
-        void visit(Expression *e)
+        void visit(Expression *)
         {
         }
 
@@ -809,7 +807,7 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
                 er->byfunc.push(e->fd);
         }
 
-        void visit(TupleExp *e)
+        void visit(TupleExp *)
         {
             assert(0); // should have been lowered by now
         }
@@ -952,7 +950,7 @@ static void escapeByValue(Expression *e, EscapeByResults *er)
                 /* j=1 if _arguments[] is first argument,
                  * skip it because it is not passed by ref
                  */
-                int j = (tf->linkage == LINKd && tf->varargs == 1);
+                size_t j = (tf->linkage == LINKd && tf->varargs == 1);
                 for (size_t i = j; i < e->arguments->dim; ++i)
                 {
                     Expression *arg = (*e->arguments)[i];
@@ -1035,7 +1033,7 @@ static void escapeByRef(Expression *e, EscapeByResults *er)
         {
         }
 
-        void visit(Expression *e)
+        void visit(Expression *)
         {
         }
 
@@ -1148,7 +1146,7 @@ static void escapeByRef(Expression *e, EscapeByResults *er)
                     /* j=1 if _arguments[] is first argument,
                      * skip it because it is not passed by ref
                      */
-                    int j = (tf->linkage == LINKd && tf->varargs == 1);
+                    size_t j = (tf->linkage == LINKd && tf->varargs == 1);
 
                     for (size_t i = j; i < e->arguments->dim; ++i)
                     {

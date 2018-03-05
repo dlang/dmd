@@ -41,7 +41,7 @@ AA *arrayfuncs;
  * Structure to contain information needed to insert an array op call
  */
 
-FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
+FuncDeclaration *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc)
 {
     Parameters *fparams = new Parameters();
     Expression *loopbody = buildArrayLoop(exp, fparams);
@@ -214,7 +214,7 @@ Expression *arrayOp(BinExp *e, Scope *sc)
     FuncDeclaration *fd = *pFd;
 
     if (!fd)
-        fd = buildArrayOp(ident, e, sc, e->loc);
+        fd = buildArrayOp(ident, e, sc);
 
     if (fd && fd->errors)
     {
@@ -374,8 +374,8 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
                 Type *t2 = e->e2->type->toBasetype();
                 e->e1->accept(this);
                 if (t1->ty == Tarray &&
-                    (t2->ty == Tarray && !t1->equivalent(tb) ||
-                     t2->ty != Tarray && !t1->nextOf()->equivalent(e->e2->type)))
+                    ((t2->ty == Tarray && !t1->equivalent(tb)) ||
+                     (t2->ty != Tarray && !t1->nextOf()->equivalent(e->e2->type))))
                 {
                     // Bugzilla 12780: if A is narrower than B
                     //  A[] op B[]
@@ -385,8 +385,8 @@ void buildArrayIdent(Expression *e, OutBuffer *buf, Expressions *arguments)
                 }
                 e->e2->accept(this);
                 if (t2->ty == Tarray &&
-                    (t1->ty == Tarray && !t2->equivalent(tb) ||
-                     t1->ty != Tarray && !t2->nextOf()->equivalent(e->e1->type)))
+                    ((t1->ty == Tarray && !t2->equivalent(tb)) ||
+                     (t1->ty != Tarray && !t2->nextOf()->equivalent(e->e1->type))))
                 {
                     // Bugzilla 12780: if B is narrower than A:
                     //  A[] op B[]

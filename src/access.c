@@ -444,8 +444,8 @@ bool checkAccess(Loc loc, Scope *sc, Expression *e, Declaration *d)
     }
     if (!e)
     {
-        if (d->prot().kind == PROTprivate && d->getAccessModule() != sc->_module ||
-            d->prot().kind == PROTpackage && !hasPackageAccess(sc, d))
+        if ((d->prot().kind == PROTprivate && d->getAccessModule() != sc->_module) ||
+            (d->prot().kind == PROTpackage && !hasPackageAccess(sc, d)))
         {
             error(loc, "%s %s is not accessible from module %s",
                 d->kind(), d->toPrettyChars(), sc->_module->toChars());

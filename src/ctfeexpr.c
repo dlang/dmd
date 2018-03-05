@@ -90,7 +90,7 @@ int ClassReferenceExp::findFieldIndexByName(VarDeclaration *v)
 
 /************** VoidInitExp ********************************************/
 
-VoidInitExp::VoidInitExp(VarDeclaration *var, Type *type)
+VoidInitExp::VoidInitExp(VarDeclaration *var, Type *)
     : Expression(var->loc, TOKvoid, sizeof(VoidInitExp))
 {
     this->var = var;
@@ -99,7 +99,7 @@ VoidInitExp::VoidInitExp(VarDeclaration *var, Type *type)
 
 const char *VoidInitExp::toChars()
 {
-    return (char *)"void";
+    return "void";
 }
 
 // Return index of the field, or -1 if not found
@@ -124,7 +124,7 @@ ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Exp
 
 const char *ThrownExceptionExp::toChars()
 {
-    return (char *)"CTFE ThrownException";
+    return "CTFE ThrownException";
 }
 
 // Generate an error message when this exception is not caught
@@ -166,11 +166,11 @@ const char *CTFEExp::toChars()
 {
     switch (op)
     {
-        case TOKcantexp:    return (char *)"<cant>";
-        case TOKvoidexp:    return (char *)"<void>";
-        case TOKbreak:      return (char *)"<break>";
-        case TOKcontinue:   return (char *)"<continue>";
-        case TOKgoto:       return (char *)"<goto>";
+        case TOKcantexp:    return "<cant>";
+        case TOKvoidexp:    return "<void>";
+        case TOKbreak:      return "<break>";
+        case TOKcontinue:   return "<continue>";
+        case TOKgoto:       return "<goto>";
         default:            assert(0);  return NULL;
     }
 }
@@ -267,7 +267,6 @@ UnionExp copyLiteral(Expression *e)
     if (e->op == TOKarrayliteral)
     {
         ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
-        Expression *basis = ale->basis ? copyLiteral(ale->basis).copy() : NULL;
         Expressions *elements = copyLiteralArray(ale->elements, ale->basis);
 
         new(&ue) ArrayLiteralExp(e->loc, elements);
@@ -860,9 +859,9 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
         goto Lcant;
     }
 
-    if (indx < 0 || len < indx)
+    if (indx < 0 || len < (dinteger_t)indx)
     {
-        error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
+        error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", (ulonglong)indx, (ulonglong)len);
         goto Lcant;
     }
 
@@ -905,8 +904,7 @@ UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
 
 // Return 1 if true, 0 if false
 // -1 if comparison is illegal because they point to non-comparable memory blocks
-int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t ofs1,
-        Expression *agg2, dinteger_t ofs2)
+int comparePointers(TOK op, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2)
 {
     if (pointToSameMemoryBlock(agg1, agg2))
     {
@@ -972,8 +970,8 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
 bool isFloatIntPaint(Type *to, Type *from)
 {
     return from->size() == to->size() &&
-           (from->isintegral() && to->isfloating() ||
-            from->isfloating() && to->isintegral());
+           ((from->isintegral() && to->isfloating()) ||
+            (from->isfloating() && to->isintegral()));
 }
 
 // Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
@@ -1562,7 +1560,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
         StringExp *es1 = (StringExp *)e1;
         if (indx >= es1->len)
         {
-            error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);
+            error(loc, "string index %llu is out of bounds [0 .. %llu]", (ulonglong)indx, (ulonglong)es1->len);
             return CTFEExp::cantexp;
         }
         return new IntegerExp(loc, es1->charAt(indx), type);
@@ -1572,7 +1570,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
         ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
         if (indx >= ale->elements->dim)
         {
-            error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
+            error(loc, "array index %llu is out of bounds %s[0 .. %llu]", (ulonglong)indx, e1->toChars(), (ulonglong)ale->elements->dim);
             return CTFEExp::cantexp;
         }
         Expression *e = (*ale->elements)[(size_t)indx];
@@ -1712,21 +1710,6 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expre
             (*expsx)[j] = (*oldelems)[j];
     }
     return expsx;
-}
-
-// Create a new struct literal, which is the same as se except that se.field[offset] = elem
-Expression *modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval)
-{
-    int fieldi = se->getFieldIndex(newval->type, (unsigned)offset);
-    if (fieldi == -1)
-        return CTFEExp::cantexp;
-    /* Create new struct literal reflecting updated fieldi
-    */
-    Expressions *expsx = changeOneElement(se->elements, fieldi, newval);
-    StructLiteralExp * ee = new StructLiteralExp(se->loc, se->sd, expsx);
-    ee->type = se->type;
-    ee->ownedByCtfe = OWNEDctfe;
-    return ee;
 }
 
 // Given an AA literal aae,  set aae[index] = newval and return newval.
@@ -1878,7 +1861,7 @@ bool isCtfeValueValid(Expression *newval)
         Expression *ethis = ((DelegateExp *)newval)->e1;
         return (ethis->op == TOKstructliteral ||
                 ethis->op == TOKclassreference ||
-                ethis->op == TOKvar && ((VarExp *)ethis)->var == ((DelegateExp *)newval)->func);
+                (ethis->op == TOKvar && ((VarExp *)ethis)->var == ((DelegateExp *)newval)->func));
     }
     if (newval->op == TOKsymoff)
     {
@@ -1896,11 +1879,11 @@ bool isCtfeValueValid(Expression *newval)
         // e1 should be a CTFE reference
         Expression *e1 = ((AddrExp *)newval)->e1;
         return tb->ty == Tpointer &&
-               (e1->op == TOKstructliteral && isCtfeValueValid(e1) ||
-                e1->op == TOKvar ||
-                e1->op == TOKdotvar && isCtfeReferenceValid(e1) ||
-                e1->op == TOKindex && isCtfeReferenceValid(e1) ||
-                e1->op == TOKslice && e1->type->toBasetype()->ty == Tsarray);
+               ((e1->op == TOKstructliteral && isCtfeValueValid(e1)) ||
+                (e1->op == TOKvar) ||
+                (e1->op == TOKdotvar && isCtfeReferenceValid(e1)) ||
+                (e1->op == TOKindex && isCtfeReferenceValid(e1)) ||
+                (e1->op == TOKslice && e1->type->toBasetype()->ty == Tsarray));
     }
     if (newval->op == TOKslice)
     {

@@ -113,6 +113,7 @@ void escapePath(OutBuffer *buf, const char *fname)
             case ')':
             case '\\':
                 buf->writeByte('\\');
+                /* fall through */
             default:
                 buf->writeByte(*fname);
                 break;

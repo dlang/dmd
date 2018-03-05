@@ -383,7 +383,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl, PrefixAttributes 
             case TOKinvariant:
             {
                 Token *t = peek(&token);
-                if (t->value == TOKlparen && peek(t)->value == TOKrparen ||
+                if ((t->value == TOKlparen && peek(t)->value == TOKrparen) ||
                     t->value == TOKlcurly)
                 {
                     // invariant {}
@@ -1270,12 +1270,11 @@ TypeQualified *Parser::parseTypeof()
 
 Type *Parser::parseVector()
 {
-    Loc loc = token.loc;
     nextToken();
     check(TOKlparen);
     Type *tb = parseType();
     check(TOKrparen);
-    return new TypeVector(loc, tb);
+    return new TypeVector(tb);
 }
 
 /***********************************
@@ -3764,12 +3763,11 @@ Dsymbols *Parser::parseDeclarations(bool autodecl, PrefixAttributes *pAttrs, con
                 Declaration *v;
                 if (token.value == TOKfunction ||
                     token.value == TOKdelegate ||
-                    token.value == TOKlparen &&
-                        skipAttributes(peekPastParen(&token), &tk) &&
-                        (tk->value == TOKgoesto || tk->value == TOKlcurly) ||
+                    (token.value == TOKlparen &&
+                     skipAttributes(peekPastParen(&token), &tk) &&
+                     (tk->value == TOKgoesto || tk->value == TOKlcurly)) ||
                     token.value == TOKlcurly ||
-                    token.value == TOKidentifier && peekNext() == TOKgoesto
-                   )
+                    (token.value == TOKidentifier && peekNext() == TOKgoesto))
                 {
                     // function (parameters) { statements... }
                     // delegate (parameters) { statements... }
@@ -4173,7 +4171,7 @@ Dsymbol *Parser::parseFunctionLiteral()
                 // delegate { statements... }
                 break;
             }
-            /* fall through to TOKlparen */
+            /* fall through */
 
         case TOKlparen:
         {
@@ -4736,7 +4734,7 @@ void Parser::checkCstyleTypeSyntax(Loc loc, Type *t, int alt, Identifier *ident)
 
 Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc)
 {
-    Statement *s;
+    Statement *s = NULL;
     Condition *cond;
     Statement *ifbody;
     Statement *elsebody;
@@ -4780,8 +4778,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 s = new LabelStatement(loc, ident, s);
                 break;
             }
-            // fallthrough to TOKdot
         }
+        /* fall through */
         case TOKdot:
         case TOKtypeof:
         case TOKvector:
@@ -4898,6 +4896,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr, Loc *pEndloc
                 goto Lexp;
             if (peekNext() == TOKlparen)
                 goto Lexp;
+            /* fall through */
+
         case TOKalias:
         case TOKconst:
         case TOKauto:
@@ -6752,7 +6752,7 @@ Expression *Parser::parsePrimaryExp()
         case TOKfile:
         {
             const char *s = loc.filename ? loc.filename : mod->ident->toChars();
-            e = new StringExp(loc, (char *)s, strlen(s), 0);
+            e = new StringExp(loc, const_cast<char *>(s), strlen(s), 0);
             nextToken();
             break;
         }
@@ -6765,7 +6765,7 @@ Expression *Parser::parsePrimaryExp()
                 s = loc.filename;
             else
                 s = FileName::combine(mod->srcfilePath, srcfile);
-            e = new StringExp(loc, (char *)s, strlen(s), 0);
+            e = new StringExp(loc, const_cast<char *>(s), strlen(s), 0);
             nextToken();
             break;
         }
@@ -6778,7 +6778,7 @@ Expression *Parser::parsePrimaryExp()
         case TOKmodulestring:
         {
             const char *s = md ? md->toChars() : mod->toChars();
-            e = new StringExp(loc, (char *)s, strlen(s), 0);
+            e = new StringExp(loc, const_cast<char *>(s), strlen(s), 0);
             nextToken();
             break;
         }
@@ -6979,14 +6979,14 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKinterface ||
                          token.value == TOKargTypes ||
                          token.value == TOKparameters ||
-                         token.value == TOKconst && peek(&token)->value == TOKrparen ||
-                         token.value == TOKimmutable && peek(&token)->value == TOKrparen ||
-                         token.value == TOKshared && peek(&token)->value == TOKrparen ||
-                         token.value == TOKwild && peek(&token)->value == TOKrparen ||
+                         (token.value == TOKconst && peek(&token)->value == TOKrparen) ||
+                         (token.value == TOKimmutable && peek(&token)->value == TOKrparen) ||
+                         (token.value == TOKshared && peek(&token)->value == TOKrparen) ||
+                         (token.value == TOKwild && peek(&token)->value == TOKrparen) ||
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
                          token.value == TOKreturn ||
-                         token.value == TOKvector && peek(&token)->value == TOKrparen))
+                         (token.value == TOKvector && peek(&token)->value == TOKrparen)))
                     {
                         tok2 = token.value;
                         nextToken();
@@ -7398,6 +7398,8 @@ Expression *Parser::parseUnaryExp()
                         tk = peek(tk);
                         if (tk->value == TOKis || tk->value == TOKin)   // !is or !in
                             break;
+                        /* fall through */
+
                     case TOKdot:
                     case TOKplusplus:
                     case TOKminusminus:
