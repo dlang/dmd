@@ -68,7 +68,7 @@ int aio_read(aiocb *aiocbp);
 int aio_write(aiocb *aiocbp);
 int aio_fsync(int op, aiocb *aiocbp);
 int aio_error(const(aiocb)* aiocbp);
-ssize_t aio_return(const(aiocb)* aiocbp);
+ssize_t aio_return(aiocb* aiocbp);
 int aio_suspend(const(aiocb*)* aiocb_list, int nitems, const(timespec)* timeout);
 int aio_cancel(int fd, aiocb *aiocbp);
 int lio_listio(int mode, const(aiocb*)* aiocb_list, int nitems, sigevent *sevp);
