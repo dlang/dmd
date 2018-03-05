@@ -40,8 +40,8 @@ HR = <hr />
 LINK = <a href="$0">$0</a>
 LINK2 = <a href="$1">$+</a>
 LINK_TITLE = <a href="$1" title="$2">$3</a>
-IMAGE = <img src="$1" alt="$2">$3</img>
-IMAGE_TITLE = <img src="$1" alt="$2" title="$3">$4</img>
+IMAGE = <img src="$1" alt="$2" />
+IMAGE_TITLE = <img src="$1" alt="$3" title="$2" />
 BLOCKQUOTE = <blockquote>$0</blockquote>
 DEPRECATED = $0
 

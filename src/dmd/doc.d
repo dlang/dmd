@@ -2834,8 +2834,6 @@ private struct MarkdownLink
         }
         return false;
     LReturnHref:
-        if (iHrefStart == j)
-            return false;
         href = slice[iHrefStart .. j].idup;
         href = removeEscapeBackslashes(href);
 // TODO: percent-encode href
@@ -2933,7 +2931,7 @@ private struct MarkdownLink
                 macroName = "$(IMAGE ";
         }
         buf.remove(delimiter.iStart, delimiter.count);
-        buf.remove(i - 1, iLinkEnd - i);
+        buf.remove(i - delimiter.count, iLinkEnd - i);
         iLinkEnd = buf.insert(delimiter.iStart, macroName);
         iLinkEnd = buf.insert(iLinkEnd, href);
         iLinkEnd = buf.insert(iLinkEnd, ", ");
@@ -2985,7 +2983,7 @@ private struct MarkdownLinkReferences
     *  i =      the index within `buf` that points to the `[` character at the start of the reference label
     * Returns: whether a reference was extracted
     */
-    bool extractReference(OutBuffer *buf, ref size_t i, size_t iLineStart)
+    bool extractReference(OutBuffer *buf, ref size_t i)
     {
         size_t iEnd = i;
         string label = MarkdownLink.parseLabel(buf, iEnd);
@@ -2998,7 +2996,7 @@ private struct MarkdownLinkReferences
         skipOneNewline(buf, iEnd);
 
         MarkdownLink reference;
-        if (!reference.parseHref(buf, iEnd))
+        if (!reference.parseHref(buf, iEnd) || reference.href.length == 0)
             return false;
         iEnd = skipChars(buf, iEnd, " \t");
         bool requireNewline = !skipOneNewline(buf, iEnd);
@@ -3019,7 +3017,8 @@ private struct MarkdownLinkReferences
         if (requireNewline && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
             return false;
         iEnd = skipChars(buf, iEnd, " \t\r\n");
-        i = iLineStart;
+        while (i > 0 && (buf.data[i-1] == ' ' || buf.data[i-1] == '\t'))
+            --i;
         buf.remove(i, iEnd - i);
 
         if (label !in references)
@@ -3045,7 +3044,6 @@ private struct MarkdownLinkReferences
         }
 
         bool leadingBlank = false;
-        size_t iLineStart = 0;
         bool inCode = false;
         bool newParagraph = true;
         for (; i < buf.offset; ++i)
@@ -3060,7 +3058,6 @@ private struct MarkdownLinkReferences
                 if (leadingBlank && !inCode)
                     newParagraph = true;
                 leadingBlank = true;
-                iLineStart = i + 1;
                 break;
             case '\\':
                 ++i;
@@ -3119,7 +3116,7 @@ private struct MarkdownLinkReferences
                     goto case '`';
             case '[':
                 if (leadingBlank && !inCode && newParagraph &&
-                    extractReference(buf, i, iLineStart))
+                    extractReference(buf, i))
                 {
                     --i;
                 }
@@ -3876,7 +3873,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 break;
 
             if (leadingBlank && iParagraphStart >= iLineStart &&
-                linkReferences.extractReference(buf, i, iLineStart))
+                linkReferences.extractReference(buf, i))
             {
                 i -= 2;
             }
@@ -3892,19 +3889,27 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode || i >= buf.offset - 2)
                 break;
 
+            bool replaced = false;
             for (int d = cast(int) inlineDelimiters.length - 1; d >= 0; --d)
             {
                 auto delimiter = inlineDelimiters[d];
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
-                    if (!MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) &&
-                        !MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences))
+                    if (MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) ||
+                        MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences))
+                    {
+                        replaced = true;
+                        ++i;
+                    }
+                    else
                     {
                         // nothing found, so kill the delimiter
                         inlineDelimiters = inlineDelimiters[0..d] ~ inlineDelimiters[d+1..$];
                     }
                 }
             }
+            if (replaced)
+                --i;
             break;
         }
 
