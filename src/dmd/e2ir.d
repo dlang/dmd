@@ -628,18 +628,8 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
         else
             tx = type_fake(e2.Ety);
         Symbol *stmp = symbol_genauto(tx);
-        elem *eeq = el_bin(OPeq,e2.Ety,el_var(stmp),e2);
-        if (tybasic(e2.Ety) == TYstruct)
-        {
-            eeq.Eoper = OPstreq;
-            eeq.ET = e2.ET;
-        }
-        else if (tybasic(e2.Ety) == TYarray)
-        {
-            eeq.Eoper = OPstreq;
-            eeq.Ejty = eeq.Ety = TYstruct;
-            eeq.ET = t ? Type_toCtype(t) : tx;
-        }
+
+        elem *eeq = elAssign(el_var(stmp), e2, t, tx);
         *pe = el_bin(OPcomma,e2.Ety,eeq,el_var(stmp));
     }
     e = el_una(OPaddr,TYnptr,e);
@@ -1612,8 +1602,7 @@ elem *toElem(Expression e, IRState *irs)
                         ez = el_same(&ex);
 
                     ex = el_una(OPind, TYstruct, ex);
-                    ex = el_bin(OPstreq, TYnptr, ex, ei);
-                    ex.ET = Type_toCtype(tclass).Tnext;
+                    ex = elAssign(ex, ei, null, Type_toCtype(tclass).Tnext);
                     ex = el_una(OPaddr, TYnptr, ex);
                     ectype = tclass;
                 }
@@ -2291,6 +2280,8 @@ elem *toElem(Expression e, IRState *irs)
 
         override void visit(CmpExp ce)
         {
+            //printf("CmpExp.toElem() %s\n", ce.toChars());
+
             OPER eop;
             Type t1 = ce.e1.type.toBasetype();
             Type t2 = ce.e2.type.toBasetype();
@@ -2504,7 +2495,7 @@ elem *toElem(Expression e, IRState *irs)
                     assert(0);
             }
 
-            //printf("IdentityExp.toElem() %s\n", toChars());
+            //printf("IdentityExp.toElem() %s\n", ie.toChars());
 
             elem *e;
             if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0)
@@ -2980,10 +2971,7 @@ elem *toElem(Expression e, IRState *irs)
                  */
                 elem *e2 = toElem(ae.e2, irs);
 
-                e = el_bin(OPstreq, tym, e1, e2);
-                e.ET = Type_toCtype(ae.e1.type);
-                if (type_size(e.ET) == 0)
-                    e.Eoper = OPcomma;
+                e = elAssign(e1, e2, ae.e1.type, null);
             }
             else if (t1b.ty == Tsarray)
             {
@@ -3073,10 +3061,7 @@ elem *toElem(Expression e, IRState *irs)
                     ae.op == TOK.blit ||
                     type_size(e1.ET) == 0)
                 {
-                    e = el_bin(OPstreq, tym, e1, e2);
-                    e.ET = Type_toCtype(ae.e1.type);
-                    if (type_size(e.ET) == 0)
-                        e.Eoper = OPcomma;
+                    e = elAssign(e1, e2, ae.e1.type, null);
                 }
                 else if (ae.op == TOK.construct)
                 {
@@ -3212,19 +3197,10 @@ elem *toElem(Expression e, IRState *irs)
                         // Do this because of:
                         //    a ~= a[$-1]
                         // because $ changes its value
-                        Symbol *s2 = symbol_genauto(Type_toCtype(tb2));
-                        e2x = el_bin(OPeq, e2.Ety, el_var(s2), e2);
-                        if (tybasic(e2.Ety) == TYstruct)
-                        {
-                            e2x.Eoper = OPstreq;
-                            e2x.ET = Type_toCtype(tb1n);
-                        }
-                        else if (tybasic(e2.Ety) == TYarray)
-                        {
-                            e2x.Eoper = OPstreq;
-                            e2x.Ejty = e2x.Ety = TYstruct;
-                            e2x.ET = Type_toCtype(tb1n);
-                        }
+                        type* tx = Type_toCtype(tb2);
+                        Symbol *s2 = symbol_genauto(tx);
+                        e2x = elAssign(el_var(s2), e2, tb1n, tx);
+
                         e2 = el_var(s2);
                     }
 
@@ -3246,20 +3222,8 @@ elem *toElem(Expression e, IRState *irs)
                     elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, ce.e2.type.size()));
                     eptr = el_bin(OPadd, TYnptr, eptr, elength);
                     elem *ederef = el_una(OPind, e2.Ety, eptr);
-                    elem *eeq = el_bin(OPeq, e2.Ety, ederef, e2);
 
-                    if (tybasic(e2.Ety) == TYstruct)
-                    {
-                        eeq.Eoper = OPstreq;
-                        eeq.ET = Type_toCtype(tb1n);
-                    }
-                    else if (tybasic(e2.Ety) == TYarray)
-                    {
-                        eeq.Eoper = OPstreq;
-                        eeq.Ejty = eeq.Ety = TYstruct;
-                        eeq.ET = Type_toCtype(tb1n);
-                    }
-
+                    elem *eeq = elAssign(ederef, e2, tb1n, null);
                     e = el_combine(e2x, e);
                     e = el_combine(e, eeq);
                     e = el_combine(e, el_var(stmp));
@@ -5252,19 +5216,7 @@ elem *toElem(Expression e, IRState *irs)
                 elem *ev = el_ptr(stmp);
                 ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * szelem));
                 ev = el_una(OPind, te.Tty, ev);
-                elem *eeq = el_bin(OPeq, te.Tty, ev, ep);
-
-                if (tybasic(te.Tty) == TYstruct)
-                {
-                    eeq.Eoper = OPstreq;
-                    eeq.ET = te;
-                }
-                else if (tybasic(te.Tty) == TYarray)
-                {
-                    eeq.Eoper = OPstreq;
-                    eeq.Ejty = eeq.Ety = TYstruct;
-                    eeq.ET = te;
-                }
+                elem *eeq = elAssign(ev, ep, null, te);
                 e = el_combine(e, eeq);
             }
             return e;
@@ -5338,19 +5290,7 @@ elem *toElem(Expression e, IRState *irs)
                 if (j == i + 1)
                 {
                     ev = el_una(OPind, te.Tty, ev);
-                    eeq = el_bin(OPeq, te.Tty, ev, ep);
-
-                    if (tybasic(te.Tty) == TYstruct)
-                    {
-                        eeq.Eoper = OPstreq;
-                        eeq.ET = te;
-                    }
-                    else if (tybasic(te.Tty) == TYarray)
-                    {
-                        eeq.Eoper = OPstreq;
-                        eeq.Ejty = eeq.Ety = TYstruct;
-                        eeq.ET = te;
-                    }
+                    eeq = elAssign(ev, ep, null, te);
                 }
                 else
                 {
@@ -5507,8 +5447,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
             if (tybasic(ev.Ety) == TYnptr)
                 ev = el_una(OPind, e.Ety, ev);
             ev.ET = e.ET;
-            e = el_bin(OPstreq,e.Ety,ev,e);
-            e.ET = ev.ET;
+            e = elAssign(ev, e, null, ev.ET);
 
             //ev = el_var(sym);
             //ev.ET = e.ET;
@@ -5658,12 +5597,7 @@ private elem *toElemStructLit(StructLiteralExp sle, IRState *irs, TOK op, Symbol
                 e1 = el_una(OPind, ty, e1);
                 if (tybasic(ty) == TYstruct)
                     e1.ET = Type_toCtype(v.type);
-                e1 = el_bin(OPeq, ty, e1, ep);
-                if (tybasic(ty) == TYstruct)
-                {
-                    e1.Eoper = OPstreq;
-                    e1.ET = Type_toCtype(v.type);
-                }
+                e1 = elAssign(e1, ep, v.type, e1.ET);
             }
             e = el_combine(e, e1);
         }
@@ -6126,3 +6060,50 @@ elem *callCAssert(IRState *irs, const ref Loc loc, Expression exp, Expression em
     return ea;
 }
 
+/*************************************************
+ * Determine if zero bits need to be copied for this backend type
+ * Params:
+ *      t = backend type
+ * Returns:
+ *      true if 0 bits
+ */
+bool type_zeroCopy(type* t)
+{
+    return type_size(t) == 0 ||
+        (tybasic(t.Tty) == TYstruct &&
+         (t.Ttag.Stype.Ttag.Sstruct.Sflags & STR0size));
+}
+
+/**************************************************
+ * Generate a copy from e2 to e1.
+ * Params:
+ *      e1 = lvalue
+ *      e2 = rvalue
+ *      t = value type
+ *      tx = if !null, then t converted to C type
+ * Returns:
+ *      generated elem
+ */
+elem* elAssign(elem* e1, elem* e2, Type t, type* tx)
+{
+    elem *e = el_bin(OPeq, e2.Ety, e1, e2);
+    switch (tybasic(e2.Ety))
+    {
+        case TYarray:
+            e.Ejty = e.Ety = TYstruct;
+            goto case TYstruct;
+
+        case TYstruct:
+            e.Eoper = OPstreq;
+            if (!tx)
+                tx = Type_toCtype(t);
+            e.ET = tx;
+//            if (type_zeroCopy(tx))
+//                e.Eoper = OPcomma;
+            break;
+
+        default:
+            break;
+    }
+    return e;
+}
