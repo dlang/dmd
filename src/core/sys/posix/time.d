@@ -432,15 +432,8 @@ else version( CRuntime_Musl )
 else version( CRuntime_UClibc )
 {
     enum CLOCK_REALTIME             = 0;
-    enum CLOCK_MONOTONIC            = 1;
     enum CLOCK_PROCESS_CPUTIME_ID   = 2;
     enum CLOCK_THREAD_CPUTIME_ID    = 3;
-    enum CLOCK_MONOTONIC_RAW        = 4;
-    enum CLOCK_REALTIME_COARSE      = 5;
-    enum CLOCK_MONOTONIC_COARSE     = 6;
-    enum CLOCK_BOOTTIME             = 7;
-    enum CLOCK_REALTIME_ALARM       = 8;
-    enum CLOCK_BOOTTIME_ALARM       = 9;
 
     struct itimerspec
     {
