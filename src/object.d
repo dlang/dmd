@@ -2264,6 +2264,7 @@ unittest
 {
     static struct T
     {
+        byte b;
         static size_t count;
         this(this) { ++count; }
     }
