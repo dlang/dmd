@@ -3889,27 +3889,20 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode || i >= buf.offset - 2)
                 break;
 
-            bool replaced = false;
             for (int d = cast(int) inlineDelimiters.length - 1; d >= 0; --d)
             {
                 auto delimiter = inlineDelimiters[d];
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
-                    if (MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) ||
-                        MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences))
-                    {
-                        replaced = true;
-                        ++i;
-                    }
-                    else
+                    if (!MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) &&
+                        !MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences))
                     {
                         // nothing found, so kill the delimiter
                         inlineDelimiters = inlineDelimiters[0..d] ~ inlineDelimiters[d+1..$];
                     }
+                    break;
                 }
             }
-            if (replaced)
-                --i;
             break;
         }
 
