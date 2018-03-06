@@ -13,6 +13,7 @@
 module dmd.typesem;
 
 import core.checkedint;
+import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.aggregate;
@@ -51,7 +52,7 @@ import dmd.tokens;
 import dmd.typesem;
 
 /************************************
- * Strip all parameter's idenfiers and their default arguments for merging types.
+ * Strip all parameter's identifiers and their default arguments for merging types.
  * If some of parameter types or return type are function pointer, delegate, or
  * the types which contains either, then strip also from them.
  */
@@ -523,7 +524,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
 
     override void visit(TypeAArray mtype)
     {
-        //printf("TypeAArray::semantic() %s index.ty = %d\n", toChars(), index.ty);
+        //printf("TypeAArray::semantic() %s index.ty = %d\n", mtype.toChars(), mtype.index.ty);
         if (mtype.deco)
         {
             result = mtype;
@@ -589,9 +590,19 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         case Ttuple:
             mtype.error(loc, "cannot have associative array key of `%s`", mtype.index.toBasetype().toChars());
             goto case Terror;
+
+        case Tsarray:
+            if (mtype.index.size(loc) == 0)
+            {
+                mtype.error(loc, "AA key type `%s` has no size and cannot be used as a key", mtype.index.toChars());
+                goto case Terror;
+            }
+            break;
+
         case Terror:
             result = Type.terror;
             return;
+
         default:
             break;
         }

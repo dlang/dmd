@@ -45,7 +45,7 @@ struct SA1 { int val; }
 struct SA2 { SA1 s; }
 
 struct SB1
-{
+{   byte b;
     // AA assumes this is specialized hashing (?)
     size_t toHash() const nothrow @safe { return 0; }
 }

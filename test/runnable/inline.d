@@ -756,7 +756,7 @@ void test14975()
 /**********************************/
 // 15210
 
-struct BigInt15210 {}
+struct BigInt15210 { byte c; }
 
 struct Tuple15210(Types...)
 {

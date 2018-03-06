@@ -2,6 +2,8 @@ int[R] aa;  // Place before the declaration of key struct
 
 struct R
 {
+    byte b;
+
     int opCmp(ref const R) const { return 0; }
 
     //bool opEquals(ref const R) const { return true; }

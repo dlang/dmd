@@ -1,0 +1,9 @@
+Types with zero size or no data fields are no longer usable as AA key types.
+
+https://issues.dlang.org/show_bug.cgi?id=18557
+
+---
+struct S { }
+int[S] aa;      // struct S has no data fields
+int[int[0]] bb; // int[0] has zero size
+---

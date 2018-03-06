@@ -2,6 +2,8 @@ module imports.std15017;
 
 struct VariantN(size_t maxDataSize)
 {
+    byte b;
+
     VariantN opAssign() { return this; }
 
     bool opEquals(T)(T) { return true; }

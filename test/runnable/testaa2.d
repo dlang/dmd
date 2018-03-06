@@ -229,6 +229,7 @@ void test3825x()
 
     static struct S
     {
+        byte b;
         this(int)  { ++ctor; }
         this(this) { ++cpctor; }
         ~this()    { ++dtor; }
