@@ -136,7 +136,7 @@ extern (C++) class Section
                 char c = name[u];
                 buf.writeByte((c == '_') ? ' ' : c);
             }
-            escapeStrayParenthesis(loc, buf, o);
+            escapeStrayParenthesis(loc, buf, o, false);
             buf.writestring(")");
         }
         else
@@ -551,7 +551,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
  *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
+extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectMarkdownEscapes = true)
 {
     uint par_open = 0;
     bool inCode = 0;
@@ -599,6 +599,15 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             }
             if (numdash >= 3)
                 inCode = !inCode;
+            break;
+        case '\\':
+            if (respectMarkdownEscapes && u+1 < buf.offset && (buf.data[u+1] == '(' || buf.data[u+1] == ')'))
+            {
+                string paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
+                buf.remove(u, 2); //remove the \)
+                buf.insert(u, paren); //insert this instead
+                u += 8; //skip over newly inserted macro
+            }
             break;
         default:
             break;
