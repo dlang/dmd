@@ -1953,7 +1953,7 @@ public:
             buf.writeByte(' ');
         }
         TypeFunction tf = cast(TypeFunction)f.type;
-        // only print tf.next if we have a tf.next and are not infering it
+        // only print tf.next if we have a tf.next and are not inferring it
         if (!f.inferRetType && tf.next)
             typeToBuffer(tf.next, null);
 
@@ -1963,7 +1963,7 @@ public:
         {
             // we need to print the trust attribute if we are outputing a header
             // since the header-output will be done w/o runnung semantic3 this
-            // will not include infered attributes
+            // will not include inferred attributes
             if (tf.trust)
             {
                 buf.writeByte(' ');
