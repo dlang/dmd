@@ -3381,8 +3381,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
 
                 if (s)
-                    funcdecl.error("does not override any function, did you mean to override `%s%s`?",
-                        bc.sym.isCPPclass() ? "extern (C++) ".ptr : "".ptr, s.toPrettyChars());
+                {
+                    auto fd = s.isFuncDeclaration();
+                    assert(fd);
+
+                    HdrGenState hgs;
+                    OutBuffer buf1, buf2;
+
+                    functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
+                        new Identifier(fd.toPrettyChars()), &hgs, null);
+                    functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf2,
+                        new Identifier(funcdecl.toPrettyChars()), &hgs, null);
+
+                    error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+                        buf2.extractString(), buf1.extractString());
+                }
                 else
                     funcdecl.error("does not override any function");
             }
