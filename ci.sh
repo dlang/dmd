@@ -46,8 +46,8 @@ clone() {
 build() {
     source ~/dlang/*/activate # activate host compiler
     make -j$N -C src -f posix.mak MODEL=$MODEL HOST_DMD=$DMD ENABLE_RELEASE=1 ENABLE_WARNINGS=1 all
-    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
+    make -j$N -C ../druntime -f posix.mak MODEL=$MODEL HOST_DMD=$DMD
+    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL HOST_DMD=$DMD
     deactivate # deactivate host compiler
 }
 
