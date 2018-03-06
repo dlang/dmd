@@ -2417,6 +2417,12 @@ private struct MarkdownDelimiter
     bool leftFlanking;  /// whether the delimiter is left-flanking, as defined by the CommonMark spec
     bool rightFlanking; /// whether the delimiter is right-flanking, as defined by the CommonMark spec
     char type;      /// the type of delimiter, defined by its starting character
+
+    /// whether this describes a valid delimiter
+    @property bool isValid() { return count != 0; }
+
+    /// flag this delimiter as invalid
+    void invalidate() { count = 0; }
 }
 
 /****************************************************
@@ -2742,7 +2748,7 @@ private struct MarkdownLink
         if (buf.data[i] != '[')
             return label;
         const slice = buf.peekSlice();
-        for (size_t j = i; j < slice.length; ++j)
+        for (size_t j = i + 1; j < slice.length; ++j)
         {
             char c = slice[j];
             switch (c)
@@ -2759,7 +2765,7 @@ private struct MarkdownLink
                 ++j;
                 break;
             case ']':
-                if (label[$-1] == ' ')
+                if (label.length && label[$-1] == ' ')
                     --label.length;
                 if (label.length)
                     i = j + 1;
@@ -2899,6 +2905,7 @@ private struct MarkdownLink
     LEndTitle:
         title = slice[iTitleStart .. j].idup;
         title = removeEscapeBackslashes(title);
+// TODO: HTML-escape title
         i = j + 1;
         return true;
     }
@@ -2942,6 +2949,7 @@ private struct MarkdownLink
             iLinkEnd = buf.insert(iLinkEnd, ", ");
             iAfterLink += title.length + 2;
         }
+// TODO: if image, remove internal macros, leaving only text
         buf.insert(iAfterLink, ")");
         i = iAfterLink;
     }
@@ -3894,8 +3902,17 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 auto delimiter = inlineDelimiters[d];
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
-                    if (!MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) &&
-                        !MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences))
+                    if (delimiter.isValid &&
+                        (MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) ||
+                            MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences)))
+                    {
+                        // don't nest links
+                        if (delimiter.type == '[')
+                            for (--d; d >= 0; --d)
+                                if (inlineDelimiters[d].type == '[')
+                                    inlineDelimiters[d].invalidate();
+                    }
+                    else
                     {
                         // nothing found, so kill the delimiter
                         inlineDelimiters = inlineDelimiters[0..d] ~ inlineDelimiters[d+1..$];
