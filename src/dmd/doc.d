@@ -2417,8 +2417,8 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
 }
 
 /****************************************************
-* A delimiter for Markdown inline content like emphasis and links.
-*/
+ * A delimiter for Markdown inline content like emphasis and links.
+ */
 private struct MarkdownDelimiter
 {
     size_t iStart;  /// the index where this delimiter starts
@@ -2436,8 +2436,8 @@ private struct MarkdownDelimiter
 }
 
 /****************************************************
-* Info about a Markdown list.
-*/
+ * Info about a Markdown list.
+ */
 private struct MarkdownList
 {
     string orderedStart;    /// an optional start number--if present then the list starts at this number
@@ -2452,13 +2452,13 @@ private struct MarkdownList
     @property bool isValid() { return type != 0; }
 
     /****************************************************
-    * Try to parse a list item, returning whether successful.
-    * Params:
-    *  buf =        an OutputBuffer containing the DDoc
-    *  iLineStart = the index within `buf` of the first character of the line
-    *  i =          the index within `buf` of the potential list item
-    * Returns: the parsed list item. Its `isValid` property describes whether parsing succeeded.
-    */
+     * Try to parse a list item, returning whether successful.
+     * Params:
+     *  buf =           an OutputBuffer containing the DDoc
+     *  iLineStart =    the index within `buf` of the first character of the line
+     *  i =             the index within `buf` of the potential list item
+     * Returns: the parsed list item. Its `isValid` property describes whether parsing succeeded.
+     */
     static MarkdownList parseItem(OutBuffer *buf, size_t iLineStart, size_t i)
     {
         MarkdownList list;
@@ -2471,13 +2471,13 @@ private struct MarkdownList
     }
 
     /****************************************************
-    * Return whether the context is at a list item of the same type as this list.
-    * Params:
-    *  buf =        an OutputBuffer containing the DDoc
-    *  iLineStart = the index within `buf` of the first character of the line
-    *  i =          the index within `buf` of the list item
-    * Returns: whether `i` is at a list item of the same type as this list
-    */
+     * Return whether the context is at a list item of the same type as this list.
+     * Params:
+     *  buf =           an OutputBuffer containing the DDoc
+     *  iLineStart =    the index within `buf` of the first character of the line
+     *  i =             the index within `buf` of the list item
+     * Returns: whether `i` is at a list item of the same type as this list
+     */
     bool isAtItemInThisList(OutBuffer *buf, size_t iLineStart, size_t i)
     {
         MarkdownList item = (type == '.' || type == ')') ?
@@ -2489,16 +2489,16 @@ private struct MarkdownList
     }
 
     /****************************************************
-    * Start a Markdown list item by creating/deleting nested lists and starting the item.
-    * Params:
-    *  buf =            an OutputBuffer containing the DDoc
-    *  iLineStart =     the index within `buf` of the first character of the line. If this function succeeds it will equal `i`.
-    *  i =              the index within `buf` of the list item. If this function succeeds `i` will be adjusted to fit the inserted macro.
-    *  iPreceedingBlankLine = the index within `buf` of the preceeding blank line. If non-zero and a new list was started, the preceeding blank line is removed and this value is set to `0`.
-    *  nestedLists =    a set of nested lists. If this function succeeds it may contain a new nested list.
-    *  macroLevel =     the current macro nesting level
-    * Returns: whether a list was created
-    */
+     * Start a Markdown list item by creating/deleting nested lists and starting the item.
+     * Params:
+     *  buf =           an OutputBuffer containing the DDoc
+     *  iLineStart =    the index within `buf` of the first character of the line. If this function succeeds it will equal `i`.
+     *  i =             the index within `buf` of the list item. If this function succeeds `i` will be adjusted to fit the inserted macro.
+     *  iPreceedingBlankLine = the index within `buf` of the preceeding blank line. If non-zero and a new list was started, the preceeding blank line is removed and this value is set to `0`.
+     *  nestedLists =   a set of nested lists. If this function succeeds it may contain a new nested list.
+     *  macroLevel =    the current macro nesting level
+     * Returns: whether a list was created
+     */
     bool startItem(OutBuffer *buf, ref size_t iLineStart, ref size_t i, ref size_t iPreceedingBlankLine, ref MarkdownList[] nestedLists, int macroLevel)
     {
         this.macroLevel = macroLevel;
@@ -2539,13 +2539,13 @@ private struct MarkdownList
     }
 
     /****************************************************
-    * End all nested Markdown lists.
-    * Params:
-    *  buf =            an OutputBuffer containing the DDoc
-    *  i =              the index within `buf` to end lists at. If there were lists `i` will be adjusted to fit the macro endings.
-    *  nestedLists =    a set of nested lists. Upon return it will be empty.
-    * Returns: the amount that `i` changed
-    */
+     * End all nested Markdown lists.
+     * Params:
+     *  buf =           an OutputBuffer containing the DDoc
+     *  i =             the index within `buf` to end lists at. If there were lists `i` will be adjusted to fit the macro endings.
+     *  nestedLists =   a set of nested lists. Upon return it will be empty.
+     * Returns: the amount that `i` changed
+     */
     static size_t endAllNestedLists(OutBuffer *buf, ref size_t i, ref MarkdownList[] nestedLists)
     {
         const iStart = i;
@@ -2555,13 +2555,13 @@ private struct MarkdownList
     }
 
     /****************************************************
-    * Look for a sibling list item or the end of nested list(s).
-    * Params:
-    *  buf =                an OutputBuffer containing the DDoc
-    *  i =                  the index within `buf` to end lists at. If there was a sibling or ending lists `i` will be adjusted to fit the macro endings.
-    *  iParagraphStart =    the index within `buf` to start the next paragraph at at. May be adjusted upon return.
-    *  nestedLists =        a set of nested lists. Some nested lists may have been removed from it upon return.
-    */
+     * Look for a sibling list item or the end of nested list(s).
+     * Params:
+     *  buf =               an OutputBuffer containing the DDoc
+     *  i =                 the index within `buf` to end lists at. If there was a sibling or ending lists `i` will be adjusted to fit the macro endings.
+     *  iParagraphStart =   the index within `buf` to start the next paragraph at at. May be adjusted upon return.
+     *  nestedLists =       a set of nested lists. Some nested lists may have been removed from it upon return.
+     */
     static void handleSiblingOrEndingList(OutBuffer *buf, ref size_t i, ref size_t iParagraphStart, ref MarkdownList[] nestedLists)
     {
         size_t iAfterSpaces = skipChars(buf, i + 1, " \t");
@@ -2596,13 +2596,13 @@ private struct MarkdownList
     }
 
     /****************************************************
-    * Parse an unordered list item at the current position
-    * Params:
-    *  buf =        an OutputBuffer containing the DDoc
-    *  iLineStart = the index within `buf` of the first character of the line
-    *  i =          the index within `buf` of the list item
-    * Returns: the parsed list item, or a list item with type `0` if no list item is available
-    */
+     * Parse an unordered list item at the current position
+     * Params:
+     *  buf =           an OutputBuffer containing the DDoc
+     *  iLineStart =    the index within `buf` of the first character of the line
+     *  i =              the index within `buf` of the list item
+     * Returns: the parsed list item, or a list item with type `0` if no list item is available
+     */
     private static MarkdownList parseUnorderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
     {
         if ((buf.data[i] == '-' ||
@@ -2624,13 +2624,13 @@ private struct MarkdownList
     }
 
     /****************************************************
-    * Parse an ordered list item at the current position
-    * Params:
-    *  buf =        an OutputBuffer containing the DDoc
-    *  iLineStart = the index within `buf` of the first character of the line
-    *  i =          the index within `buf` of the list item
-    * Returns: the parsed list item, or a list item with type `0` if no list item is available
-    */
+     * Parse an ordered list item at the current position
+     * Params:
+     *  buf =           an OutputBuffer containing the DDoc
+     *  iLineStart =    the index within `buf` of the first character of the line
+     *  i =             the index within `buf` of the list item
+     * Returns: the parsed list item, or a list item with type `0` if no list item is available
+     */
     private static MarkdownList parseOrderedListItem(OutBuffer *buf, size_t iLineStart, size_t i)
     {
         size_t iAfterNumbers = skipChars(buf, i, "0123456789");
@@ -2656,23 +2656,23 @@ private struct MarkdownList
 }
 
 /****************************************************
-* A Markdown link.
-*/
+ * A Markdown link.
+ */
 private struct MarkdownLink
 {
     string href;    /// the link destination
     string title;   /// an optional title for the link
 
     /****************************************************
-    * Replace a Markdown inline link in the form of `[foo](url/ 'optional title')`
-    * Params:
-    *  buf =                an OutputBuffer containing the DDoc
-    *  i =                  the index within `buf` that points to the `]` character of the inline link.
-    *                       If this function succeeds it will be adjusted to fit the inserted macro.
-    *  inlineDelimiters =   previously parsed Markdown delimiters, including emphasis and link/image starts
-    *  delimiterIndex =     the index within `inlineDelimiters` of the nearest link/image starting delimiter
-    * Returns: whether an inline link was found and replaced at `i`
-    */
+     * Replace a Markdown inline link in the form of `[foo](url/ 'optional title')`
+     * Params:
+     *  buf =               an OutputBuffer containing the DDoc
+     *  i =                 the index within `buf` that points to the `]` character of the inline link.
+     *                      If this function succeeds it will be adjusted to fit the inserted macro.
+     *  inlineDelimiters =  previously parsed Markdown delimiters, including emphasis and link/image starts
+     *  delimiterIndex =    the index within `inlineDelimiters` of the nearest link/image starting delimiter
+     * Returns: whether an inline link was found and replaced at `i`
+     */
     static bool replaceInlineLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex)
     {
         size_t iEnd = i + 1;
@@ -2701,17 +2701,17 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Replace a Markdown reference link in the form of `[foo][bar]`, `[foo][]` or `[foo]`
-    * Params:
-    *  buf =                an OutputBuffer containing the DDoc
-    *  i =                  the index within `buf` that points to the `]` character of the inline link.
-    *                       If this function succeeds it will be adjusted to fit the inserted macro.
-    *  inlineDelimiters =   previously parsed Markdown delimiters, including emphasis and link/image starts
-    *  delimiterIndex =     the index within `inlineDelimiters` of the nearest link/image starting delimiter
-    *  linkReferences =     previously parsed link references. When this function returns it may contain
-    *                       additional previously unparsed references.
-    * Returns: whether a reference link was found and replaced at `i`
-    */
+     * Replace a Markdown reference link in the form of `[foo][bar]`, `[foo][]` or `[foo]`
+     * Params:
+     *  buf =               an OutputBuffer containing the DDoc
+     *  i =                 the index within `buf` that points to the `]` character of the inline link.
+     *                      If this function succeeds it will be adjusted to fit the inserted macro.
+     *  inlineDelimiters =  previously parsed Markdown delimiters, including emphasis and link/image starts
+     *  delimiterIndex =    the index within `inlineDelimiters` of the nearest link/image starting delimiter
+     *  linkReferences =    previously parsed link references. When this function returns it may contain
+     *                      additional previously unparsed references.
+     * Returns: whether a reference link was found and replaced at `i`
+     */
     static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, ref MarkdownLinkReferences linkReferences)
     {
         MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
@@ -2745,13 +2745,13 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Parse and normalize a Markdown reference label
-    * Params:
-    *  buf =                an OutputBuffer containing the DDoc
-    *  i =                  the index within `buf` that points to the `[` character at the start of the label.
-    *                       If this function returns a non-empty label then `i` will point just after the ']' at the end of the label.
-    * Returns: the parsed and normalized label, possibly empty
-    */
+     * Parse and normalize a Markdown reference label
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` that points to the `[` character at the start of the label.
+     *          If this function returns a non-empty label then `i` will point just after the ']' at the end of the label.
+     * Returns: the parsed and normalized label, possibly empty
+     */
     private static string parseLabel(OutBuffer *buf, ref size_t i)
     {
         string label;
@@ -2792,13 +2792,13 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Parse and store a Markdown link URL, optionally enclosed in `<>` brackets
-    * Params:
-    *  buf =                an OutputBuffer containing the DDoc
-    *  i =                  the index within `buf` that points to the first character of the URL.
-    *                       If this function succeeds `i` will point just after the the end of the URL.
-    * Returns: whether a URL was found and parsed
-    */
+     * Parse and store a Markdown link URL, optionally enclosed in `<>` brackets
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` that points to the first character of the URL.
+     *          If this function succeeds `i` will point just after the the end of the URL.
+     * Returns: whether a URL was found and parsed
+     */
     private bool parseHref(OutBuffer* buf, ref size_t i)
     {
         size_t j = skipChars(buf, i, " \t");
@@ -2859,13 +2859,13 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Parse and store a Markdown link title, enclosed in parentheses or `'` or `"` quotes
-    * Params:
-    *  buf =                an OutputBuffer containing the DDoc
-    *  i =                  the index within `buf` that points to the first character of the title.
-    *                       If this function succeeds `i` will point just after the the end of the title.
-    * Returns: whether a title was found and parsed
-    */
+     * Parse and store a Markdown link title, enclosed in parentheses or `'` or `"` quotes
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` that points to the first character of the title.
+     *          If this function succeeds `i` will point just after the the end of the title.
+     * Returns: whether a title was found and parsed
+     */
     private bool parseTitle(OutBuffer* buf, ref size_t i)
     {
         size_t j = skipChars(buf, i, " \t");
@@ -2919,14 +2919,14 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Replace a Markdown link or image with the appropriate macro
-    * Params:
-    *  buf =        an OutputBuffer containing the DDoc
-    *  i =          the index within `buf` that points to the `]` character of the inline link.
-    *               When this function returns it will be adjusted to the end of the inserted macro.
-    *  iLinkEnd =   the index within `buf` that points just after the last character of the link
-    *  delimiter =  the Markdown delimiter that started the link or image
-    */
+     * Replace a Markdown link or image with the appropriate macro
+     * Params:
+     *  buf =       an OutputBuffer containing the DDoc
+     *  i =         the index within `buf` that points to the `]` character of the inline link.
+     *              When this function returns it will be adjusted to the end of the inserted macro.
+     *  iLinkEnd =  the index within `buf` that points just after the last character of the link
+     *  delimiter = the Markdown delimiter that started the link or image
+     */
     private void replaceLink(OutBuffer *buf, ref size_t i, size_t iLinkEnd, MarkdownDelimiter delimiter)
     {
         size_t iAfterLink = i - delimiter.count;
@@ -2963,11 +2963,11 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Remove Markdown escaping backslashes from the given string
-    * Params:
-    *  s =  the string to remove escaping backslashes from
-    * Returns: `s` without escaping backslashes in it
-    */
+     * Remove Markdown escaping backslashes from the given string
+     * Params:
+     *  s = the string to remove escaping backslashes from
+     * Returns: `s` without escaping backslashes in it
+     */
     private static string removeEscapeBackslashes(string s)
     {
         if (!s.length)
@@ -2984,11 +2984,11 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Percent-encode (AKA URL-encode) the given string
-    * Params:
-    *  s =  the string to percent-encode
-    * Returns: `s` with special characters percent-encoded
-    */
+     * Percent-encode (AKA URL-encode) the given string
+     * Params:
+     *  s = the string to percent-encode
+     * Returns: `s` with special characters percent-encoded
+     */
     private static string percentEncode(string s)
     {
         static bool shouldEncode(char c)
@@ -3015,11 +3015,11 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * HTML-escape quotes in the given string
-    * Params:
-    *  s =  the string to escape
-    * Returns: `s` with quotes HTML-escaped
-    */
+     * HTML-escape quotes in the given string
+     * Params:
+     *  s = the string to escape
+     * Returns: `s` with quotes HTML-escaped
+     */
     private static string htmlEscapeQuotes(string s)
     {
         for (size_t i = 0; i < s.length; ++i)
@@ -3034,11 +3034,11 @@ private struct MarkdownLink
     }
 
     /****************************************************
-    * Escape commas in the given string
-    * Params:
-    *  s =  the string to escape
-    * Returns: `s` with commas escaped
-    */
+     * Escape commas in the given string
+     * Params:
+     *  s = the string to escape
+     * Returns: `s` with commas escaped
+     */
     private static string escapeCommas(string s)
     {
         for (size_t i = 0; i < s.length; ++i)
@@ -3060,14 +3060,21 @@ private struct MarkdownLinkReferences
 {
     MarkdownLink[string] references;    // link references keyed by normalized label
     size_t iParsedUntil;    // the index into the buffer of the last-parsed reference
+    /**************************************************
+     * Remove and store a link reference from the document, in the form of `[bar]: url/ 'optional title'`
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` that points to the `[` character at the start of the reference label
+     * Returns: whether a reference was extracted
+     */
 
     /**************************************************
-    * Remove and store a link reference from the document, in the form of `[bar]: url/ 'optional title'`
-    * Params:
-    *  buf =    an OutputBuffer containing the DDoc
-    *  i =      the index within `buf` that points to the `[` character at the start of the reference label
-    * Returns: whether a reference was extracted
-    */
+     * Remove and store a link reference from the document, in the form of `[bar]: url/ 'optional title'`
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` that points to the `[` character at the start of the reference label
+     * Returns: whether a reference was extracted
+     */
     bool extractReference(OutBuffer *buf, ref size_t i)
     {
         size_t iEnd = i;
@@ -3115,12 +3122,12 @@ private struct MarkdownLinkReferences
     }
 
     /**************************************************
-    * Remove and store all link references from the document after `iParsedUntil`
-    * Params:
-    *  buf =    an OutputBuffer containing the DDoc
-    *  i =      the index within `buf` to start looking at
-    * Returns: whether a reference was extracted
-    */
+     * Remove and store all link references from the document after `iParsedUntil`
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` to start looking at
+     * Returns: whether a reference was extracted
+     */
     void extractReferences(OutBuffer *buf, size_t i)
     {
         static bool isFollowedBySpace(OutBuffer *buf, size_t i)
@@ -3216,13 +3223,13 @@ private struct MarkdownLinkReferences
     }
 
     /**************************************************
-    * Skip a single newline at `i`
-    * Params:
-    *  buf =    an OutputBuffer containing the DDoc
-    *  i =      the index within `buf` to start looking at.
-    *           If this function succeeds `i` will point after the newline.
-    * Returns: whether a newline was skipped
-    */
+     * Skip a single newline at `i`
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` to start looking at.
+     *          If this function succeeds `i` will point after the newline.
+     * Returns: whether a newline was skipped
+     */
     private static bool skipOneNewline(OutBuffer *buf, ref size_t i)
     {
         bool skipped = false;
