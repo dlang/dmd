@@ -2850,8 +2850,7 @@ private struct MarkdownLink
         return false;
     LReturnHref:
         href = slice[iHrefStart .. j].idup;
-        href = removeEscapeBackslashes(href);
-// TODO: percent-encode href
+        href = escapeCommas(percentEncode(removeEscapeBackslashes(href)));
         i = j;
         if (inPointy)
             ++i;
@@ -2913,8 +2912,7 @@ private struct MarkdownLink
         return false;
     LEndTitle:
         title = slice[iTitleStart .. j].idup;
-        title = removeEscapeBackslashes(title);
-// TODO: HTML-escape title
+        title = escapeCommas(htmlEscapeQuotes(removeEscapeBackslashes(title)));
         i = j + 1;
         return true;
     }
@@ -2979,6 +2977,75 @@ private struct MarkdownLink
             {
                 s = s[0..i] ~ s[i+1..$];
                 --i;
+            }
+        }
+        return s;
+    }
+
+    /****************************************************
+    * Percent-encode (AKA URL-encode) the given string
+    * Params:
+    *  s =  the string to percent-encode
+    * Returns: `s` with special characters percent-encoded
+    */
+    private static string percentEncode(string s)
+    {
+        static bool shouldEncode(char c)
+        {
+            return ((c < '0' && c != '!' && c != '#' && c != '$' && c != '%' && c != '&' && c != '\'' && c != '(' &&
+                    c != ')' && c != '*' && c != '+' && c != ',' && c != '-' && c != '.' && c != '/')
+                || (c > '9' && c < 'A' && c != ':' && c != ';' && c != '=' && c != '?' && c != '@')
+                || (c > 'Z' && c < 'a' && c != '[' && c != ']' && c != '_')
+                || (c > 'z' && c != '~'));
+        }
+
+        for (size_t i = 0; i < s.length; ++i)
+        {
+            if (shouldEncode(s[i]))
+            {
+                static hexDigits = "0123456789ABCDEF";
+                immutable encoded1 = hexDigits[s[i] >> 4];
+                immutable encoded2 = hexDigits[s[i] & 0x0F];
+                s = s[0..i] ~ '%' ~ encoded1 ~ encoded2 ~ s[i+1..$];
+                i += 2;
+            }
+        }
+        return s;
+    }
+
+    /****************************************************
+    * HTML-escape quotes in the given string
+    * Params:
+    *  s =  the string to escape
+    * Returns: `s` with quotes HTML-escaped
+    */
+    private static string htmlEscapeQuotes(string s)
+    {
+        for (size_t i = 0; i < s.length; ++i)
+        {
+            if (s[i] == '"')
+            {
+                s = s[0..i] ~ "&quot;" ~ s[i+1..$];
+                i += 6;
+            }
+        }
+        return s;
+    }
+
+    /****************************************************
+    * Escape commas in the given string
+    * Params:
+    *  s =  the string to escape
+    * Returns: `s` with commas escaped
+    */
+    private static string escapeCommas(string s)
+    {
+        for (size_t i = 0; i < s.length; ++i)
+        {
+            if (s[i] == ',')
+            {
+                s = s[0..i] ~ "$(COMMA)" ~ s[i+1..$];
+                i += 8;
             }
         }
         return s;
