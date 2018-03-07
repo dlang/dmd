@@ -601,7 +601,8 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
                 inCode = !inCode;
             break;
         case '\\':
-            if (respectMarkdownEscapes && u+1 < buf.offset && (buf.data[u+1] == '(' || buf.data[u+1] == ')'))
+            if (!inCode && respectMarkdownEscapes && u+1 < buf.offset &&
+                (buf.data[u+1] == '(' || buf.data[u+1] == ')'))
             {
                 string paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
                 buf.remove(u, 2); //remove the \)
