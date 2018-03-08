@@ -4611,11 +4611,13 @@ void test7290()
     int add = 2;
     scope dg = (int a) => a + add;
 
+    // This will break with -dip1000 because a closure will no longer be allocated
     assert(GC.addrOf(dg.ptr) == null);
 
     foo7290a!dg();
     foo7290b(dg);
-    foo7290c(dg);
+    foo7290c(dg); // this will fail with -dip1000 and @safe because a scope delegate gets
+                  // assigned to @system delegate, but no closure was allocated
 }
 
 /***************************************************/
