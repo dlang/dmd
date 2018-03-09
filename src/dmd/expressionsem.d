@@ -4608,6 +4608,34 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         AggregateDeclaration ad = f.toParent().isAggregateDeclaration();
         if (f.needThis())
             e.e1 = getRightThis(e.loc, sc, ad, e.e1, f);
+
+        /* A delegate takes the address of e.e1 in order to set the .ptr field
+         * https://issues.dlang.org/show_bug.cgi?id=18575
+         */
+        if (global.params.vsafe && e.e1.type.toBasetype().ty == Tstruct)
+        {
+            if (e.e1.op == TOK.variable)
+            {
+                VarExp ve = cast(VarExp)e.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v)
+                {
+                    if (!checkAddressVar(sc, e, v))
+                        return setError();
+                }
+            }
+            else if ((e.e1.op == TOK.this_ || e.e1.op == TOK.super_))
+            {
+                ThisExp ve = cast(ThisExp)e.e1;
+                VarDeclaration v = ve.var.isVarDeclaration();
+                if (v)
+                {
+                    if (!checkAddressVar(sc, e, v))
+                        return setError();
+                }
+            }
+        }
+
         if (f.type.ty == Tfunction)
         {
             TypeFunction tf = cast(TypeFunction)f.type;
@@ -10026,6 +10054,7 @@ Lerr:
  */
 private bool checkAddressVar(Scope* sc, UnaExp exp, VarDeclaration v)
 {
+    //printf("checkAddressVar(exp: %s, v: %s)\n", exp.toChars(), v.toChars());
     if (v)
     {
         if (!v.canTakeAddressOf())
