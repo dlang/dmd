@@ -3400,60 +3400,6 @@ private struct MarkdownLinkReferences
      */
     private MarkdownLink lookupSymbolLink(string name)
     {
-        string createHref(Dsymbol symbol)
-        {
-            Dsymbol root = symbol;
-
-            const(char)[] lref;
-            while (symbol && symbol.ident && !symbol.isModule())
-            {
-                if (lref.length)
-                    lref = '.' ~ lref;
-                lref = symbol.ident.toString() ~ lref;
-                symbol = symbol.parent;
-            }
-
-            const(char)[] path;
-            if (symbol && symbol.ident && symbol.isModule() != _scope._module)
-            {
-                do
-                {
-                    root = symbol;
-
-                    // If the module has a file name, we're done
-                    if (symbol.isModule() && symbol.isModule().docfile)
-                    {
-                        const docfilename = symbol.isModule().docfile.toChars();
-                        path = docfilename[0..strlen(docfilename)];
-                        break;
-                    }
-
-                    if (path.length)
-                        path = '_' ~ path;
-                    path = symbol.ident.toString() ~ path;
-                    symbol = symbol.parent;
-                } while (symbol && symbol.ident);
-
-                if (!symbol && path.length)
-                    path ~= "$(DOC_EXTENSION)";
-            }
-
-            // Attempt an absolute URL if not in the same package
-            while (root.parent)
-                root = root.parent;
-            Dsymbol scopeRoot = _scope._module;
-            while (scopeRoot.parent)
-                scopeRoot = scopeRoot.parent;
-            if (scopeRoot != root)
-            {
-                path = "$(DOC_ROOT_" ~ root.ident.toString() ~ ')' ~ path;
-                lref = '.' ~ lref;  // remote URIs like Phobos and Mir use .prefixes
-            }
-
-            return cast(string) (path ~ '#' ~ lref);
-        }
-
-
         if (name in references)
             return references[name];
 
@@ -3497,6 +3443,66 @@ private struct MarkdownLinkReferences
         if (iStart < s.length)
             result ~= s[iStart..$];
         return result;
+    }
+
+    /**
+     * Create a HREF for the given D symbol.
+     * The HREF is relative to the current location if possible.
+     * Params:
+     *  symbol =    the symbol to create a HREF for.
+     * Returns: the resulting href
+     */
+    private string createHref(Dsymbol symbol)
+    {
+        Dsymbol root = symbol;
+
+        const(char)[] lref;
+        while (symbol && symbol.ident && !symbol.isModule())
+        {
+            if (lref.length)
+                lref = '.' ~ lref;
+            lref = symbol.ident.toString() ~ lref;
+            symbol = symbol.parent;
+        }
+
+        const(char)[] path;
+        if (symbol && symbol.ident && symbol.isModule() != _scope._module)
+        {
+            do
+            {
+                root = symbol;
+
+                // If the module has a file name, we're done
+                if (symbol.isModule() && symbol.isModule().docfile)
+                {
+                    const docfilename = symbol.isModule().docfile.toChars();
+                    path = docfilename[0..strlen(docfilename)];
+                    break;
+                }
+
+                if (path.length)
+                    path = '_' ~ path;
+                path = symbol.ident.toString() ~ path;
+                symbol = symbol.parent;
+            } while (symbol && symbol.ident);
+
+            if (!symbol && path.length)
+                path ~= "$(DOC_EXTENSION)";
+        }
+
+        // Attempt an absolute URL if not in the same package
+        while (root.parent)
+            root = root.parent;
+        Dsymbol scopeRoot = _scope._module;
+        while (scopeRoot.parent)
+            scopeRoot = scopeRoot.parent;
+        if (scopeRoot != root)
+        {
+            path = "$(DOC_ROOT_" ~ root.ident.toString() ~ ')' ~ path;
+            lref = '.' ~ lref;  // remote URIs like Phobos and Mir use .prefixes
+        }
+
+        return cast(string) (path ~ '#' ~ lref);
     }
 }
 
