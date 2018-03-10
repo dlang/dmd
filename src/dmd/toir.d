@@ -492,7 +492,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[46] core_namearray64 =
+    __gshared immutable char*[62] core_namearray64 =
     [
         //cos
         "4math3cosFNaNbNiNfdZd",
