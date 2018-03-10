@@ -1847,19 +1847,18 @@ private bool isWhitespace(const(char) c)
  */
 private bool isPunctuation(const(char) c)
 {
-    static bool[char] asciiPunctuation;
-    if (!asciiPunctuation.length)
-        asciiPunctuation = ['!': true, '"': true, '#': true,
+    static immutable bool[char.max+1] asciiPunctuation =
+       ['!': true, '"': true, '#': true,
         '$': true, '%': true, '&': true, '\'': true, '(': true, ')': true,
         '*': true, '+': true, ',': true, '-': true, '.': true, '/': true,
         ':': true, ';': true, '<': true, '=': true, '>': true, '?': true,
         '@': true, '[': true, '\\': true, ']': true, '^': true, '_': true,
         '`': true, '{': true, '|': true, '}': true, '~': true];
+    return asciiPunctuation[c];
 // TODO: unicode punctuation: Pc, Pd, Pe, Pf, Pi, Po, or Ps.
 // However, unicode punctuation should not be included for Markdown backslash
 // escapes, so when it's implemented be sure to make the unicode punctuation
 // check optional via a parameter
-    return c in asciiPunctuation ? true : false;
 }
 
 /**********************************************
