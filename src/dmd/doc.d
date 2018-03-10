@@ -3425,6 +3425,14 @@ private struct MarkdownLinkReferences
     }
 }
 
+/// The parse state of a Markdown Autolink
+private enum AutolinkParseState
+{
+    scheme,     /// Parsing the scheme (2-32 characters followed by a colon :)
+    remainder,  /// Parsing the rest (non-whitespace)
+    none        /// Not parsing an Autolink (likely due to parse failure)
+}
+
 /**************************************************
  * Highlight text section.
  */
@@ -3563,12 +3571,45 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                     {
                         size_t j = i + 2;
                         p += 2;
+                        AutolinkParseState autolinkState = AutolinkParseState.scheme;
+                        bool isEmailAutolink = false;
                         while (1)
                         {
                             if (j == slice.length)
                                 break;
+                            if (autolinkState == AutolinkParseState.scheme)
+                            {
+                                if (p[0] == ':')
+                                {
+                                    autolinkState = (j - i >= 3 && j - i <= 33) ?
+                                        AutolinkParseState.remainder :
+                                        AutolinkParseState.none;
+                                }
+                                else if (p[0] == '@')
+                                {
+                                    autolinkState = AutolinkParseState.remainder;
+                                    isEmailAutolink = true;
+                                }
+                                else if (!isalnum(p[0]) && p[0] != '+' && p[0] != '.' && p[0] != '-')
+                                    autolinkState = AutolinkParseState.none;
+                            }
+                            else if (autolinkState == AutolinkParseState.remainder &&
+                                (p[0] == ' ' || p[0] == '<') &&
+                                (!isEmailAutolink || p[0] != '@'))
+                                autolinkState = AutolinkParseState.none;
+
                             if (p[0] == '>')
                             {
+                                if (autolinkState == AutolinkParseState.remainder)
+                                {
+                                    buf.data[j] = ')';
+                                    buf.remove(i, 1);
+                                    --j;
+                                    string macroName = isEmailAutolink ? "$(EMAIL_LINK " : "$(LINK ";
+                                    buf.insert(i, macroName);
+                                    j += macroName.length;
+                                }
+
                                 i = j; // place on closing '>'
                                 break;
                             }
