@@ -4914,19 +4914,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              *   &a[i]
              * check 'a' the same as for a regular variable
              */
-            IndexExp ei = cast(IndexExp)exp.e1;
-            Type tyi = ei.e1.type.toBasetype();
-            if (tyi.ty == Tsarray && ei.e1.op == TOK.variable)
+            if (VarDeclaration v = expToVariable(exp.e1))
             {
-                VarExp ve = cast(VarExp)ei.e1;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (v)
-                {
-                    if (!checkAddressVar(sc, exp, v))
-                        return setError();
+                if (global.params.vsafe && !checkAddressVar(sc, exp, v))
+                    return setError();
 
-                    ve.checkPurity(sc, v);
-                }
+                exp.e1.checkPurity(sc, v);
             }
         }
         else if (wasCond)
