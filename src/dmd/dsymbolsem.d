@@ -2311,7 +2311,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!em.ed.isAnonymous())
                     em.ed.memtype = t;
             }
-            Expression e = new IntegerExp(em.loc, 0, t);
+
+            Expression e;
+
+            if (!t.isZeroInit(em.loc))
+            {
+                deprecation(em.loc,
+                            "Enum `%s` has base type `%s` with non-zero .init; " ~
+                            "initialize the enum member explicitly",
+                            em.ed.toPrettyChars(), t.toPrettyChars());
+                e = new IntegerExp(em.loc, 0, t);
+            }
+            else
+            {
+                e = t.defaultInitLiteral(em.loc);
+            }
+
             e = e.ctfeInterpret();
 
             // save origValue for better json output
