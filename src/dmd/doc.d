@@ -3925,7 +3925,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                         }
                     }
                 }
-                if (i - istart < 3 || (inCode && (inCode != c0 || i - istart < codeFenceLength)))
+                if (i - istart < 3 || (inCode && (inCode != c0 || (inCode != '-' && i - istart < codeFenceLength))))
                     goto Lcont;
                 if (iInfoString)
                 {
