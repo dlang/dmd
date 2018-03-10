@@ -2755,6 +2755,7 @@ private struct MarkdownLink
         string label = parseLabel(buf, iStart);
         if (!label.length)
             return false;
+
         auto reference = linkReferences.lookup(label, buf, i);
         if (!reference.href.length)
             return false;
@@ -3370,20 +3371,21 @@ private struct MarkdownLinkReferences
      */
     private static string toLowercase(string s) pure
     {
-        string lower = null;
+        string lower;
         foreach (size_t i; 0..s.length)
         {
             char c = s[i];
 // TODO: unicode lowercase
             if (c >= 'A' && c <= 'Z')
             {
-                if (!lower)
-                    lower = s[0..i];
+                lower ~= s[lower.length..i];
                 c += 'a' - 'A';
                 lower ~= c;
             }
         }
-        if (!lower)
+        if (lower.length)
+            lower ~= s[lower.length..$];
+        else
             lower = s;
         return lower;
     }
