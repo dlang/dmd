@@ -4119,6 +4119,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 MarkdownList list = MarkdownList.parseItem(buf, iLineStart, i);
                 if (list.isValid)
                 {
+                    // Avoid starting a numbered list in the middle of a paragraph
+                    if (!nestedLists.length && list.orderedStart.length &&
+                        list.orderedStart != "1" && iParagraphStart < iLineStart)
+                    {
+                        i += list.orderedStart.length - 1;
+                        break;
+                    }
+
                     if (!lineQuoted && quoteLevel)
                     {
                         size_t delta = 0;
