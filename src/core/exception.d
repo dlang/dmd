@@ -1,13 +1,11 @@
 /**
- * The exception module defines all system-level exceptions and provides a
- * mechanism to alter system-level error handling.
- *
- * Copyright: Copyright Sean Kelly 2005 - 2013.
- * License: Distributed under the
- *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
- *    (See accompanying file LICENSE)
- * Authors:   Sean Kelly and Jonathan M Davis
- * Source:    $(DRUNTIMESRC core/_exception.d)
+    The exception module defines all system-level exceptions and provides a
+    mechanism to alter system-level error handling.
+
+    Copyright: Copyright Sean Kelly 2005 - 2013.
+    License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+    Authors:   Sean Kelly and $(HTTP jmdavisprog.com, Jonathan M Davis)
+    Source:    $(DRUNTIMESRC core/_exception.d)
  */
 module core.exception;
 

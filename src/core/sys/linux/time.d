@@ -5,7 +5,7 @@
 
     Copyright: Copyright 2014
     License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
-    Authors:   Jonathan M Davis
+    Authors:   $(HTTP jmdavisprog.com, Jonathan M Davis)
  +/
 module core.sys.linux.time;
 

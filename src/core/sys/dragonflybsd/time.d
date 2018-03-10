@@ -1,10 +1,9 @@
 /**
- * D header file for DragonFlyBSD's extensions to POSIX's time.h.
- *
- * Copyright: Copyright 2014
- * License: $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
- * Authors: Jonathan M Davis,Diederik de Groot(port:DragonFlyBSD)
- * Copied:  From core/sys/freebsd/sys
+    D header file for DragonFlyBSD's extensions to POSIX's time.h.
+
+    Copyright: Copyright 2014
+    License: $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
+    Authors: $(HTTP jmdavisprog.com, Jonathan M Davis) and Diederik de Groot
  */
 module core.sys.dragonflybsd.time;
 
