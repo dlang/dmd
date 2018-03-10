@@ -202,7 +202,7 @@ void* escapeDg1(scope void* d) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(213): Error: scope variable `p` assigned to non-scope `e`
+fail_compilation/retscope.d(213): Error: scope variable `p` assigned to non-scope `e.e`
 ---
 */
 struct Escaper3 { void* e; }

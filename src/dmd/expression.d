@@ -1072,7 +1072,13 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
 }
 
 /****************************************
- * Get TemplateDeclaration enclosing FuncDeclaration.
+ * If `s` is a function template, i.e. the only member of a template
+ * and that member is a function,
+ * return that template.
+ * Params:
+ *      s = symbol that might be a function template
+ * Returns:
+ *      template for that function, otherwise null
  */
 extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
 {
@@ -1529,6 +1535,48 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
         return null;
     }
     return se;
+}
+
+/***************************************************
+ * Given an Expression, find the variable it really is.
+ *
+ * For example, `a[index]` is really `a`, and `s.f` is really `s`.
+ * Params:
+ *      e = Expression to look at
+ * Returns:
+ *      variable if there is one, null if not
+ */
+VarDeclaration expToVariable(Expression e)
+{
+    while (1)
+    {
+        switch (e.op)
+        {
+            case TOK.variable:
+                return (cast(VarExp)e).var.isVarDeclaration();
+
+            case TOK.dotVariable:
+                e = (cast(DotVarExp)e).e1;
+                continue;
+
+            case TOK.index:
+            {
+                IndexExp ei = cast(IndexExp)e;
+                e = ei.e1;
+                Type ti = e.type.toBasetype();
+                if (ti.ty == Tsarray)
+                    continue;
+                return null;
+            }
+
+            case TOK.this_:
+            case TOK.super_:
+                return (cast(ThisExp)e).var.isVarDeclaration();
+
+            default:
+                return null;
+        }
+    }
 }
 
 enum OwnedBy : int
