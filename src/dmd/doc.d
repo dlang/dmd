@@ -1910,6 +1910,27 @@ private size_t skipChars(OutBuffer* buf, size_t i, string chars)
     return i;
 }
 
+/****************************************************
+ * Escape the given string
+ * Params:
+ *  s = the string to escape
+ *  c = the character to look for
+ *  r = the string to replace `c` with
+ * Returns: `s` with `c` replaced with `r`
+ */
+private string escapeString(string s, char c, string r) pure
+{
+    for (size_t i = 0; i < s.length; ++i)
+    {
+        if (s[i] == c)
+        {
+            s = s[0..i] ~ r ~ s[i+1..$];
+            i += r.length;
+        }
+    }
+    return s;
+}
+
 /************************************************
  * Get the indent from one index to another, counting tab stops as four spaces wide
  * per the Markdown spec.
@@ -2866,7 +2887,7 @@ private struct MarkdownLink
         return false;
     LReturnHref:
         href = slice[iHrefStart .. j].idup;
-        href = escapeCommas(percentEncode(removeEscapeBackslashes(href)));
+        href = percentEncode(removeEscapeBackslashes(href)).escapeString(',', "$(COMMA)");
         i = j;
         if (inPointy)
             ++i;
@@ -2928,7 +2949,9 @@ private struct MarkdownLink
         return false;
     LEndTitle:
         title = slice[iTitleStart .. j].idup;
-        title = escapeCommas(htmlEscapeQuotes(removeEscapeBackslashes(title)));
+        title = removeEscapeBackslashes(title).
+            escapeString(',', "$(COMMA)").
+            escapeString('"', "$(QUOTE)");
         i = j + 1;
         return true;
     }
@@ -3037,44 +3060,6 @@ private struct MarkdownLink
                 immutable encoded2 = hexDigits[s[i] & 0x0F];
                 s = s[0..i] ~ '%' ~ encoded1 ~ encoded2 ~ s[i+1..$];
                 i += 2;
-            }
-        }
-        return s;
-    }
-
-    /****************************************************
-     * HTML-escape quotes in the given string
-     * Params:
-     *  s = the string to escape
-     * Returns: `s` with quotes HTML-escaped
-     */
-    private static string htmlEscapeQuotes(string s) pure
-    {
-        for (size_t i = 0; i < s.length; ++i)
-        {
-            if (s[i] == '"')
-            {
-                s = s[0..i] ~ "$(QUOTE)" ~ s[i+1..$];
-                i += 6;
-            }
-        }
-        return s;
-    }
-
-    /****************************************************
-     * Escape commas in the given string
-     * Params:
-     *  s = the string to escape
-     * Returns: `s` with commas escaped
-     */
-    private static string escapeCommas(string s) pure
-    {
-        for (size_t i = 0; i < s.length; ++i)
-        {
-            if (s[i] == ',')
-            {
-                s = s[0..i] ~ "$(COMMA)" ~ s[i+1..$];
-                i += 8;
             }
         }
         return s;
