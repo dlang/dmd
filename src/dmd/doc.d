@@ -2507,7 +2507,9 @@ private struct MarkdownList
 
         buf.remove(iStart, iContentStart - iStart);
 
-        if (!nestedLists.length || delimiterIndent >= nestedLists[$-1].contentIndent)
+        if (!nestedLists.length ||
+            delimiterIndent >= nestedLists[$-1].contentIndent ||
+            buf.data[iLineStart - 4..iLineStart] == "$(LI")
         {
             // start a list macro
             nestedLists ~= this;
