@@ -194,9 +194,32 @@ unittest
     }
 }
 
+/**
+Handles error messages
+*/
+interface ErrorHandler
+{
+    /**
+    Report an error message.
+    Params:
+        format = format string for error
+        ... = format string arguments
+    */
+    void error(const(char)* format, ...);
+
+    /**
+    Report an error message.
+    Params:
+        loc = Location of error
+        format = format string for error
+        ... = format string arguments
+    */
+    void error(Loc loc, const(char)* format, ...);
+}
+
 /***********************************************************
  */
-class Lexer
+class Lexer : ErrorHandler
 {
     __gshared OutBuffer stringbuffer;
 
@@ -1142,6 +1165,23 @@ class Lexer
      */
     final uint escapeSequence()
     {
+        return Lexer.escapeSequence(this, p);
+    }
+
+    /**
+    Parse the given string literal escape sequence into a single character.
+    Params:
+        handler = the error handler object
+        sequence = pointer to string with escape sequence to parse. this is a reference
+                   variable that is also used to return the position after the sequence
+    Returns:
+        the escaped sequence as a single character
+    */
+    static dchar escapeSequence(ErrorHandler handler, ref const(char)* sequence)
+    {
+        const(char)* p = sequence; // cache sequence reference on stack
+        scope(exit) sequence = p;
+
         uint c = *p;
         int ndigits;
         switch (c)
@@ -1203,19 +1243,19 @@ class Lexer
                         break;
                     if (!ishex(cast(char)c))
                     {
-                        error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
+                        handler.error("escape hex sequence has %d hex digits instead of %d", n, ndigits);
                         break;
                     }
                 }
                 if (ndigits != 2 && !utf_isValidDchar(v))
                 {
-                    error("invalid UTF character \\U%08x", v);
+                    handler.error("invalid UTF character \\U%08x", v);
                     v = '?'; // recover with valid UTF character
                 }
                 c = v;
             }
             else
-                error("undefined escape hex sequence \\%c", c);
+                handler.error("undefined escape hex sequence \\%c%c", sequence[0], c);
             break;
         case '&':
             // named character entity
@@ -1227,7 +1267,7 @@ class Lexer
                     c = HtmlNamedEntity(idstart, p - idstart);
                     if (c == ~0)
                     {
-                        error("unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
+                        handler.error("unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
                         c = ' ';
                     }
                     p++;
@@ -1235,7 +1275,7 @@ class Lexer
                 default:
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
-                    error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    handler.error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
                     break;
                 }
                 break;
@@ -1259,10 +1299,10 @@ class Lexer
                 while (++n < 3 && isoctal(cast(char)c));
                 c = v;
                 if (c > 0xFF)
-                    error("escape octal sequence \\%03o is larger than \\377", c);
+                    handler.error("escape octal sequence \\%03o is larger than \\377", c);
             }
             else
-                error("undefined escape sequence \\%c", c);
+                handler.error("undefined escape sequence \\%c", c);
             break;
         }
         return c;
@@ -2556,4 +2596,110 @@ private:
         scanloc.linnum++;
         line = p;
     }
+}
+
+unittest
+{
+    static class AssertErrorHandler : ErrorHandler
+    {
+        final void error(const(char)* format, ...) { assert(0); }
+        final void error(Loc loc, const(char)* format, ...) { assert(0); }
+    }
+    static void test(T)(string sequence, T expected)
+    {
+        scope assertOnError = new AssertErrorHandler();
+        auto p = cast(const(char)*)sequence.ptr;
+        assert(expected == Lexer.escapeSequence(assertOnError, p));
+        assert(p == sequence.ptr + sequence.length);
+    }
+
+    test(`'`, '\'');
+    test(`"`, '"');
+    test(`?`, '?');
+    test(`\`, '\\');
+    test(`0`, '\0');
+    test(`a`, '\a');
+    test(`b`, '\b');
+    test(`f`, '\f');
+    test(`n`, '\n');
+    test(`r`, '\r');
+    test(`t`, '\t');
+    test(`v`, '\v');
+
+    test(`x00`, 0x00);
+    test(`xff`, 0xff);
+    test(`xFF`, 0xff);
+    test(`xa7`, 0xa7);
+    test(`x3c`, 0x3c);
+    test(`xe2`, 0xe2);
+
+    test(`1`, '\1');
+    test(`42`, '\42');
+    test(`357`, '\357');
+
+    test(`u1234`, '\u1234');
+    test(`uf0e4`, '\uf0e4');
+
+    test(`U0001f603`, '\U0001f603');
+
+    test(`&quot;`, '"');
+    test(`&lt;`, '<');
+    test(`&gt;`, '>');
+}
+unittest
+{
+    static class ExpectErrorHandler : ErrorHandler
+    {
+        string expected;
+        bool gotError;
+        this(string expected) { this.expected = expected; }
+        final void error(const(char)* format, ...)
+        {
+            gotError = true;
+            char[100] buffer;
+            va_list ap;
+            va_start(ap, format);
+            auto actual = buffer[0 .. vsprintf(buffer.ptr, format, ap)];
+            va_end(ap);
+            assert(expected == actual);
+        }
+        final void error(Loc loc, const(char)* format, ...) { assert(0); }
+    }
+    static void test(string sequence, string expectedError)
+    {
+        scope handler = new ExpectErrorHandler(expectedError);
+        auto p = cast(const(char)*)sequence.ptr;
+        Lexer.escapeSequence(handler, p);
+        assert(handler.gotError);
+    }
+
+    test("c", `undefined escape sequence \c`);
+    test("!", `undefined escape sequence \!`);
+
+    test("x1", `escape hex sequence has 1 hex digits instead of 2`);
+
+    test("u1"  , `escape hex sequence has 1 hex digits instead of 4`);
+    test("u12" , `escape hex sequence has 2 hex digits instead of 4`);
+    test("u123", `escape hex sequence has 3 hex digits instead of 4`);
+
+    test("U0"      , `escape hex sequence has 1 hex digits instead of 8`);
+    test("U00"     , `escape hex sequence has 2 hex digits instead of 8`);
+    test("U000"    , `escape hex sequence has 3 hex digits instead of 8`);
+    test("U0000"   , `escape hex sequence has 4 hex digits instead of 8`);
+    test("U0001f"  , `escape hex sequence has 5 hex digits instead of 8`);
+    test("U0001f6" , `escape hex sequence has 6 hex digits instead of 8`);
+    test("U0001f60", `escape hex sequence has 7 hex digits instead of 8`);
+
+    test("ud800", `invalid UTF character \U0000d800`);
+    test("udfff", `invalid UTF character \U0000dfff`);
+    test("U00110000", `invalid UTF character \U00110000`);
+
+    test("xg0"      , `undefined escape hex sequence \xg`);
+    test("ug000"    , `undefined escape hex sequence \ug`);
+    test("Ug0000000", `undefined escape hex sequence \Ug`);
+
+    test("&BAD;", `unnamed character entity &BAD;`);
+    test("&quot", `unterminated named entity &quot;`);
+
+    test("400", `escape octal sequence \400 is larger than \377`);
 }
