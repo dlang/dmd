@@ -1931,6 +1931,33 @@ private string escapeString(string s, char c, string r) pure
     return s;
 }
 
+/**
+ * Return a lowercased copy of a string.
+ * Params:
+ *  s = the string to lowercase
+ * Returns: the lowercase version of the string or the original if already lowercase
+ */
+private string toLowercase(string s) pure
+{
+    string lower;
+    foreach (size_t i; 0..s.length)
+    {
+        char c = s[i];
+// TODO: unicode lowercase
+        if (c >= 'A' && c <= 'Z')
+        {
+            lower ~= s[lower.length..i];
+            c += 'a' - 'A';
+            lower ~= c;
+        }
+    }
+    if (lower.length)
+        lower ~= s[lower.length..$];
+    else
+        lower = s;
+    return lower;
+}
+
 /************************************************
  * Get the indent from one index to another, counting tab stops as four spaces wide
  * per the Markdown spec.
@@ -2449,6 +2476,7 @@ private struct MarkdownDelimiter
     int macroLevel; /// the count of nested DDoc macros when the delimiter is started
     bool leftFlanking;  /// whether the delimiter is left-flanking, as defined by the CommonMark spec
     bool rightFlanking; /// whether the delimiter is right-flanking, as defined by the CommonMark spec
+    bool atParagraphStart;  /// whether the delimiter is at the start of a paragraph
     char type;      /// the type of delimiter, defined by its starting character
 
     /// whether this describes a valid delimiter
@@ -2687,61 +2715,125 @@ private struct MarkdownLink
 {
     string href;    /// the link destination
     string title;   /// an optional title for the link
+    string label;   /// an optional label for the link
     Dsymbol symbol; /// an optional symbol to link to
 
     /****************************************************
-     * Replace a Markdown inline link in the form of `[foo](url/ 'optional title')`
+     * Replace a Markdown link or link definition in the form of:
+     * - Inline link: `[foo](url/ 'optional title')`
+     * - Reference link: `[foo][bar]`, `[foo][]` or `[foo]`
+     * - Link reference definition: `[bar]: url/ 'optional title'`
      * Params:
      *  buf =               an OutputBuffer containing the DDoc
-     *  i =                 the index within `buf` that points to the `]` character of the inline link.
-     *                      If this function succeeds it will be adjusted to fit the inserted macro.
-     *  inlineDelimiters =  previously parsed Markdown delimiters, including emphasis and link/image starts
-     *  delimiterIndex =    the index within `inlineDelimiters` of the nearest link/image starting delimiter
-     * Returns: whether an inline link was found and replaced at `i`
-     */
-    static bool replaceInlineLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex)
-    {
-        size_t iEnd = i + 1;
-        if (iEnd >= buf.offset || buf.data[iEnd] != '(')
-            return false;
-        ++iEnd;
-        MarkdownLink link;
-        if (!link.parseHref(buf, iEnd))
-            return false;
-        iEnd = skipChars(buf, iEnd, " \t\r\n");
-        if (buf.data[iEnd] != ')')
-        {
-            if (link.parseTitle(buf, iEnd))
-                iEnd = skipChars(buf, iEnd, " \t\r\n");
-        }
-        if (buf.data[iEnd] != ')')
-            return false;
-        ++iEnd;
-
-        MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
-
-        iEnd += replaceMarkdownEmphasis(buf, i, inlineDelimiters, delimiterIndex);
-
-        link.replaceLink(buf, i, iEnd, delimiter);
-        return true;
-    }
-
-    /****************************************************
-     * Replace a Markdown reference link in the form of `[foo][bar]`, `[foo][]` or `[foo]`
-     * Params:
-     *  buf =               an OutputBuffer containing the DDoc
-     *  i =                 the index within `buf` that points to the `]` character of the inline link.
-     *                      If this function succeeds it will be adjusted to fit the inserted macro.
+     *  i =                 the index within `buf` that points to the `]` character of the potential link.
+     *                      If this function succeeds it will be adjusted to fit the inserted link macro.
      *  inlineDelimiters =  previously parsed Markdown delimiters, including emphasis and link/image starts
      *  delimiterIndex =    the index within `inlineDelimiters` of the nearest link/image starting delimiter
      *  linkReferences =    previously parsed link references. When this function returns it may contain
      *                      additional previously unparsed references.
      * Returns: whether a reference link was found and replaced at `i`
      */
-    static bool replaceReferenceLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, ref MarkdownLinkReferences linkReferences)
+    static bool replaceLink(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, ref MarkdownLinkReferences linkReferences)
     {
         MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
+        MarkdownLink link;
 
+        size_t iEnd = link.parseReferenceDefinition(buf, i, delimiter);
+        if (iEnd > i)
+        {
+            i = delimiter.iStart;
+            link.storeAndReplaceDefinition(buf, i, iEnd, linkReferences);
+            inlineDelimiters.length = delimiterIndex;
+            return true;
+        }
+
+        iEnd = link.parseInlineLink(buf, i);
+        if (iEnd == i)
+        {
+            iEnd = link.parseReferenceLink(buf, i, delimiter);
+            if (iEnd > i)
+            {
+                link = linkReferences.lookup(link.label, buf, i);
+                if (!link.href.length)
+                    return false;
+            }
+        }
+
+        if (iEnd == i)
+            return false;
+
+        iEnd += replaceMarkdownEmphasis(buf, i, inlineDelimiters, delimiterIndex);
+        link.replaceLink(buf, i, iEnd, delimiter);
+        return true;
+    }
+
+    /****************************************************
+     * Replace a Markdown link definition in the form of `[bar]: url/ 'optional title'`
+     * Params:
+     *  buf =               an OutputBuffer containing the DDoc
+     *  i =                 the index within `buf` that points to the `]` character of the potential link.
+     *                      If this function succeeds it will be adjusted to fit the inserted link macro.
+     *  inlineDelimiters =  previously parsed Markdown delimiters, including emphasis and link/image starts
+     *  delimiterIndex =    the index within `inlineDelimiters` of the nearest link/image starting delimiter
+     *  linkReferences =    previously parsed link references. When this function returns it may contain
+     *                      additional previously unparsed references.
+     * Returns: whether a reference link was found and replaced at `i`
+     */
+    static bool replaceReferenceDefinition(OutBuffer *buf, ref size_t i, ref MarkdownDelimiter[] inlineDelimiters, int delimiterIndex, ref MarkdownLinkReferences linkReferences)
+    {
+        MarkdownDelimiter delimiter = inlineDelimiters[delimiterIndex];
+        MarkdownLink link;
+
+        size_t iEnd = link.parseReferenceDefinition(buf, i, delimiter);
+        if (iEnd == i)
+            return false;
+
+        i = delimiter.iStart;
+        link.storeAndReplaceDefinition(buf, i, iEnd, linkReferences);
+        inlineDelimiters.length = delimiterIndex;
+        return true;
+    }
+
+    /****************************************************
+     * Parse a Markdown inline link in the form of `[foo](url/ 'optional title')`
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` that points to the `]` character of the inline link.
+     * Returns: the index at the end of parsing the link, or `i` if parsing failed.
+     */
+    private size_t parseInlineLink(OutBuffer *buf, size_t i)
+    {
+        size_t iEnd = i + 1;
+        if (iEnd >= buf.offset || buf.data[iEnd] != '(')
+            return i;
+        ++iEnd;
+
+        if (!parseHref(buf, iEnd))
+            return i;
+
+        iEnd = skipChars(buf, iEnd, " \t\r\n");
+        if (buf.data[iEnd] != ')')
+        {
+            if (parseTitle(buf, iEnd))
+                iEnd = skipChars(buf, iEnd, " \t\r\n");
+        }
+
+        if (buf.data[iEnd] != ')')
+            return i;
+
+        return iEnd + 1;
+    }
+
+    /****************************************************
+     * Parse a Markdown reference link in the form of `[foo][bar]`, `[foo][]` or `[foo]`
+     * Params:
+     *  buf =       an OutputBuffer containing the DDoc
+     *  i =         the index within `buf` that points to the `]` character of the inline link.
+     *  delimiter = the delimiter that starts this link
+     * Returns: the index at the end of parsing the link, or `i` if parsing failed.
+     */
+    private size_t parseReferenceLink(OutBuffer *buf, size_t i, MarkdownDelimiter delimiter)
+    {
         size_t iStart = i + 1;
         size_t iEnd = iStart;
         if (iEnd >= buf.offset || buf.data[iEnd] != '[' || (iEnd+1 < buf.offset && buf.data[iEnd+1] == ']'))
@@ -2752,21 +2844,61 @@ private struct MarkdownLink
                 iEnd += 2;
         }
 
-        string label = parseLabel(buf, iStart);
+        parseLabel(buf, iStart);
         if (!label.length)
-            return false;
-
-        auto reference = linkReferences.lookup(label, buf, i);
-        if (!reference.href.length)
-            return false;
+            return i;
 
         if (iEnd < iStart)
             iEnd = iStart;
+        return iEnd;
+    }
 
-        iEnd += replaceMarkdownEmphasis(buf, i, inlineDelimiters, delimiterIndex);
+    /****************************************************
+     * Parse a Markdown reference definition in the form of `[bar]: url/ 'optional title'`
+     * Params:
+     *  buf =               an OutputBuffer containing the DDoc
+     *  i =                 the index within `buf` that points to the `]` character of the inline link.
+     *  delimiter = the delimiter that starts this link
+     * Returns: the index at the end of parsing the link, or `i` if parsing failed.
+     */
+    private size_t parseReferenceDefinition(OutBuffer *buf, size_t i, MarkdownDelimiter delimiter)
+    {
+        if (!delimiter.atParagraphStart || delimiter.type != '[' ||
+            i+1 >= buf.offset || buf.data[i+1] != ':')
+            return i;
 
-        reference.replaceLink(buf, i, iEnd, delimiter);
-        return true;
+        size_t iEnd = delimiter.iStart;
+        parseLabel(buf, iEnd);
+        if (label.length == 0 || iEnd != i + 1)
+            return i;
+
+        ++iEnd;
+        iEnd = skipChars(buf, iEnd, " \t");
+        skipOneNewline(buf, iEnd);
+
+        if (!parseHref(buf, iEnd) || href.length == 0)
+            return i;
+
+        iEnd = skipChars(buf, iEnd, " \t");
+        bool requireNewline = !skipOneNewline(buf, iEnd);
+        immutable iBeforeTitle = iEnd;
+
+        if (parseTitle(buf, iEnd))
+        {
+            iEnd = skipChars(buf, iEnd, " \t");
+            if (iEnd < buf.offset && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
+            {
+                // the title must end with a newline
+                title.length = 0;
+                iEnd = iBeforeTitle;
+            }
+        }
+
+        iEnd = skipChars(buf, iEnd, " \t");
+        if (requireNewline && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
+            return i;
+
+        return iEnd;
     }
 
     /****************************************************
@@ -2777,11 +2909,10 @@ private struct MarkdownLink
      *          If this function returns a non-empty label then `i` will point just after the ']' at the end of the label.
      * Returns: the parsed and normalized label, possibly empty
      */
-    private static string parseLabel(OutBuffer *buf, ref size_t i)
+    private bool parseLabel(OutBuffer *buf, ref size_t i)
     {
-        string label;
         if (buf.data[i] != '[')
-            return label;
+            return false;
 
         const slice = buf.peekSlice();
         size_t j = i + 1;
@@ -2803,10 +2934,6 @@ private struct MarkdownLink
                 if (label.length && label[$-1] != ' ')
                     label ~= ' ';
                 break;
-            case '\\':
-                label ~= slice[j..j+2];
-                ++j;
-                break;
             case ')':
                 if (inSymbol && j+1 < slice.length && slice[j+1] == ']')
                 {
@@ -2814,18 +2941,29 @@ private struct MarkdownLink
                     goto case ']';
                 }
                 goto default;
+            case '[':
+                if (slice[j-1] != '\\')
+                {
+                    label.length = 0;
+                    return false;
+                }
+                break;
             case ']':
                 if (label.length && label[$-1] == ' ')
                     --label.length;
                 if (label.length)
+                {
                     i = j + 1;
-                return label;
+                    return true;
+                }
+                return false;
             default:
                 label ~= c;
                 break;
             }
         }
-        return label;
+        label.length = 0;
+        return false;
     }
 
     /****************************************************
@@ -3015,6 +3153,30 @@ private struct MarkdownLink
     }
 
     /****************************************************
+     * Store the Markdown link definition and remove it from `buf`
+     * Params:
+     *  buf =               an OutputBuffer containing the DDoc
+     *  i =                 the index within `buf` that points to the `[` character at the start of the link definition.
+     *                      When this function returns it will be adjusted to exclude the link definition.
+     *  iEnd =              the index within `buf` that points just after the end of the definition
+     *  linkReferences =    previously parsed link references. When this function returns it may contain
+     *                      an additional reference.
+     */
+    private void storeAndReplaceDefinition(OutBuffer *buf, ref size_t i, size_t iEnd, ref MarkdownLinkReferences linkReferences)
+    {
+        // Remove the definition and surrounding whitespace
+        iEnd = skipChars(buf, iEnd, " \t\r\n");
+        while (i > 0 && (buf.data[i-1] == ' ' || buf.data[i-1] == '\t'))
+            --i;
+        buf.remove(i, iEnd - i);
+        i -= 2;
+
+        string lowercaseLabel = label.toLowercase();
+        if (lowercaseLabel !in linkReferences.references)
+            linkReferences.references[lowercaseLabel] = this;
+    }
+
+    /****************************************************
      * Remove Markdown escaping backslashes from the given string
      * Params:
      *  s = the string to remove escaping backslashes from
@@ -3065,6 +3227,27 @@ private struct MarkdownLink
         }
         return s;
     }
+
+    /**************************************************
+     * Skip a single newline at `i`
+     * Params:
+     *  buf =   an OutputBuffer containing the DDoc
+     *  i =     the index within `buf` to start looking at.
+     *          If this function succeeds `i` will point after the newline.
+     * Returns: whether a newline was skipped
+     */
+    private static bool skipOneNewline(OutBuffer *buf, ref size_t i) pure
+    {
+        bool skipped = false;
+        if (i < buf.offset && buf.data[i] == '\r')
+            ++i;
+        if (i < buf.offset && buf.data[i] == '\n')
+        {
+            ++i;
+            skipped = true;
+        }
+        return skipped;
+    }
 }
 
 /**************************************************
@@ -3087,7 +3270,7 @@ private struct MarkdownLinkReferences
      */
     MarkdownLink lookup(string label, OutBuffer *buf, size_t i)
     {
-        auto lowercaseLabel = toLowercase(label);
+        auto lowercaseLabel = label.toLowercase();
         if (lowercaseLabel !in references)
             extractReferences(buf, i);
 
@@ -3098,57 +3281,6 @@ private struct MarkdownLinkReferences
         if (link.href.length)
             references[label] = link;
         return link;
-    }
-
-    /**************************************************
-     * Remove and store a link reference from the document, in the form of `[bar]: url/ 'optional title'`
-     * Params:
-     *  buf =   an OutputBuffer containing the DDoc
-     *  i =     the index within `buf` that points to the `[` character at the start of the reference label
-     * Returns: whether a reference was extracted
-     */
-    bool extractReference(OutBuffer *buf, ref size_t i)
-    {
-        size_t iEnd = i;
-        string label = MarkdownLink.parseLabel(buf, iEnd);
-        if (!label.length)
-            return false;
-        if (iEnd >= buf.offset || buf.data[iEnd] != ':')
-            return false;
-        ++iEnd;
-        iEnd = skipChars(buf, iEnd, " \t");
-        skipOneNewline(buf, iEnd);
-
-        MarkdownLink reference;
-        if (!reference.parseHref(buf, iEnd) || reference.href.length == 0)
-            return false;
-        iEnd = skipChars(buf, iEnd, " \t");
-        bool requireNewline = !skipOneNewline(buf, iEnd);
-        immutable iBeforeTitle = iEnd;
-
-        if (reference.parseTitle(buf, iEnd))
-        {
-            iEnd = skipChars(buf, iEnd, " \t");
-            if (iEnd < buf.offset && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
-            {
-                // the title must end with a newline
-                reference.title.length = 0;
-                iEnd = iBeforeTitle;
-            }
-        }
-
-        iEnd = skipChars(buf, iEnd, " \t");
-        if (requireNewline && buf.data[iEnd] != '\r' && buf.data[iEnd] != '\n')
-            return false;
-        iEnd = skipChars(buf, iEnd, " \t\r\n");
-        while (i > 0 && (buf.data[i-1] == ' ' || buf.data[i-1] == '\t'))
-            --i;
-        buf.remove(i, iEnd - i);
-
-        string lowercaseLabel = toLowercase(label);
-        if (lowercaseLabel !in references)
-            references[lowercaseLabel] = reference;
-        return true;
     }
 
     /**************************************************
@@ -3171,6 +3303,7 @@ private struct MarkdownLinkReferences
         bool leadingBlank = false;
         bool inCode = false;
         bool newParagraph = true;
+        MarkdownDelimiter[] delimiters;
         for (; i < buf.offset; ++i)
         {
             char c = buf.data[i];
@@ -3240,11 +3373,13 @@ private struct MarkdownLinkReferences
                 else
                     goto case '`';
             case '[':
-                if (leadingBlank && !inCode && newParagraph &&
-                    extractReference(buf, i))
-                {
+                if (leadingBlank && !inCode && newParagraph)
+                    delimiters ~= MarkdownDelimiter(i, 1, 0, false, false, true, c);
+                break;
+            case ']':
+                if (delimiters.length && !inCode &&
+                    MarkdownLink.replaceReferenceDefinition(buf, i, delimiters, cast(int) delimiters.length - 1, this))
                     --i;
-                }
                 break;
             default:
                 if (leadingBlank)
@@ -3254,27 +3389,6 @@ private struct MarkdownLinkReferences
             }
         }
         extractedAll = true;
-    }
-
-    /**************************************************
-     * Skip a single newline at `i`
-     * Params:
-     *  buf =   an OutputBuffer containing the DDoc
-     *  i =     the index within `buf` to start looking at.
-     *          If this function succeeds `i` will point after the newline.
-     * Returns: whether a newline was skipped
-     */
-    private static bool skipOneNewline(OutBuffer *buf, ref size_t i) pure
-    {
-        bool skipped = false;
-        if (i < buf.offset && buf.data[i] == '\r')
-            ++i;
-        if (i < buf.offset && buf.data[i] == '\n')
-        {
-            ++i;
-            skipped = true;
-        }
-        return skipped;
     }
 
     /**
@@ -3357,37 +3471,10 @@ private struct MarkdownLinkReferences
                 symbol = id !is null ? symbol.search(loc, id, IgnoreErrors) : null;
             }
             if (symbol)
-                link = MarkdownLink(createHref(symbol), null, symbol);
+                link = MarkdownLink(createHref(symbol), null, name, symbol);
         }
         references[name] = link;
         return link;
-    }
-
-    /**
-     * Return a lowercased copy of a string.
-     * Params:
-     *  s = the string to lowercase
-     * Returns: the lowercase version of the string
-     */
-    private static string toLowercase(string s) pure
-    {
-        string lower;
-        foreach (size_t i; 0..s.length)
-        {
-            char c = s[i];
-// TODO: unicode lowercase
-            if (c >= 'A' && c <= 'Z')
-            {
-                lower ~= s[lower.length..i];
-                c += 'a' - 'A';
-                lower ~= c;
-            }
-        }
-        if (lower.length)
-            lower ~= s[lower.length..$];
-        else
-            lower = s;
-        return lower;
     }
 
     /**
@@ -4143,7 +4230,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             int count = cast(int) (iAfterEmphasis - i);
             bool leftFlanking = (rightC != '\0' && !isWhitespace(rightC)) && (!isPunctuation(rightC) || leftC == '\0' || isWhitespace(leftC) || isPunctuation(leftC));
             bool rightFlanking = (leftC != '\0' && !isWhitespace(leftC)) && (!isPunctuation(leftC) || rightC == '\0' || isWhitespace(rightC) || isPunctuation(rightC));
-            auto emphasis = MarkdownDelimiter(i, count, macroLevel, leftFlanking, rightFlanking, c);
+            auto emphasis = MarkdownDelimiter(i, count, macroLevel, leftFlanking, rightFlanking, false, c);
 
             if (!emphasis.leftFlanking && !emphasis.rightFlanking)
             {
@@ -4164,7 +4251,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
 
             if (i < buf.offset-1 && buf.data[i+1] == '[')
             {
-                auto imageStart = MarkdownDelimiter(i, 2, macroLevel, false, false, c);
+                auto imageStart = MarkdownDelimiter(i, 2, macroLevel, false, false, false, c);
                 inlineDelimiters ~= imageStart;
                 ++i;
             }
@@ -4175,16 +4262,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             if (inCode)
                 break;
 
-            if (leadingBlank && iParagraphStart >= iLineStart &&
-                linkReferences.extractReference(buf, i))
-            {
-                i -= 2;
-            }
-            else
-            {
-                auto linkStart = MarkdownDelimiter(i, 1, macroLevel, false, false, c);
-                inlineDelimiters ~= linkStart;
-            }
+            bool atParagraphStart = leadingBlank && iParagraphStart >= iLineStart;
+            auto linkStart = MarkdownDelimiter(i, 1, macroLevel, false, false, atParagraphStart, c);
+            inlineDelimiters ~= linkStart;
             break;
         }
         case ']':
@@ -4198,8 +4278,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 if (delimiter.type == '[' || delimiter.type == '!')
                 {
                     if (delimiter.isValid &&
-                        (MarkdownLink.replaceInlineLink(buf, i, inlineDelimiters, d) ||
-                            MarkdownLink.replaceReferenceLink(buf, i, inlineDelimiters, d, linkReferences)))
+                        MarkdownLink.replaceLink(buf, i, inlineDelimiters, d, linkReferences))
                     {
                         // don't nest links
                         if (delimiter.type == '[')
