@@ -2665,6 +2665,7 @@ private struct MarkdownLink
 {
     string href;    /// the link destination
     string title;   /// an optional title for the link
+    Dsymbol symbol; /// an optional symbol to link to
 
     /****************************************************
      * Replace a Markdown inline link in the form of `[foo](url/ 'optional title')`
@@ -2732,9 +2733,8 @@ private struct MarkdownLink
         string label = parseLabel(buf, iStart);
         if (!label.length)
             return false;
-        if (label !in linkReferences.references && linkReferences.iParsedUntil < i)
-            linkReferences.extractReferences(buf, i);
-        if (label !in linkReferences.references)
+        auto reference = linkReferences.lookup(label, buf, i);
+        if (!reference.href.length)
             return false;
 
         if (iEnd < iStart)
@@ -2742,7 +2742,6 @@ private struct MarkdownLink
 
         iEnd += replaceMarkdownEmphasis(buf, i, inlineDelimiters, delimiterIndex);
 
-        MarkdownLink reference = linkReferences.references[label];
         reference.replaceLink(buf, i, iEnd, delimiter);
         return true;
     }
@@ -2760,8 +2759,16 @@ private struct MarkdownLink
         string label;
         if (buf.data[i] != '[')
             return label;
+
         const slice = buf.peekSlice();
-        for (size_t j = i + 1; j < slice.length; ++j)
+        size_t j = i + 1;
+
+        // Some labels have already been en-symboled; handle that
+        bool inSymbol = j+15 < slice.length && slice[j..j+15] == "$(DDOC_PSYMBOL ";
+        if (inSymbol)
+            j += 15;
+
+        for (; j < slice.length; ++j)
         {
             char c = slice[j];
             switch (c)
@@ -2777,6 +2784,13 @@ private struct MarkdownLink
                 label ~= slice[j..j+2];
                 ++j;
                 break;
+            case ')':
+                if (inSymbol && j+1 < slice.length && slice[j+1] == ']')
+                {
+                    ++j;
+                    goto case ']';
+                }
+                goto default;
             case ']':
                 if (label.length && label[$-1] == ' ')
                     --label.length;
@@ -2784,9 +2798,6 @@ private struct MarkdownLink
                     i = j + 1;
                 return label;
             default:
-                // TODO: unicode case-insensitive matching
-                if (c >= 'A' && c <= 'Z')
-                    c += 'a' - 'A';
                 label ~= c;
                 break;
             }
@@ -2934,7 +2945,11 @@ private struct MarkdownLink
     {
         size_t iAfterLink = i - delimiter.count;
         string macroName;
-        if (title.length)
+        if (symbol)
+        {
+            macroName = "$(SYMBOL_LINK ";
+        }
+        else if (title.length)
         {
             if (delimiter.type == '[')
                 macroName = "$(LINK_TITLE ";
@@ -2959,6 +2974,15 @@ private struct MarkdownLink
             iLinkEnd = buf.insert(iLinkEnd, title);
             iLinkEnd = buf.insert(iLinkEnd, ", ");
             iAfterLink += title.length + 2;
+
+            // Link macros with titles require escaping commas
+            for (size_t j = iLinkEnd; j < iAfterLink; ++j)
+                if (buf.data[j] == ',')
+                {
+                    buf.remove(j, 1);
+                    j = buf.insert(j, "$(COMMA)") - 1;
+                    iAfterLink += 7;
+                }
         }
 // TODO: if image, remove internal macros, leaving only text
         buf.insert(iAfterLink, ")");
@@ -2992,7 +3016,7 @@ private struct MarkdownLink
      *  s = the string to percent-encode
      * Returns: `s` with special characters percent-encoded
      */
-    private static string percentEncode(string s)
+    private static string percentEncode(string s) pure
     {
         static bool shouldEncode(char c)
         {
@@ -3007,7 +3031,7 @@ private struct MarkdownLink
         {
             if (shouldEncode(s[i]))
             {
-                static hexDigits = "0123456789ABCDEF";
+                immutable static hexDigits = "0123456789ABCDEF";
                 immutable encoded1 = hexDigits[s[i] >> 4];
                 immutable encoded2 = hexDigits[s[i] & 0x0F];
                 s = s[0..i] ~ '%' ~ encoded1 ~ encoded2 ~ s[i+1..$];
@@ -3023,13 +3047,13 @@ private struct MarkdownLink
      *  s = the string to escape
      * Returns: `s` with quotes HTML-escaped
      */
-    private static string htmlEscapeQuotes(string s)
+    private static string htmlEscapeQuotes(string s) pure
     {
         for (size_t i = 0; i < s.length; ++i)
         {
             if (s[i] == '"')
             {
-                s = s[0..i] ~ "&quot;" ~ s[i+1..$];
+                s = s[0..i] ~ "$(QUOTE)" ~ s[i+1..$];
                 i += 6;
             }
         }
@@ -3042,7 +3066,7 @@ private struct MarkdownLink
      *  s = the string to escape
      * Returns: `s` with commas escaped
      */
-    private static string escapeCommas(string s)
+    private static string escapeCommas(string s) pure
     {
         for (size_t i = 0; i < s.length; ++i)
         {
@@ -3062,14 +3086,32 @@ private struct MarkdownLink
 private struct MarkdownLinkReferences
 {
     MarkdownLink[string] references;    // link references keyed by normalized label
-    size_t iParsedUntil;    // the index into the buffer of the last-parsed reference
+    Scope* _scope;      // the current scope
+    bool extractedAll;  // the index into the buffer of the last-parsed reference
+
     /**************************************************
-     * Remove and store a link reference from the document, in the form of `[bar]: url/ 'optional title'`
+     * Look up a reference by label, searching through the rest of the buffer if needed.
+     * Symbols in the current scope are searched for if the DDoc doesn't define the reference.
      * Params:
+     *  label = the label to find the reference for
      *  buf =   an OutputBuffer containing the DDoc
-     *  i =     the index within `buf` that points to the `[` character at the start of the reference label
-     * Returns: whether a reference was extracted
+     *  i =     the index within `buf` to start searching for references at
+     * Returns: a link. If the `href` member has a value then the reference is valid.
      */
+    MarkdownLink lookup(string label, OutBuffer *buf, size_t i)
+    {
+        auto lowercaseLabel = toLowercase(label);
+        if (lowercaseLabel !in references)
+            extractReferences(buf, i);
+
+        if (lowercaseLabel in references)
+            return references[lowercaseLabel];
+
+        auto link = lookupSymbolLink(label);
+        if (link.href.length)
+            references[label] = link;
+        return link;
+    }
 
     /**************************************************
      * Remove and store a link reference from the document, in the form of `[bar]: url/ 'optional title'`
@@ -3116,11 +3158,9 @@ private struct MarkdownLinkReferences
             --i;
         buf.remove(i, iEnd - i);
 
-        if (label !in references)
-        {
-            references[label] = reference;
-            iParsedUntil = i;
-        }
+        string lowercaseLabel = toLowercase(label);
+        if (lowercaseLabel !in references)
+            references[lowercaseLabel] = reference;
         return true;
     }
 
@@ -3131,12 +3171,15 @@ private struct MarkdownLinkReferences
      *  i =     the index within `buf` to start looking at
      * Returns: whether a reference was extracted
      */
-    void extractReferences(OutBuffer *buf, size_t i)
+    private void extractReferences(OutBuffer *buf, size_t i)
     {
         static bool isFollowedBySpace(OutBuffer *buf, size_t i)
         {
             return i+1 < buf.offset && (buf.data[i+1] == ' ' || buf.data[i+1] == '\t');
         }
+
+        if (extractedAll)
+            return;
 
         bool leadingBlank = false;
         bool inCode = false;
@@ -3223,6 +3266,7 @@ private struct MarkdownLinkReferences
                 break;
             }
         }
+        extractedAll = true;
     }
 
     /**************************************************
@@ -3233,7 +3277,7 @@ private struct MarkdownLinkReferences
      *          If this function succeeds `i` will point after the newline.
      * Returns: whether a newline was skipped
      */
-    private static bool skipOneNewline(OutBuffer *buf, ref size_t i)
+    private static bool skipOneNewline(OutBuffer *buf, ref size_t i) pure
     {
         bool skipped = false;
         if (i < buf.offset && buf.data[i] == '\r')
@@ -3244,6 +3288,140 @@ private struct MarkdownLinkReferences
             skipped = true;
         }
         return skipped;
+    }
+
+    /**
+     * Look up the link for the symbol with the given name.
+     * If found, the link is cached in the `references` member.
+     * Params:
+     *  name =  the name of the symbol
+     * Returns: the link for the symbol or a link with a `null` href
+     */
+    private MarkdownLink lookupSymbolLink(string name)
+    {
+        string createHref(Dsymbol symbol)
+        {
+            Dsymbol root = symbol;
+
+            const(char)[] lref;
+            while (symbol && symbol.ident && !symbol.isModule())
+            {
+                if (lref.length)
+                    lref = '.' ~ lref;
+                lref = symbol.ident.toString() ~ lref;
+                symbol = symbol.parent;
+            }
+
+            const(char)[] path;
+            if (symbol && symbol.ident && symbol.isModule() != _scope._module)
+            {
+                do
+                {
+                    root = symbol;
+
+                    // If the module has a file name, we're done
+                    if (symbol.isModule() && symbol.isModule().docfile)
+                    {
+                        const docfilename = symbol.isModule().docfile.toChars();
+                        path = docfilename[0..strlen(docfilename)];
+                        break;
+                    }
+
+                    if (path.length)
+                        path = '_' ~ path;
+                    path = symbol.ident.toString() ~ path;
+                    symbol = symbol.parent;
+                } while (symbol && symbol.ident);
+
+                if (!symbol && path.length)
+                    path ~= "$(DOC_EXTENSION)";
+            }
+
+            // Attempt an absolute URL if not in the same package
+            while (root.parent)
+                root = root.parent;
+            Dsymbol scopeRoot = _scope._module;
+            while (scopeRoot.parent)
+                scopeRoot = scopeRoot.parent;
+            if (scopeRoot != root)
+            {
+                path = "$(DOC_ROOT_" ~ root.ident.toString() ~ ')' ~ path;
+                lref = '.' ~ lref;  // remote URIs like Phobos and Mir use .prefixes
+            }
+
+            return cast(string) (path ~ '#' ~ lref);
+        }
+
+
+        if (name in references)
+            return references[name];
+
+        string[] ids = split(name, '.');
+
+        MarkdownLink link;
+        auto id = Identifier.lookup(ids[0].ptr, ids[0].length);
+        if (id)
+        {
+            auto loc = Loc();
+            auto symbol = _scope.search(loc, id, null, IgnoreErrors);
+            for (size_t i = 1; symbol && i < ids.length; ++i)
+            {
+                id = Identifier.lookup(ids[i].ptr, ids[i].length);
+                symbol = id !is null ? symbol.search(loc, id, IgnoreErrors) : null;
+            }
+            if (symbol)
+                link = MarkdownLink(createHref(symbol), null, symbol);
+        }
+        references[name] = link;
+        return link;
+    }
+
+    /**
+     * Return a lowercased copy of a string.
+     * Params:
+     *  s = the string to lowercase
+     * Returns: the lowercase version of the string
+     */
+    private static string toLowercase(string s) pure
+    {
+        string lower = null;
+        foreach (size_t i; 0..s.length)
+        {
+            char c = s[i];
+// TODO: unicode lowercase
+            if (c >= 'A' && c <= 'Z')
+            {
+                if (!lower)
+                    lower = s[0..i];
+                c += 'a' - 'A';
+                lower ~= c;
+            }
+        }
+        if (!lower)
+            lower = s;
+        return lower;
+    }
+
+    /**
+     * Split a string by a delimiter, excluding the delimiter.
+     * Params:
+     *  s =         the string to split
+     *  delimiter = the character to split by
+     * Returns: the resulting array of strings
+     */
+    private string[] split(string s, char delimiter) pure
+    {
+        string[] result;
+        size_t iStart = 0;
+        foreach (size_t i; 0..s.length)
+            if (s[i] == delimiter)
+            {
+                result ~= s[iStart..i];
+                iStart = i + 1;
+            }
+        if (iStart < s.length)
+            result ~= s[iStart..$];
+        return result;
     }
 }
 
@@ -3275,6 +3453,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
     size_t codeIndent = 0;
     string codeLanguage;
     size_t iLineStart = offset;
+    linkReferences._scope = sc;
     for (size_t i = offset; i < buf.offset; i++)
     {
         char c = buf.data[i];
@@ -3981,7 +4160,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
         case ']':
         {
-            if (inCode || i >= buf.offset - 2)
+            if (inCode)
                 break;
 
             for (int d = cast(int) inlineDelimiters.length - 1; d >= 0; --d)
@@ -4091,8 +4270,6 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
                 while (inlineDelimiters.length && inlineDelimiters[$-1].macroLevel >= macroLevel)
                     --inlineDelimiters.length;
-                if (linkReferences.iParsedUntil <= i)
-                    linkReferences.iParsedUntil = i + 1;
 
                 --macroLevel;
             }

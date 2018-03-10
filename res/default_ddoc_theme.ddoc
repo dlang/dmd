@@ -2,6 +2,8 @@ LPAREN = (
 RPAREN = )
 BACKTICK = `
 DOLLAR = $
+COMMA = ,
+QUOTE = &quot;
 LF =
 $(LF)
 
@@ -40,7 +42,14 @@ HR = <hr />
 LINK = <a href="$0">$0</a>
 LINK2 = <a href="$1">$+</a>
 LINK_TITLE = <a href="$1" title="$2">$3</a>
-IMAGE = <img src="$1" alt="$2" />
+SYMBOL_LINK = <a href="$1">$(DDOC_PSYMBOL $+)</a>
+PHOBOS_PATH = https://dlang.org/phobos/
+DOC_ROOT_std = $(PHOBOS_PATH)
+DOC_ROOT_core = $(PHOBOS_PATH)
+DOC_ROOT_etc = $(PHOBOS_PATH)
+DOC_ROOT_object = $(PHOBOS_PATH)
+DOC_EXTENSION = .html
+IMAGE = <img src="$1" alt="$+" />
 IMAGE_TITLE = <img src="$1" alt="$3" title="$2" />
 BLOCKQUOTE = <blockquote>$0</blockquote>
 DEPRECATED = $0
