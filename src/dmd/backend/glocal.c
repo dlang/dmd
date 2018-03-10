@@ -355,6 +355,11 @@ Loop:
                                   * core.simd intrinsics. The backend type for void16 is Tschar16!
                                   */
                                  (tyvector(em->Ety) != 0) == (tyvector(e->Ety) != 0) && tybasic(e->Ety) == TYschar16) &&
+                                /* Changing the Ety to a OPvecfill node means we're potentially generating
+                                 * wrong code.
+                                 * Ref: https://issues.dlang.org/show_bug.cgi?id=18034
+                                 */
+                                (em->E2->Eoper != OPvecfill || tybasic(e->Ety) == tybasic(em->Ety)) &&
                                 !local_preserveAssignmentTo(em->E1->Ety))
                             {
 #ifdef DEBUG
