@@ -13,7 +13,11 @@ void make(ushort x) {
     check(v);
 }
 
-void main(){	
+void main() {	
     make(1);
 }
+}
+else
+{
+void main() { }
 }
