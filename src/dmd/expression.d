@@ -1073,8 +1073,7 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
 
 /****************************************
  * If `s` is a function template, i.e. the only member of a template
- * and that member is a function,
- * return that template.
+ * and that member is a function, return that template.
  * Params:
  *      s = symbol that might be a function template
  * Returns:
