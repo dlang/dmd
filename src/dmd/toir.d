@@ -366,7 +366,7 @@ int intrinsic_op(FuncDeclaration fd)
     fd = fd.toAliasFunc();
     id3 = fd.ident;
     auto md = fd.getModule().md;
-    if (!m.md)
+    if (!md)
         return op;
 
     id2 = md.id;
@@ -374,7 +374,7 @@ int intrinsic_op(FuncDeclaration fd)
     if (md.packages.dim != 1)
         return op;
 
-    id1 = m.md.packages[0];
+    id1 = md.packages[0];
 
     if (id1 == Id.std && id2 == Id.math)
     {
@@ -421,14 +421,14 @@ int intrinsic_op(FuncDeclaration fd)
             if (id3 == Id.outpl) op = OPoutp;
             if (id3 == Id.outpw) op = OPoutp;
 
-            if (id3 == Id.bswap)     op = OPbswap;
+            if (id3 == Id.bswap)   op = OPbswap;
             if (id3 == Id._popcnt) op = OPpopcnt;
         }
     }
 
     if (!global.params.is64bit &&
         (op == OPbsf || op == OPbsr) &&
-        fd.parameters[0].type == Type.tuns64)
+        (*fd.parameters)[0].type == Type.tuns64)
     {
          // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
          return -1;
