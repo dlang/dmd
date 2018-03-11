@@ -1568,6 +1568,16 @@ VarDeclaration expToVariable(Expression e)
                 return null;
             }
 
+            case TOK.slice:
+            {
+                SliceExp ei = cast(SliceExp)e;
+                e = ei.e1;
+                Type ti = e.type.toBasetype();
+                if (ti.ty == Tsarray)
+                    continue;
+                return null;
+            }
+
             case TOK.this_:
             case TOK.super_:
                 return (cast(ThisExp)e).var.isVarDeclaration();
