@@ -399,10 +399,10 @@ int intrinsic_op(FuncDeclaration fd)
         }
         else if (id2 == Id.simd)
         {
-            // __prefetch
             if (id3 == Id.__prefetch) op = OPprefetch;
-            // __simd_sto, __simd, __simd_ib
-            else                      op = OPvector;
+            if (id3 == Id.__simd_sto) op = OPvector;
+            if (id3 == Id.__simd)     op = OPvector;
+            if (id3 == Id.__simd_ib)  op = OPvector;
         }
         else if (id2 == Id.bitop)
         {
