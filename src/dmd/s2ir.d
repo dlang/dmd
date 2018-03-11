@@ -734,14 +734,26 @@ private extern (C++) class S2irVisitor : Visitor
                     sle.sym = irs.shidden;
                     writetohp = true;
                 }
-                /* Detect:
-                 *    structliteral.ctor(args)
+                /* Detect function call that returns the same struct
                  * and construct directly into *shidden
                  */
                 else if (s.exp.op == TOK.call)
                 {
                     auto ce = cast(CallExp)s.exp;
-                    if (ce.e1.op == TOK.dotVariable)
+                    if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
+                    {
+                        Type t = ce.e1.type.toBasetype();
+                        if (t.ty == Tdelegate)
+                            t = t.nextOf();
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        {
+                            irs.ehidden = el_var(irs.shidden);
+                            e = toElemDtor(s.exp, irs);
+                            e = el_una(OPaddr, TYnptr, e);
+                            goto L1;
+                        }
+                    }
+                    else if (ce.e1.op == TOK.dotVariable)
                     {
                         auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
@@ -753,6 +765,16 @@ private extern (C++) class S2irVisitor : Visitor
                                 sle.sym = irs.shidden;
                                 writetohp = true;
                             }
+                        }
+                        Type t = ce.e1.type.toBasetype();
+                        if (t.ty == Tdelegate)
+                            t = t.nextOf();
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        {
+                            irs.ehidden = el_var(irs.shidden);
+                            e = toElemDtor(s.exp, irs);
+                            e = el_una(OPaddr, TYnptr, e);
+                            goto L1;
                         }
                     }
                 }
@@ -787,6 +809,7 @@ private extern (C++) class S2irVisitor : Visitor
                 e = toElemDtor(s.exp, irs);
                 assert(e);
             }
+        L1:
             elem_setLoc(e, s.loc);
             block_appendexp(blx.curblock, e);
             bc = BCretexp;
