@@ -364,14 +364,14 @@ int intrinsic_op(FuncDeclaration fd)
     Identifier id1,id2,id3;
     int op = -1;
     fd = fd.toAliasFunc();
-    i3 = fd.ident;
+    id3 = fd.ident;
     auto md = fd.getModule().md;
     if (!m.md)
         return op;
 
-    id2 = m.md.id;
+    id2 = md.id;
 
-    if (m.md.packages.dim != 1)
+    if (md.packages.dim != 1)
         return op;
 
     id1 = m.md.packages[0];
@@ -422,7 +422,7 @@ int intrinsic_op(FuncDeclaration fd)
             if (id3 == Id.outpw) op = OPoutp;
 
             if (id3 == Id.bswap)     op = OPbswap;
-            if (id3 == Id._popcount) op = OPpopcnt;
+            if (id3 == Id._popcnt) op = OPpopcnt;
         }
     }
 
