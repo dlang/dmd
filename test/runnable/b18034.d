@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -O
 version (D_SIMD)
 {
 import core.simd;
