@@ -429,8 +429,8 @@ int intrinsic_op(FuncDeclaration fd)
             if (id3 == Id.bswap)   op = OPbswap;
             if (id3 == Id._popcnt) op = OPpopcnt;
         }
-        else if(
     }
+
     if (op != -1) printf("intrinsic_op %d\n", op);
     if (!global.params.is64bit &&
         (op == OPbsf || op == OPbsr) &&
