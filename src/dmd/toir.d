@@ -377,7 +377,7 @@ int intrinsic_op(FuncDeclaration fd)
         return op;
 
     id1 = (*md.packages)[0];
-
+    printf("intrinsic_op");
     if (id1 == Id.std && id2 == Id.math)
     {
         Lmath:
@@ -427,7 +427,7 @@ int intrinsic_op(FuncDeclaration fd)
             if (id3 == Id._popcnt) op = OPpopcnt;
         }
     }
-
+    printf(" %d\n", op);
     if (!global.params.is64bit &&
         (op == OPbsf || op == OPbsr) &&
         (*fd.parameters)[0].type == Type.tuns64)
