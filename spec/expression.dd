@@ -11,8 +11,9 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
-$(P Binary expressions and function arguments are evaluated in strictly
-left-to-right order.)
+$(P Binary expressions are evaluated in strictly left-to-right order.
+Function arguments are evaluated in strictly left-to-right order for
+functions with `extern (D)` $(DDSUBLINK spec/attribute, linkage, linkage).)
 
         -------------
         import std.conv;
@@ -25,10 +26,10 @@ left-to-right order.)
     $(IMPLEMENTATION_DEFINED
     $(OL
     $(LI The order of evaluation of the operands of $(GLINK AssignExpression).)
-    $(LI The order of evaluation of function arguments.)
+    $(LI The order of evaluation of function arguments for functions with linkage other than `extern (D)`.)
     ))
 
-    $(BEST_PRACTICE Even though the order of evaluation is well defined, writing code that
+    $(BEST_PRACTICE Even though the order of evaluation is well-defined, writing code that
     depends on it is rarely recommended.)
 
 $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
