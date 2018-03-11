@@ -4964,11 +4964,12 @@ extern (C++) final class TypeFunction : TypeNext
      * the value of p can 'escape' the scope of the function.
      * This is useful to minimize the needed annotations for the parameters.
      * Params:
+     *  tthis = type of `this` parameter, null if none
      *  p = parameter to this function
      * Returns:
      *  true if escapes via assignment to global or through a parameter
      */
-    bool parameterEscapes(Parameter p)
+    bool parameterEscapes(Type tthis, Parameter p)
     {
         /* Scope parameters do not escape.
          * Allow 'lazy' to imply 'scope' -
@@ -4976,11 +4977,10 @@ extern (C++) final class TypeFunction : TypeNext
          * as lazy parameters to the next function, but that isn't
          * escaping.
          */
-        if (parameterStorageClass(p) & (STC.scope_ | STC.lazy_))
+        if (parameterStorageClass(tthis, p) & (STC.scope_ | STC.lazy_))
             return false;
         return true;
     }
-
 
     /************************************
      * Take the specified storage class for p,
@@ -4988,11 +4988,12 @@ extern (C++) final class TypeFunction : TypeNext
      * STC.scope_ and STC.return_ should be OR'd in.
      * (This will not affect the name mangling.)
      * Params:
-     *  p = one of the parameters to 'this'
+     *  tthis = type of `this` parameter, null if none
+     *  p = parameter to this function
      * Returns:
      *  storage class with STC.scope_ or STC.return_ OR'd in
      */
-    final StorageClass parameterStorageClass(Parameter p)
+    final StorageClass parameterStorageClass(Type tthis, Parameter p)
     {
         //printf("parameterStorageClass(p: %s)\n", p.toChars());
         auto stc = p.storageClass;
@@ -5012,6 +5013,7 @@ extern (C++) final class TypeFunction : TypeNext
         // See if p can escape via any of the other parameters
         if (purity == PURE.weak)
         {
+            // Check escaping through parameters
             const dim = Parameter.dim(parameters);
             foreach (const i; 0 .. dim)
             {
@@ -5034,6 +5036,24 @@ extern (C++) final class TypeFunction : TypeNext
                             continue;
                     }
                     return stc;
+                }
+            }
+
+            // Check escaping through `this`
+            if (tthis && tthis.isMutable())
+            {
+                auto tb = tthis.toBasetype();
+                AggregateDeclaration ad;
+                if (tb.ty == Tclass)
+                    ad = (cast(TypeClass)tb).sym;
+                else if (tb.ty == Tstruct)
+                    ad = (cast(TypeStruct)tb).sym;
+                else
+                    assert(0);
+                foreach (VarDeclaration v; ad.fields)
+                {
+                    if (v.hasPointers())
+                        return stc;
                 }
             }
         }

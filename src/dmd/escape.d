@@ -1009,7 +1009,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                     if (i - j < nparams && i >= j)
                     {
                         Parameter p = Parameter.getNth(tf.parameters, i - j);
-                        const stc = tf.parameterStorageClass(p);
+                        const stc = tf.parameterStorageClass(null, p);
                         if ((stc & (STC.scope_)) && (stc & STC.return_))
                             arg.accept(this);
                         else if ((stc & (STC.ref_)) && (stc & STC.return_))
@@ -1207,7 +1207,7 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                         if (i - j < nparams && i >= j)
                         {
                             Parameter p = Parameter.getNth(tf.parameters, i - j);
-                            const stc = tf.parameterStorageClass(p);
+                            const stc = tf.parameterStorageClass(null, p);
                             if ((stc & (STC.out_ | STC.ref_)) && (stc & STC.return_))
                                 arg.accept(this);
                             else if ((stc & STC.scope_) && (stc & STC.return_))
