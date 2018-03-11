@@ -2022,7 +2022,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                         break;
         }
 
-	if (I64 && v1 != (targ_ullong)(targ_ulong)v1)
+        if (I64 && v1 != (targ_ullong)(targ_ulong)v1)
         {
             // only zero-extension from 32-bits is available for 'or'
         }
@@ -2030,21 +2030,21 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             // only sign-extension from 32-bits is available for 'and'
         }
-	else if (I64 && sz2 > 1)
-	{
+        else if (I64 && sz2 > 1)
+        {
             unsigned reg = findreg(retregs);
-	    unsigned reg_alt;
-	    unsigned reg_flags = mPSW;
+            unsigned reg_alt;
+            unsigned reg_flags = mPSW;
 
-	    // generate the test only to update the flags
+            // generate the test only to update the flags
             codelem(cdb, e1, &reg_flags, FALSE);
 
-	    // load both the constants in some registers
-	    regwithvalue(cdb, ALLREGS, v2, &reg_alt, 0);
-	    movregconst(cdb, reg, v1, 0);
+            // load both the constants in some registers
+            regwithvalue(cdb, ALLREGS, v2, &reg_alt, 0);
+            movregconst(cdb, reg, v1, 0);
 
-	    // generate a CMOV{eq,ne}
-	    cdb.gen2(0x0f44 + (jop == JNC), grex | modregxrmx(3, reg, reg_alt));
+            // generate a CMOV{eq,ne}
+            cdb.gen2(0x0f44 + (jop == JNC), grex | modregxrmx(3, reg, reg_alt));
 
             freenode(e21);
             freenode(e22);
@@ -2053,7 +2053,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             fixresult(cdb,e,retregs,pretregs);
             cgstate.stackclean--;
             return;
-	}
+        }
         else if (v1 == v2)
         {
             unsigned reg = findreg(retregs);
