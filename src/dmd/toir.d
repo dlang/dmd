@@ -365,9 +365,11 @@ int intrinsic_op(FuncDeclaration fd)
     int op = -1;
     fd = fd.toAliasFunc();
     id3 = fd.ident;
-    auto md = fd.getModule().md;
-    if (!md)
+    auto m = fd.getModule().md;
+    if (!m || !m.md)
         return op;
+
+    auto md = m.md;
 
     id2 = md.id;
 
