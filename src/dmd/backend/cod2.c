@@ -2054,6 +2054,20 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             cgstate.stackclean--;
             return;
 	}
+        else if (v1 == v2)
+        {
+            unsigned reg = findreg(retregs);
+
+            movregconst(cdb, reg, v1, 0);
+
+            freenode(e21);
+            freenode(e22);
+            freenode(e2);
+
+            fixresult(cdb,e,retregs,pretregs);
+            cgstate.stackclean--;
+            return;
+        }
         else
         {
             codelem(cdb,e1,&retregs,FALSE);
