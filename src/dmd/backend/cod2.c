@@ -2030,6 +2030,20 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         {
             // only sign-extension from 32-bits is available for 'and'
         }
+        else if (v1 == v2)
+        {
+            unsigned reg = findreg(retregs);
+
+            movregconst(cdb, reg, v1, 0);
+
+            freenode(e21);
+            freenode(e22);
+            freenode(e2);
+
+            fixresult(cdb,e,retregs,pretregs);
+            cgstate.stackclean--;
+            return;
+        }
         else if (I64 && sz2 > 1)
         {
             unsigned reg = findreg(retregs);
@@ -2045,20 +2059,6 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             // generate a CMOV{eq,ne}
             cdb.gen2(0x0f44 + (jop == JNC), grex | modregxrmx(3, reg, reg_alt));
-
-            freenode(e21);
-            freenode(e22);
-            freenode(e2);
-
-            fixresult(cdb,e,retregs,pretregs);
-            cgstate.stackclean--;
-            return;
-        }
-        else if (v1 == v2)
-        {
-            unsigned reg = findreg(retregs);
-
-            movregconst(cdb, reg, v1, 0);
 
             freenode(e21);
             freenode(e22);
