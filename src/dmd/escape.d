@@ -202,20 +202,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
     if (!er.byref.dim && !er.byvalue.dim && !er.byfunc.dim && !er.byexp.dim)
         return false;
 
-    VarDeclaration va;
-    while (e1.op == TOK.dotVariable)
-        e1 = (cast(DotVarExp)e1).e1;
-
-    if (e1.op == TOK.variable)
-        va = (cast(VarExp)e1).var.isVarDeclaration();
-    else if (e1.op == TOK.this_)
-        va = (cast(ThisExp)e1).var.isVarDeclaration();
-    else if (e1.op == TOK.index)
-    {
-        auto ie = cast(IndexExp)e1;
-        if (ie.e1.op == TOK.variable && ie.e1.type.toBasetype().ty == Tsarray)
-            va = (cast(VarExp)ie.e1).var.isVarDeclaration();
-    }
+    VarDeclaration va = expToVariable(e1);
 
     if (va && e.op == TOK.concatenateElemAssign)
     {
