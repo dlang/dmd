@@ -374,7 +374,7 @@ int intrinsic_op(FuncDeclaration fd)
     if (md.packages.dim != 1)
         return op;
 
-    id1 = md.packages[0];
+    id1 = (*md.packages)[0];
 
     if (id1 == Id.std && id2 == Id.math)
     {
