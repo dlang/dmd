@@ -3,7 +3,7 @@ DMD
 
 [![GitHub tag](https://img.shields.io/github/tag/dlang/dmd.svg?maxAge=86400)](https://github.com/dlang/dmd/releases)
 [![Code coverage](https://img.shields.io/codecov/c/github/dlang/dmd.svg?maxAge=86400)](https://codecov.io/gh/dlang/dmd)
-[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg)](https://issues.dlang.org/)
+[![Bugzilla Issues](https://img.shields.io/badge/issues-Bugzilla-green.svg)](https://issues.dlang.org/buglist.cgi?component=dmd&list_id=220151&product=D&resolution=---)
 [![license](https://img.shields.io/github/license/dlang/dmd.svg)](https://github.com/dlang/dmd/blob/master/LICENSE.txt)
 
 [![CircleCI](https://circleci.com/gh/dlang/dmd/tree/master.svg?style=svg)](https://circleci.com/gh/dlang/dmd/tree/master)
