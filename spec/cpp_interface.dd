@@ -726,7 +726,7 @@ $(H2 $(LNAME2 packing-and-alignment, Packing and Alignment))
     )
 
     $(P D supports bitfields in the standard library: see
-    $(PHOBOS bitmanip, bitfields, std.bitmanip.bitfields).
+    $(REF bitfields, std, bitmanip).
     )
 
 $(H2 $(LNAME2 lifetime-management, Lifetime Management))

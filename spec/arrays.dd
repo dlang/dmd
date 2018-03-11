@@ -907,18 +907,18 @@ d = 'd';     // d is assigned the character 'd'
 
 $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
         $(P Note that built-in comparison operators operate on a
-        $(HTTPS goo.gl/zRY1K, code unit) basis.
+        $(LINK2 http://www.unicode.org/glossary/#code_unit, code unit) basis.
         The end result for valid strings is the same as that of
-        $(HTTPS goo.gl/WR424, code point)
-        for $(HTTPS goo.gl/WR424, code point)
+        $(LINK2 http://www.unicode.org/glossary/#code_point, code point)
+        for $(LINK2 http://www.unicode.org/glossary/#code_point, code point)
         comparison as long as both strings are in the same
-        $(HTTPS goo.gl/3DKfI, normalization form).
+        $(LINK2 http://www.unicode.org/glossary/#normalization_form, normalization form).
         Since normalization is a costly operation not suitable for language
         primitives it's assumed to be enforced by the user.
         )
         $(P The standard library lends a hand for comparing strings with mixed encodings
-        (by transparently decoding, see $(PHOBOS algorithm, cmp, std.algorithm.cmp)),
-        $(PHOBOS uni, icmp, case-insensitive comparison) and $(PHOBOS uni, normalize, normalization).
+        (by transparently decoding, see $(REF cmp, std,algorithm)),
+        $(REF_ALTTEXT case-insensitive comparison, icmp, std,uni) and $(REF_ALTTEXT normalization, normalize, std,uni).
         )
         $(P Last but not least, a desired string sorting order differs
         by culture and language and is usually nothing like code point
