@@ -417,9 +417,9 @@ int intrinsic_op(FuncDeclaration fd)
             if (id3 == Id.inpl) op = OPinp;
             if (id3 == Id.inpw) op = OPinp;
 
-            if (id3 == Id.out)  op = OPoutp;
-            if (id3 == Id.outl) op = OPoutp;
-            if (id3 == Id.outw) op = OPoutp;
+            if (id3 == Id.outp)  op = OPoutp;
+            if (id3 == Id.outpl) op = OPoutp;
+            if (id3 == Id.outpw) op = OPoutp;
 
             if (id3 == Id.bswap)     op = OPbswap;
             if (id3 == Id._popcount) op = OPpopcnt;
