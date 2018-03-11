@@ -324,6 +324,7 @@ immutable Msgtable[] msgtable =
     { "__switch_error"},
 
     // varargs implementation
+    { "stdc" },
     { "va_start" },
 
     // Builtin functions

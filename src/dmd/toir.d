@@ -373,8 +373,11 @@ int intrinsic_op(FuncDeclaration fd)
 
     id2 = md.id;
 
-    if (!md.packages || md.packages.dim != 1)
+    if (!md.packages)
         return op;
+
+    if (md.packages.dim == 2)
+        goto Lva_start;
 
     id1 = (*md.packages)[0];
 
@@ -426,6 +429,7 @@ int intrinsic_op(FuncDeclaration fd)
             if (id3 == Id.bswap)   op = OPbswap;
             if (id3 == Id._popcnt) op = OPpopcnt;
         }
+        else if(
     }
     if (op != -1) printf("intrinsic_op %d\n", op);
     if (!global.params.is64bit &&
@@ -436,12 +440,15 @@ int intrinsic_op(FuncDeclaration fd)
          return -1;
     }
 
+    return op;
+
+    Lva_start:
     if (global.params.is64bit &&
         fd.toParent().isTemplateInstance() &&
         fd.ident == Id.va_start)
     {
         OutBuffer buf;
-        mangleToBuffer(fd.getModule(), &buf);
+        mangleToBuffer(m, &buf);
         const s = buf.peekString();
         if (!strcmp(s, "4core4stdc6stdarg"))
         {
