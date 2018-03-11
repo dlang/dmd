@@ -4614,25 +4614,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         if (global.params.vsafe && e.e1.type.toBasetype().ty == Tstruct)
         {
-            if (e.e1.op == TOK.variable)
+            if (auto v = expToVariable(e.e1))
             {
-                VarExp ve = cast(VarExp)e.e1;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (v)
-                {
-                    if (!checkAddressVar(sc, e, v))
-                        return setError();
-                }
-            }
-            else if ((e.e1.op == TOK.this_ || e.e1.op == TOK.super_))
-            {
-                ThisExp ve = cast(ThisExp)e.e1;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (v)
-                {
-                    if (!checkAddressVar(sc, e, v))
-                        return setError();
-                }
+                if (!checkAddressVar(sc, e, v))
+                    return setError();
             }
         }
 
@@ -4801,21 +4786,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkUnsafeAccess(sc, dve, !exp.type.isMutable(), true))
                 return setError();
 
-            if (dve.e1.op == TOK.variable && global.params.vsafe)
+            if (global.params.vsafe)
             {
-                VarExp ve = cast(VarExp)dve.e1;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (v)
-                {
-                    if (!checkAddressVar(sc, exp, v))
-                        return setError();
-                }
-            }
-            else if ((dve.e1.op == TOK.this_ || dve.e1.op == TOK.super_) && global.params.vsafe)
-            {
-                ThisExp ve = cast(ThisExp)dve.e1;
-                VarDeclaration v = ve.var.isVarDeclaration();
-                if (v && v.storage_class & STC.ref_)
+                if (VarDeclaration v = expToVariable(dve.e1))
                 {
                     if (!checkAddressVar(sc, exp, v))
                         return setError();
@@ -4886,9 +4859,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if ((exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_) && global.params.vsafe)
         {
-            ThisExp ve = cast(ThisExp)exp.e1;
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v)
+            if (VarDeclaration v = expToVariable(exp.e1))
             {
                 if (!checkAddressVar(sc, exp, v))
                     return setError();
@@ -5571,37 +5542,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 /* Slicing a static array is like taking the address of it.
                  * Perform checks as if e[] was &e
                  */
-                VarDeclaration v;
-                if (exp.e1.op == TOK.dotVariable)
+                if (VarDeclaration v = expToVariable(exp.e1))
                 {
-                    DotVarExp dve = cast(DotVarExp)exp.e1;
-                    if (dve.e1.op == TOK.variable)
+                    if (exp.e1.op == TOK.dotVariable)
                     {
-                        VarExp ve = cast(VarExp)dve.e1;
-                        v = ve.var.isVarDeclaration();
-                    }
-                    else if (dve.e1.op == TOK.this_ || dve.e1.op == TOK.super_)
-                    {
-                        ThisExp ve = cast(ThisExp)dve.e1;
-                        v = ve.var.isVarDeclaration();
-                        if (v && !(v.storage_class & STC.ref_))
+                        DotVarExp dve = cast(DotVarExp)exp.e1;
+                        if ((dve.e1.op == TOK.this_ || dve.e1.op == TOK.super_) &&
+                            !(v.storage_class & STC.ref_))
+                        {
+                            // because it's a class
                             v = null;
+                        }
                     }
-                }
-                else if (exp.e1.op == TOK.variable)
-                {
-                    VarExp ve = cast(VarExp)exp.e1;
-                    v = ve.var.isVarDeclaration();
-                }
-                else if (exp.e1.op == TOK.this_ || exp.e1.op == TOK.super_)
-                {
-                    ThisExp ve = cast(ThisExp)exp.e1;
-                    v = ve.var.isVarDeclaration();
-                }
 
-                if (v)
-                {
-                    if (!checkAddressVar(sc, exp, v))
+                    if (v && !checkAddressVar(sc, exp, v))
                         return setError();
                 }
             }
