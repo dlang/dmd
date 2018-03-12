@@ -394,6 +394,7 @@ immutable REG[73] regtab64 =
     {"YMM13", 13,    _ymm},
     {"YMM14", 14,    _ymm},
     {"YMM15", 15,    _ymm},
+    {"CR8",   8,     _r64 | _special | _crn},
 ];
 
 
