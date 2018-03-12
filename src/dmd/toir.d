@@ -443,6 +443,12 @@ int intrinsic_op(FuncDeclaration fd)
          return -1;
     }
 
+    // Don't recognize 64 bit bswap.
+    if (op == OPbswap && fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
+    {
+        return -1;
+    }
+
     return op;
 
     Lva_start:
