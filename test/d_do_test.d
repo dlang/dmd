@@ -45,7 +45,8 @@ void usage()
           ~ "      DSEP:          \\\\ or /\n"
           ~ "      SEP:           \\ or / (required)\n"
           ~ "      OBJ:          .obj or .o (required)\n"
-          ~ "      EXE:          .exe or <null> (required)\n");
+          ~ "      EXE:          .exe or <null> (required)\n"
+          ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n");
 }
 
 enum TestMode
@@ -96,6 +97,7 @@ struct EnvData
     string required_args;
     bool dobjc;
     bool coverage_build;
+    bool autoUpdate;
 }
 
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
@@ -506,6 +508,20 @@ string envGetRequired(in char[] name)
 
 class SilentQuit : Exception { this() { super(null); } }
 
+class CompareException : Exception
+{
+    string expected;
+    string actual;
+
+    this(string expected, string actual) {
+        string msg = "\nexpected:\n----\n" ~ expected ~
+            "\n----\nactual:\n----\n" ~ actual ~ "\n----\n";
+        super(msg);
+        this.expected = expected;
+        this.actual = actual;
+    }
+}
+
 int main(string[] args)
 {
     try { return tryMain(args); }
@@ -541,6 +557,7 @@ int tryMain(string[] args)
     envData.required_args = environment.get("REQUIRED_ARGS");
     envData.dobjc         = environment.get("D_OBJC") == "1";
     envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
+    envData.autoUpdate = environment.get("AUTO_UPDATE", "") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
@@ -733,8 +750,8 @@ int tryMain(string[] args)
 
             if (testArgs.compileOutput !is null)
             {
-                enforce(compareOutput(compile_output, testArgs.compileOutput),
-                        "\nexpected:\n----\n"~testArgs.compileOutput~"\n----\nactual:\n----\n"~compile_output~"\n----\n");
+                if(!compareOutput(compile_output, testArgs.compileOutput))
+                    throw new CompareException(testArgs.compileOutput, compile_output);
             }
 
             if (testArgs.mode == TestMode.RUN)
@@ -792,6 +809,15 @@ int tryMain(string[] args)
             if (testArgs.disabled)
                 return Result.return0;
 
+            if (envData.autoUpdate)
+            if (auto ce = cast(CompareException) e)
+            {
+                auto existingText = input_file.readText;
+                auto updatedText = existingText.replace(ce.expected, ce.actual);
+                std.file.write(input_file, updatedText);
+                return Result.return0;
+            }
+
             f.writeln();
             f.writeln("==============================");
             f.writef("Test %s/%s.%s failed: ", input_dir, test_name, test_extension);
@@ -799,7 +825,7 @@ int tryMain(string[] args)
             f.close();
 
             writefln("Test %s/%s.%s failed.  The logged output:", input_dir, test_name, test_extension);
-            writeln(cast(string)std.file.read(output_file));
+            writeln(output_file.readText);
             std.file.remove(output_file);
             return Result.return1;
         }
