@@ -83,8 +83,7 @@ private void usage()
 Documentation: https://dlang.org/
 Config file: %s
 Usage:
-  dmd [<option>...] <file>...
-  dmd [<option>...] -run <file> [<arg>...]
+  dmd [<option>...] <file>... [-run <file> <arg>...]
 
 Where:
   <file>           D source file
@@ -2171,32 +2170,31 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
             }
             else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run
             {
-                params.run = true;
                 size_t length = argc - i - 1;
-                if (length)
-                {
-                    const(char)* ext = FileName.ext(arguments[i + 1]);
-                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
-                    {
-                        error("-run must be followed by a source file, not '%s'", arguments[i + 1]);
-                        break;
-                    }
-                    if (strcmp(arguments[i + 1], "-") == 0)
-                        files.push("__stdin.d");
-                    else
-                        files.push(arguments[i + 1]);
-                    params.runargs.setDim(length - 1);
-                    for (size_t j = 0; j < length - 1; ++j)
-                    {
-                        params.runargs[j] = arguments[i + 2 + j];
-                    }
-                    i += length;
-                }
+                if (length == 0)
+                    goto Lnoarg;
+
+                params.run = true;
+                if (strcmp(arguments[i + 1], "-") == 0)
+                    files.push("__stdin.d");
+                else if (arguments[i + 1][0] == '\0')
+                { } // ignore it
                 else
                 {
-                    params.run = false;
-                    goto Lnoarg;
+                    const ext = FileName.ext(arguments[i + 1]);
+                    if (ext && FileName.equals(ext, "d") == 0 && FileName.equals(ext, "di") == 0)
+                    {
+                        error("-run must be followed by a source file, '-' or '', not '%s'", arguments[i + 1]);
+                        break;
+                    }
+                    files.push(arguments[i + 1]);
                 }
+                params.runargs.setDim(length - 1);
+                foreach (j; 0 .. length - 1)
+                {
+                    params.runargs[j] = arguments[i + 2 + j];
+                }
+                i += length;
             }
             else if (p[1] == '\0')
                 files.push("__stdin.d");
