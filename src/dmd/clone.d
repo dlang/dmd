@@ -180,7 +180,7 @@ Lneed:
  * Build opAssign for struct.
  *      ref S opAssign(S s) { ... }
  *
- * Note that s will be constructed onto the stack, and probably
+ * Note that `s` will be constructed onto the stack, and probably
  * copy-constructed in caller site.
  *
  * If S has copy copy construction and/or destructor,
@@ -195,6 +195,13 @@ Lneed:
  *          this.field1 = s.field1;
  *          this.field2 = s.field2;
  *          ...;
+ * References:
+ *      https://dlang.org/spec/struct.html#assign-overload
+ * Params:
+ *      sd = struct to generate opAssign for
+ *      sc = context
+ * Returns:
+ *      generated opAssign function
  */
 extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
@@ -261,8 +268,12 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         AssignExp ec = null;
         if (sd.dtor)
         {
+            TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
+            assert(tdtor.ty == Tfunction);
             tmp = new VarDeclaration(loc, sd.type, idtmp, new VoidInitializer(loc));
             tmp.storage_class |= STC.nodtor | STC.temp | STC.ctfe;
+            if (tdtor.isscope)
+                tmp.storage_class |= STC.scope_;
             e = new DeclarationExp(loc, tmp);
             ec = new BlitExp(loc, new VarExp(loc, tmp), new ThisExp(loc));
             e = Expression.combine(e, ec);
@@ -320,7 +331,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     // https://issues.dlang.org/show_bug.cgi?id=15044
-    // fop.semantic3 isn't run here for lazy forward reference resolution.
+    //semantic3(fop, sc2); // isn't run here for lazy forward reference resolution.
 
     sc2.pop();
     if (global.endGagging(errors)) // if errors happened
@@ -331,6 +342,7 @@ extern (C++) FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     }
 
     //printf("-StructDeclaration::buildOpAssign() %s, errors = %d\n", sd.toChars(), (fop.storage_class & STC.disable) != 0);
+    //printf("fop.type: %s\n", fop.type.toPrettyChars());
     return fop;
 }
 

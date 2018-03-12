@@ -85,7 +85,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
 
         Dsymbol p = v.toParent2();
 
-        v.storage_class &= ~STC.maybescope;
+        notMaybeScope(v);
 
         if (v.isScope())
         {
@@ -117,7 +117,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
 
         Dsymbol p = v.toParent2();
 
-        v.storage_class &= ~STC.maybescope;
+        notMaybeScope(v);
 
         if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
         {
@@ -139,7 +139,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier par, Ex
 
             Dsymbol p = v.toParent2();
 
-            v.storage_class &= ~STC.maybescope;
+            notMaybeScope(v);
 
             if ((v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) && p == sc.func)
             {
@@ -236,7 +236,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         Dsymbol p = v.toParent2();
 
         if (!(va && va.isScope()))
-            v.storage_class &= ~STC.maybescope;
+            notMaybeScope(v);
 
         if (v.isScope())
         {
@@ -353,7 +353,7 @@ ByRef:
         }
 
         if (!(va && va.isScope()))
-            v.storage_class &= ~STC.maybescope;
+            notMaybeScope(v);
 
         if ((v.storage_class & (STC.ref_ | STC.out_)) == 0 && p == sc.func)
         {
@@ -397,7 +397,7 @@ ByRef:
             Dsymbol p = v.toParent2();
 
             if (!(va && va.isScope()))
-                v.storage_class &= ~STC.maybescope;
+                notMaybeScope(v);
 
             if ((v.storage_class & (STC.ref_ | STC.out_ | STC.scope_)) && p == sc.func)
             {
@@ -1292,3 +1292,26 @@ void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* vars)
         }
     }
 }
+
+/***********************************
+ * Turn off STC.maybescope for variable `v`.
+ * This exists in order to find where STC.maybescope is getting turned off.
+ * Params:
+ *      v = variable
+ */
+version (none)
+{
+    void notMaybeScope(string file = __FILE__, int line = __LINE__)(VarDeclaration v)
+    {
+        printf("%.*s(%d): notMaybeScope('%s')\n", cast(int)file.length, file.ptr, line, v.toChars());
+        v.storage_class &= ~STC.maybescope;
+    }
+}
+else
+{
+    void notMaybeScope(VarDeclaration v)
+    {
+        v.storage_class &= ~STC.maybescope;
+    }
+}
+
