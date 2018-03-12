@@ -379,10 +379,10 @@ int intrinsic_op(FuncDeclaration fd)
     if (!md.packages)
         return op;
 
+    const Identifier id1 = (*md.packages)[0];
+
     if (md.packages.dim == 2)
         goto Lva_start;
-
-    const Identifier id1 = (*md.packages)[0];
 
     if (id1 == Id.std && id2 == Id.math)
     {
