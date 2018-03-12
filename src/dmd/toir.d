@@ -443,7 +443,8 @@ int intrinsic_op(FuncDeclaration fd)
          return -1;
     }
 
-    // Don't recognize 64 bit bswap.
+    // Don't recognize 32 bit bswap.
+    //FIXME: Why?!
     if (op == OPbswap && fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
     {
         return -1;
@@ -455,11 +456,14 @@ int intrinsic_op(FuncDeclaration fd)
     if (global.params.is64bit &&
         fd.toParent().isTemplateInstance() &&
         id3 == Id.va_start &&
-        id2 == Id.stdarg &&
-        id1 == Id.stdc &&
-        (*md.packages)[1] == Id.stdc)
     {
-        return OPva_start;
+        OutBuffer buf;
+        mangleToBuffer(m, &buf);
+        const s = buf.peekString();
+        if (!strcmp(s, "4core4stdc6stdarg"))
+        {
+            return OPva_start;
+        }
     }
 
     return op;
