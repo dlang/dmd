@@ -3094,16 +3094,25 @@ else
             {
                 /* Determine "refness" of function return:
                  * if it's an lvalue, return by ref, else return by value
+                 * https://dlang.org/spec/function.html#auto-ref-functions
                  */
+
+                void turnOffRef()
+                {
+                    tf.isref = false;    // return by value
+                    tf.isreturn = false; // ignore 'return' attribute, whether explicit or inferred
+                    fd.storage_class &= ~STC.return_;
+                }
+
                 if (rs.exp.isLvalue())
                 {
                     /* May return by ref
                      */
                     if (checkReturnEscapeRef(sc, rs.exp, true))
-                        tf.isref = false; // return by value
+                        turnOffRef();
                 }
                 else
-                    tf.isref = false; // return by value
+                    turnOffRef();
 
                 /* The "refness" is determined by all of return statements.
                  * This means:
