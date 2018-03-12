@@ -1,3 +1,4 @@
+module testlambdacomp;
 
 void test1()
 {
@@ -38,7 +39,7 @@ void test2()
     static assert(!__traits(isSame, a => a + b, a => a + b));
 
     int f() { return 3;}
-    static assert(!__traits(isSame, a => a + f(), a => a + f()));
+    static assert(__traits(isSame, a => a + f(), a => a + f()));
 
     class A
     {
@@ -132,10 +133,83 @@ void test4()
     bar!((a, b) => a < b + 7);
 }
 
+int bar()
+{
+    return 2;
+}
+
+void testImportedFunctions(alias pred)()
+{
+    // imports.testalambda1.bar != imports.testlambda2.bar
+    import imports.testlambda2 : bar;
+    static assert(!__traits(isSame, pred, (int a) => a + bar()));
+}
+
+void testLocalGlobalFunctionScopes(alias pred)()
+{
+    // testlambdacomp.bar != testlambdacomp.test5.bar
+    static assert(!__traits(isSame, pred, (int a) => a + bar()));
+
+    // imports.testlambda1.bar != testlambdacomp.test5.bar
+    import imports.testlambda1 : bar;
+    static assert(!__traits(isSame, pred, (int a) => a + bar()));
+
+    // functions imported from different modules are not equal
+    testImportedFunctions!((int a) => a + bar())();
+}
+
+// lambda functions which contain function calls
+void test5()
+{
+
+    int bar()
+    {
+        return 3;
+    }
+
+    // functions in the same scope
+    alias pred = a => a + bar();
+    alias pred2 = b => b + bar();
+    static assert(__traits(isSame, pred, pred2));
+
+    // functions in different scopes
+    testLocalGlobalFunctionScopes!((int a) => a + bar())();
+
+    int foo(int a, int b)
+    {
+        return 2 + a + b;
+    }
+
+    // functions with different kind of parameters
+    alias preda23 = a => a + foo(2, 3);
+    alias predb23 = b => b + foo(2, 3);
+    alias predc24 = c => c + foo(2, 4);
+    alias predd23 = (int d) => d + foo(2, 3);
+    alias prede23 = (int e) => e + foo(2, 3);
+    alias predf24 = (int f) => f + foo(2, 4);
+    static assert(__traits(isSame, preda23, predb23));
+    static assert(!__traits(isSame, predc24, predd23));
+    static assert(__traits(isSame, predd23, prede23));
+    static assert(!__traits(isSame, prede23, predf24));
+
+    // functions with function calls as parameters
+    static assert(!__traits(isSame, (int a, int b) => foo(foo(1, a), foo(1, b)), (int a, int b) => foo(foo(1, a), foo(2, b))));
+    static assert(!__traits(isSame, (a, b) => foo(foo(1, a), foo(1, b)), (int a, int b) => foo(foo(1, a), foo(2, b))));
+
+    float floatFunc(float a, float b)
+    {
+        return a + b;
+    }
+
+    static assert(__traits(isSame, a => floatFunc(a, 1.0), b => floatFunc(b, 1.0)));
+    static assert(!__traits(isSame, a => floatFunc(a, 1.0), b => floatFunc(b, 2.0)));
+}
+
 void main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
 }
