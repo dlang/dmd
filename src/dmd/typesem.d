@@ -3223,6 +3223,10 @@ private extern(C++) final class DotExpVisitor : Visitor
                 }
                 checkAccess(e.loc, sc, null, v);
                 Expression ve = new VarExp(e.loc, v);
+                if (!isTrivialExp(e))
+                {
+                    ve = new CommaExp(e.loc, e, ve);
+                }
                 ve = ve.expressionSemantic(sc);
                 result = ve;
                 return;
