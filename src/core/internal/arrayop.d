@@ -230,12 +230,12 @@ else
     }
 }
 
-bool isUnaryOp(string op)
+bool isUnaryOp(scope string op) pure nothrow @safe @nogc
 {
     return op[0] == 'u';
 }
 
-bool isBinaryOp(string op)
+bool isBinaryOp(scope string op) pure nothrow @safe @nogc
 {
     if (op == "^^")
         return true;

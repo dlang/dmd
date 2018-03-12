@@ -434,7 +434,7 @@ version(AnyX86)
 
 
 @system pure nothrow @nogc
-size_t bytesHash(const(void)* buf, size_t len, size_t seed)
+size_t bytesHash(scope const(void)* buf, size_t len, size_t seed)
 {
     static uint rotl32(uint n)(in uint x) pure nothrow @safe @nogc
     {
@@ -444,7 +444,7 @@ size_t bytesHash(const(void)* buf, size_t len, size_t seed)
     //-----------------------------------------------------------------------------
     // Block read - if your platform needs to do endian-swapping or can only
     // handle aligned reads, do the conversion here
-    static uint get32bits(const (ubyte)* x) pure nothrow @nogc
+    static uint get32bits(scope const (ubyte)* x) pure nothrow @nogc
     {
         //Compiler can optimize this code to simple *cast(uint*)x if it possible.
         version(HasUnalignedOps)
