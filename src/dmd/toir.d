@@ -437,7 +437,7 @@ int intrinsic_op(FuncDeclaration fd)
     //if (op != -1) printf("intrinsic_op %d\n", op);
     if (!global.params.is64bit &&
         (op == OPbsf || op == OPbsr) &&
-        (*fd.parameters)[0].type == Type.tuns64)
+        fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
     {
          // Don't recognize 64 bit bsf() / bsr() in 32 bit mode
          return -1;
