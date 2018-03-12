@@ -1829,9 +1829,9 @@ extern (C++) abstract class Expression : RootObject
             loc = e.loc;
 
         if (e.op == TOK.type)
-            error("%s `%s` is a type, not an lvalue", e.type.kind(), e.type.toChars());
+            error("`%s` is a `%s` definition and cannot be modified", e.type.toChars(), e.type.kind());
         else
-            error("`%s` is not an lvalue", e.toChars());
+            error("`%s` is not an lvalue and cannot be modified", e.toChars());
 
         return new ErrorExp();
     }
@@ -2614,7 +2614,7 @@ extern (C++) final class IntegerExp : Expression
             e = this;
         else if (!loc.isValid())
             loc = e.loc;
-        e.error("constant `%s` is not an lvalue", e.toChars());
+        e.error("cannot modify constant `%s`", e.toChars());
         return new ErrorExp();
     }
 
@@ -4290,22 +4290,22 @@ extern (C++) final class VarExp : SymbolExp
     {
         if (var.storage_class & STC.manifest)
         {
-            error("manifest constant `%s` is not lvalue", var.toChars());
+            error("manifest constant `%s` cannot be modified", var.toChars());
             return new ErrorExp();
         }
         if (var.storage_class & STC.lazy_)
         {
-            error("lazy variables cannot be lvalues");
+            error("lazy variable `%s` cannot be modified", var.toChars());
             return new ErrorExp();
         }
         if (var.ident == Id.ctfe)
         {
-            error("compiler-generated variable `__ctfe` is not an lvalue");
+            error("cannot modify compiler-generated variable `__ctfe`");
             return new ErrorExp();
         }
         if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
-            error("`$` is not an lvalue");
+            error("cannot modify operator `$`");
             return new ErrorExp();
         }
         return this;

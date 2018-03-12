@@ -7,7 +7,8 @@ double sy;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13336b.d(16): Error: `cast(double)sx` is not an lvalue
+fail_compilation/fail13336b.d(17): Error: `cast(double)sx` is not an lvalue and cannot be modified
+fail_compilation/fail13336b.d(25): Error: `cast(double)sx` is not an lvalue and cannot be modified
 ---
 */
 ref f1(bool f)
@@ -17,12 +18,6 @@ ref f1(bool f)
     return sy;
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail13336b.d(30): Error: `cast(double)sx` is not an lvalue
----
-*/
 ref f2(bool f)
 {
     if (f)

@@ -2,8 +2,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6795.d(12): Error: constant `0` is not an lvalue
-fail_compilation/fail6795.d(13): Error: constant `0` is not an lvalue
+fail_compilation/fail6795.d(12): Error: cannot modify constant `0`
+fail_compilation/fail6795.d(13): Error: cannot modify constant `0`
 ---
 */
 
@@ -16,9 +16,9 @@ void main() {
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6795.d(31): Error: constant `0` is not an lvalue
-fail_compilation/fail6795.d(32): Error: constant `0` is not an lvalue
-fail_compilation/fail6795.d(33): Error: constant `0` is not an lvalue
+fail_compilation/fail6795.d(31): Error: cannot modify constant `0`
+fail_compilation/fail6795.d(32): Error: cannot modify constant `0`
+fail_compilation/fail6795.d(33): Error: cannot modify constant `0`
 ---
 */
 
