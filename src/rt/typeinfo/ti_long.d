@@ -26,7 +26,7 @@ class TypeInfo_l : TypeInfo
 
     override string toString() const pure nothrow @safe { return "long"; }
 
-    override size_t getHash(in void* p)
+    override size_t getHash(scope const void* p)
     {
         return rt.util.hash.hashOf(p[0 .. long.sizeof], 0);
     }

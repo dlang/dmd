@@ -26,7 +26,7 @@ class TypeInfo_Ai : TypeInfo_Array
 
     override string toString() const { return "int[]"; }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         const s = *cast(const int[]*)p;
         return rt.util.hash.hashOf(s, 0);

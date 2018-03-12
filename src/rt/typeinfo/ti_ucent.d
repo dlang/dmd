@@ -28,7 +28,7 @@ class TypeInfo_zk : TypeInfo
 
     override string toString() const pure nothrow @safe { return "ucent"; }
 
-    override size_t getHash(in void* p)
+    override size_t getHash(scope const void* p)
     {
         return rt.util.hash.hashOf(p[0 .. ucent.sizeof], 0);
     }
