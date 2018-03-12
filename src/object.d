@@ -252,7 +252,7 @@ class TypeInfo
      * Bugs:
      *    fix https://issues.dlang.org/show_bug.cgi?id=12516 e.g. by changing this to a truly safe interface.
      */
-    size_t getHash(in void* p) @trusted nothrow const { return cast(size_t)p; }
+    size_t getHash(scope const void* p) @trusted nothrow const { return cast(size_t)p; }
 
     /// Compares two instances for equality.
     bool equals(in void* p1, in void* p2) const { return p1 == p2; }
@@ -329,7 +329,7 @@ class TypeInfo_Enum : TypeInfo
                     this.base == c.base;
     }
 
-    override size_t getHash(in void* p) const { return base.getHash(p); }
+    override size_t getHash(scope const void* p) const { return base.getHash(p); }
     override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -377,7 +377,7 @@ class TypeInfo_Pointer : TypeInfo
         return c && this.m_next == c.m_next;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         return cast(size_t)*cast(void**)p;
     }
@@ -432,7 +432,7 @@ class TypeInfo_Array : TypeInfo
         return c && this.value == c.value;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         void[] a = *cast(void[]*)p;
         return getArrayHash(value, a.ptr, a.length);
@@ -529,7 +529,7 @@ class TypeInfo_StaticArray : TypeInfo
                     this.value == c.value;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         return getArrayHash(value, p, len);
     }
@@ -655,7 +655,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return !!_aaEqual(this, *cast(const void**) p1, *cast(const void**) p2);
     }
 
-    override hash_t getHash(in void* p) nothrow @trusted const
+    override hash_t getHash(scope const void* p) nothrow @trusted const
     {
         return _aaGetHash(cast(void*)p, this);
     }
@@ -702,7 +702,7 @@ class TypeInfo_Vector : TypeInfo
         return c && this.base == c.base;
     }
 
-    override size_t getHash(in void* p) const { return base.getHash(p); }
+    override size_t getHash(scope const void* p) const { return base.getHash(p); }
     override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -796,7 +796,7 @@ class TypeInfo_Delegate : TypeInfo
         return c && this.deco == c.deco;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         return hashOf(*cast(void delegate()*)p);
     }
@@ -896,7 +896,7 @@ class TypeInfo_Class : TypeInfo
         return c && this.info.name == c.info.name;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         auto o = *cast(Object*)p;
         return o ? o.toHash() : 0;
@@ -1051,7 +1051,7 @@ class TypeInfo_Interface : TypeInfo
         return c && this.info.name == typeid(c).name;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         Interface* pi = **cast(Interface ***)*cast(void**)p;
         Object o = cast(Object)(*cast(void**)p - pi.offset);
@@ -1121,7 +1121,7 @@ class TypeInfo_Struct : TypeInfo
                     this.initializer().length == s.initializer().length;
     }
 
-    override size_t getHash(in void* p) @trusted pure nothrow const
+    override size_t getHash(scope const void* p) @trusted pure nothrow const
     {
         assert(p);
         if (xtoHash)
@@ -1296,7 +1296,7 @@ class TypeInfo_Tuple : TypeInfo
         return false;
     }
 
-    override size_t getHash(in void* p) const
+    override size_t getHash(scope const void* p) const
     {
         assert(0);
     }
@@ -1367,7 +1367,7 @@ class TypeInfo_Const : TypeInfo
         return base.opEquals(t.base);
     }
 
-    override size_t getHash(in void *p) const { return base.getHash(p); }
+    override size_t getHash(scope const void *p) const { return base.getHash(p); }
     override bool equals(in void *p1, in void *p2) const { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
