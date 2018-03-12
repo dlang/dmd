@@ -325,6 +325,7 @@ immutable Msgtable[] msgtable =
 
     // varargs implementation
     { "stdc" },
+    { "stdarg" },
     { "va_start" },
 
     // Builtin functions

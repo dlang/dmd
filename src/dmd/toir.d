@@ -454,15 +454,12 @@ int intrinsic_op(FuncDeclaration fd)
     Lva_start:
     if (global.params.is64bit &&
         fd.toParent().isTemplateInstance() &&
-        fd.ident == Id.va_start)
+        id3 == Id.va_start &&
+        id2 == Id.stdarg &&
+        id1 == Id.stdc &&
+        (*md.packages)[1] == Id.stdc)
     {
-        OutBuffer buf;
-        mangleToBuffer(m, &buf);
-        const s = buf.peekString();
-        if (!strcmp(s, "4core4stdc6stdarg"))
-        {
-            return OPva_start;
-        }
+        return OPva_start;
     }
 
     return op;
