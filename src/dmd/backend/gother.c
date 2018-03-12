@@ -1488,6 +1488,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 vec_free(Pr); vec_free(Dr);
                 break;
 
+            case OPrelconst:
             case OPvar:
             {   symbol *v = n->EV.sp.Vsym;
                 targ_size_t voff = n->EV.sp.Voffset;
