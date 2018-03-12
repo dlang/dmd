@@ -554,7 +554,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
 extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectMarkdownEscapes = true)
 {
     uint par_open = 0;
-    bool inCode = 0;
+    int inCode = 0;
     for (size_t u = start; u < buf.offset; u++)
     {
         char c = buf.data[u];
@@ -589,6 +589,8 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
                 break;
             }
         case '-':
+        case '`':
+        case '~':
             // Issue 15465: don't try to escape unbalanced parens inside code
             // blocks.
             int numdash = 0;
@@ -598,16 +600,20 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
                 u++;
             }
             if (numdash >= 3)
-                inCode = !inCode;
+                inCode = inCode && inCode == c ? false : c;
             break;
         case '\\':
-            if (!inCode && respectMarkdownEscapes && u+1 < buf.offset &&
-                (buf.data[u+1] == '(' || buf.data[u+1] == ')'))
+            if (!inCode && respectMarkdownEscapes && u+1 < buf.offset)
             {
-                string paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
-                buf.remove(u, 2); //remove the \)
-                buf.insert(u, paren); //insert this instead
-                u += 8; //skip over newly inserted macro
+                if (buf.data[u+1] == '(' || buf.data[u+1] == ')')
+                {
+                    string paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
+                    buf.remove(u, 2); //remove the \)
+                    buf.insert(u, paren); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else if (buf.data[u+1] == '\\')
+                    ++u;
             }
             break;
         default:
@@ -1631,8 +1637,9 @@ struct DocComment
             while (1)
             {
                 // Check for start/end of a code section
-                if (*p == '-')
+                if (*p == '-' || *p == '`' || *p == '~')
                 {
+                    char c = *p;
                     if (!inCode)
                     {
                         // restore leading indentation
@@ -1640,14 +1647,14 @@ struct DocComment
                             --pstart;
                     }
                     int numdash = 0;
-                    while (*p == '-')
+                    while (*p == c)
                     {
                         ++numdash;
                         p++;
                     }
                     // BUG: handle UTF PS and LS too
-                    if ((!*p || *p == '\r' || *p == '\n') && numdash >= 3)
-                        inCode ^= 1;
+                    if ((!*p || *p == '\r' || *p == '\n' || (!inCode && c != '-')) && numdash >= 3)
+                        inCode = inCode && inCode == c ? false : c;
                     pend = p;
                 }
                 if (!inCode && isIdStart(p))
@@ -3301,7 +3308,7 @@ private struct MarkdownLinkReferences
             return;
 
         bool leadingBlank = false;
-        bool inCode = false;
+        int inCode = false;
         bool newParagraph = true;
         MarkdownDelimiter[] delimiters;
         for (; i < buf.offset; ++i)
@@ -3361,8 +3368,8 @@ private struct MarkdownLinkReferences
             case '~':
                 if (leadingBlank && i+2 < buf.offset && buf.data[i+1] == c && buf.data[i+2] == c)
                 {
-                    inCode = !inCode;
-                    i += 2;
+                    inCode = inCode && inCode == c ? false : c;
+                    i = skipChars(buf, i, "" ~ c) - 1;
                     newParagraph = true;
                 }
                 leadingBlank = false;
@@ -4321,7 +4328,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             {
                 buf.remove(i, 1);
 
-                const se = sc._module.escapetable.escapeChar(c1);
+                auto se = sc._module.escapetable.escapeChar(c1);
+                if (!se)
+                    se = c1 == '$' ? "$(DOLLAR)".ptr : c1 == ',' ? "$(COMMA)".ptr : null;
                 if (se)
                 {
                     const len = strlen(se);
