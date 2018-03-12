@@ -363,10 +363,10 @@ int intrinsic_op(FuncDeclaration fd)
 {
     int op = -1;
     fd = fd.toAliasFunc();
-    
+
     if (fd.isDeprecated())
         return op;
-        
+
     const Identifier id3 = fd.ident;
     auto m = fd.getModule();
     if (!m || !m.md)
