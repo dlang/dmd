@@ -216,6 +216,18 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag)
         va = null;
     }
 
+    if (va && e1.op == TOK.dotVariable && va.type.toBasetype().ty == Tclass)
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=17949
+         * Draw an equivalence between:
+         *   *q = p;
+         * and:
+         *   va.field = e2;
+         * since we are not assigning to va, but are assigning indirectly through class reference va.
+         */
+        va = null;
+    }
+
     if (log && va) printf("va: %s\n", va.toChars());
 
     // Try to infer 'scope' for va if in a function not marked @system
