@@ -189,8 +189,9 @@ struct T17568
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(1005): Error: scope variable `p` assigned to `this` with longer lifetime
-fail_compilation/retscope2.d(1024): Error: scope variable `p` assigned to `d` with longer lifetime
+fail_compilation/retscope2.d(1005): Error: scope variable `p` assigned to non-scope `this._p`
+fail_compilation/retscope2.d(1021): Error: scope variable `p` assigned to non-scope `c._p`
+fail_compilation/retscope2.d(1024): Error: scope variable `p` assigned to non-scope `d._p`
 ---
 */
 
@@ -216,7 +217,7 @@ void test17428() @safe
         int x;
         int* p = &x;
         scope C17428b c;
-        c._p = p;   // ok
+        c._p = p;   // bad
 
         C17428b d;
         d._p = p;   // bad

@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/fix5212.d(14): Error: scope variable `args_` assigned to `this` with longer lifetime
+fail_compilation/fix5212.d(14): Error: scope variable `args_` assigned to non-scope `this.args`
 ---
 */
 
