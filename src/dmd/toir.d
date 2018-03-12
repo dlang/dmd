@@ -361,21 +361,20 @@ elem *setEthis(const ref Loc loc, IRState *irs, elem *ey, AggregateDeclaration a
  */
 int intrinsic_op(FuncDeclaration fd)
 {
-    Identifier id1,id2,id3;
     int op = -1;
     fd = fd.toAliasFunc();
-    id3 = fd.ident;
     
     if (fd.isDeprecated())
         return op;
         
+    const Identifier id3 = fd.ident;
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;
 
     auto md = m.md;
 
-    id2 = md.id;
+    const Identifier id2 = md.id;
 
     if (!md.packages)
         return op;
@@ -383,7 +382,7 @@ int intrinsic_op(FuncDeclaration fd)
     if (md.packages.dim == 2)
         goto Lva_start;
 
-    id1 = (*md.packages)[0];
+    const Identifier id1 = (*md.packages)[0];
 
     if (id1 == Id.std && id2 == Id.math)
     {
