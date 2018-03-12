@@ -231,7 +231,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.errors = true;
             return;
         }
-        //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent.toChars(), toChars(), this, sc, loc.toChars());
+        //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", funcdecl.parent.toChars(), funcdecl.toChars(), funcdecl, sc, funcdecl.loc.toChars());
         //fflush(stdout);
         //printf("storage class = x%x %x\n", sc.stc, storage_class);
         //{ static int x; if (++x == 2) *(char*)0=0; }
@@ -1177,7 +1177,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     //printf("Inferring scope for %s\n", v.toChars());
                     Parameter p = Parameter.getNth(f.parameters, u);
-                    v.storage_class &= ~STC.maybescope;
+                    notMaybeScope(v);
                     v.storage_class |= STC.scope_ | STC.scopeinferred;
                     p.storageClass |= STC.scope_ | STC.scopeinferred;
                     assert(!(p.storageClass & STC.maybescope));
@@ -1187,7 +1187,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         if (funcdecl.vthis && funcdecl.vthis.storage_class & STC.maybescope)
         {
-            funcdecl.vthis.storage_class &= ~STC.maybescope;
+            notMaybeScope(funcdecl.vthis);
             funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
             f.isscope = true;
             f.isscopeinferred = true;
