@@ -77,9 +77,17 @@ $(GNAME AssignExpression):
     )
 
     $(UNDEFINED_BEHAVIOR
+    If either operand is a reference type and one of the following:
     $(OL
-    $(LI if the lvalue and rvalue have partially overlapping storage)
-    $(LI if the lvalue and rvalue's storage overlaps exactly but the types are different)
+    $(LI the operands have partially overlapping storage)
+    $(LI the operands' storage overlaps exactly but the types are different)
+    ))
+
+    $(IMPLEMENTATION_DEFINED
+    If neither operand is a reference type and one of the following:
+    $(OL
+    $(LI the operands have partially overlapping storage)
+    $(LI the operands' storage overlaps exactly but the types are different)
     ))
 
 $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
