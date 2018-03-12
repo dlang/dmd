@@ -2699,6 +2699,10 @@ extern (C++) abstract class Type : RootObject
                 s = getDsymbol(e);
                 break;
 
+            case TOK.dotTemplateDeclaration:
+                s = (cast(DotTemplateExp)e).td;
+                break;
+
             //case TOK.this_:
             //case TOK.super_:
 
@@ -2707,7 +2711,6 @@ extern (C++) abstract class Type : RootObject
             //case TOK.overloadSet:
 
             //case TOK.dotVariable:
-            //case TOK.dotTemplateDeclaration:
             //case TOK.dotTemplateInstance:
             //case TOK.dotType:
             //case TOK.dotIdentifier:
