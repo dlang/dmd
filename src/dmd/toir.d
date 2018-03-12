@@ -365,6 +365,10 @@ int intrinsic_op(FuncDeclaration fd)
     int op = -1;
     fd = fd.toAliasFunc();
     id3 = fd.ident;
+    
+    if (fd.isDeprecated())
+        return op;
+        
     auto m = fd.getModule();
     if (!m || !m.md)
         return op;
