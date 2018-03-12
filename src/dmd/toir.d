@@ -455,7 +455,7 @@ int intrinsic_op(FuncDeclaration fd)
     Lva_start:
     if (global.params.is64bit &&
         fd.toParent().isTemplateInstance() &&
-        id3 == Id.va_start &&
+        id3 == Id.va_start)
     {
         OutBuffer buf;
         mangleToBuffer(m, &buf);
