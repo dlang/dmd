@@ -2775,6 +2775,7 @@ final class Parser(AST) : Lexer
                     goto L2;
 
                 case TOK.in_:
+                    deprecation("`in` is equivalent to `const`");
                     stc = AST.STC.in_;
                     goto L2;
 
