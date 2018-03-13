@@ -33,7 +33,9 @@
             "VALUES_REMOVED_FOR_TEST"
         ],
         "size_t": 0,
-        "supportsIncludeImports": true,
+        "supportedFeatures": {
+            "includeImports": true
+        },
         "vendor": "VALUE_REMOVED_FOR_TEST",
         "version": "VALUE_REMOVED_FOR_TEST"
     },
