@@ -600,7 +600,7 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, 
                 u++;
             }
             if (numdash >= 3)
-                inCode = inCode && inCode == c ? false : c;
+                inCode = inCode == c ? false : c;
             break;
         case '\\':
             if (!inCode && respectMarkdownEscapes && u+1 < buf.offset)
@@ -1640,12 +1640,6 @@ struct DocComment
                 if (*p == '-' || *p == '`' || *p == '~')
                 {
                     char c = *p;
-                    if (!inCode)
-                    {
-                        // restore leading indentation
-                        while (pstart0 < pstart && isIndentWS(pstart - 1))
-                            --pstart;
-                    }
                     int numdash = 0;
                     while (*p == c)
                     {
@@ -1654,7 +1648,15 @@ struct DocComment
                     }
                     // BUG: handle UTF PS and LS too
                     if ((!*p || *p == '\r' || *p == '\n' || (!inCode && c != '-')) && numdash >= 3)
-                        inCode = inCode && inCode == c ? false : c;
+                    {
+                        inCode = inCode == c ? false : c;
+                        if (inCode)
+                        {
+                            // restore leading indentation
+                            while (pstart0 < pstart && isIndentWS(pstart - 1))
+                                --pstart;
+                        }
+                    }
                     pend = p;
                 }
                 if (!inCode && isIdStart(p))
@@ -3368,7 +3370,7 @@ private struct MarkdownLinkReferences
             case '~':
                 if (leadingBlank && i+2 < buf.offset && buf.data[i+1] == c && buf.data[i+2] == c)
                 {
-                    inCode = inCode && inCode == c ? false : c;
+                    inCode = inCode == c ? false : c;
                     i = skipChars(buf, i, "" ~ c) - 1;
                     newParagraph = true;
                 }
