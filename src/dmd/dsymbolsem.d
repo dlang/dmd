@@ -5976,6 +5976,21 @@ Laftersemantic:
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
     //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
+    if (ds.type && ds.type.ty == Ttraits)
+    {
+        TypeTraits tt = cast(TypeTraits) ds.type;
+        if (auto t = typeSemantic(tt, tt.loc, sc))
+        {
+            ds.type = t;
+        }
+        else
+        {
+            if (tt.sym)
+                ds.aliassym = tt.sym;
+            // __trait(getMember) always returns alias-able stuff
+            // so at this point either we're good or traits sem has emitted an error
+        }
+    }
     if (ds.aliassym)
     {
         auto fd = ds.aliassym.isFuncLiteralDeclaration();

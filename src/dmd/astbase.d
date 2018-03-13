@@ -4138,6 +4138,24 @@ struct ASTBase
         }
     }
 
+    extern (C++) class TypeTraits : Type
+    {
+        TraitsExp exp;
+        Loc loc;
+
+        extern (D) this(Loc loc, TraitsExp exp)
+        {
+            super(Tident);
+            this.loc = loc;
+            this.exp = exp;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) final class TypeIdentifier : TypeQualified
     {
         Identifier ident;

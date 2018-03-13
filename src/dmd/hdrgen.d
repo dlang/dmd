@@ -797,6 +797,12 @@ public:
         buf.writestring(t.dstring);
     }
 
+    override void visit(TypeTraits t)
+    {
+        //printf("TypeBasic::toCBuffer2(t.mod = %d)\n", t.mod);
+        visit(t.exp);
+    }
+
     override void visit(TypeVector t)
     {
         //printf("TypeVector::toCBuffer2(t.mod = %d)\n", t.mod);

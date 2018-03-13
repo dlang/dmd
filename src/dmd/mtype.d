@@ -285,6 +285,7 @@ enum ENUMTY : int
     Tvector,
     Tint128,
     Tuns128,
+    TTraits,
     TMAX,
 }
 
@@ -332,6 +333,7 @@ alias Tnull = ENUMTY.Tnull;
 alias Tvector = ENUMTY.Tvector;
 alias Tint128 = ENUMTY.Tint128;
 alias Tuns128 = ENUMTY.Tuns128;
+alias Ttraits = ENUMTY.TTraits;
 alias TMAX = ENUMTY.TMAX;
 
 alias TY = ubyte;
@@ -472,6 +474,7 @@ extern (C++) abstract class Type : RootObject
             sizeTy[Terror] = __traits(classInstanceSize, TypeError);
             sizeTy[Tnull] = __traits(classInstanceSize, TypeNull);
             sizeTy[Tvector] = __traits(classInstanceSize, TypeVector);
+            sizeTy[Ttraits] = __traits(classInstanceSize, TypeTraits);
             return sizeTy;
         }();
 
@@ -5009,6 +5012,43 @@ extern (C++) final class TypeDelegate : TypeNext
     override bool hasPointers() const
     {
         return true;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/**
+ * This is a shell containing a TraitsExp that can be
+ * either resolved to a type or to a symbol.
+ *
+ * The point is to allow AliasDeclarationY to use `__traits(getMember)`
+ * directly (VS using a library helper in the past).
+ */
+extern (C++) final class TypeTraits : Type
+{
+    Loc loc;
+
+    /// The expression to resolve as type or symbol.
+    TraitsExp exp;
+    /// The symbol when exp doesn't represent a type.
+    Dsymbol sym;
+
+    final extern (D) this(Loc loc, TraitsExp exp)
+    {
+        super(Ttraits);
+        this.loc = loc;
+        this.exp = exp;
+    }
+
+    override Type syntaxCopy()
+    {
+        TraitsExp te = cast(TraitsExp) exp.syntaxCopy();
+        TypeTraits tt = new TypeTraits(loc, te);
+        tt.mod = mod;
+        return tt;
     }
 
     override void accept(Visitor v)
