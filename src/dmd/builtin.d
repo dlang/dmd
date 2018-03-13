@@ -224,7 +224,7 @@ extern (C++) Expression builtin_ctfeWrite(Loc loc, FuncDeclaration fd, Expressio
 
     if (StringExp se = arg0.toStringExp)
     {
-        fprintf(global.stdmsg, "%.*s".ptr, se.len, se.string);
+        fprintf(global.stdmsg, "%.*s".ptr, cast(int) se.len, se.string);
     }
 
     return arg0;
