@@ -1383,7 +1383,15 @@ void addDefaultVersionIdentifiers()
     }
     else static if (TARGET.Linux)
     {
-        VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+        version (CRuntime_Musl)
+            VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
+        else
+        {
+            if (global.params.isLibcMusl)
+                VersionCondition.addPredefinedGlobalIdent("CRuntime_Musl");
+            else
+                VersionCondition.addPredefinedGlobalIdent("CRuntime_Glibc");
+        }
     }
 
     if (global.params.isLP64)
@@ -1675,6 +1683,17 @@ private bool parseCommandLine(const ref Strings arguments, const size_t argc, re
                 else
                 {
                     error("-mscrtlib");
+                }
+            }
+            else if (arg == "-libcmusl")
+            {
+                static if (TARGET.Linux)
+                {
+                    params.isLibcMusl = true;
+                }
+                else
+                {
+                    error("-libcmusl is only supported on linux");
                 }
             }
             else if (startsWith(p + 1, "profile")) // https://dlang.org/dmd.html#switch-profile

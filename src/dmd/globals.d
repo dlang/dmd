@@ -114,6 +114,7 @@ struct Param
     bool isOpenBSD;         // generate code for OpenBSD
     bool isDragonFlyBSD;    // generate code for DragonFlyBSD
     bool isSolaris;         // generate code for Solaris
+    bool isLibcMusl;        // Use the Musl C Runtime
     bool hasObjectiveC;     // target supports Objective-C
     bool mscoff = false;    // for Win32: write MsCoff object files instead of OMF
     // 0: don't allow use of deprecated features
