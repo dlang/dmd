@@ -6,11 +6,6 @@ src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/link846.sh.out
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
 libname=${dir}${SEP}link846${LIBEXT}
 
 # build library with -release

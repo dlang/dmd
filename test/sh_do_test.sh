@@ -6,14 +6,28 @@ if [ "${RESULTS_DIR}" == "" ]; then
     exit 1
 fi
 
-# TEST_DIR should be one of compilable, fail_compilation or runnable
-export TEST_DIR=$1
-export TEST_NAME=$2
+################################################################################
+# Exported variables
+################################################################################
+
+export TEST_DIR=$1 # TEST_DIR should be one of compilable, fail_compilation or runnable
+export TEST_NAME=$2 # name of the test, e.g. test12345
+
+if [ $OS == "win32" -o  $OS == "win64" ]; then
+    export LIBEXT=.lib
+    export OBJ=.obj
+else
+    export LIBEXT=.a
+    export OBJ=.o
+fi
+
+################################################################################
+
+# Generated variables
 script_name=${TEST_DIR}/${TEST_NAME}.sh
+output_file=${RESULTS_DIR}/${script_name}.out
 
 echo " ... ${script_name}"
-
-output_file=${RESULTS_DIR}/${script_name}.out
 rm -f ${output_file}
 
 ./${script_name} > ${output_file}  2>&1

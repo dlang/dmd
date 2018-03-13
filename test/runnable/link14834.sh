@@ -6,12 +6,6 @@ output_file=${dir}${SEP}link14834.sh.out
 
 rm -f ${output_file}
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
-
 libname=${dir}${SEP}link14834${LIBEXT}
 exename=${dir}${SEP}link14834${EXE}
 

@@ -6,11 +6,6 @@ output_file=${dir}/link14198b.sh.out
 
 rm -f ${output_file}
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
 libname=${dir}${SEP}lib14198b${LIBEXT}
 
 # Do not link failure even without library file.
