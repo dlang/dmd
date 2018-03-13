@@ -30,6 +30,55 @@ import dmd.tokens;
 import dmd.visitor;
 import dmd.arraytypes;
 
+/******************************************
+ * Array literal is going to be allocated on the GC heap.
+ * Check its elements to see if any would escape by going on the heap.
+ * Params:
+ *      sc = used to determine current function and module
+ *      ae = array literal expression
+ *      gag = do not print error messages
+ * Returns:
+ *      true if any elements escaped
+ */
+bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
+{
+    bool errors;
+    if (ae.basis)
+        errors = checkReturnEscape(sc, ae.basis, gag);
+    foreach (ex; *ae.elements)
+    {
+        if (ex)
+            errors |= checkReturnEscape(sc, ex, gag);
+    }
+    return errors;
+}
+
+/******************************************
+ * Associative array literal is going to be allocated on the GC heap.
+ * Check its elements to see if any would escape by going on the heap.
+ * Params:
+ *      sc = used to determine current function and module
+ *      ae = associative array literal expression
+ *      gag = do not print error messages
+ * Returns:
+ *      true if any elements escaped
+ */
+bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
+{
+    bool errors;
+    foreach (ex; *ae.keys)
+    {
+        if (ex)
+            errors |= checkReturnEscape(sc, ex, gag);
+    }
+    foreach (ex; *ae.values)
+    {
+        if (ex)
+            errors |= checkReturnEscape(sc, ex, gag);
+    }
+    return errors;
+}
+
 /****************************************
  * Function parameter par is being initialized to arg,
  * and par may escape.
@@ -952,7 +1001,7 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(IndexExp e)
         {
-            if (e.type.hasPointers())
+            if (e.e1.type.toBasetype().ty == Tsarray)
             {
                 e.e1.accept(this);
             }

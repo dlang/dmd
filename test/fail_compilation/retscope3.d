@@ -6,8 +6,8 @@ PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope3.d(2009): Error: scope variable `arr` may not be returned
-fail_compilation/retscope3.d(2018): Error: scope variable `arr` may not be returned
+fail_compilation/retscope3.d(2008): Error: returning `& i` escapes a reference to local variable `i`
+fail_compilation/retscope3.d(2017): Error: returning `S2000(& i)` escapes a reference to local variable `i`
 ---
 */
 
@@ -21,7 +21,7 @@ int* bar1()
 {
     int i;
     int*[] arr = [ &i ];
-    return arr[0];      // Error: scope variable arr may not be returned
+    return arr[0];
 }
 
 struct S2000 { int* p; }
