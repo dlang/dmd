@@ -44,7 +44,7 @@ int main(string[] args)
     auto json = parseJSON(readText(inFilename));
     sanitize(json);
 
-    outFile.write(json.toJSON(true, JSONOptions.doNotEscapeSlashes));
+    outFile.writeln(json.toJSON(true, JSONOptions.doNotEscapeSlashes));
     return 0;
 }
 
