@@ -33,6 +33,7 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.statement;
+import dmd.target;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -186,6 +187,17 @@ private extern(C++) final class InitializerSemanticVisitor : Visitor
                     error(i.loc, "duplicate initializer for field `%s`", vd.toChars());
                     errors = true;
                     continue;
+                }
+                if (vd.type.hasPointers)
+                {
+                    if ((t.alignment() < Target.ptrsize ||
+                         (vd.offset & (Target.ptrsize - 1))) &&
+                        sc.func.setUnsafe())
+                    {
+                        error(i.loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                            sd.toChars(), vd.toChars());
+                        errors = true;
+                    }
                 }
                 for (size_t k = 0; k < nfields; k++)
                 {
