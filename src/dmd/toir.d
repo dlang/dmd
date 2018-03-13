@@ -443,8 +443,6 @@ int intrinsic_op(FuncDeclaration fd)
          return -1;
     }
 
-    // Don't recognize 32 bit bswap.
-    //FIXME: Why?!
     if (op == OPbswap && fd.parameters && (*fd.parameters)[0].type == Type.tuns64)
     {
         return -1;
