@@ -102,6 +102,7 @@ private immutable char[TMAX] mangleChar =
     Tslice       : '@',
     Treturn      : '@',
     Tvector      : '@',
+    Ttraits      : '@',
 ];
 
 unittest
