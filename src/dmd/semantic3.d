@@ -730,7 +730,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (f.isnothrow && blockexit & BE.throw_)
                     error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
 
-                if (!(blockexit & BE.throw_ || funcdecl.flags & FUNCFLAG.hasCatches))
+                if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
                 {
                     /* Disable optimization on Win32 due to
                      * https://issues.dlang.org/show_bug.cgi?id=17997
