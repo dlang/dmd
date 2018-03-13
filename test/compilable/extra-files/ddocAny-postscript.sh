@@ -7,4 +7,3 @@ if [ $? -ne 0 ]; then
 fi
 
 rm ${RESULTS_DIR}/compilable/ddoc$1.html{,.2}
-

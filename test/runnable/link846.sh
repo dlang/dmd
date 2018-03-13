@@ -4,7 +4,6 @@ set -e
 
 src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}/link846.sh.out
 
 libname=${dir}${SEP}link846${LIBEXT}
 
@@ -16,5 +15,3 @@ $DMD -m${MODEL} -I${src} -of${dir}${SEP}link846${EXE} -debug ${src}${SEP}main846
 
 rm ${libname}
 rm ${dir}/{link846${OBJ},link846${EXE}}
-
-echo Success > ${output_file}
