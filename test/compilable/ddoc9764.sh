@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-output_html=${RESULTS_DIR}/${TEST_DIR}/${TEST_NAME}.html
+output_html=${OUTPUT_BASE}.html
 
 rm -f ${output_html}
 
-$DMD -m${MODEL} -D -o- compilable/extra-files/ddoc9764.dd -Df${output_html}
+$DMD -m${MODEL} -D -o- ${EXTRA_FILES}/ddoc9764.dd -Df${output_html}
 
-compilable/extra-files/ddocAny-postscript.sh 9764
+
+${EXTRA_FILES}/ddocAny-postscript.sh 9764

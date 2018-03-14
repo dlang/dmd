@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 
-src=runnable${SEP}extra-files
-dir=${RESULTS_DIR}${SEP}runnable
+libname=${OUTPUT_BASE}${LIBEXT}
 
-libname=${dir}${SEP}lib9377${LIBEXT}
-
-$DMD -m${MODEL} -I${src} -of${libname} -c ${src}${SEP}mul9377a.d ${src}${SEP}mul9377b.d -lib || exit 1
-$DMD -m${MODEL} -I${src} -of${dir}${SEP}mul9377${EXE} ${src}${SEP}multi9377.d ${libname} || exit 1
-
-rm ${dir}/{lib9377${LIBEXT},mul9377${OBJ},mul9377${EXE}}
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -c ${EXTRA_FILES}${SEP}mul9377a.d ${EXTRA_FILES}${SEP}mul9377b.d -lib || exit 1
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}${SEP}multi9377.d ${libname} || exit 1
+rm ${OUTPUT_BASE}{${LIBEXT},${OBJ},${EXE}}

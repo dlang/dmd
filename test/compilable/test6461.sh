@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 
-dir=${RESULTS_DIR}/compilable
-src=compilable/extra-files/${TEST_NAME}
+src=${EXTRA_FILES}/${TEST_NAME}
 
-$DMD -lib -m${MODEL} -of${dir}/a${LIBEXT} -I${src} ${src}/a.d
-$DMD -lib -m${MODEL} -of${dir}/b${LIBEXT} -I${src} ${src}/b.d
 
-$DMD -m${MODEL} -od${dir} -I${src} ${src}/main.d ${dir}/a${LIBEXT} ${dir}/b${LIBEXT}
+$DMD -lib -m${MODEL} -of${OUTPUT_BASE}a${LIBEXT} -I${src} ${src}/a.d
+$DMD -lib -m${MODEL} -of${OUTPUT_BASE}b${LIBEXT} -I${src} ${src}/b.d
 
-rm -f ${dir}/{a${LIBEXT} b${LIBEXT} main${EXE} main${OBJ}}
+$DMD -m${MODEL} -of${OUTPUT_BASE}_main -I${src} ${src}/main.d ${OUTPUT_BASE}a${LIBEXT} ${OUTPUT_BASE}b${LIBEXT}
+
+rm -f ${OUTPUT_BASE}{a${LIBEXT},b${LIBEXT},_main${EXE},_main${OBJ}}

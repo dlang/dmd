@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 
 
-src=runnable${SEP}extra-files
-dir=${RESULTS_DIR}${SEP}runnable
-
-libname=${dir}${SEP}link846${LIBEXT}
+libname=${OUTPUT_BASE}${LIBEXT}
 
 # build library with -release
-$DMD -m${MODEL} -I${src} -of${libname} -release -boundscheck=off -lib ${src}${SEP}lib846.d
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${libname} -release -boundscheck=off -lib ${EXTRA_FILES}${SEP}lib846.d
 
 # use lib with -debug
-$DMD -m${MODEL} -I${src} -of${dir}${SEP}link846${EXE} -debug ${src}${SEP}main846.d ${libname}
+$DMD -m${MODEL} -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} -debug ${EXTRA_FILES}${SEP}main846.d ${libname}
 
-rm ${libname}
-rm ${dir}/{link846${OBJ},link846${EXE}}
+rm ${OUTPUT_BASE}{${OBJ},${EXE},${LIBEXT}}
