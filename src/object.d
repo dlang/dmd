@@ -1453,7 +1453,6 @@ struct ModuleInfo
     else
     {
         @disable this();
-        @disable this(this) const;
     }
 
 const:
