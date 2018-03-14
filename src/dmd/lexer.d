@@ -422,7 +422,7 @@ class Lexer : ErrorHandler
                 else
                     goto case_ident;
             case '"':
-                t.value = escapeStringConstant(t);
+                escapeStringConstant(t);
                 return;
             case 'a':
             case 'b':
@@ -1255,7 +1255,10 @@ class Lexer : ErrorHandler
                 c = v;
             }
             else
+            {
                 handler.error("undefined escape hex sequence \\%c%c", sequence[0], c);
+                p++;
+            }
             break;
         case '&':
             // named character entity
@@ -1268,7 +1271,7 @@ class Lexer : ErrorHandler
                     if (c == ~0)
                     {
                         handler.error("unnamed character entity &%.*s;", cast(int)(p - idstart), idstart);
-                        c = ' ';
+                        c = '?';
                     }
                     p++;
                     break;
@@ -1276,6 +1279,7 @@ class Lexer : ErrorHandler
                     if (isalpha(*p) || (p != idstart && isdigit(*p)))
                         continue;
                     handler.error("unterminated named entity &%.*s;", cast(int)(p - idstart + 1), idstart);
+                    c = '?';
                     break;
                 }
                 break;
@@ -1302,7 +1306,10 @@ class Lexer : ErrorHandler
                     handler.error("escape octal sequence \\%03o is larger than \\377", c);
             }
             else
+            {
                 handler.error("undefined escape sequence \\%c", c);
+                p++;
+            }
             break;
         }
         return c;
@@ -1639,10 +1646,18 @@ class Lexer : ErrorHandler
         }
     }
 
-    /**************************************
-     */
-    final TOK escapeStringConstant(Token* t)
+    /**
+    Scan a double-quoted string while building the processed string value by
+    handling escape sequences. The result is returned in the given `t` token.
+    This function assumes that `p` currently points to the opening double-quote
+    of the string.
+    Params:
+        t = the token to set the resulting string to
+    */
+    final void escapeStringConstant(Token* t)
     {
+        t.value = TOK.string_;
+
         const start = loc();
         p++;
         stringbuffer.reset();
@@ -1677,14 +1692,14 @@ class Lexer : ErrorHandler
             case '"':
                 t.setString(stringbuffer);
                 stringPostfix(t);
-                return TOK.string_;
+                return;
             case 0:
             case 0x1A:
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
                 t.setString();
-                return TOK.string_;
+                return;
             default:
                 if (c & 0x80)
                 {
@@ -2665,41 +2680,45 @@ unittest
         }
         final void error(Loc loc, const(char)* format, ...) { assert(0); }
     }
-    static void test(string sequence, string expectedError)
+    static void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength)
     {
         scope handler = new ExpectErrorHandler(expectedError);
         auto p = cast(const(char)*)sequence.ptr;
-        Lexer.escapeSequence(handler, p);
+        auto actualReturnValue = Lexer.escapeSequence(handler, p);
         assert(handler.gotError);
+        assert(expectedReturnValue == actualReturnValue);
+
+        auto actualScanLength = p - sequence.ptr;
+        assert(expectedScanLength == actualScanLength);
     }
 
-    test("c", `undefined escape sequence \c`);
-    test("!", `undefined escape sequence \!`);
+    test("c", `undefined escape sequence \c`, 'c', 1);
+    test("!", `undefined escape sequence \!`, '!', 1);
 
-    test("x1", `escape hex sequence has 1 hex digits instead of 2`);
+    test("x1", `escape hex sequence has 1 hex digits instead of 2`, '\x01', 2);
 
-    test("u1"  , `escape hex sequence has 1 hex digits instead of 4`);
-    test("u12" , `escape hex sequence has 2 hex digits instead of 4`);
-    test("u123", `escape hex sequence has 3 hex digits instead of 4`);
+    test("u1"  , `escape hex sequence has 1 hex digits instead of 4`,   0x1, 2);
+    test("u12" , `escape hex sequence has 2 hex digits instead of 4`,  0x12, 3);
+    test("u123", `escape hex sequence has 3 hex digits instead of 4`, 0x123, 4);
 
-    test("U0"      , `escape hex sequence has 1 hex digits instead of 8`);
-    test("U00"     , `escape hex sequence has 2 hex digits instead of 8`);
-    test("U000"    , `escape hex sequence has 3 hex digits instead of 8`);
-    test("U0000"   , `escape hex sequence has 4 hex digits instead of 8`);
-    test("U0001f"  , `escape hex sequence has 5 hex digits instead of 8`);
-    test("U0001f6" , `escape hex sequence has 6 hex digits instead of 8`);
-    test("U0001f60", `escape hex sequence has 7 hex digits instead of 8`);
+    test("U0"      , `escape hex sequence has 1 hex digits instead of 8`,       0x0, 2);
+    test("U00"     , `escape hex sequence has 2 hex digits instead of 8`,      0x00, 3);
+    test("U000"    , `escape hex sequence has 3 hex digits instead of 8`,     0x000, 4);
+    test("U0000"   , `escape hex sequence has 4 hex digits instead of 8`,    0x0000, 5);
+    test("U0001f"  , `escape hex sequence has 5 hex digits instead of 8`,   0x0001f, 6);
+    test("U0001f6" , `escape hex sequence has 6 hex digits instead of 8`,  0x0001f6, 7);
+    test("U0001f60", `escape hex sequence has 7 hex digits instead of 8`, 0x0001f60, 8);
 
-    test("ud800", `invalid UTF character \U0000d800`);
-    test("udfff", `invalid UTF character \U0000dfff`);
-    test("U00110000", `invalid UTF character \U00110000`);
+    test("ud800"    , `invalid UTF character \U0000d800`, '?', 5);
+    test("udfff"    , `invalid UTF character \U0000dfff`, '?', 5);
+    test("U00110000", `invalid UTF character \U00110000`, '?', 9);
 
-    test("xg0"      , `undefined escape hex sequence \xg`);
-    test("ug000"    , `undefined escape hex sequence \ug`);
-    test("Ug0000000", `undefined escape hex sequence \Ug`);
+    test("xg0"      , `undefined escape hex sequence \xg`, 'g', 2);
+    test("ug000"    , `undefined escape hex sequence \ug`, 'g', 2);
+    test("Ug0000000", `undefined escape hex sequence \Ug`, 'g', 2);
 
-    test("&BAD;", `unnamed character entity &BAD;`);
-    test("&quot", `unterminated named entity &quot;`);
+    test("&BAD;", `unnamed character entity &BAD;`  , '?', 5);
+    test("&quot", `unterminated named entity &quot;`, '?', 5);
 
-    test("400", `escape octal sequence \400 is larger than \377`);
+    test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
 }
