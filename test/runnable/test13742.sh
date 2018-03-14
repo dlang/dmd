@@ -6,14 +6,6 @@ src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/test13742.sh.out
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-    LIBEXT=.lib
-    OBJ=.obj
-else
-    LIBEXT=.a
-    OBJ=.o
-fi
-
 $DMD -m${MODEL} -I${src} -lib -cov -of${dir}${SEP}test13742${LIBEXT} ${src}${SEP}lib13742a.d ${src}${SEP}lib13742b.d
 $DMD -m${MODEL} -I${src} -cov -of${dir}${SEP}test13742${EXE} ${src}${SEP}test13742.d ${dir}${SEP}test13742${LIBEXT}
 

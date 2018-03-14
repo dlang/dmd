@@ -4,11 +4,6 @@ src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/test9377.sh.out
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
 libname=${dir}${SEP}lib9377${LIBEXT}
 
 $DMD -m${MODEL} -I${src} -of${libname} -c ${src}${SEP}mul9377a.d ${src}${SEP}mul9377b.d -lib || exit 1

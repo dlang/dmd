@@ -4,11 +4,6 @@ src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
 output_file=${dir}/gdb15729.sh.out
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
 libname=${dir}${SEP}lib15729${LIBEXT}
 
 $DMD -g -m${MODEL} -I${src} -of${libname} -lib ${src}${SEP}lib15729.d || exit 1
