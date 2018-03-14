@@ -1628,6 +1628,19 @@ struct DocComment
             p = skipwhitespace(p);
             pstart = p;
             pend = p;
+
+            // Undo indent if starting with a list item
+            if ((*p == '-' || *p == '+' || *p == '*') && (*(p+1) == ' ' || *(p+1) == '\t'))
+                pstart = pstart0;
+            else
+            {
+                const(char)* pitem = p;
+                while (*pitem >= '0' && *pitem <= '9')
+                    ++pitem;
+                if (pitem > p && *pitem == '.' && (*(pitem+1) == ' ' || *(pitem+1) == '\t'))
+                    pstart = pstart0;
+            }
+
             /* Find end of section, which is ended by one of:
              *      'identifier:' (but not inside a code section)
              *      '\0'
