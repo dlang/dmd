@@ -4447,6 +4447,6 @@ unittest
     }
 
     int p;
-    scope arr = [S(&p)];
+    scope S[1] arr = [S(&p)];
     auto a = arr.dup; // dup does escape
 }
