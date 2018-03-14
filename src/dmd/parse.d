@@ -2365,8 +2365,11 @@ final class Parser(AST) : Lexer
             check(TOK.rightParentheses);
 
             stc = parsePostfix(stc, &udas);
-            if (stc & AST.STC.static_)
-                error(loc, "postblit cannot be static");
+            if (stc & AST.STC.immutable_ || stc & AST.STC.shared_ ||
+                stc & AST.STC.const_ || stc & AST.STC.static_)
+            {
+                error(loc, "postblit cannot be `const`/`immutable`/`shared`/`static`");
+            }
 
             auto f = new AST.PostBlitDeclaration(loc, Loc.initial, stc, Id.postblit);
             AST.Dsymbol s = parseContracts(f);
