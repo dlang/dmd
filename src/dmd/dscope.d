@@ -98,11 +98,9 @@ enum CSX
 enum SCOPE
 {
     ctor          = 0x0001,   /// constructor type
+    noaccesscheck = 0x0002,   /// don't do access checks
     condition     = 0x0004,   /// inside static if/assert condition
     debug_        = 0x0008,   /// inside debug conditional
-
-    // Flags that would be inherited beyond scope nesting
-    noaccesscheck = 0x0002,   /// don't do access checks
     constraint    = 0x0010,   /// inside template constraint
     invariant_    = 0x0020,   /// inside invariant code
     require       = 0x0040,   /// inside in contract code
@@ -112,10 +110,15 @@ enum SCOPE
     compile       = 0x0100,   /// inside __traits(compile)
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
+    onlysafeaccess = 0x0400,  /// unsafe access is not allowed for @safe code
     free          = 0x8000,   /// is on free list
 
     fullinst      = 0x10000,  /// fully instantiate templates
 }
+
+// Flags that are carried along with a scope push()
+enum SCOPEpush = SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
+                 SCOPE.noaccesscheck | SCOPE.onlysafeaccess | SCOPE.ignoresymbolvisibility;
 
 struct Scope
 {
@@ -250,8 +253,7 @@ struct Scope
         s.slabel = null;
         s.nofree = 0;
         s.fieldinit = saveFieldInit();
-        s.flags = (flags & (SCOPE.contract | SCOPE.debug_ | SCOPE.ctfe | SCOPE.compile | SCOPE.constraint |
-                            SCOPE.noaccesscheck | SCOPE.ignoresymbolvisibility));
+        s.flags = (flags & SCOPEpush);
         s.lastdc = null;
         assert(&this != s);
         return s;

@@ -3139,7 +3139,7 @@ private extern(C++) final class DotExpVisitor : Visitor
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags = sc.flags | SCOPE.noaccesscheck;
+            sc2.flags |= global.params.vsafe ? SCOPE.onlysafeaccess : SCOPE.noaccesscheck;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             result = e;
@@ -3468,7 +3468,7 @@ private extern(C++) final class DotExpVisitor : Visitor
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags = sc.flags | SCOPE.noaccesscheck;
+            sc2.flags |= global.params.vsafe ? SCOPE.onlysafeaccess : SCOPE.noaccesscheck;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             result = e;
