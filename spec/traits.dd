@@ -1053,9 +1053,9 @@ void main()
         types (basic, user-defined, template) are supported.)
         $(LI The lambda function body must contain a single expression
         (no return statement) which contains only numeric values,
-        manifest constants, enum values and function arguments. If the
-        expression contains local variables, function calls or return
-        statements, the function is considered uncomparable.)
+        manifest constants, enum values, function arguments and function
+        calls. If the expression contains local variables or return
+        statements, the function is considered incomparable.)
         )
 
         $(P If these constraints aren't fulfilled, the function is considered
@@ -1063,6 +1063,13 @@ void main()
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
+int f() { return 2; }
+void test(alias pred)()
+{
+    // f() from main is a different function from top-level f()
+    static assert(!__traits(isSame, (int a) => a + f(), pred));
+}
+
 void main()
 {
     static assert(__traits(isSame, (a, b) => a + b, (c, d) => c + d));
@@ -1073,6 +1080,11 @@ void main()
     // lambdas accessing local variables are considered incomparable
     int b;
     static assert(!__traits(isSame, a => a + b, a => a + b));
+
+    // lambdas calling other functions are comparable
+    int f() { return 3;}
+    static assert(__traits(isSame, a => a + f(), a => a + f()));
+    test!((int a) => a + f())();
 
     class A
     {
