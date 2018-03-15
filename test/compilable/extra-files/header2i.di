@@ -13,7 +13,7 @@ void foo2(const C2 c);
 struct Foo3
 {
 	int k;
-	@trusted @nogc @disable ~this()
+	@nogc @trusted @disable ~this()
 	{
 		k = 1;
 	}
