@@ -1,0 +1,3 @@
+Make const/immutable/shared postblit an error
+
+Before this patch, if a postblit was declared const/immutable/shared the compiler would have accepted the declaration but there would have been no way of calling the postblit succesfully (e.g. whenever the postblit was called, an error was issued). The patch makes it so that if a postblit contains const/immutable/shared in its signature an error will occur.
