@@ -1075,8 +1075,8 @@ extern (C++) Expression op_overload(Expression e, Scope* sc)
 
             /* Check for array equality.
              */
-            if ((t1.ty == Tarray || t1.ty == Tsarray)
-                && (t2.ty == Tarray || t2.ty == Tsarray))
+            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
+                (t2.ty == Tarray || t2.ty == Tsarray))
             {
                 bool needsDirectEq()
                 {
@@ -1725,15 +1725,25 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
     return null;
 }
 
-extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
+/**************************************
+ * Figure out what is being foreach'd over by looking at the ForeachAggregate.
+ * Params:
+ *      sc = context
+ *      isForeach = true for foreach, false for foreach_reverse
+ *      feaggr = ForeachAggregate
+ *      sapply = set to function opApply/opApplyReverse, or delegate, or null
+ * Returns:
+ *      true if successfully figured it out; feaggr updated with semantic analysis.
+ *      false for failed, which is an error.
+ */
+bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out Dsymbol sapply)
 {
     //printf("inferAggregate(%s)\n", fes.aggr.toChars());
-    Identifier idapply = (fes.op == TOK.foreach_) ? Id.apply : Id.applyReverse;
-    Identifier idfront = (fes.op == TOK.foreach_) ? Id.Ffront : Id.Fback;
-    int sliced = 0;
-    Type tab;
+    Identifier idapply = isForeach ? Id.apply : Id.applyReverse;
+    Identifier idfront = isForeach ? Id.Ffront : Id.Fback;
+    bool sliced;
     Type att = null;
-    Expression aggr = fes.aggr;
+    auto aggr = feaggr;
     AggregateDeclaration ad;
     while (1)
     {
@@ -1741,8 +1751,8 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
         aggr = resolveProperties(sc, aggr);
         aggr = aggr.optimize(WANTvalue);
         if (!aggr.type || aggr.op == TOK.error)
-            goto Lerr;
-        tab = aggr.type.toBasetype();
+            return false;
+        Type tab = aggr.type.toBasetype();
         switch (tab.ty)
         {
         case Tarray:
@@ -1750,6 +1760,7 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
         case Ttuple:
         case Taarray:
             break;
+
         case Tclass:
             ad = (cast(TypeClass)tab).sym;
             goto Laggr;
@@ -1765,14 +1776,16 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
                     // opApply aggregate
                     break;
                 }
-                if (fes.aggr.op != TOK.type)
+                if (feaggr.op != TOK.type)
                 {
-                    Expression rinit = new ArrayExp(aggr.loc, fes.aggr);
+                    /* See if applying [] to aggr will work
+                     */
+                    Expression rinit = new ArrayExp(aggr.loc, feaggr);
                     rinit = rinit.trySemantic(sc);
-                    if (rinit) // if application of [] succeeded
+                    if (rinit) // if it worked
                     {
                         aggr = rinit;
-                        sliced = 1;
+                        sliced = true;  // only try it once
                         continue;
                     }
                 }
@@ -1785,30 +1798,31 @@ extern (C++) bool inferAggregate(ForeachStatement fes, Scope* sc, ref Dsymbol sa
             if (ad.aliasthis)
             {
                 if (att == tab)
-                    goto Lerr;
+                    return false;
                 if (!att && tab.checkAliasThisRec())
                     att = tab;
                 aggr = resolveAliasThis(sc, aggr);
                 continue;
             }
-            goto Lerr;
+            return false;
+
         case Tdelegate:
             if (aggr.op == TOK.delegate_)
             {
                 sapply = (cast(DelegateExp)aggr).func;
             }
             break;
+
         case Terror:
             break;
+
         default:
-            goto Lerr;
+            return false;
         }
-        break;
+        feaggr = aggr;
+        return true;
     }
-    fes.aggr = aggr;
-    return true;
-Lerr:
-    return false;
+    assert(0);
 }
 
 /*****************************************
