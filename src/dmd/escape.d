@@ -820,7 +820,12 @@ private void escapeByValue(Expression e, EscapeByResults* er)
 
         override void visit(AddrExp e)
         {
-            escapeByRef(e.e1, er);
+            /* Taking the address of struct literal is normally not
+             * allowed, but CTFE can generate one out of a new expression,
+             * but it'll be placed in static data so no need to check it.
+             */
+            if (e.e1.op != TOK.structLiteral)
+                escapeByRef(e.e1, er);
         }
 
         override void visit(SymOffExp e)
@@ -1159,6 +1164,19 @@ private void escapeByRef(Expression e, EscapeByResults* er)
             {
                 escapeByValue(e.e1, er);
             }
+        }
+
+        override void visit(StructLiteralExp e)
+        {
+            if (e.elements)
+            {
+                foreach (ex; *e.elements)
+                {
+                    if (ex)
+                        ex.accept(this);
+                }
+            }
+            er.byexp.push(e);
         }
 
         override void visit(DotVarExp e)
