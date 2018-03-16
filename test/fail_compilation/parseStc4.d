@@ -21,7 +21,7 @@ TEST_OUTPUT:
 ---
 fail_compilation/parseStc4.d(35): Deprecation: redundant attribute `const`
 fail_compilation/parseStc4.d(36): Deprecation: redundant attribute `const`
-fail_compilation/parseStc4.d(36): Error: postblit cannot be `const`/`immutable`/`shared`/`static`
+fail_compilation/parseStc4.d(36): Deprecation: `const` postblit is deprecated. Please use an unqualified postblit.
 fail_compilation/parseStc4.d(37): Deprecation: redundant attribute `const`
 fail_compilation/parseStc4.d(39): Deprecation: redundant attribute `pure`
 fail_compilation/parseStc4.d(40): Deprecation: redundant attribute `@safe`

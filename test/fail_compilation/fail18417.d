@@ -1,9 +1,10 @@
+// REQUIRED_ARGS : -de
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18417.d(10): Error: postblit cannot be `const`/`immutable`/`shared`/`static`
-fail_compilation/fail18417.d(11): Error: postblit cannot be `const`/`immutable`/`shared`/`static`
-fail_compilation/fail18417.d(12): Error: postblit cannot be `const`/`immutable`/`shared`/`static`
+fail_compilation/fail18417.d(11): Deprecation: `const` postblit is deprecated. Please use an unqualified postblit.
+fail_compilation/fail18417.d(12): Deprecation: `immutable` postblit is deprecated. Please use an unqualified postblit.
+fail_compilation/fail18417.d(13): Deprecation: `shared` postblit is deprecated. Please use an unqualified postblit.
 ---
 */
 
