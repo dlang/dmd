@@ -1773,6 +1773,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         semanticTypeInfo(sc, e.type);
 
+        if (global.params.vsafe)
+        {
+            if (checkAssocArrayLiteralEscape(sc, e, false))
+                return setError();
+        }
+
         result = e;
     }
 

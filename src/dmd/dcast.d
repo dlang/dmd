@@ -24,6 +24,7 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.errors;
+import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
@@ -2070,14 +2071,24 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
+
+            ArrayLiteralExp ae = e;
+
+            Type tb = t.toBasetype();
+            if (tb.ty == Tarray && global.params.vsafe)
+            {
+                if (checkArrayLiteralEscape(sc, ae, false))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             if (e.type == t)
             {
                 result = e;
                 return;
             }
-            ArrayLiteralExp ae = e;
-
-            Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
             if ((tb.ty == Tarray || tb.ty == Tsarray) &&
@@ -2166,6 +2177,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(AssocArrayLiteralExp e)
         {
+            //printf("AssocArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
             if (e.type == t)
             {
                 result = e;
