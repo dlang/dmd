@@ -50,7 +50,7 @@ void test2(int i)
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/switches.d(302): Deprecation: `switch` skips declaration of variable `switches.test3.j` at fail_compilation/switches.d(306)
+fail_compilation/switches.d(302): Error: `switch` skips declaration of variable `switches.test3.j` at fail_compilation/switches.d(306)
 ---
 */
 
