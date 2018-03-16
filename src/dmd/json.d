@@ -999,6 +999,8 @@ public:
 extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
+    // write trailing newline
+    scope(exit) buf.writeByte('\n');
 
     if (global.params.jsonFieldFlags == 0)
     {
