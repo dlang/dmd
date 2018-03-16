@@ -1,9 +1,9 @@
 // REQUIRED_ARGS: -o-
 
+
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(281): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail_arrayop2.d(13): Error: array operation `[1, 2, 3] - [1, 2, 3]` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(16): Error: invalid array operation `"a" - "b"` (possible missing [])
 ---
@@ -198,9 +198,9 @@ void test14895()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_arrayop2.d(246): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(247): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(248): Error: array operation `[1] * 6` without destination memory not allowed
+fail_compilation/fail_arrayop2.d(249): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(253): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(256): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(265): Error: array operation `[1] * 6` without destination memory not allowed
@@ -209,6 +209,7 @@ fail_compilation/fail_arrayop2.d(269): Error: array operation `"abc"[] + '\x01'`
 fail_compilation/fail_arrayop2.d(272): Error: array operation `[1] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(275): Error: `([1] * 6)[0..2]` is not an lvalue
 fail_compilation/fail_arrayop2.d(278): Error: can only `*` a pointer, not a `int[]`
+fail_compilation/fail_arrayop2.d(281): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
 fail_compilation/fail_arrayop2.d(281): Error: `[1] * 6` is not an lvalue
 fail_compilation/fail_arrayop2.d(284): Error: array operation `da[] * 6` without destination memory not allowed
 fail_compilation/fail_arrayop2.d(287): Error: array operation `da[] * 6` without destination memory not allowed
@@ -248,7 +249,6 @@ void test15407exp()
                 [1] * 6]; }     // AssocArrayLiteralExp
 
     //TupleExp
-
     // StructLiteralExp.elements <- preFunctionParameters in CallExp
     { auto r = S([1] * 6); }
 
