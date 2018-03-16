@@ -1013,12 +1013,30 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
          */
 
         //printf("ForeachStatement::semantic() %p\n", fs);
-        ScopeDsymbol sym;
-        Statement s = fs;
-        auto loc = fs.loc;
-        size_t dim = fs.parameters.dim;
+
+        /******
+         * Issue error if any of the ForeachTypes were not supplied and could not be inferred.
+         * Returns:
+         *      true if error issued
+         */
+        static bool checkForArgTypes(ForeachStatement fs)
+        {
+            bool result = false;
+            foreach (p; *fs.parameters)
+            {
+                if (!p.type)
+                {
+                    fs.error("cannot infer type for `foreach` variable `%s`, perhaps set it explicitly", p.ident.toChars());
+                    p.type = Type.terror;
+                    result = true;
+                }
+            }
+            return result;
+        }
+
+        const loc = fs.loc;
+        const dim = fs.parameters.dim;
         TypeAArray taa = null;
-        Dsymbol sapply = null;
 
         Type tn = null;
         Type tnv = null;
@@ -1046,7 +1064,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             fs.aggr = new VarExp(fs.aggr.loc, vinit);
         }
 
-        if (!inferAggregate(fs, sc, sapply))
+        Dsymbol sapply = null;                  // the inferred opApply() or front() function
+        if (!inferForeachAggregate(sc, fs.op == TOK.foreach_, fs.aggr, sapply))
         {
             const(char)* msg = "";
             if (fs.aggr.type && isAggregate(fs.aggr.type))
@@ -1116,16 +1135,15 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             return;
         }
 
-        sym = new ScopeDsymbol();
+        auto sym = new ScopeDsymbol();
         sym.parent = sc.scopesym;
         sym.endlinnum = fs.endloc.linnum;
         auto sc2 = sc.push(sym);
 
         sc2.noctor++;
 
-        foreach (i; 0 .. dim)
+        foreach (Parameter p; *fs.parameters)
         {
-            Parameter p = (*fs.parameters)[i];
             if (p.storageClass & STC.manifest)
             {
                 fs.error("cannot declare `enum` loop variables for non-unrolled foreach");
@@ -1136,16 +1154,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             }
         }
 
+        Statement s = fs;
         switch (tab.ty)
         {
         case Tarray:
         case Tsarray:
             {
-                if (fs.checkForArgTypes())
-                {
-                    result = fs;
-                    return;
-                }
+                if (checkForArgTypes(fs))
+                    return setError();
 
                 if (dim < 1 || dim > 2)
                 {
@@ -1187,7 +1203,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                 foreach (i; 0 .. dim)
                 {
-                    // Declare parameterss
+                    // Declare parameters
                     Parameter p = (*fs.parameters)[i];
                     p.type = p.type.typeSemantic(loc, sc2);
                     p.type = p.type.addStorageClass(p.storageClass);
@@ -1361,11 +1377,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         case Taarray:
             if (fs.op == TOK.foreach_reverse_)
                 fs.warning("cannot use `foreach_reverse` with an associative array");
-            if (fs.checkForArgTypes())
-            {
-                result = fs;
-                return;
-            }
+            if (checkForArgTypes(fs))
+                return setError();
 
             taa = cast(TypeAArray)tab;
             if (dim < 1 || dim > 2)
@@ -1555,12 +1568,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                 fs.deprecation("cannot use `foreach_reverse` with a delegate");
         Lapply:
             {
-                if (fs.checkForArgTypes())
-                {
-                    fs._body = fs._body.semanticNoScope(sc2);
-                    result = fs;
-                    return;
-                }
+                if (checkForArgTypes(fs))
+                    return setError();
 
                 TypeFunction tfld = null;
                 if (sapply)
