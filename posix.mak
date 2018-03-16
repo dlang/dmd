@@ -42,10 +42,12 @@ install: all
 # Checks that all files have been committed and no temporary, untracked files exist.
 # See: https://github.com/dlang/dmd/pull/7483
 check-clean-git:
-	@git diff-index --quiet HEAD -- || \
-		(echo "ERROR: Found the following residual temporary files."; \
-		 echo 'ERROR: Temporary files should be stored in `test_results` or explicitly removed.'; \
-		 git status -s ; exit 1)
+	@if [ -n "$$(git status --porcelain)" ] ; then \
+		echo "ERROR: Found the following residual temporary files."; \
+		echo 'ERROR: Temporary files should be stored in `test_results` or explicitly removed.'; \
+		git status -s ; \
+		exit 1; \
+	fi
 
 style:
 	@echo "To be done"
