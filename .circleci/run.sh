@@ -164,6 +164,12 @@ check_clean_git()
     make -f posix.mak check-clean-git
 }
 
+# sanitycheck for the run_individual_tests script
+check_run_individual()
+{
+	./test/run_individual_tests test/runnable/template2962.d ./test/compilable/test14275.d
+}
+
 codecov()
 {
     # CodeCov gets confused by lst files which it can't matched
@@ -185,6 +191,7 @@ case $1 in
     all)
         coverage;
         check_clean_git;
+        check_run_individual;
         codecov;
     ;;
 esac
