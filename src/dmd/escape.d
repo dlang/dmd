@@ -44,11 +44,11 @@ bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
 {
     bool errors;
     if (ae.basis)
-        errors = checkReturnEscape(sc, ae.basis, gag);
+        errors = checkNewEscape(sc, ae.basis, gag);
     foreach (ex; *ae.elements)
     {
         if (ex)
-            errors |= checkReturnEscape(sc, ex, gag);
+            errors |= checkNewEscape(sc, ex, gag);
     }
     return errors;
 }
@@ -69,12 +69,12 @@ bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
     foreach (ex; *ae.keys)
     {
         if (ex)
-            errors |= checkReturnEscape(sc, ex, gag);
+            errors |= checkNewEscape(sc, ex, gag);
     }
     foreach (ex; *ae.values)
     {
         if (ex)
-            errors |= checkReturnEscape(sc, ex, gag);
+            errors |= checkNewEscape(sc, ex, gag);
     }
     return errors;
 }
@@ -573,6 +573,23 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
+ * lifetime of the stack frame by being placed into a GC allocated object.
+ * Print error messages when these are detected.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check for any pointers to the stack
+ *      gag = do not print error messages
+ * Returns:
+ *      true if pointers to the stack can escape
+ */
+bool checkNewEscape(Scope* sc, Expression e, bool gag)
+{
+    //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
+    return checkReturnEscapeImpl(sc, e, false, gag, false);
+}
+
+/************************************
+ * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame by returning 'e' by value.
  * Print error messages when these are detected.
  * Params:
@@ -585,7 +602,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkReturnEscape, e = %s\n", e.loc.toChars(), e.toChars());
-    return checkReturnEscapeImpl(sc, e, false, gag);
+    return checkReturnEscapeImpl(sc, e, false, gag, true);
 }
 
 /************************************
@@ -608,10 +625,20 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
         printf("parent2 function %s\n", sc.func.toParent2().toChars());
     }
 
-    return checkReturnEscapeImpl(sc, e, true, gag);
+    return checkReturnEscapeImpl(sc, e, true, gag, true);
 }
 
-private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
+/***************************************
+ * Implementation of checking for escapes in `return` and `new`.
+ * Params:
+ *      sc = used to determine current function and module
+ *      e = expression to check
+ *      gag = do not print error messages
+ *      isReturn = it's a `return`, otherwise `new`
+ * Returns:
+ *      true if references to the stack can escape
+ */
+private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag, bool isReturn)
 {
     enum log = false;
     if (log) printf("[%s] checkReturnEscapeImpl, refs: %d e: `%s`\n", e.loc.toChars(), refs, e.toChars());
@@ -638,7 +665,8 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
             sc.func.flags & FUNCFLAG.returnInprocess &&
-            p == sc.func)
+            p == sc.func &&
+            isReturn)
         {
             inferReturn(sc.func, v);        // infer addition of 'return'
             continue;
@@ -646,7 +674,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
         if (v.isScope())
         {
-            if (v.storage_class & STC.return_)
+            if (v.storage_class & STC.return_ && isReturn)
                 continue;
 
             if (sc._module && sc._module.isRoot() &&
@@ -719,7 +747,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
-            if (fd && sc.func.flags & FUNCFLAG.returnInprocess)
+            if (fd && sc.func.flags & FUNCFLAG.returnInprocess && isReturn)
             {
                 /* Code like:
                  *   int x;
@@ -738,9 +766,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
          * Infer the addition of 'return', or set result to be the offending expression.
          */
         if ( (v.storage_class & (STC.ref_ | STC.out_)) &&
-            !(v.storage_class & (STC.return_ | STC.foreach_)))
+             (!isReturn || !(v.storage_class & (STC.return_ | STC.foreach_))))
         {
-            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
+            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func && isReturn)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }
