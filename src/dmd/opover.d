@@ -1731,20 +1731,18 @@ extern (C++) Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
  *      sc = context
  *      isForeach = true for foreach, false for foreach_reverse
  *      feaggr = ForeachAggregate
- *      sapply = set to function opApply/opApplyReverse, or delegate, or null
+ *      sapply = set to function opApply/opApplyReverse, or delegate, or null.
+ *               Overload resolution is not done.
  * Returns:
  *      true if successfully figured it out; feaggr updated with semantic analysis.
  *      false for failed, which is an error.
  */
 bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out Dsymbol sapply)
 {
-    //printf("inferAggregate(%s)\n", fes.aggr.toChars());
-    Identifier idapply = isForeach ? Id.apply : Id.applyReverse;
-    Identifier idfront = isForeach ? Id.Ffront : Id.Fback;
+    //printf("inferForeachAggregate(%s)\n", feaggr.toChars());
     bool sliced;
     Type att = null;
     auto aggr = feaggr;
-    AggregateDeclaration ad;
     while (1)
     {
         aggr = aggr.expressionSemantic(sc);
@@ -1755,30 +1753,29 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
         Type tab = aggr.type.toBasetype();
         switch (tab.ty)
         {
-        case Tarray:
-        case Tsarray:
-        case Ttuple:
-        case Taarray:
+        case Tarray:            // https://dlang.org/spec/statement.html#foreach_over_arrays
+        case Tsarray:           // https://dlang.org/spec/statement.html#foreach_over_arrays
+        case Ttuple:            // https://dlang.org/spec/statement.html#foreach_over_tuples
+        case Taarray:           // https://dlang.org/spec/statement.html#foreach_over_associative_arrays
             break;
 
         case Tclass:
-            ad = (cast(TypeClass)tab).sym;
-            goto Laggr;
         case Tstruct:
-            ad = (cast(TypeStruct)tab).sym;
-            goto Laggr;
-        Laggr:
+        {
+            AggregateDeclaration ad = (tab.ty == Tclass) ? (cast(TypeClass)tab).sym
+                                                         : (cast(TypeStruct)tab).sym;
             if (!sliced)
             {
-                sapply = search_function(ad, idapply);
+                sapply = search_function(ad, isForeach ? Id.apply : Id.applyReverse);
                 if (sapply)
                 {
+                    // https://dlang.org/spec/statement.html#foreach_over_struct_and_classes
                     // opApply aggregate
                     break;
                 }
                 if (feaggr.op != TOK.type)
                 {
-                    /* See if applying [] to aggr will work
+                    /* See if rewriting `aggr` to `aggr[]` will work
                      */
                     Expression rinit = new ArrayExp(aggr.loc, feaggr);
                     rinit = rinit.trySemantic(sc);
@@ -1790,14 +1787,15 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
                     }
                 }
             }
-            if (ad.search(Loc.initial, idfront))
+            if (ad.search(Loc.initial, isForeach ? Id.Ffront : Id.Fback))
             {
+                // https://dlang.org/spec/statement.html#foreach-with-ranges
                 // range aggregate
                 break;
             }
             if (ad.aliasthis)
             {
-                if (att == tab)
+                if (att == tab)         // error, circular alias this
                     return false;
                 if (!att && tab.checkAliasThisRec())
                     att = tab;
@@ -1805,8 +1803,9 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
                 continue;
             }
             return false;
+        }
 
-        case Tdelegate:
+        case Tdelegate:        // https://dlang.org/spec/statement.html#foreach_over_delegates
             if (aggr.op == TOK.delegate_)
             {
                 sapply = (cast(DelegateExp)aggr).func;
@@ -1826,25 +1825,33 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
 }
 
 /*****************************************
- * Given array of parameters and an aggregate type,
+ * Given array of foreach parameters and an aggregate type,
+ * find best opApply overload,
  * if any of the parameter types are missing, attempt to infer
  * them from the aggregate type.
+ * Params:
+ *      fes = the foreach statement
+ *      sc = context
+ *      sapply = null or opApply or delegate
+ * Returns:
+ *      false for errors
  */
-extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
+bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
 {
     if (!fes.parameters || !fes.parameters.dim)
         return false;
     if (sapply) // prefer opApply
     {
-        for (size_t u = 0; u < fes.parameters.dim; u++)
+        foreach (Parameter p; *fes.parameters)
         {
-            Parameter p = (*fes.parameters)[u];
             if (p.type)
             {
                 p.type = p.type.typeSemantic(fes.loc, sc);
                 p.type = p.type.addStorageClass(p.storageClass);
             }
         }
+
+        // Determine ethis for sapply
         Expression ethis;
         Type tab = fes.aggr.type.toBasetype();
         if (tab.ty == Tclass || tab.ty == Tstruct)
@@ -1854,26 +1861,26 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             assert(tab.ty == Tdelegate && fes.aggr.op == TOK.delegate_);
             ethis = (cast(DelegateExp)fes.aggr).e1;
         }
+
         /* Look for like an
          *  int opApply(int delegate(ref Type [, ...]) dg);
          * overload
          */
-        FuncDeclaration fd = sapply.isFuncDeclaration();
-        if (fd)
+        if (FuncDeclaration fd = sapply.isFuncDeclaration())
         {
-            sapply = inferApplyArgTypesX(ethis, fd, fes.parameters);
+            auto fdapply = findBestOpApplyMatch(ethis, fd, fes.parameters);
+            if (fdapply)
+            {
+                // Fill in any missing types on foreach parameters[]
+                matchParamsToOpApply(cast(TypeFunction)fdapply.type, fes.parameters, true);
+                sapply = fdapply;
+                return true;
+            }
+            return false;
         }
         return sapply !is null;
     }
-    /* Return if no parameters need types.
-     */
-    for (size_t u = 0; u < fes.parameters.dim; u++)
-    {
-        Parameter p = (*fes.parameters)[u];
-        if (!p.type)
-            break;
-    }
-    AggregateDeclaration ad;
+
     Parameter p = (*fes.parameters)[0];
     Type taggr = fes.aggr.type;
     assert(taggr);
@@ -1898,6 +1905,7 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             p.type = p.type.addStorageClass(p.storageClass);
         }
         break;
+
     case Taarray:
         {
             TypeAArray taa = cast(TypeAArray)tab;
@@ -1919,13 +1927,12 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             }
             break;
         }
+
     case Tclass:
-        ad = (cast(TypeClass)tab).sym;
-        goto Laggr;
     case Tstruct:
-        ad = (cast(TypeStruct)tab).sym;
-        goto Laggr;
-    Laggr:
+    {
+        AggregateDeclaration ad = (tab.ty == Tclass) ? (cast(TypeClass)tab).sym
+                                                     : (cast(TypeStruct)tab).sym;
         if (fes.parameters.dim == 1)
         {
             if (!p.type)
@@ -1956,29 +1963,40 @@ extern (C++) bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbo
             break;
         }
         break;
+    }
+
     case Tdelegate:
-        {
-            if (!inferApplyArgTypesY(cast(TypeFunction)tab.nextOf(), fes.parameters))
-                return false;
-            break;
-        }
+        if (!matchParamsToOpApply(cast(TypeFunction)tab.nextOf(), fes.parameters, true))
+            return false;
+        break;
+
     default:
         break; // ignore error, caught later
     }
     return true;
 }
 
-private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
+/*********************************************
+ * Find best overload match on fstart given ethis and parameters[].
+ * Params:
+ *      ethis = expression to use for `this`
+ *      fstart = opApply or foreach delegate
+ *      parameters = ForeachTypeList (i.e. foreach parameters)
+ * Returns:
+ *      best match if there is one, null if error
+ */
+private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration fstart, Parameters* parameters)
 {
     MOD mod = ethis.type.mod;
     MATCH match = MATCH.nomatch;
     FuncDeclaration fd_best;
     FuncDeclaration fd_ambig;
+
     overloadApply(fstart, (Dsymbol s)
     {
         auto f = s.isFuncDeclaration();
         if (!f)
-            return 0;
+            return 0;           // continue
         auto tf = cast(TypeFunction)f.type;
         MATCH m = MATCH.exact;
         if (f.isThis())
@@ -1988,7 +2006,7 @@ private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Pa
             else if (mod != tf.mod)
                 m = MATCH.constant;
         }
-        if (!inferApplyArgTypesY(tf, parameters, 1))
+        if (!matchParamsToOpApply(tf, parameters, false))
             m = MATCH.nomatch;
         if (m > match)
         {
@@ -1998,65 +2016,72 @@ private Dsymbol inferApplyArgTypesX(Expression ethis, FuncDeclaration fstart, Pa
         }
         else if (m == match)
             fd_ambig = f;
-        return 0;
+        return 0;               // continue
     });
 
-    if (fd_best)
+    if (fd_ambig && fd_best)
     {
-        inferApplyArgTypesY(cast(TypeFunction)fd_best.type, parameters);
-        if (fd_ambig)
-        {
-            .error(ethis.loc, "`%s.%s` matches more than one declaration:\n`%s`:     `%s`\nand:\n`%s`:     `%s`",
-                ethis.toChars(), fstart.ident.toChars(),
-                fd_best.loc.toChars(), fd_best.type.toChars(),
-                fd_ambig.loc.toChars(), fd_ambig.type.toChars());
-            fd_best = null;
-        }
+        .error(ethis.loc, "`%s.%s` matches more than one declaration:\n`%s`:     `%s`\nand:\n`%s`:     `%s`",
+            ethis.toChars(), fstart.ident.toChars(),
+            fd_best.loc.toChars(), fd_best.type.toChars(),
+            fd_ambig.loc.toChars(), fd_ambig.type.toChars());
+        return null;
     }
+
     return fd_best;
 }
 
 /******************************
- * Infer parameters from type of function.
+ * Determine if foreach parameters match opApply parameters.
+ * Infer missing foreach parameter types from type of opApply delegate.
+ * Params:
+ *      tf = type of opApply or delegate
+ *      parameters = foreach parameters
+ *      infer = infer missing parameter types
  * Returns:
- *      1 match for this function
- *      0 no match for this function
+ *      true for match for this function
+ *      false for no match for this function
  */
-private int inferApplyArgTypesY(TypeFunction tf, Parameters* parameters, int flags = 0)
+private bool matchParamsToOpApply(TypeFunction tf, Parameters* parameters, bool infer)
 {
-    size_t nparams;
-    Parameter p;
-    if (Parameter.dim(tf.parameters) != 1)
-        goto Lnomatch;
-    p = Parameter.getNth(tf.parameters, 0);
-    if (p.type.ty != Tdelegate)
-        goto Lnomatch;
-    tf = cast(TypeFunction)p.type.nextOf();
-    assert(tf.ty == Tfunction);
-    /* We now have tf, the type of the delegate. Match it against
-     * the parameters, filling in missing parameter types.
+    enum nomatch = false;
+
+    /* opApply/delegate has exactly one parameter, and that parameter
+     * is a delegate that looks like:
+     *     int opApply(int delegate(ref Type [, ...]) dg);
      */
-    nparams = Parameter.dim(tf.parameters);
-    if (nparams == 0 || tf.varargs)
-        goto Lnomatch; // not enough parameters
-    if (parameters.dim != nparams)
-        goto Lnomatch; // not enough parameters
-    for (size_t u = 0; u < nparams; u++)
+    if (Parameter.dim(tf.parameters) != 1)
+        return nomatch;
+
+    /* Get the type of opApply's dg parameter
+     */
+    Parameter p0 = Parameter.getNth(tf.parameters, 0);
+    if (p0.type.ty != Tdelegate)
+        return nomatch;
+    TypeFunction tdg = cast(TypeFunction)p0.type.nextOf();
+    assert(tdg.ty == Tfunction);
+
+    /* We now have tdg, the type of the delegate.
+     * tdg's parameters must match that of the foreach arglist (i.e. parameters).
+     * Fill in missing types in parameters.
+     */
+    const nparams = Parameter.dim(tdg.parameters);
+    if (nparams == 0 || nparams != parameters.dim || tdg.varargs)
+        return nomatch; // parameter mismatch
+
+    foreach (u, p; *parameters)
     {
-        p = (*parameters)[u];
-        Parameter param = Parameter.getNth(tf.parameters, u);
+        Parameter param = Parameter.getNth(tdg.parameters, u);
         if (p.type)
         {
             if (!p.type.equals(param.type))
-                goto Lnomatch;
+                return nomatch;
         }
-        else if (!flags)
+        else if (infer)
         {
             p.type = param.type;
             p.type = p.type.addStorageClass(p.storageClass);
         }
     }
-    return 1;
-Lnomatch:
-    return 0;
+    return true;
 }
