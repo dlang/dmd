@@ -1161,7 +1161,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         case Tsarray:
             {
                 if (checkForArgTypes(fs))
-                    return setError();
+                    goto case Terror;
 
                 if (dim < 1 || dim > 2)
                 {
@@ -1378,7 +1378,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             if (fs.op == TOK.foreach_reverse_)
                 fs.warning("cannot use `foreach_reverse` with an associative array");
             if (checkForArgTypes(fs))
-                return setError();
+                goto case Terror;
 
             taa = cast(TypeAArray)tab;
             if (dim < 1 || dim > 2)
@@ -1569,7 +1569,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         Lapply:
             {
                 if (checkForArgTypes(fs))
-                    return setError();
+                    goto case Terror;
 
                 TypeFunction tfld = null;
                 if (sapply)
@@ -1600,66 +1600,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     }
                 }
 
-                /* Turn body into the function literal:
-                 *  int delegate(ref T param) { body }
-                 */
-                auto params = new Parameters();
-                foreach (i; 0 .. dim)
-                {
-                    Parameter p = (*fs.parameters)[i];
-                    StorageClass stc = STC.ref_;
-                    Identifier id;
-
-                    p.type = p.type.typeSemantic(loc, sc2);
-                    p.type = p.type.addStorageClass(p.storageClass);
-                    if (tfld)
-                    {
-                        Parameter prm = Parameter.getNth(tfld.parameters, i);
-                        //printf("\tprm = %s%s\n", (prm.storageClass&STC.ref_?"ref ":"").ptr, prm.ident.toChars());
-                        stc = prm.storageClass & STC.ref_;
-                        id = p.ident; // argument copy is not need.
-                        if ((p.storageClass & STC.ref_) != stc)
-                        {
-                            if (!stc)
-                            {
-                                fs.error("`foreach`: cannot make `%s` `ref`", p.ident.toChars());
-                                goto case Terror;
-                            }
-                            goto LcopyArg;
-                        }
-                    }
-                    else if (p.storageClass & STC.ref_)
-                    {
-                        // default delegate parameters are marked as ref, then
-                        // argument copy is not need.
-                        id = p.ident;
-                    }
-                    else
-                    {
-                        // Make a copy of the ref argument so it isn't
-                        // a reference.
-                    LcopyArg:
-                        id = Identifier.generateId("__applyArg", cast(int)i);
-
-                        Initializer ie = new ExpInitializer(Loc.initial, new IdentifierExp(Loc.initial, id));
-                        auto v = new VarDeclaration(Loc.initial, p.type, p.ident, ie);
-                        v.storage_class |= STC.temp;
-                        s = new ExpStatement(Loc.initial, v);
-                        fs._body = new CompoundStatement(loc, s, fs._body);
-                    }
-                    params.push(new Parameter(stc, p.type, id, null));
-                }
-                // https://issues.dlang.org/show_bug.cgi?id=13840
-                // Throwable nested function inside nothrow function is acceptable.
-                StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
-                tfld = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
-                fs.cases = new Statements();
-                fs.gotos = new ScopeStatements();
-                auto fld = new FuncLiteralDeclaration(loc, Loc.initial, tfld, TOK.delegate_, fs);
-                fld.fbody = fs._body;
-                Expression flde = new FuncExp(loc, fld);
-                flde = flde.expressionSemantic(sc2);
-                fld.tookAddressOf = 0;
+                FuncExp flde = foreachBodyToFunction(sc2, fs, tfld);
+                if (!flde)
+                    goto case Terror;
 
                 // Resolve any forward referenced goto's
                 foreach (i; 0 .. fs.gotos.dim)
@@ -1725,7 +1668,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     ubyte i = (dim == 2 ? 1 : 0);
                     if (!fdapply[i])
                     {
-                        params = new Parameters();
+                        auto params = new Parameters();
                         params.push(new Parameter(0, Type.tvoid.pointerTo(), null, null));
                         params.push(new Parameter(STC.in_, Type.tsize_t, null, null));
                         auto dgparams = new Parameters();
@@ -1745,13 +1688,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     assert(keysize < keysize.max - Target.ptrsize);
                     keysize = (keysize + (Target.ptrsize - 1)) & ~(Target.ptrsize - 1);
                     // paint delegate argument to the type runtime expects
+                    Expression fexp = flde;
                     if (!fldeTy[i].equals(flde.type))
                     {
-                        flde = new CastExp(loc, flde, flde.type);
-                        flde.type = fldeTy[i];
+                        fexp = new CastExp(loc, flde, flde.type);
+                        fexp.type = fldeTy[i];
                     }
                     exps.push(new IntegerExp(Loc.initial, keysize, Type.tsize_t));
-                    exps.push(flde);
+                    exps.push(fexp);
                     ec = new VarExp(Loc.initial, fdapply[i], false);
                     ec = new CallExp(loc, ec, exps);
                     ec.type = Type.tint32; // don't run semantic() on ec
@@ -1794,7 +1738,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
                     FuncDeclaration fdapply;
                     TypeDelegate dgty;
-                    params = new Parameters();
+                    auto params = new Parameters();
                     params.push(new Parameter(STC.in_, tn.arrayOf(), null, null));
                     auto dgparams = new Parameters();
                     dgparams.push(new Parameter(0, Type.tvoidptr, null, null));
@@ -1807,13 +1751,14 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                     if (tab.ty == Tsarray)
                         fs.aggr = fs.aggr.castTo(sc2, tn.arrayOf());
                     // paint delegate argument to the type runtime expects
+                    Expression fexp = flde;
                     if (!dgty.equals(flde.type))
                     {
-                        flde = new CastExp(loc, flde, flde.type);
-                        flde.type = dgty;
+                        fexp = new CastExp(loc, flde, flde.type);
+                        fexp.type = dgty;
                     }
                     ec = new VarExp(Loc.initial, fdapply, false);
-                    ec = new CallExp(loc, ec, fs.aggr, flde);
+                    ec = new CallExp(loc, ec, fs.aggr, fexp);
                     ec.type = Type.tint32; // don't run semantic() on ec
                 }
                 else if (tab.ty == Tdelegate)
@@ -1844,12 +1789,12 @@ version (none)
                     {
                         message(loc, "To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`");
                     }
-                    fld.tookAddressOf = 1;
+                    flde.fd.tookAddressOf = 1;
 }
 else
 {
                     if (global.params.vsafe)
-                        fld.tookAddressOf = 1;  // allocate a closure unless the opApply() uses 'scope'
+                        ++flde.fd.tookAddressOf;  // allocate a closure unless the opApply() uses 'scope'
 }
                     assert(tab.ty == Tstruct || tab.ty == Tclass);
                     assert(sapply);
@@ -1899,6 +1844,8 @@ else
                 s = s.statementSemantic(sc2);
                 break;
             }
+            assert(0);
+
         case Terror:
             s = new ErrorStatement();
             break;
@@ -1910,6 +1857,80 @@ else
         sc2.noctor--;
         sc2.pop();
         result = s;
+    }
+
+    /*************************************
+     * Turn foreach body into the function literal:
+     *  int delegate(ref T param) { body }
+     * Params:
+     *  sc = context
+     *  fs = ForeachStatement
+     *  tfld = type of function literal to be created, can be null
+     * Returns:
+     *  Function literal created, as an expression
+     *  null if error.
+     */
+
+    static FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFunction tfld)
+    {
+        auto params = new Parameters();
+        foreach (i; 0 .. fs.parameters.dim)
+        {
+            Parameter p = (*fs.parameters)[i];
+            StorageClass stc = STC.ref_;
+            Identifier id;
+
+            p.type = p.type.typeSemantic(fs.loc, sc);
+            p.type = p.type.addStorageClass(p.storageClass);
+            if (tfld)
+            {
+                Parameter prm = Parameter.getNth(tfld.parameters, i);
+                //printf("\tprm = %s%s\n", (prm.storageClass&STC.ref_?"ref ":"").ptr, prm.ident.toChars());
+                stc = prm.storageClass & STC.ref_;
+                id = p.ident; // argument copy is not need.
+                if ((p.storageClass & STC.ref_) != stc)
+                {
+                    if (!stc)
+                    {
+                        fs.error("`foreach`: cannot make `%s` `ref`", p.ident.toChars());
+                        return null;
+                    }
+                    goto LcopyArg;
+                }
+            }
+            else if (p.storageClass & STC.ref_)
+            {
+                // default delegate parameters are marked as ref, then
+                // argument copy is not need.
+                id = p.ident;
+            }
+            else
+            {
+                // Make a copy of the ref argument so it isn't
+                // a reference.
+            LcopyArg:
+                id = Identifier.generateId("__applyArg", cast(int)i);
+
+                Initializer ie = new ExpInitializer(Loc.initial, new IdentifierExp(Loc.initial, id));
+                auto v = new VarDeclaration(Loc.initial, p.type, p.ident, ie);
+                v.storage_class |= STC.temp;
+                Statement s = new ExpStatement(Loc.initial, v);
+                fs._body = new CompoundStatement(fs.loc, s, fs._body);
+            }
+            params.push(new Parameter(stc, p.type, id, null));
+        }
+        // https://issues.dlang.org/show_bug.cgi?id=13840
+        // Throwable nested function inside nothrow function is acceptable.
+        StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
+        auto tf = new TypeFunction(params, Type.tint32, 0, LINK.d, stc);
+        fs.cases = new Statements();
+        fs.gotos = new ScopeStatements();
+        auto fld = new FuncLiteralDeclaration(fs.loc, Loc.initial, tf, TOK.delegate_, fs);
+        fld.fbody = fs._body;
+        Expression flde = new FuncExp(fs.loc, fld);
+        flde = flde.expressionSemantic(sc);
+        fld.tookAddressOf = 0;
+        return cast(FuncExp)flde;
     }
 
     override void visit(ForeachRangeStatement fs)
