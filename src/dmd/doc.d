@@ -134,7 +134,7 @@ private class Section
                 char c = name[u];
                 buf.writeByte((c == '_') ? ' ' : c);
             }
-            escapeStrayParenthesis(loc, buf, o);
+            escapeStrayParenthesis(loc, buf, o, false);
             buf.writestring(")");
         }
         else
@@ -144,8 +144,8 @@ private class Section
     L1:
         size_t o = buf.offset;
         buf.write(_body, bodylen);
-        escapeStrayParenthesis(loc, buf, o);
-        highlightText(sc, a, buf, o);
+        escapeStrayParenthesis(loc, buf, o, true);
+        highlightText(sc, a, loc, buf, o);
         buf.writestring(")");
     }
 }
@@ -250,7 +250,7 @@ private final class ParamSection : Section
                             }
                             buf.write(namestart, namelen);
                         }
-                        escapeStrayParenthesis(loc, buf, o);
+                        escapeStrayParenthesis(loc, buf, o, true);
                         highlightCode(sc, a, buf, o);
                     }
                     buf.writestring(")");
@@ -258,8 +258,8 @@ private final class ParamSection : Section
                     {
                         size_t o = buf.offset;
                         buf.write(textstart, textlen);
-                        escapeStrayParenthesis(loc, buf, o);
-                        highlightText(sc, a, buf, o);
+                        escapeStrayParenthesis(loc, buf, o, true);
+                        highlightText(sc, a, loc, buf, o);
                     }
                     buf.writestring(")");
                 }
@@ -421,6 +421,8 @@ extern(C++) void gendocfile(Module m)
     if (m.isDocFile)
     {
         Loc loc = m.md ? m.md.loc : m.loc;
+        if (!loc.filename)
+            loc.filename = srcfilename.ptr;
         size_t commentlen = strlen(cast(char*)m.comment);
         Dsymbols a;
         // https://issues.dlang.org/show_bug.cgi?id=9764
@@ -431,7 +433,7 @@ extern(C++) void gendocfile(Module m)
             dc.macros.write(loc, dc, sc, &a, &buf);
         }
         buf.write(m.comment, commentlen);
-        highlightText(sc, &a, &buf, 0);
+        highlightText(sc, &a, loc, &buf, 0);
     }
     else
     {
@@ -552,8 +554,16 @@ void escapeDdocString(OutBuffer* buf, size_t start)
  * as the macros depend on properly nested parentheses.
  *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
+ *
+ * Params:
+ *  loc =   source location of start of text. It is a mutable copy to allow incrementing its linenum, for printing the correct line number when an error is encountered in a multiline block of ddoc.
+ *  buf =   an OutBuffer containing the DDoc
+ *  start = the index within buf to start replacing unmatched parentheses
+ *  respectBackslashEscapes = if true, always replace parentheses that are
+ *    directly preceeded by a backslash with $(LPAREN) or $(RPAREN) instead of
+ *    counting them as stray parentheses
  */
-private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
+private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectBackslashEscapes)
 {
     uint par_open = 0;
     char inCode = 0;
@@ -614,6 +624,21 @@ private void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
                     inCode = c;
             }
             atLineStart = false;
+            break;
+        case '\\':
+            // replace backslash-escaped parens with their macros
+            if (!inCode && respectBackslashEscapes && u+1 < buf.offset && global.params.markdown)
+            {
+                if (buf.data[u+1] == '(' || buf.data[u+1] == ')')
+                {
+                    const paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
+                    buf.remove(u, 2); //remove the \)
+                    buf.insert(u, paren); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else if (buf.data[u+1] == '\\')
+                    ++u;
+            }
             break;
         default:
             atLineStart = false;
@@ -1756,8 +1781,8 @@ struct DocComment
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.offset;
                 buf.write(sec._body, sec.bodylen);
-                escapeStrayParenthesis(loc, buf, o);
-                highlightText(sc, a, buf, o);
+                escapeStrayParenthesis(loc, buf, o, true);
+                highlightText(sc, a, loc, buf, o);
                 buf.writestring(")");
             }
             else
@@ -1788,7 +1813,7 @@ struct DocComment
                     buf.writestring("----\n");
                     buf.writestring(codedoc);
                     buf.writestring("----\n");
-                    highlightText(sc, a, buf, o);
+                    highlightText(sc, a, loc, buf, o);
                 }
                 buf.writestring(")");
             }
@@ -2146,10 +2171,19 @@ private bool isReservedName(const(char)[] str)
 
 /**************************************************
  * Highlight text section.
+ *
+ * Params:
+ *  scope = the current parse scope
+ *  a =     an array of D symbols at the current scope
+ *  loc =   source location of start of text. It is a mutable copy to allow incrementing its linenum, for printing the correct line number when an error is encountered in a multiline block of ddoc.
+ *  buf =   an OutBuffer containing the DDoc
+ *  offset = the index within buf to start highlighting
  */
-private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+private void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size_t offset)
 {
-    Dsymbol s = a.dim ? (*a)[0] : null; // test
+    const incrementLoc = loc.linnum == 0 ? 1 : 0;
+    loc.linnum += incrementLoc;
+    loc.charnum = 0;
     //printf("highlightText()\n");
     int leadingBlank = 1;
     int inCode = 0;
@@ -2188,6 +2222,7 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
             }
             leadingBlank = 1;
             iLineStart = i + 1;
+            loc.linnum += incrementLoc;
             break;
         case '<':
             {
@@ -2293,7 +2328,7 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                     codebuf.write(buf.peekSlice().ptr + iCodeStart + 1, i - (iCodeStart + 1));
                     // escape the contents, but do not perform highlighting except for DDOC_PSYMBOL
                     highlightCode(sc, a, &codebuf, 0);
-                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0);
+                    escapeStrayParenthesis(loc, &codebuf, 0, false);
                     buf.remove(iCodeStart, i - iCodeStart + 1); // also trimming off the current `
                     immutable pre = "$(DDOC_BACKQUOTED ";
                     i = buf.insert(iCodeStart, pre);
@@ -2391,7 +2426,7 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                         ++p;
                     }
                     highlightCode2(sc, a, &codebuf, 0);
-                    escapeStrayParenthesis(s ? s.loc : Loc.initial, &codebuf, 0);
+                    escapeStrayParenthesis(loc, &codebuf, 0, false);
                     buf.remove(iCodeStart, i - iCodeStart);
                     i = buf.insert(iCodeStart, codebuf.peekSlice());
                     i = buf.insert(i, ")\n");
@@ -2409,6 +2444,34 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
                 }
             }
             break;
+
+        case '\\':
+        {
+            leadingBlank = false;
+            if (inCode || i+1 >= buf.offset || !global.params.markdown)
+                break;
+
+            /* Escape Markdown special characters */
+            char c1 = buf.data[i+1];
+            if (ispunct(c1))
+            {
+                if (global.params.vmarkdown)
+                    message(loc, "Ddoc: backslash-escaped %c", c1);
+
+                buf.remove(i, 1);
+
+                auto se = sc._module.escapetable.escapeChar(c1);
+                if (!se)
+                    se = c1 == '$' ? "$(DOLLAR)" : c1 == ',' ? "$(COMMA)" : null;
+                if (se)
+                {
+                    buf.remove(i, 1);
+                    i = buf.insert(i, se);
+                    i--; // point to escaped char
+                }
+            }
+            break;
+        }
 
         case '$':
         {
@@ -2495,7 +2558,7 @@ private void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset
         }
     }
     if (inCode)
-        error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
+        error(loc, "unmatched `---` in DDoc comment");
 }
 
 /**************************************************

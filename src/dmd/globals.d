@@ -160,6 +160,8 @@ struct Param
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
+    bool markdown;          // enable Markdown replacements in Ddoc
+    bool vmarkdown;         // list instances of Markdown replacements in Ddoc
 
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual
