@@ -2014,12 +2014,20 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
             fd_ambig = null;
             match = m;
         }
-        else if (m == match)
-            fd_ambig = f;
+        else if (m == match && m > MATCH.nomatch)
+        {
+            assert(fd_best);
+            /* Ignore covariant matches, as later on it can be redone
+             * after the opApply delegate has its attributes inferred.
+             */
+            if (tf.covariant(fd_best.type) != 1 &&
+                fd_best.type.covariant(tf) != 1)
+                fd_ambig = f;                           // not covariant, so ambiguous
+        }
         return 0;               // continue
     });
 
-    if (fd_ambig && fd_best)
+    if (fd_ambig)
     {
         .error(ethis.loc, "`%s.%s` matches more than one declaration:\n`%s`:     `%s`\nand:\n`%s`:     `%s`",
             ethis.toChars(), fstart.ident.toChars(),
