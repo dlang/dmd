@@ -2,6 +2,8 @@ LPAREN = (
 RPAREN = )
 BACKTICK = `
 DOLLAR = $
+COMMA = ,
+QUOTE = &quot;
 LF =
 $(LF)
 

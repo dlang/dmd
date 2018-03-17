@@ -136,7 +136,7 @@ extern (C++) class Section
                 char c = name[u];
                 buf.writeByte((c == '_') ? ' ' : c);
             }
-            escapeStrayParenthesis(loc, buf, o);
+            escapeStrayParenthesis(loc, buf, o, false);
             buf.writestring(")");
         }
         else
@@ -551,7 +551,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
  *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
+extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectMarkdownEscapes = true)
 {
     uint par_open = 0;
     bool inCode = 0;
@@ -599,6 +599,20 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             }
             if (numdash >= 3)
                 inCode = !inCode;
+            break;
+        case '\\':
+            if (!inCode && respectMarkdownEscapes && u+1 < buf.offset)
+            {
+                if (buf.data[u+1] == '(' || buf.data[u+1] == ')')
+                {
+                    string paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
+                    buf.remove(u, 2); //remove the \)
+                    buf.insert(u, paren); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else if (buf.data[u+1] == '\\')
+                    ++u;
+            }
             break;
         default:
             break;
@@ -1823,6 +1837,25 @@ extern (C++) bool isDitto(const(char)* comment)
     return false;
 }
 
+/*****************************************
+ * Return true if the given character is punctuation.
+ */
+private bool isPunctuation(const(char) c)
+{
+    static immutable bool[char.max+1] asciiPunctuation =
+       ['!': true, '"': true, '#': true,
+        '$': true, '%': true, '&': true, '\'': true, '(': true, ')': true,
+        '*': true, '+': true, ',': true, '-': true, '.': true, '/': true,
+        ':': true, ';': true, '<': true, '=': true, '>': true, '?': true,
+        '@': true, '[': true, '\\': true, ']': true, '^': true, '_': true,
+        '`': true, '{': true, '|': true, '}': true, '~': true];
+    return asciiPunctuation[c];
+// TODO: unicode punctuation: Pc, Pd, Pe, Pf, Pi, Po, or Ps.
+// However, unicode punctuation should not be included for Markdown backslash
+// escapes, so when it's implemented be sure to make the unicode punctuation
+// check optional via a parameter
+}
+
 /**********************************************
  * Skip white space.
  */
@@ -2411,6 +2444,31 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
                 }
             }
             break;
+
+        case '\\':
+        {
+            /* Escape Markdown special characters */
+            if (inCode || i+1 >= buf.offset)
+                break;
+            char c1 = buf.data[i+1];
+            if (isPunctuation(c1))
+            {
+                buf.remove(i, 1);
+
+                auto se = sc._module.escapetable.escapeChar(c1);
+                if (!se)
+                    se = c1 == '$' ? "$(DOLLAR)".ptr : c1 == ',' ? "$(COMMA)".ptr : null;
+                if (se)
+                {
+                    const len = strlen(se);
+                    buf.remove(i, 1);
+                    i = buf.insert(i, se, len);
+                    i--; // point to ';'
+                }
+            }
+            leadingBlank = false;
+            break;
+        }
 
         case '$':
         {
