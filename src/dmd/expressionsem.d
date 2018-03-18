@@ -808,8 +808,9 @@ private bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type tthis,
             }
             //printf("arg: %s\n", arg.toChars());
             //printf("type: %s\n", arg.type.toChars());
+            //printf("param: %s\n", p.toChars());
 
-            if (tf.parameterEscapes(p))
+            if (tf.parameterEscapes(tthis, p))
             {
                 /* Argument value can escape from the called function.
                  * Check arg to see if it matters.
