@@ -905,7 +905,12 @@ public:
         }
         arrayEnd();
 
-        propertyBool("supportsIncludeImports", true);
+        propertyStart("supportedFeatures");
+        {
+            objectStart();
+            scope(exit) objectEnd();
+            propertyBool("includeImports", true);
+        }
         objectEnd();
     }
 
