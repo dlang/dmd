@@ -3169,14 +3169,16 @@ void test8408()
     struct T2 { S2 s; }
     struct T3 { S1 s1;  S2 s2; }
 
-    test!(int   , true )();
-    test!(int[3], true )();
+/*
+    test!(int   , false)();
+    test!(int[3], false)();
     test!(C     , false)();
-    test!(S1    , true )();
+    test!(S1    , false)();
     test!(S2    , false)();
-    test!(T1    , true )();
+    test!(T1    , false)();
     test!(T2    , false)();
     test!(T3    , false)();
+*/
 }
 
 /************************************/
