@@ -2546,6 +2546,11 @@ extern (C++) abstract class Expression : RootObject
         return false;
     }
 
+    inout(CTErrorExp) isCTErrorExp() inout
+    {
+        return null;
+    }
+
     final Expression op_overload(Scope* sc)
     {
         return .op_overload(this, sc);

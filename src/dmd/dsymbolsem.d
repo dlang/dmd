@@ -22,6 +22,7 @@ import dmd.astcodegen;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
+import dmd.ctfeexpr;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -560,10 +561,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         version (none)
         {
-            printf("VarDeclaration::semantic('%s', parent = '%s') sem = %d\n", toChars(), sc.parent ? sc.parent.toChars() : null, sem);
-            printf(" type = %s\n", type ? type.toChars() : "null");
+            printf("VarDeclaration::semantic('%s', parent = '%s')\n", dsym.toChars(), sc.parent ? sc.parent.toChars() : null);
+            printf(" type = %s\n", dsym.type ? dsym.type.toChars() : "null");
             printf(" stc = x%x\n", sc.stc);
-            printf(" storage_class = x%llx\n", storage_class);
+            printf(" storage_class = x%llx\n", dsym.storage_class);
             printf("linkage = %d\n", sc.linkage);
             //if (strcmp(toChars(), "mul") == 0) assert(0);
         }
@@ -1139,7 +1140,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // possibilities.
                 if (fd && !(dsym.storage_class & (STC.manifest | STC.static_ | STC.tls | STC.gshared | STC.extern_)) && !dsym._init.isVoidInitializer())
                 {
-                    //printf("fd = '%s', var = '%s'\n", fd.toChars(), toChars());
+                    //printf("fd = '%s', var = '%s'\n", fd.toChars(), dsym.toChars());
                     if (!ei)
                     {
                         ArrayInitializer ai = dsym._init.isArrayInitializer();
@@ -1215,9 +1216,23 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 else
                 {
+                    import dmd.hdrgen : toCBuffer, HdrGenState;
+                    OutBuffer buff;
+                    HdrGenState hgs;
+                    toCBuffer(dsym, &buff, &hgs);
+                    if (buff.offset != 0)
+                        buff.setsize(buff.offset-1);
+
                     // https://issues.dlang.org/show_bug.cgi?id=14166
                     // Don't run CTFE for the temporary variables inside typeof
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
+                    const init_err = dsym._init.isExpInitializer();
+                    if (init_err)
+                    {
+                        const errExp = init_err.exp.isCTErrorExp;
+                        if (errExp && errExp.err == CTE.missingFuncBody)
+                            errorSupplemental(dsym.loc, "compile time context created here: `%s`", buff.extractString());
+                    }
                 }
             }
             else if (parent.isAggregateDeclaration())

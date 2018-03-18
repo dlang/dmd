@@ -200,14 +200,15 @@ extern (C++) final class ThrownExceptionExp : Expression
     }
 }
 
+
 /***********************************************************
  * This type is only used by the interpreter.
  */
-extern (C++) final class CTFEExp : Expression
+extern (C++) class CTFEExp : Expression
 {
-    extern (D) this(TOK tok)
+    extern (D) this(TOK tok, int size = __traits(classInstanceSize, CTFEExp))
     {
-        super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
+        super(Loc.initial, tok, size);
         type = Type.tvoid;
     }
 
@@ -244,6 +245,30 @@ extern (C++) final class CTFEExp : Expression
     static bool isGotoExp(const Expression e)
     {
         return e && e.op == TOK.goto_;
+    }
+}
+
+enum CTE : int
+{
+    missingFuncBody,
+}
+
+/* This class is used to pass CTFE errors to
+ * higher levels in the AST so that error
+ * messages can be written on the call site
+ */
+extern (C++) final class CTErrorExp : CTFEExp
+{
+    CTE err;
+    extern (D) this(CTE err)
+    {
+        super(TOK.cantExpression, __traits(classInstanceSize, CTErrorExp));
+        this.err = err;
+    }
+
+    override inout(CTErrorExp) isCTErrorExp() inout
+    {
+        return this;
     }
 }
 
