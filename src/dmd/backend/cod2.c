@@ -2011,8 +2011,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
         opcode = 0x81;
         switch (sz2)
-        {   case 1:     opcode--;
-                        v1 = (signed char) v1;
+        {   case 1:     v1 = (signed char) v1;
                         v2 = (signed char) v2;
                         break;
             case 2:     v1 = (short) v1;
