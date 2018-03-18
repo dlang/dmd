@@ -52,3 +52,38 @@ void bar2()
     char c;
     char*[int*] aa = [ &i : &c ];
 }
+
+
+/******************************
+TEST_OUTPUT:
+---
+fail_compilation/test18282.d(1007): Error: returning `& foo` escapes a reference to local variable `foo`
+fail_compilation/test18282.d(1008): Error: returning `& foo` escapes a reference to local variable `foo`
+fail_compilation/test18282.d(1009): Error: returning `& foo` escapes a reference to local variable `foo`
+fail_compilation/test18282.d(1016): Error: returning `&this` escapes a reference to parameter `this`, perhaps annotate with `return`
+---
+*/
+
+#line 1000
+
+// https://issues.dlang.org/show_bug.cgi?id=18282
+
+void test18282() @safe
+{
+    string foo = "foo";
+    scope string*[] ls;
+    ls = ls ~ &foo;
+    ls = &foo ~ ls;
+    ls ~= &foo;
+}
+
+struct S
+{
+    auto fun()
+    {
+        arr ~= &this;
+    }
+
+    S*[] arr;
+}
+

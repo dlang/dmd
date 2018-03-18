@@ -2360,7 +2360,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     foreach (arg; *exp.arguments)
                     {
-                        if (checkReturnEscape(sc, arg, false))
+                        if (checkNewEscape(sc, arg, false))
                             return setError();
                     }
                 }
@@ -7464,6 +7464,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.e2.checkPostblit(sc, tb2))
                 return setError();
 
+            if (checkNewEscape(sc, exp.e2, false))
+                return setError();
+
             exp.op = TOK.concatenateElemAssign;
             exp.e2 = exp.e2.castTo(sc, tb1next);
             exp.e2 = doCopyOrMove(sc, exp.e2);
@@ -7853,6 +7856,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e2 = new ArrayLiteralExp(exp.e2.loc, exp.e2);
                     exp.e2.type = exp.type;
                 }
+                else if (checkNewEscape(sc, exp.e2, false))
+                    return setError();
                 result = exp.optimize(WANTvalue);
                 return;
             }
@@ -7890,6 +7895,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = new ArrayLiteralExp(exp.e1.loc, exp.e1);
                     exp.e1.type = exp.type;
                 }
+                else if (checkNewEscape(sc, exp.e1, false))
+                    return setError();
                 result = exp.optimize(WANTvalue);
                 return;
             }
