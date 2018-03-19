@@ -2,7 +2,7 @@
  * TEST_OUTPUT:
 ---
 fail_compilation/fail17842.d(14): Error: scope variable `p` assigned to non-scope `*q`
-fail_compilation/fail17842.d(23): Error: scope variable `obj` may not be returned
+fail_compilation/fail17842.d(23): Error: scope variable `obj` may not be copied into allocated memory
 ---
  */
 
