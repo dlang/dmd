@@ -2365,8 +2365,14 @@ final class Parser(AST) : Lexer
             check(TOK.rightParentheses);
 
             stc = parsePostfix(stc, &udas);
+            if (stc & AST.STC.immutable_)
+                deprecation("`immutable` postblit is deprecated. Please use an unqualified postblit.");
+            if (stc & AST.STC.shared_)
+                deprecation("`shared` postblit is deprecated. Please use an unqualified postblit.");
+            if (stc & AST.STC.const_)
+                deprecation("`const` postblit is deprecated. Please use an unqualified postblit.");
             if (stc & AST.STC.static_)
-                error(loc, "postblit cannot be static");
+                error(loc, "postblit cannot be `static`");
 
             auto f = new AST.PostBlitDeclaration(loc, Loc.initial, stc, Id.postblit);
             AST.Dsymbol s = parseContracts(f);
