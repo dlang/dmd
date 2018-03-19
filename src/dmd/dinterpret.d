@@ -5498,6 +5498,14 @@ public:
                 return;
             }
         }
+
+        // The whole slice is selected, return the backing data
+        if (ilwr == 0 && iupr == dollar)
+        {
+            result = e1;
+            return;
+        }
+
         result = new SliceExp(e.loc, e1, lwr, upr);
         result.type = e.type;
     }
