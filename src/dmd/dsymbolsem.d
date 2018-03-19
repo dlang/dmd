@@ -85,52 +85,66 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
     if (sd.isUnionDeclaration())
         return null;
 
+    // by default, the storage class of the created postblit
     StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
+    // if any of the postblits are disabled, then the generated postblit
+    // will be disabled
     for (size_t i = 0; i < sd.postblits.dim; i++)
     {
         stc |= sd.postblits[i].storage_class & STC.disable;
     }
 
-    auto a = new Statements();
+    auto postblitCalls = new Statements();
+    // iterate through all the struct fields that are not disabled
     for (size_t i = 0; i < sd.fields.dim && !(stc & STC.disable); i++)
     {
-        auto v = sd.fields[i];
-        if (v.storage_class & STC.ref_)
+        auto structField = sd.fields[i];
+        if (structField.storage_class & STC.ref_)
             continue;
-        if (v.overlapped)
+        if (structField.overlapped)
             continue;
-        Type tv = v.type.baseElemOf();
+        // if it's a struct declaration or an array of structs
+        Type tv = structField.type.baseElemOf();
         if (tv.ty != Tstruct)
             continue;
         auto sdv = (cast(TypeStruct)tv).sym;
+        // which has a postblit declaration
         if (!sdv.postblit)
             continue;
         assert(!sdv.isUnionDeclaration());
+
+        // perform semantic on the member postblit in order to
+        // be able to aggregate it later on with the rest of the
+        // postblits
         sdv.postblit.functionSemantic();
 
         stc = mergeFuncAttrs(stc, sdv.postblit);
         stc = mergeFuncAttrs(stc, sdv.dtor);
+
+        // if any of the struct member fields has disabled
+        // its postblit, then `sd` is not copyable, so no
+        // postblit is generated
         if (stc & STC.disable)
         {
-            a.setDim(0);
+            postblitCalls.setDim(0);
             break;
         }
 
         Expression ex;
-        tv = v.type.toBasetype();
+        tv = structField.type.toBasetype();
         if (tv.ty == Tstruct)
         {
             // this.v.__xpostblit()
 
             ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
+            ex = new DotVarExp(loc, ex, structField);
 
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new AddrExp(loc, ex);
-            ex = new CastExp(loc, ex, v.type.mutableOf().pointerTo());
+            ex = new CastExp(loc, ex, structField.type.mutableOf().pointerTo());
             ex = new PtrExp(loc, ex);
             if (stc & STC.safe)
                 stc = (stc & ~STC.safe) | STC.trusted;
@@ -142,17 +156,17 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         {
             // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
 
-            uinteger_t n = 1;
+            uinteger_t length = 1;
             while (tv.ty == Tsarray)
             {
-                n *= (cast(TypeSArray)tv).dim.toUInteger();
+                length *= (cast(TypeSArray)tv).dim.toUInteger();
                 tv = tv.nextOf().toBasetype();
             }
-            if (n == 0)
+            if (length == 0)
                 continue;
 
             ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
+            ex = new DotVarExp(loc, ex, structField);
 
             // This is a hack so we can call postblits on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id.ptr);
@@ -161,13 +175,13 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
                 stc = (stc & ~STC.safe) | STC.trusted;
 
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, n, Type.tsize_t));
+                                       new IntegerExp(loc, length, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayPostblit), ex);
         }
-        a.push(new ExpStatement(loc, ex)); // combine in forward order
+        postblitCalls.push(new ExpStatement(loc, ex)); // combine in forward order
 
         /* https://issues.dlang.org/show_bug.cgi?id=10972
          * When the following field postblit calls fail,
@@ -177,17 +191,17 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
             continue;
         sdv.dtor.functionSemantic();
 
-        tv = v.type.toBasetype();
+        tv = structField.type.toBasetype();
         if (tv.ty == Tstruct)
         {
             // this.v.__xdtor()
 
             ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
+            ex = new DotVarExp(loc, ex, structField);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new AddrExp(loc, ex);
-            ex = new CastExp(loc, ex, v.type.mutableOf().pointerTo());
+            ex = new CastExp(loc, ex, structField.type.mutableOf().pointerTo());
             ex = new PtrExp(loc, ex);
             if (stc & STC.safe)
                 stc = (stc & ~STC.safe) | STC.trusted;
@@ -199,17 +213,17 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         {
             // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
-            uinteger_t n = 1;
+            uinteger_t length = 1;
             while (tv.ty == Tsarray)
             {
-                n *= (cast(TypeSArray)tv).dim.toUInteger();
+                length *= (cast(TypeSArray)tv).dim.toUInteger();
                 tv = tv.nextOf().toBasetype();
             }
             //if (n == 0)
             //    continue;
 
             ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, v);
+            ex = new DotVarExp(loc, ex, structField);
 
             // This is a hack so we can call destructors on const/immutable objects.
             ex = new DotIdExp(loc, ex, Id.ptr);
@@ -218,29 +232,30 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
                 stc = (stc & ~STC.safe) | STC.trusted;
 
             ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, n, Type.tsize_t));
+                                       new IntegerExp(loc, length, Type.tsize_t));
             // Prevent redundant bounds check
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
 
             ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
         }
-        a.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
+        postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
     }
 
     // Build our own "postblit" which executes a, but only if needed.
-    if (a.dim || (stc & STC.disable))
+    if (postblitCalls.dim || (stc & STC.disable))
     {
         //printf("Building __fieldPostBlit()\n");
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
         dd.storage_class |= STC.inference;
-        dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, a);
+        dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, postblitCalls);
         sd.postblits.shift(dd);
         sd.members.push(dd);
         dd.dsymbolSemantic(sc);
     }
 
+    // create __xpostblit, which is the generated postblit
     FuncDeclaration xpostblit = null;
     switch (sd.postblits.dim)
     {
