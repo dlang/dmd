@@ -6029,19 +6029,59 @@ final class Parser(AST) : Lexer
         switch (token.value)
         {
         case TOK.leftCurly:
-            /* Scan ahead to see if it is a struct initializer or
-             * a function literal.
-             * If it contains a ';', it is a function literal.
-             * Treat { } as a struct initializer.
+            /* Scan ahead to discern between a struct initializer and
+             * parameterless function literal.
+             *
+             * We'll scan the topmost curly bracket level for statement-related
+             * tokens, thereby ruling out a struct initializer.  (A struct
+             * initializer which itself contains function literals may have
+             * statements at nested curly bracket levels.)
+             *
+             * It's important that this function literal check not be
+             * pendantic, otherwise a function having the slightest syntax
+             * error would emit confusing errors when we proceed to parse it
+             * as a struct initializer.
+             *
+             * The following two ambiguous cases will be treated as a struct
+             * initializer (best we can do without type info):
+             *     {}
+             *     {{statements...}}  - i.e. it could be struct initializer
+             *        with one function literal, or function literal having an
+             *        extra level of curly brackets
+             * If a function literal is intended in these cases (unlikely),
+             * source can use a more explicit function literal syntax
+             * (e.g. prefix with "()" for empty parameter list).
              */
             braces = 1;
             for (t = peek(&token); 1; t = peek(t))
             {
                 switch (t.value)
                 {
+                /* Look for a semicolon or keyword of statements which don't
+                 * require a semicolon (typically containing BlockStatement).
+                 * Tokens like "else", "catch", etc. are omitted where the
+                 * leading token of the statement is sufficient.
+                 */
+                case TOK.asm_:
+                case TOK.class_:
+                case TOK.debug_:
+                case TOK.enum_:
+                case TOK.if_:
+                case TOK.interface_:
+                case TOK.pragma_:
+                case TOK.scope_:
                 case TOK.semicolon:
-                case TOK.return_:
-                    goto Lexpression;
+                case TOK.struct_:
+                case TOK.switch_:
+                case TOK.synchronized_:
+                case TOK.try_:
+                case TOK.union_:
+                case TOK.version_:
+                case TOK.while_:
+                case TOK.with_:
+                    if (braces == 1)
+                        goto Lexpression;
+                    continue;
 
                 case TOK.leftCurly:
                     braces++;
