@@ -1023,7 +1023,6 @@ $(MULTICOLS 4,
 
     $(LINK2 version.html#version, $(D version))
     $(LINK2 declaration.html#VoidInitializer, $(D void))
-    $(LINK2 $(ROOT_DIR)ctod.html#volatile, $(D volatile)) ($(LINK2 $(ROOT_DIR)deprecate.html#volatile, deprecated))
 
     $(LINK2 type.html, $(D wchar))
     $(LINK2 statement.html#WhileStatement, $(D while))
