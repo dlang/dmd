@@ -566,6 +566,100 @@ $(GNAME Postblit):
         }
         ---
 
+        $(P Depending on the struct layout, the compiler may generate the following
+        internal postblits:)
+
+        $(OL
+        $(LI `__postblit`. The compiler assigns this name to the explicitly
+        defined postblit `this(this)` so that it can be treated exactly as
+        a normal function. Note that if a struct defines a postblit, it cannot
+        define a function named `__postblit` - no matter the signature -
+        as this will result in a compilation error due to the name conflict.)
+        $(LI `__fieldPostblit`. If a struct `X` has at least 1 member which is a
+        struct that defines a postblit, then a field postblit is generated
+        for `X` that calls all the underlying postblits of the struct fields
+        in topological order.)
+        $(LI `__aggrPostblit`. If a struct has an explicitly defined postblit
+        and at least 1 struct member that has a postblit (any type of postblit)
+        an aggregated postblit is generated which calls `__fieldPostblit` first
+        and then `__postblit`.)
+        $(LI `__xpostblit`. The field and aggregated postblits, although generated
+        for a struct, are not actual struct members. In order to be able to call
+        them, the compiler internally creates an alias, called `__xpostblit` which
+        is a member of the struct and which points to the generated postblit that
+        is the most inclusive.)
+        )
+
+($SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+// struct with alias __xpostblit = __postblit
+struct X
+{
+    this(this) {}
+}
+
+// struct with alias __xpostblit = __fieldPostblit
+// which contains a call to X.__xpostblit
+struct Y
+{
+    X a;
+}
+
+// struct with alias __xpostblit = __aggrPostblit which contains
+// a call to Y.__xpostblit and a call to Z.__postblit
+struct Z
+{
+    Y a;
+    this(this) {}
+}
+
+void main()
+{
+    // X has __postblit and __xpostblit (pointing to __postblit)
+    static assert(__traits(hasMember, X, "__postblit"));
+    static assert(__traits(hasMember, X, "__xpostblit"));
+
+    // Y does not have __postblit, but has __xpostblit (pointing to __fieldPostblit)
+    static assert(!__traits(hasMember, Y, "__postblit"));
+    static assert(__traits(hasMember, Y, "__xpostblit"));
+    // __fieldPostblit is not a member of the struct
+    static assert(!__traits(hasMember, Y, "__fieldPostblit"));
+
+    // Z has  __postblit and __xpostblit (pointing to __aggrPostblit)
+    static assert(__traits(hasMember, Z, "__postblit"));
+    static assert(__traits(hasMember, Z, "__xpostblit"));
+    // __aggrPostblit is not a member of the struct
+    static assert(!__traits(hasMember, Z, "__aggrPostblit"));
+}
+---
+)
+
+        $(P Neither of the above postblits is defined for structs that don't
+        define `this(this)` and don't have fields that transitively define it.
+        Example:)
+
+($SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct X
+{}
+
+struct Y
+{
+    int a;
+    X b;
+}
+
+void main()
+{
+    static assert(!__traits(hasMember, X, "__postblit"));
+    static assert(!__traits(hasMember, X, "__xpostblit"));
+
+    static assert(!__traits(hasMember, Y, "__postblit"));
+    static assert(!__traits(hasMember, Y, "__xpostblit"));
+}
+---
+)
+
         $(P Unions may not have fields that have postblits.)
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
