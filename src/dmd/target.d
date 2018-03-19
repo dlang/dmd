@@ -368,10 +368,6 @@ struct Target
             supported = false;
             break;
 
-        case TOK.unord, TOK.lg, TOK.leg, TOK.ule, TOK.ul, TOK.uge, TOK.ug, TOK.ue:
-            supported = false;
-            break;
-
         case TOK.leftShift, TOK.leftShiftAssign, TOK.rightShift, TOK.rightShiftAssign, TOK.unsignedRightShift, TOK.unsignedRightShiftAssign:
             supported = false;
             break;
