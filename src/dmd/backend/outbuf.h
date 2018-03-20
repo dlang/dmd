@@ -14,6 +14,9 @@
 #include        <string.h>
 
 #include <stddef.h>     // for size_t
+#ifndef DEBUG
+#include <assert.h>
+#endif
 
 #if __APPLE__ && __i386__
     /* size_t is 'unsigned long', which makes it mangle differently
@@ -65,6 +68,14 @@ struct Outbuffer
     // Write an array to the buffer, no reserve check
     void writen(const void *b, d_size_t len)
     {
+        if (p < buf ||
+            p > pend ||
+            p == NULL ||
+            (int)len < 0 ||
+            p + len > pend)
+        {
+            *(volatile char*)0=0;
+        }
         memcpy(p,b,len);
         p += len;
     }
