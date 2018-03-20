@@ -226,6 +226,12 @@ void sliceStructs()
                 anySlice = true;
                 sia[si].canSlice = true;
                 sia[si].accessSlice = false;
+                // We can't slice whole XMM registers
+                if (tyxmmreg(s->Stype->Tty) &&
+                    s->Spreg >= XMM0 && s->Spreg <= XMM15 && s->Spreg2 == NOREG)
+                {
+                    sia[si].canSlice = false;
+                }
                 break;
 
             case SCstack:
