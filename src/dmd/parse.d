@@ -1428,7 +1428,7 @@ final class Parser(AST) : Lexer
                             // Disallow:
                             //      void function() @uda fp;
                             //      () @uda { return 1; }
-                            error("user defined attributes cannot appear as postfixes");
+                            error("user-defined attributes cannot appear as postfixes");
                         }
                         continue;
                     }
@@ -2765,9 +2765,10 @@ final class Parser(AST) : Lexer
             StorageClass storageClass = 0;
             StorageClass stc;
             AST.Expression ae;
-
+            AST.Expressions* udas = null;
             for (; 1; nextToken())
             {
+            L3:
                 switch (token.value)
                 {
                 case TOK.rightParentheses:
@@ -2801,7 +2802,27 @@ final class Parser(AST) : Lexer
                         goto default;
                     stc = AST.STC.wild;
                     goto L2;
-
+                case TOK.at:
+                    {
+                        AST.Expressions* exps = null;
+                        StorageClass stc2 = parseAttribute(&exps);
+                        if (stc2 == AST.STC.property || stc2 == AST.STC.nogc ||
+                            stc2 == AST.STC.disable || stc2 == AST.STC.safe ||
+                            stc2 == AST.STC.trusted || stc2 == AST.STC.system)
+                        {
+                            error("`@%s` attribute for function parameter is not supported", token.toChars());
+                        }
+                        else
+                        {
+                            udas = AST.UserAttributeDeclaration.concat(udas, exps);
+                        }
+                        if (token.value == TOK.dotDotDot)
+                            error("variadic parameter cannot have user-defined attributes");
+                        if (stc2)
+                            nextToken();
+                        goto L3;
+                        // Don't call nextToken again.
+                    }
                 case TOK.in_:
                     stc = AST.STC.in_;
                     goto L2;
@@ -2918,6 +2939,30 @@ final class Parser(AST) : Lexer
                             if (hasdefault)
                                 error("default argument expected for `%s`", ai ? ai.toChars() : at.toChars());
                         }
+                        auto param = new AST.Parameter(storageClass, at, ai, ae, null);
+                        if (udas)
+                        {
+                            auto a = new AST.Dsymbols();
+                            auto udad = new AST.UserAttributeDeclaration(udas, a);
+                            param.userAttribDecl = udad;
+                        }
+                        if (token.value == TOK.at)
+                        {
+                            AST.Expressions* exps = null;
+                            StorageClass stc2 = parseAttribute(&exps);
+                            if (stc2 == AST.STC.property || stc2 == AST.STC.nogc ||
+                                stc2 == AST.STC.disable || stc2 == AST.STC.safe ||
+                                stc2 == AST.STC.trusted || stc2 == AST.STC.system)
+                            {
+                                error("`@%s` attribute for function parameter is not supported", token.toChars());
+                            }
+                            else
+                            {
+                                error("user-defined attributes cannot appear as postfixes", token.toChars());
+                            }
+                            if (stc2)
+                                nextToken();
+                        }
                         if (token.value == TOK.dotDotDot)
                         {
                             /* This is:
@@ -2926,11 +2971,11 @@ final class Parser(AST) : Lexer
                             if (storageClass & (AST.STC.out_ | AST.STC.ref_))
                                 error("variadic argument cannot be `out` or `ref`");
                             varargs = 2;
-                            parameters.push(new AST.Parameter(storageClass, at, ai, ae));
+                            parameters.push(param);
                             nextToken();
                             break;
                         }
-                        parameters.push(new AST.Parameter(storageClass, at, ai, ae));
+                        parameters.push(param);
                         if (token.value == TOK.comma)
                         {
                             nextToken();
@@ -4303,7 +4348,7 @@ final class Parser(AST) : Lexer
                         parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
                         if (udas)
-                            error("user defined attributes not allowed for `%s` declarations", Token.toChars(tok));
+                            error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
 
                         t = parseType();
                         v = new AST.AliasDeclaration(loc, ident, t);
@@ -4476,7 +4521,7 @@ final class Parser(AST) : Lexer
                  */
 
                 if (udas)
-                    error("user defined attributes not allowed for `%s` declarations", Token.toChars(tok));
+                    error("user-defined attributes not allowed for `%s` declarations", Token.toChars(tok));
 
                 if (token.value == TOK.assign)
                 {
@@ -4706,7 +4751,7 @@ final class Parser(AST) : Lexer
                 parameters = new AST.Parameters();
                 Identifier id = Identifier.generateId("__T");
                 AST.Type t = new AST.TypeIdentifier(loc, id);
-                parameters.push(new AST.Parameter(0, t, token.ident, null));
+                parameters.push(new AST.Parameter(0, t, token.ident, null, null));
 
                 tpl = new AST.TemplateParameters();
                 AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
@@ -5101,7 +5146,7 @@ final class Parser(AST) : Lexer
             if (!ai)
                 error("no identifier for declarator `%s`", at.toChars());
         Larg:
-            auto p = new AST.Parameter(storageClass, at, ai, null);
+            auto p = new AST.Parameter(storageClass, at, ai, null, null);
             parameters.push(p);
             if (token.value == TOK.comma)
             {
@@ -5645,14 +5690,14 @@ final class Parser(AST) : Lexer
                     AST.Type at = null; // infer parameter type
                     nextToken();
                     check(TOK.assign);
-                    param = new AST.Parameter(storageClass, at, ai, null);
+                    param = new AST.Parameter(storageClass, at, ai, null, null);
                 }
                 else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
                 {
                     Identifier ai;
                     AST.Type at = parseType(&ai);
                     check(TOK.assign);
-                    param = new AST.Parameter(storageClass, at, ai, null);
+                    param = new AST.Parameter(storageClass, at, ai, null, null);
                 }
 
                 condition = parseExpression();

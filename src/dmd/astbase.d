@@ -1734,15 +1734,17 @@ struct ASTBase
         Type type;
         Identifier ident;
         Expression defaultArg;
+        UserAttributeDeclaration userAttribDecl; // user defined attributes
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg)
+        final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
         {
             this.storageClass = storageClass;
             this.type = type;
             this.ident = ident;
             this.defaultArg = defaultArg;
+            this.userAttribDecl = userAttribDecl;
         }
 
         static size_t dim(Parameters* parameters)
@@ -1809,7 +1811,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null);
+            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? cast(UserAttributeDeclaration) userAttribDecl.syntaxCopy(null) : null);
         }
 
         void accept(Visitor v)
@@ -3623,7 +3625,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form tuple of tuples");
-                    auto arg = new Parameter(STC.undefined_, e.type, null, null);
+                    auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }

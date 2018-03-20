@@ -6684,7 +6684,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                         for (size_t i = 0; i < dim; i++)
                         {
                             Parameter arg = (*tt.arguments)[i];
-                            if (flags & 2 && arg.ident)
+                            if (flags & 2 && (arg.ident || arg.userAttribDecl))
                                 tiargs.insert(j + i, arg);
                             else
                                 tiargs.insert(j + i, arg.type);

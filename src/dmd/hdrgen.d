@@ -3114,6 +3114,18 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     override void visit(Parameter p)
     {
+        if (p.userAttribDecl)
+        {
+            buf.writestring("@");
+            scope(exit) buf.writestring(" ");
+
+            bool isAnonymous = p.userAttribDecl.atts.dim > 0 && (*p.userAttribDecl.atts)[0].op != TOK.call;
+            if (isAnonymous)
+                buf.writestring("(");
+            argsToBuffer(p.userAttribDecl.atts);
+            if (isAnonymous)
+                buf.writestring(")");
+        }
         if (p.storageClass & STC.auto_)
             buf.writestring("auto ");
         if (p.storageClass & STC.return_)

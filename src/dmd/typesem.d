@@ -438,8 +438,8 @@ private Type stripDefaultArgs(Type t)
         static Parameter stripParameter(Parameter p)
         {
             Type t = stripDefaultArgs(p.type);
-            return (t != p.type || p.defaultArg || p.ident)
-                ? new Parameter(p.storageClass, t, null, null)
+            return (t != p.type || p.defaultArg || p.ident || p.userAttribDecl)
+                ? new Parameter(p.storageClass, t, null, null, null)
                 : null;
         }
 
@@ -1447,7 +1447,7 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
                             }
 
                             (*newparams)[j] = new Parameter(
-                                stc, narg.type, narg.ident, narg.defaultArg);
+                                stc, narg.type, narg.ident, narg.defaultArg, narg.userAttribDecl);
                         }
                         fparam.type = new TypeTuple(newparams);
                     }
@@ -3285,7 +3285,7 @@ private extern(C++) final class DotExpVisitor : Visitor
             if (fd_aaLen is null)
             {
                 auto fparams = new Parameters();
-                fparams.push(new Parameter(STC.in_, mt, null, null));
+                fparams.push(new Parameter(STC.in_, mt, null, null, null));
                 fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
                 TypeFunction tf = fd_aaLen.type.toTypeFunction();
                 tf.purity = PURE.const_;
