@@ -9287,6 +9287,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("e2 : %s\n", exp.e2.type.toChars());
         }
 
+        exp.e1 = exp.e1.addDtorHook(sc);
+        exp.e2 = exp.e2.addDtorHook(sc);
+
         /* https://issues.dlang.org/show_bug.cgi?id=14696
          * If either e1 or e2 contain temporaries which need dtor,
          * make them conditional.
