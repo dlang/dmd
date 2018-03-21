@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Allows to run a individual tests
+# Allows running tests individually
 # Usage:
 #   ./run_individual_tests <test-file>...
 # Example:
