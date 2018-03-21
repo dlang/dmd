@@ -397,7 +397,7 @@ class Lexer : ErrorHandler
                 p++;
                 goto case '`';
             case '`':
-                t.value = wysiwygStringConstant(t, *p);
+                wysiwygStringConstant(t);
                 return;
             case 'x':
                 if (p[1] != '"')
@@ -410,13 +410,13 @@ class Lexer : ErrorHandler
                 if (p[1] == '"')
                 {
                     p++;
-                    t.value = delimitedStringConstant(t);
+                    delimitedStringConstant(t);
                     return;
                 }
                 else if (p[1] == '{')
                 {
                     p++;
-                    t.value = tokenStringConstant(t);
+                    tokenStringConstant(t);
                     return;
                 }
                 else
@@ -1315,23 +1315,31 @@ class Lexer : ErrorHandler
         return c;
     }
 
-    /**************************************
-     */
-    final TOK wysiwygStringConstant(Token* t, int tc)
+    /**
+    Lex a wysiwyg string. `p` must be pointing to the first character before the
+    contents of the string literal. The character pointed to by `p` will be used as
+    the terminating character (i.e. backtick or double-quote).
+    Params:
+        result = pointer to the token that accepts the result
+    */
+    final void wysiwygStringConstant(Token* result)
     {
+        result.value = TOK.string_;
         Loc start = loc();
+        auto terminator = p[0];
         p++;
         stringbuffer.reset();
         while (1)
         {
-            dchar c = *p++;
+            dchar c = p[0];
+            p++;
             switch (c)
             {
             case '\n':
                 endOfLine();
                 break;
             case '\r':
-                if (*p == '\n')
+                if (p[0] == '\n')
                     continue; // ignore
                 c = '\n'; // treat EndOfLine as \n character
                 endOfLine();
@@ -1339,21 +1347,18 @@ class Lexer : ErrorHandler
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t.setString();
-                // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
+                result.setString();
+                // rewind `p` so it points to the EOF character
                 p--;
-                return TOK.string_;
-            case '"':
-            case '`':
-                if (c == tc)
-                {
-                    t.setString(stringbuffer);
-                    stringPostfix(t);
-                    return TOK.string_;
-                }
-                break;
+                return;
             default:
-                if (c & 0x80)
+                if (c == terminator)
+                {
+                    result.setString(stringbuffer);
+                    stringPostfix(result);
+                    return;
+                }
+                else if (c & 0x80)
                 {
                     p--;
                     const u = decodeUTF();
@@ -1447,19 +1452,23 @@ class Lexer : ErrorHandler
         assert(0); // see bug 15731
     }
 
-    /**************************************
-     * Lex delimited strings:
-     *      q"(foo(xxx))"   // "foo(xxx)"
-     *      q"[foo$(LPAREN)]"       // "foo$(LPAREN)"
-     *      q"/foo]/"       // "foo]"
-     *      q"HERE
-     *      foo
-     *      HERE"           // "foo\n"
-     * Input:
-     *      p is on the "
-     */
-    final TOK delimitedStringConstant(Token* t)
+    /**
+    Lex a delimited string. Some examples of delimited strings are:
+    ---
+    q"(foo(xxx))"      // "foo(xxx)"
+    q"[foo$(LPAREN)]"  // "foo$(LPAREN)"
+    q"/foo]/"          // "foo]"
+    q"HERE
+    foo
+    HERE"              // "foo\n"
+    ---
+    It is assumed that `p` points to the opening double-quote '"'.
+    Params:
+        result = pointer to the token that accepts the result
+    */
+    final void delimitedStringConstant(Token* result)
     {
+        result.value = TOK.string_;
         Loc start = loc();
         dchar delimleft = 0;
         dchar delimright = 0;
@@ -1499,10 +1508,10 @@ class Lexer : ErrorHandler
             case 0:
             case 0x1A:
                 error("unterminated delimited string constant starting at %s", start.toChars());
-                t.setString();
+                result.setString();
                 // decrement `p`, because it needs to point to the next token (the 0 or 0x1A character is the TOK.endOfFile token).
                 p--;
-                return TOK.string_;
+                return;
             default:
                 if (c & 0x80)
                 {
@@ -1601,21 +1610,25 @@ class Lexer : ErrorHandler
             error("delimited string must end in %s\"", hereid.toChars());
         else
             error("delimited string must end in %c\"", delimright);
-        t.setString(stringbuffer);
-        stringPostfix(t);
-        return TOK.string_;
+        result.setString(stringbuffer);
+        stringPostfix(result);
     }
 
-    /**************************************
-     * Lex delimited strings:
-     *      q{ foo(xxx) } // " foo(xxx) "
-     *      q{foo$(LPAREN)}       // "foo$(LPAREN)"
-     *      q{{foo}"}"}   // "{foo}"}""
-     * Input:
-     *      p is on the q
-     */
-    final TOK tokenStringConstant(Token* t)
+    /**
+    Lex a token string. Some examples of token strings are:
+    ---
+    q{ foo(xxx) }    // " foo(xxx) "
+    q{foo$(LPAREN)}  // "foo$(LPAREN)"
+    q{{foo}"}"}      // "{foo}"}""
+    ---
+    It is assumed that `p` points to the opening curly-brace '{'.
+    Params:
+        result = pointer to the token that accepts the result
+    */
+    final void tokenStringConstant(Token* result)
     {
+        result.value = TOK.string_;
+
         uint nest = 1;
         const start = loc();
         const pstart = ++p;
@@ -1631,15 +1644,15 @@ class Lexer : ErrorHandler
             case TOK.rightCurly:
                 if (--nest == 0)
                 {
-                    t.setString(pstart, p - 1 - pstart);
-                    stringPostfix(t);
-                    return TOK.string_;
+                    result.setString(pstart, p - 1 - pstart);
+                    stringPostfix(result);
+                    return;
                 }
                 continue;
             case TOK.endOfFile:
                 error("unterminated token string constant starting at %s", start.toChars());
-                t.setString();
-                return TOK.string_;
+                result.setString();
+                return;
             default:
                 continue;
             }
