@@ -2,12 +2,12 @@
    TEST_OUTPUT:
 ---
 fail_compilation/test18282.d(25): Error: scope variable `aa` may not be returned
-fail_compilation/test18282.d(34): Error: returning `& i` escapes a reference to local variable `i`
-fail_compilation/test18282.d(35): Error: returning `& i` escapes a reference to local variable `i`
+fail_compilation/test18282.d(34): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(35): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
 fail_compilation/test18282.d(36): Error: scope variable `staa` may not be returned
-fail_compilation/test18282.d(44): Error: returning `S2000(& i)` escapes a reference to local variable `i`
-fail_compilation/test18282.d(53): Error: returning `& i` escapes a reference to local variable `i`
-fail_compilation/test18282.d(53): Error: returning `& c` escapes a reference to local variable `c`
+fail_compilation/test18282.d(44): Error: copying `S2000(& i)` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(53): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+fail_compilation/test18282.d(53): Error: copying `& c` into allocated memory escapes a reference to local variable `c`
 ---
  */
 
@@ -57,10 +57,10 @@ void bar2()
 /******************************
 TEST_OUTPUT:
 ---
-fail_compilation/test18282.d(1007): Error: returning `& foo` escapes a reference to local variable `foo`
-fail_compilation/test18282.d(1008): Error: returning `& foo` escapes a reference to local variable `foo`
-fail_compilation/test18282.d(1009): Error: returning `& foo` escapes a reference to local variable `foo`
-fail_compilation/test18282.d(1016): Error: returning `&this` escapes a reference to parameter `this`, perhaps annotate with `return`
+fail_compilation/test18282.d(1007): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
+fail_compilation/test18282.d(1008): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
+fail_compilation/test18282.d(1009): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
+fail_compilation/test18282.d(1016): Error: copying `&this` into allocated memory escapes a reference to parameter variable `this`
 ---
 */
 

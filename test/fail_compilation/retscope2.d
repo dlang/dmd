@@ -297,7 +297,7 @@ struct T17388
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope2.d(1306): Error: returning `& i` escapes a reference to local variable `i`
+fail_compilation/retscope2.d(1306): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
 ---
 */
 

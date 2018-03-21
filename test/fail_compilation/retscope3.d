@@ -6,8 +6,8 @@ PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope3.d(2008): Error: returning `& i` escapes a reference to local variable `i`
-fail_compilation/retscope3.d(2017): Error: returning `S2000(& i)` escapes a reference to local variable `i`
+fail_compilation/retscope3.d(2008): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+fail_compilation/retscope3.d(2017): Error: copying `S2000(& i)` into allocated memory escapes a reference to local variable `i`
 ---
 */
 
@@ -90,3 +90,42 @@ void test3000() @safe
     }
 }
 
+/**********************************************/
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope3.d(4003): Error: copying `u[]` into allocated memory escapes a reference to variadic parameter `u`
+fail_compilation/retscope3.d(4016): Error: storing reference to outer local variable `i` into allocated memory causes it to escape
+fail_compilation/retscope3.d(4025): Error: storing reference to stack allocated value returned by `makeSA()` into allocated memory causes it to escape
+---
+*/
+
+#line 4000
+
+void bar4000(int[1] u...) @safe
+{
+    int[][] n = [u[]];
+}
+
+void bar4001() @safe
+{
+    static int i;
+    int*[] n = [&i];
+}
+
+ref int bar4002(return ref int i) @safe
+{
+    void nested()
+    {
+        int*[] n = [&i];
+    }
+    return i;
+}
+
+int[3] makeSA() @safe;
+
+void bar4003() @safe
+{
+    int[][] a = [makeSA()[]];
+}

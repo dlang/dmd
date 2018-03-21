@@ -585,8 +585,142 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
 bool checkNewEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkNewEscape, e = %s\n", e.loc.toChars(), e.toChars());
-    return checkReturnEscapeImpl(sc, e, false, gag, false);
+    enum log = false;
+    if (log) printf("[%s] checkNewEscape, e: `%s`\n", e.loc.toChars(), e.toChars());
+    EscapeByResults er;
+
+    escapeByValue(e, &er);
+
+    if (!er.byref.dim && !er.byvalue.dim && !er.byexp.dim)
+        return false;
+
+    bool result = false;
+    foreach (VarDeclaration v; er.byvalue)
+    {
+        if (log) printf("byvalue `%s`\n", v.toChars());
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if (v.isScope())
+        {
+            if (sc._module && sc._module.isRoot() &&
+                /* This case comes up when the ReturnStatement of a __foreachbody is
+                 * checked for escapes by the caller of __foreachbody. Skip it.
+                 *
+                 * struct S { static int opApply(int delegate(S*) dg); }
+                 * S* foo() {
+                 *    foreach (S* s; S) // create __foreachbody for body of foreach
+                 *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
+                 *    return null; }
+                 */
+                !(p.parent == sc.func))
+            {
+                // Only look for errors if in module listed on command line
+                if (global.params.vsafe) // https://issues.dlang.org/show_bug.cgi?id=17029
+                {
+                    if (!gag)
+                        error(e.loc, "scope variable `%s` may not be copied into allocated memory", v.toChars());
+                    result = true;
+                }
+                continue;
+            }
+        }
+        else if (v.storage_class & STC.variadic && p == sc.func)
+        {
+            Type tb = v.type.toBasetype();
+            if (tb.ty == Tarray || tb.ty == Tsarray)
+            {
+                if (!gag)
+                    error(e.loc, "copying `%s` into allocated memory escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+                result = false;
+            }
+        }
+        else
+        {
+            //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
+            v.doNotInferScope = true;
+        }
+    }
+
+    foreach (VarDeclaration v; er.byref)
+    {
+        if (log) printf("byref `%s`\n", v.toChars());
+
+        void escapingRef(VarDeclaration v)
+        {
+            if (!gag)
+            {
+                const(char)* kind = (v.storage_class & STC.parameter) ? "parameter" : "local";
+                error(e.loc, "copying `%s` into allocated memory escapes a reference to %s variable `%s`",
+                    e.toChars(), kind, v.toChars());
+            }
+            result = true;
+        }
+
+        if (v.isDataseg())
+            continue;
+
+        Dsymbol p = v.toParent2();
+
+        if ((v.storage_class & (STC.ref_ | STC.out_)) == 0)
+        {
+            if (p == sc.func)
+            {
+                escapingRef(v);
+                continue;
+            }
+        }
+
+        /* Check for returning a ref variable by 'ref', but should be 'return ref'
+         * Infer the addition of 'return', or set result to be the offending expression.
+         */
+        if (v.storage_class & (STC.ref_ | STC.out_))
+        {
+            if (global.params.useDIP25 &&
+                     sc._module && sc._module.isRoot())
+            {
+                // Only look for errors if in module listed on command line
+
+                if (p == sc.func)
+                {
+                    //printf("escaping reference to local ref variable %s\n", v.toChars());
+                    //printf("storage class = x%llx\n", v.storage_class);
+                    escapingRef(v);
+                    continue;
+                }
+                // Don't need to be concerned if v's parent does not return a ref
+                FuncDeclaration fd = p.isFuncDeclaration();
+                if (fd && fd.type && fd.type.ty == Tfunction)
+                {
+                    TypeFunction tf = cast(TypeFunction)fd.type;
+                    if (tf.isref)
+                    {
+                        if (!gag)
+                            error(e.loc, "storing reference to outer local variable `%s` into allocated memory causes it to escape",
+                                  v.toChars());
+                        result = true;
+                        continue;
+                    }
+                }
+
+            }
+        }
+    }
+
+    foreach (Expression ee; er.byexp)
+    {
+        if (log) printf("byexp %s\n", ee.toChars());
+        if (!gag)
+            error(ee.loc, "storing reference to stack allocated value returned by `%s` into allocated memory causes it to escape",
+                  ee.toChars());
+        result = true;
+    }
+
+    return result;
 }
+
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -602,7 +736,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
 bool checkReturnEscape(Scope* sc, Expression e, bool gag)
 {
     //printf("[%s] checkReturnEscape, e = %s\n", e.loc.toChars(), e.toChars());
-    return checkReturnEscapeImpl(sc, e, false, gag, true);
+    return checkReturnEscapeImpl(sc, e, false, gag);
 }
 
 /************************************
@@ -625,20 +759,19 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
         printf("parent2 function %s\n", sc.func.toParent2().toChars());
     }
 
-    return checkReturnEscapeImpl(sc, e, true, gag, true);
+    return checkReturnEscapeImpl(sc, e, true, gag);
 }
 
 /***************************************
- * Implementation of checking for escapes in `return` and `new`.
+ * Implementation of checking for escapes in `return`.
  * Params:
  *      sc = used to determine current function and module
  *      e = expression to check
  *      gag = do not print error messages
- *      isReturn = it's a `return`, otherwise `new`
  * Returns:
  *      true if references to the stack can escape
  */
-private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag, bool isReturn)
+private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 {
     enum log = false;
     if (log) printf("[%s] checkReturnEscapeImpl, refs: %d e: `%s`\n", e.loc.toChars(), refs, e.toChars());
@@ -665,8 +798,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag,
             !(v.storage_class & STC.return_) &&
             v.isParameter() &&
             sc.func.flags & FUNCFLAG.returnInprocess &&
-            p == sc.func &&
-            isReturn)
+            p == sc.func)
         {
             inferReturn(sc.func, v);        // infer addition of 'return'
             continue;
@@ -674,7 +806,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag,
 
         if (v.isScope())
         {
-            if (v.storage_class & STC.return_ && isReturn)
+            if (v.storage_class & STC.return_)
                 continue;
 
             if (sc._module && sc._module.isRoot() &&
@@ -747,7 +879,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag,
                 continue;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
-            if (fd && sc.func.flags & FUNCFLAG.returnInprocess && isReturn)
+            if (fd && sc.func.flags & FUNCFLAG.returnInprocess)
             {
                 /* Code like:
                  *   int x;
@@ -766,9 +898,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag,
          * Infer the addition of 'return', or set result to be the offending expression.
          */
         if ( (v.storage_class & (STC.ref_ | STC.out_)) &&
-             (!isReturn || !(v.storage_class & (STC.return_ | STC.foreach_))))
+            !(v.storage_class & (STC.return_ | STC.foreach_)))
         {
-            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func && isReturn)
+            if (sc.func.flags & FUNCFLAG.returnInprocess && p == sc.func)
             {
                 inferReturn(sc.func, v);        // infer addition of 'return'
             }

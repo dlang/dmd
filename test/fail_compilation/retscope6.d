@@ -6,7 +6,7 @@ PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(6007): Error: returning `& i` escapes a reference to local variable `i`
+fail_compilation/retscope6.d(6007): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
 ---
 */
 
