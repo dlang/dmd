@@ -295,6 +295,7 @@ immutable Msgtable[] msgtable =
     { "_ArrayPostblit" },
     { "_ArrayDtor" },
     { "_d_delThrowable" },
+    { "dup" },
 
     // For pragma's
     { "Pinline", "inline" },

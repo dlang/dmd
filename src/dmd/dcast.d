@@ -30,6 +30,7 @@ import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.impcnvtab;
+import dmd.id;
 import dmd.init;
 import dmd.intrange;
 import dmd.mtype;
@@ -784,7 +785,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(CallExp e)
         {
-            enum LOG = 0;
+            enum LOG = false;
             static if (LOG)
             {
                 printf("CallExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
@@ -797,7 +798,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             /* Allow the result of strongly pure functions to
              * convert to immutable
              */
-            if (e.f && e.f.isReturnIsolated())
+            if (e.f && e.f.isReturnIsolated() &&
+                (!global.params.vsafe ||        // lots of legacy code breaks with the following purity check
+                 e.f.isPure() >= PURE.strong ||
+                 // Special case exemption for Object.dup() which we assume is implemented correctly
+                 e.f.ident == Id.dup &&
+                 e.f.toParent2() == ClassDeclaration.object.toParent())
+               )
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.
