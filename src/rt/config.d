@@ -1,40 +1,46 @@
 /**
-* Configuration options for druntime
-*
-* Copyright: Copyright Digital Mars 2014.
-* License: Distributed under the
-*      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
-*    (See accompanying file LICENSE)
-* Authors:   Rainer Schuetze
-* Source: $(DRUNTIMESRC rt/_config.d)
+Configuration options for druntime.
+
+The default way to configure the runtime is by passing command line arguments
+starting with `--DRT-` and followed by the option name, e.g. `--DRT-gcopt` to
+configure the GC.
+Command line options starting with `--DRT-` are filtered out before calling main,
+so the program will not see them. They are still available via `rt_args()`.
+
+Configuration via the command line can be disabled by declaring a variable for the
+linker to pick up before using it's default from the runtime:
+
+---
+extern(C) __gshared bool rt_cmdline_enabled = false;
+---
+
+Likewise, declare a boolean rt_envvars_enabled to enable configuration via the
+environment variable `DRT_` followed by the option name, e.g. `DRT_GCOPT`:
+
+---
+extern(C) __gshared bool rt_envvars_enabled = true;
+---
+
+Setting default configuration properties in the executable can be done by specifying an
+array of options named `rt_options`:
+
+---
+extern(C) __gshared string[] rt_options = [ "gcopt=precise:1 profile:1"];
+---
+
+Evaluation order of options is `rt_options`, then environment variables, then command
+line arguments, i.e. if command line arguments are not disabled, they can override
+options specified through the environment or embedded in the executable.
+
+Copyright: Copyright Digital Mars 2014.
+License: Distributed under the
+     $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+   (See accompanying file LICENSE)
+Authors:   Rainer Schuetze
+Source: $(DRUNTIMESRC rt/_config.d)
 */
 
 module rt.config;
-
-// The default way to configure the runtime is by passing command line arguments
-// starting with "--DRT-" and followed by the option name, e.g. "--DRT-gcopt" to
-// configure the GC.
-// Command line options starting with "--DRT-" are filtered out before calling main,
-// so the program will not see them. They are still available via rt_args().
-//
-// Configuration via the command line can be disabled by declaring a variable for the
-// linker to pick up before using it's default from the runtime:
-//
-//   extern(C) __gshared bool rt_cmdline_enabled = false;
-//
-// Likewise, declare a boolean rt_envvars_enabled to enable configuration via the
-// environment variable "DRT_" followed by the option name, e.g. "DRT_GCOPT":
-//
-//   extern(C) __gshared bool rt_envvars_enabled = true;
-//
-// Setting default configuration properties in the executable can be done by specifying an
-// array of options named rt_options:
-//
-//   extern(C) __gshared string[] rt_options = [ "gcopt=precise:1 profile:1"];
-//
-// Evaluation order of options is rt_options, then environment variables, then command
-// line arguments, i.e. if command line arguments are not disabled, they can override
-// options specified through the environment or embedded in the executable.
 
 // put each variable in its own COMDAT by making them template instances
 template rt_envvars_enabled()
