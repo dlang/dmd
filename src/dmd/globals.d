@@ -157,6 +157,7 @@ struct Param
      * used to hide a feature that will have to go through deprecate-then-error
      * before becoming default.
      */
+    bool cache;             // use persistent caching of CTFE (DCache)
 
     bool showGaggedErrors;  // print gagged errors anyway
     bool manual;            // open browser on compiler manual

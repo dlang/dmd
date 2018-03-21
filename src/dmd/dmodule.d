@@ -395,6 +395,8 @@ extern (C++) final class Module : Package
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
+   
+    ubyte[20] signature;        // A signature of contents, currently SHA1
 
     extern (D) this(const(char)* filename, Identifier ident, int doDocComment, int doHdrGen)
     {

@@ -58,6 +58,8 @@ struct HdrGenState
     bool fullDump;      /// true if generating a full AST dump file
 
     bool fullQual;      /// fully qualify types when printing
+    bool fullQualForCache;
+
     int tpltMember;
     int autoMember;
     int forStmtInit;
@@ -1535,7 +1537,10 @@ public:
 
     override void visit(TemplateInstance ti)
     {
-        buf.writestring(ti.name.toChars());
+        if (ti.aliasdecl)
+            buf.writestring(ti.aliasdecl.toChars());
+        else
+            buf.writestring(ti.name.toChars());
         tiargsToBuffer(ti);
 
         if (hgs.fullDump)
@@ -2502,7 +2507,10 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        buf.writestring(e.sd.toChars());
+        if (hgs.fullQualForCache)
+            buf.writestring(e.sd.type.toPrettyChars(true));
+        else
+            buf.writestring(e.sd.type.toChars());
         buf.writeByte('(');
         // CTFE can generate struct literals that contain an AddrExp pointing
         // to themselves, need to avoid infinite recursion:
