@@ -81,9 +81,8 @@ enum TOK : int
     delegatePointer,
     delegateFunctionPointer,
 
-    // 54
     // Operators
-    lessThan,
+    lessThan = 54,
     greaterThan,
     lessOrEqual,
     greaterOrEqual,
@@ -94,10 +93,9 @@ enum TOK : int
     index,
     is_,
 
-    // 64
     // NCEG floating point compares
     // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
-    unord,
+    unord = 64,
     lg,
     leg,
     ule,
@@ -106,8 +104,7 @@ enum TOK : int
     ug,
     ue,
 
-    // 72
-    leftShift,
+    leftShift = 72,
     rightShift,
     leftShiftAssign,
     rightShiftAssign,
@@ -149,9 +146,8 @@ enum TOK : int
     prePlusPlus,
     preMinusMinus,
 
-    // 113
     // Numeric literals
-    int32Literal,
+    int32Literal = 113,
     uns32Literal,
     int64Literal,
     uns64Literal,
@@ -164,15 +160,13 @@ enum TOK : int
     imaginary64Literal,
     imaginary80Literal,
 
-    // 125
     // Char constants
-    charLiteral,
+    charLiteral = 125,
     wcharLiteral,
     dcharLiteral,
 
-    // 128
     // Leaf operators
-    identifier,
+    identifier = 128,
     string_,
     hexadecimalString,
     this_,
@@ -181,9 +175,8 @@ enum TOK : int
     tuple,
     error,
 
-    // 136
     // Basic types
-    void_,
+    void_ = 136,
     int8,
     uns8,
     int16,
@@ -208,9 +201,8 @@ enum TOK : int
     dchar_,
     bool_,
 
-    // 160
     // Aggregates
-    struct_,
+    struct_ = 160,
     class_,
     interface_,
     union_,
@@ -242,9 +234,8 @@ enum TOK : int
     manifest,
     immutable_,
 
-    // 191
     // Statements
-    if_,
+    if_ = 191,
     else_,
     while_,
     for_,
@@ -269,9 +260,8 @@ enum TOK : int
     onScopeFailure,
     onScopeSuccess,
 
-    // 215
     // Contracts
-    invariant_,
+    invariant_ = 215,
 
     // Testing
     unittest_,
@@ -281,8 +271,7 @@ enum TOK : int
     ref_,
     macro_,
 
-    // 221
-    parameters,
+    parameters = 220,
     traits,
     overloadSet,
     pure_,
@@ -302,8 +291,7 @@ enum TOK : int
     vector,
     pound,
 
-    // 239
-    interval,
+    interval = 239,
     voidExpression,
     cantExpression,
 
@@ -311,6 +299,18 @@ enum TOK : int
 
     max_,
 }
+
+// Assert that all token enum members have consecutive values and
+// that none of them overlap
+static assert(() {
+    foreach (idx, enumName; __traits(allMembers, TOK)) {
+       static if (idx != __traits(getMember, TOK, enumName)) {
+           pragma(msg, "Error: Expected TOK.", enumName, " to be ", idx, " but is ", __traits(getMember, TOK, enumName));
+           static assert(0);
+       }
+    }
+    return true;
+}());
 
 
 /****************************************
