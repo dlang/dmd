@@ -17,7 +17,7 @@ class C
 }
 ---
 
-For more information see https://dlang.org/deprecate.html#Class%20allocators%20and%20deallocators
+See the $(LINK2 $(ROOT_DIR)deprecate.html#Class%20allocators%20and%20deallocators, Deprecated Features) for more information.
 
 Many alternatives for class allocators/deallcators exist. Among them is the generic $(REF make, std,experimental,allocator) and $(REF dispose, std,experimental,allocator) from the allocator package. For other alternatives, see $(LINK2 https://dlang.org/blog/the-gc-series, the recent article about memory allocation on the DBlog) and $(LINK2 https://wiki.dlang.org/Memory_Management, the D Wiki memory management article).
 
