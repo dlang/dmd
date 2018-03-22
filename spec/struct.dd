@@ -590,7 +590,7 @@ $(GNAME Postblit):
         is the most inclusive.)
         )
 
-($SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 // struct with alias __xpostblit = __postblit
 struct X
@@ -638,7 +638,7 @@ void main()
         define `this(this)` and don't have fields that transitively define it.
         Example:)
 
-($SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct X
 {}
@@ -672,6 +672,100 @@ struct X
     this(this) const {} // error: function X.__postblit conflicts with function X.__postblit
 }
 ---
+
+        $(P The following paragraph describes the behavior of the
+        postblit in the presence of qualifiers:)
+
+        $(OL
+        $(LI `const`. When a postblit is qualified with `const` as in
+        $(D this(this) const;) or $(D const this(this);) the code is
+        ill-formed. The postblit is succesfully called on `mutable`
+        (due to the mutable to const implicit conversion), `const`
+        and `immutable` objects, but the postblit cannot modify the object
+        because it regards it as `const`; hence `const` postblits are of
+        limited usefulness. Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int n;
+    this(this) const
+    {
+        import std.stdio : writeln;
+        writeln("postblit called");
+        //++n; // error: cannot modify this.n in `const` function
+    }
+}
+
+void main()
+{
+    S s1;
+    auto s2 = s1;
+    const S s3;
+    auto s4 = s3;
+    immutable S s5;
+    auto s6 = s5;
+}
+---
+)
+        $(LI `immutable`. When a postblit is qualified with `immutable`
+        as in $(D this(this) immutable) or $(D immutable this(this))
+        the code is ill-formed. The `immutable` postblit passes the
+        compilation phase but cannot be invoked. Example:)
+
+---
+struct Y
+{
+    // not invoked anywhere, no error is issued
+    this(this) immutable
+    { }
+}
+
+struct S
+{
+    this(this) immutable
+    { }
+}
+
+void main()
+{
+    S s1;
+    auto s2 = s1;    // error: immutable method `__postblit` is not callable using a mutable object
+    const S s3;
+    auto s4 = s3;    // error: immutable method `__postblit` is not callable using a mutable object
+    immutable S s5;
+    auto s6 = s5;    // error: immutable method `__postblit` is not callable using a mutable object
+}
+---
+
+        $(LI `shared`. When a postblit is qualified with `shared` as in
+        $(D this(this) shared) or $(D shared this(this)) solely `shared`
+        object may invoke the postblit; attempts of postbliting unshared
+        objects will result in compile time errors:)
+
+---
+struct S
+{
+    this(this) shared
+    { }
+}
+
+void main()
+{
+    S s1;
+    auto s2 = s1;    // error: shared method `__postblit` is not callable using a non-shared object
+    const S s3;
+    auto s4 = s3;    // error: shared method `__postblit` is not callable using a non-shared object
+    immutable S s5;
+    auto s6 = s5;    // error: shared method `__postblit` is not callable using a non-shared object
+
+    // calling the shared postblit on a shared object is accepted
+    shared S s7;
+    auto s8 = s7;
+}
+---
+        )
 
         $(P Unions may not have fields that have postblits.)
 
