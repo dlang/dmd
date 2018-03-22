@@ -627,6 +627,8 @@ PTRNTAB2 aptb2MOV[] = /* MOV */ {
 #endif
         { 0x0f20,       _r,     _r32,           _special | _crn },
         { 0x0f22,       _r,     _special|_crn,  _r32            },
+        { 0x0f20,       _r,     _r64,           _special | _crn },
+        { 0x0f22,       _r,     _special|_crn,  _r64            },
         { 0x0f21,       _r,     _r32,           _special | _drn },
         { 0x0f23,       _r,     _special|_drn,  _r32            },
         { 0x0f24,       _r,     _r32,           _special | _trn },
