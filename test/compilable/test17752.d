@@ -1,5 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=17752
-// REQUIRED_ARGS: -c -de
+// REQUIRED_ARGS: -de
 /*
 TEST_OUTPUT:
 ---

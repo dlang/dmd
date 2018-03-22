@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -c -transition=field
+// REQUIRED_ARGS: -transition=field
 /*
 TEST_OUTPUT:
 ---
