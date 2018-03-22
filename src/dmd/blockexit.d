@@ -363,7 +363,7 @@ int blockExit(Statement s, FuncDeclaration func, bool mustNotThrow)
 
         override void visit(ContinueStatement s)
         {
-            result = s.ident ? BE.goto_ : BE.continue_;
+            result = s.ident ? BE.continue_ | BE.goto_ : BE.continue_;
         }
 
         override void visit(SynchronizedStatement s)
