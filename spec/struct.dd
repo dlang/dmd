@@ -567,26 +567,26 @@ $(GNAME Postblit):
         ---
 
         $(P Depending on the struct layout, the compiler may generate the following
-        internal postblits:)
+        internal postblit functions:)
 
         $(OL
-        $(LI `__postblit`. The compiler assigns this name to the explicitly
+        $(LI `void __postblit()`. The compiler assigns this name to the explicitly
         defined postblit `this(this)` so that it can be treated exactly as
         a normal function. Note that if a struct defines a postblit, it cannot
         define a function named `__postblit` - no matter the signature -
-        as this will result in a compilation error due to the name conflict.)
-        $(LI `__fieldPostblit`. If a struct `X` has at least 1 member which is a
-        struct that defines a postblit, then a field postblit is generated
-        for `X` that calls all the underlying postblits of the struct fields
-        in topological order.)
-        $(LI `__aggrPostblit`. If a struct has an explicitly defined postblit
-        and at least 1 struct member that has a postblit (any type of postblit)
+        as this would result in a compilation error due to the name conflict.)
+        $(LI `void __fieldPostblit()`. If a struct `X` has at least one `struct` 
+        member that in turn defines (explicitly or implicitly) a postblit, then a field
+        postblit is generated for `X` that calls all the underlying postblits
+        of the struct fields in declaration order.)
+        $(LI `void __aggrPostblit()`. If a struct has an explicitly defined postblit
+        and at least 1 struct member that has a postblit (explicit or implicit)
         an aggregated postblit is generated which calls `__fieldPostblit` first
         and then `__postblit`.)
-        $(LI `__xpostblit`. The field and aggregated postblits, although generated
-        for a struct, are not actual struct members. In order to be able to call
-        them, the compiler internally creates an alias, called `__xpostblit` which
-        is a member of the struct and which points to the generated postblit that
+        $(LI `void __xpostblit()`. The field and aggregated postblits, although
+        generated for a struct, are not actual struct members. In order to be able
+        to call them, the compiler internally creates an alias, called `__xpostblit`
+        which is a member of the struct and which points to the generated postblit that
         is the most inclusive.)
         )
 
@@ -660,8 +660,8 @@ void main()
 ---
 )
 
-        $(P Postblits are not overloadable. If 2 postblits are defined,
-        even if the signatures differ, the compiler will assign the
+        $(P Postblits are not overloadable. If two or more postblits are defined,
+        even if the signatures differ, the compiler assigns the
         `__postblit` name to both and later issue a conflicting function
         name error:)
 
@@ -673,14 +673,13 @@ struct X
 }
 ---
 
-        $(P The following paragraph describes the behavior of the
-        postblit in the presence of qualifiers:)
+        $(P The following describes the behavior of the
+        qualified postblit definitions:)
 
         $(OL
         $(LI `const`. When a postblit is qualified with `const` as in
-        $(D this(this) const;) or $(D const this(this);) the code is
-        ill-formed. The postblit is succesfully called on `mutable`
-        (due to the mutable to const implicit conversion), `const`
+        $(D this(this) const;) or $(D const this(this);) then the postblit
+        is succesfully called on mutable (unqualified), `const`,
         and `immutable` objects, but the postblit cannot modify the object
         because it regards it as `const`; hence `const` postblits are of
         limited usefulness. Example:)
