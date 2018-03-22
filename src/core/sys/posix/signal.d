@@ -175,15 +175,28 @@ else version(NetBSD)
 }
 else version (CRuntime_Bionic)
 {
-    enum SIGRTMIN = 32;
-    version(ARM)
-        enum SIGRTMAX = 64;
-    else version(X86)
-        enum SIGRTMAX = 64;
-    else version(MIPS32)
-        enum SIGRTMAX = 128;
-    else
-        static assert(false, "Architecture not supported.");
+    // Switched to calling these functions since Lollipop
+    private extern (C) nothrow @nogc
+    {
+        int __libc_current_sigrtmin();
+        int __libc_current_sigrtmax();
+    }
+
+    @property int SIGRTMIN() nothrow @nogc {
+        __gshared static int sig = -1;
+        if (sig == -1) {
+            sig = __libc_current_sigrtmin();
+        }
+        return sig;
+    }
+
+    @property int SIGRTMAX() nothrow @nogc {
+        __gshared static int sig = -1;
+        if (sig == -1) {
+            sig = __libc_current_sigrtmax();
+        }
+        return sig;
+    }
 }
 else version( CRuntime_UClibc )
 {
@@ -760,7 +773,7 @@ else version( CRuntime_UClibc )
         static assert(false, "Architecture not supported.");
     }
 }
-else version (linux)
+else version (CRuntime_Bionic)
 {
     version (X86)
     {
@@ -773,7 +786,7 @@ else version (linux)
             }
 
             sigset_t        sa_mask;
-            c_ulong         sa_flags;
+            int             sa_flags;
             void function() sa_restorer;
         }
     }
@@ -788,7 +801,22 @@ else version (linux)
             }
 
             sigset_t        sa_mask;
-            c_ulong         sa_flags;
+            int             sa_flags;
+            void function() sa_restorer;
+        }
+    }
+    else version (AArch64)
+    {
+        struct sigaction_t
+        {
+            int            sa_flags;
+            union
+            {
+                sigfn_t    sa_handler;
+                sigactfn_t sa_sigaction;
+            }
+
+            sigset_t        sa_mask;
             void function() sa_restorer;
         }
     }
@@ -1486,6 +1514,11 @@ else version( CRuntime_Bionic )
     {
         alias c_ulong sigset_t;
         enum int LONG_BIT = 32;
+    }
+    else version (AArch64)
+    {
+        struct sigset_t { ulong[1] sig; }
+        enum int LONG_BIT = 64;
     }
     else
     {
@@ -2991,6 +3024,34 @@ else version (CRuntime_Bionic)
         }
     }
     else version (ARM)
+    {
+        enum SIGPOLL   = 29;
+        enum SIGPROF   = 27;
+        enum SIGSYS    = 31;
+        enum SIGTRAP   = 5;
+        enum SIGVTALRM = 26;
+        enum SIGXCPU   = 24;
+        enum SIGXFSZ   = 25;
+
+        enum SA_ONSTACK     = 0x08000000;
+        enum SA_RESETHAND   = 0x80000000;
+        enum SA_RESTART     = 0x10000000;
+        enum SA_SIGINFO     = 4;
+        enum SA_NOCLDWAIT   = 2;
+        enum SA_NODEFER     = 0x40000000;
+        enum SS_ONSTACK     = 1;
+        enum SS_DISABLE     = 2;
+        enum MINSIGSTKSZ    = 2048;
+        enum SIGSTKSZ       = 8192;
+
+        struct stack_t
+        {
+            void*   ss_sp;
+            int     ss_flags;
+            size_t  ss_size;
+        }
+    }
+    else version (AArch64)
     {
         enum SIGPOLL   = 29;
         enum SIGPROF   = 27;

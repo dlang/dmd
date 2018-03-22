@@ -151,21 +151,10 @@ else
 // No unsafe pointer manipulation.
 @trusted
 {
-    version(CRuntime_Bionic)
-    {
-       import core.sys.posix.stdlib: lrand48, srand48;
-       ///
-       alias core.sys.posix.stdlib.lrand48 rand;
-       ///
-       alias core.sys.posix.stdlib.srand48 srand;
-    }
-    else
-    {
-        ///
-       int     rand();
-       ///
-       void    srand(uint seed);
-    }
+    /// These two were added to Bionic in Lollipop.
+    int     rand();
+    ///
+    void    srand(uint seed);
 }
 
 // We don't mark these @trusted. Given that they return a void*, one has
