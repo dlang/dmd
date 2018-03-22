@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
-name=`basename $0 .sh`
+name="depsprot"
 dir=${RESULTS_DIR}/runnable
 dmddir=${RESULTS_DIR}${SEP}runnable
 deps_file="${dmddir}${SEP}${name}.deps"
+
+# custom error handling
+set +eo pipefail
 
 die()
 {

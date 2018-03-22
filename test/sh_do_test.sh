@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 if [ "${RESULTS_DIR}" == "" ]; then
     echo Note: this program is normally called through the Makefile, it
     echo is not meant to be called directly by the user.
@@ -60,6 +62,11 @@ exec 2>&1
 # log all a verbose xtrace to a temporary file which is only displayed when an error occurs
 exec 42> "${output_file}.log"
 export BASH_XTRACEFD=42
+
+# fail on errors and undefined variables
+set -euo pipefail
+
+# activate xtrace logging for the to-be-called shell script
 set -x
 
 source "${script_name}"
