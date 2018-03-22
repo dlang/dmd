@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-output_file=${RESULTS_DIR}/${TEST_DIR}/${TEST_NAME}.html
+output_html=${RESULTS_DIR}/${TEST_DIR}/${TEST_NAME}.html
 
-rm -f ${output_file}
+rm -f ${output_html}
 
-$DMD -m${MODEL} -D -o- compilable/extra-files/ddoc9764.dd -Df${output_file}
+$DMD -m${MODEL} -D -o- compilable/extra-files/ddoc9764.dd -Df${output_html}
 
-compilable/extra-files/ddocAny-postscript.sh 9764 && touch ${RESULTS_DIR}/${TEST_NAME}.out
+compilable/extra-files/ddocAny-postscript.sh 9764

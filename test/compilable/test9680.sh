@@ -26,5 +26,3 @@ do
 
 	rm ${output_file}{,.2}
 done
-
-echo Success

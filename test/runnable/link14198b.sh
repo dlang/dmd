@@ -17,5 +17,3 @@ $DMD -m${MODEL} -I${src} -of${dir}${SEP}test14198b${EXE} -version=bug14198 ${src
 grep -q "_D8std141984conv11__T2toTAyaZ9__T2toTbZ2toFNaNbNiNfbZAya" ${output_file} && exit 1
 
 rm ${dir}/{test14198b${OBJ},test14198b${EXE}}
-
-echo Success > ${output_file}
