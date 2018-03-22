@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 dir=${RESULTS_DIR}${SEP}compilable
 
 unset DFLAGS

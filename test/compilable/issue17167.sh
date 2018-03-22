@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
 
 # Test that file paths larger than 248 characters can be used
 # Test CRLF and mixed line ending handling in D lexer.

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -ueo pipefail
 
 src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable

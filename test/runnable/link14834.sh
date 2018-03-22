@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
 
 src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
