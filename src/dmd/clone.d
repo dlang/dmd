@@ -845,7 +845,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
         }
         else
         {
-            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+            // __ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
 
             uinteger_t n = 1;
             while (tv.ty == Tsarray)
@@ -871,7 +871,7 @@ extern (C++) FuncDeclaration buildDtor(AggregateDeclaration ad, Scope* sc)
             (cast(SliceExp)ex).upperIsInBounds = true;
             (cast(SliceExp)ex).lowerIsLessThanUpper = true;
 
-            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
+            ex = new CallExp(loc, new IdentifierExp(loc, Id.__ArrayDtor), ex);
         }
         e = Expression.combine(ex, e); // combine in reverse order
     }
