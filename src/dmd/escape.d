@@ -1273,6 +1273,19 @@ private void escapeByValue(Expression e, EscapeByResults* er)
                 if (tf.isreturn)
                     e.e1.accept(this);
             }
+
+            /* If it's a nested function that is 'return scope'
+             */
+            if (e.e1.op == TOK.variable)
+            {
+                VarExp ve = cast(VarExp)e.e1;
+                FuncDeclaration fd = ve.var.isFuncDeclaration();
+                if (fd && fd.isNested())
+                {
+                    if (tf.isreturn && tf.isscope)
+                        er.byexp.push(e);
+                }
+            }
         }
     }
 
@@ -1479,6 +1492,19 @@ private void escapeByRef(Expression e, EscapeByResults* er)
                 if (e.e1.op == TOK.variable && t1.ty == Tdelegate)
                 {
                     escapeByValue(e.e1, er);
+                }
+
+                /* If it's a nested function that is 'return ref'
+                 */
+                if (e.e1.op == TOK.variable)
+                {
+                    VarExp ve = cast(VarExp)e.e1;
+                    FuncDeclaration fd = ve.var.isFuncDeclaration();
+                    if (fd && fd.isNested())
+                    {
+                        if (tf.isreturn)
+                            er.byexp.push(e);
+                    }
                 }
             }
             else
