@@ -139,14 +139,6 @@ __gshared PREC[TOK.max_] precedence =
     TOK.lessOrEqual : PREC.rel,
     TOK.greaterThan : PREC.rel,
     TOK.greaterOrEqual : PREC.rel,
-    TOK.unord : PREC.rel,
-    TOK.lg : PREC.rel,
-    TOK.leg : PREC.rel,
-    TOK.ule : PREC.rel,
-    TOK.ul : PREC.rel,
-    TOK.uge : PREC.rel,
-    TOK.ug : PREC.rel,
-    TOK.ue : PREC.rel,
     TOK.in_ : PREC.rel,
 
     /* Note that we changed precedence, so that < and != have the same
@@ -8229,14 +8221,6 @@ final class Parser(AST) : Lexer
         case TOK.lessOrEqual:
         case TOK.greaterThan:
         case TOK.greaterOrEqual:
-        case TOK.unord:
-        case TOK.lg:
-        case TOK.leg:
-        case TOK.ule:
-        case TOK.ul:
-        case TOK.uge:
-        case TOK.ug:
-        case TOK.ue:
             nextToken();
             auto e2 = parseShiftExp();
             e = new AST.CmpExp(op, loc, e, e2);

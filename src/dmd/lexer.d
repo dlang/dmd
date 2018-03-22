@@ -856,17 +856,6 @@ class Lexer : ErrorHandler
                     else
                         t.value = TOK.leftShift; // <<
                 }
-                else if (*p == '>')
-                {
-                    p++;
-                    if (*p == '=')
-                    {
-                        p++;
-                        t.value = TOK.leg; // <>=
-                    }
-                    else
-                        t.value = TOK.lg; // <>
-                }
                 else
                     t.value = TOK.lessThan; // <
                 return;
@@ -908,39 +897,6 @@ class Lexer : ErrorHandler
                 {
                     p++;
                     t.value = TOK.notEqual; // !=
-                }
-                else if (*p == '<')
-                {
-                    p++;
-                    if (*p == '>')
-                    {
-                        p++;
-                        if (*p == '=')
-                        {
-                            p++;
-                            t.value = TOK.unord; // !<>=
-                        }
-                        else
-                            t.value = TOK.ue; // !<>
-                    }
-                    else if (*p == '=')
-                    {
-                        p++;
-                        t.value = TOK.ug; // !<=
-                    }
-                    else
-                        t.value = TOK.uge; // !<
-                }
-                else if (*p == '>')
-                {
-                    p++;
-                    if (*p == '=')
-                    {
-                        p++;
-                        t.value = TOK.ul; // !>=
-                    }
-                    else
-                        t.value = TOK.ule; // !>
                 }
                 else
                     t.value = TOK.not; // !

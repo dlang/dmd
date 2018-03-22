@@ -93,18 +93,7 @@ enum TOK : int
     index,
     is_,
 
-    // NCEG floating point compares
-    // !<>=     <>    <>=    !>     !>=   !<     !<=   !<>
-    unord = 64,
-    lg,
-    leg,
-    ule,
-    ul,
-    uge,
-    ug,
-    ue,
-
-    leftShift = 72,
+    leftShift = 64,
     rightShift,
     leftShiftAssign,
     rightShiftAssign,
@@ -147,7 +136,7 @@ enum TOK : int
     preMinusMinus,
 
     // Numeric literals
-    int32Literal = 113,
+    int32Literal = 105,
     uns32Literal,
     int64Literal,
     uns64Literal,
@@ -161,12 +150,12 @@ enum TOK : int
     imaginary80Literal,
 
     // Char constants
-    charLiteral = 125,
+    charLiteral = 117,
     wcharLiteral,
     dcharLiteral,
 
     // Leaf operators
-    identifier = 128,
+    identifier = 120,
     string_,
     hexadecimalString,
     this_,
@@ -176,7 +165,7 @@ enum TOK : int
     error,
 
     // Basic types
-    void_ = 136,
+    void_ = 128,
     int8,
     uns8,
     int16,
@@ -202,7 +191,7 @@ enum TOK : int
     bool_,
 
     // Aggregates
-    struct_ = 160,
+    struct_ = 152,
     class_,
     interface_,
     union_,
@@ -235,7 +224,7 @@ enum TOK : int
     immutable_,
 
     // Statements
-    if_ = 191,
+    if_ = 183,
     else_,
     while_,
     for_,
@@ -261,7 +250,7 @@ enum TOK : int
     onScopeSuccess,
 
     // Contracts
-    invariant_ = 215,
+    invariant_ = 207,
 
     // Testing
     unittest_,
@@ -271,7 +260,7 @@ enum TOK : int
     ref_,
     macro_,
 
-    parameters = 220,
+    parameters = 212,
     traits,
     overloadSet,
     pure_,
@@ -291,7 +280,7 @@ enum TOK : int
     vector,
     pound,
 
-    interval = 239,
+    interval = 231,
     voidExpression,
     cantExpression,
 
@@ -597,14 +586,6 @@ extern (C++) struct Token
         TOK.greaterOrEqual: ">=",
         TOK.equal: "==",
         TOK.notEqual: "!=",
-        TOK.unord: "!<>=",
-        TOK.ue: "!<>",
-        TOK.lg: "<>",
-        TOK.leg: "<>=",
-        TOK.ule: "!>",
-        TOK.ul: "!>=",
-        TOK.uge: "!<",
-        TOK.ug: "!<=",
         TOK.not: "!",
         TOK.leftShift: "<<",
         TOK.rightShift: ">>",
