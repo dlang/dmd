@@ -35,8 +35,8 @@ rm -f "${output_file}"
 function finish {
     # reset output stream
     set +x
-    exec 1>&${stdout_copy}
-    exec 2>&${stderr_copy}
+    exec 1>&40
+    exec 2>&41
 
     if [ "$1" -ne 0 ]; then
         echo "=============================="
@@ -54,8 +54,8 @@ function finish {
 trap 'finish $?' INT TERM EXIT
 
 # redirect stdout + stderr to the output file + keep a reference to the std{out,err} streams for later
-exec {stdout_copy}>&1
-exec {stderr_copy}>&2
+exec 40>&1
+exec 41>&2
 exec 1> "${output_file}"
 exec 2>&1
 
