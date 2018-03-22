@@ -660,6 +660,19 @@ void main()
 ---
 )
 
+        $(P Postblits are not overloadable. If 2 postblits are defined,
+        even if the signatures differ, the compiler will assign the
+        `__postblit` name to both and later issue a conflicting function
+        name error:)
+
+---
+struct X
+{
+    this(this) {}
+    this(this) const {} // error: function X.__postblit conflicts with function X.__postblit
+}
+---
+
         $(P Unions may not have fields that have postblits.)
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
