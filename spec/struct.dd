@@ -780,6 +780,57 @@ void main()
 ---
         )
 
+        $(P An unqualified postblit will get called even if the
+        struct is instantiated as `immutable` or `const`, but
+        the compiler issues an error if the struct is instantiated
+        as shared:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int n;
+    this(this) { ++n; }
+}
+
+void main()
+{
+    immutable S a;      // shared S a; => error : non-shared method is not callable using a shared object
+    auto a2 = a;
+    import std.stdio: writeln;
+    writeln(a2.n);     // prints 1
+}
+---
+)
+
+        $(P From a postblit perspective, qualifiying the struct definition
+        yields the same result as explicitly qualifying the postblit.)
+
+        $(P The following table lists all the possibilities of grouping
+        qualifiers for a postblit associated with the type of object that
+        needs to be used in order to succesfully invoke the postblit:)
+
+        $(TABLE_10 $(ARGS Qualifier Groups),
+        $(VERTROW object type to be invoked on, $(D const), $(D immutable), $(D shared)),
+        $(TROW any object type,                 $(YES),     $(NO),          $(NO) )
+        $(TROW uncallable,                      $(NO),      $(YES),         $(NO) )
+        $(TROW shared object,                   $(NO),      $(NO),          $(YES))
+        $(TROW uncallable,                      $(YES),     $(YES),         $(NO) )
+        $(TROW shared object,                   $(YES),     $(NO),          $(YES))
+        $(TROW uncallable,                      $(NO),      $(YES),         $(YES))
+        $(TROW uncallable,                      $(YES),     $(YES),         $(YES))
+        )
+
+        $(P Note that when `const` and `immutable` are used to explicitly
+        qualify a postblit as in `this(this) const immutable;` or
+        `const immutable this(this);` - the order in which the qualifiers
+        are declared does not matter - the compiler generates a `conflicting
+        attribute error`, however declaring the struct as `const`/`immutable`
+        and the postblit as `immutable`/`const` achieves the effect of applying
+        both qualifiers to the postblit. In both cases the postblit is
+        qualified with the more restrictive qualifier, which is `immutable`.
+        )
+
         $(P Unions may not have fields that have postblits.)
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
