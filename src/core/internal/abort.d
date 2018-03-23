@@ -4,14 +4,14 @@ module core.internal.abort;
  * Use instead of assert(0, msg), since this does not print a message for -release compiled
  * code, and druntime is -release compiled.
  */
-void abort(string msg, string filename = __FILE__, size_t line = __LINE__) @nogc nothrow @safe
+void abort(scope string msg, string filename = __FILE__, size_t line = __LINE__) @nogc nothrow @safe
 {
     import core.stdc.stdlib: c_abort = abort;
     // use available OS system calls to print the message to stderr
     version(Posix)
     {
         import core.sys.posix.unistd: write;
-        static void writeStr(const(char)[][] m...) @nogc nothrow @trusted
+        static void writeStr(scope const(char)[][] m...) @nogc nothrow @trusted
         {
             foreach(s; m)
                 write(2, s.ptr, s.length);
@@ -24,7 +24,7 @@ void abort(string msg, string filename = __FILE__, size_t line = __LINE__) @nogc
         if(h == INVALID_HANDLE_VALUE)
             // attempt best we can to print the message
             assert(0, msg);
-        void writeStr(const(char)[][] m...) @nogc nothrow @trusted
+        void writeStr(scope const(char)[][] m...) @nogc nothrow @trusted
         {
             foreach(s; m)
             {
