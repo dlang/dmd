@@ -4143,7 +4143,7 @@ void catchSemantic(Catch c, Scope* sc)
             error(c.loc, "can only catch class objects derived from `Throwable`, not `%s`", c.type.toChars());
             c.errors = true;
         }
-        else if (sc.func && !sc.intypeof && !c.internalCatch &&
+        else if (sc.func && !sc.intypeof && !c.internalCatch && ClassDeclaration.exception &&
                  cd != ClassDeclaration.exception && !ClassDeclaration.exception.isBaseOf(cd, null) &&
                  sc.func.setUnsafe())
         {
