@@ -479,6 +479,19 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             Type origType = t;
             Type tb = t.toBasetype();
 
+            const hasPointers = tb.hasPointers();
+            if (hasPointers)
+            {
+                if ((stype.alignment() < Target.ptrsize ||
+                     (v.offset & (Target.ptrsize - 1))) &&
+                    sc.func.setUnsafe())
+                {
+                    .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                        toChars(), v.toChars());
+                    return false;
+                }
+            }
+
             /* Look for case of initializing a static array with a too-short
              * string literal, such as:
              *  char[5] foo = "abc";
