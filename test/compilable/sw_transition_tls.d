@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -c -transition=tls
+// REQUIRED_ARGS: -transition=tls
 /*
 TEST_OUTPUT:
 ---

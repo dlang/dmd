@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -c -transition=complex
+// REQUIRED_ARGS: -transition=complex
 
 /*
 TEST_OUTPUT:

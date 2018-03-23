@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -c -Icompilable/extra-files
+// REQUIRED_ARGS: -Icompilable/extra-files
 
 struct Bug9057(T)
 {

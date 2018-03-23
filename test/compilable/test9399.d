@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -c -inline -Icompilable/imports compilable/imports/test9399a
+// REQUIRED_ARGS: -inline -Icompilable/imports compilable/imports/test9399a
 
 import imports.test9399a;
 void fun(int a) {
