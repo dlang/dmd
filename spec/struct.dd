@@ -575,7 +575,7 @@ $(GNAME Postblit):
         a normal function. Note that if a struct defines a postblit, it cannot
         define a function named `__postblit` - no matter the signature -
         as this would result in a compilation error due to the name conflict.)
-        $(LI `void __fieldPostblit()`. If a struct `X` has at least one `struct` 
+        $(LI `void __fieldPostblit()`. If a struct `X` has at least one `struct`
         member that in turn defines (explicitly or implicitly) a postblit, then a field
         postblit is generated for `X` that calls all the underlying postblits
         of the struct fields in declaration order.)
@@ -636,17 +636,27 @@ void main()
 
         $(P Neither of the above postblits is defined for structs that don't
         define `this(this)` and don't have fields that transitively define it.
-        Example:)
+        If a struct does not define a postblit (implicit or explicit) but
+        defines functions that use the same name/signature as the internally
+        generated postblits, the compiler is able to identify that the functions
+        are not actual postblits and does not insert calls to them when the
+        struct is copied. Example:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct X
 {}
 
+int a;
+
 struct Y
 {
     int a;
     X b;
+    void __fieldPostPostblit()
+    {
+        a = 42;
+    }
 }
 
 void main()
@@ -656,13 +666,17 @@ void main()
 
     static assert(!__traits(hasMember, Y, "__postblit"));
     static assert(!__traits(hasMember, Y, "__xpostblit"));
+
+    Y y;
+    auto y2 = y;
+    assert(a == 0); // __fieldPostBlit does not get called
 }
 ---
 )
 
-        $(P Postblits are not overloadable. If two or more postblits are defined,
+        $(P Postblits cannot be overloaded. If two or more postblits are defined,
         even if the signatures differ, the compiler assigns the
-        `__postblit` name to both and later issue a conflicting function
+        `__postblit` name to both and later issues a conflicting function
         name error:)
 
 ---
@@ -740,7 +754,7 @@ void main()
 
         $(LI `shared`. When a postblit is qualified with `shared` as in
         $(D this(this) shared) or $(D shared this(this)) solely `shared`
-        object may invoke the postblit; attempts of postbliting unshared
+        objects may invoke the postblit; attempts of postbliting unshared
         objects will result in compile time errors:)
 
 ---
