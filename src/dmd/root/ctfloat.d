@@ -1,4 +1,4 @@
-/**
+/***
  * Compiler implementation of the
  * $(LINK2 http://www.dlang.org, D programming language).
  *
@@ -42,20 +42,15 @@ private
 extern (C++) struct CTFloat
 {
   nothrow:
-    version(DigitalMars)
-    {
-        static __gshared bool yl2x_supported = true;
-        static __gshared bool yl2xp1_supported = true;
-    }
+    version (GNU)
+        enum yl2x_supported = false;
     else
-    {
-        static __gshared bool yl2x_supported = false;
-        static __gshared bool yl2xp1_supported = false;
-    }
+        enum yl2x_supported = __traits(compiles, core.math.yl2x(1.0L, 2.0L));
+    enum yl2xp1_supported = yl2x_supported;
 
     static void yl2x(const real_t* x, const real_t* y, real_t* res)
     {
-        version(DigitalMars)
+        static if (yl2x_supported)
             *res = core.math.yl2x(*x, *y);
         else
             assert(0);
@@ -63,7 +58,7 @@ extern (C++) struct CTFloat
 
     static void yl2xp1(const real_t* x, const real_t* y, real_t* res)
     {
-        version(DigitalMars)
+        static if (yl2xp1_supported)
             *res = core.math.yl2xp1(*x, *y);
         else
             assert(0);
@@ -87,6 +82,40 @@ extern (C++) struct CTFloat
         static real_t fabs(real_t x) { return core.math.fabs(x); }
         static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
     }
+
+    static if (!is(real_t == real))
+    {
+        static real_t round(real_t x) { return real_t(cast(double)core.stdc.math.roundl(cast(double)x)); }
+        static real_t floor(real_t x) { return real_t(cast(double)core.stdc.math.floor(cast(double)x)); }
+        static real_t ceil(real_t x) { return real_t(cast(double)core.stdc.math.ceil(cast(double)x)); }
+        static real_t trunc(real_t x) { return real_t(cast(double)core.stdc.math.trunc(cast(double)x)); }
+        static real_t log(real_t x) { return real_t(cast(double)core.stdc.math.logl(cast(double)x)); }
+        static real_t log2(real_t x) { return real_t(cast(double)core.stdc.math.log2l(cast(double)x)); }
+        static real_t log10(real_t x) { return real_t(cast(double)core.stdc.math.log10l(cast(double)x)); }
+        static real_t pow(real_t x, real_t y) { return real_t(cast(double)core.stdc.math.powl(cast(double)x, cast(double)y)); }
+        static real_t expm1(real_t x) { return real_t(cast(double)core.stdc.math.expm1l(cast(double)x)); }
+        static real_t exp2(real_t x) { return real_t(cast(double)core.stdc.math.exp2l(cast(double)x)); }
+        static real_t copysign(real_t x, real_t s) { return real_t(cast(double)core.stdc.math.copysignl(cast(double)x, cast(double)s)); }
+    }
+    else
+    {
+        static real_t round(real_t x) { return core.stdc.math.roundl(x); }
+        static real_t floor(real_t x) { return core.stdc.math.floor(x); }
+        static real_t ceil(real_t x) { return core.stdc.math.ceil(x); }
+        static real_t trunc(real_t x) { return core.stdc.math.trunc(x); }
+        static real_t log(real_t x) { return core.stdc.math.logl(x); }
+        static real_t log2(real_t x) { return core.stdc.math.log2l(x); }
+        static real_t log10(real_t x) { return core.stdc.math.log10l(x); }
+        static real_t pow(real_t x, real_t y) { return core.stdc.math.powl(x, y); }
+        static real_t expm1(real_t x) { return core.stdc.math.expm1l(x); }
+        static real_t exp2(real_t x) { return core.stdc.math.exp2l(x); }
+        static real_t copysign(real_t x, real_t s) { return core.stdc.math.copysignl(x, s); }
+    }
+
+    static real_t fmin(real_t x, real_t y) { return x < y ? x : y; }
+    static real_t fmax(real_t x, real_t y) { return x > y ? x : y; }
+
+    static real_t fma(real_t x, real_t y, real_t z) { return (x * y) + z; }
 
     static bool isIdentical(real_t a, real_t b)
     {
