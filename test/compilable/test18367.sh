@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -ueo pipefail
 
 # dmd should not segfault on -X with libraries, but no source files
 out=$(! "$DMD" -conf= -X foo.a 2>&1)

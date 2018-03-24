@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
 
 dir=${RESULTS_DIR}/runnable
 dmddir=${RESULTS_DIR}${SEP}runnable
