@@ -1116,6 +1116,7 @@ int el_sideeffect(elem *e)
  * Input:
  *      ea      lvalue (might be an OPbit)
  * Returns:
+ *     -1       eb cannot have a dependency on ea
  *      0       eb has no dependency on ea
  *      1       eb might have a dependency on ea
  *      2       eb definitely depends on ea
@@ -1123,7 +1124,7 @@ int el_sideeffect(elem *e)
 
 int el_depends(elem *ea,elem *eb)
 {
- L1:
+L1:
     elem_debug(ea);
     elem_debug(eb);
     switch (ea->Eoper)
@@ -1135,7 +1136,7 @@ int el_depends(elem *ea,elem *eb)
         case OPind:
             break;
         default:
-            assert(0);
+            return -1;
     }
     switch (eb->Eoper)
     {
