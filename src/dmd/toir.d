@@ -413,7 +413,7 @@ int intrinsic_op(FuncDeclaration fd)
         OPyl2xp1,
     ];
 
-    __gshared immutable char*[46] core_namearray =
+    __gshared immutable char*[52] core_namearray =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -442,11 +442,17 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop12volatileLoadFNbNiNfPkZk",
         "5bitop12volatileLoadFNbNiNfPmZm",
         "5bitop12volatileLoadFNbNiNfPtZt",
+        "5bitop12volatileLoadFNbNiNfPfZf",
+        "5bitop12volatileLoadFNbNiNfPdZd",
+        "5bitop12volatileLoadFNbNiNfPeZt",
 
         "5bitop13volatileStoreFNbNiNfPhhZv",
         "5bitop13volatileStoreFNbNiNfPkkZv",
         "5bitop13volatileStoreFNbNiNfPmmZv",
         "5bitop13volatileStoreFNbNiNfPttZv",
+        "5bitop13volatileStoreFNbNiNfPffZv",
+        "5bitop13volatileStoreFNbNiNfPddZv",
+        "5bitop13volatileStoreFNbNiNfPeeZv",
 
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsfFNaNbNiNfmZi",
@@ -467,7 +473,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmxx", // don't find 64 bit version in 32 bit code
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable char*[46] core_namearray64 =
+    __gshared immutable char*[52] core_namearray64 =
     [
         "4math3cosFNaNbNiNfeZe",
         "4math3sinFNaNbNiNfeZe",
@@ -496,11 +502,17 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop12volatileLoadFNbNiNfPkZk",
         "5bitop12volatileLoadFNbNiNfPmZm",
         "5bitop12volatileLoadFNbNiNfPtZt",
+        "5bitop12volatileLoadFNbNiNfPfZf",
+        "5bitop12volatileLoadFNbNiNfPdZd",
+        "5bitop12volatileLoadFNbNiNfPeZt",
 
         "5bitop13volatileStoreFNbNiNfPhhZv",
         "5bitop13volatileStoreFNbNiNfPkkZv",
         "5bitop13volatileStoreFNbNiNfPmmZv",
         "5bitop13volatileStoreFNbNiNfPttZv",
+        "5bitop13volatileStoreFNbNiNfPffZv",
+        "5bitop13volatileStoreFNbNiNfPddZv",
+        "5bitop13volatileStoreFNbNiNfPeeZv",
 
         "5bitop3bsfFNaNbNiNfkZi",
         "5bitop3bsfFNaNbNiNfmZi",
@@ -521,7 +533,7 @@ int intrinsic_op(FuncDeclaration fd)
         "5bitop7_popcntFNaNbNiNfmZi",
         "5bitop7_popcntFNaNbNiNftZt",
     ];
-    __gshared immutable ubyte[46] core_ioptab =
+    __gshared immutable ubyte[52] core_ioptab =
     [
         OPcos,
         OPsin,
@@ -550,7 +562,13 @@ int intrinsic_op(FuncDeclaration fd)
         OPind,
         OPind,
         OPind,
+        OPind,
+        OPind,
+        OPind,
 
+        OPeq,
+        OPeq,
+        OPeq,
         OPeq,
         OPeq,
         OPeq,
