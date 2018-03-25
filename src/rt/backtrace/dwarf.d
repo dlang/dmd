@@ -79,31 +79,44 @@ int traceHandlerOpApplyImpl(const void*[] callstack, scope int delegate(ref size
     int ret = 0;
     foreach (size_t i; 0 .. callstack.length)
     {
-        char[1536] buffer = void; buffer[0] = 0;
-        char[256] addressBuffer = void; addressBuffer[0] = 0;
+        char[1536] buffer = void;
+        size_t bufferLength = 0;
+
+        void appendToBuffer(Args...)(const(char)* format, Args args)
+        {
+            const count = snprintf(buffer.ptr + bufferLength, buffer.length - bufferLength, format, args);
+            assert(count >= 0);
+            bufferLength += count;
+            if (bufferLength >= buffer.length)
+                bufferLength = buffer.length - 1;
+        }
 
         if (locations.length > 0 && locations[i].line != -1)
-            snprintf(addressBuffer.ptr, addressBuffer.length, "%.*s:%d ", cast(int) locations[i].file.length, locations[i].file.ptr, locations[i].line);
+        {
+            appendToBuffer("%.*s:%d ", cast(int) locations[i].file.length, locations[i].file.ptr, locations[i].line);
+        }
         else
-            addressBuffer[] = "??:? \0";
+        {
+            buffer[0 .. 5] = "??:? ";
+            bufferLength = 5;
+        }
 
         char[1024] symbolBuffer = void;
-        int bufferLength;
         auto symbol = getDemangledSymbol(frameList[i][0 .. strlen(frameList[i])], symbolBuffer);
         if (symbol.length > 0)
-            bufferLength = snprintf(buffer.ptr, buffer.length, "%s%.*s ", addressBuffer.ptr, cast(int) symbol.length, symbol.ptr);
-        else
-            bufferLength = snprintf(buffer.ptr, buffer.length, "%s", addressBuffer.ptr);
+            appendToBuffer("%.*s ", cast(int) symbol.length, symbol.ptr);
 
-        assert(bufferLength >= 0);
         const addressLength = 20;
         const maxBufferLength = buffer.length - addressLength;
         if (bufferLength > maxBufferLength)
         {
+            buffer[maxBufferLength-4 .. maxBufferLength] = "... ";
             bufferLength = maxBufferLength;
-            buffer[$-4-addressLength..$-addressLength] = "... ";
         }
-        bufferLength += snprintf(buffer.ptr + bufferLength, buffer.length, "[0x%x]", callstack[i]);
+        static if (size_t.sizeof == 8)
+            appendToBuffer("[0x%llx]", callstack[i]);
+        else
+            appendToBuffer("[0x%x]", callstack[i]);
 
         auto output = buffer[0 .. bufferLength];
         auto pos = i;
