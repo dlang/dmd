@@ -3576,10 +3576,14 @@ STATIC elem * eleq(elem *e, goal_t goal)
             e1->Eoper == OPvar &&
             (e2->Eoper == OPpair || e2->Eoper == OPrpair) &&
             goal == GOALnone &&
-            !el_appears(e2, e1->EV.sp.Vsym)
+            !el_appears(e2, e1->EV.sp.Vsym) &&
+            // Disable this rewrite if we're using x87 and `e1` is a FP-value
+            // but `e2` is not
+            (config.fpxmmregs ||
+             tyfloating(e2->E1->Ety) != 0 == tyfloating(e2->Ety) != 0)
            )
         {
-            //printf("** before:\n"); WReqn(e); printf("\n");
+            // printf("** before:\n"); elem_print(e); printf("\n");
             tym_t ty = (REGSIZE == 8) ? TYllong : TYint;
             if (tyfloating(e1->Ety) && REGSIZE >= 4)
                 ty = (REGSIZE == 8) ? TYdouble : TYfloat;
@@ -3606,7 +3610,7 @@ STATIC elem * eleq(elem *e, goal_t goal)
             }
 
             e2->Eoper = OPcomma;
-            //printf("** after:\n"); WReqn(e2); printf("\n");
+            // printf("** after:\n"); elem_print(e2); printf("\n");
             return optelem(e2,goal);
         }
 
