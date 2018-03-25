@@ -41,12 +41,13 @@ void usage()
           ~ "      OS:            win32, win64, linux, freebsd, osx, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
+          ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n"
+          ~ "\n"
           ~ "   windows vs non-windows portability env vars:\n"
           ~ "      DSEP:          \\\\ or /\n"
           ~ "      SEP:           \\ or / (required)\n"
           ~ "      OBJ:          .obj or .o (required)\n"
-          ~ "      EXE:          .exe or <null> (required)\n"
-          ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n");
+          ~ "      EXE:          .exe or <null> (required)\n");
 }
 
 enum TestMode
