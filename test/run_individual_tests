@@ -9,6 +9,9 @@
 
 set -euo pipefail
 
+# if PROCS is not set, auto-detect or fallback to 4
+PROCS="${PROCS:-$(nproc 2> /dev/null || sysctl -n hw.physicalcpu 2> /dev/null || echo 4)}"
+
 if [ -z ${1:-} ] ; then
 	cat >&2 << EOF
 ./run_individual_tests <test-file>...
@@ -34,4 +37,5 @@ done
 # allows the script to be called from anywhere
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
-${MAKE:-make} "${files[@]}"
+echo ${PROCS}
+${MAKE:-make} "${files[@]}" -j${PROCS}
