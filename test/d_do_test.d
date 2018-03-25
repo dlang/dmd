@@ -815,6 +815,10 @@ int tryMain(string[] args)
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
                 std.file.write(input_file, updatedText);
+                // remove the output file in test_results as its outdated
+                f.close();
+                output_file.remove();
+                writefln("==> `TEST_OUTPUT` of %s/%s.%s has been updated", input_dir, test_name, test_extension);
                 return Result.return0;
             }
 
@@ -826,7 +830,7 @@ int tryMain(string[] args)
 
             writefln("Test %s/%s.%s failed.  The logged output:", input_dir, test_name, test_extension);
             writeln(output_file.readText);
-            std.file.remove(output_file);
+            output_file.remove();
             return Result.return1;
         }
     }
