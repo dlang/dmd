@@ -237,6 +237,13 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         //printf("VarDeclaration::semantic2('%s')\n", toChars());
 
+        if (vd.aliassym)        // if it's a tuple
+        {
+            vd.aliassym.accept(this);
+            vd.semanticRun = PASS.semantic2done;
+            return;
+        }
+
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
             vd.inuse++;
@@ -563,7 +570,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(AggregateDeclaration ad)
     {
-        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", toChars(), type.toChars(), errors);
+        //printf("AggregateDeclaration::semantic2(%s) type = %s, errors = %d\n", ad.toChars(), ad.type.toChars(), ad.errors);
         if (!ad.members)
             return;
 
