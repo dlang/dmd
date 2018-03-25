@@ -297,6 +297,10 @@ STATIC void ecom(elem **pe)
         ecom(&e->E2);
         return;
     case OPcomma:
+        ecom(&e->E1);
+        ecom(&e->E2);
+        return;
+
     case OPremquo:
         ecom(&e->E1);
         ecom(&e->E2);
