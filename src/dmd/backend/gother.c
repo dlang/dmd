@@ -1518,6 +1518,12 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     vec_clearbit(i,POSS);
                 break;
 
+            case OPbt:
+                accumda(n->E1,DEAD,POSS);
+                accumda(n->E2,DEAD,POSS);
+                vec_subass(POSS,ambigref);      // remove possibly refed
+                break;
+
             case OPind:
             case OPucall:
             case OPucallns:

@@ -1,6 +1,6 @@
 /*
 REQUIRED_ARGS: -mcpu=native -transition=16997 -transition=intpromote
-PERMUTE_ARGS: -O -inline
+PERMUTE_ARGS: -O -inline -release
 */
 
 import core.stdc.stdio;
@@ -1736,6 +1736,20 @@ void test18315() // https://issues.dlang.org/show_bug.cgi?id=18315
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=18461
+
+void test18461()
+{
+    import core.bitop;
+
+    size_t test_val = 0b0001_0000;
+
+    if (bt(&test_val, 4) == 0)
+        assert(false);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1797,6 +1811,8 @@ int main()
     testdivcmp();
     test16997();
     test18315();
+    test18461();
+
     printf("Success\n");
     return 0;
 }
