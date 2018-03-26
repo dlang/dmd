@@ -1677,6 +1677,23 @@ void testdivcmp()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16189
+
+void test16189()
+{
+    ubyte[9][1] data;
+    uint a = 0;
+  loop:
+    data[0] = data[a];
+    a--;
+    bool b = false;
+    if (b) goto loop;
+    assert(a == -1); // was failing with -O
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 // https://issues.dlang.org/show_bug.cgi?id=16997
 
 void test16997()
@@ -1809,6 +1826,7 @@ int main()
     test6();
     testeqeqranges();
     testdivcmp();
+    test16189();
     test16997();
     test18315();
     test18461();
