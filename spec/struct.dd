@@ -831,6 +831,67 @@ void main()
         qualified with the more restrictive qualifier, which is `immutable`.
         )
 
+        $(P The postblits `__fieldPostblit` and `__aggrPostblit`
+        are generated without any implicit qualifiers and are not considered
+        struct members. This leads to the situation where qualifying an
+        entire struct declaration does not have any impact on the above
+        mentioned postblits, however, since `__xpostblit` is a member of
+        the struct and an alias of one of the other postblits, the qualifiers
+        applied to the struct will affect the aliased postblit:)
+
+---
+struct S
+{
+    this(this)
+    { }
+}
+
+// `__xpostblit` aliases the aggregated postblit so the `const` applies to it,
+// however, the aggregated postblit calls the field postblit which does not have
+// any qualifier applied, resulting in a qualifier mismatch error
+const struct B
+{
+    S a;        // error : mutable method B.__fieldPostblit is not callable using a const object
+    this(this)
+    { }
+}
+
+// `__xpostblit` aliases the field postblit; no error
+const struct B2
+{
+    S a;
+}
+
+// ditto B
+immutable struct C
+{
+    S a;        // error : mutable method C.__fieldPostblit is not callable using a immutable object
+    this(this)
+    { }
+}
+
+immutable struct C2
+{
+    S a;
+}
+
+// ditto B
+shared struct D
+{
+    // error: non-shared method S.__postblit is not callable using a shared object
+    // error: non-shared method D.__fieldPostblit is not callable using a shared object
+    S a;
+    this(this)
+    { }
+}
+---
+
+        $(P In the above situations the errors do not contain any line numbers because
+        the errors are regarding generated code. In the case of the `shared` struct,
+        the first error message can be suppressed by qualifying the postblit of `S`
+        with `shared`.
+        )
+
         $(P Unions may not have fields that have postblits.)
 
 $(H2 $(LEGACY_LNAME2 StructDestructor, struct-destructor, Struct Destructors))
