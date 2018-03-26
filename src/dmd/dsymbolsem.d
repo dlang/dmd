@@ -2232,8 +2232,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!em.ed.isAnonymous())
                     em.ed.memtype = t;
             }
-            Expression e = new IntegerExp(em.loc, 0, Type.tint32);
-            e = e.implicitCastTo(sc, t);
+            Expression e = new IntegerExp(em.loc, 0, t);
             e = e.ctfeInterpret();
 
             // save origValue for better json output
