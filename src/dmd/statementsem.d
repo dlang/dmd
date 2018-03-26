@@ -3139,6 +3139,8 @@ else
                      */
                     if (checkReturnEscapeRef(sc, rs.exp, true))
                         turnOffRef();
+                    else if (!rs.exp.type.constConv(tf.next))
+                        turnOffRef();
                 }
                 else
                     turnOffRef();
