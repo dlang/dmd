@@ -59,6 +59,8 @@ ifneq ($(BUILD),release)
         $(error Unrecognized BUILD=$(BUILD), must be 'debug' or 'release')
     endif
     ENABLE_DEBUG := 1
+else
+    ENABLE_RELEASE := 1
 endif
 
 # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
@@ -472,7 +474,7 @@ $G/parser.a: $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS) $G/dmd $G/dmd.conf $(SRC_
 	CC="$(HOST_CXX)" $G/dmd -lib -of$@ $(MODEL_FLAG) -L-lstdc++ -J$G $(DFLAGS) $(PARSER_SRCS) $(LEXER_SRCS) $(ROOT_SRCS)
 
 $G/examples/%: $(EX)/%.d $G/parser.a $G/dmd
-	CC="$(HOST_CXX)" $G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) $G/parser.a $<
+	CC="$(HOST_CXX)" $G/dmd -of$@ $(MODEL_FLAG) $(DFLAGS) -J$G $G/parser.a  $<
 
 build-examples: $(EXAMPLES)
 
