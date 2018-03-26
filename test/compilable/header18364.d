@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -o- -Hf${RESULTS_DIR}/compilable/header18364.di
-// POST_SCRIPT: compilable/extra-files/header-postscript.sh header18364
+// POST_SCRIPT: compilable/extra-files/header-postscript.sh
 module foo.bar.ba;
 @safe pure nothrow @nogc package(foo):
 void foo();
