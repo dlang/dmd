@@ -1655,6 +1655,7 @@ extern (C++) abstract class Expression : RootObject
         CTFEExp.breakexp = new CTFEExp(TOK.break_);
         CTFEExp.continueexp = new CTFEExp(TOK.continue_);
         CTFEExp.gotoexp = new CTFEExp(TOK.goto_);
+        CTFEExp.showcontext = new CTFEExp(TOK.showCtfeContext);
     }
 
     /*********************************
@@ -2544,11 +2545,6 @@ extern (C++) abstract class Expression : RootObject
     bool isBool(bool result)
     {
         return false;
-    }
-
-    inout(CTErrorExp) isCTErrorExp() inout
-    {
-        return null;
     }
 
     final Expression op_overload(Scope* sc)

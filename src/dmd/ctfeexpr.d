@@ -200,15 +200,14 @@ extern (C++) final class ThrownExceptionExp : Expression
     }
 }
 
-
 /***********************************************************
  * This type is only used by the interpreter.
  */
-extern (C++) class CTFEExp : Expression
+extern (C++) final class CTFEExp : Expression
 {
-    extern (D) this(TOK tok, int size = __traits(classInstanceSize, CTFEExp))
+    extern (D) this(TOK tok)
     {
-        super(Loc.initial, tok, size);
+        super(Loc.initial, tok, __traits(classInstanceSize, CTFEExp));
         type = Type.tvoid;
     }
 
@@ -236,6 +235,10 @@ extern (C++) class CTFEExp : Expression
     extern (C++) static __gshared CTFEExp breakexp;
     extern (C++) static __gshared CTFEExp continueexp;
     extern (C++) static __gshared CTFEExp gotoexp;
+    /* Used when additional information is needed regarding
+     * a ctfe error.
+     */
+    extern (C++) static __gshared CTFEExp showcontext;
 
     static bool isCantExp(const Expression e)
     {
@@ -248,34 +251,10 @@ extern (C++) class CTFEExp : Expression
     }
 }
 
-enum CTE : int
-{
-    missingFuncBody,
-}
-
-/* This class is used to pass CTFE errors to
- * higher levels in the AST so that error
- * messages can be written on the call site
- */
-extern (C++) final class CTErrorExp : CTFEExp
-{
-    CTE err;
-    extern (D) this(CTE err)
-    {
-        super(TOK.cantExpression, __traits(classInstanceSize, CTErrorExp));
-        this.err = err;
-    }
-
-    override inout(CTErrorExp) isCTErrorExp() inout
-    {
-        return this;
-    }
-}
-
 // True if 'e' is CTFEExp::cantexp, or an exception
 extern (C++) bool exceptionOrCantInterpret(const Expression e)
 {
-    return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException);
+    return e && (e.op == TOK.cantExpression || e.op == TOK.thrownException || e.op == TOK.showCtfeContext);
 }
 
 /************** Aggregate literals (AA/string/array/struct) ******************/

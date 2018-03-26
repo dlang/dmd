@@ -4997,7 +4997,7 @@ public:
         if (!fd.fbody)
         {
             e.error("`%s` cannot be interpreted at compile time, because it has no available source code", fd.toChars());
-            result = new CTErrorExp(CTE.missingFuncBody);
+            result = CTFEExp.showcontext;
             return;
         }
 
