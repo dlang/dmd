@@ -13,3 +13,14 @@ struct A
 }
 
 A a;
+
+// https://issues.dlang.org/show_bug.cgi?id=18661
+
+struct S0(T)
+{
+    int a;
+    auto ref immutable(int) getA() { return a; }
+}
+
+alias B = S0!int;
+
