@@ -52,7 +52,7 @@ function finish {
         cat "${output_file}.log"
 
         rm -rf "${output_file}"
-        exit $?
+        exit $1
     fi
 }
 trap 'finish $?' INT TERM EXIT
