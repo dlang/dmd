@@ -5,9 +5,5 @@ LINE_COUNT_MINUS_1=$(( `wc -l < ${RESULTS_DIR}/runnable/runnable-bug9010.lst` - 
 head -n${LINE_COUNT_MINUS_1} ${RESULTS_DIR}/runnable/runnable-bug9010.lst > ${RESULTS_DIR}/runnable/runnable-bug9010.lst2
 
 diff --strip-trailing-cr runnable/extra-files/runnable-bug9010.lst ${RESULTS_DIR}/runnable/runnable-bug9010.lst2
-if [ $? -ne 0 ]; then
-    exit 1
-fi
 
 rm ${RESULTS_DIR}/runnable/runnable-bug9010.lst{,2}
-

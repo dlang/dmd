@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 TEST_NAME=$1
 
 echo SANITIZING JSON...
