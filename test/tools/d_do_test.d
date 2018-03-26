@@ -523,6 +523,7 @@ class CompareException : Exception
     }
 }
 
+version(unittest) void main(){} else
 int main(string[] args)
 {
     try { return tryMain(args); }
@@ -533,8 +534,6 @@ int tryMain(string[] args)
 {
     if (args.length != 4)
     {
-        if (args.length == 2 && args[1] == "-unittest")
-            return 0;
         usage();
         return 1;
     }
@@ -798,7 +797,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
