@@ -797,7 +797,11 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
+                assert(testArgs.sources[0].length, "Internal error: the tested file has no sources.");
+                import std.path : baseName, dirName, stripExtension;
+                auto testDir = testArgs.sources[0].dirName.baseName;
+                auto testName = testArgs.sources[0].baseName.stripExtension;
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ testDir ~ " " ~ testName ~ " " ~ thisRunName, true, result_path);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));

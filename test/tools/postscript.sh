@@ -12,7 +12,17 @@ fi
 script_file="$1"
 shift
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# export common variables
+source "$DIR/exported_vars.sh"
+
+# Remove TEST_DIR and TEST_NAME
+shift
+shift
+
 # called scripts should fail on errors and undefined variables
 set -euo pipefail
+set -x
 
 source "${script_file}"
