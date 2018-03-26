@@ -11,7 +11,7 @@ do
 	file_name=${TEST_NAME}${kind}
 	src_file=${EXTRA_FILES}/${file_name}.d
 	expect_file=${EXTRA_FILES}/${file_name}.out
-	output_file=${RESULTS_TEST_DIR}/${file_name}.out
+	output_file=${RESULTS_TEST_DIR}/${file_name}.log
 
 	rm -f ${output_file}{,.2}
 
