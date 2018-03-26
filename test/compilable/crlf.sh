@@ -3,7 +3,6 @@
 # Test CRLF and mixed line ending handling in D lexer.
 
 
-dir=${RESULTS_DIR}/compilable
 fn=${TEST_DIR}/${TEST_NAME}.d
 
 printf '%s\r\n' \

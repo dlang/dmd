@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 
 
-src=runnable${SEP}extra-files
 dir=${RESULTS_DIR}${SEP}runnable
 
-libname=${dir}${SEP}link14834${LIBEXT}
-exename=${dir}${SEP}link14834${EXE}
+libname=${OUTPUT_BASE}${LIBEXT}
+exename=${OUTPUT_BASE}${EXE}
 
-$DMD -m${MODEL} -I${src} -lib           -of${libname} ${src}${SEP}link14834a.d
-$DMD -m${MODEL} -I${src} -inline -debug -of${exename} ${src}${SEP}link14834b.d ${libname}
+$DMD -m${MODEL} -I${EXTRA_FILES} -lib           -of${libname} ${EXTRA_FILES}${SEP}link14834a.d
+$DMD -m${MODEL} -I${EXTRA_FILES} -inline -debug -of${exename} ${EXTRA_FILES}${SEP}link14834b.d ${libname}
 
-${dir}/link14834
+${exename}
 
-rm ${libname} ${exename} ${dir}${SEP}link14834${OBJ}
+rm ${OUTPUT_BASE}{${LIBEXT},${EXE},${OBJ}}

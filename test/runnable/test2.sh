@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
 
-dir=${RESULTS_DIR}/runnable
-dmddir=${RESULTS_DIR}${SEP}runnable
+output_file=${OUTPUT_BASE}.log
+
+
+set -x
 
 a[0]=''
 a[1]='-debug'
@@ -12,11 +14,16 @@ a[3]='-debug=2 -debug=bar'
 for x in "${a[@]}"; do
     echo "executing with args: $x"
 
-    $DMD -m${MODEL} $x -unittest -od${dmddir} -of${dmddir}${SEP}test2${EXE} runnable/extra-files/test2.d
+    $DMD -m${MODEL} $x -unittest -of${OUTPUT_BASE}${EXE} -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}/test2.d >> ${output_file}
+    if [ $? -ne 0 ]; then
+        cat ${output_file}
+        rm -f ${output_file}
+        exit 1
+    fi
 
-    ${dir}/test2
+    ${OUTPUT_BASE}${EXE} >> ${output_file}
 
-    rm ${dir}/{test2${OBJ},test2${EXE}}
+    rm ${OUTPUT_BASE}{${OBJ},${EXE}}
 
     echo
 done

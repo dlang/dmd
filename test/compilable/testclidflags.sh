@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-dir=${RESULTS_DIR}${SEP}compilable
-
 unset DFLAGS
 
 # Force DMD to print the -v menu by passing an invalid object file

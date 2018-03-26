@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 if [ "${OS}" == "win32" -o "${OS}" == "win64" ]; then
     expected="Windows"
 else

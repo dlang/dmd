@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 
 
-src=runnable${SEP}extra-files
-dir=${RESULTS_DIR}${SEP}runnable
+libname=${OUTPUT_BASE}${LIBEXT}
 
-libname=${dir}${SEP}lib10386${LIBEXT}
 
-$DMD -m${MODEL} -Irunnable -I${src} -of${libname} -c ${src}${SEP}lib10386${SEP}foo${SEP}bar.d ${src}${SEP}lib10386${SEP}foo${SEP}package.d -lib
-$DMD -m${MODEL} -Irunnable -I${src} -of${dir}${SEP}test10386${EXE} ${src}${SEP}test10386.d ${libname}
-
-rm ${dir}/{lib10386${LIBEXT},test10386${OBJ},test10386${EXE}}
+$DMD -m${MODEL} -Irunnable -I${EXTRA_FILES} -of${libname} -c ${EXTRA_FILES}${SEP}lib10386${SEP}foo${SEP}bar.d ${EXTRA_FILES}${SEP}lib10386${SEP}foo${SEP}package.d -lib
+$DMD -m${MODEL} -Irunnable -I${EXTRA_FILES} -of${OUTPUT_BASE}${EXE} ${EXTRA_FILES}${SEP}test10386.d ${libname}
+rm ${OUTPUT_BASE}{${LIBEXT},${OBJ},${EXE}}
