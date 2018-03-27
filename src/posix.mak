@@ -479,7 +479,7 @@ build-examples: $(EXAMPLES)
 ######## Manual cleanup
 
 clean:
-	rm -R $(GENERATED)
+	rm -Rf $(GENERATED)
 	rm -f $(addprefix $D/backend/, $(optabgen_output))
 	@[ ! -d ${PGO_DIR} ] || echo You should issue manually: rm -rf ${PGO_DIR}
 
