@@ -965,8 +965,8 @@ Lagain:
                     }
                     else if (config.exe != EX_WIN64 &&
                              r == RTLSYM_MEMSET128ii &&
-                             t1.Tty == TYdouble &&
-                             t2.Tty == TYdouble)
+                             tyfloating(t1.Tty) &&
+                             tyfloating(t2.Tty))
                         r = RTLSYM_MEMSET128;
                 }
             }

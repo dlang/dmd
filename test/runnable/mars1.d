@@ -1244,6 +1244,19 @@ void test9449()
     if (arr[0].g != 4.0) assert(0);
 }
 
+struct Point9449x
+{
+    float  f = 0.0;
+    double g = 0.0;
+}
+
+void test9449x()
+{
+    Point9449x[1] arr;
+    if (arr[0].f != 0.0) assert(0);
+    if (arr[0].g != 0.0) assert(0);
+}
+
 ////////////////////////////////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=12057
 
@@ -1806,6 +1819,7 @@ int main()
     test13023(0x10_0000_0000);
     test12833();
     test9449();
+    test9449x();
     test12057();
     test13784();
     test14220();
