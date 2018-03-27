@@ -3578,9 +3578,9 @@ STATIC elem * eleq(elem *e, goal_t goal)
             goal == GOALnone &&
             !el_appears(e2, e1->EV.sp.Vsym) &&
             // Disable this rewrite if we're using x87 and `e1` is a FP-value
-            // but `e2` is not
+            // but `e2` is not, or vice versa
             (config.fpxmmregs ||
-             tyfloating(e2->E1->Ety) != 0 == tyfloating(e2->Ety) != 0)
+             (tyfloating(e2->E1->Ety) != 0) == (tyfloating(e2->Ety) != 0))
            )
         {
             // printf("** before:\n"); elem_print(e); printf("\n");
