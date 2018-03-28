@@ -6750,6 +6750,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                              */
                             Expression e = e1x.copy();
                             e.type = e.type.mutableOf();
+                            if (e.type.isShared && !sd.type.isShared)
+                                e.type = e.type.unSharedOf();
                             e = new BlitExp(exp.loc, e, e2x);
                             e = new DotVarExp(exp.loc, e, sd.postblit, false);
                             e = new CallExp(exp.loc, e);
