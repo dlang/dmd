@@ -350,7 +350,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 member.accept(this);
             }
 
-            finishVtbl(cd);
+            // If something goes wrong during this pass don't bother with the
+            // rest as we may have incomplete info
+            // https://issues.dlang.org/show_bug.cgi?id=17918
+            if (!finishVtbl(cd))
+            {
+                return;
+            }
 
             // Generate C symbols
             toSymbol(cd);
@@ -1374,10 +1380,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
 /*********************************
  * Finish semantic analysis of functions in vtbl[],
- * check vtbl[] for errors.
+ * check vtbl[] for errors and returns false if it does.
  */
-private void finishVtbl(ClassDeclaration cd)
+private bool finishVtbl(ClassDeclaration cd)
 {
+    bool hasError = false;
+
     foreach (i; cd.vtblOffset() .. cd.vtbl.dim)
     {
         FuncDeclaration fd = cd.vtbl[i].isFuncDeclaration();
@@ -1390,7 +1398,10 @@ private void finishVtbl(ClassDeclaration cd)
         }
         // Ensure function has a return value
         // https://issues.dlang.org/show_bug.cgi?id=4869
-        fd.functionSemantic();
+        if (!fd.functionSemantic())
+        {
+            hasError = true;
+        }
 
         if (!cd.isFuncHidden(fd) || fd.isFuture())
         {
@@ -1426,10 +1437,15 @@ private void finishVtbl(ClassDeclaration cd)
                     fd.toChars());
             }
             else
+            {
                 cd.error("use of `%s` is hidden by `%s`", fd.toPrettyChars(), cd.toChars());
+            }
+            hasError = true;
             break;
         }
     }
+
+    return !hasError;
 }
 
 
