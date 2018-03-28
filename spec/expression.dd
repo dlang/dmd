@@ -563,7 +563,8 @@ $(GNAME AddExpression):
     $(P If both operands are pointers, and the operator is $(D -),
         the pointers are subtracted and the
         result is divided by the size of the type pointed to by the
-        operands. It is an error if the pointers point to different types.
+        operands. In this calculation the assumed size of $(D void) is one byte.
+        It is an error if the pointers point to different types.
         The type of the result is $(D ptrdiff_t).
     )
 
