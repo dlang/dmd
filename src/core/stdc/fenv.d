@@ -397,7 +397,16 @@ else version( CRuntime_UClibc )
 
         alias fexcept_t = ushort;
     }
-    else version(ARM)
+    else version (MIPS32)
+    {
+        struct fenv_t
+        {
+            uint __fp_control_register;
+        }
+
+        alias fexcept_t = ushort;
+    }
+    else version (ARM)
     {
         struct fenv_t
         {
