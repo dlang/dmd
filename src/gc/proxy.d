@@ -189,6 +189,11 @@ extern (C)
         return instance.stats();
     }
 
+    core.memory.GC.ProfileStats gc_profileStats() nothrow
+    {
+        return instance.profileStats();
+    }
+
     void gc_addRoot( void* p ) nothrow @nogc
     {
         return instance.addRoot( p );

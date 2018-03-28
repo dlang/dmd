@@ -195,6 +195,11 @@ class ManualGC : GC
         return typeof(return).init;
     }
 
+    core.memory.GC.ProfileStats profileStats() nothrow
+    {
+        return typeof(return).init;
+    }
+
     void addRoot(void* p) nothrow @nogc
     {
         roots.insertBack(Root(p));
