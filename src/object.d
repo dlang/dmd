@@ -3409,29 +3409,43 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 /**
 Calculates the hash value of $(D arg) with $(D seed) initial value.
 The result may not be equal to `typeid(T).getHash(&arg)`.
-The $(D seed) value may be used for hash chaining:
-----
-struct Test
-{
-    int a;
-    string b;
-    MyObject c;
 
-    size_t toHash() const @safe pure nothrow
-    {
-        size_t hash = a.hashOf();
-        hash = b.hashOf(hash);
-        size_t h1 = c.myMegaHash();
-        hash = h1.hashOf(hash); //Mix two hash values
-        return hash;
-    }
-}
-----
+Params:
+    arg = argument to calculate the hash value of
+    seed = the $(D seed) value (may be used for hash chaining)
+
+Return: calculated hash value of $(D arg)
 */
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
     return core.internal.hash.hashOf(arg, seed);
+}
+
+///
+@system unittest
+{
+    class MyObject
+    {
+        size_t myMegaHash() const @safe pure nothrow
+        {
+            return 42;
+        }
+    }
+    struct Test
+    {
+        int a;
+        string b;
+        MyObject c;
+        size_t toHash() const pure nothrow
+        {
+            size_t hash = a.hashOf();
+            hash = b.hashOf(hash);
+            size_t h1 = c.myMegaHash();
+            hash = h1.hashOf(hash); //Mix two hash values
+            return hash;
+        }
+    }
 }
 
 unittest
