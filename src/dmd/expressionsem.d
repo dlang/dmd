@@ -2353,7 +2353,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     foreach (arg; *exp.arguments)
                     {
-                        if (checkReturnEscape(sc, arg, false))
+                        if (arg && checkReturnEscape(sc, arg, false))
                             return setError();
                     }
                 }
