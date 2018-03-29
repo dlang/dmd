@@ -1379,8 +1379,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
 
 /*********************************
- * Finish semantic analysis of functions in vtbl[],
- * check vtbl[] for errors and returns false if it does.
+ * Finish semantic analysis of functions in vtbl[].
+ * Params:
+ *    cd = class which has the vtbl[]
+ * Returns:
+ *    true for success (no errors)
  */
 private bool finishVtbl(ClassDeclaration cd)
 {
