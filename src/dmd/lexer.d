@@ -1020,16 +1020,25 @@ class Lexer : ErrorHandler
                     p++;
                     Token n;
                     scan(&n);
-                    if (n.value == TOK.identifier && n.ident == Id.line)
+                    if (n.value == TOK.identifier)
                     {
-                        poundLine();
-                        continue;
+                        if (n.ident == Id.line)
+                        {
+                            poundLine();
+                            continue;
+                        }
+                        else
+                        {
+                            const locx = loc();
+                            warning(locx, "C preprocessor directive `#%s` is not supported", n.ident.toChars());
+                        }
                     }
-                    else
+                    else if (n.value == TOK.if_)
                     {
-                        t.value = TOK.pound;
-                        return;
+                        error("C preprocessor directive `#if` is not supported, use `version` or `static if`");
                     }
+                    t.value = TOK.pound;
+                    return;
                 }
             default:
                 {

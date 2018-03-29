@@ -416,6 +416,7 @@ immutable Msgtable[] msgtable =
     { "TRUE" },
     { "FALSE" },
     { "unsigned" },
+    { "wchar_t" },
 ];
 
 

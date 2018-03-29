@@ -675,6 +675,8 @@ struct Scope
             tok = TOK.false_;
         else if (ident == Id.unsigned)
             tok = TOK.uns32;
+        else if (ident == Id.wchar_t)
+            tok = global.params.isWindows ? TOK.wchar_ : TOK.dchar_;
         else
             return null;
         return Token.toChars(tok);
