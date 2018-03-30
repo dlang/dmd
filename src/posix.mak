@@ -137,7 +137,7 @@ else
   # Auto-bootstrapping, will download dmd automatically
   # Keep var below in sync with other occurrences of that variable, e.g. in circleci.sh
   HOST_DMD_VER=2.072.2
-  HOST_DMD_ROOT=$(TMP)/.host_dmd-$(HOST_DMD_VER)
+  HOST_DMD_ROOT=$(GENERATED)/host_dmd-$(HOST_DMD_VER)
   # dmd.2.072.2.osx.zip or dmd.2.072.2.linux.tar.xz
   HOST_DMD_BASENAME=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),)
   # http://downloads.dlang.org/releases/2.x/2.072.2/dmd.2.072.2.linux.tar.xz
