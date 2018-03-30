@@ -2,4 +2,4 @@ add __traits(isReturnOnStack, func)
 
 Determines if a function's return value is placed on the stack,
 or is returned via registers.
-See https://dlang.org/spec/traits.html#isReturnOnStack
+For more details, see $(LINK2 $(ROOT_DIR)spec/traits.html#isReturnOnStack, isReturnOnStack). 
