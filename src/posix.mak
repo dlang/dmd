@@ -125,15 +125,15 @@ ifneq (,$(HOST_DC))
 endif
 
 # Host D compiler for bootstrapping
-ifeq (,$(AUTO_BOOTSTRAP))
-  # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DMD?=dmd
-  HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
-  ifeq (,$(HOST_DMD_PATH))
-    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
-  endif
-  HOST_DMD_RUN:=$(HOST_DMD)
-else
+#ifeq (,$(AUTO_BOOTSTRAP))
+  ## No bootstrap, a $(HOST_DC) installation must be available
+  #HOST_DMD?=dmd
+  #HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
+  #ifeq (,$(HOST_DMD_PATH))
+    #$(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
+  #endif
+  #HOST_DMD_RUN:=$(HOST_DMD)
+#else
   # Auto-bootstrapping, will download dmd automatically
   # Keep var below in sync with other occurrences of that variable, e.g. in circleci.sh
   HOST_DMD_VER=2.074.1
@@ -145,7 +145,7 @@ else
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DMD_PATH=$(HOST_DMD)
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
-endif
+#endif
 
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
 ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
@@ -498,7 +498,7 @@ clean:
 
 ######## Download and install the last dmd buildable without dmd
 
-ifneq (,$(AUTO_BOOTSTRAP))
+#ifneq (,$(AUTO_BOOTSTRAP))
 $(HOST_DMD_PATH):
 	mkdir -p ${HOST_DMD_ROOT}
 ifneq (,$(shell which xz 2>/dev/null))
@@ -507,7 +507,7 @@ else
 	TMPFILE=$$(mktemp deleteme.XXXXXXXX) &&	curl -fsSL ${HOST_DMD_URL}.zip > $${TMPFILE}.zip && \
 		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip;
 endif
-endif
+#endif
 
 ######## generate a default dmd.conf
 
