@@ -5,9 +5,5 @@
 grep -v "runnable\|DEBUG" $1 > ${RESULTS_DIR}/runnable/statictor.d.out.2
 
 diff --strip-trailing-cr runnable/extra-files/statictor.d.out ${RESULTS_DIR}/runnable/statictor.d.out.2
-if [ $? -ne 0 ]; then
-    exit 1;
-fi
 
 rm ${RESULTS_DIR}/runnable/statictor.d.out.2
-

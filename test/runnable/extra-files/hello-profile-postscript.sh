@@ -4,9 +4,6 @@
 grep -v Dmain ${RESULTS_DIR}/runnable/hello-profile.d.trace.def > ${RESULTS_DIR}/runnable/hello-profile.d.trace.def2
 
 diff --strip-trailing-cr runnable/extra-files/hello-profile.d.trace.def ${RESULTS_DIR}/runnable/hello-profile.d.trace.def2
-if [ $? -ne 0 ]; then
-    exit 1;
-fi
 
 tracelog=${RESULTS_DIR}/runnable/hello-profile.d.trace.log
 if [ ! -f ${tracelog} ]; then
@@ -15,4 +12,3 @@ if [ ! -f ${tracelog} ]; then
 fi
 
 rm ${RESULTS_DIR}/runnable/hello-profile.d.trace.{def,def2,log}
-
