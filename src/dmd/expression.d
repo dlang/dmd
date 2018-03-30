@@ -2122,6 +2122,13 @@ extern (C++) abstract class Expression : RootObject
         if (v.storage_class & STC.manifest)
             return false; // ...or manifest constants
 
+        if (v.type.ty == Tstruct)
+        {
+            StructDeclaration sd = (cast(TypeStruct)type).sym;
+            if (sd.hasNoFields)
+                return false;
+        }
+
         bool err = false;
         if (v.isDataseg())
         {
