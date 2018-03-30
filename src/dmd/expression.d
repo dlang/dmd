@@ -2376,11 +2376,9 @@ extern (C++) abstract class Expression : RootObject
             break;
         }
 
-        deprecation("read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead.", Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
-        return false;
+        error("read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead.", Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
 
-        // note: enable when deprecation becomes an error.
-        // return true;
+         return true;
     }
 
     /***************************************
