@@ -14,6 +14,7 @@
 
 #include        <stdio.h>
 #include        <string.h>
+#include        <stdint.h>
 #include        <time.h>
 #include        "cc.h"
 #include        "oper.h"
@@ -32,9 +33,11 @@ int cdcmp_flag;
 extern signed char regtorm[8];
 
 // from divcoeff.c
-extern bool choose_multiplier(int N, targ_ullong d, int prec, targ_ullong *pm, int *pshpost);
-extern bool udiv_coefficients(int N, targ_ullong d, int *pshpre, targ_ullong *pm, int *pshpost);
-
+extern "C"
+{
+extern bool choose_multiplier(int N, uint64_t d, int prec, uint64_t *pm, int *pshpost);
+extern bool udiv_coefficients(int N, uint64_t d, int *pshpre, uint64_t *pm, int *pshpost);
+}
 
 /*******************************
  * Swap two integers.
@@ -1090,7 +1093,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             unsigned r3;
 
-            targ_ullong m;
+            uint64_t m;
             int shpost;
             int N = sz * 8;
             bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
@@ -1191,7 +1194,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             unsigned r3;
             regm_t regm;
             unsigned reg;
-            targ_ullong m;
+            uint64_t m;
             int shpre;
             int shpost;
             if (udiv_coefficients(sz * 8, e2factor, &shpre, &m, &shpost))

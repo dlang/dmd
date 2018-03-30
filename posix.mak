@@ -8,6 +8,8 @@ all:
 	$(QUIET)$(MAKE) -C src -f posix.mak all
 
 auto-tester-build: toolchain-info
+	rm -rf generated
+	find . -name "*.o" | xargs rm -f
 	$(QUIET)$(MAKE) -C src -f posix.mak auto-tester-build ENABLE_RELEASE=1
 
 auto-tester-test: test

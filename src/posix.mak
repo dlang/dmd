@@ -125,18 +125,18 @@ ifneq (,$(HOST_DC))
 endif
 
 # Host D compiler for bootstrapping
-ifeq (,$(AUTO_BOOTSTRAP))
-  # No bootstrap, a $(HOST_DC) installation must be available
-  HOST_DMD?=dmd
-  HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
-  ifeq (,$(HOST_DMD_PATH))
-    $(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
-  endif
-  HOST_DMD_RUN:=$(HOST_DMD)
-else
+#ifeq (,$(AUTO_BOOTSTRAP))
+  ## No bootstrap, a $(HOST_DC) installation must be available
+  #HOST_DMD?=dmd
+  #HOST_DMD_PATH=$(abspath $(shell which $(HOST_DMD)))
+  #ifeq (,$(HOST_DMD_PATH))
+    #$(error '$(HOST_DMD)' not found, get a D compiler or make AUTO_BOOTSTRAP=1)
+  #endif
+  #HOST_DMD_RUN:=$(HOST_DMD)
+#else
   # Auto-bootstrapping, will download dmd automatically
   # Keep var below in sync with other occurrences of that variable, e.g. in circleci.sh
-  HOST_DMD_VER=2.072.2
+  HOST_DMD_VER=2.074.1
   HOST_DMD_ROOT=$(TMP)/.host_dmd-$(HOST_DMD_VER)
   # dmd.2.072.2.osx.zip or dmd.2.072.2.linux.tar.xz
   HOST_DMD_BASENAME=dmd.$(HOST_DMD_VER).$(OS)$(if $(filter $(OS),freebsd),-$(MODEL),)
@@ -145,13 +145,16 @@ else
   HOST_DMD=$(HOST_DMD_ROOT)/dmd2/$(OS)/$(if $(filter $(OS),osx),bin,bin$(MODEL))/dmd
   HOST_DMD_PATH=$(HOST_DMD)
   HOST_DMD_RUN=$(HOST_DMD) -conf=$(dir $(HOST_DMD))dmd.conf
-endif
+#endif
 
 HOST_DMD_VERSION:=$(shell $(HOST_DMD_RUN) --version)
 ifneq (,$(findstring dmd,$(HOST_DMD_VERSION))$(findstring DMD,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=dmd
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring GDC,$(HOST_DMD_VERSION)))
+	HOST_DMD_KIND=gdc
+endif
+ifneq (,$(findstring gdc,$(HOST_DMD_VERSION))$(findstring gdmd,$(HOST_DMD_VERSION)))
 	HOST_DMD_KIND=gdc
 endif
 ifneq (,$(findstring ldc,$(HOST_DMD_VERSION))$(findstring LDC,$(HOST_DMD_VERSION)))
@@ -287,6 +290,11 @@ D_OBJC := 1
 endif
 endif
 
+ifneq (gdc, $(HOST_DMD_KIND))
+ ifeq (,$(findstring 2.068,$(HOST_DMD_VERSION)))
+  BACK_BETTERC = -betterC
+ endif
+endif
 
 ######## DMD frontend source files
 
@@ -340,11 +348,14 @@ BACK_OBJS = go.o gdag.o gother.o gflow.o gloop.o gsroa.o var.o el.o \
 	cgcod.o cod5.o outbuf.o compress.o \
 	bcomplex.o aa.o ti_achar.o \
 	ti_pvoid.o pdata.o cv8.o backconfig.o \
-	divcoeff.o dwarf.o dwarfeh.o varstats.o \
+	dwarf.o dwarfeh.o varstats.o \
 	ph2.o util2.o tk.o strtold.o md5.o \
 	$(TARGET_OBJS)
 
-G_OBJS = $(addprefix $G/, $(BACK_OBJS))
+BACK_DOBJS = divcoeff.o
+
+G_OBJS  = $(addprefix $G/, $(BACK_OBJS))
+G_DOBJS = $(addprefix $G/, $(BACK_DOBJS))
 #$(info $$G_OBJS is [${G_OBJS}])
 
 ifeq (osx,$(OS))
@@ -384,7 +395,7 @@ BACK_SRC = \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
+	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.d \
 	$C/varstats.c $C/varstats.h \
 	$C/md5.c $C/md5.h \
 	$C/ph2.c $C/util2.c $C/dwarfeh.c \
@@ -415,7 +426,7 @@ SRC_MAKE = posix.mak osmodel.mak
 
 STRING_IMPORT_FILES = $G/VERSION $G/SYSCONFDIR.imp ../res/default_ddoc_theme.ddoc
 
-DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS))
+DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(GLUE_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
 
 ######## Begin build targets
 
@@ -440,8 +451,10 @@ toolchain-info:
 $G/glue.a: $(G_GLUE_OBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_GLUE_OBJS)
 
-$G/backend.a: $(G_OBJS) $(SRC_MAKE)
-	$(AR) rcs $@ $(G_OBJS)
+$G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
+	$(AR) rcs $@ $(G_DOBJS) $(G_OBJS)
+	#$(HOST_DMD_RUN) -lib -of$G/backend.a $@ $(G_DOBJS)
+	nm -s $G/backend.a
 
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
@@ -450,14 +463,14 @@ $G/dmd_frontend: $(FRONT_SRCS) $D/gluelayer.d $(ROOT_SRCS) $G/newdelete.o $G/lex
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^) -version=NoBackend
 
 ifdef ENABLE_LTO
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf,$^)
 else
-$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
-	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/dmd.conf,$^)
+$G/dmd: $(DMD_SRCS) $(ROOT_SRCS) $G/divcoeff.o $G/newdelete.o $G/backend.a $G/lexer.a $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $G/dmd.conf
+	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -v -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $G/backend.a $(DFLAGS) $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH) $(LEXER_ROOT) $G/backend.a $G/dmd.conf,$^)
 endif
 
-$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
+$G/dmd-unittest: $(DMD_SRCS) $(ROOT_SRCS) $G/newdelete.o $G/lexer.a $(G_GLUE_OBJS) $(G_OBJS) $(G_DOBJS) $(STRING_IMPORT_FILES) $(HOST_DMD_PATH)
 	CC=$(HOST_CXX) $(HOST_DMD_RUN) -of$@ $(MODEL_FLAG) -vtls -J$G -J../res -L-lstdc++ $(DFLAGS) -g -unittest -main -version=NoMain $(filter-out $(STRING_IMPORT_FILES) $(HOST_DMD_PATH),$^)
 
 unittest: $G/dmd-unittest
@@ -485,7 +498,7 @@ clean:
 
 ######## Download and install the last dmd buildable without dmd
 
-ifneq (,$(AUTO_BOOTSTRAP))
+#ifneq (,$(AUTO_BOOTSTRAP))
 $(HOST_DMD_PATH):
 	mkdir -p ${HOST_DMD_ROOT}
 ifneq (,$(shell which xz 2>/dev/null))
@@ -494,7 +507,7 @@ else
 	TMPFILE=$$(mktemp deleteme.XXXXXXXX) &&	curl -fsSL ${HOST_DMD_URL}.zip > $${TMPFILE}.zip && \
 		unzip -qd ${HOST_DMD_ROOT} $${TMPFILE}.zip && rm $${TMPFILE}.zip;
 endif
-endif
+#endif
 
 ######## generate a default dmd.conf
 
@@ -539,6 +552,11 @@ $(shell ../config.sh "$G" ../VERSION $(SYSCONFDIR))
 $(G_OBJS): $G/%.o: $C/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  BACK_OBJS  $<"
 	$(CXX) -c -o$@ $(CXXFLAGS) $(BACK_FLAGS) $(MMD) $<
+
+$(G_DOBJS): $G/%.o: $C/%.d posix.mak $(HOST_DMD_PATH)
+	@echo "  (HOST_DMD_RUN)  BACK_DOBJS  $<"
+	$(HOST_DMD_RUN) -c -of$@ $(DFLAGS) $(MODEL_FLAG) $(BACK_BETTERC) $<
+	#objdump -d $@
 
 $(G_GLUE_OBJS): $G/%.o: $D/%.c $(optabgen_files) $(SRC_MAKE)
 	@echo "  (CC)  GLUE_OBJS  $<"
