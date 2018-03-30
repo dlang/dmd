@@ -2658,6 +2658,9 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
         {
             assert(fd);
 
+            if (fd.checkDisabled(loc, sc))
+                return null;
+
             bool hasOverloads = fd.overnext !is null;
             auto tf = fd.type.toTypeFunction();
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch

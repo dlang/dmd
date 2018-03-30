@@ -3911,6 +3911,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(NewDeclaration nd)
     {
         //printf("NewDeclaration::semantic()\n");
+
+        // `@disable new();` should not be deprecated
+        if (!nd.isDisabled())
+        {
+            // @@@DEPRECATED_2.084@@@
+            // Should be changed to an error in 2.084
+            deprecation(nd.loc, "class allocators have been deprecated, consider moving the allocation strategy outside of the class");
+        }
+
         if (nd.semanticRun >= PASS.semanticdone)
             return;
         if (nd._scope)
@@ -3934,17 +3943,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         nd.type = nd.type.typeSemantic(nd.loc, sc);
 
-        // Check that there is at least one argument of type size_t
-        TypeFunction tf = nd.type.toTypeFunction();
-        if (Parameter.dim(tf.parameters) < 1)
+        // allow for `@disable new();` to force users of a type to use an external allocation strategy
+        if (!nd.isDisabled())
         {
-            nd.error("at least one argument of type `size_t` expected");
-        }
-        else
-        {
-            Parameter fparam = Parameter.getNth(tf.parameters, 0);
-            if (!fparam.type.equals(Type.tsize_t))
-                nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
+            // Check that there is at least one argument of type size_t
+            TypeFunction tf = nd.type.toTypeFunction();
+            if (Parameter.dim(tf.parameters) < 1)
+            {
+                nd.error("at least one argument of type `size_t` expected");
+            }
+            else
+            {
+                Parameter fparam = Parameter.getNth(tf.parameters, 0);
+                if (!fparam.type.equals(Type.tsize_t))
+                    nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
+            }
         }
 
         funcDeclarationSemantic(nd);
@@ -3953,6 +3966,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(DeleteDeclaration deld)
     {
         //printf("DeleteDeclaration::semantic()\n");
+
+        // @@@DEPRECATED_2.084@@@
+        // Should be changed to an error in 2.084
+        deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
+
         if (deld.semanticRun >= PASS.semanticdone)
             return;
         if (deld._scope)
