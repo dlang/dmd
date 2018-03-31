@@ -3264,7 +3264,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (!sc.intypeof && !(sc.callSuper & CSX.halt))
+            if (!sc.intypeof)
             {
                 if (sc.noctor || sc.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
@@ -3301,7 +3301,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (!sc.intypeof && !(sc.callSuper & CSX.halt))
+            if (!sc.intypeof)
             {
                 if (sc.noctor || sc.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
