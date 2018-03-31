@@ -212,9 +212,8 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
         if (ectorgates)
         {
-            for (size_t i = 0; i < ectorgates.dim; i++)
-            {   StaticDtorDeclaration f = (*ectorgates)[i];
-
+            foreach (f; *ectorgates)
+            {
                 Symbol *s = toSymbol(f.vgate);
                 elem *e = el_var(s);
                 e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
@@ -224,8 +223,8 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
         if (sctors)
         {
-            for (size_t i = 0; i < sctors.dim; i++)
-            {   Symbol *s = (*sctors)[i];
+            foreach (s; *sctors)
+            {
                 elem *e = el_una(OPucall, TYvoid, el_var(s));
                 ector = el_combine(ector, e);
             }
@@ -326,9 +325,8 @@ void genObjFile(Module m, bool multiobj)
         bool v = global.params.verbose;
         global.params.verbose = false;
 
-        for (size_t i = 0; i < m.members.dim; i++)
+        foreach (member; *m.members)
         {
-            Dsymbol member = (*m.members)[i];
             //printf("toObjFile %s %s\n", member.kind(), member.toChars());
             toObjFile(member, global.params.multiobj);
         }
@@ -399,9 +397,8 @@ void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
     }
 
-    for (size_t i = 0; i < m.members.dim; i++)
+    foreach (member; *m.members)
     {
-        Dsymbol member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
@@ -689,9 +686,9 @@ bool isDruntimeArrayOp(Identifier ident)
 
     debug    // Make sure our array is alphabetized
     {
-        for (i = 0; i < libArrayopFuncs.length; i++)
+        foreach (s; libArrayopFuncs)
         {
-            if (strcmp(name, libArrayopFuncs[i]) == 0)
+            if (strcmp(name, s) == 0)
                 assert(0);
         }
     }
@@ -856,9 +853,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * nested function bodies, the enclosing of the functions must be
          * generated first, in order to calculate correct frame pointer offset.
          */
-        for (size_t i = 0; i < fd.inlinedNestedCallees.dim; i++)
+        foreach (fdc; *fd.inlinedNestedCallees)
         {
-            FuncDeclaration fdc = (*fd.inlinedNestedCallees)[i];
             FuncDeclaration fp = fdc.toParent2().isFuncDeclaration();
             if (fp && fp.semanticRun < PASS.obj)
             {
@@ -1058,9 +1054,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     if (fd.parameters)
     {
-        for (size_t i = 0; i < fd.parameters.dim; i++)
+        foreach (i, v; *fd.parameters)
         {
-            VarDeclaration v = (*fd.parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v.toChars());
             assert(!v.csym);
             params[pi + i] = toSymbol(v);
@@ -1071,9 +1066,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (reverse)
     {
         // Reverse params[] entries
-        for (size_t i = 0; i < pi/2; i++)
+        foreach (i, sptmp; params[0 .. pi/2])
         {
-            Symbol *sptmp = params[i];
             params[i] = params[pi - 1 - i];
             params[pi - 1 - i] = sptmp;
         }
@@ -1114,9 +1108,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         params[1] = sp;
     }
 
-    for (size_t i = 0; i < pi; i++)
+    foreach (sp; params[0 .. pi])
     {
-        Symbol *sp = params[i];
         sp.Sclass = SCparameter;
         sp.Sflags &= ~SFLspill;
         sp.Sfl = FLpara;
@@ -1128,9 +1121,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         FuncParamRegs fpr = FuncParamRegs.create(tyf);
 
-        for (size_t i = 0; i < pi; i++)
+        foreach (sp; params[0 .. pi])
         {
-            Symbol *sp = params[i];
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
                 sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
@@ -1324,17 +1316,15 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
-    for (size_t i = 0; i < irs.deferToObj.dim; i++)
+    foreach (sd; *irs.deferToObj)
     {
-        Dsymbol sd = (*irs.deferToObj)[i];
         toObjFile(sd, false);
     }
 
     if (ud)
     {
-        for (size_t i = 0; i < ud.deferredNested.dim; i++)
+        foreach (fdn; ud.deferredNested)
         {
-            FuncDeclaration fdn = ud.deferredNested[i];
             toObjFile(fdn, false);
         }
     }
