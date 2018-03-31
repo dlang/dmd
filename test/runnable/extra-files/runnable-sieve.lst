@@ -1,6 +1,6 @@
        |// PERMUTE_ARGS:
        |// REQUIRED_ARGS: -cov
-       |// POST_SCRIPT: runnable/extra-files/sieve-postscript.sh
+       |// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
        |// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
        |
        |/* Eratosthenes Sieve prime number calculation. */
