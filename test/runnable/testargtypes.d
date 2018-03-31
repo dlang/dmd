@@ -103,6 +103,12 @@ version (X86_64)
 
         struct S9 { int a,b,c; }
         chkArgTypes!(S9, long, int)();
+        chkArgTypes!(S9[1], long, int)();
+
+        struct S10 { int[3] a; }
+        chkArgTypes!(S10, long, int)();
+
+        chkArgTypes!(int[3], long, int)();
 
         return 0;
     }

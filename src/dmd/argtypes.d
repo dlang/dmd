@@ -29,6 +29,7 @@ import dmd.visitor;
  * Returns:
  *      tuple of types, each element can be passed in a register.
  *      A tuple of zero length means the type cannot be passed/returned in registers.
+ *      null indicates a `void`.
  * References:
  *  For 64 bit code, follows Itanium C++ ABI 1.86 Chapter 3
  *  http://refspecs.linux-foundation.org/cxxabi-1.86.html#calls
@@ -40,6 +41,28 @@ TypeTuple toArgTypes(Type t)
         alias visit = Visitor.visit;
     public:
         TypeTuple result;
+
+        /*****
+         * Pass type in memory (i.e. on the stack), a tuple of one type, or a tuple of 2 types
+         */
+        void memory()
+        {
+            //printf("\ttoArgTypes() %s => [ ]\n", t.toChars());
+            result = new TypeTuple(); // pass on the stack
+        }
+
+        ///
+        void oneType(Type t)
+        {
+            result = new TypeTuple(t);
+        }
+
+        ///
+        void twoTypes(Type t1, Type t2)
+        {
+            result = new TypeTuple(t1, t2);
+        }
+
 
         override void visit(Type)
         {
@@ -116,46 +139,27 @@ TypeTuple toArgTypes(Type t)
             if (t1)
             {
                 if (t2)
-                    result = new TypeTuple(t1, t2);
+                    return twoTypes(t1, t2);
                 else
-                    result = new TypeTuple(t1);
+                    return oneType(t1);
             }
             else
-                result = new TypeTuple();
+                return memory();
         }
 
         override void visit(TypeVector t)
         {
-            result = new TypeTuple(t);
-        }
-
-        override void visit(TypeSArray t)
-        {
-            if (t.dim)
-            {
-                /* Should really be done as if it were a struct with dim members
-                 * of the array's elements.
-                 * I.e. int[2] should be done like struct S { int a; int b; }
-                 */
-                dinteger_t sz = t.dim.toInteger();
-                // T[1] should be passed like T
-                if (sz == 1)
-                {
-                    t.next.accept(this);
-                    return;
-                }
-            }
-            result = new TypeTuple(); // pass on the stack for efficiency
+            return oneType(t);
         }
 
         override void visit(TypeAArray)
         {
-            result = new TypeTuple(Type.tvoidptr);
+            return oneType(Type.tvoidptr);
         }
 
         override void visit(TypePointer)
         {
-            result = new TypeTuple(Type.tvoidptr);
+            return oneType(Type.tvoidptr);
         }
 
         /*************************************
@@ -256,64 +260,103 @@ TypeTuple toArgTypes(Type t)
             if (global.params.is64bit && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, D arrays fit into a single integer register.
-                uint offset = cast(uint)Type.tsize_t.size(Loc.initial);
+                const offset = cast(uint)Type.tsize_t.size(Loc.initial);
                 Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
                 if (t)
                 {
-                    result = new TypeTuple(t);
-                    return;
+                    return oneType(t);
                 }
             }
-            result = new TypeTuple(Type.tsize_t, Type.tvoidptr);
+            return twoTypes(Type.tsize_t, Type.tvoidptr);
         }
 
         override void visit(TypeDelegate)
         {
             /* Should be done as if it were:
-             * struct S { size_t length; void* ptr; }
+             * struct S { void* funcptr; void* ptr; }
              */
             if (global.params.is64bit && !global.params.isLP64)
             {
                 // For AMD64 ILP32 ABI, delegates fit into a single integer register.
-                uint offset = cast(uint)Type.tsize_t.size(Loc.initial);
-                Type t = argtypemerge(Type.tsize_t, Type.tvoidptr, offset);
+                const offset = cast(uint)Type.tsize_t.size(Loc.initial);
+                Type t = argtypemerge(Type.tvoidptr, Type.tvoidptr, offset);
                 if (t)
                 {
-                    result = new TypeTuple(t);
-                    return;
+                    return oneType(t);
                 }
             }
-            result = new TypeTuple(Type.tvoidptr, Type.tvoidptr);
+            return twoTypes(Type.tvoidptr, Type.tvoidptr);
+        }
+
+        override void visit(TypeSArray t)
+        {
+            const sz = t.size(Loc.initial);
+            if (sz > 16)
+                return memory();
+
+            const dim = t.dim.toInteger();
+            Type tn = t.next;
+            const tnsize = tn.size();
+            const tnalignsize = tn.alignsize();
+
+            /*****
+             * Get the nth element of this array.
+             * Params:
+             *   n = element number, from 0..dim
+             *   offset = set to offset of the element from the start of the array
+             *   alignsize = set to the aligned size of the element
+             * Returns:
+             *   type of the element
+             */
+            extern (D) Type getNthElement(size_t n, out uint offset, out uint alignsize)
+            {
+                offset = cast(uint)(n * tnsize);
+                alignsize = tnalignsize;
+                return tn;
+            }
+
+            aggregate(sz, cast(size_t)dim, &getNthElement);
         }
 
         override void visit(TypeStruct t)
         {
             //printf("TypeStruct.toArgTypes() %s\n", t.toChars());
 
-            /*****
-             * Pass type in memory (i.e. on the stack), a tuple of one type, or a tuple of 2 types
-             */
-            void memory()
-            {
-                //printf("\ttoArgTypes() %s => [ ]\n", t.toChars());
-                result = new TypeTuple(); // pass on the stack
-            }
-
-            void oneType(Type t)
-            {
-                result = new TypeTuple(t);
-            }
-
-            void twoTypes(Type t1, Type t2)
-            {
-                result = new TypeTuple(t1, t2);
-            }
-
-            if (!t.sym.isPOD() || t.sym.fields.dim == 0)
+            if (!t.sym.isPOD())
                 return memory();
 
-            const sz = t.size(Loc.initial);
-            assert(sz < 0xFFFFFFFF);
+            /*****
+             * Get the nth field of this struct.
+             * Params:
+             *   n = field number, from 0..nfields
+             *   offset = set to offset of the field from the start of the type
+             *   alignsize = set to the aligned size of the field
+             * Returns:
+             *   type of the field
+             */
+            extern (D) Type getNthField(size_t n, out uint offset, out uint alignsize)
+            {
+                auto field = t.sym.fields[n];
+                offset = field.offset;
+                alignsize = field.type.alignsize();
+                return field.type;
+            }
+
+            aggregate(t.size(Loc.initial), t.sym.fields.dim, &getNthField);
+        }
+
+        /*******************
+         * Handle aggregates (struct, union, and static array) and set `result`
+         * Params:
+         *      sz = total size of aggregate
+         *      nfields = number of fields in the aggregate (dimension for static arrays)
+         *      getFieldInfo = get information about the nth field in the aggregate
+         */
+        extern (D) void aggregate(d_uns64 sz, size_t nfields, Type delegate(size_t, out uint, out uint) getFieldInfo)
+        {
+            if (nfields == 0)
+                return memory();
+
             if (global.params.is64bit)
             {
                 if (sz == 0 || sz > 16)
@@ -322,10 +365,14 @@ TypeTuple toArgTypes(Type t)
                 Type t1 = null;
                 Type t2 = null;
 
-                foreach (f; t.sym.fields)
+                foreach (n; 0 .. nfields)
                 {
-                    //printf("  [%d] %s f.type = %s\n", cast(int)i, f.toChars(), f.type.toChars());
-                    TypeTuple tup = toArgTypes(f.type);
+                    uint foffset;
+                    uint falignsize;
+                    Type ftype = getFieldInfo(n, foffset, falignsize);
+
+                    //printf("  [%u] ftype = %s\n", n, ftype.toChars());
+                    TypeTuple tup = toArgTypes(ftype);
                     if (!tup)
                         return memory();
                     const dim = tup.arguments.dim;
@@ -338,7 +385,7 @@ TypeTuple toArgTypes(Type t)
                         ft2 = (*tup.arguments)[1].type;
                         break;
                     case 1:
-                        if (f.offset < 8)
+                        if (foffset < 8)
                             ft1 = (*tup.arguments)[0].type;
                         else
                             ft2 = (*tup.arguments)[0].type;
@@ -346,33 +393,33 @@ TypeTuple toArgTypes(Type t)
                     default:
                         return memory();
                     }
-                    if (f.offset & 7)
+                    if (foffset & 7)
                     {
                         // Misaligned fields goto Lmemory
-                        if (f.offset & (f.type.alignsize() - 1))
+                        if (foffset & (falignsize - 1))
                             return memory();
 
                         // Fields that overlap the 8byte boundary goto memory
-                        const fieldsz = f.type.size(Loc.initial);
+                        const fieldsz = ftype.size(Loc.initial);
                         bool overflow;
-                        const nextOffset = addu(f.offset, fieldsz, overflow);
+                        const nextOffset = addu(foffset, fieldsz, overflow);
                         assert(!overflow);
-                        if (f.offset < 8 && nextOffset > 8)
+                        if (foffset < 8 && nextOffset > 8)
                             return memory();
                     }
                     // First field in 8byte must be at start of 8byte
-                    assert(t1 || f.offset == 0);
+                    assert(t1 || foffset == 0);
                     //printf("ft1 = %s\n", ft1 ? ft1.toChars() : "null");
                     //printf("ft2 = %s\n", ft2 ? ft2.toChars() : "null");
                     if (ft1)
                     {
-                        t1 = argtypemerge(t1, ft1, f.offset);
+                        t1 = argtypemerge(t1, ft1, foffset);
                         if (!t1)
                             return memory();
                     }
                     if (ft2)
                     {
-                        const off2 = ft1 ? 8 : f.offset;
+                        const off2 = ft1 ? 8 : foffset;
                         if (!t2 && off2 != 8)
                             return memory();
                         assert(t2 || off2 == 8);
@@ -425,7 +472,7 @@ TypeTuple toArgTypes(Type t)
                 default:
                     return memory();
                 }
-                if (global.params.isFreeBSD && t.sym.fields.dim == 1 &&
+                if (global.params.isFreeBSD && nfields == 1 &&
                     (sz == 4 || sz == 8))
                 {
                     /* FreeBSD changed their 32 bit ABI at some point before 10.3 for the following:
@@ -434,8 +481,10 @@ TypeTuple toArgTypes(Type t)
                      * Cannot find any documentation on it.
                      */
 
-                    VarDeclaration f = t.sym.fields[0];
-                    TypeTuple tup = toArgTypes(f.type);
+                    uint foffset;
+                    uint falignsize;
+                    Type ftype = getFieldInfo(0, foffset, falignsize);
+                    TypeTuple tup = toArgTypes(ftype);
                     if (tup && tup.arguments.dim == 1)
                     {
                         Type ft1 = (*tup.arguments)[0].type;
