@@ -2124,10 +2124,10 @@ else
          */
 
         // Evaluate at runtime
-        uint cs0 = sc.callSuper;
-        uint cs1;
-        uint[] fi0 = sc.saveFieldInit();
-        uint[] fi1 = null;
+        CSX cs0 = sc.callSuper;
+        CSX cs1;
+        CSX[] fi0 = sc.saveFieldInit();
+        CSX[] fi1 = null;
 
         // check in syntax level
         ifs.condition = checkAssignmentAsCondition(ifs.condition);

@@ -36,7 +36,15 @@ import dmd.tokens;
 
 //version=LOGSEARCH;
 
-private bool mergeFieldInit(ref uint fieldInit, uint fi, bool mustInit)
+/****************************************
+ * Merge fi flow analysis results into fieldInit.
+ * Params:
+ *      fieldinit = the path to merge fi into
+ *      fi = the other path
+ * Returns:
+ *      false means either fieldInit or fi skips initialization
+ */
+private bool mergeFieldInitX(ref CSX fieldInit, const CSX fi)
 {
     if (fi != fieldInit)
     {
@@ -54,27 +62,27 @@ private bool mergeFieldInit(ref uint fieldInit, uint fi, bool mustInit)
         }
         else if (!aHalt && aRet)
         {
-            ok = !mustInit || (fi & CSX.this_ctor);
+            ok = (fi & CSX.this_ctor);
             fieldInit = fieldInit;
         }
         else if (!bHalt && bRet)
         {
-            ok = !mustInit || (fieldInit & CSX.this_ctor);
+            ok = (fieldInit & CSX.this_ctor);
             fieldInit = fi;
         }
         else if (aHalt)
         {
-            ok = !mustInit || (fieldInit & CSX.this_ctor);
+            ok = (fieldInit & CSX.this_ctor);
             fieldInit = fieldInit;
         }
         else if (bHalt)
         {
-            ok = !mustInit || (fi & CSX.this_ctor);
+            ok = (fi & CSX.this_ctor);
             fieldInit = fi;
         }
         else
         {
-            ok = !mustInit || !((fieldInit ^ fi) & CSX.this_ctor);
+            ok = !((fieldInit ^ fi) & CSX.this_ctor);
             fieldInit |= fi;
         }
         return ok;
@@ -82,8 +90,9 @@ private bool mergeFieldInit(ref uint fieldInit, uint fi, bool mustInit)
     return true;
 }
 
-enum CSX
+enum CSX : ubyte
 {
+    none            = 0,
     this_ctor       = 0x01,     /// called this()
     super_ctor      = 0x02,     /// called super()
     this_           = 0x04,     /// referenced this
@@ -151,10 +160,10 @@ struct Scope
     TemplateInstance tinst;         /// enclosing template instance
 
     // primitive flow analysis for constructors
-    uint callSuper;
+    CSX callSuper;
 
     // primitive flow analysis for field initializations
-    uint[] fieldinit;
+    CSX[] fieldinit;
 
     /// alignment for struct members
     AlignDeclaration aligndecl;
@@ -295,7 +304,7 @@ struct Scope
 
     void allocFieldinit(size_t dim)
     {
-        fieldinit = (cast(uint*)mem.xcalloc(uint.sizeof, dim))[0 .. dim];
+        fieldinit = (cast(CSX*)mem.xcalloc(CSX.sizeof, dim))[0 .. dim];
     }
 
     void freeFieldinit()
@@ -338,7 +347,7 @@ struct Scope
         return pop();
     }
 
-    extern (C++) void mergeCallSuper(Loc loc, uint cs)
+    extern (C++) void mergeCallSuper(Loc loc, CSX cs)
     {
         // This does a primitive flow analysis to support the restrictions
         // regarding when and how constructors can appear.
@@ -378,7 +387,7 @@ struct Scope
             }
             else if (bHalt || bRet && bAll)
             {
-                callSuper = cs | (callSuper & (CSX.any_ctor | CSX.label));
+                callSuper = cast(CSX)(cs | (callSuper & (CSX.any_ctor | CSX.label)));
             }
             else
             {
@@ -395,19 +404,19 @@ struct Scope
         }
     }
 
-    extern (D) uint[] saveFieldInit()
+    extern (D) CSX[] saveFieldInit()
     {
-        uint[] fi = null;
+        CSX[] fi = null;
         if (fieldinit.length) // copy
         {
             const dim = fieldinit.length;
-            fi = (cast(uint*)mem.xmalloc(uint.sizeof * dim))[0 .. dim];
+            fi = (cast(CSX*)mem.xmalloc(CSX.sizeof * dim))[0 .. dim];
             fi[] = fieldinit[];
         }
         return fi;
     }
 
-    extern (D) void mergeFieldInit(Loc loc, uint[] fies)
+    extern (D) void mergeFieldInit(Loc loc, const CSX[] fies)
     {
         if (fieldinit.length && fies.length)
         {
@@ -416,13 +425,12 @@ struct Scope
                 f = fes.func;
             auto ad = f.isMember2();
             assert(ad);
-            for (size_t i = 0; i < ad.fields.dim; i++)
+            foreach (i, v; ad.fields)
             {
-                VarDeclaration v = ad.fields[i];
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                if (!.mergeFieldInit(fieldinit[i], fies[i], mustInit))
+                if (!mergeFieldInitX(fieldinit[i], fies[i]) && mustInit)
                 {
-                    .error(loc, "one path skips field `%s`", ad.fields[i].toChars());
+                    .error(loc, "one path skips field `%s`", v.toChars());
                 }
             }
         }
