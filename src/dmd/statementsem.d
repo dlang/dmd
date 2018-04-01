@@ -2126,8 +2126,8 @@ else
         // Evaluate at runtime
         uint cs0 = sc.callSuper;
         uint cs1;
-        uint* fi0 = sc.saveFieldInit();
-        uint* fi1 = null;
+        uint[] fi0 = sc.saveFieldInit();
+        uint[] fi1 = null;
 
         // check in syntax level
         ifs.condition = checkAssignmentAsCondition(ifs.condition);
@@ -3228,12 +3228,11 @@ else
             errors = true;
         }
         sc.callSuper |= CSX.return_;
-        if (sc.fieldinit)
+        if (sc.fieldinit.length)
         {
             auto ad = fd.isMember2();
             assert(ad);
-            size_t dim = sc.fieldinit_dim;
-            foreach (i; 0 .. dim)
+            foreach (i; 0 .. sc.fieldinit.length)
             {
                 VarDeclaration v = ad.fields[i];
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
@@ -4005,12 +4004,10 @@ else
         sc = sc.push();
         sc.scopesym = sc.enclosing.scopesym;
         sc.callSuper |= CSX.label;
-        if (sc.fieldinit)
-        {
-            size_t dim = sc.fieldinit_dim;
-            foreach (i; 0 .. dim)
-                sc.fieldinit[i] |= CSX.label;
-        }
+
+        foreach (ref u; sc.fieldinit)
+            u |= CSX.label;
+
         sc.slabel = ls;
         if (ls.statement)
             ls.statement = ls.statement.statementSemantic(sc);

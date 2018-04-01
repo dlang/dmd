@@ -95,13 +95,13 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             var.ctorinit = true;
             //printf("setting ctorinit\n");
 
-            if (var.isField() && sc.fieldinit && !sc.intypeof)
+            if (var.isField() && sc.fieldinit.length && !sc.intypeof)
             {
                 assert(e1);
                 auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
                                  var.type.needsNested());
 
-                auto dim = sc.fieldinit_dim;
+                const dim = sc.fieldinit.length;
                 auto ad = fd.isMember2();
                 assert(ad);
                 size_t i;

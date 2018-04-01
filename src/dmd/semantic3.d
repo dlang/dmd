@@ -339,7 +339,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (sc2.intypeof == 1)
                 sc2.intypeof = 2;
             sc2.fieldinit = null;
-            sc2.fieldinit_dim = 0;
 
             /* Note: When a lambda is defined immediately under aggregate member
              * scope, it should be contextless due to prevent interior pointers.

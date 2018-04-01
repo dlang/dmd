@@ -4376,11 +4376,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (fd)
                 fd.hasReturnExp |= 4;
             sc.callSuper |= CSX.halt;
-            if (sc.fieldinit)
-            {
-                for (size_t i = 0; i < sc.fieldinit_dim; i++)
-                    sc.fieldinit[i] |= CSX.halt;
-            }
+            foreach (ref u; sc.fieldinit)
+                u |= CSX.halt;
 
             if (global.params.useAssert == CHECKENABLE.off)
             {
@@ -9118,12 +9115,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ec = ec.toBoolean(sc);
 
         uint cs0 = sc.callSuper;
-        uint* fi0 = sc.saveFieldInit();
+        auto fi0 = sc.saveFieldInit();
         Expression e1x = exp.e1.expressionSemantic(sc);
         e1x = resolveProperties(sc, e1x);
 
         uint cs1 = sc.callSuper;
-        uint* fi1 = sc.fieldinit;
+        auto fi1 = sc.fieldinit;
         sc.callSuper = cs0;
         sc.fieldinit = fi0;
         Expression e2x = exp.e2.expressionSemantic(sc);
