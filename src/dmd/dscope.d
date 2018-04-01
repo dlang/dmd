@@ -154,8 +154,7 @@ struct Scope
     uint callSuper;
 
     // primitive flow analysis for field initializations
-    uint* fieldinit;
-    size_t fieldinit_dim;
+    uint[] fieldinit;
 
     /// alignment for struct members
     AlignDeclaration aligndecl;
@@ -274,13 +273,13 @@ struct Scope
         if (enclosing)
         {
             enclosing.callSuper |= callSuper;
-            if (fieldinit)
+            if (fieldinit.length)
             {
-                if (enclosing.fieldinit)
+                if (enclosing.fieldinit.length)
                 {
-                    assert(fieldinit != enclosing.fieldinit);
-                    foreach (i; 0 .. fieldinit_dim)
-                        enclosing.fieldinit[i] |= fieldinit[i];
+                    assert(fieldinit.ptr != enclosing.fieldinit.ptr);
+                    foreach (i, u; fieldinit)
+                        enclosing.fieldinit[i] |= u;
                 }
                 freeFieldinit();
             }
@@ -296,16 +295,14 @@ struct Scope
 
     void allocFieldinit(size_t dim)
     {
-        fieldinit = cast(typeof(fieldinit))mem.xcalloc(typeof(*fieldinit).sizeof, dim);
-        fieldinit_dim = dim;
+        fieldinit = (cast(uint*)mem.xcalloc(uint.sizeof, dim))[0 .. dim];
     }
 
     void freeFieldinit()
     {
-        if (fieldinit)
-            mem.xfree(fieldinit);
+        if (fieldinit.ptr)
+            mem.xfree(fieldinit.ptr);
         fieldinit = null;
-        fieldinit_dim = 0;
     }
 
     extern (C++) Scope* startCTFE()
@@ -398,22 +395,21 @@ struct Scope
         }
     }
 
-    extern (C++) uint* saveFieldInit()
+    extern (D) uint[] saveFieldInit()
     {
-        uint* fi = null;
-        if (fieldinit) // copy
+        uint[] fi = null;
+        if (fieldinit.length) // copy
         {
-            size_t dim = fieldinit_dim;
-            fi = cast(uint*)mem.xmalloc(uint.sizeof * dim);
-            for (size_t i = 0; i < dim; i++)
-                fi[i] = fieldinit[i];
+            const dim = fieldinit.length;
+            fi = (cast(uint*)mem.xmalloc(uint.sizeof * dim))[0 .. dim];
+            fi[] = fieldinit[];
         }
         return fi;
     }
 
-    extern (C++) void mergeFieldInit(Loc loc, uint* fies)
+    extern (D) void mergeFieldInit(Loc loc, uint[] fies)
     {
-        if (fieldinit && fies)
+        if (fieldinit.length && fies.length)
         {
             FuncDeclaration f = func;
             if (fes)
@@ -802,7 +798,6 @@ struct Scope
         this.lastVar = sc.lastVar;
         this.callSuper = sc.callSuper;
         this.fieldinit = sc.fieldinit;
-        this.fieldinit_dim = sc.fieldinit_dim;
         this.flags = sc.flags;
         this.lastdc = sc.lastdc;
         this.anchorCounts = sc.anchorCounts;
