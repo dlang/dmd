@@ -880,96 +880,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     else
     {
-        const(char)* libname = (global.params.symdebug)
-                                ? global.params.debuglibname
-                                : global.params.defaultlibname;
-
-        // Pull in RTL startup code (but only once)
-        if (fd.isMain() && onlyOneMain(fd.loc))
-        {
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-                global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
-            {
-                objmod.external_def("_main");
-            }
-            else if (global.params.mscoff)
-            {
-                objmod.external_def("main");
-            }
-            else if (config.exe == EX_WIN32)
-            {
-                objmod.external_def("_main");
-                objmod.external_def("__acrtused_con");
-            }
-            if (libname)
-                objmod.includelib(libname);
-            s.Sclass = SCglobal;
-        }
-        else if (fd.isRtInit())
-        {
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-                global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
-                global.params.mscoff)
-            {
-                objmod.ehsections();   // initialize exception handling sections
-            }
-        }
-        else if (fd.isCMain())
-        {
-            if (global.params.mscoff)
-            {
-                if (global.params.mscrtlib && global.params.mscrtlib[0])
-                    objmod.includelib(global.params.mscrtlib);
-                objmod.includelib("OLDNAMES");
-            }
-            else if (config.exe == EX_WIN32)
-            {
-                objmod.external_def("__acrtused_con");        // bring in C startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-            }
-            s.Sclass = SCglobal;
-        }
-        else if (global.params.isWindows && fd.isWinMain() && onlyOneMain(fd.loc))
-        {
-            if (global.params.mscoff)
-            {
-                objmod.includelib("uuid");
-                if (global.params.mscrtlib && global.params.mscrtlib[0])
-                    objmod.includelib(global.params.mscrtlib);
-                objmod.includelib("OLDNAMES");
-            }
-            else
-            {
-                objmod.external_def("__acrtused");
-            }
-            if (libname)
-                objmod.includelib(libname);
-            s.Sclass = SCglobal;
-        }
-
-        // Pull in RTL startup code
-        else if (global.params.isWindows && fd.isDllMain() && onlyOneMain(fd.loc))
-        {
-            if (global.params.mscoff)
-            {
-                objmod.includelib("uuid");
-                if (global.params.mscrtlib && global.params.mscrtlib[0])
-                    objmod.includelib(global.params.mscrtlib);
-                objmod.includelib("OLDNAMES");
-            }
-            else
-            {
-                objmod.external_def("__acrtused_dll");
-            }
-            if (libname)
-                objmod.includelib(libname);
-            s.Sclass = SCglobal;
-        }
-        else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
-        {
-            // TODO: Change linkage in druntime to extern(C).
-            f.Fredirect = cast(char*)Id.tls_get_addr.toChars();
-        }
+        specialFunctions(objmod, fd);
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;
@@ -1329,7 +1240,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
-    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+        global.params.isDragonFlyBSD || global.params.isSolaris)
     {
         // A hack to get a pointer to this function put in the .dtors segment
         if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)
@@ -1340,6 +1252,112 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         //printf("Setting start address\n");
         objmod.startaddress(irs.startaddress);
+    }
+}
+
+
+/*******************************************
+ * Detect special functions like `main()` and do special handling for them,
+ * like special mangling, including libraries, setting the storage class, etc.
+ * `objmod` and `fd` are updated.
+ *
+ * Params:
+ *      objmod = object module
+ *      fd = function symbol
+ */
+private void specialFunctions(Obj objmod, FuncDeclaration fd)
+{
+    const(char)* libname = (global.params.symdebug)
+                            ? global.params.debuglibname
+                            : global.params.defaultlibname;
+
+    Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
+
+    // Pull in RTL startup code (but only once)
+    if (fd.isMain() && onlyOneMain(fd.loc))
+    {
+        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+        {
+            objmod.external_def("_main");
+        }
+        else if (global.params.mscoff)
+        {
+            objmod.external_def("main");
+        }
+        else if (config.exe == EX_WIN32)
+        {
+            objmod.external_def("_main");
+            objmod.external_def("__acrtused_con");
+        }
+        if (libname)
+            objmod.includelib(libname);
+        s.Sclass = SCglobal;
+    }
+    else if (fd.isRtInit())
+    {
+        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
+            global.params.mscoff)
+        {
+            objmod.ehsections();   // initialize exception handling sections
+        }
+    }
+    else if (fd.isCMain())
+    {
+        if (global.params.mscoff)
+        {
+            if (global.params.mscrtlib && global.params.mscrtlib[0])
+                objmod.includelib(global.params.mscrtlib);
+            objmod.includelib("OLDNAMES");
+        }
+        else if (config.exe == EX_WIN32)
+        {
+            objmod.external_def("__acrtused_con");        // bring in C startup code
+            objmod.includelib("snn.lib");          // bring in C runtime library
+        }
+        s.Sclass = SCglobal;
+    }
+    else if (global.params.isWindows && fd.isWinMain() && onlyOneMain(fd.loc))
+    {
+        if (global.params.mscoff)
+        {
+            objmod.includelib("uuid");
+            if (global.params.mscrtlib && global.params.mscrtlib[0])
+                objmod.includelib(global.params.mscrtlib);
+            objmod.includelib("OLDNAMES");
+        }
+        else
+        {
+            objmod.external_def("__acrtused");
+        }
+        if (libname)
+            objmod.includelib(libname);
+        s.Sclass = SCglobal;
+    }
+
+    // Pull in RTL startup code
+    else if (global.params.isWindows && fd.isDllMain() && onlyOneMain(fd.loc))
+    {
+        if (global.params.mscoff)
+        {
+            objmod.includelib("uuid");
+            if (global.params.mscrtlib && global.params.mscrtlib[0])
+                objmod.includelib(global.params.mscrtlib);
+            objmod.includelib("OLDNAMES");
+        }
+        else
+        {
+            objmod.external_def("__acrtused_dll");
+        }
+        if (libname)
+            objmod.includelib(libname);
+        s.Sclass = SCglobal;
+    }
+    else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
+    {
+        // TODO: Change linkage in druntime to extern(C).
+        s.Sfunc.Fredirect = cast(char*)Id.tls_get_addr.toChars();
     }
 }
 
