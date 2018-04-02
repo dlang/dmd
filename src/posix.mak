@@ -290,11 +290,11 @@ D_OBJC := 1
 endif
 endif
 
-ifneq (gdc, $(HOST_DMD_KIND))
- ifeq (,$(findstring 2.068,$(HOST_DMD_VERSION)))
-  BACK_BETTERC = -betterC
- endif
-endif
+//ifneq (gdc, $(HOST_DMD_KIND))
+// ifeq (,$(findstring 2.068,$(HOST_DMD_VERSION)))
+  BACK_BETTERC = -betterC -mv=dmd.backend=
+// endif
+//endif
 
 ######## DMD frontend source files
 

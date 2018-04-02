@@ -515,7 +515,7 @@ $G/debug.obj : $C\debug.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\debug
 
 $G/divcoeff.obj : $C\divcoeff.d
-	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\divcoeff
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC -mv=dmd.backend= $C\divcoeff
 
 $G/dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dt
