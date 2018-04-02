@@ -242,10 +242,17 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
     }
 
+    void checkShared()
+    {
+        if (sd.type.isShared())
+            stc |= STC.shared_;
+    }
+
     // Build our own "postblit" which executes a, but only if needed.
     if (postblitCalls.dim || (stc & STC.disable))
     {
         //printf("Building __fieldPostBlit()\n");
+        checkShared();
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
         dd.generated = true;
         dd.storage_class |= STC.inference;
@@ -283,6 +290,8 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
             ex = new CallExp(loc, ex);
             e = Expression.combine(e, ex);
         }
+
+        checkShared();
         auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__aggrPostblit);
         dd.generated = true;
         dd.storage_class |= STC.inference;
