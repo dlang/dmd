@@ -890,6 +890,7 @@ void main()
         the struct and an alias of one of the other postblits, the qualifiers
         applied to the struct will affect the aliased postblit:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct S
 {
@@ -944,6 +945,7 @@ shared struct D2
     S a;
 }
 ---
+)
 
         $(P In the above situations the errors do not contain line numbers because
         the errors are regarding generated code. In the case of the `shared` struct,
