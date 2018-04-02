@@ -14,6 +14,7 @@ module dmd.declaration;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.ctorflow;
 import dmd.dclass;
 import dmd.delegatize;
 import dmd.dscope;
@@ -95,13 +96,13 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             var.ctorinit = true;
             //printf("setting ctorinit\n");
 
-            if (var.isField() && sc.fieldinit.length && !sc.intypeof)
+            if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
             {
                 assert(e1);
                 auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
                                  var.type.needsNested());
 
-                const dim = sc.fieldinit.length;
+                const dim = sc.ctorflow.fieldinit.length;
                 auto ad = fd.isMember2();
                 assert(ad);
                 size_t i;
@@ -111,7 +112,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         break;
                 }
                 assert(i < dim);
-                const fi = sc.fieldinit[i];
+                const fi = sc.ctorflow.fieldinit[i];
 
                 if (fi & CSX.this_ctor)
                 {
@@ -134,7 +135,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     }
                 }
 
-                sc.fieldinit[i] |= CSX.this_ctor;
+                sc.ctorflow.fieldinit[i] |= CSX.this_ctor;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -142,7 +143,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.fieldinit[j] = CSX.this_ctor;
+                        sc.ctorflow.fieldinit[j] = CSX.this_ctor;
                     }
                 }
             }

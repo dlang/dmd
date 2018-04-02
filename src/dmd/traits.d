@@ -18,6 +18,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.canthrow;
+import dmd.ctorflow;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
@@ -1423,7 +1424,7 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             // Carefully detach the scope from the parent and throw it away as
             // we only need it to evaluate the expression
             // https://issues.dlang.org/show_bug.cgi?id=15428
-            sc2.freeFieldinit();
+            sc2.ctorflow.freeFieldinit();
             sc2.enclosing = null;
             sc2.pop();
 

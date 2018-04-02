@@ -100,8 +100,8 @@ struct Scope
     Module *minst;              // root module where the instantiated templates should belong to
     TemplateInstance *tinst;    // enclosing template instance
 
-    unsigned callSuper;         // primitive flow analysis for constructors
-    unsigned *fieldinit;
+    unsigned char callSuper;    // primitive flow analysis for constructors
+    unsigned char *fieldinit;
     size_t fieldinit_dim;
 
     AlignDeclaration *aligndecl;    // alignment for struct members
