@@ -23,6 +23,7 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.astcodegen;
 import dmd.canthrow;
+import dmd.ctorflow;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.declaration;
@@ -1452,7 +1453,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         if (!sc.intypeof)
-            sc.callSuper |= CSX.this_;
+            sc.ctorflow.callSuper |= CSX.this_;
         result = e;
         return;
 
@@ -1536,7 +1537,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         if (!sc.intypeof)
-            sc.callSuper |= CSX.super_;
+            sc.ctorflow.callSuper |= CSX.super_;
         result = e;
         return;
 
@@ -3266,13 +3267,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!sc.intypeof)
             {
-                if (sc.noctor || sc.callSuper & CSX.label)
+                if (sc.noctor || sc.ctorflow.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
-                if (sc.callSuper & (CSX.super_ctor | CSX.this_ctor))
+                if (sc.ctorflow.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");
-                if ((sc.callSuper & CSX.return_) && !(sc.callSuper & CSX.any_ctor))
+                if ((sc.ctorflow.callSuper & CSX.return_) && !(sc.ctorflow.callSuper & CSX.any_ctor))
                     exp.error("an earlier `return` statement skips constructor");
-                sc.callSuper |= CSX.any_ctor | CSX.super_ctor;
+                sc.ctorflow.callSuper |= CSX.any_ctor | CSX.super_ctor;
             }
 
             tthis = cd.type.addMod(sc.func.type.mod);
@@ -3303,13 +3304,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!sc.intypeof)
             {
-                if (sc.noctor || sc.callSuper & CSX.label)
+                if (sc.noctor || sc.ctorflow.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
-                if (sc.callSuper & (CSX.super_ctor | CSX.this_ctor))
+                if (sc.ctorflow.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");
-                if ((sc.callSuper & CSX.return_) && !(sc.callSuper & CSX.any_ctor))
+                if ((sc.ctorflow.callSuper & CSX.return_) && !(sc.ctorflow.callSuper & CSX.any_ctor))
                     exp.error("an earlier `return` statement skips constructor");
-                sc.callSuper |= CSX.any_ctor | CSX.this_ctor;
+                sc.ctorflow.callSuper |= CSX.any_ctor | CSX.this_ctor;
             }
 
             tthis = ad.type.addMod(sc.func.type.mod);
@@ -4375,8 +4376,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             FuncDeclaration fd = sc.parent.isFuncDeclaration();
             if (fd)
                 fd.hasReturnExp |= 4;
-            sc.callSuper |= CSX.halt;
-            foreach (ref u; sc.fieldinit)
+            sc.ctorflow.callSuper |= CSX.halt;
+            foreach (ref u; sc.ctorflow.fieldinit)
                 u |= CSX.halt;
 
             if (global.params.useAssert == CHECKENABLE.off)
@@ -8632,7 +8633,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
-        CSX cs1 = sc.callSuper;
+        CSX cs1 = sc.ctorflow.callSuper;
 
         if (sc.flags & SCOPE.condition)
         {
@@ -9114,15 +9115,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ec = resolveProperties(sc, ec);
         ec = ec.toBoolean(sc);
 
-        const cs0 = sc.callSuper;
-        auto fi0 = sc.saveFieldInit();
+        const cs0 = sc.ctorflow.callSuper;
+        auto fi0 = sc.ctorflow.saveFieldInit();
         Expression e1x = exp.e1.expressionSemantic(sc);
         e1x = resolveProperties(sc, e1x);
 
-        const cs1 = sc.callSuper;
-        const fi1 = sc.fieldinit;
-        sc.callSuper = cs0;
-        sc.fieldinit = fi0;
+        const cs1 = sc.ctorflow.callSuper;
+        const fi1 = sc.ctorflow.fieldinit;
+        sc.ctorflow.callSuper = cs0;
+        sc.ctorflow.fieldinit = fi0;
         Expression e2x = exp.e2.expressionSemantic(sc);
         e2x = resolveProperties(sc, e2x);
 
