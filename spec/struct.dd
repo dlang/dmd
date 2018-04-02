@@ -132,68 +132,94 @@ S s;      // error, cannot initialize unknown contents
 S* p;     // ok, knowledge of members is not necessary
 ---
 
-        $(P They can be used to implement the
+        $(BEST_PRACTICE They can be used to implement the
         $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
+$(H2 $(LNAME2 default_struct_init, Default Initialization of Structs))
+
+        $(P Struct fields are by default initialized to whatever the
+        $(GLINK2 declaration, Initializer) for the field is, and if none is supplied, to
+        the default initializer for the field's type.
+        )
+
+        ---
+        struct S { int a = 4; int b; }
+        S x; // x.a is set to 4, x.b to 0
+        ---
+
+        $(P The default initializers are evaluated at compile time.)
+
 $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
-        $(P Static struct members are by default initialized to whatever the
-        default initializer for the member is, and if none is supplied, to
-        the default initializer for the member's type.
+        $(P If a $(GLINK2 declaration, StructInitializer) is supplied, the
+        fields are initialized by the $(GLINK2 declaration, StructMemberInitializer) syntax.
+        $(I StructMemberInitializers) with the $(I Identifier : NonVoidInitializer) syntax
+        may be appear in any order, where $(I Identifier) is the field identifer.
+        $(I StructMemberInitializer)s with the $(GLINK2 declaration, NonVoidInitializer) syntax
+        appear in the lexical order of the fields in the $(GLINK StructDeclaration).
         )
 
-------
-struct S { int a = 4; int b; }
-static S x; // a is set to 4, b to 0
-------
+        $(P Fields not specified in the $(I StructInitializer) are default initialized.)
 
-        $(P If a static initializer is supplied, the
-        members are initialized by the `memberName:expression` syntax.
-        The members may be initialized in any order.
-        Initializers for statics must be evaluatable at
-        compile time. Members not specified in the initializer list are default
-        initialized.
+        ---
+        struct S { int a, b, c, d = 7; }
+        S r;                          // r.a = 0, r.b = 0, r.c = 0, r.d = 7
+        S s = { a:1, b:2 };           // s.a = 1, s.b = 2, s.c = 0, s.d = 7
+        S t = { c:4, b:5, a:2, d:5 }; // t.a = 2, t.b = 5, t.c = 4, t.d = 5
+        S u = { 1, 2 };               // u.a = 1, u.b = 2, u.c = 0, u.d = 7
+        S v = { 1, d:3 };             // v.a = 1, v.b = 0, v.c = 0, v.d = 3
+        S w = { b:1, 3 };             // v.a = 0, v.b = 1, v.c = 3, v.d = 7
+        ---
+
+        $(P Initializing a field more than once is an error:)
+
+        ---
+        S x = { 1, a:2 };  // error: duplicate initializer for field `a`
+        ---
+
+$(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
+
+        $(P Unions are by default initialized to whatever the
+        $(GLINK2 declaration, Initializer) for the first field is, and if none is supplied, to
+        the default initializer for the first field's type.
         )
 
-------
-struct S { int a, b, c, d = 7; }
-static S x = { a:1, b:2 };           // c is set to 0, d to 7
-static S z = { c:4, b:5, a:2, d:5 }; // z.a = 2, z.b = 5, z.c = 4, z.d = 5
-------
+        $(P If the union is larger than the first field, the remaining bits
+        are set to 0.)
 
-$(P C-style initialization, based on the order of the members in the struct
-declaration, is also supported:)
+        ---
+        union U { int a = 4; long b; }
+        U x; // x.a is set to 4, x.b to an implementation-defined value
 
-------
-static S q = { 1, 2 }; // q.a = 1, q.b = 2, q.c = 0, q.d = 7
-------
+        union V { int a; long b = 4; }
+        U y; // y.a is set to 0, y.b to an implementation-defined value
 
-        $(P The two styles can be combined:)
+        union W { int a = 4; long b = 5; } // error: overlapping default initialization for `a` and `b`
+        ---
 
-------
-static S q = { 1, d:3 }; // q.a = 1, q.b = 0, q.c = 0, q.d = 3
-------
+        $(P The default initializer is evaluated at compile time.)
 
-        $(P Struct literals can also be used to initialize statics, but
-        they must be evaluable at compile time.)
-
------
-static S q = S( 1, 2+3 ); // q.a = 1, q.b = 5, q.c = 0, q.d = 7
------
-
+        $(IMPLEMENTATION_DEFINED The values the fields other than the
+        default initialized field are set to.)
 
 $(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
 
-$(P Unions are initialized explicitly.)
+        $(P Unions are initialized similarly to structs, except that only
+        one initializer is allowed.)
 
-------
-union U { int a; double b; }
-static U u = { b : 5.0 }; // u.b = 5.0
-------
+        ---
+        union U { int a; double b; }
+        U u = { 2 };       // u.a = 2
+        U v = { b : 5.0 }; // v.b = 5.0
+        U w = { 2, 3 };    // error: overlapping initialization for field `a` and `b`
+        ---
 
-$(P Other members of the union that overlay the initializer, but occupy more
-storage, have the extra storage initialized to zero.)
+        $(P If the union is larger than the initialized field, the remaining bits
+        are set to 0.)
+
+        $(IMPLEMENTATION_DEFINED The values the fields other than the
+        initialized field are set to.)
 
 $(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
