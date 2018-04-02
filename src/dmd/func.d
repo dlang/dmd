@@ -2692,7 +2692,7 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
-                        fd.ident.toChars(), fargsBuf.peekString());
+                        fd.toChars(), fargsBuf.peekString());
                 }
                 else
                 {
