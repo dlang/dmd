@@ -486,27 +486,52 @@ constructor will have their `.init` values upon destruction.)
         }
         ------
 
+$(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Construction))
+
         $(P If struct constructor is annotated with $(D @disable) and has
-        empty parameter, the struct is disabled construction without calling
-        other constructor.
+        an empty $(GLINK2 function, ParameterList), the struct has disabled default construction.
+        The only way it can be constructed is via a call to another constructor with a non-empty
+        $(I ParameterList).
         )
-        ------
+
+        $(P A struct with a disabled default constructor, and no other constructors, cannot
+        be instantiated other than via a $(GLINK2 declaration, VoidInitializer).)
+
+        $(P A disabled default constructor may not have a $(GLINK2 function, FunctionBody).)
+
+        $(P If any fields have disabled default construction, the struct default construction is
+        also disabled.)
+
+        ---
         struct S
         {
             int x;
 
-            // Disables default construction, function body can be empty.
+            // Disables default construction
             @disable this();
 
             this(int v) { x = v; }
         }
+        struct T
+        {
+            int y;
+            S s;
+        }
         void main()
         {
-            //S s;        // default construction is disabled
-            //S s = S();  // also disabled
-            S s = S(1);   // construction with calling constructor
+            S s;          // error: default construction is disabled
+            S t = S();    // error: also disabled
+            S u = S(1);   // constructed by calling `S.this(1)`
+            S v = void;   // not initialized, but allowed
+            S w = { 1 };  // error: cannot use { } since constructor exists
+            S[3] a;       // error: default construction is disabled
+            S[3] b = [S(1), S(20), S(-2)]; // ok
+            T t;          // error: default construction is disabled
         }
-        ------
+        ---
+
+        $(BEST_PRACTICE Disabling default construction is useful when the default value,
+        such as `null`, is not acceptable.)
 
 $(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
