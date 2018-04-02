@@ -8632,7 +8632,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
-        uint cs1 = sc.callSuper;
+        CSX cs1 = sc.callSuper;
 
         if (sc.flags & SCOPE.condition)
         {
@@ -9114,13 +9114,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ec = resolveProperties(sc, ec);
         ec = ec.toBoolean(sc);
 
-        uint cs0 = sc.callSuper;
+        const cs0 = sc.callSuper;
         auto fi0 = sc.saveFieldInit();
         Expression e1x = exp.e1.expressionSemantic(sc);
         e1x = resolveProperties(sc, e1x);
 
-        uint cs1 = sc.callSuper;
-        auto fi1 = sc.fieldinit;
+        const cs1 = sc.callSuper;
+        const fi1 = sc.fieldinit;
         sc.callSuper = cs0;
         sc.fieldinit = fi0;
         Expression e2x = exp.e2.expressionSemantic(sc);

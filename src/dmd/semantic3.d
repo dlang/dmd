@@ -319,7 +319,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
             sc2.parent = funcdecl;
-            sc2.callSuper = 0;
+            sc2.callSuper = CSX.none;
             sc2.sbreak = null;
             sc2.scontinue = null;
             sc2.sw = null;
@@ -684,7 +684,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                     if (cd && !(sc2.callSuper & CSX.any_ctor) && cd.baseClass && cd.baseClass.ctor)
                     {
-                        sc2.callSuper = 0;
+                        sc2.callSuper = CSX.none;
 
                         // Insert implicit super() at start of fbody
                         FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
@@ -1116,7 +1116,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (funcdecl.naked && (funcdecl.fensure || funcdecl.frequire))
                 funcdecl.error("naked assembly functions with contracts are not supported");
 
-            sc2.callSuper = 0;
+            sc2.callSuper = CSX.none;
             sc2.pop();
         }
 

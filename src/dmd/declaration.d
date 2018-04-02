@@ -111,7 +111,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         break;
                 }
                 assert(i < dim);
-                uint fi = sc.fieldinit[i];
+                const fi = sc.fieldinit[i];
 
                 if (fi & CSX.this_ctor)
                 {
