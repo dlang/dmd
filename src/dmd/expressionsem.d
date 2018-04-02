@@ -4373,12 +4373,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.e1.isBool(false))
         {
+            /* This is an `assert(0)` which means halt program execution
+             */
             FuncDeclaration fd = sc.parent.isFuncDeclaration();
             if (fd)
                 fd.hasReturnExp |= 4;
-            sc.ctorflow.callSuper |= CSX.halt;
-            foreach (ref u; sc.ctorflow.fieldinit)
-                u |= CSX.halt;
+            sc.ctorflow.orCSX(CSX.halt);
 
             if (global.params.useAssert == CHECKENABLE.off)
             {
@@ -9115,20 +9115,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ec = resolveProperties(sc, ec);
         ec = ec.toBoolean(sc);
 
-        const cs0 = sc.ctorflow.callSuper;
-        auto fi0 = sc.ctorflow.saveFieldInit();
+        CtorFlow ctorflow_root = sc.ctorflow.clone();
         Expression e1x = exp.e1.expressionSemantic(sc);
         e1x = resolveProperties(sc, e1x);
 
-        const cs1 = sc.ctorflow.callSuper;
-        const fi1 = sc.ctorflow.fieldinit;
-        sc.ctorflow.callSuper = cs0;
-        sc.ctorflow.fieldinit = fi0;
+        CtorFlow ctorflow1 = sc.ctorflow;
+        sc.ctorflow = ctorflow_root;
         Expression e2x = exp.e2.expressionSemantic(sc);
         e2x = resolveProperties(sc, e2x);
 
-        sc.mergeCallSuper(exp.loc, cs1);
-        sc.mergeFieldInit(exp.loc, fi1);
+        sc.merge(exp.loc, ctorflow1);
 
         if (ec.op == TOK.error)
         {

@@ -2124,11 +2124,8 @@ else
         /* https://dlang.org/spec/statement.html#IfStatement
          */
 
-        // Evaluate at runtime
-        CSX cs0 = sc.ctorflow.callSuper;
-        CSX cs1;
-        CSX[] fi0 = sc.ctorflow.saveFieldInit();
-        CSX[] fi1 = null;
+        // Save 'root' of two branches (then and else)
+        CtorFlow ctorflow_root = sc.ctorflow.clone();
 
         // check in syntax level
         ifs.condition = checkAssignmentAsCondition(ifs.condition);
@@ -2187,14 +2184,13 @@ else
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         scd.pop();
 
-        cs1 = sc.ctorflow.callSuper;
-        fi1 = sc.ctorflow.fieldinit;
-        sc.ctorflow.callSuper = cs0;
-        sc.ctorflow.fieldinit = fi0;
+        CtorFlow ctorflow_then = sc.ctorflow;   // move flow results
+        sc.ctorflow = ctorflow_root;            // reset flow analysis back to root
         if (ifs.elsebody)
             ifs.elsebody = ifs.elsebody.semanticScope(sc, null, null);
-        sc.mergeCallSuper(ifs.loc, cs1);
-        sc.mergeFieldInit(ifs.loc, fi1);
+
+        // Merge 'then' results into 'else' results
+        sc.merge(ifs.loc, ctorflow_then);
 
         if (ifs.condition.op == TOK.error ||
             (ifs.ifbody && ifs.ifbody.isErrorStatement()) ||
@@ -3228,23 +3224,22 @@ else
             rs.error("`return` without calling constructor");
             errors = true;
         }
-        sc.ctorflow.callSuper |= CSX.return_;
-        if (sc.ctorflow.fieldinit.length)
+
+        if (sc.ctorflow.fieldinit.length)       // if aggregate fields are being constructed
         {
             auto ad = fd.isMember2();
             assert(ad);
-            foreach (i; 0 .. sc.ctorflow.fieldinit.length)
+            foreach (i, v; ad.fields)
             {
-                VarDeclaration v = ad.fields[i];
                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
                 if (mustInit && !(sc.ctorflow.fieldinit[i] & CSX.this_ctor))
                 {
                     rs.error("an earlier `return` statement skips field `%s` initialization", v.toChars());
                     errors = true;
                 }
-                sc.ctorflow.fieldinit[i] |= CSX.return_;
             }
         }
+        sc.ctorflow.orCSX(CSX.return_);
 
         if (errors)
             return setError();
@@ -4004,10 +3999,8 @@ else
 
         sc = sc.push();
         sc.scopesym = sc.enclosing.scopesym;
-        sc.ctorflow.callSuper |= CSX.label;
 
-        foreach (ref u; sc.ctorflow.fieldinit)
-            u |= CSX.label;
+        sc.ctorflow.orCSX(CSX.label);
 
         sc.slabel = ls;
         if (ls.statement)

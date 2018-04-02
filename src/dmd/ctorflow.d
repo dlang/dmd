@@ -63,6 +63,28 @@ struct CtorFlow
         }
         return fi;
     }
+
+    /***********************
+     * Create a deep copy of `this`
+     * Returns:
+     *  a copy
+     */
+    CtorFlow clone()
+    {
+        return CtorFlow(callSuper, saveFieldInit());
+    }
+
+    /**********************************
+     * Set CSX bits in flow analysis state
+     * Params:
+     *  csx = bits to set
+     */
+    void orCSX(CSX csx) nothrow pure
+    {
+        callSuper |= csx;
+        foreach (ref u; fieldinit)
+            u |= csx;
+    }
 }
 
 

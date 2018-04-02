@@ -266,7 +266,7 @@ struct Scope
         return pop();
     }
 
-    extern (C++) void mergeCallSuper(Loc loc, CSX cs)
+    extern (C++) void mergeCallSuper(const ref Loc loc, CSX cs)
     {
         // This does a primitive flow analysis to support the restrictions
         // regarding when and how constructors can appear.
@@ -323,7 +323,7 @@ struct Scope
         }
     }
 
-    extern (D) void mergeFieldInit(Loc loc, const CSX[] fies)
+    extern (D) void mergeFieldInit(const ref Loc loc, const CSX[] fies)
     {
         if (ctorflow.fieldinit.length && fies.length)
         {
@@ -341,6 +341,18 @@ struct Scope
                 }
             }
         }
+    }
+
+    /*******************************
+     * Merge results of `ctorflow` into `this`.
+     * Params:
+     *   loc = for error messages
+     *   ctorflow = flow results to merge in
+     */
+    extern (D) void merge(const ref Loc loc, const ref CtorFlow ctorflow)
+    {
+        mergeCallSuper(loc, ctorflow.callSuper);
+        mergeFieldInit(loc, ctorflow.fieldinit);
     }
 
     extern (C++) Module instantiatingModule()
