@@ -224,9 +224,11 @@ ifeq ($(CXX_KIND), clang++)
 CXXFLAGS += \
     -xc++
 endif
-DFLAGS := -version=MARS $(PIC)
+
+DFLAGS=
+override DFLAGS += -version=MARS $(PIC)
 # Enable D warnings
-DFLAGS += -w -de
+override DFLAGS += -w -de
 
 ifneq (,$(DEBUG))
 ENABLE_DEBUG := 1
@@ -238,11 +240,11 @@ endif
 # Append different flags for debugging, profiling and release.
 ifdef ENABLE_DEBUG
 CXXFLAGS += -g -g3 -DDEBUG=1 -DUNITTEST
-DFLAGS += -g -debug
+override DFLAGS += -g -debug
 endif
 ifdef ENABLE_RELEASE
 CXXFLAGS += -O2
-DFLAGS += -O -release -inline
+override DFLAGS += -O -release -inline
 endif
 ifdef ENABLE_PROFILING
 CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
@@ -257,13 +259,13 @@ ifdef ENABLE_LTO
 CXXFLAGS  += -flto
 endif
 ifdef ENABLE_UNITTEST
-DFLAGS  += -unittest -cov
+override DFLAGS  += -unittest -cov
 endif
 ifdef ENABLE_PROFILE
-DFLAGS  += -profile
+override DFLAGS  += -profile
 endif
 ifdef ENABLE_COVERAGE
-DFLAGS  += -cov -L-lgcov
+override DFLAGS  += -cov -L-lgcov
 CXXFLAGS += --coverage
 endif
 ifdef ENABLE_SANITIZERS
@@ -273,7 +275,7 @@ ifeq ($(HOST_DMD_KIND), dmd)
 HOST_CXX += -fsanitize=${ENABLE_SANITIZERS}
 endif
 ifneq (,$(findstring gdc,$(HOST_DMD_KIND))$(findstring ldc,$(HOST_DMD_KIND)))
-DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
+override DFLAGS += -fsanitize=${ENABLE_SANITIZERS}
 endif
 
 endif
