@@ -454,8 +454,7 @@ $G/glue.a: $(G_GLUE_OBJS) $(SRC_MAKE)
 	$(AR) rcs $@ $(G_GLUE_OBJS)
 
 $G/backend.a: $(G_OBJS) $(G_DOBJS) $(SRC_MAKE)
-	$(HOST_DMD_RUN) -lib -of$G/backend.a $(G_OBJS)
-	$(HOST_DMD_RUN) -lib -of$G/backend.a $@ $(G_DOBJS)
+	$(AR) rcs $@ $(G_OBJS) $(G_DOBJS)
 
 $G/lexer.a: $(LEXER_SRCS) $(LEXER_ROOT) $(HOST_DMD_PATH) $(SRC_MAKE)
 	CC="$(HOST_CXX)" $(HOST_DMD_RUN) -lib -of$@ $(MODEL_FLAG) -J$G -L-lstdc++ $(DFLAGS) $(LEXER_SRCS) $(LEXER_ROOT)
