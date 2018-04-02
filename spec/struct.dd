@@ -1144,10 +1144,10 @@ void main()
         $(P The postblits `__fieldPostblit` and `__aggrPostblit`
         are generated without any implicit qualifiers and are not considered
         struct members. This leads to the situation where qualifying an
-        entire struct declaration does not have any impact on the above
-        mentioned postblits. However, since `__xpostblit` is a member of
-        the struct and an alias of one of the other postblits, the qualifiers
-        applied to the struct will affect the aliased postblit:)
+        entire struct declaration with `const` or `immutable` does not have
+        any impact on the above-mentioned postblits. However, since `__xpostblit`
+        is a member of the struct and an alias of one of the other postblits,
+        the qualifiers applied to the struct will affect the aliased postblit.)
 
 $(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
@@ -1186,31 +1186,38 @@ immutable struct C2
 {
     S a;
 }
+---
 
-// Similar to B
-shared struct D
+        $(P In the above situations the errors do not contain line numbers because
+        the errors are regarding generated code.
+        )
+
+        $(P Qualifing an entire struct as `shared` correctly propagates the attribute
+        to the generated postblits:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+shared struct A
 {
-    // error: non-shared method S.__postblit is not callable using a shared object
-    // error: non-shared method D.__fieldPostblit is not callable using a shared object
-    S a;
     this(this)
-    { }
+    {
+        import std.stdio : writeln;
+        writeln("the shared postblit was called");
+    }
 }
 
-// Unlike B2, this example also does not work due to additional restrictions on shared.
-shared struct D2
+struct B
 {
-    // error: non-shared method S.__postblit is not callable using a shared object
-    S a;
+    A a;
+}
+
+void main()
+{
+    shared B b1;
+    auto b2 = b1;
 }
 ---
 )
-
-        $(P In the above situations the errors do not contain line numbers because
-        the errors are regarding generated code. In the case of the `shared` struct,
-        the first error message can be suppressed by qualifying the postblit of `S`
-        with `shared`.
-        )
 
         $(P Unions may not have fields that have postblits.)
 
