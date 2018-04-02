@@ -233,6 +233,17 @@ struct Scope
         return enc;
     }
 
+    /*************************
+     * Similar to pop(), but the results in `this` are not folded
+     * into `enclosing`.
+     */
+    extern (D) void detach()
+    {
+        ctorflow.freeFieldinit();
+        enclosing = null;
+        pop();
+    }
+
     extern (C++) Scope* startCTFE()
     {
         Scope* sc = this.push();
