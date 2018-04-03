@@ -2124,9 +2124,6 @@ else
         /* https://dlang.org/spec/statement.html#IfStatement
          */
 
-        // Save 'root' of two branches (then and else)
-        CtorFlow ctorflow_root = sc.ctorflow.clone();
-
         // check in syntax level
         ifs.condition = checkAssignmentAsCondition(ifs.condition);
 
@@ -2181,6 +2178,9 @@ else
         // This feature allows a limited form of conditional compilation.
         ifs.condition = ifs.condition.optimize(WANTvalue);
 
+        // Save 'root' of two branches (then and else) at the point where it forks
+        CtorFlow ctorflow_root = scd.ctorflow.clone();
+
         ifs.ifbody = ifs.ifbody.semanticNoScope(scd);
         scd.pop();
 
@@ -2191,6 +2191,8 @@ else
 
         // Merge 'then' results into 'else' results
         sc.merge(ifs.loc, ctorflow_then);
+
+        ctorflow_then.freeFieldinit();          // free extra copy of the data
 
         if (ifs.condition.op == TOK.error ||
             (ifs.ifbody && ifs.ifbody.isErrorStatement()) ||

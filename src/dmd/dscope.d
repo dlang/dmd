@@ -209,21 +209,11 @@ struct Scope
     extern (C++) Scope* pop()
     {
         //printf("Scope::pop() %p nofree = %d\n", this, nofree);
-        Scope* enc = enclosing;
         if (enclosing)
-        {
-            enclosing.ctorflow.callSuper |= ctorflow.callSuper;
-            if (ctorflow.fieldinit.length)
-            {
-                if (enclosing.ctorflow.fieldinit.length)
-                {
-                    assert(ctorflow.fieldinit.ptr != enclosing.ctorflow.fieldinit.ptr);
-                    foreach (i, u; ctorflow.fieldinit)
-                        enclosing.ctorflow.fieldinit[i] |= u;
-                }
-                ctorflow.freeFieldinit();
-            }
-        }
+            enclosing.ctorflow.OR(ctorflow);
+        ctorflow.freeFieldinit();
+
+        Scope* enc = enclosing;
         if (!nofree)
         {
             enclosing = freelist;
