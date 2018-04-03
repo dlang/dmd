@@ -11,6 +11,8 @@ set -euo pipefail
 
 # if PROCS is not set, auto-detect or fallback to 4
 PROCS="${PROCS:-$(nproc 2> /dev/null || sysctl -n hw.physicalcpu 2> /dev/null || echo 4)}"
+# path to the test directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [ -z ${1:-} ] ; then
 	cat >&2 << EOF
@@ -30,12 +32,17 @@ files=()
 # normalize path to each test file
 for arg in "$@" ; do
 	file="$arg"
-	normalizedDir=$(cd "$(dirname "$file")" && pwd)
+	# allow to use either:
+    # - an existing path to the test file (e.g. cd test/runnable && ../run_individual_tests template2962.d)
+    # - the test's slug (test directory + filename - e.g. src && ../test/run_individual_tests runnable/template2962.d)
+	if [ -f $file ] ; then
+	    normalizedDir=$(cd "$(dirname "$file")" && pwd)
+	else
+	    normalizedDir=$(cd "$DIR/$(dirname "$file")" && pwd)
+	fi
 	files+=("test_results/$(basename "$normalizedDir" )/$(basename "$file").out")
 done
 
 # allows the script to be called from anywhere
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
-echo ${PROCS}
 ${MAKE:-make} "${files[@]}" -j${PROCS}
