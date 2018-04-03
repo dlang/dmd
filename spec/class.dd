@@ -386,12 +386,12 @@ $(GNAME Constructor):
         this() { }
         ------
 
-        $(P Some restrictions apply to class construction:)
+        $(P The following restrictions apply to class construction:)
 
     $(OL
-        $(LI If any delegate constructor call appears inside a constructor, every
-        path through the constructor must make exactly one delegate constructor
-        call:
+        $(LI If a constructor's code contains a delegate constructor call, all
+        possible execution paths through the constructor must make exactly one
+        delegate constructor call:
 
         ------
         this() { a || super(); }       // illegal
@@ -445,7 +445,7 @@ $(GNAME Constructor):
         )
 
         $(LI If a delegating constructor is not called, a call to the base
-        class's default constructor is called.)
+        class's default constructor is issued.)
 
         $(LI The body of the constructor is executed.)
 
@@ -492,7 +492,7 @@ $(GNAME Constructor):
         immutable i = new immutable C();
         ------
 
-        $(P If the constructor can create unique object (e.g. if it is `pure`),
+        $(P If the constructor can create a unique object (e.g. if it is `pure`),
         the object can be implicitly convertible to any qualifiers.
         )
         ------
