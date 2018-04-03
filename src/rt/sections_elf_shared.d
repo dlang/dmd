@@ -753,7 +753,12 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
 
         case PT_TLS: // TLS segment
             assert(!pdso._tlsSize); // is unique per DSO
-            pdso._tlsMod = info.dlpi_tls_modid;
+            version (CRuntime_UClibc)
+            {
+                // uClibc doesn't provide a 'dlpi_tls_modid' definition
+            }
+            else
+                pdso._tlsMod = info.dlpi_tls_modid;
             pdso._tlsSize = phdr.p_memsz;
             break;
 
