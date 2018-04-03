@@ -461,6 +461,7 @@ immutable Msgtable[] msgtable =
     { "basic_ostream" },
     { "basic_iostream" },
     { "char_traits" },
+    { "__dslice" },
 
     // Compiler recognized UDA's
     { "udaGNUAbiTag", "gnuAbiTag" },

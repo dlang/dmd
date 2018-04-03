@@ -125,6 +125,11 @@ public:
 
     override void visit(Type type)
     {
+        auto typeForMangling = type.typeForMangling(LINK.cpp);
+
+        if (typeForMangling !is type)
+            return typeForMangling.accept(this);
+
         if (checkImmutableShared(type))
             return;
 
@@ -1037,7 +1042,7 @@ private:
         //                ::= $0<encoded integral number>
         //printf("mangleIdent('%s')\n", sym.toChars());
         Dsymbol p = sym;
-        if (p.toParent() && p.toParent().isTemplateInstance())
+        if (p && p.toParent() && p.toParent().isTemplateInstance())
         {
             p = p.toParent();
         }
@@ -1048,7 +1053,7 @@ private:
             for (auto ns = p.cppnamespace; ns !is null; ns = ns.cppnamespace)
                 mangleName(ns, dont_use_back_reference);
             p = p.toParent();
-            if (p.toParent() && p.toParent().isTemplateInstance())
+            if (p && p.toParent() && p.toParent().isTemplateInstance())
             {
                 p = p.toParent();
             }
