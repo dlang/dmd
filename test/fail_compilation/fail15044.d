@@ -1,7 +1,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15044.d(30): Error: generated function `fail15044.V.opAssign` is not callable because it is annotated with `@disable`
+fail_compilation/fail15044.d(31): Deprecation: Assignment of `v` has no effect
+fail_compilation/fail15044.d(31): Error: generated function `fail15044.V.opAssign` is not callable because it is annotated with `@disable`
 ---
 */
 

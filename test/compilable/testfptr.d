@@ -17,35 +17,35 @@ void bug3797()
     const(int) function() cv;
     immutable(int) function() xv;
 
-    static assert( is(typeof( vv = vv )));
+    static assert( is(typeof( {typeof(vv) vv2; vv2 = vv;} )));
     static assert(!is(typeof( vv = vi )));
     static assert(!is(typeof( vv = iv )));
     static assert(!is(typeof( vv = cv )));
     static assert(!is(typeof( vv = xv )));
 
     static assert(!is(typeof( vi = vv )));
-    static assert( is(typeof( vi = vi )));
+    static assert( is(typeof( {typeof(vi) vi2; vi2 = vi;} )));
     static assert(!is(typeof( vi = iv )));
     static assert(!is(typeof( vi = cv )));
     static assert(!is(typeof( vi = cx )));
 
     static assert(!is(typeof( iv = vv )));
     static assert(!is(typeof( iv = vi )));
-    static assert( is(typeof( iv = iv )));
+    static assert( is(typeof( {typeof(iv) iv2; iv2 = iv;} )));
     static assert( is(typeof( iv = cv )));
     static assert( is(typeof( iv = xv )));
 
     static assert(!is(typeof( cv = vv )));
     static assert( is(typeof( cv = iv )));
     static assert(!is(typeof( cv = vi )));
-    static assert( is(typeof( cv = cv )));
+    static assert( is(typeof( {typeof(cv) cv2; cv2 = cv;} )));
     static assert( is(typeof( cv = xv )));
 
     static assert(!is(typeof( xv = vv )));
     static assert( is(typeof( xv = iv )));
     static assert(!is(typeof( xv = vi )));
     static assert( is(typeof( xv = cv )));
-    static assert( is(typeof( xv = xv )));
+    static assert( is(typeof( {typeof(xv) xv2; xv2 = xv;} )));
 
     int* function() ipfunc;
     const(int*) function() cipfunc;
@@ -160,35 +160,35 @@ void bug3797dg()
     const(int) delegate() cv;
     immutable(int) delegate() xv;
 
-    static assert( is(typeof( vv = vv )));
+    static assert( is(typeof( {typeof(vv) vv2; vv2 = vv;} )));
     static assert(!is(typeof( vv = vi )));
     static assert(!is(typeof( vv = iv )));
     static assert(!is(typeof( vv = cv )));
     static assert(!is(typeof( vv = xv )));
 
     static assert(!is(typeof( vi = vv )));
-    static assert( is(typeof( vi = vi )));
+    static assert( is(typeof( {typeof(vi) vi2; vi2 = vi;} )));
     static assert(!is(typeof( vi = iv )));
     static assert(!is(typeof( vi = cv )));
     static assert(!is(typeof( vi = cx )));
 
     static assert(!is(typeof( iv = vv )));
     static assert(!is(typeof( iv = vi )));
-    static assert( is(typeof( iv = iv )));
+    static assert( is(typeof( {typeof(iv) iv2; iv2 = iv;} )));
     static assert( is(typeof( iv = cv )));
     static assert( is(typeof( iv = xv )));
 
     static assert(!is(typeof( cv = vv )));
     static assert( is(typeof( cv = iv )));
     static assert(!is(typeof( cv = vi )));
-    static assert( is(typeof( cv = cv )));
+    static assert( is(typeof( {typeof(cv) cv2; cv2 = cv;} )));
     static assert( is(typeof( cv = xv )));
 
     static assert(!is(typeof( xv = vv )));
     static assert( is(typeof( xv = iv )));
     static assert(!is(typeof( xv = vi )));
     static assert( is(typeof( xv = cv )));
-    static assert( is(typeof( xv = xv )));
+    static assert( is(typeof( {typeof(xv) xv2; xv2 = xv;} )));
 
     int* delegate() ipfunc;
     const(int*) delegate() cipfunc;

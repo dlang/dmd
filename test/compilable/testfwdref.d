@@ -646,8 +646,8 @@ struct Array15726y(T)
 void test15726y()
 {
     alias Range = RangeT15726y!(Array15726y!int);
-    Range r;
-    r = r;  // opAssign
+    Range r, r2;
+    r2 = r;  // opAssign
 }
 
 /***************************************************/

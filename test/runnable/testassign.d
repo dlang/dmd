@@ -129,7 +129,7 @@ void test3()
     foreach (S; TypeTuple!(S31A,S31B,S31C,S31D, S32A,S32B,S32C,S32D))
     {
         S s;
-        static assert(__traits(compiles, s = s) == S.result);
+        static assert(__traits(compiles, {S s2; s2 = s;}) == S.result);
     }
 }
 
@@ -524,22 +524,22 @@ void test6216a()
 
         pragma(msg,
                 is(X==void) ? "-" : X.stringof,
-                "\t", __traits(compiles, (s1  = s1)),
-                "\t", __traits(compiles, (s2a = s2a)),
-                "\t", __traits(compiles, (s2b = s2b)),
-                "\t", __traits(compiles, (s3a = s3a)),
-                "\t", __traits(compiles, (s3b = s3b)),
-                "\t", __traits(compiles, (s4a = s4a)),
-                "\t", __traits(compiles, (s4b = s4b))  );
+                "\t", __traits(compiles, {auto s1_  = s1;}),
+                "\t", __traits(compiles, {auto s2a_ = s2a;}),
+                "\t", __traits(compiles, {auto s2b_ = s2b;}),
+                "\t", __traits(compiles, {auto s3a_ = s3a;}),
+                "\t", __traits(compiles, {auto s3b_ = s3b;}),
+                "\t", __traits(compiles, {auto s4a_ = s4a;}),
+                "\t", __traits(compiles, {auto s4b_ = s4b;})  );
 
         static assert(result[i] ==
-            [   __traits(compiles, (s1  = s1)),
-                __traits(compiles, (s2a = s2a)),
-                __traits(compiles, (s2b = s2b)),
-                __traits(compiles, (s3a = s3a)),
-                __traits(compiles, (s3b = s3b)),
-                __traits(compiles, (s4a = s4a)),
-                __traits(compiles, (s4b = s4b))  ]);
+            [   __traits(compiles, {auto s1_  = s1;}),
+                __traits(compiles, {auto s2a_ = s2a;}),
+                __traits(compiles, {auto s2b_ = s2b;}),
+                __traits(compiles, {auto s3a_ = s3a;}),
+                __traits(compiles, {auto s3b_ = s3b;}),
+                __traits(compiles, {auto s4a_ = s4a;}),
+                __traits(compiles, {auto s4b_ = s4b;})  ]);
     }
 }
 
@@ -559,7 +559,8 @@ void test6216b()
     }
 
     S s;
-    s = s;
+    S s2;
+    s2 = s;
     assert(cnt == 1);
     // Built-in opAssign runs member's opAssign
 }
@@ -581,7 +582,7 @@ void test6216c()
 
     S s;
     const(S) cs;
-    s = s;
+    auto s2 = s;
     s = cs;     // cs is copied as mutable and assigned into s
     assert(cnt == 2);
     static assert(!__traits(compiles, cs = cs));
@@ -605,7 +606,8 @@ void test6216d()
 
     X mx;
     const X cx;
-    mx = mx;    // copying mx to const X is possible
+    X mx2;
+    mx2 = mx;    // copying mx to const X is possible
     assert(cnt == 1);
     mx = cx;
     assert(cnt == 2);
@@ -614,7 +616,7 @@ void test6216d()
 
     S s;
     const(S) cs;
-    s = s;
+    auto s2 = s;
     s = cs;
     //assert(cnt == 4);
     static assert(!__traits(compiles, cs = cs));
@@ -881,7 +883,7 @@ void test12211()
 void test4791()
 {
     int[2] na;
-    na = na;
+    int[2] na2 = na;
 
     static struct S
     {
@@ -895,13 +897,16 @@ void test4791()
         sa[0].n = 1, sa[1].n = 2, sa[2].n = 3;
 
         S.res = null;
-        sa = sa;
-        assert(S.res == "p2d1p3d2p4d3");
-        assert(sa[0].n == 2 && sa[1].n == 3 && sa[2].n == 4);
+        S[3] sa2;
+        sa2 = sa;
+        assert(S.res == "p2d0p3d0p4d0", S.res);
+        assert(sa[0].n == 1);
+        assert(sa[1].n == 2);
+        assert(sa[2].n == 3);
 
         S.res = null;
     }
-    assert(S.res == "d4d3d2");
+    assert(S.res == "d4d3d2d3d2d1");
 }
 
 /***************************************************/
