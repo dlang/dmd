@@ -425,7 +425,7 @@ $(GNAME Constructor):
     $(OL
         $(LI Storage is allocated for the object.
         If this fails, rather than return $(D null), an
-        $(LINK2 ../library/core/exception/out_of_memory_error.html, OutOfMemoryError) is thrown.
+        $(LINK2 $(ROOT_DIR)library/core/exception/out_of_memory_error.html, OutOfMemoryError) is thrown.
         Thus, tedious checks for null references are unnecessary.
         )
 
@@ -541,7 +541,7 @@ $(H2 $(LNAME2 field-init, Field initialization inside constructor))
         struct A
         {
             this(int n) {}
-            void $(CODE_HIGHTLIGHT opAssign)(A rhs) {}
+            void $(CODE_HIGHLIGHT opAssign)(A rhs) {}
         }
         class C
         {
