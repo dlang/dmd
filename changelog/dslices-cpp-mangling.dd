@@ -1,0 +1,57 @@
+Added support for D arrays in C++ functions
+
+D arrays don't have any corresponding type in C++. This change adds support for
+mangling a D array as a templated struct with the special name: `__dslice`.
+Under the hood, a D array is represented as a struct, containing the length of
+the array and a pointer to the data:
+
+---
+struct DArray(T)
+{
+    size_t length;
+    T* ptr;
+}
+---
+
+Any D array in the form of, `T[]`, when used in a C++ function, will be mangled
+as the following struct:
+
+---
+struct __dslice(T);
+---
+
+For example, an array of ints, `int[]`, will be mangled as `__dslice!int` when
+used in a C++ function. This allows to declare C++ functions that accepts D
+arrays and can be accessed to C++ if the right struct declaration is present
+on the C++ side.
+
+On the D side:
+
+---
+extern(C++) void foo(const(char)[] str);
+
+void main()
+{
+    foo("bar");
+}
+---
+
+On the C++ side:
+
+$(CPPCODE
+    #include &lt;stdio.h&gt;
+
+    template&lt;typename T&gt; struct __dslice
+    {
+        size_t length;
+        T* ptr;
+    };
+
+    void foo(__dslice&lt;const char&gt; array)
+    {
+        printf("%.*s\n", (int) array.length, array.ptr);
+    }
+)
+
+Since the `__dslice` struct is ABI compatible with D arrays, it works perfectly
+fine to pass a D array to a C++ function taking a `__dslice`.

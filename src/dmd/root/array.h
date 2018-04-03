@@ -234,3 +234,16 @@ struct BitArray
 private:
     BitArray(const BitArray&);
 };
+
+// This is the type that the D compiler will mangle D slices as when mangling
+// for C++. This type is ABI compatible with native D slices.
+template <typename T> struct __dslice
+{
+    d_size_t length;
+    T* ptr;
+
+    __dslice() : length(0), ptr(NULL) {}
+    __dslice(size_t length, T* ptr) : length(length), ptr(ptr) {}
+};
+
+#define DSlice __dslice

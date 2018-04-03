@@ -976,3 +976,38 @@ else version(Posix)
     static assert(test19278_4.mangleof == "_ZN5hello5world3yay11test19278_4Ev");
     static assert(test19278_var.mangleof == "_ZN5hello5world13test19278_varE");
 }
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18716
+// D slices as parameters in extern(C++) functions
+
+struct Test18716 {}
+struct __dslice(T) {}
+
+extern(C++) void test18716a(char[]);
+extern(C++) void test18716b(__dslice!char);
+extern(C++) void test18716c(const(char)[]);
+extern(C++) void test18716d(Test18716[]);
+
+void test18716()
+{
+    test18716a("foo".dup);
+    test18716c("foo");
+    test18716d([Test18716()]);
+}
+
+version (Posix)
+{
+    static assert(test18716a.mangleof == "_Z10test18716a8__dsliceIcE");
+    static assert(test18716b.mangleof == "_Z10test18716b8__dsliceIcE");
+    static assert(test18716c.mangleof == "_Z10test18716c8__dsliceIKcE");
+    static assert(test18716d.mangleof == "_Z10test18716d8__dsliceI9Test18716E");
+}
+
+else version (Windows)
+{
+    static assert(test18716a.mangleof == "?test18716a@@YAXU?$__dslice@D@@@Z");
+    static assert(test18716b.mangleof == "?test18716b@@YAXU?$__dslice@D@@@Z");
+    static assert(test18716c.mangleof == "?test18716c@@YAXU?$__dslice@$$CBD@@@Z");
+    static assert(test18716d.mangleof == "?test18716d@@YAXU?$__dslice@UTest18716@@@@@Z");
+}

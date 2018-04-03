@@ -1138,6 +1138,11 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
 {
+    auto typeForMangling = t.typeForMangling(LINK.d);
+
+    if (t !is typeForMangling)
+        return mangleToBuffer(typeForMangling, buf);
+
     if (t.deco)
         buf.writestring(t.deco);
     else

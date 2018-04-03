@@ -39,6 +39,21 @@ public:
 
     @disable this(this);
 
+    /**
+     * Convenience constructor to add the given elements to this array.
+     *
+     * Params:
+     *  elements = elements to add to this array
+     */
+    extern(D) this(T[] elements ...) nothrow
+    {
+        if (elements.length > 0)
+            reserve(elements.length);
+
+        foreach (e ; elements)
+            push(e);
+    }
+
     ~this() nothrow
     {
         if (data != &smallarray[0])

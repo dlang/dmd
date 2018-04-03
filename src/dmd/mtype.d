@@ -524,6 +524,24 @@ extern (C++) abstract class Type : RootObject
         return DYNCAST.type;
     }
 
+    /**
+     * Returns the type the receiver should be treated as during mangling.
+     *
+     * This allows for a type to be treated as a different type during mangling.
+     * This is useful, for example, when interfacing with C++, for D types that
+     * don't have a corresponding C++ type. This can allow `int[]` to be
+     * mangled as `__dslice!int` during C++ mangling.
+     *
+     * Params:
+     *  linkage = the type of mangling that is requested
+     *
+     * Returns: the type the receiver should be treated as during mangling
+     */
+    Type typeForMangling(LINK linkage)
+    {
+        return this;
+    }
+
     /*******************************
      * Covariant means that 'this' can substitute for 't',
      * i.e. a pure function is a match for an impure type.
@@ -3728,6 +3746,9 @@ extern (C++) final class TypeSArray : TypeArray
  */
 extern (C++) final class TypeDArray : TypeArray
 {
+    /// Mangle D array as this type when mangling for C++.
+    private Type typeForCppMangling;
+
     extern (D) this(Type t)
     {
         super(Tarray, t);
@@ -3750,6 +3771,88 @@ extern (C++) final class TypeDArray : TypeArray
             t.mod = mod;
         }
         return t;
+    }
+
+    override Type typeForMangling(LINK linkage)
+    {
+        /**
+         * Returns a template declaration corresponding to the following code:
+         *
+         * ---
+         * template __dslice(T) {}
+         * ---
+         *
+         * Returns: a template declaration corresponding to the above code
+         *
+         * See_Also: `typeForCppMangling`
+         */
+        static TemplateDeclaration dsliceTemplateDeclaration()
+        {
+            __gshared TemplateDeclaration td;
+
+            if (td)
+                return td;
+
+            auto ttp = new TemplateTypeParameter(Loc.initial, Id.p, null, null);
+            auto parameters = new TemplateParameters(ttp);
+
+            return td = new TemplateDeclaration(Loc.initial, Id.__dslice, parameters,
+                null, null);
+        }
+
+        /**
+         * Returns a template instantiation of the template declaration returned
+         * by `dsliceTemplateDeclaration`.
+         *
+         * The template is instantiated with the element type of this array. For
+         * an array of ints it would correspond to the following D code:
+         * `__dslice!int`.
+         *
+         * Returns: a template instance
+         *
+         * See_Also: `dsliceTemplateDeclaration`
+         * See_Also: `typeForCppMangling`
+         */
+        TemplateInstance dsliceTemplateInstance()
+        {
+            auto tiargs = new Objects(next);
+            auto ti = new TemplateInstance(Loc.initial, Id.__dslice, tiargs);
+            ti.tempdecl = dsliceTemplateDeclaration();
+
+            return ti;
+        }
+
+        /**
+         * Returns the type that this array type should be treated as when it's
+         * mangled as a C++ type.
+         *
+         * D arrays don't have any corresponding type in C++. Instead we mangle
+         * it as a templated struct with the name `__dslice`, i.e.
+         * `struct __dslice(T)`, where `T` is the element type of the array. For
+         * an array of ints it would be mangled as the following type
+         * `__dslice!int`.
+         *
+         * Returns: the type that this should be treated as when mangling as a
+         *  C++ type
+         *
+         * See_Also: `dsliceTemplateInstance`
+         */
+        Type typeForCppMangling()
+        {
+            __gshared Type[char*] cachedTypes;
+            auto elementType = next;
+
+            if (auto type = elementType.deco in cachedTypes)
+                return *type;
+
+            auto sd = new StructDeclaration(Loc.initial, Id.__dslice, false);
+            sd.parent = dsliceTemplateInstance();
+
+            auto type = new TypeStruct(sd).typeSemantic(Loc.initial, null);
+            return cachedTypes[elementType.deco] = type;
+        }
+
+        return linkage == LINK.cpp ? typeForCppMangling() : this;
     }
 
     override d_uns64 size(const ref Loc loc) const
