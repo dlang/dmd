@@ -535,9 +535,8 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         os = (cast(OverExp)e1).vars;
     Los:
         assert(os);
-        for (size_t i = 0; i < os.a.dim; i++)
+        foreach (s; os.a)
         {
-            Dsymbol s = os.a[i];
             fd = s.isFuncDeclaration();
             td = s.isTemplateDeclaration();
             if (fd)
@@ -932,16 +931,15 @@ extern (C++) bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool pre
     bool err = false;
     if (exps)
     {
-        for (size_t i = 0; i < exps.dim; i++)
+        foreach (ref e; *exps)
         {
-            Expression e = (*exps)[i];
             if (e)
             {
-                e = e.expressionSemantic(sc);
-                if (e.op == TOK.error)
+                auto e2 = e.expressionSemantic(sc);
+                if (e2.op == TOK.error)
                     err = true;
-                if (preserveErrors || e.op != TOK.error)
-                    (*exps)[i] = e;
+                if (preserveErrors || e2.op != TOK.error)
+                    e = e2;
             }
         }
     }
@@ -1043,9 +1041,9 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
         if (td)
         {
             exps.remove(u);
-            for (size_t i = 0; i < td.objects.dim; ++i)
+            foreach (i, o; *td.objects)
             {
-                Expression e = isExpression((*td.objects)[i]);
+                Expression e = isExpression(o);
                 assert(e);
                 assert(e.op == TOK.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
@@ -1059,9 +1057,8 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
             version (none)
             {
                 printf("expansion ->\n");
-                for (size_t i = 0; i < exps.dim; ++i)
+                foreach (e; exps)
                 {
-                    Expression e = (*exps)[i];
                     printf("\texps[%d] e = %s %s\n", i, Token.tochars[e.op], e.toChars());
                 }
             }
@@ -1380,12 +1377,11 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.slice);
     //printf("slice = %s %s\n", slice.kind(), slice.toChars());
-    for (size_t i = 0; i < ae.arguments.dim; i++)
+    foreach (i, e; *ae.arguments)
     {
         if (i == 0)
             *pe0 = extractOpDollarSideEffect(sc, ae);
 
-        Expression e = (*ae.arguments)[i];
         if (e.op == TOK.interval && !(slice && slice.isTemplateDeclaration()))
         {
         Lfallback:
@@ -1473,7 +1469,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
     sym.parent = sc.scopesym;
     sc = sc.push(sym);
 
-    for (size_t i = 0; i < 2; ++i)
+    foreach (i; 0 .. 2)
     {
         Expression e = i == 0 ? ie.lwr : ie.upr;
         e = e.expressionSemantic(sc);
@@ -1769,9 +1765,8 @@ extern (C++) abstract class Expression : RootObject
         {
             a = new Expressions();
             a.setDim(exps.dim);
-            for (size_t i = 0; i < a.dim; i++)
+            foreach (i, e; *exps)
             {
-                Expression e = (*exps)[i];
                 (*a)[i] = e ? e.syntaxCopy() : null;
             }
         }
@@ -3320,7 +3315,7 @@ extern (C++) final class StringExp : Expression
                 {
                     wchar* s1 = cast(wchar*)string;
                     wchar* s2 = cast(wchar*)se2.string;
-                    for (size_t u = 0; u < len; u++)
+                    foreach (u; 0 .. len)
                     {
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
@@ -3331,7 +3326,7 @@ extern (C++) final class StringExp : Expression
                 {
                     dchar* s1 = cast(dchar*)string;
                     dchar* s2 = cast(dchar*)se2.string;
-                    for (size_t u = 0; u < len; u++)
+                    foreach (u; 0 .. len)
                     {
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
@@ -3453,9 +3448,8 @@ extern (C++) final class TupleExp : Expression
         this.exps = new Expressions();
 
         this.exps.reserve(tup.objects.dim);
-        for (size_t i = 0; i < tup.objects.dim; i++)
+        foreach (o; *tup.objects)
         {
-            RootObject o = (*tup.objects)[i];
             if (Dsymbol s = getDsymbol(o))
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
@@ -3499,9 +3493,8 @@ extern (C++) final class TupleExp : Expression
                 return false;
             if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
                 return false;
-            for (size_t i = 0; i < exps.dim; i++)
+            foreach (i, e1; *exps)
             {
-                Expression e1 = (*exps)[i];
                 Expression e2 = (*te.exps)[i];
                 if (!e1.equals(e2))
                     return false;
@@ -3578,9 +3571,8 @@ extern (C++) final class ArrayLiteralExp : Expression
             {
                 return false;
             }
-            for (size_t i = 0; i < elements.dim; i++)
+            foreach (i, e1; *elements)
             {
-                Expression e1 = (*elements)[i];
                 Expression e2 = (*ae.elements)[i];
                 if (!e1)
                     e1 = basis;
@@ -3622,7 +3614,7 @@ extern (C++) final class ArrayLiteralExp : Expression
                 return;
             auto d = elems.dim;
             elems.append(ale.elements);
-            foreach (ref el; (*elems)[][d .. elems.dim])
+            foreach (ref el; (*elems)[d .. elems.dim])
             {
                 if (!el)
                     el = ale.basis;
@@ -3665,7 +3657,7 @@ extern (C++) final class ArrayLiteralExp : Expression
             OutBuffer buf;
             if (elements)
             {
-                for (size_t i = 0; i < elements.dim; ++i)
+                foreach (i; 0 .. elements.dim)
                 {
                     auto ch = getElement(i);
                     if (ch.op != TOK.int64)
@@ -3740,11 +3732,11 @@ extern (C++) final class AssocArrayLiteralExp : Expression
             if (keys.dim != ae.keys.dim)
                 return false;
             size_t count = 0;
-            for (size_t i = 0; i < keys.dim; i++)
+            foreach (i, key; *keys)
             {
-                for (size_t j = 0; j < ae.keys.dim; j++)
+                foreach (j, akey; *ae.keys)
                 {
-                    if ((*keys)[i].equals((*ae.keys)[j]))
+                    if (key.equals(akey))
                     {
                         if (!(*values)[i].equals((*ae.values)[j]))
                             return false;
@@ -3840,9 +3832,8 @@ extern (C++) final class StructLiteralExp : Expression
                 return false;
             if (elements.dim != se.elements.dim)
                 return false;
-            for (size_t i = 0; i < elements.dim; i++)
+            foreach (i, e1; *elements)
             {
-                Expression e1 = (*elements)[i];
                 Expression e2 = (*se.elements)[i];
                 if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                     return false;
@@ -3891,8 +3882,8 @@ extern (C++) final class StructLiteralExp : Expression
                     size_t length = cast(size_t)tsa.dim.toInteger();
                     auto z = new Expressions();
                     z.setDim(length);
-                    for (size_t q = 0; q < length; ++q)
-                        (*z)[q] = e.copy();
+                    foreach (ref q; *z)
+                        q = e.copy();
                     e = new ArrayLiteralExp(loc, z);
                     e.type = type;
                 }
@@ -3921,9 +3912,8 @@ extern (C++) final class StructLiteralExp : Expression
          */
         if (elements.dim)
         {
-            for (size_t i = 0; i < sd.fields.dim; i++)
+            foreach (i, v; sd.fields)
             {
-                VarDeclaration v = sd.fields[i];
                 if (offset == v.offset && type.size() == v.type.size())
                 {
                     /* context field might not be filled. */
@@ -4517,9 +4507,8 @@ extern (C++) final class FuncExp : Expression
             auto tiargs = new Objects();
             tiargs.reserve(td.parameters.dim);
 
-            for (size_t i = 0; i < td.parameters.dim; i++)
+            foreach (tp; *td.parameters)
             {
-                TemplateParameter tp = (*td.parameters)[i];
                 size_t u = 0;
                 for (; u < dim; u++)
                 {
@@ -4791,8 +4780,8 @@ extern (C++) final class IsExp : Expression
         {
             p = new TemplateParameters();
             p.setDim(parameters.dim);
-            for (size_t i = 0; i < p.dim; i++)
-                (*p)[i] = (*parameters)[i].syntaxCopy();
+            foreach (i, el; *parameters)
+                (*p)[i] = el.syntaxCopy();
         }
         return new IsExp(loc, targ.syntaxCopy(), id, tok, tspec ? tspec.syntaxCopy() : null, tok2, p);
     }
