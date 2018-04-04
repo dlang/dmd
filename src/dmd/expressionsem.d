@@ -8635,7 +8635,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
-        CSX cs1 = sc.ctorflow.callSuper;
 
         if (sc.flags & SCOPE.condition)
         {
@@ -8649,8 +8648,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        CtorFlow ctorflow = sc.ctorflow.clone();
         Expression e2x = exp.e2.expressionSemantic(sc);
-        sc.mergeCallSuper(exp.loc, cs1);
+        sc.merge(exp.loc, ctorflow);
+        ctorflow.freeFieldinit();
 
         // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
         if (e2x.op == TOK.type)
@@ -9127,6 +9128,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e2x = resolveProperties(sc, e2x);
 
         sc.merge(exp.loc, ctorflow1);
+        ctorflow1.freeFieldinit();
 
         if (ec.op == TOK.error)
         {

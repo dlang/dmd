@@ -85,6 +85,22 @@ struct CtorFlow
         foreach (ref u; fieldinit)
             u |= csx;
     }
+
+    /******************************
+     * OR CSX bits to `this`
+     * Params:
+     *  ctorflow = bits to OR in
+     */
+    void OR(const ref CtorFlow ctorflow)
+    {
+        callSuper |= ctorflow.callSuper;
+        if (fieldinit.length && ctorflow.fieldinit.length)
+        {
+            assert(fieldinit.length == ctorflow.fieldinit.length);
+            foreach (i, u; ctorflow.fieldinit)
+                fieldinit[i] |= u;
+        }
+    }
 }
 
 
