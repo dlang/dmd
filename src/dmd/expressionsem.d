@@ -3249,23 +3249,36 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             t1 = exp.e1.type;
         }
-        else if (exp.e1.op == TOK.super_)
+        else if (exp.e1.op == TOK.super_ || exp.e1.op == TOK.this_)
         {
-            // Base class constructor call
             auto ad = sc.func ? sc.func.isThis() : null;
             auto cd = ad ? ad.isClassDeclaration() : null;
-            if (!cd || !cd.baseClass || !sc.func.isCtorDeclaration())
+
+            const bool isSuper = exp.e1.op == TOK.super_;
+            if (isSuper)
             {
-                exp.error("super class constructor call must be in a constructor");
-                return setError();
+                // Base class constructor call
+                if (!cd || !cd.baseClass || !sc.func.isCtorDeclaration())
+                {
+                    exp.error("super class constructor call must be in a constructor");
+                    return setError();
+                }
+                if (!cd.baseClass.ctor)
+                {
+                    exp.error("no super class constructor for `%s`", cd.baseClass.toChars());
+                    return setError();
+                }
             }
-            if (!cd.baseClass.ctor)
+            else
             {
-                exp.error("no super class constructor for `%s`", cd.baseClass.toChars());
-                return setError();
+                if (!ad || !sc.func.isCtorDeclaration())
+                {
+                    exp.error("constructor call must be in a constructor");
+                    return setError();
+                }
             }
 
-            if (!sc.intypeof)
+            if (!sc.intypeof /*&& !(sc.ctorflow.callSuper & CSX.halt)*/)
             {
                 if (sc.noctor || sc.ctorflow.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
@@ -3273,57 +3286,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.error("multiple constructor calls");
                 if ((sc.ctorflow.callSuper & CSX.return_) && !(sc.ctorflow.callSuper & CSX.any_ctor))
                     exp.error("an earlier `return` statement skips constructor");
-                sc.ctorflow.callSuper |= CSX.any_ctor | CSX.super_ctor;
+                sc.ctorflow.callSuper |= CSX.any_ctor | (isSuper ? CSX.super_ctor : CSX.this_ctor);
             }
 
-            tthis = cd.type.addMod(sc.func.type.mod);
-            if (auto os = cd.baseClass.ctor.isOverloadSet())
+            tthis = ad.type.addMod(sc.func.type.mod);
+            auto ctor = isSuper ? cd.baseClass.ctor : ad.ctor;
+            if (auto os = ctor.isOverloadSet())
                 exp.f = resolveOverloadSet(exp.loc, sc, os, null, tthis, exp.arguments);
             else
-                exp.f = resolveFuncCall(exp.loc, sc, cd.baseClass.ctor, null, tthis, exp.arguments, 0);
+                exp.f = resolveFuncCall(exp.loc, sc, ctor, null, tthis, exp.arguments, 0);
 
             if (!exp.f || exp.f.errors)
                 return setError();
 
             checkFunctionAttributes(exp, sc, exp.f);
             checkAccess(exp.loc, sc, null, exp.f);
-
-            exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
-            exp.e1 = exp.e1.expressionSemantic(sc);
-            t1 = exp.e1.type;
-        }
-        else if (exp.e1.op == TOK.this_)
-        {
-            // same class constructor call
-            auto ad = sc.func ? sc.func.isThis() : null;
-            if (!ad || !sc.func.isCtorDeclaration())
-            {
-                exp.error("constructor call must be in a constructor");
-                return setError();
-            }
-
-            if (!sc.intypeof)
-            {
-                if (sc.noctor || sc.ctorflow.callSuper & CSX.label)
-                    exp.error("constructor calls not allowed in loops or after labels");
-                if (sc.ctorflow.callSuper & (CSX.super_ctor | CSX.this_ctor))
-                    exp.error("multiple constructor calls");
-                if ((sc.ctorflow.callSuper & CSX.return_) && !(sc.ctorflow.callSuper & CSX.any_ctor))
-                    exp.error("an earlier `return` statement skips constructor");
-                sc.ctorflow.callSuper |= CSX.any_ctor | CSX.this_ctor;
-            }
-
-            tthis = ad.type.addMod(sc.func.type.mod);
-            if (auto os = ad.ctor.isOverloadSet())
-                exp.f = resolveOverloadSet(exp.loc, sc, os, null, tthis, exp.arguments);
-            else
-                exp.f = resolveFuncCall(exp.loc, sc, ad.ctor, null, tthis, exp.arguments, 0);
-
-            if (!exp.f || exp.f.errors)
-                return setError();
-
-            checkFunctionAttributes(exp, sc, exp.f);
-            //checkAccess(loc, sc, NULL, f);    // necessary?
 
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
             exp.e1 = exp.e1.expressionSemantic(sc);
