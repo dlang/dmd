@@ -37,5 +37,8 @@ done
 # allows the script to be called from anywhere
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
-echo ${PROCS}
-${MAKE:-make} "${files[@]}" -j${PROCS}
+function echorun {
+    echo $@
+    $@
+}
+echorun ${MAKE:-make} "${files[@]}" -j${PROCS}
