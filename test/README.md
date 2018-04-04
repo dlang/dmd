@@ -83,8 +83,31 @@ Makefile targets
     test_results/compilable/json.d.out      runs an individual test
                                             (run log of the test is stored)
 
-In-test variables
------------------
+Test Configuration
+------------------
+
+All tests defined within `.d` source files may use various settings to configure how they are to be run, i.e.
+
+`runnable/hellotest.d`:
+```D
+/*
+REQUIRED_ARGS: -version=Foo
+TEST_OUTPUT:
+---
+Hello, World!
+---
+*/
+import std.stdio;
+void main(string[] args)
+{
+    version(Foo)
+    {
+        writeln("Hello, World!");
+    }
+}
+```
+
+The following is a list of all available settings:
 
     COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
                          together in an extra setup.
@@ -150,8 +173,12 @@ In-test variables
                          Optionally a MODEL suffix can used for further filtering, e.g.
                          win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
 
-Relevant environment variables
+Makefile Environment variables
 ------------------------------
+
+The Makefile uses environment variables to store test settings and as a way to pass these settings to the test wrapper tool `d_do_test`.
+
+> Note: These variables are also available inside any Bash test.
 
     ARGS:          set to execute all combinations of
     REQUIRED_ARGS: arguments always passed to the compiler
@@ -168,3 +195,21 @@ Windows vs non-windows portability env vars:
     SEP:           \ or / (required)
     OBJ:          .obj or .o (required)
     EXE:          .exe or <null> (required)
+
+Bash Tests
+----------
+
+Along with the environment variables provided by the Makefile (see above), an additional set of environment variables are made available to Bash tests. These variables are defined in `tools/exported_vars.sh`:
+
+    TEST_DIR           the name of the test directory
+                       (one of compilable, fail_compilation or runnable)
+
+    TEST_NAME          the base name of the test file without the extension, e.g. test15897
+
+    RESULTS_TEST_DIR   the results directory for tests of this type, e.g. test_results/runnable
+
+    OUTPUT_BASE        the prefix used for test output files, e.g. test_results/runnable/mytest
+
+    EXTRA_FILES        directory for extra files of this test type, e.g. runnable/extra-files
+
+    LIBEXT             platform-specific extension for library files, e.g. .a or .lib
