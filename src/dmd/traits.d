@@ -1332,7 +1332,17 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
             return 0;
         }
 
-        ScopeDsymbol._foreach(sc, sds.members, &pushIdentsDg);
+        __gshared int counter;
+        if (counter > 1000)
+        {
+            e.error("Maximal recursion depth hit");
+        }
+        else
+        {
+            counter++;
+            ScopeDsymbol._foreach(sc, sds.members, &pushIdentsDg);
+        }
+        counter = 0;
         auto cd = sds.isClassDeclaration();
         if (cd && e.ident == Id.allMembers)
         {
