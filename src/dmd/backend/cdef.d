@@ -245,7 +245,7 @@ alias targ_llong = long;
 alias targ_ullong = ulong;
 alias targ_float = float;
 alias targ_double = double;
-alias targ_ldouble = real;
+public import dmd.root.longdouble : targ_ldouble = longdouble;
 
 // Extract most significant register from constant
 //#define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))

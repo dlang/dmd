@@ -1386,7 +1386,7 @@ elem *toElem(Expression e, IRState *irs)
                     /* This assignment involves a conversion, which
                      * unfortunately also converts SNAN to QNAN.
                      */
-                    e.EV.Vfloat = re.value;
+                    e.EV.Vfloat = cast(float) re.value;
                     if (CTFloat.isSNaN(re.value))
                     {
                         // Put SNAN back
@@ -1399,7 +1399,7 @@ elem *toElem(Expression e, IRState *irs)
                     /* This assignment involves a conversion, which
                      * unfortunately also converts SNAN to QNAN.
                      */
-                    e.EV.Vdouble = re.value;
+                    e.EV.Vdouble = cast(double) re.value;
                     if (CTFloat.isSNaN(re.value))
                     {
                         // Put SNAN back
@@ -3955,12 +3955,12 @@ elem *toElem(Expression e, IRState *irs)
                     {
                         case Tfloat32:
                             // Must not call toReal directly, to avoid dmd bug 14203 from breaking dmd
-                            e.EV.Vfloat8[i] = complex.re;
+                            e.EV.Vfloat8[i] = cast(float) complex.re;
                             break;
 
                         case Tfloat64:
                             // Must not call toReal directly, to avoid dmd bug 14203 from breaking dmd
-                            e.EV.Vdouble4[i] = complex.re;
+                            e.EV.Vdouble4[i] = cast(double) complex.re;
                             break;
 
                         case Tint64:

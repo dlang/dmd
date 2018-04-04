@@ -69,12 +69,12 @@ struct Target
     {
         static __gshared
         {
-            real_t max = T.max;                 /// largest representable value that's not infinity
-            real_t min_normal = T.min_normal;   /// smallest representable normalized value that's not 0
-            real_t nan = T.nan;                 /// NaN value
-            real_t snan = T.init;               /// signalling NaN value
-            real_t infinity = T.infinity;       /// infinity value
-            real_t epsilon = T.epsilon;         /// smallest increment to the value 1
+            real_t max;                         /// largest representable value that's not infinity
+            real_t min_normal;                  /// smallest representable normalized value that's not 0
+            real_t nan;                         /// NaN value
+            real_t snan;                        /// signalling NaN value
+            real_t infinity;                    /// infinity value
+            real_t epsilon;                     /// smallest increment to the value 1
 
             d_int64 dig = T.dig;                /// number of decimal digits of precision
             d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
@@ -82,6 +82,15 @@ struct Target
             d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
             d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
             d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        }
+        static void _init()
+        {
+            max = T.max;
+            min_normal = T.min_normal;
+            nan = T.nan;
+            snan = T.init;
+            infinity = T.infinity;
+            epsilon = T.epsilon;
         }
     }
 
@@ -97,6 +106,10 @@ struct Target
      */
     extern (C++) static void _init()
     {
+        FloatProperties._init();
+        DoubleProperties._init();
+        RealProperties._init();
+
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
         ptrsize = 4;

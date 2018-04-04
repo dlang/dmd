@@ -21,7 +21,7 @@ import core.stdc.string;
 nothrow:
 
 // Type used by the front-end for compile-time reals
-alias real_t = real;
+public import dmd.root.longdouble : real_t = longdouble;
 
 private
 {
@@ -29,7 +29,10 @@ private
 
     version(CRuntime_Microsoft) extern (C++)
     {
-        struct longdouble { real_t r; }
+        static if (is(real_t == real))
+            struct longdouble { real_t r; }
+        else
+            import dmd.root.longdouble : longdouble;
         size_t ld_sprint(char* str, int fmt, longdouble x);
         longdouble strtold_dm(const(char)* p, char** endp);
     }
@@ -66,12 +69,24 @@ extern (C++) struct CTFloat
             assert(0);
     }
 
-    static real_t sin(real_t x) { return core.math.sin(x); }
-    static real_t cos(real_t x) { return core.math.cos(x); }
-    static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
-    static real_t sqrt(real_t x) { return core.math.sqrt(x); }
-    static real_t fabs(real_t x) { return core.math.fabs(x); }
-    static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
+    static if (!is(real_t == real))
+    {
+        alias sin = dmd.root.longdouble.sinl;
+        alias cos = dmd.root.longdouble.cosl;
+        alias tan = dmd.root.longdouble.tanl;
+        alias sqrt = dmd.root.longdouble.sqrtl;
+        alias fabs = dmd.root.longdouble.fabsl;
+        alias ldexp = dmd.root.longdouble.ldexpl;
+    }
+    else
+    {
+        static real_t sin(real_t x) { return core.math.sin(x); }
+        static real_t cos(real_t x) { return core.math.cos(x); }
+        static real_t tan(real_t x) { return core.stdc.math.tanl(x); }
+        static real_t sqrt(real_t x) { return core.math.sqrt(x); }
+        static real_t fabs(real_t x) { return core.math.fabs(x); }
+        static real_t ldexp(real_t n, int exp) { return core.math.ldexp(n, exp); }
+    }
 
     static bool isIdentical(real_t a, real_t b)
     {
@@ -103,7 +118,7 @@ extern (C++) struct CTFloat
     // the implementation of longdouble for MSVC is a struct, so mangling
     //  doesn't match with the C++ header.
     // add a wrapper just for isSNaN as this is the only function called from C++
-    version(CRuntime_Microsoft)
+    version(CRuntime_Microsoft) static if (is(real_t == real))
         static bool isSNaN(longdouble ld)
         {
             return isSNaN(ld.r);
@@ -123,7 +138,12 @@ extern (C++) struct CTFloat
             __locale_decpoint = ".";
         }
         version(CRuntime_Microsoft)
-            auto r = strtold_dm(literal, null).r;
+        {
+            version(LDC)
+                auto r = strtold_dm(literal, null);
+            else
+                auto r = strtold_dm(literal, null).r;
+        }
         else
             auto r = strtold(literal, null);
         version(CRuntime_DigitalMars) __locale_decpoint = save;
@@ -159,8 +179,16 @@ extern (C++) struct CTFloat
     }
 
     // Constant real values 0, 1, -1 and 0.5.
-    static __gshared real_t zero = real_t(0);
-    static __gshared real_t one = real_t(1);
-    static __gshared real_t minusone = real_t(-1);
-    static __gshared real_t half = real_t(0.5);
+    static __gshared real_t zero;
+    static __gshared real_t one;
+    static __gshared real_t minusone;
+    static __gshared real_t half;
+
+    shared static this()
+    {
+        zero = real_t(0);
+        one = real_t(1);
+        minusone = real_t(-1);
+        half = real_t(0.5);
+    }
 }
