@@ -748,6 +748,8 @@ int tryMain(string[] args)
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);
+            m = std.regex.match(compile_output, `core.exception.AssertError@dmd.*`);
+            enforce(!m, m.hit);
 
             if (testArgs.compileOutput !is null)
             {
