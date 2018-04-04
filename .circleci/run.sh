@@ -167,7 +167,8 @@ check_clean_git()
 # sanitycheck for the run_individual_tests script
 check_run_individual()
 {
-	./test/run_individual_tests test/runnable/template2962.d ./test/compilable/test14275.d
+    local build_path=generated/linux/release/$MODEL
+	"${build_path}/dmd"  -i -run ./test/run_individual_tests.d test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
 codecov()
