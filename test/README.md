@@ -108,6 +108,9 @@ In-test variables
     EXTRA_SOURCES:       list of extra files to build and link along with the test
                          default: (none)
 
+    EXTRA_CPP_SOURCES:   list of extra C++ files to build and link along with the test
+                         default: (none).
+
     EXTRA_OBJC_SOURCES:  list of extra Objective-C files to build and link along with the test
                          default: (none). Test files with this variable will be ignored unless
                          the D_OBJC environment variable is set to "1"
