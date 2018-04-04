@@ -1080,6 +1080,13 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         {
             return cache;
         }
+        if (!_scope)
+        {
+            import dmd.errors : error;
+            error(sfe.loc, "`static foreach` can't be lowered.");
+            return null;
+        }
+
         sfe.prepare(_scope); // lower static foreach aggregate
         if (!sfe.ready())
         {
