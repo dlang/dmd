@@ -675,7 +675,7 @@ int tryMain(string[] args)
     Result testCombination(bool autoCompileImports, string argSet, size_t permuteIndex, string permutedArgs)
     {
         string test_app_dmd = test_app_dmd_base ~ to!string(permuteIndex) ~ envData.exe;
-
+        string command; // copy of the last executed command so that it can be re-invoked on failures
         try
         {
             string[] toCleanup;
@@ -706,7 +706,7 @@ int tryMain(string[] args)
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(permuteIndex) ~ envData.obj;
                 toCleanup ~= objfile;
 
-                string command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
+                command = format("%s -conf= -m%s -I%s %s %s -od%s -of%s %s %s%s %s", envData.dmd, envData.model, input_dir,
                         reqArgs, permutedArgs, output_dir,
                         (testArgs.mode == TestMode.RUN || testArgs.link ? test_app_dmd : objfile),
                         argSet,
@@ -724,7 +724,7 @@ int tryMain(string[] args)
                     string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
+                    command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
                         reqArgs, permutedArgs, output_dir, argSet, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
@@ -732,7 +732,7 @@ int tryMain(string[] args)
                 if (testArgs.mode == TestMode.RUN || testArgs.link)
                 {
                     // link .o's into an executable
-                    string command = format("%s -conf= -m%s%s%s %s %s -od%s -of%s %s", envData.dmd, envData.model,
+                    command = format("%s -conf= -m%s%s%s %s %s -od%s -of%s %s", envData.dmd, envData.model,
                         autoCompileImports ? " -i" : "",
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
@@ -769,7 +769,7 @@ int tryMain(string[] args)
 
                 if (testArgs.gdbScript is null)
                 {
-                    string command = test_app_dmd;
+                    command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
                     execute(fThisRun, command, true, result_path);
@@ -783,8 +783,8 @@ int tryMain(string[] args)
                         writeln("set disable-randomization off");
                         write(testArgs.gdbScript);
                     }
-                    string command = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, command, true, result_path);
+                    string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
+                    auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
                     if (testArgs.gdbMatch !is null)
                     {
                         enforce(match(gdb_output, regex(testArgs.gdbMatch)),
@@ -838,6 +838,17 @@ int tryMain(string[] args)
             writefln("Test %s failed.  The logged output:", input_file);
             writeln(output_file.readText);
             output_file.remove();
+
+            // automatically rerun a segfaulting test and print its stack trace
+            version(linux)
+            if (e.msg.canFind("exited with rc == 139"))
+            {
+                auto gdbCommand = "gdb -q -n -ex 'set backtrace limit 100' -ex run -ex bt -batch -args " ~ command;
+                import std.process : executeShell;
+                auto res = executeShell(gdbCommand);
+                res.output.writeln;
+            }
+
             return Result.return1;
         }
     }
