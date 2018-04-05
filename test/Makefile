@@ -11,6 +11,10 @@ ifeq (Win_32,$(OS))
     OS:=win32
     MODEL:=32
 endif
+ifeq (Win_32_64,$(OS))
+    OS:=win64
+    MODEL:=64
+endif
 ifeq (Win_64,$(OS))
     OS:=win64
     MODEL:=64
