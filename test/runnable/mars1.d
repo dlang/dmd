@@ -1780,6 +1780,27 @@ void test18461()
 
 ////////////////////////////////////////////////////////////////////////
 
+void test18730() // https://issues.dlang.org/show_bug.cgi?id=18730
+{
+    static if (size_t.sizeof == 8)
+    {
+        enum bitsPerSizeT = size_t.sizeof * 8;
+        enum bitIndex = int.max + 1L;
+        auto a = new size_t[](bitIndex / bitsPerSizeT + 1);
+        a[bitIndex / bitsPerSizeT] = 1;
+        assert(bt18730(a.ptr, bitIndex));
+        assert(!bt18730(a.ptr, bitIndex + 1));
+        assert(!bt18730(a.ptr, bitIndex - 1));
+    }
+}
+
+int bt18730(in size_t* p, size_t bitnum) pure @system
+{
+    return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1844,6 +1865,7 @@ int main()
     test16997();
     test18315();
     test18461();
+    test18730();
 
     printf("Success\n");
     return 0;

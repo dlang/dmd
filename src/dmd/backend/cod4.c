@@ -3604,6 +3604,8 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
         code_newreg(&cs,reg);
         cs.Iflags |= CFpsw | word;
+        if (I64)
+            cs.Irex |= REX_W;
         cdb.gen(&cs);
     }
 
