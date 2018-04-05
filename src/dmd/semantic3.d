@@ -955,7 +955,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         VarDeclaration v = (*funcdecl.parameters)[i];
                         if (v.storage_class & STC.out_)
                         {
-                            assert(v._init);
+                            if (!v._init)
+                            {
+                                v.error("Zero-length `out` parameters are not allowed.");
+                                return;
+                            }
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
                             if (ie.exp.op == TOK.construct)
