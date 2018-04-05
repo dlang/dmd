@@ -1,13 +1,12 @@
-MAKE=make
 
 auto-tester-build:
 	cd src
-	$(MAKE) -f win32.mak auto-tester-build
+	make -f win32.mak auto-tester-build
 	cd ..
 
 auto-tester-test:
 	cd test
-	$(MAKE)
+	gmake -j$(PARALLELISM)
 	cd ..
 	cd samples
 	gmake -f win32.mak DMD=..\src\dmd.exe MODEL=$(MODEL) "LIB=..\..\phobos;$(LIB)" \
