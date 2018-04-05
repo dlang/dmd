@@ -3,7 +3,7 @@ REQUIRED_ARGS: -m64
 PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/test16381.d(16): Error: `foo()` is not an lvalue
+fail_compilation/test16381.d(16): Error: `foo()` is not an lvalue and cannot be modified
 ---
 */
 
