@@ -20,6 +20,7 @@ import dmd.arraytypes;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
@@ -122,6 +123,7 @@ shared static this()
         "isOut",
         "isLazy",
         "isReturnOnStack",
+        "isRootModule",
         "hasMember",
         "identifier",
         "getProtection",
@@ -1075,6 +1077,23 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         bool value = Target.isReturnOnStack(tf);
         return new IntegerExp(e.loc, value, Type.tbool);
+    }
+    if (e.ident == Id.isRootModule)
+    {
+        Module mod;
+        if (dim == 0)
+        {
+            mod = sc.instantiatingModule();
+        }
+        else if (dim == 1)
+        {
+            e.error("__traits(isRootModule, <module>) not implemented");
+            return new ErrorExp();
+        }
+        else
+            return dimError(1);
+
+        return new IntegerExp(e.loc, mod.isRoot(), Type.tbool);
     }
     if (e.ident == Id.getFunctionVariadicStyle)
     {
