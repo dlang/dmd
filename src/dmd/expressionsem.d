@@ -3280,7 +3280,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             if (!sc.intypeof /*&& !(sc.ctorflow.callSuper & CSX.halt)*/)
             {
-                if (sc.noctor || sc.ctorflow.callSuper & CSX.label)
+                if (sc.inLoop || sc.ctorflow.callSuper & CSX.label)
                     exp.error("constructor calls not allowed in loops or after labels");
                 if (sc.ctorflow.callSuper & (CSX.super_ctor | CSX.this_ctor))
                     exp.error("multiple constructor calls");

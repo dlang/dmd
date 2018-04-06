@@ -124,7 +124,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
                     }
                 }
-                else if (sc.noctor || (fi & CSX.label))
+                else if (sc.inLoop || (fi & CSX.label))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
