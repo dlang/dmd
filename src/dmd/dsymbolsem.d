@@ -2277,7 +2277,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 return errorReturn();
 
             Expression eprev = emprev.value;
-            Type tprev = eprev.type.equals(em.ed.type) ? em.ed.memtype : eprev.type;
+            // .toHeadMutable() due to https://issues.dlang.org/show_bug.cgi?id=18645
+            Type tprev = eprev.type.toHeadMutable().equals(em.ed.type.toHeadMutable())
+                ? em.ed.memtype
+                : eprev.type;
 
             Expression emax = tprev.getProperty(em.ed.loc, Id.max, 0);
             emax = emax.expressionSemantic(sc);
