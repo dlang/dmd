@@ -80,9 +80,9 @@ struct Scope
     Statement scontinue;            /// enclosing statement that supports "continue"
     ForeachStatement fes;           /// if nested function for ForeachStatement, this is it
     Scope* callsc;                  /// used for __FUNCTION__, __PRETTY_FUNCTION__ and __MODULE__
-    int inunion;                    /// we're processing members of a union
-    int nofree;                     /// set if shouldn't free it
-    int noctor;                     /// set if constructor calls aren't allowed
+    bool inunion;                   /// true if processing members of a union
+    bool nofree;                    /// true if shouldn't free it
+    bool inLoop;                    /// true if inside a loop (where constructor calls aren't allowed)
     int intypeof;                   /// in typeof(exp)
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
 
@@ -190,7 +190,7 @@ struct Scope
             assert(s != enclosing);
         }
         s.slabel = null;
-        s.nofree = 0;
+        s.nofree = false;
         s.ctorflow.fieldinit = ctorflow.saveFieldInit();
         s.flags = (flags & SCOPEpush);
         s.lastdc = null;
@@ -685,7 +685,7 @@ struct Scope
         for (Scope* sc = &this; sc; sc = sc.enclosing)
         {
             //printf("\tsc = %p\n", sc);
-            sc.nofree = 1;
+            sc.nofree = true;
             assert(!(flags & SCOPE.free));
             //assert(sc != sc.enclosing);
             //assert(!sc.enclosing || sc != sc.enclosing.enclosing);
@@ -721,7 +721,7 @@ struct Scope
         this.depdecl = sc.depdecl;
         this.inunion = sc.inunion;
         this.nofree = sc.nofree;
-        this.noctor = sc.noctor;
+        this.inLoop = sc.inLoop;
         this.intypeof = sc.intypeof;
         this.lastVar = sc.lastVar;
         this.ctorflow = sc.ctorflow;

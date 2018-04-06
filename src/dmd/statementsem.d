@@ -469,10 +469,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
     {
         /* https://dlang.org/spec/statement.html#do-statement
          */
-        sc.noctor++;
+        const inLoopSave = sc.inLoop;
+        sc.inLoop = true;
         if (ds._body)
             ds._body = ds._body.semanticScope(sc, ds, ds);
-        sc.noctor--;
+        sc.inLoop = inLoopSave;
 
         if (ds.condition.op == TOK.dotIdentifier)
             (cast(DotIdExp)ds.condition).noderef = true;
@@ -543,8 +544,8 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sym.parent = sc.scopesym;
         sym.endlinnum = fs.endloc.linnum;
         sc = sc.push(sym);
+        sc.inLoop = true;
 
-        sc.noctor++;
         if (fs.condition)
         {
             if (fs.condition.op == TOK.dotIdentifier)
@@ -577,7 +578,6 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sc.scontinue = fs;
         if (fs._body)
             fs._body = fs._body.semanticNoScope(sc);
-        sc.noctor--;
 
         sc.pop();
 
@@ -1140,8 +1140,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
         sym.parent = sc.scopesym;
         sym.endlinnum = fs.endloc.linnum;
         auto sc2 = sc.push(sym);
-
-        sc2.noctor++;
+        sc2.inLoop = true;
 
         foreach (Parameter p; *fs.parameters)
         {
@@ -1855,7 +1854,6 @@ else
             fs.error("`foreach`: `%s` is not an aggregate type", fs.aggr.type.toChars());
             goto case Terror;
         }
-        sc2.noctor--;
         sc2.pop();
         result = s;
     }
@@ -2457,9 +2455,10 @@ else
         sc.sw = ss;
 
         ss.cases = new CaseStatements();
-        sc.noctor++; // BUG: should use Scope::mergeCallSuper() for each case instead
+        const inLoopSave = sc.inLoop;
+        sc.inLoop = true;        // BUG: should use Scope::mergeCallSuper() for each case instead
         ss._body = ss._body.statementSemantic(sc);
-        sc.noctor--;
+        sc.inLoop = inLoopSave;
 
         if (conditionError || ss._body.isErrorStatement())
         {
