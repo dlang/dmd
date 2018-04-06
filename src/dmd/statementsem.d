@@ -2772,6 +2772,7 @@ else
             errors = true;
         }
 
+        sc.ctorflow.orCSX(CSX.label);
         cs.statement = cs.statement.statementSemantic(sc);
         if (cs.statement.isErrorStatement())
         {
@@ -2863,6 +2864,7 @@ else
             statements.push(cs);
         }
         Statement s = new CompoundStatement(crs.loc, statements);
+        sc.ctorflow.orCSX(CSX.label);
         s = s.statementSemantic(sc);
         result = s;
     }
@@ -2897,6 +2899,7 @@ else
             errors = true;
         }
 
+        sc.ctorflow.orCSX(CSX.label);
         ds.statement = ds.statement.statementSemantic(sc);
         if (errors || ds.statement.isErrorStatement())
             return setError();
