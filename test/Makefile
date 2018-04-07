@@ -129,23 +129,8 @@ all: run_tests
 
 test_tools=$(RESULTS_DIR)/d_do_test$(EXE) $(RESULTS_DIR)/sanitize_json$(EXE)
 
-$(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
-
-$(RESULTS_DIR)/runnable/%.sh.out: runnable/%.sh $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) ./tools/sh_do_test.sh $(<D) $*
-
-$(RESULTS_DIR)/compilable/%.d.out: compilable/%.d $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
-
-$(RESULTS_DIR)/compilable/%.sh.out: compilable/%.sh $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) ./tools/sh_do_test.sh $(<D) $*
-
-$(RESULTS_DIR)/fail_compilation/%.d.out: fail_compilation/%.d $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* d
-
-$(RESULTS_DIR)/fail_compilation/%.html.out: fail_compilation/%.html $(RESULTS_DIR)/.created $(test_tools) $(DMD)
-	$(QUIET) $(RESULTS_DIR)/d_do_test $(<D) $* html
+$(RESULTS_DIR)/%.out: % $(RESULTS_DIR)/.created $(test_tools) $(DMD)
+	$(QUIET) $(RESULTS_DIR)/d_do_test $<
 
 quick:
 	$(MAKE) ARGS="" run_tests

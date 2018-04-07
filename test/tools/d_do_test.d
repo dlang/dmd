@@ -11,6 +11,7 @@ import std.process;
 import std.random;
 import std.range : chain;
 import std.regex;
+import std.path;
 import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
@@ -22,16 +23,12 @@ version(Win32)
 
 void usage()
 {
-    write("d_do_test <input_dir> <test_name> <test_extension>\n"
+    write("d_do_test <test_file>\n"
           ~ "\n"
           ~ "   Note: this program is normally called through the Makefile, it"
           ~ "         is not meant to be called directly by the user.\n"
           ~ "\n"
-          ~ "   input_dir: one of: compilable, fail_compilation, runnable\n"
-          ~ "   test_name: basename of test case to run\n"
-          ~ "   test_extension: one of: d, html, or sh\n"
-          ~ "\n"
-          ~ "   example: d_do_test runnable pi d\n"
+          ~ "   example: d_do_test runnable/pi.d\n"
           ~ "\n"
           ~ "   relevant environment variables:\n"
           ~ "      ARGS:          set to execute all combinations of\n"
@@ -532,19 +529,35 @@ int main(string[] args)
 
 int tryMain(string[] args)
 {
-    if (args.length != 4)
+    if (args.length != 2)
     {
         usage();
         return 1;
     }
 
-    string input_dir      = args[1];
-    string test_name      = args[2];
-    string test_extension = args[3];
+    auto test_file = args[1];
+    string input_dir = test_file.dirName();
+
+    TestArgs testArgs;
+    switch (input_dir)
+    {
+        case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
+        case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
+        case "runnable":                testArgs.mode = TestMode.RUN;          break;
+        default:
+            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', or 'runnable'", input_dir);
+            return 1;
+    }
+
+    string test_base_name = test_file.baseName();
+    string test_name = test_base_name.stripExtension();
+
+    if (test_base_name.extension() == ".sh")
+        return runBashTest(input_dir, test_name);
 
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
-    envData.results_dir   = environment.get("RESULTS_DIR");
+    envData.results_dir   = envGetRequired("RESULTS_DIR");
     envData.sep           = envGetRequired ("SEP");
     envData.dsep          = environment.get("DSEP");
     envData.obj           = envGetRequired ("OBJ");
@@ -560,22 +573,10 @@ int tryMain(string[] args)
     envData.autoUpdate = environment.get("AUTO_UPDATE", "") == "1";
 
     string result_path    = envData.results_dir ~ envData.sep;
-    string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
+    string input_file     = input_dir ~ envData.sep ~ test_base_name;
     string output_dir     = result_path ~ input_dir;
-    string output_file    = result_path ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
+    string output_file    = result_path ~ input_file ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
-
-    TestArgs testArgs;
-
-    switch (input_dir)
-    {
-        case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
-        case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
-        case "runnable":                testArgs.mode = TestMode.RUN;          break;
-        default:
-            writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
-            return 1;
-    }
 
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
@@ -822,17 +823,17 @@ int tryMain(string[] args)
                 // remove the output file in test_results as its outdated
                 f.close();
                 output_file.remove();
-                writefln("==> `TEST_OUTPUT` of %s/%s.%s has been updated", input_dir, test_name, test_extension);
+                writefln("==> `TEST_OUTPUT` of %s has been updated", input_file);
                 return Result.return0;
             }
 
             f.writeln();
             f.writeln("==============================");
-            f.writef("Test %s/%s.%s failed: ", input_dir, test_name, test_extension);
+            f.writef("Test %s failed: ", input_file);
             f.writeln(e.msg);
             f.close();
 
-            writefln("Test %s/%s.%s failed.  The logged output:", input_dir, test_name, test_extension);
+            writefln("Test %s failed.  The logged output:", input_file);
             writeln(output_file.readText);
             output_file.remove();
             return Result.return1;
@@ -863,4 +864,18 @@ int tryMain(string[] args)
         writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
+}
+
+int runBashTest(string input_dir, string test_name)
+{
+    version(Windows)
+    {
+        auto process = spawnShell(format("bash %s %s %s",
+            buildPath("tools", "sh_do_test.sh"), input_dir, test_name));
+    }
+    else
+    {
+        auto process = spawnProcess(["./tools/sh_do_test.sh", input_dir, test_name]);
+    }
+    return process.wait();
 }
