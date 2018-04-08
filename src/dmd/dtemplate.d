@@ -6354,47 +6354,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return false;
         }
 
-        /* The issue is that if the importee is compiled with a different -debug
-         * setting than the importer, the importer may believe it exists
-         * in the compiled importee when it does not, when the instantiation
-         * is behind a conditional debug declaration.
-         */
-        // workaround for https://issues.dlang.org/show_bug.cgi?id=11239
-        if (global.params.useUnitTests ||
-            global.params.debuglevel)
-        {
-            // Prefer instantiations from root modules, to maximize link-ability.
-            if (minst.isRoot())
-                return true;
-
-            TemplateInstance tnext = this.tnext;
-            TemplateInstance tinst = this.tinst;
-            this.tnext = null;
-            this.tinst = null;
-
-            if (tinst && tinst.needsCodegen())
-            {
-                minst = tinst.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-            if (tnext && tnext.needsCodegen())
-            {
-                minst = tnext.minst; // cache result
-                assert(minst);
-                assert(minst.isRoot() || minst.rootImports());
-                return true;
-            }
-
-            // https://issues.dlang.org/show_bug.cgi?id=2500 case
-            if (minst.rootImports())
-                return true;
-
-            // Elide codegen because this is not included in root instances.
-            return false;
-        }
-        else
         {
             // Prefer instantiations from non-root module, to minimize object code size.
 
@@ -7353,13 +7312,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     final Dsymbols* appendToModuleMember()
     {
         Module mi = minst; // instantiated . inserted module
-
-        if (global.params.useUnitTests || global.params.debuglevel)
-        {
-            // Turn all non-root instances to speculative
-            if (mi && !mi.isRoot())
-                mi = null;
-        }
 
         //printf("%s.appendToModuleMember() enclosing = %s mi = %s\n",
         //    toPrettyChars(),
