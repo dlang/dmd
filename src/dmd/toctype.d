@@ -19,6 +19,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.declaration;
+import dmd.denum;
 import dmd.dstruct;
 import dmd.globals;
 import dmd.glue;
@@ -170,18 +171,26 @@ public:
         //printf("TypeEnum::toCtype() '%s'\n", t.sym.toChars());
         if (t.mod == 0)
         {
-            if (!t.sym.memtype)
+            EnumDeclaration sym = t.sym;
+            auto symMemtype = sym.memtype;
+            if (!symMemtype)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=13792
                 t.ctype = Type_toCtype(Type.tvoid);
             }
-            else if (t.sym.memtype.toBasetype().ty == Tint32)
+            else if (sym.ident == Id.__c_long)
             {
-                t.ctype = type_enum(t.sym.toPrettyChars(true), Type_toCtype(t.sym.memtype));
+                t.ctype = type_fake(totym(t));
+                t.ctype.Tcount++;
+                return;
+            }
+            else if (symMemtype.toBasetype().ty == Tint32)
+            {
+                t.ctype = type_enum(sym.toPrettyChars(true), Type_toCtype(symMemtype));
             }
             else
             {
-                t.ctype = Type_toCtype(t.sym.memtype);
+                t.ctype = Type_toCtype(symMemtype);
             }
 
             if (global.params.symdebugref)

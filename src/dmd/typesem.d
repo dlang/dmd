@@ -3380,7 +3380,13 @@ private extern(C++) final class DotExpVisitor : Visitor
             mt.sym.dsymbolSemantic(null);
         if (!mt.sym.members)
         {
-            if (!(flag & 1))
+            if (mt.sym.isSpecial())
+            {
+                /* Special enums forward to the base type
+                 */
+                e = mt.sym.memtype.dotExp(sc, e, ident, flag);
+            }
+            else if (!(flag & 1))
             {
                 mt.sym.error("is forward referenced when looking for `%s`", ident.toChars());
                 e = new ErrorExp();
