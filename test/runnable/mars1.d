@@ -1782,55 +1782,58 @@ void test18461()
 
 void test18730() // https://issues.dlang.org/show_bug.cgi?id=18730
 {
-    // Check that bt_64_64 uses a 64-bit register for the offset.
+    static if (size_t.sizeof == 8)
     {
-        enum bitIndex = int.max + 1L;
-        auto a = new size_t[](bitIndex / 64 + 1);
-        a[bitIndex / 64] = 1;
-        assert(bt18730_64_64(a.ptr, bitIndex));
-        assert(!bt18730_64_64(a.ptr, bitIndex + 1));
-        assert(!bt18730_64_64(a.ptr, bitIndex - 1));
-    }
-    // Check that bt_64_32 uses a 32-bit register for the offset.
-    {
-        static int f(ulong* p, ulong bitnum)
+        static int bt18730_64_64(in ulong* p, ulong bitnum) pure @system
         {
-            return bt18730_64_32(p, cast(uint) bitnum);
+            return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
         }
-        enum bitIndex = uint.max + 1L;
-        assert(cast(uint) bitIndex == 0);
-        size_t s = 1;
-        assert(f(&s, bitIndex));
-    }
-    /* Check that bt_32_64 does not become a 64-bit bt instruction. Would lead
-    to a segfault when trying to load 8 bytes while only 4 are accessible. */
-    version (Posix)
-    {{
-        import core.sys.posix.sys.mman;
-        import core.sys.posix.unistd;
-        // Allocate two pages.
-        immutable sz = 2 * sysconf(_SC_PAGESIZE);
-        auto m = mmap(null, sz, PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
-        // Discard the higher page. It becomes unreadable.
-        munmap(m + sz / 2, sz / 2);
-        // Try looking at the last 4 bytes of the readable page.
-        uint* p = cast(uint*) (m + sz / 2 - uint.sizeof);
-        bt18730_32_64(p, 0);
-        munmap(m, sz / 2); // Free the readable page.
-    }}
-}
+        static int bt18730_64_32(in ulong* p, uint bitnum) pure @system
+        {
+            return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+        }
+        static int bt18730_32_64(in uint* p, ulong bitnum) pure @system
+        {
+            return ((p[bitnum >> 5] & (1 << (bitnum & 31)))) != 0;
+        }
 
-int bt18730_64_64(in ulong* p, ulong bitnum) pure @system
-{
-    return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
-}
-int bt18730_64_32(in ulong* p, uint bitnum) pure @system
-{
-    return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
-}
-int bt18730_32_64(in uint* p, ulong bitnum) pure @system
-{
-    return ((p[bitnum >> 5] & (1 << (bitnum & 31)))) != 0;
+        // Check that bt_64_64 uses a 64-bit register for the offset.
+        {
+            enum bitIndex = int.max + 1L;
+            auto a = new ulong[](bitIndex / 64 + 1);
+            a[bitIndex / 64] = 1;
+            assert(bt18730_64_64(a.ptr, bitIndex));
+            assert(!bt18730_64_64(a.ptr, bitIndex + 1));
+            assert(!bt18730_64_64(a.ptr, bitIndex - 1));
+        }
+        // Check that bt_64_32 uses a 32-bit register for the offset.
+        {
+            static int f(ulong* p, ulong bitnum)
+            {
+                return bt18730_64_32(p, cast(uint) bitnum);
+            }
+            enum bitIndex = uint.max + 1L;
+            assert(cast(uint) bitIndex == 0);
+            ulong s = 1;
+            assert(f(&s, bitIndex));
+        }
+        /* Check that bt_32_64 does not become a 64-bit bt instruction. Would lead
+        to a segfault when trying to load 8 bytes while only 4 are accessible. */
+        version (Posix)
+        {{
+            import core.sys.posix.sys.mman;
+            import core.sys.posix.unistd;
+            // Allocate two pages.
+            immutable sz = 2 * sysconf(_SC_PAGESIZE);
+            auto m = mmap(null, sz, PROT_READ, MAP_PRIVATE | MAP_ANON, -1, 0);
+            // Discard the higher page. It becomes unreadable.
+            munmap(m + sz / 2, sz / 2);
+            // Try looking at the last 4 bytes of the readable page.
+            uint* p = cast(uint*) (m + sz / 2 - uint.sizeof);
+            bt18730_32_64(p, 0);
+            munmap(m, sz / 2); // Free the readable page.
+        }}
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
