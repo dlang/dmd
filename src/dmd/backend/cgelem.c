@@ -1392,6 +1392,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             (((e12 = e1->E2)->Eoper == OP64_32 ? (e12 = e12->E1) : e12)->Eoper == OPand) &&
             ELCONST(e12->E2,sz * 8 - 1) &&
+            tysize(e12->Ety) <= sz &&
 
             e2->Eoper == OPind &&
             e2->E1->Eoper == OPadd &&

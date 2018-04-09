@@ -3566,6 +3566,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
     }
 
     tym_t ty1 = tybasic(e1->Ety);
+    tym_t ty2 = tybasic(e2->Ety);
     unsigned char word = (!I16 && _tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
     regm_t idxregs = idxregm(&cs);         // mask if index regs used
 
@@ -3604,7 +3605,7 @@ void cdbt(CodeBuilder& cdb,elem *e, regm_t *pretregs)
         cs.Iop = 0x0F00 | op;                     // BT rm,reg
         code_newreg(&cs,reg);
         cs.Iflags |= CFpsw | word;
-        if (I64)
+        if (_tysize[ty2] == 8 && I64)
             cs.Irex |= REX_W;
         cdb.gen(&cs);
     }
