@@ -821,13 +821,20 @@ int tryMain(string[] args)
             if (envData.autoUpdate)
             if (auto ce = cast(CompareException) e)
             {
+                // remove the output file in test_results as its outdated
+                output_file.remove();
+
                 auto existingText = input_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
-                std.file.write(input_file, updatedText);
-                // remove the output file in test_results as its outdated
-                f.close();
-                output_file.remove();
-                writefln("==> `TEST_OUTPUT` of %s has been updated", input_file);
+                if (existingText != updatedText)
+                {
+                    std.file.write(input_file, updatedText);
+                    writefln("==> `TEST_OUTPUT` of %s has been updated", input_file);
+                }
+                else
+                {
+                    writefln("WARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                }
                 return Result.return0;
             }
 
