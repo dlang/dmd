@@ -125,12 +125,14 @@ union U;
         on those types are ones that do not require any knowledge of the contents
         of those types. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct S;
 S.sizeof; // error, size is not known
 S s;      // error, cannot initialize unknown contents
 S* p;     // ok, knowledge of members is not necessary
 ---
+)
 
         $(BEST_PRACTICE They can be used to implement the
         $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
@@ -143,10 +145,12 @@ $(H2 $(LNAME2 default_struct_init, Default Initialization of Structs))
         the default initializer for the field's type.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S { int a = 4; int b; }
         S x; // x.a is set to 4, x.b to 0
         ---
+        )
 
         $(P The default initializers are evaluated at compile time.)
 
@@ -162,6 +166,7 @@ $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
         $(P Fields not specified in the $(I StructInitializer) are default initialized.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S { int a, b, c, d = 7; }
         S r;                          // r.a = 0, r.b = 0, r.c = 0, r.d = 7
@@ -171,12 +176,15 @@ $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
         S v = { 1, d:3 };             // v.a = 1, v.b = 0, v.c = 0, v.d = 3
         S w = { b:1, 3 };             // v.a = 0, v.b = 1, v.c = 3, v.d = 7
         ---
+        )
 
         $(P Initializing a field more than once is an error:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         S x = { 1, a:2 };  // error: duplicate initializer for field `a`
         ---
+        )
 
 $(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
 
@@ -188,15 +196,21 @@ $(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
         $(P If the union is larger than the first field, the remaining bits
         are set to 0.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         union U { int a = 4; long b; }
         U x; // x.a is set to 4, x.b to an implementation-defined value
 
         union V { int a; long b = 4; }
-        U y; // y.a is set to 0, y.b to an implementation-defined value
+        V y; // y.a is set to 0, y.b to an implementation-defined value
+        ---
+        )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
         union W { int a = 4; long b = 5; } // error: overlapping default initialization for `a` and `b`
         ---
+        )
 
         $(P The default initializer is evaluated at compile time.)
 
@@ -208,12 +222,19 @@ $(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
         $(P Unions are initialized similarly to structs, except that only
         one initializer is allowed.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         union U { int a; double b; }
         U u = { 2 };       // u.a = 2
         U v = { b : 5.0 }; // v.b = 5.0
+        ---
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
         U w = { 2, 3 };    // error: overlapping initialization for field `a` and `b`
         ---
+        )
 
         $(P If the union is larger than the initialized field, the remaining bits
         are set to 0.)
@@ -227,6 +248,7 @@ $(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
         can also be used to initialize non-static variables.
         The initializer need not be evaluable at compile time.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct S { int a, b, c, d = 7; }
 
@@ -235,34 +257,38 @@ void test(int i)
     S q = { 1, b:i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
 }
 ----
+)
 
         $(P Structs can be dynamically initialized from another
         value of the same type:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct S { int a; }
 S t;      // default initialized
 t.a = 3;
 S s = t;  // s.a is set to 3
 ----
+)
 
         $(P If $(D opCall) is overridden for the struct, and the struct
         is initialized with a value that is of a different type,
         then the $(D opCall) operator is called:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct S
 {
     int a;
 
-    static S $(CODE_HIGHLIGHT opCall)(int v)
+    static S opCall(int v)
     {
         S s;
         s.a = v;
         return s;
     }
 
-    static S $(CODE_HIGHLIGHT opCall)(S v)
+    static S opCall(S v)
     {
         assert(0);
     }
@@ -271,12 +297,14 @@ struct S
 S s = 3; // sets s.a to 3 using S.opCall(int)
 S t = s; // sets t.a to 3, S.opCall(S) is not called
 ----
+)
 
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P Struct literals consist of the name of the struct followed
         by a parenthesized argument list:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S { int x; float y; }
 
@@ -284,6 +312,7 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         foo( S(1, 2) ); // set field x to 1, field y to 2
         ---
+        )
 
         $(P Struct literals are syntactically like function calls.
         If a struct has a member function named $(CODE opCall), then
@@ -333,6 +362,7 @@ $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Stru
         $(CODE const), $(CODE immutable) or $(CODE shared).
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ----
         const struct S { int a; int b = 2; }
 
@@ -344,6 +374,7 @@ $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Stru
             t.a = 4;    // error, t.a is const
         }
         ----
+        )
 
 $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors))
 
@@ -354,6 +385,7 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
         are default initialized to their $(CODE .init) value.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ------
         struct S
         {
@@ -376,6 +408,7 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
             auto b = S();  // same as auto b = S.init;
         }
         ------
+        )
 
 $(COMMENT
 $(P Inside a constructor, the first occurrence (in lexical order) of assignments
@@ -383,6 +416,7 @@ of the form $(CODE member = expression;) are handled differently than usual
 assignments. The first such assignment in lexical order is converted to a
 constructor call for the member's type. Example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 import std.stdio;
 
@@ -403,12 +437,13 @@ struct B
     }
 }
 
-void main(string[] args)
+void main()
 {
     auto b = B(10);
     // b.a = 10; does not compile here, A does not define opAssign(int).
 }
 ------
+)
 
 $(P The program above prints the line $(CODE "[= A.this(10) =]"). Anywhere else
 attempting to assign an integer to an object of type `A` would count as an
@@ -418,7 +453,12 @@ $(P Finding the first assignment in lexical order is flow-sensitive upon the
 `if` statement. Consider a change to struct `B` in the previous example as
 follows:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
+struct A
+{
+    this(int x) {}
+}
 struct B
 {
     A a;
@@ -431,11 +471,13 @@ struct B
     }
 }
 ------
+)
 
 $(P This code issues a constructor call on each branch of the `if` statement.
 However, such flow sensitivity is limited. There is no static or dynamic
 analysis of coverage of the `if` statement. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ------
 struct B
 {
@@ -447,11 +489,13 @@ struct B
     }
 }
 ------
+)
 
 $(P Also, member assignments inside loops are never considered constructors,
 even if it can be determined statically that the loop executes at most once.
 Example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ------
 struct B
 {
@@ -462,6 +506,7 @@ struct B
     }
 }
 ------
+)
 
 $(P If an exception is thrown at any point from within a constructor,
 destructors are called for all members, in reverse lexical order of their
@@ -473,6 +518,7 @@ constructor will have their `.init` values upon destruction.)
         that specific qualifier.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         struct S1
         {
@@ -511,6 +557,7 @@ constructor will have their `.init` values upon destruction.)
             immutable i2 = immutable S2(1);
         }
         ------
+        )
 
 $(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Construction))
 
@@ -528,6 +575,7 @@ $(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Constructio
         $(P If any fields have disabled default construction, the struct default construction is
         also disabled.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         struct S
         {
@@ -555,6 +603,7 @@ $(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Constructio
             T t;          // error: default construction is disabled
         }
         ---
+        )
 
         $(BEST_PRACTICE Disabling default construction is useful when the default value,
         such as `null`, is not acceptable.)
@@ -586,6 +635,7 @@ $(GNAME Postblit):
         etc. For example:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S
         {
@@ -596,10 +646,12 @@ $(GNAME Postblit):
             }
         }
         ---
+        )
 
         $(P Disabling struct postblit makes the object not copyable.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         struct T
         {
@@ -616,6 +668,7 @@ $(GNAME Postblit):
             S t = s; // error, S is not copyable
         }
         ---
+        )
 
         $(P Depending on the struct layout, the compiler may generate the following
         internal postblit functions:)
@@ -730,6 +783,7 @@ void main()
         `__postblit` name to both and later issues a conflicting function
         name error:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct X
 {
@@ -737,6 +791,7 @@ struct X
     this(this) const {} // error: function X.__postblit conflicts with function X.__postblit
 }
 ---
+)
 
         $(P The following describes the behavior of the
         qualified postblit definitions:)
@@ -778,6 +833,7 @@ void main()
         the code is ill-formed. The `immutable` postblit passes the
         compilation phase but cannot be invoked. Example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct Y
 {
@@ -802,12 +858,14 @@ void main()
     auto s6 = s5;    // error: immutable method `__postblit` is not callable using a mutable object
 }
 ---
+)
 
         $(LI `shared`. When a postblit is qualified with `shared` as in
         $(D this(this) shared) or $(D shared this(this)) solely `shared`
         objects may invoke the postblit; attempts of postbliting unshared
         objects will result in compile time errors:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct S
 {
@@ -829,6 +887,7 @@ void main()
     auto s8 = s7;
 }
 ---
+)
         )
 
         $(P An unqualified postblit will get called even if the
@@ -1006,6 +1065,7 @@ $(GNAME StructInvariant):
     $(P The invariant need not hold if the struct instance is implicitly constructed using
     the default $(D .init) value.)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Date
     {
@@ -1026,9 +1086,11 @@ $(GNAME StructInvariant):
         int hour;
     }
     ---
+    )
 
     $(P Public or exported non-static member functions cannot be called from within an invariant.)
 
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
     ---
     struct Foo
     {
@@ -1042,6 +1104,7 @@ $(GNAME StructInvariant):
         }
     }
     ---
+    )
 
     $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
 
@@ -1124,6 +1187,7 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
         is if the struct has a reference to a local buffer:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
@@ -1142,6 +1206,7 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
             }
         }
         ---
+        )
 
         $(P Here, $(CODE S) has a temporary workspace $(CODE buf[]).
         The normal postblit
@@ -1158,6 +1223,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
         It has access to the context of its enclosing scope
         (via an added hidden field).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         void foo()
         {
@@ -1172,12 +1238,14 @@ $(H2 $(LNAME2 nested, Nested Structs))
             s.bar(); // returns 11
         }
         ---
+        )
 
     $(P A struct can be prevented from being nested by
         using the static attribute, but then of course it
         will not be able to access variables from its enclosing
         scope.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         void foo()
         {
@@ -1192,6 +1260,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
             }
         }
         ---
+        )
 
 $(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions))
 
