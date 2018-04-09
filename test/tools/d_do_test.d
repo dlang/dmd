@@ -587,7 +587,7 @@ int tryMain(string[] args)
         switch (envData.os)
         {
             case "win32": envData.ccompiler = "dmc"; break;
-            case "win64": envData.ccompiler = `\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`; break;
+            case "win64": envData.ccompiler = environment.get("VCBIN_DIR") ~ `\cl.exe`; break;
             default:      envData.ccompiler = "c++"; break;
         }
     }
