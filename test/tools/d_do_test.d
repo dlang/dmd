@@ -96,6 +96,7 @@ struct EnvData
     bool dobjc;
     bool coverage_build;
     bool autoUpdate;
+    bool usingMicrosoftCompiler;
 }
 
 bool findTestParameter(const ref EnvData envData, string file, string token, ref string result, string multiLineDelimiter = " ")
@@ -431,7 +432,7 @@ unittest
         == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
 }
 
-bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, bool msc, in EnvData envData, in string compiler)
+bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources, ref string[] sources, in EnvData envData, in string compiler)
 {
     foreach (cur; extraSources)
     {
@@ -440,7 +441,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         string command = compiler;
         if (envData.compiler == "dmd")
         {
-            if (msc)
+            if (envData.usingMicrosoftCompiler)
             {
                 command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
             }
@@ -591,7 +592,8 @@ int tryMain(string[] args)
             default:      envData.ccompiler = "c++"; break;
         }
     }
-    bool msc = envData.ccompiler.toLower.endsWith("cl.exe");
+
+    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
 
     if (!gatherTestParameters(testArgs, input_dir, input_file, envData))
         return 0;
@@ -633,11 +635,11 @@ int tryMain(string[] args)
                 writeln("unknown compiler: "~envData.compiler);
                 return 1;
         }
-        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, msc, envData, envData.ccompiler))
+        if (!collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler))
             return 1;
     }
     //prepare objc extra sources
-    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, msc, envData, "clang"))
+    if (!collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang"))
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
@@ -697,7 +699,7 @@ int tryMain(string[] args)
 
             // https://issues.dlang.org/show_bug.cgi?id=10664: exceptions don't work reliably with COMDAT folding
             // it also slows down some tests drastically, e.g. runnable/test17338.d
-            if (msc)
+            if (envData.usingMicrosoftCompiler)
                 reqArgs ~= " -L/OPT:NOICF";
 
             string compile_output;
@@ -761,7 +763,7 @@ int tryMain(string[] args)
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
-                    if (msc)
+                    if (envData.usingMicrosoftCompiler)
                     {
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
