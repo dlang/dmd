@@ -1909,15 +1909,28 @@ public:
         hgs.tpltMember = 0;
         hgs.autoMember = 0;
         buf.writenl();
+        bool requireDo = false;
         // in{}
         if (f.frequires)
         {
             foreach (frequire; *f.frequires)
             {
                 buf.writestring("in");
-                buf.writenl();
                 if (!frequire.isScopeStatement())
                 {
+                    if (auto es = frequire.isExpStatement())
+                    {
+                        if (es.exp.op == TOK.assert_)
+                        {
+                            buf.writestring(" (");
+                            (cast(AssertExp)es.exp).e1.accept(this);
+                            buf.writeByte(')');
+                            buf.writenl();
+                            requireDo = false;
+                            continue;
+                        }
+                    }
+                    buf.writenl();
                     buf.writeByte('{');
                     buf.writenl();
                     buf.level++;
@@ -1925,10 +1938,13 @@ public:
                     buf.level--;
                     buf.writeByte('}');
                     buf.writenl();
+                    requireDo = true;
                 }
                 else
                 {
+                    buf.writenl();
                     frequire.accept(this);
+                    requireDo = true;
                 }
             }
         }
@@ -1938,15 +1954,32 @@ public:
             foreach (fensure; *f.fensures)
             {
                 buf.writestring("out");
-                if (fensure.id)
-                {
-                    buf.writeByte('(');
-                    buf.writestring(fensure.id.toChars());
-                    buf.writeByte(')');
-                }
-                buf.writenl();
                 if (!fensure.ensure.isScopeStatement())
                 {
+                    if (auto es = fensure.ensure.isExpStatement())
+                    {
+                        if (es.exp.op == TOK.assert_)
+                        {
+                            buf.writestring(" (");
+                            if (fensure.id)
+                            {
+                                buf.writestring(fensure.id.toChars());
+                            }
+                            buf.writestring("; ");
+                            (cast(AssertExp)es.exp).e1.accept(this);
+                            buf.writeByte(')');
+                            buf.writenl();
+                            requireDo = false;
+                            continue;
+                        }
+                    }
+                    if (fensure.id)
+                    {
+                        buf.writeByte('(');
+                        buf.writestring(fensure.id.toChars());
+                        buf.writeByte(')');
+                    }
+                    buf.writenl();
                     buf.writeByte('{');
                     buf.writenl();
                     buf.level++;
@@ -1954,14 +1987,23 @@ public:
                     buf.level--;
                     buf.writeByte('}');
                     buf.writenl();
+                    requireDo = true;
                 }
                 else
                 {
+                    if (fensure.id)
+                    {
+                        buf.writeByte('(');
+                        buf.writestring(fensure.id.toChars());
+                        buf.writeByte(')');
+                    }
+                    buf.writenl();
                     fensure.ensure.accept(this);
+                    requireDo = true;
                 }
             }
         }
-        if (f.frequires || f.fensures)
+        if (requireDo)
         {
             buf.writestring("do");
             buf.writenl();
@@ -2078,6 +2120,20 @@ public:
         if (stcToBuffer(buf, d.storage_class))
             buf.writeByte(' ');
         buf.writestring("invariant");
+        if (!d.fbody.isScopeStatement())
+        {
+            if (auto es = d.fbody.isExpStatement())
+            {
+                if (es.exp.op == TOK.assert_)
+                {
+                    buf.writestring(" (");
+                    (cast(AssertExp)es.exp).e1.accept(this);
+                    buf.writestring(");");
+                    buf.writenl();
+                    return;
+                }
+            }
+        }
         bodyToBuffer(d);
     }
 
