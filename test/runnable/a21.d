@@ -1,5 +1,12 @@
-// EXTRA_SOURCES: imports/a21a.d
-// PERMUTE_ARGS:
+/*
+EXTRA_SOURCES: imports/a21a.d
+PERMUTE_ARGS:
+RUN_OUTPUT:
+---
+goodFunc
+badFunc
+---
+*/
 
 import std.stdio;
 import imports.a21a;
