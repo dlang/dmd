@@ -77,13 +77,44 @@ $(GNAME MemberFunctionAttribute):
 
 $(GRAMMAR
 $(GNAME FunctionBody):
-    $(GLINK2 statement, BlockStatement)
-    $(GLINK FunctionContracts)$(OPT) $(GLINK BodyStatement)
-    $(GLINK FunctionContracts)
+    $(GLINK SpecifiedFunctionBody)
+    $(GLINK MissingFunctionBody)
+
+$(GNAME FunctionLiteralBody):
+    $(GLINK SpecifiedFunctionBody)
+
+$(GNAME SpecifiedFunctionBody):
+    $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutExpression) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement) $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
+
+$(GNAME MissingFunctionBody):
+    $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutExpression) $(D ;)
+    $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
 
 $(GNAME FunctionContracts):
-    $(GLINK InStatement) $(GLINK OutStatement)$(OPT)
-    $(GLINK OutStatement) $(GLINK InStatement)$(OPT)
+    $(GLINK FunctionContract)
+    $(GLINK FunctionContract) $(I FunctionContracts)
+
+$(GNAME FunctionContract):
+    $(GLINK InOutExpression)
+    $(GLINK InOutStatement)
+
+$(GNAME InOutExpression):
+    $(GLINK InExpression)
+    $(GLINK OutExpression)
+
+$(GNAME InOutStatement):
+    $(GLINK InStatement)
+    $(GLINK OutStatement)
+
+$(GNAME InExpression):
+    $(D in $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+
+$(GNAME OutExpression):
+    $(D out $(LPAREN) ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
+    $(D out $(LPAREN)) $(I Identifier) $(D ;) $(GLINK2 expression, ContractArguments) $(D $(RPAREN))
 
 $(GNAME InStatement):
     $(D in) $(GLINK2 statement, BlockStatement)
@@ -91,14 +122,11 @@ $(GNAME InStatement):
 $(GNAME OutStatement):
     $(D out) $(GLINK2 statement, BlockStatement)
     $(D out) $(D $(LPAREN)) $(I Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
-
-$(GNAME BodyStatement):
-    $(D body) $(GLINK2 statement, BlockStatement)
 )
 
 $(H2 $(LNAME2 contracts, Contracts))
 
-    $(P The $(D in) and $(D out) blocks of a function declaration specify
+    $(P The $(D in) and $(D out) blocks or expressions of a function declaration specify
     the pre- and post-conditions of the function. They are used in
     $(LINK2 contracts.html, Contract Programming).
     The code inside these blocks should

@@ -870,6 +870,7 @@ $(GRAMMAR
 $(GNAME ClassInvariant):
     $(D invariant ( )) $(GLINK2 statement, BlockStatement)
     $(D invariant) $(GLINK2 statement, BlockStatement)
+    $(D invariant $(LPAREN)) $(GLINK2 expression, ContractArguments) $(D $(RPAREN) ;)
 )
 
     $(P $(I ClassInvariant) specify the relationships among the members of a class instance.

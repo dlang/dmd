@@ -33,9 +33,11 @@ $(H2 $(LNAME2 assert_contracts, Assert Contract))
 
         $(P The most basic contract is the
         $(GLINK2 expression, AssertExpression).
-        An $(B assert) declares an expression that must evaluate to true:)
+        An $(B assert) declares an expression that must evaluate to true, with an
+        optional failure string as a second argument:)
 ------
 assert(expression);
+assert(expression, "message to display on failure");
 ------
         $(P As a contract, an $(D assert) represents a guarantee that the code
         $(I must) uphold. Any failure of this expression represents a logic
@@ -61,81 +63,105 @@ $(H2 $(LNAME2 pre_post_contracts, Pre and Post Contracts))
         typical use of this would be in validating the parameters to a function. The post
         contracts validate the result of the statement. The most typical use of this
         would be in validating the return value of a function and of any side effects it has.
-        The syntax is:)
+        In D, pre contracts begin with `in`, and post contracts begin with `out`. They
+        come at the end of the function signature and before the opening brace of the function body.)
 
+        $(P As of the acceptance of
+        $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1009.md, DIP1009),
+        pre and post contracts can be written either in expression form, with
+        syntaxes similar to $(B assert), or as block statements containing arbitrary
+        code.)
+
+        $(P The expression form is:)
+------
+in(expression)
+in(expression, "failure string")
+out(identifier; expression)
+out(identifier; expression, "failure string")
+out(; expression)
+out(; expression, "failure string")
+{
+    ...function body...
+}
+------
+        $(P The block statement form is:)
 ------
 in
 {
     ...contract preconditions...
 }
-out (result)
+out
+{
+    ...contract postconditions...
+}
+out (identifier)
 {
     ...contract postconditions...
 }
 do
 {
-    ...code...
+    ...function body...
 }
 ------
 
-    $(P Since $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1003.md, DIP1003 has been applied)
-    the actual function body starts with $(D do).
-    In the past, $(D body) was used, and could still be encountered in old code bases.
-    In the long term, $(D body) may be deprecated, but for now it's allowed
-    as a keyword in this context and as an identifier in the function body,
-    although $(D do) is preferred.)
+        $(P The optional identifier in either type of `out` contract is set to the return value
+        of the function.)
 
         $(P By definition, if a pre contract fails, then the function received bad
-        parameters. An `AssertError` is thrown. If a post contract fails,
-        then there is a bug in the function. An `AssertError` is thrown.)
+        parameters. If a post contract fails, then there is a bug in the function. In either case,
+        an `assert` statement within the corresponding `in` or `out` block will throw an
+        `AssertError`.)
 
-        $(P Either the `in` or the `out` clause can be omitted.
-        If the `out` contract is for a function
-        body, the given `result` variable is declared and assigned the return
-        value of the function. For example, let's implement a square root function:)
+        $(P Notice that the keyword `do` can be used to announce the function body. While any number
+        of pre or post contracts of any form may follow each other, `do` is
+        required only when the last contract before the body is a block statement.
+        (Before the acceptance of
+        $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1003.md, DIP1003),
+        the keyword $(D body) was required instead of `do`, and may still be encountered in
+        old code bases. In the long term, $(D body) may be deprecated, but for now it's allowed both
+        as a keyword in this context and as an identifier elsewhere, although $(D do) is preferred.) )
 
-------
-long square_root(long x)
-in
-{
-    assert(x >= 0);
-}
-out (result)
-{
-    assert(result ^^ 2 <= x && (result + 1) ^^ 2 > x);
-}
-do
-{
-    return cast(long)std.math.sqrt(cast(real)x);
-}
-------
-        $(P The `assert`s in the `in` and `out` bodies are called $(I contracts).
-        Any other D
-        statement or expression is allowed in the bodies, but it is important
+        $(P While any arbitrary D code is allowed in the `in` and `out` contract blocks,
+        their only function should be to verify incoming and outgoing data. It is important
         to ensure that the
         code has no side effects, and that the release version of the code
         will not depend on any  effects of the code.
-        For a release build of the code, the `in` and `out` code is not
+        For a release build of the code, `in` and `out` contracts are not
         inserted.)
 
-$(H3 $(LNAME2 out_without_result, Post Contracts Without a Result Variable))
+        $(P Here is an example function in both forms:)
 
-        $(P If the function returns `void`, there is no result, and so there can be no
-        result variable in the `out` clause. An `out` contract can still be useful,
-        (e.g. to check a global variable or a `ref` parameter was set correctly).)
-
-        $(P Regardless of return type, `out` contracts don't require a result variable:)
 ------
-void func()
-out
+int fun(ref int a, int b)
+    in(a > 0)
+    in(b >= 0, "b cannot be negative!")
+    out(r; r > 0, "return must be positive")
+    out(; a != 0)
 {
-    ...contracts...
+    // function body
+}
+
+int fun(ref int a, int b)
+in
+{
+    assert(a > 0);
+    assert(b >= 0, "b cannot be negative!");
+}
+out(r)
+{
+    assert(r > 0, "return must be positive");
+    assert(a != 0);
 }
 do
 {
-    ...
+    // function body
 }
 ------
+
+        $(P The two functions are almost semantically identical. The expressions in the
+        first are lowered to contract blocks that look almost exactly like the second,
+        except that a separate block is created for each expression in the first, thus
+        avoiding shadowing variable names.)
 
 $(H2 $(LNAME2 in_out_inheritance, In, Out and Inheritance))
 
@@ -184,9 +210,20 @@ class Date
     invariant
     {
         assert(1 <= day && day <= 31);
-        assert(0 <= hour && hour < 24);
+        assert(0 <= hour && hour < 24, "hour out of bounds");
     }
 }
+------
+
+        $(P Invariant blocks should contain `assert` expressions, and should throw
+        $(D AssertError)s when they fail. As of
+        $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1009.md, DIP1009),
+        invariants can also be written as expression statements, with `assert` implied:
+        )
+
+------
+    invariant(1 <= day && day <= 31);
+    invariant(0 <= hour && hour < 24, "hour out of bounds");
 ------
 
         $(P The invariant is a contract saying that the `assert`s must hold true.
@@ -249,9 +286,7 @@ assert(mydate);           // check that class Date invariant holds
 assert(&s);               // check that struct S invariant holds
 ------
 
-        $(P Invariants contain assert expressions, and so when they fail,
-        they throw $(D AssertError)s.
-        Class invariants are inherited, that is,
+        $(P Class invariants are inherited, that is,
         any class invariant is implicitly in addition to the invariants of its base
         classes.)
 
