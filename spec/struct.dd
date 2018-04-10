@@ -1187,6 +1187,7 @@ immutable struct C2
     S a;
 }
 ---
+)
 
         $(P In the above situations the errors do not contain line numbers because
         the errors are regarding generated code.
