@@ -66,6 +66,16 @@ extern "C"
     void ld_setull(longdouble* ld, unsigned long long d);
     int ld_statusfpu();
     void ld_clearfpu();
+    int ld_initfpu(int bits, int mask);
+
+    void ld_expl(longdouble* ld, int exp);
+    bool ld_cmpb(longdouble ld1, longdouble ld2);
+    bool ld_cmpbe(longdouble ld1, longdouble ld2);
+    bool ld_cmpa(longdouble ld1, longdouble ld2);
+    bool ld_cmpae(longdouble ld1, longdouble ld2);
+    bool ld_cmpe(longdouble ld1, longdouble ld2);
+    bool ld_cmpne(longdouble ld1, longdouble ld2);
+    int ld_cmp(longdouble x, longdouble y);
 }
 
 #pragma pack(push, 1)
@@ -152,12 +162,12 @@ longdouble operator-(longdouble ld1, longdouble ld2);
 longdouble operator*(longdouble ld1, longdouble ld2);
 longdouble operator/(longdouble ld1, longdouble ld2);
 
-bool operator< (longdouble ld1, longdouble ld2);
-bool operator<=(longdouble ld1, longdouble ld2);
-bool operator> (longdouble ld1, longdouble ld2);
-bool operator>=(longdouble ld1, longdouble ld2);
-bool operator==(longdouble ld1, longdouble ld2);
-bool operator!=(longdouble ld1, longdouble ld2);
+inline bool operator< (longdouble ld1, longdouble ld2) { return ld_cmpb(ld1, ld2); }
+inline bool operator<=(longdouble ld1, longdouble ld2) { return ld_cmpbe(ld1, ld2); }
+inline bool operator> (longdouble ld1, longdouble ld2) { return ld_cmpa(ld1, ld2); }
+inline bool operator>=(longdouble ld1, longdouble ld2) { return ld_cmpae(ld1, ld2); }
+inline bool operator==(longdouble ld1, longdouble ld2) { return ld_cmpe(ld1, ld2); }
+inline bool operator!=(longdouble ld1, longdouble ld2) { return ld_cmpne(ld1, ld2); }
 
 inline longdouble operator-(longdouble ld1) { ld1.sign ^= 1; return ld1; }
 inline longdouble operator+(longdouble ld1) { return ld1; }

@@ -21,19 +21,11 @@
 extern "C"
 {
     // implemented in ldfpu.asm for _WIN64
-    int ld_initfpu(int bits, int mask);
-    void ld_expl(longdouble* ld, int exp);
     longdouble ld_add(longdouble ld1, longdouble ld2);
     longdouble ld_sub(longdouble ld1, longdouble ld2);
     longdouble ld_mul(longdouble ld1, longdouble ld2);
     longdouble ld_div(longdouble ld1, longdouble ld2);
     longdouble ld_mod(longdouble ld1, longdouble ld2);
-    bool ld_cmpb(longdouble ld1, longdouble ld2);
-    bool ld_cmpbe(longdouble ld1, longdouble ld2);
-    bool ld_cmpa(longdouble ld1, longdouble ld2);
-    bool ld_cmpae(longdouble ld1, longdouble ld2);
-    bool ld_cmpe(longdouble ld1, longdouble ld2);
-    bool ld_cmpne(longdouble ld1, longdouble ld2);
     longdouble ld_sqrt(longdouble ld1);
     longdouble ld_sin(longdouble ld1);
     longdouble ld_cos(longdouble ld1);
@@ -204,9 +196,12 @@ longdouble ldexpl(longdouble ld, int exp)
 ///////////////////////////////////////////////////////////////////////
 longdouble operator+(longdouble ld1, longdouble ld2)
 {
-#ifdef _WIN64
     return ld_add(ld1, ld2);
-#else
+}
+
+#ifndef _WIN64
+longdouble ld_add(longdouble ld1, longdouble ld2)
+{
     longdouble res;
     __asm
     {
@@ -216,14 +211,17 @@ longdouble operator+(longdouble ld1, longdouble ld2)
         fstp tbyte ptr res;
     }
     return res;
-#endif
 }
+#endif
 
 longdouble operator-(longdouble ld1, longdouble ld2)
 {
-#ifdef _WIN64
     return ld_sub(ld1, ld2);
-#else
+}
+
+#ifndef _WIN64
+longdouble ld_sub(longdouble ld1, longdouble ld2)
+{
     longdouble res;
     __asm
     {
@@ -233,14 +231,17 @@ longdouble operator-(longdouble ld1, longdouble ld2)
         fstp tbyte ptr res;
     }
     return res;
-#endif
 }
+#endif
 
 longdouble operator*(longdouble ld1, longdouble ld2)
 {
-#ifdef _WIN64
     return ld_mul(ld1, ld2);
-#else
+}
+
+#ifndef _WIN64
+longdouble ld_mul(longdouble ld1, longdouble ld2)
+{
     longdouble res;
     __asm
     {
@@ -250,14 +251,17 @@ longdouble operator*(longdouble ld1, longdouble ld2)
         fstp tbyte ptr res;
     }
     return res;
-#endif
 }
+#endif
 
 longdouble operator/(longdouble ld1, longdouble ld2)
 {
-#ifdef _WIN64
     return ld_div(ld1, ld2);
-#else
+}
+
+#ifndef _WIN64
+longdouble ld_div(longdouble ld1, longdouble ld2)
+{
     longdouble res;
     __asm
     {
@@ -267,14 +271,12 @@ longdouble operator/(longdouble ld1, longdouble ld2)
         fstp tbyte ptr res;
     }
     return res;
-#endif
 }
+#endif
 
-bool operator< (longdouble x, longdouble y)
+#ifndef _WIN64
+bool ld_cmpb(longdouble x, longdouble y)
 {
-#ifdef _WIN64
-    return ld_cmpb(x, y);
-#else
     short sw;
     bool res;
     __asm
@@ -289,13 +291,10 @@ bool operator< (longdouble x, longdouble y)
         fstp    ST(0)
     }
     return res;
-#endif
 }
-bool operator<=(longdouble x, longdouble y)
+
+bool ld_cmpbe(longdouble x, longdouble y)
 {
-#ifdef _WIN64
-    return ld_cmpbe(x, y);
-#else
     short sw;
     bool res;
     __asm
@@ -310,13 +309,10 @@ bool operator<=(longdouble x, longdouble y)
         fstp    ST(0)
     }
     return res;
-#endif
 }
-bool operator> (longdouble x, longdouble y)
+
+bool ld_cmpa(longdouble x, longdouble y)
 {
-#ifdef _WIN64
-    return ld_cmpa(x, y);
-#else
     short sw;
     bool res;
     __asm
@@ -331,13 +327,10 @@ bool operator> (longdouble x, longdouble y)
         fstp    ST(0)
     }
     return res;
-#endif
 }
-bool operator>=(longdouble x, longdouble y)
+
+bool ld_cmpae(longdouble x, longdouble y)
 {
-#ifdef _WIN64
-    return ld_cmpae(x, y);
-#else
     short sw;
     bool res;
     __asm
@@ -352,13 +345,10 @@ bool operator>=(longdouble x, longdouble y)
         fstp    ST(0)
     }
     return res;
-#endif
 }
-bool operator==(longdouble x, longdouble y)
+
+bool ld_cmpe(longdouble x, longdouble y)
 {
-#ifdef _WIN64
-    return ld_cmpe(x, y);
-#else
     short sw;
     bool res;
     __asm
@@ -373,13 +363,10 @@ bool operator==(longdouble x, longdouble y)
         fstp    ST(0)
     }
     return res;
-#endif
 }
-bool operator!=(longdouble x, longdouble y)
+
+bool ld_cmpne(longdouble x, longdouble y)
 {
-#ifdef _WIN64
-    return ld_cmpne(x, y);
-#else
     short sw;
     bool res;
     __asm
@@ -394,9 +381,32 @@ bool operator!=(longdouble x, longdouble y)
         fstp    ST(0)
     }
     return res;
-#endif
 }
 
+int ld_cmp(longdouble x, longdouble y)
+{
+    // return -1 if x < y, 0 if x == y or unordered, 1 if x > y
+    short sw;
+    int res;
+    __asm
+    {
+        fld     tbyte ptr y
+        fld     tbyte ptr x
+        fucomip ST(0), ST(1)
+        seta    AL
+        setb    AH
+        setp    DL
+        or      AL, DL
+        or      AH, DL
+        sub     AL, AH
+        movsx   EAX, AL
+        fstp    ST(0)
+        mov     res, EAX
+    }
+}
+
+
+#endif // !_WIN64
 
 int _isnan(longdouble ld)
 {
@@ -474,9 +484,12 @@ longdouble tanl (longdouble ld)
 
 longdouble fmodl(longdouble x, longdouble y)
 {
-#ifdef _WIN64
     return ld_mod(x, y);
-#else
+}
+
+#ifndef _WIN64
+longdouble ld_mod(longdouble x, longdouble y)
+{
     short sw;
     longdouble res;
     __asm
@@ -495,8 +508,8 @@ FM1:    // We don't use fprem1 because for some inexplicable
         fstp    tbyte ptr res;
     }
     return res;
-#endif
 }
+#endif
 
 //////////////////////////////////////////////////////////////
 
