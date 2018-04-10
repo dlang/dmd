@@ -1,6 +1,12 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/a18a.d
-// PERMUTE_ARGS:
+/*
+COMPILE_SEPARATELY
+EXTRA_SOURCES: imports/a18a.d
+RUN_OUTPUT:
+---
+Test enumerator
+---
+PERMUTE_ARGS:
+*/
 
 import imports.a18a;
 

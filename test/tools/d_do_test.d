@@ -69,6 +69,7 @@ struct TestArgs
     string   permuteArgs;
     string[] argSets;
     string   compileOutput;
+    string   runOutput;
     string   gdbScript;
     string   gdbMatch;
     string   postScript;
@@ -304,6 +305,13 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     testArgs.disabledPlatforms = split(disabledPlatformsStr);
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+
+    findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData.sep);
+    if (!testArgs.runOutput.empty && testArgs.mode != TestMode.RUN)
+    {
+        writeln("Error: test has 'RUN_OUTPUT:' but is not 'runnable'");
+        return false;
+    }
 
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData.sep);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
@@ -744,9 +752,13 @@ int tryMain(string[] args)
                 }
             }
 
+            static string normalizeOutput(string output)
+            {
+                return std.string.strip(output).unifyNewLine();
+            }
+
             compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.* DEBUG$`, "m"), "");
-            compile_output = std.string.strip(compile_output);
-            compile_output = compile_output.unifyNewLine();
+            compile_output = normalizeOutput(compile_output);
 
             auto m = std.regex.match(compile_output, `Internal error: .*$`);
             enforce(!m, m.hit);
@@ -769,12 +781,12 @@ int tryMain(string[] args)
                         toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
                     }
 
+                string run_output;
                 if (testArgs.gdbScript is null)
                 {
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
-
-                    execute(fThisRun, command, true, result_path);
+                    run_output = execute(fThisRun, command, true, result_path);
                 }
                 else version (linux)
                 {
@@ -786,12 +798,18 @@ int tryMain(string[] args)
                         write(testArgs.gdbScript);
                     }
                     string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, gdbCommand, true, result_path);
+                    run_output = execute(fThisRun, gdbCommand, true, result_path);
                     if (testArgs.gdbMatch !is null)
                     {
-                        enforce(match(gdb_output, regex(testArgs.gdbMatch)),
-                                "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~gdb_output~"\n----\n");
+                        enforce(match(run_output, regex(testArgs.gdbMatch)),
+                                "\nGDB regex: '"~testArgs.gdbMatch~"' didn't match output:\n----\n"~run_output~"\n----\n");
                     }
+                }
+                if (testArgs.runOutput !is null)
+                {
+                    run_output = normalizeOutput(run_output);
+                    if (!compareOutput(run_output, testArgs.runOutput))
+                        throw new CompareException(testArgs.runOutput, run_output);
                 }
             }
 

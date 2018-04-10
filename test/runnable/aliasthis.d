@@ -1,4 +1,16 @@
-
+/*
+RUN_OUTPUT:
+---
+1 1.1
+ctor
+cpctor
+dtor
+cpctor
+dtor
+dtor
+Success
+---
+*/
 extern (C) int printf(const(char*) fmt, ...);
 import core.vararg;
 

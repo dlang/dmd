@@ -148,11 +148,15 @@ The following is a list of all available settings:
     LINK:                enables linking (used for the compilable and fail_compilable tests).
                          default: (none)
 
-    TEST_OUTPUT:         the output is expected from the compilation (if the
-                         output of the compilation doesn't match, the test
-                         fails). You can use the this format for multi-line
-                         output:
+    TEST_OUTPUT:         Expected output from compilation. Use the multi-line format:
                          TEST_OUTPUT:
+                         ---
+                         Some
+                         Output
+                         ---
+
+    RUN_OUTPUT:          Expected output from running the compiled program. Use the multi-line format:
+                         RUN_OUTPUT:
                          ---
                          Some
                          Output
