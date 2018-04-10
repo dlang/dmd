@@ -1,9 +1,11 @@
 /* REQUIRED_ARGS: -verrors=spec
 TEST_OUTPUT:
 ---
-(spec:1) fail_compilation/test17380spec.d(14): Error: cannot resolve identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`
-(spec:1) fail_compilation/test17380spec.d(14): Error: no property `ThisTypeDoesNotExistAndCrashesTheCompiler` for type `Uint128`
-fail_compilation/test17380spec.d(14): Error: undefined identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`
+(spec:1) fail_compilation/test17380spec.d(16): Error: cannot resolve identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`
+(spec:1) fail_compilation/test17380spec.d(16): Error: no property `ThisTypeDoesNotExistAndCrashesTheCompiler` for type `Uint128`
+(spec:1) fail_compilation/test17380spec.d(16): Error: cannot resolve identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`
+(spec:1) fail_compilation/test17380spec.d(16): Error: no property `ThisTypeDoesNotExistAndCrashesTheCompiler` for type `Int128`
+fail_compilation/test17380spec.d(16): Error: undefined identifier `ThisTypeDoesNotExistAndCrashesTheCompiler`
 ---
  */
 

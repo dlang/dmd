@@ -1330,6 +1330,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
             }
+
+            // https://issues.dlang.org/show_bug.cgi?id=18584
+            Expression e;
+            e = new ThisExp(exp.loc);
+            e = new DotIdExp(exp.loc, e, exp.ident);
+            e = e.trySemantic(sc);
+            if (e)
+            {
+                result = e;
+                return;
+            }
         }
 
         if (exp.ident == Id.ctfe)
