@@ -15,6 +15,7 @@ module dmd.apply;
 import dmd.arraytypes;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.log;
 import dmd.visitor;
 
 /**************************************
@@ -68,13 +69,13 @@ public:
 
     override void visit(NewExp e)
     {
-        //printf("NewExp::apply(): %s\n", toChars());
+        logf("NewExp::apply(): %s\n", e.toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
     }
 
     override void visit(NewAnonClassExp e)
     {
-        //printf("NewAnonClassExp::apply(): %s\n", toChars());
+        logf("NewAnonClassExp::apply(): %s\n", e.toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
     }
 
@@ -95,19 +96,19 @@ public:
 
     override void visit(AssertExp e)
     {
-        //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        logf("CallExp::apply(apply_fp_t fp, void *param): %s\n", e.toChars());
         doCond(e.e1) || doCond(e.msg) || applyTo(e);
     }
 
     override void visit(CallExp e)
     {
-        //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        logf("CallExp::apply(apply_fp_t fp, void *param): %s\n", e.toChars());
         doCond(e.e1) || doCond(e.arguments) || applyTo(e);
     }
 
     override void visit(ArrayExp e)
     {
-        //printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        logf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", e.toChars());
         doCond(e.e1) || doCond(e.arguments) || applyTo(e);
     }
 
