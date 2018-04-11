@@ -22,7 +22,7 @@ skip_commits:
 artifacts:
   - path: src/dmd.exe
     name: dmd 64-bit
-  - path: dmd/generated/Windows/Release/Win32/dmd.exe 
+  - path: generated/Windows/Release/Win32/dmd.exe 
     name: dmd 32-bit built with LDC
 
 init:
@@ -65,7 +65,7 @@ build_script:
   # build via VS projects with LDC
   - cd c:\projects\dmd\src
   # unfortunately, multilib version of LDC and Visual D don't work together seamlessly (anymore?)
-  - set LDC_ARGS="/p:ExternalLinkerOptions=/LIBPATH:c:\projects\%LDC_DIR%\lib32 phobos2-ldc.lib druntime-ldc.lib"
+  - set LDC_ARGS="/p:ExternalLinkerOptions=phobos2-ldc.lib druntime-ldc.lib"
   - set LDC_ARGS=%LDC_ARGS% /p:DCompiler=LDC
   - msbuild /target:dmd /p:Configuration=Release /p:Platform=Win32 %LDC_ARGS% vcbuild\dmd.sln
 
