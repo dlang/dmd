@@ -377,6 +377,8 @@ final class Parser(AST) : Lexer
             }
         }
 
+        mod.afterModuleDeclaration(md);
+
         decldefs = parseDeclDefs(0, &lastDecl);
         if (token.value != TOK.endOfFile)
         {
