@@ -485,8 +485,8 @@ $(P
         If there are
         two variables declared, the first is said to be the $(I index)
         and the second is said to be the $(I value). The $(I index)
-        must be of $(D int), $(D uint) or $(D size_t) type,
-        it cannot be $(I ref),
+        must be of `int`, `uint`, `long` or `ulong` type,
+        it cannot be `ref`,
         and it is set to be the index of the array element.
 )
 --------------
@@ -585,7 +585,7 @@ $(H3 $(LNAME2 foreach_over_associative_arrays, Foreach over Associative Arrays))
         two variables declared, the first is said to be the $(I index)
         and the second is said to be the $(I value). The $(I index)
         must be of the same type as the indexing type of the associative
-        array. It cannot be $(I ref),
+        array. It cannot be `ref`,
         and it is set to be the index of the array element.
         The order in which the elements of the array are iterated over is unspecified
         for $(D foreach). $(D foreach_reverse) for associative arrays
@@ -855,7 +855,8 @@ $(P
         If there are
         two symbols declared, the first is the $(I index variable)
         and the second is the $(I element alias). The index
-        must be of $(D int) or $(D uint) type, it cannot be `ref`,
+        must be of `int`, `uint`, `long` or `ulong` type,
+        it cannot be `ref`,
         and it is set to the index of each sequence element.
 )
         $(P Example:)
