@@ -1531,6 +1531,20 @@ int main(int iargc, const char *argv[])
     {
         assert(global.params.moduleDepsFile != NULL);
 
+        // when generating depdencies we have to run sema3
+        // because otherwise we will miss some depdencies
+        // introdcued in function bodies
+        for (size_t i = 0; i < Module::amodules.dim; i++)
+        {
+            m = Module::amodules[i];
+            if (global.params.verbose)
+                printf("[deps] semantic(2/3) %s\n", m->toChars());
+            // not sure if it can happen that we havn't run sema2 ?
+            // better safe then sorry, it does not cost more then a few cycles
+            m->semantic2();
+            m->semantic3();
+        }
+
         File deps(global.params.moduleDepsFile);
         OutBuffer* ob = global.params.moduleDeps;
         deps.setbuffer((void*)ob->data, ob->offset);
