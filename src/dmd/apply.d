@@ -12,10 +12,13 @@
 
 module dmd.apply;
 
+import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.visitor;
+
+private enum LOG = false;
 
 /**************************************
  * An Expression tree walker that will visit each Expression e in the tree,
@@ -68,13 +71,13 @@ public:
 
     override void visit(NewExp e)
     {
-        //printf("NewExp::apply(): %s\n", toChars());
+        if (LOG) printf("NewExp::apply(): %s\n", e.toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
     }
 
     override void visit(NewAnonClassExp e)
     {
-        //printf("NewAnonClassExp::apply(): %s\n", toChars());
+        if (LOG) printf("NewAnonClassExp::apply(): %s\n", e.toChars());
         doCond(e.thisexp) || doCond(e.newargs) || doCond(e.arguments) || applyTo(e);
     }
 
@@ -95,19 +98,19 @@ public:
 
     override void visit(AssertExp e)
     {
-        //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        if (LOG) printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", e.toChars());
         doCond(e.e1) || doCond(e.msg) || applyTo(e);
     }
 
     override void visit(CallExp e)
     {
-        //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        if (LOG) printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", e.toChars());
         doCond(e.e1) || doCond(e.arguments) || applyTo(e);
     }
 
     override void visit(ArrayExp e)
     {
-        //printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+        if (LOG) printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", e.toChars());
         doCond(e.e1) || doCond(e.arguments) || applyTo(e);
     }
 
