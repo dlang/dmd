@@ -536,25 +536,22 @@ int tryMain(string[] args)
         return 1;
     }
 
-    auto test_file = args[1];
-    string input_dir = test_file.dirName();
+    const test_file = args[1];
+    const test_dir = test_file.dirName();
 
     TestArgs testArgs;
-    switch (input_dir)
+    switch (test_dir)
     {
         case "compilable":              testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation":        testArgs.mode = TestMode.FAIL_COMPILE; break;
         case "runnable":                testArgs.mode = TestMode.RUN;          break;
         default:
-            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', or 'runnable'", input_dir);
+            writefln("Error: invalid test directory '%s', expected 'compilable', 'fail_compilation', or 'runnable'", test_dir);
             return 1;
     }
 
-    string test_base_name = test_file.baseName();
-    string test_name = test_base_name.stripExtension();
-
-    if (test_base_name.extension() == ".sh")
-        return runBashTest(input_dir, test_name);
+    const test_base_name = test_file.baseName();
+    const test_name = test_base_name.stripExtension();
 
     EnvData envData;
     envData.all_args      = environment.get("ARGS");
@@ -573,11 +570,26 @@ int tryMain(string[] args)
     envData.coverage_build   = environment.get("DMD_TEST_COVERAGE") == "1";
     envData.autoUpdate = environment.get("AUTO_UPDATE", "") == "1";
 
-    string result_path    = envData.results_dir ~ envData.sep;
-    string input_file     = input_dir ~ envData.sep ~ test_base_name;
-    string output_dir     = result_path ~ input_dir;
-    string output_file    = result_path ~ input_file ~ ".out";
-    string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
+    string input_dir;
+    string input_file;
+    if (test_file.extension() == ".har")
+    {
+        const input = extractHarTest(envData.results_dir, test_file, input_dir, test_base_name);
+        input_dir = input.dir;
+        input_file = input.file;
+    }
+    else
+    {
+        input_dir = test_dir;
+        input_file = test_file;
+    }
+    if (test_file.extension() == ".sh")
+        return runBashTest(input_dir, test_name);
+
+    const result_path    = envData.results_dir ~ envData.sep;
+    const output_dir     = result_path ~ test_dir;
+    const output_file    = result_path ~ test_dir ~ envData.sep ~ test_base_name ~ ".out";
+    const test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     // running & linking costs time - for coverage builds we can save this
     if (envData.coverage_build && testArgs.mode == TestMode.RUN)
@@ -643,7 +655,7 @@ int tryMain(string[] args)
         return 1;
 
     writef(" ... %-30s %s%s(%s)",
-            input_file,
+            test_file,
             testArgs.requiredArgs,
             (!testArgs.requiredArgs.empty ? " " : ""),
             testArgs.permuteArgs);
@@ -824,27 +836,27 @@ int tryMain(string[] args)
                 // remove the output file in test_results as its outdated
                 output_file.remove();
 
-                auto existingText = input_file.readText;
+                auto existingText = test_file.readText;
                 auto updatedText = existingText.replace(ce.expected, ce.actual);
                 if (existingText != updatedText)
                 {
-                    std.file.write(input_file, updatedText);
-                    writefln("==> `TEST_OUTPUT` of %s has been updated", input_file);
+                    std.file.write(test_file, updatedText);
+                    writefln("==> `TEST_OUTPUT` of %s has been updated", test_file);
                 }
                 else
                 {
-                    writefln("WARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", input_file);
+                    writefln("WARNING: %s has multiple `TEST_OUTPUT` blocks and can't be auto-updated", test_file);
                 }
                 return Result.return0;
             }
 
             f.writeln();
             f.writeln("==============================");
-            f.writef("Test %s failed: ", input_file);
+            f.writef("Test %s failed: ", test_file);
             f.writeln(e.msg);
             f.close();
 
-            writefln("Test %s failed.  The logged output:", input_file);
+            writefln("Test %s failed.  The logged output:", test_file);
             writeln(output_file.readText);
             output_file.remove();
 
@@ -883,7 +895,7 @@ int tryMain(string[] args)
 
     // it was disabled but it passed! print an informational message
     if (testArgs.disabled)
-        writefln(" !!! %-30s DISABLED but PASSES!", input_file);
+        writefln(" !!! %-30s DISABLED but PASSES!", test_file);
 
     return 0;
 }
@@ -900,4 +912,37 @@ int runBashTest(string input_dir, string test_name)
         auto process = spawnProcess(["./tools/sh_do_test.sh", input_dir, test_name]);
     }
     return process.wait();
+}
+
+struct Input
+{
+    string dir;
+    string file;
+}
+Input extractHarTest(string results_dir, string test_file, string input_dir, string test_base_name)
+{
+    import archive.har;
+
+    input_dir = buildPath(results_dir, input_dir, test_base_name ~ ".extracted");
+
+    auto extractor = HarExtractor();
+    extractor.outputDir = input_dir;
+    auto extracted = appender!(string[])();
+    try
+    {
+        extractor.extractFromFile(test_file, delegate(string fullFileName, FileProperties fileProps) {
+            extracted.put(fullFileName.idup);
+        });
+    }
+    catch(HarException e)
+    {
+        writefln("Error: failed to extract %s: %s", test_file, e.msg);
+        throw new SilentQuit();
+    }
+    if (extracted.data.length == 0)
+    {
+        writefln("Error: %s did not contain any files", test_file);
+        throw new SilentQuit();
+    }
+    return Input(input_dir, extracted.data[0]);
 }
