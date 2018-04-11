@@ -197,7 +197,7 @@ unittest
 /**
 Handles error messages
 */
-interface ErrorHandler
+class ErrorHandler
 {
     /**
     Report an error message.
@@ -205,7 +205,7 @@ interface ErrorHandler
         format = format string for error
         ... = format string arguments
     */
-    void error(const(char)* format, ...);
+    abstract void error(const(char)* format, ...);
 
     /**
     Report an error message.
@@ -214,7 +214,7 @@ interface ErrorHandler
         format = format string for error
         ... = format string arguments
     */
-    void error(Loc loc, const(char)* format, ...);
+    abstract void error(Loc loc, const(char)* format, ...);
 }
 
 /***********************************************************
@@ -2244,7 +2244,7 @@ class Lexer : ErrorHandler
         return scanloc;
     }
 
-    final void error(const(char)* format, ...)
+    final override void error(const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
@@ -2253,7 +2253,7 @@ class Lexer : ErrorHandler
         errors = true;
     }
 
-    final void error(Loc loc, const(char)* format, ...)
+    final override void error(Loc loc, const(char)* format, ...)
     {
         va_list ap;
         va_start(ap, format);
