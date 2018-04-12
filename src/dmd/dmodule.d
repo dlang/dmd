@@ -292,10 +292,10 @@ extern (C++) final class Module : Package
     extern (C++) static __gshared Dsymbols deferred3;   // deferred Dsymbol's needing semantic3() run on them
     extern (C++) static __gshared uint dprogress;       // progress resolving the deferred list
     /**
-     * A callback function that is called once an imported module is
-     * parsed. If the callback returns true, then it tells the
-     * frontend that the driver intends on compiling the import.
-     */
+    A callback function that is called when a module is loaded as soon as its
+    module declaration has been parsed. If the callback returns true, then it tells the
+    frontend that the driver intends on compiling the import.
+    */
     extern (C++) static __gshared bool function(Module mod) onImport;
 
     static void _init()
@@ -370,12 +370,10 @@ extern (C++) final class Module : Package
     int searchCacheFlags;       // cached flags
 
     /**
-     * A root module is one that will be compiled all the way to
-     * object code.  This field holds the root module that caused
-     * this module to be loaded.  If this module is a root module,
-     * then it will be set to `this`.  This is used to determine
-     * ownership of template instantiation.
-     */
+    This field holds the root module that caused this module
+    to be loaded.  If this module is a root module, then it will
+    be set to `this`.
+    */
     Module importedFrom;
 
     Dsymbols* decldefs;         // top level declarations for this Module
@@ -515,41 +513,6 @@ extern (C++) final class Module : Package
             message("import    %s", buf.peekString());
         }
         m = m.parse();
-
-        // Call onImport here because if the module is going to be compiled then we
-        // need to determine it early because it affects semantic analysis. This is
-        // being done after parsing the module so the full module name can be taken
-        // from whatever was declared in the file.
-
-        //!!!!!!!!!!!!!!!!!!!!!!!
-        // Workaround for bug in dmd version 2.068.2 platform Darwin_64_32.
-        // This is the compiler version that the autotester uses, and this code
-        // has been carefully crafted using trial and error to prevent a seg fault
-        // bug that occurs with that version of the compiler.  Note, this segfault
-        // does not occur on the next version of dmd, namely, version 2.069.0. If
-        // the autotester upgrades to that version, then this workaround can be removed.
-        //!!!!!!!!!!!!!!!!!!!!!!!
-        version(OSX)
-        {
-            if (!m.isRoot() && onImport)
-            {
-                auto onImportResult = onImport(m);
-                if(onImportResult)
-                {
-                    m.importedFrom = m;
-                    assert(m.isRoot());
-                }
-            }
-        }
-        else
-        {
-            if (!m.isRoot() && onImport && onImport(m))
-            {
-                m.importedFrom = m;
-                assert(m.isRoot());
-            }
-        }
-
         Target.loadModule(m);
         return m;
     }
@@ -853,7 +816,6 @@ extern (C++) final class Module : Package
             scope p = new Parser!ASTCodegen(this, buf[0 .. buflen], docfile !is null);
             p.nextToken();
             members = p.parseModule();
-            md = p.md;
             numlines = p.scanloc.linnum;
             if (p.errors)
                 ++global.errors;
@@ -1288,9 +1250,33 @@ extern (C++) final class Module : Package
         return false;
     }
 
-    bool isRoot()
+    /**
+    A root module is one that will be compiled to object code.  This is used to
+    determine ownership of template instantiation and when to compile unittests.
+    Returns:
+        true if this is a root module
+    */
+    final bool isRoot() const
     {
         return this.importedFrom == this;
+    }
+
+    /**
+    Called by the parser after the module declaration has been determined.
+    */
+    final void afterModuleDeclaration(ModuleDeclaration* md)
+    {
+        this.md = md;
+
+        // Call onImport here because if the module is going to be compiled then we
+        // need to determine it early because it affects whether unittests will be parsed
+        // and semantic analysis. This is being done right after parsing the module delclaration
+        // so the full module name can be taken from whatever was declared in the file.
+        if (!isRoot() && onImport && onImport(this))
+        {
+            importedFrom = this;
+            assert(isRoot());
+        }
     }
 
     // true if the module source file is directly
