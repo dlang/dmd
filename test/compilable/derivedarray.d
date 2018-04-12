@@ -12,7 +12,7 @@ void dynamicarrays()
     immutable(C)[] e;
     immutable(D)[] f;
 
-    static assert( __traits(compiles, a = a));
+    static assert( __traits(compiles, {typeof(a) a2; a2 = a;}));
     static assert(!__traits(compiles, a = b));
     static assert(!__traits(compiles, a = c));
     static assert(!__traits(compiles, a = d));
@@ -20,7 +20,7 @@ void dynamicarrays()
     static assert(!__traits(compiles, a = f));
 
     static assert(!__traits(compiles, b = a));
-    static assert( __traits(compiles, b = b));
+    static assert( __traits(compiles, {typeof(b) b2; b2 = b;}));
     static assert(!__traits(compiles, b = c));
     static assert(!__traits(compiles, b = d));
     static assert(!__traits(compiles, b = e));
@@ -28,7 +28,7 @@ void dynamicarrays()
 
     static assert( __traits(compiles, c = a));
     static assert( __traits(compiles, c = b));
-    static assert( __traits(compiles, c = c));
+    static assert( __traits(compiles, {typeof(a) c2; c2 = c;}));
     static assert( __traits(compiles, c = d));
     static assert( __traits(compiles, c = e));
     static assert( __traits(compiles, c = f));
@@ -36,7 +36,7 @@ void dynamicarrays()
     static assert(!__traits(compiles, d = a));
     static assert( __traits(compiles, d = b));
     static assert(!__traits(compiles, d = c));
-    static assert( __traits(compiles, d = d));
+    static assert( __traits(compiles, {typeof(a) d2; d2 = d;}));
     static assert(!__traits(compiles, d = e));
     static assert( __traits(compiles, d = f));
 
@@ -44,7 +44,7 @@ void dynamicarrays()
     static assert(!__traits(compiles, e = b));
     static assert(!__traits(compiles, e = c));
     static assert(!__traits(compiles, e = d));
-    static assert( __traits(compiles, e = e));
+    static assert( __traits(compiles, {typeof(a) e2; e2 = e;}));
     static assert( __traits(compiles, e = f));
 
     static assert(!__traits(compiles, f = a));
@@ -52,7 +52,7 @@ void dynamicarrays()
     static assert(!__traits(compiles, f = c));
     static assert(!__traits(compiles, f = d));
     static assert(!__traits(compiles, f = e));
-    static assert( __traits(compiles, f = f));
+    static assert( __traits(compiles, {typeof(a) f2; f2 = f;}));
 }
 
 

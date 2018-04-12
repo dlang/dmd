@@ -6244,6 +6244,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         //printf("exp.e1.op = %d, '%s'\n", exp.e1.op, Token.toChars(exp.e1.op));
         //printf("exp.e2.op = %d, '%s'\n", exp.e2.op, Token.toChars(exp.e2.op));
+        if (exp.e1.op == TOK.identifier && exp.e2.op == TOK.identifier)
+        {
+            auto ident1 = cast(IdentifierExp) exp.e1;
+            auto ident2 = cast(IdentifierExp) exp.e2;
+            if (ident1 !is null && ident2 !is null &&
+                ident1.ident !is null && ident2.ident !is null &&
+                ident1.ident.toString == ident2.ident.toString)
+                exp.deprecation("Assignment of `%s` has no effect", ident1.ident.toChars);
+        }
         if (exp.type)
         {
             result = exp;

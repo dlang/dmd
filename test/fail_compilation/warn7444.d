@@ -4,7 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn7444.d(23): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
+fail_compilation/warn7444.d(25): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
+fail_compilation/warn7444.d(29): Deprecation: Assignment of `sa` has no effect
+fail_compilation/warn7444.d(45): Deprecation: Assignment of `da` has no effect
 ---
 */
 

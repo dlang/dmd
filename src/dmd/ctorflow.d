@@ -131,7 +131,6 @@ bool mergeFieldInitX(ref CSX fieldInit, const CSX fi)
         else if (!aHalt && aRet)
         {
             ok = (fi & CSX.this_ctor);
-            fieldInit = fieldInit;
         }
         else if (!bHalt && bRet)
         {
@@ -141,7 +140,6 @@ bool mergeFieldInitX(ref CSX fieldInit, const CSX fi)
         else if (aHalt)
         {
             ok = (fieldInit & CSX.this_ctor);
-            fieldInit = fieldInit;
         }
         else if (bHalt)
         {

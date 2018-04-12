@@ -593,7 +593,9 @@ void foo18()
 
 @safe void foo19(C)(ref C[] str)  // infer 'scope' for 'str'
 {
-    str = str;
+    typeof(str) str2;
+    str2 = str;
+    str = str2;
     str = str[1 .. str.length];
 }
 
