@@ -3377,6 +3377,19 @@ extern (C++) final class TypeBasic : Type
             TypeVector tv = cast(TypeVector)to;
             tob = tv.elementType();
         }
+        else if (to.ty == Tenum)
+        {
+            EnumDeclaration ed = (cast(TypeEnum)to).sym;
+            if (ed.isSpecial())
+            {
+                /* Special enums that allow implicit conversions to them
+                 * with a MATCH.convert
+                 */
+                tob = to.toBasetype().isTypeBasic();
+            }
+            else
+                return MATCH.nomatch;
+        }
         else
             tob = to.isTypeBasic();
         if (!tob)
