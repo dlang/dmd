@@ -176,6 +176,8 @@ The following is a list of all available settings:
                          Optionally a MODEL suffix can used for further filtering, e.g.
                          win32 win64 linux32 linux64 osx32 osx64 freebsd32 freebsd64
 
+    BROKEN:              the test is broken. failure won't cause test suite to fail.
+
 Makefile Environment variables
 ------------------------------
 

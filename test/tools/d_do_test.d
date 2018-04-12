@@ -77,6 +77,7 @@ struct TestArgs
     // reason for disabling the test (if empty, the test is not disabled)
     string[] disabledPlatforms;
     bool     disabled;
+    bool     broken;
 }
 
 struct EnvData
@@ -302,6 +303,11 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string disabledPlatformsStr;
     findTestParameter(envData, file, "DISABLED", disabledPlatformsStr);
     testArgs.disabledPlatforms = split(disabledPlatformsStr);
+
+    {
+        string throwAway;
+        testArgs.broken = findTestParameter(envData, file, "BROKEN", throwAway);
+    }
 
     findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
 
@@ -664,6 +670,10 @@ int tryMain(string[] args)
         testArgs.disabled = true;
         writefln("!!! [DISABLED on %s]", envData.os);
     }
+    else if (testArgs.broken)
+    {
+        writeln("!!! [BROKEN]");
+    }
     else
         write("\n");
 
@@ -810,12 +820,17 @@ int tryMain(string[] args)
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
+            if (testArgs.broken)
+            {
+                writefln("Test %s failed. It is marked BROKEN but it passed.", input_file);
+                return Result.return1;
+            }
             return Result.continue_;
         }
         catch(Exception e)
         {
-            // it failed but it was disabled, exit as if it was successful
-            if (testArgs.disabled)
+            // it failed but it was disabled or broken, exit as if it was successful
+            if (testArgs.disabled || testArgs.broken)
                 return Result.return0;
 
             if (envData.autoUpdate)
