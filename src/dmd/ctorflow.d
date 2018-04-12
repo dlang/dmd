@@ -18,7 +18,7 @@ import core.stdc.stdio;
 
 import dmd.root.rmem;
 
-enum CSX : ubyte
+enum CSX : ushort
 {
     none            = 0,
     this_ctor       = 0x01,     /// called this()
@@ -29,6 +29,7 @@ enum CSX : ubyte
     return_         = 0x20,     /// seen a return statement
     any_ctor        = 0x40,     /// either this() or super() was called
     halt            = 0x80,     /// assert(0)
+    deprecate_18719 = 0x100,    // issue deprecation for Issue 18719 - delete when deprecation period is over
 }
 
 /***********
