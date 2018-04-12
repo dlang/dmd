@@ -127,17 +127,12 @@ int dwarf_getsegment(const char *name, int align)
 #endif
 }
 
+#if ELFOBJ
 int dwarf_getsegment_alloc(const char *name, const char *suffix, int align)
 {
-#if ELFOBJ
     return ElfObj::getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align * 4);
-#elif MACHOBJ
-    return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
-#else
-    assert(0);
-    return 0;
-#endif
 }
+#endif
 
 int dwarf_except_table_alloc(Symbol *s)
 {
