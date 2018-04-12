@@ -205,8 +205,8 @@ void test_semantic()
 
     m->srcfile->setbuffer((void*)buf, strlen(buf));
     m->srcfile->ref = 1;
-    m->parse();
     m->importedFrom = m;
+    m->parse();
     m->importAll(NULL);
     dsymbolSemantic(m, NULL);
     semantic2(m, NULL);

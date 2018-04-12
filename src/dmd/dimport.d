@@ -135,10 +135,39 @@ extern (C++) final class Import : Dsymbol
             }
         }
         Dsymbol s = dst.lookup(id);
+        auto importName = QualifiedID(packages, id);
+        //printf("import %s\n", importName.toChars());
         if (s)
         {
             if (s.isModule())
-                mod = cast(Module)s;
+            {
+                auto match = cast(Module)s;
+                //printf("  - matched %s\n", match.toChars());
+
+                // Ensure that this match would occur the same way whether or not the module
+                // was previously loaded by another import. To ensure this, if the current import name matches the
+                // name of a previous import for this module, then we are good because that import name has already
+                // been verified to load this particular module. If it does not match a previous import name, then we
+                // need to "throw away" this match and process the current import as if it has not matched a module yet.
+                // By doing this, we treat the import the same regardless of the current state affected by previous imports
+                // thereby ensuring that import/module load order is invariant.
+                if (sc && sc._module is match)
+                {
+                    // special case, importing yourself via module name is OK
+                    mod = match;
+                }
+                else
+                {
+                    foreach (verifiedImportName; match.importNames)
+                    {
+                        if (importName.opEquals(verifiedImportName))
+                        {
+                            mod = match; // immediateMatch has been verified
+                            break;
+                        }
+                    }
+                }
+            }
             else
             {
                 if (s.isAliasDeclaration())
@@ -149,7 +178,7 @@ extern (C++) final class Import : Dsymbol
                 {
                     if (p.isPkgMod == PKG.unknown)
                     {
-                        mod = Module.load(loc, packages, id);
+                        mod = Module.load(loc, importName);
                         if (!mod)
                             p.isPkgMod = PKG.package_;
                         else
@@ -182,7 +211,7 @@ extern (C++) final class Import : Dsymbol
         if (!mod)
         {
             // Load module
-            mod = Module.load(loc, packages, id);
+            mod = Module.load(loc, importName);
             if (mod)
             {
                 // id may be different from mod.ident, if so then insert alias
