@@ -183,9 +183,6 @@
     <ClCompile Include="..\dmd\tk\vec.c">
       <Filter>dmd\tk</Filter>
     </ClCompile>
-    <ClCompile Include="..\dmd\root\longdouble.c">
-      <Filter>dmd\root</Filter>
-    </ClCompile>
     <ClCompile Include="..\dmd\root\newdelete.c">
       <Filter>dmd\root</Filter>
     </ClCompile>
@@ -434,12 +431,6 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\dmd\backend\optabgen.c">
-      <Filter>dmd\gen</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\vcbuild\ldfpu.asm">
-      <Filter>vcbuild</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\dmd\idgen.d">
       <Filter>dmd\gen</Filter>
     </CustomBuild>
   </ItemGroup>
