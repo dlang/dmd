@@ -22,9 +22,52 @@ extern(C++):
 nothrow:
 @nogc:
 
+bool initFPU()
+{
+    version(D_InlineAsm_X86_64)
+    {
+        // set precision to 64-bit mantissa and rounding control to nearest
+        asm nothrow @nogc pure
+        {
+            push    RAX;                 // add space on stack
+            fstcw   word ptr [RSP];
+            movzx   EAX,word ptr [RSP];  // also return old CW in EAX
+            and     EAX, ~0xF00;         // mask for PC and RC
+            or      EAX, 0x300;
+            mov     dword ptr [RSP],EAX;
+            fldcw   word ptr [RSP];
+            pop     RAX;
+        }
+    }
+    else version(D_InlineAsm_X86)
+    {
+        // set precision to 64-bit mantissa and rounding control to nearest
+        asm nothrow @nogc
+        {
+            push    EAX;                 // add space on stack
+            fstcw   word ptr [ESP];
+            movzx   EAX,word ptr [ESP];  // also return old CW in EAX
+            and     EAX, ~0xF00;         // mask for PC and RC
+            or      EAX, 0x300;
+            mov     dword ptr [ESP],EAX;
+            fldcw   word ptr [ESP];
+            pop     EAX;
+        }
+    }
+
+    return true;
+}
+
+shared static this()
+{
+    initFPU();
+}
+
+pure:
+
 align(2) struct longdouble_soft
 {
-nothrow @nogc:
+nothrow @nogc pure:
     ulong mantissa = 0xC000000000000001UL; // default to snan
     ushort exp_sign = 0x7fff; // sign is highest bit
 
@@ -107,11 +150,11 @@ version(D_InlineAsm_X86_64)
     extern(D):
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
+        return "asm nothrow @nogc pure { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
     }
     string fstp_arg(string arg)()
     {
-        return "asm nothrow @nogc { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
+        return "asm nothrow @nogc pure { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
     }
     alias fld_parg = fld_arg;
     alias fstp_parg = fstp_arg;
@@ -124,64 +167,23 @@ else version(D_InlineAsm_X86)
     extern(D):
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc { fld real ptr " ~ arg ~ "; }";
+        return "asm nothrow @nogc pure { fld real ptr " ~ arg ~ "; }";
     }
     string fstp_arg(string arg)()
     {
-        return "asm nothrow @nogc { fstp real ptr " ~ arg ~ "; }";
+        return "asm nothrow @nogc pure { fstp real ptr " ~ arg ~ "; }";
     }
     string fld_parg(string arg)()
     {
-        return "asm nothrow @nogc { mov EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
+        return "asm nothrow @nogc pure { mov EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
     }
     string fstp_parg(string arg)()
     {
-        return "asm nothrow @nogc { mov EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
+        return "asm nothrow @nogc pure { mov EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
     }
 }
 else
     static assert(false, "longdouble_soft not supported on this platform");
-
-bool initFPU()
-{
-    version(D_InlineAsm_X86_64)
-    {
-        // set precision to 64-bit mantissa and rounding control to nearest
-        asm nothrow @nogc
-        {
-            push    RAX;                 // add space on stack
-            fstcw   word ptr [RSP];
-            movzx   EAX,word ptr [RSP];  // also return old CW in EAX
-            and     EAX, ~0xF00;         // mask for PC and RC
-            or      EAX, 0x300;
-            mov     dword ptr [RSP],EAX;
-            fldcw   word ptr [RSP];
-            pop     RAX;
-        }
-    }
-    else version(D_InlineAsm_X86)
-    {
-        // set precision to 64-bit mantissa and rounding control to nearest
-        asm nothrow @nogc
-        {
-            push    EAX;                 // add space on stack
-            fstcw   word ptr [ESP];
-            movzx   EAX,word ptr [ESP];  // also return old CW in EAX
-            and     EAX, ~0xF00;         // mask for PC and RC
-            or      EAX, 0x300;
-            mov     dword ptr [ESP],EAX;
-            fldcw   word ptr [ESP];
-            pop     EAX;
-        }
-    }
-
-    return true;
-}
-
-shared static this()
-{
-    initFPU();
-}
 
 double ld_read(const longdouble_soft* pthis)
 {
@@ -189,7 +191,7 @@ double ld_read(const longdouble_soft* pthis)
     version(AsmX86)
     {
         mixin(fld_parg!("pthis"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fstp res;
         }
@@ -226,7 +228,7 @@ int ld_statusfpu()
     int res = 0;
     version(AsmX86)
     {
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fstsw word ptr [res];
         }
@@ -238,7 +240,7 @@ void ld_clearfpu()
 {
     version(AsmX86)
     {
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fclex;
         }
@@ -249,7 +251,7 @@ void ld_set(longdouble_soft* pthis, double d)
 {
     version(AsmX86)
     {
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fld d;
         }
@@ -261,7 +263,7 @@ void ld_setll(longdouble_soft* pthis, long d)
 {
     version(AsmX86)
     {
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fild qword ptr d;
         }
@@ -275,7 +277,7 @@ void ld_setull(longdouble_soft* pthis, ulong d)
     longdouble_soft twoPow63 = longdouble_soft(1UL << 63, 0x3fff + 63);
     version(AsmX86)
     {
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fild qword ptr d;
             fld real ptr twoPow63;
@@ -290,12 +292,12 @@ longdouble_soft ldexpl(longdouble_soft ld, int exp)
 {
     version(AsmX86)
     {
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fild    dword ptr exp;
         }
         mixin(fld_arg!("ld"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fscale;                 // ST(0) = ST(0) * (2**ST(1))
             fstp    ST(1);
@@ -312,7 +314,7 @@ longdouble_soft ld_add(longdouble_soft ld1, longdouble_soft ld2)
     {
         mixin(fld_arg!("ld1"));
         mixin(fld_arg!("ld2"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fadd;
         }
@@ -327,7 +329,7 @@ longdouble_soft ld_sub(longdouble_soft ld1, longdouble_soft ld2)
     {
         mixin(fld_arg!("ld1"));
         mixin(fld_arg!("ld2"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fsub;
         }
@@ -342,7 +344,7 @@ longdouble_soft ld_mul(longdouble_soft ld1, longdouble_soft ld2)
     {
         mixin(fld_arg!("ld1"));
         mixin(fld_arg!("ld2"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fmul;
         }
@@ -357,7 +359,7 @@ longdouble_soft ld_div(longdouble_soft ld1, longdouble_soft ld2)
     {
         mixin(fld_arg!("ld1"));
         mixin(fld_arg!("ld2"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fdiv;
         }
@@ -374,7 +376,7 @@ bool ld_cmpb(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             setb    AL;
@@ -395,7 +397,7 @@ bool ld_cmpbe(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             setbe   AL;
@@ -416,7 +418,7 @@ bool ld_cmpa(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             seta    AL;
@@ -437,7 +439,7 @@ bool ld_cmpae(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             setae   AL;
@@ -458,7 +460,7 @@ bool ld_cmpe(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             sete    AL;
@@ -479,7 +481,7 @@ bool ld_cmpne(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             setne   AL;
@@ -501,7 +503,7 @@ int ld_cmp(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fucomip ST(1);
             seta    AL;
@@ -534,7 +536,7 @@ longdouble_soft sqrtl(longdouble_soft ld)
     version(AsmX86)
     {
         mixin(fld_arg!("ld"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fsqrt;
         }
@@ -548,7 +550,7 @@ longdouble_soft sinl (longdouble_soft ld)
     version(AsmX86)
     {
         mixin(fld_arg!("ld"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fsin; // exact for |x|<=PI/4
         }
@@ -561,7 +563,7 @@ longdouble_soft cosl (longdouble_soft ld)
     version(AsmX86)
     {
         mixin(fld_arg!("ld"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fcos; // exact for |x|<=PI/4
         }
@@ -574,7 +576,7 @@ longdouble_soft tanl (longdouble_soft ld)
     version(AsmX86)
     {
         mixin(fld_arg!("ld"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
             fptan;
             fstp ST(0); // always 1
@@ -596,7 +598,7 @@ longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y)
     {
         mixin(fld_arg!("y"));
         mixin(fld_arg!("x"));
-        asm nothrow @nogc
+        asm nothrow @nogc pure
         {
         FM1:    // We don't use fprem1 because for some inexplicable
                 // reason we get -5 when we do _modulo(15, 10)
@@ -652,10 +654,11 @@ int ld_type(longdouble_soft x)
     return LD_TYPE_SNAN;
 }
 
+// consider sprintf pure
+extern(C) int sprintf(scope char* s, scope const char* format, ...) pure @nogc nothrow;
+
 size_t ld_sprint(char* str, int fmt, longdouble_soft x)
 {
-    import core.stdc.stdio : sprintf;
-
     // ensure dmc compatible strings for nan and inf
     switch(ld_type(x))
     {
