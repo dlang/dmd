@@ -1193,7 +1193,7 @@ immutable struct C2
         the errors are regarding generated code.
         )
 
-        $(P Qualifing an entire struct as `shared` correctly propagates the attribute
+        $(P Qualifying an entire struct as `shared` correctly propagates the attribute
         to the generated postblits:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
