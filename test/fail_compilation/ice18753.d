@@ -10,21 +10,17 @@ fail_compilation/ice18753.d(17):        while evaluating: `static assert(isForwa
 
 // https://issues.dlang.org/show_bug.cgi?id=18753
 
-struct ChunkByImpl{
+struct ChunkByImpl
+{
     struct Group
-    {
-    }
+    { }
+    
     static assert(isForwardRange!Group);
-
 }
 
-enum isInputRange(R) =
-ReturnType;
+enum isInputRange(R) = ReturnType;
 
-
-enum isForwardRange(R) = isInputRange!R
-is(ReturnType!(() => r) );
-
+enum isForwardRange(R) = isInputRange!R is ReturnType!(() => r);
 
 template ReturnType(func...)
 {
@@ -32,15 +28,12 @@ template ReturnType(func...)
         ReturnType R;
 }
 
-
 template FunctionTypeOf(func...)
 {
     static if (is(typeof(func[0]) T))
         static if (is(T Fptr ) )
-        alias FunctionTypeOf = Fptr;
+            alias FunctionTypeOf = Fptr;
 }
-
 
 template Select()
-{
-}
+{ }
