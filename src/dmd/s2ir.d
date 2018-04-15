@@ -1381,8 +1381,31 @@ private extern (C++) class S2irVisitor : Visitor
              *  BC_ret
              *  breakblock
              */
-            blx.curblock.appendSucc(breakblock);
-            block_next(blx,BCgoto,finallyblock);
+            if (s.bodyFallsThru)
+            {
+                // BCgoto [breakblock]
+                blx.curblock.appendSucc(breakblock);
+                block_next(blx,BCgoto,finallyblock);
+            }
+            else
+            {
+                if (!global.params.optimize)
+                {
+                    /* If this is reached at runtime, there's a bug
+                     * in the computation of s.bodyFallsThru. Inserting a HALT
+                     * makes it far easier to track down such failures.
+                     * But it makes for slower code, so only generate it for
+                     * non-optimized code.
+                     */
+                    elem *e = el_calloc();
+                    e.Ety = TYvoid;
+                    e.Eoper = OPhalt;
+                    elem_setLoc(e, s.loc);
+                    block_appendexp(blx.curblock, e);
+                }
+
+                block_next(blx,BCexit,finallyblock);
+            }
 
             block *landingPad = block_goto(blx,BC_finally,null);
             block_goto(blx,BC_lpad,null);               // lpad is [0]

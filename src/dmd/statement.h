@@ -579,6 +579,8 @@ public:
     Statement *_body;
     Statement *finalbody;
 
+    bool bodyFallsThru;         // true if _body falls through to finally
+
     static TryFinallyStatement *create(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
     bool hasBreak();

@@ -2027,11 +2027,14 @@ extern (C++) final class TryFinallyStatement : Statement
     Statement _body;
     Statement finalbody;
 
+    bool bodyFallsThru;         // true if _body falls through to finally
+
     extern (D) this(const ref Loc loc, Statement _body, Statement finalbody)
     {
         super(loc);
         this._body = _body;
         this.finalbody = finalbody;
+        this.bodyFallsThru = true;      // assume true until statementSemantic()
     }
 
     static TryFinallyStatement create(Loc loc, Statement _body, Statement finalbody)
