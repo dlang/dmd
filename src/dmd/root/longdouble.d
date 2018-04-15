@@ -159,7 +159,21 @@ nothrow @nogc pure:
     static uint min_10_exp() { return -4932; }
 };
 
-longdouble_soft sqrt (longdouble_soft ld) { return sqrtl(ld); }
+version(LDC)
+{
+    enum fld_eax(string arg) = "jmp L_" ~ arg ~ "+2; L_" ~ arg ~ ": mov DX, 0x28db;"; // jump to 0xdb,0x28 (fld real ptr[EAX])
+    enum fstp_eax            = "jmp L_stp+2; L_stp: mov DX, 0x38db;"; // jump to 0xdb,0x38 (fstp real ptr[EAX])
+}
+else version(D_InlineAsm_X86_64)
+{
+    enum fld_eax(string arg) = "fld real ptr [RAX];";
+    enum fstp_eax            = "fstp real ptr [RAX];";
+}
+else version(D_InlineAsm_X86)
+{
+    enum fld_eax(string arg) = "fld real ptr [EAX];";
+    enum fstp_eax            = "fstp real ptr [EAX];";
+}
 
 version(D_InlineAsm_X86_64)
 {
@@ -167,14 +181,18 @@ version(D_InlineAsm_X86_64)
     extern(D):
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
+        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
     }
     string fstp_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
+        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; " ~ fstp_eax ~ " }";
     }
     alias fld_parg = fld_arg;
     alias fstp_parg = fstp_arg;
+    string fld_local(string arg)()
+    {
+        return "asm nothrow @nogc pure @trusted { lea RAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
+    }
 }
 else version(D_InlineAsm_X86)
 {
@@ -182,20 +200,21 @@ else version(D_InlineAsm_X86)
     extern(D):
     string fld_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { fld real ptr " ~ arg ~ "; }";
+        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
     }
     string fstp_arg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { fstp real ptr " ~ arg ~ "; }";
+        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; " ~ fstp_eax ~ " }";
     }
     string fld_parg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
+        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; " ~ fld_eax!arg ~ " }";
     }
     string fstp_parg(string arg)()
     {
-        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
+        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; " ~ fstp_eax ~ " }";
     }
+    alias fld_local = fld_arg;
 }
 
 double ld_read(const longdouble_soft* pthis)
@@ -276,13 +295,12 @@ void ld_setll(longdouble_soft* pthis, long d)
 void ld_setull(longdouble_soft* pthis, ulong d)
 {
     d ^= (1L << 63);
-    longdouble_soft twoPow63 = longdouble_soft(1UL << 63, 0x3fff + 63);
     version(AsmX86)
     {
+        mixin(fld_local!("twoPow63"));
         asm nothrow @nogc pure @trusted
         {
             fild qword ptr d;
-            fld real ptr twoPow63;
             faddp;
         }
         mixin(fstp_parg!("pthis"));
@@ -547,6 +565,8 @@ longdouble_soft sqrtl(longdouble_soft ld)
     return ld;
 }
 
+longdouble_soft sqrt(longdouble_soft ld) { return sqrtl(ld); }
+
 longdouble_soft sinl (longdouble_soft ld)
 {
     version(AsmX86)
@@ -634,6 +654,8 @@ __gshared longdouble_soft ld_ln2   = longdouble_soft(0xb17217f7d1cf79acUL, 0x3ff
 __gshared longdouble_soft ld_pi2     = longdouble_soft(0xc90fdaa22168c235UL, 0x4001);
 __gshared longdouble_soft ld_piOver2 = longdouble_soft(0xc90fdaa22168c235UL, 0x3fff);
 __gshared longdouble_soft ld_piOver4 = longdouble_soft(0xc90fdaa22168c235UL, 0x3ffe);
+
+__gshared longdouble_soft twoPow63 = longdouble_soft(1UL << 63, 0x3fff + 63);
 
 //////////////////////////////////////////////////////////////
 
