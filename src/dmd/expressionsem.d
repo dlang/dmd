@@ -3970,7 +3970,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             default:
                 assert(0);
             }
-            goto Lyes;
+
+            // https://issues.dlang.org/show_bug.cgi?id=18753
+            if (tded)
+                goto Lyes;
+            goto Lno;
         }
         else if (e.tspec && !e.id && !(e.parameters && e.parameters.dim))
         {
