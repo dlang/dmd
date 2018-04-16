@@ -1,0 +1,47 @@
+Deprecate double initialization of immutable fields inside constructor
+
+Inside a constructor scope, assigning to aggregate declaration (class/struct)
+members is done by considering the first assignment as initialization and
+subsequent assignments as modifications of the initially constructed object.
+For `const`/`immutable` fields the initialization is accepted in the constructor,
+but subsequent modifications are not. Example:
+
+---
+struct A
+{
+    int a;
+    immutable int b;
+    this(int a, int b)
+    {
+        this.a = a;
+        this.b = b;
+
+        this.a = 7; // OK, a is mutable
+        this.b = 9; // Error: immutable field b initialized multiple times
+    }
+}
+---
+
+However, $(BUGZILLA 18719) shows that this rule does not apply when inside
+a constructor scope there is a call to a different constructor:
+
+---
+struct A
+{
+    immmutable int a;
+    this()
+    {
+        this(42);
+        this.a = 5;  // second initialization of immutable field
+    }
+
+    this(int a)
+    {
+        this.a = a;
+    }
+}
+---
+
+The above code wrongfully compiled succesfully before this patch, accepting the double
+initialization of the `immutable` field `a`. After this patch, `this.a = 5` will issue
+a deprecation warning stating that `a` is initialized multiple times.

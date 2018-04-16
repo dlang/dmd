@@ -3271,10 +3271,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else
             {
+                // `this` call expression must be inside a
+                // constructor
                 if (!ad || !sc.func.isCtorDeclaration())
                 {
                     exp.error("constructor call must be in a constructor");
                     return setError();
+                }
+
+                // https://issues.dlang.org/show_bug.cgi?id=18719
+                // If `exp` is a call expression to another constructor
+                // then it means that all struct/class fields will be
+                // initialized after this call.
+                foreach (ref field; sc.ctorflow.fieldinit)
+                {
+                    field |= CSX.this_ctor | CSX.deprecate_18719;
                 }
             }
 
