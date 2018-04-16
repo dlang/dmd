@@ -24,6 +24,7 @@ struct S
 extern (C) void main()
 {
     test(1);
+    test18472();
 }
 
 /*******************************************/
@@ -36,3 +37,19 @@ extern (C) void test17605()
     a = 1;
 }
 
+/*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18472
+
+void test18472()
+{
+    version(D_LP64)
+    {
+        enum b = typeid(size_t) is typeid(ulong);
+    }
+    else
+    {
+        enum b = typeid(size_t) is typeid(uint);
+    }
+
+    assert(b);
+}
