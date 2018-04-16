@@ -877,6 +877,20 @@ public:
         }
     }
 
+    override void visit(TypeDArray t)
+    {
+        //if (substitute(t))
+            //return;
+
+        // from: template_args
+        buf.writestring("8__dslice");
+        buf.writeByte('I');
+        Type t2 = t.next;
+        assert(t2);
+        headOfType(t2);
+        buf.writeByte('E');
+    }
+
     override void visit(TypeSArray t)
     {
         if (t.isImmutable() || t.isShared())
