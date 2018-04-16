@@ -367,7 +367,6 @@ elem * evalu8(elem *e, goal_t goal)
     tym_t tym,tym2,uns;
     unsigned op;
     targ_int i1,i2;
-    int i;
     targ_llong l1,l2;
     targ_ldouble d1,d2;
     elem esave;
@@ -434,7 +433,6 @@ elem * evalu8(elem *e, goal_t goal)
       dbg_printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
   }
 #endif
-  i = 0;
   switch (op)
   {
     case OPadd:
@@ -1500,63 +1498,65 @@ elem * evalu8(elem *e, goal_t goal)
     case OPrndtol:
     case OPrint:
         return e;
+
     case OPngt:
-        i++;
     case OPgt:
         if (!tyfloating(tym))
             goto Lnle;
-        i ^= (int)(d1 > d2);
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPngt) ^ (d1 > d2);
         break;
 
     case OPnle:
     Lnle:
-        i++;
     case OPle:
+    {
+        int b;
         if (uns)
         {
-            i ^= (int)(((targ_ullong) l1) <= ((targ_ullong) l2));
+            b = (int)(((targ_ullong) l1) <= ((targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
-                i ^= (int)(d1 <= d2);
+                b = (int)(d1 <= d2);
             else
-                i ^= (int)(l1 <= l2);
+                b = (int)(l1 <= l2);
         }
-        e->EV.Vint = i;
+        e->EV.Vint = (op != OPle) ^ b;
         break;
+    }
 
     case OPnge:
-        i++;
     case OPge:
         if (!tyfloating(tym))
             goto Lnlt;
-        i ^= (int)(d1 >= d2);
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnge) ^ (d1 >= d2);
         break;
 
     case OPnlt:
     Lnlt:
-        i++;
     case OPlt:
+    {
+        int b;
         if (uns)
         {
-            i ^= (int)(((targ_ullong) l1) < ((targ_ullong) l2));
+            b = (int)(((targ_ullong) l1) < ((targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
-                i ^= (int)(d1 < d2);
+                b = (int)(d1 < d2);
             else
-                i ^= (int)(l1 < l2);
+                b = (int)(l1 < l2);
         }
-        e->EV.Vint = i;
+        e->EV.Vint = (op != OPlt) ^ b;
         break;
+    }
 
     case OPne:
-        i++;
     case OPeqeq:
+    {
+        int b;
         if (tyfloating(tym))
         {
             switch (tybasic(tym))
@@ -1564,101 +1564,86 @@ elem * evalu8(elem *e, goal_t goal)
                 case TYcfloat:
                     if (isnan(e1->EV.Vcfloat.re) || isnan(e1->EV.Vcfloat.im) ||
                         isnan(e2->EV.Vcfloat.re) || isnan(e2->EV.Vcfloat.im))
-                        ;
+                        b = 0;
                     else
-                        i ^= (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
-                                   (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
+                        b = (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
+                                  (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
                     break;
                 case TYcdouble:
                     if (isnan(e1->EV.Vcdouble.re) || isnan(e1->EV.Vcdouble.im) ||
                         isnan(e2->EV.Vcdouble.re) || isnan(e2->EV.Vcdouble.im))
-                        ;
+                        b = 0;
                     else
-                        i ^= (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
-                                   (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
+                        b = (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
+                                  (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
                     break;
                 case TYcldouble:
                     if (isnan(e1->EV.Vcldouble.re) || isnan(e1->EV.Vcldouble.im) ||
                         isnan(e2->EV.Vcldouble.re) || isnan(e2->EV.Vcldouble.im))
-                        ;
+                        b = 0;
                     else
-                        i ^= (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
-                                   (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));
+                        b = (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
+                                  (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));
                     break;
                 default:
-                    i ^= (int)(d1 == d2);
+                    b = (int)(d1 == d2);
                     break;
             }
             //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1->EV.Vcldouble.re, e1->EV.Vcldouble.im, e2->EV.Vcldouble.re, e2->EV.Vcldouble.im);
         }
         else
-            i ^= (int)(l1 == l2);
-        e->EV.Vint = i;
+            b = (int)(l1 == l2);
+        e->EV.Vint = (op == OPne) ^ b;
         break;
+    }
 
 #if __DMC__
     case OPord:
-        i++;
     case OPunord:
         // BUG: complex numbers
-        i ^= d1 !<>= d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPord) ^ (d1 !<>= d2);
         break;
 
     case OPnlg:
-        i++;
     case OPlg:
         // BUG: complex numbers
-        i ^= d1 <> d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnlg) ^ (d1 <> d2);
         break;
 
     case OPnleg:
-        i++;
     case OPleg:
         // BUG: complex numbers
-        i ^= d1 <>= d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnleg) ^ (d1 <>= d2);
         break;
 
     case OPnule:
-        i++;
     case OPule:
         // BUG: complex numbers
-        i ^= d1 !> d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnule) ^ (d1 !> d2);
         break;
 
     case OPnul:
-        i++;
     case OPul:
         // BUG: complex numbers
-        i ^= d1 !>= d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnul) ^ (d1 !>= d2);
         break;
 
     case OPnuge:
-        i++;
     case OPuge:
         // BUG: complex numbers
-        i ^= d1 !< d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnuge) ^ (d1 !< d2);
         break;
 
     case OPnug:
-        i++;
     case OPug:
         // BUG: complex numbers
-        i ^= d1 !<= d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnug) ^ (d1 !<= d2);
         break;
 
     case OPnue:
-        i++;
     case OPue:
         // BUG: complex numbers
-        i ^= d1 !<> d2;
-        e->EV.Vint = i;
+        e->EV.Vint = (op == OPnue) ^ (d1 !<> d2);
         break;
 
 #endif
