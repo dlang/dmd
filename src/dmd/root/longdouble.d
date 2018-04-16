@@ -6,7 +6,7 @@
  * https://github.com/dlang/dmd/blob/master/src/root/longdouble.d
  */
 
-// 80-bit floating point value implementation if the C/D compiler do not support them natively
+// 80-bit floating point value implementation if the C/D compiler does not support them natively
 
 module dmd.root.longdouble;
 
