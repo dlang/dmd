@@ -4156,7 +4156,7 @@ private size_t getArrayHash(in TypeInfo element, in void* ptr, in size_t count) 
 
     size_t hash = 0;
     foreach(size_t i; 0 .. count)
-        hash += element.getHash(ptr + i * elementSize);
+        hash = hash * 33 + element.getHash(ptr + i * elementSize);
     return hash;
 }
 
