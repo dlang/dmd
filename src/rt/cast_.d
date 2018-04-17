@@ -122,20 +122,3 @@ int _d_isbaseof(ClassInfo oc, ClassInfo c)
 
     return false;
 }
-
-/*********************************
- * Find the vtbl[] associated with Interface ic.
- */
-void* _d_interface_vtbl(ClassInfo ic, Object o)
-{
-    debug(cast_) printf("__d_interface_vtbl(o = %p, ic = %p)\n", o, ic);
-
-    assert(o);
-
-    foreach (iface; typeid(o).interfaces)
-    {
-        if (iface.classinfo is ic)
-            return cast(void*) iface.vtbl;
-    }
-    assert(0);
-}

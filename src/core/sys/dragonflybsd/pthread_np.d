@@ -4,7 +4,7 @@
  * Authors: Martin Nowak,Diederik de Groot(port:DragonFlyBSD)
  * Copied:  From core/sys/freebsd/sys
  */
-module core.sys.dragonflybsd.pthread;
+module core.sys.dragonflybsd.pthread_np;
 
 version (DragonFlyBSD):
 

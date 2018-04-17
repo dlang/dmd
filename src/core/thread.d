@@ -44,6 +44,7 @@ version( Solaris )
 {
     import core.sys.solaris.sys.priocntl;
     import core.sys.solaris.sys.types;
+    import core.sys.posix.sys.wait : idtype_t;
 }
 
 // this should be true for most architectures
@@ -3205,6 +3206,7 @@ extern (C) @nogc nothrow
     version (Solaris) int thr_stksegment(stack_t* stk);
     version (CRuntime_Bionic) int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr);
     version (CRuntime_Musl) int pthread_getattr_np(pthread_t, pthread_attr_t*);
+    version (CRuntime_UClibc) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
 }
 
 
@@ -3303,6 +3305,16 @@ private void* getStackBottom() nothrow @nogc
         return addr + size;
     }
     else version (CRuntime_Musl)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_getattr_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else version (CRuntime_UClibc)
     {
         pthread_attr_t attr;
         void* addr; size_t size;
@@ -4059,6 +4071,14 @@ class Fiber
     // Initialization
     ///////////////////////////////////////////////////////////////////////////
 
+    version(Windows)
+        // exception handling walks the stack, invoking DbgHelp.dll which
+        // needs up to 16k of stack space depending on the version of DbgHelp.dll,
+        // the existence of debug symbols and other conditions. Avoid causing
+        // stack overflows by defaulting to a larger stack size
+        enum defaultStackPages = 8;
+    else
+        enum defaultStackPages = 4;
 
     /**
      * Initializes a fiber object which is associated with a static
@@ -4075,7 +4095,7 @@ class Fiber
      * In:
      *  fn must not be null.
      */
-    this( void function() fn, size_t sz = PAGESIZE*4,
+    this( void function() fn, size_t sz = PAGESIZE * defaultStackPages,
           size_t guardPageSize = PAGESIZE ) nothrow
     in
     {
@@ -4103,7 +4123,7 @@ class Fiber
      * In:
      *  dg must not be null.
      */
-    this( void delegate() dg, size_t sz = PAGESIZE*4,
+    this( void delegate() dg, size_t sz = PAGESIZE * defaultStackPages,
           size_t guardPageSize = PAGESIZE ) nothrow
     in
     {
@@ -4111,7 +4131,7 @@ class Fiber
     }
     do
     {
-        allocStack( sz, guardPageSize);
+        allocStack( sz, guardPageSize );
         reset( dg );
     }
 
@@ -4531,6 +4551,7 @@ private:
             version (DragonFlyBSD) import core.sys.dragonflybsd.sys.mman : MAP_ANON;
             version (CRuntime_Glibc) import core.sys.linux.sys.mman : MAP_ANON;
             version (Darwin) import core.sys.darwin.sys.mman : MAP_ANON;
+            version (CRuntime_UClibc) import core.sys.linux.sys.mman : MAP_ANON;
 
             static if( __traits( compiles, mmap ) )
             {

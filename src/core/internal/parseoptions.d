@@ -211,7 +211,7 @@ bool parse(const(char)[] optname, ref inout(char)[] str, ref inout(char)[] res, 
 in { assert(str.length); }
 do
 {
-    auto tail = str.find!(c => c == ':' || c == '=' || c == ' ');
+    auto tail = str.find!(c => c == ' ');
     res = str[0 .. $ - tail.length];
     if (!res.length)
         return parseError("an identifier", optname, str, errName);

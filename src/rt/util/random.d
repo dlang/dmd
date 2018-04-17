@@ -22,7 +22,6 @@ pure:
 
     void seed(uint seedval)
     {
-        assert(seedval);
         rng_state = cast(ulong)seedval << 16 | 0x330e;
         popFront();
     }

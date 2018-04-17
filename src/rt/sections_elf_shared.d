@@ -15,6 +15,7 @@ else version (CRuntime_Musl) enum SharedELF = true;
 else version (FreeBSD) enum SharedELF = true;
 else version (NetBSD) enum SharedELF = true;
 else version (DragonFlyBSD) enum SharedELF = true;
+else version (CRuntime_UClibc) enum SharedELF = true;
 else enum SharedELF = false;
 static if (SharedELF):
 
@@ -106,6 +107,7 @@ private:
     invariant()
     {
         assert(_moduleGroup.modules.length);
+        version (CRuntime_UClibc) {} else
         assert(_tlsMod || !_tlsSize);
     }
 
@@ -751,7 +753,12 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso) nothrow @nogc
 
         case PT_TLS: // TLS segment
             assert(!pdso._tlsSize); // is unique per DSO
-            pdso._tlsMod = info.dlpi_tls_modid;
+            version (CRuntime_UClibc)
+            {
+                // uClibc doesn't provide a 'dlpi_tls_modid' definition
+            }
+            else
+                pdso._tlsMod = info.dlpi_tls_modid;
             pdso._tlsSize = phdr.p_memsz;
             break;
 

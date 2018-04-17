@@ -252,7 +252,7 @@ class TypeInfo
      * Bugs:
      *    fix https://issues.dlang.org/show_bug.cgi?id=12516 e.g. by changing this to a truly safe interface.
      */
-    size_t getHash(in void* p) @trusted nothrow const { return cast(size_t)p; }
+    size_t getHash(scope const void* p) @trusted nothrow const { return cast(size_t)p; }
 
     /// Compares two instances for equality.
     bool equals(in void* p1, in void* p2) const { return p1 == p2; }
@@ -329,7 +329,7 @@ class TypeInfo_Enum : TypeInfo
                     this.base == c.base;
     }
 
-    override size_t getHash(in void* p) const { return base.getHash(p); }
+    override size_t getHash(scope const void* p) const { return base.getHash(p); }
     override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -377,7 +377,7 @@ class TypeInfo_Pointer : TypeInfo
         return c && this.m_next == c.m_next;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         return cast(size_t)*cast(void**)p;
     }
@@ -432,7 +432,7 @@ class TypeInfo_Array : TypeInfo
         return c && this.value == c.value;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         void[] a = *cast(void[]*)p;
         return getArrayHash(value, a.ptr, a.length);
@@ -529,7 +529,7 @@ class TypeInfo_StaticArray : TypeInfo
                     this.value == c.value;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         return getArrayHash(value, p, len);
     }
@@ -655,7 +655,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return !!_aaEqual(this, *cast(const void**) p1, *cast(const void**) p2);
     }
 
-    override hash_t getHash(in void* p) nothrow @trusted const
+    override hash_t getHash(scope const void* p) nothrow @trusted const
     {
         return _aaGetHash(cast(void*)p, this);
     }
@@ -702,7 +702,7 @@ class TypeInfo_Vector : TypeInfo
         return c && this.base == c.base;
     }
 
-    override size_t getHash(in void* p) const { return base.getHash(p); }
+    override size_t getHash(scope const void* p) const { return base.getHash(p); }
     override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -796,7 +796,7 @@ class TypeInfo_Delegate : TypeInfo
         return c && this.deco == c.deco;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         return hashOf(*cast(void delegate()*)p);
     }
@@ -896,7 +896,7 @@ class TypeInfo_Class : TypeInfo
         return c && this.info.name == c.info.name;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         auto o = *cast(Object*)p;
         return o ? o.toHash() : 0;
@@ -1051,7 +1051,7 @@ class TypeInfo_Interface : TypeInfo
         return c && this.info.name == typeid(c).name;
     }
 
-    override size_t getHash(in void* p) @trusted const
+    override size_t getHash(scope const void* p) @trusted const
     {
         Interface* pi = **cast(Interface ***)*cast(void**)p;
         Object o = cast(Object)(*cast(void**)p - pi.offset);
@@ -1121,7 +1121,7 @@ class TypeInfo_Struct : TypeInfo
                     this.initializer().length == s.initializer().length;
     }
 
-    override size_t getHash(in void* p) @trusted pure nothrow const
+    override size_t getHash(scope const void* p) @trusted pure nothrow const
     {
         assert(p);
         if (xtoHash)
@@ -1296,7 +1296,7 @@ class TypeInfo_Tuple : TypeInfo
         return false;
     }
 
-    override size_t getHash(in void* p) const
+    override size_t getHash(scope const void* p) const
     {
         assert(0);
     }
@@ -1367,7 +1367,7 @@ class TypeInfo_Const : TypeInfo
         return base.opEquals(t.base);
     }
 
-    override size_t getHash(in void *p) const { return base.getHash(p); }
+    override size_t getHash(scope const void *p) const { return base.getHash(p); }
     override bool equals(in void *p1, in void *p2) const { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -1453,7 +1453,6 @@ struct ModuleInfo
     else
     {
         @disable this();
-        @disable this(this) const;
     }
 
 const:
@@ -2264,6 +2263,7 @@ unittest
 {
     static struct T
     {
+        byte b;
         static size_t count;
         this(this) { ++count; }
     }
@@ -3409,29 +3409,43 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 /**
 Calculates the hash value of $(D arg) with $(D seed) initial value.
 The result may not be equal to `typeid(T).getHash(&arg)`.
-The $(D seed) value may be used for hash chaining:
-----
-struct Test
-{
-    int a;
-    string b;
-    MyObject c;
 
-    size_t toHash() const @safe pure nothrow
-    {
-        size_t hash = a.hashOf();
-        hash = b.hashOf(hash);
-        size_t h1 = c.myMegaHash();
-        hash = h1.hashOf(hash); //Mix two hash values
-        return hash;
-    }
-}
-----
+Params:
+    arg = argument to calculate the hash value of
+    seed = the $(D seed) value (may be used for hash chaining)
+
+Return: calculated hash value of $(D arg)
 */
 size_t hashOf(T)(auto ref T arg, size_t seed = 0)
 {
     import core.internal.hash;
     return core.internal.hash.hashOf(arg, seed);
+}
+
+///
+@system unittest
+{
+    class MyObject
+    {
+        size_t myMegaHash() const @safe pure nothrow
+        {
+            return 42;
+        }
+    }
+    struct Test
+    {
+        int a;
+        string b;
+        MyObject c;
+        size_t toHash() const pure nothrow
+        {
+            size_t hash = a.hashOf();
+            hash = b.hashOf(hash);
+            size_t h1 = c.myMegaHash();
+            hash = h1.hashOf(hash); //Mix two hash values
+            return hash;
+        }
+    }
 }
 
 unittest
@@ -3921,45 +3935,45 @@ template _arrayOp(Args...)
                    strings are sorted by length first, and then lexicographically.
  *      condition = string to look up in table
  * Returns:
- *      index of match in caseLabels, -1 if not found
+ *      index of match in caseLabels, a negative integer if not found
 */
 int __switch(T, caseLabels...)(/*in*/ const scope T[] condition) pure nothrow @safe @nogc
 {
     // This closes recursion for other cases.
     static if (caseLabels.length == 0)
     {
-        return -1;
+        return int.min;
     }
     else static if (caseLabels.length == 1)
     {
-        return __cmp(condition, caseLabels[0]) == 0 ? 0 : -1;
+        return __cmp(condition, caseLabels[0]) == 0 ? 0 : int.min;
     }
     // To be adjusted after measurements
     // Compile-time inlined binary search.
     else static if (caseLabels.length < 7)
     {
         int r = void;
-        if (condition.length == caseLabels[$ / 2].length)
+        enum mid = cast(int)caseLabels.length / 2;
+        if (condition.length == caseLabels[mid].length)
         {
-            r = __cmp(condition, caseLabels[$ / 2]);
-            if (r == 0) return cast(int) caseLabels.length / 2;
+            r = __cmp(condition, caseLabels[mid]);
+            if (r == 0) return mid;
         }
         else
         {
             // Equivalent to (but faster than) condition.length > caseLabels[$ / 2].length ? 1 : -1
-            r = ((condition.length > caseLabels[$ / 2].length) << 1) - 1;
+            r = ((condition.length > caseLabels[mid].length) << 1) - 1;
         }
 
         if (r < 0)
         {
             // Search the left side
-            return __switch!(T, caseLabels[0 .. $ / 2])(condition);
+            return __switch!(T, caseLabels[0 .. mid])(condition);
         }
         else
         {
             // Search the right side
-            r = __switch!(T, caseLabels[$ / 2 + 1 .. $])(condition);
-            return r != -1 ? cast(int) (caseLabels.length / 2 + 1 + r) : -1;
+            return __switch!(T, caseLabels[mid + 1 .. $])(condition) + mid + 1;
         }
     }
     else
@@ -4446,6 +4460,6 @@ unittest
     }
 
     int p;
-    scope arr = [S(&p)];
+    scope S[1] arr = [S(&p)];
     auto a = arr.dup; // dup does escape
 }

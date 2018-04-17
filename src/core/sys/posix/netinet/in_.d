@@ -397,8 +397,7 @@ else version( linux )
         IPPROTO_TCP  = 6,
         IPPROTO_PUP  = 12,
         IPPROTO_UDP  = 17,
-        IPPROTO_IDP  = 22,
-        IPPROTO_IPV6 = 41
+        IPPROTO_IDP  = 22
     }
 
     enum : c_ulong
@@ -1406,6 +1405,8 @@ else version( CRuntime_Musl )
 
     enum : uint
     {
+        IPPROTO_IPV6 = 41,
+
         IPV6_UNICAST_HOPS   = 16,
         IPV6_MULTICAST_IF   = 17,
         IPV6_MULTICAST_HOPS = 18,

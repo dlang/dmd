@@ -28,7 +28,7 @@ class TypeInfo_zi : TypeInfo
 
     override string toString() const pure nothrow @safe { return "cent"; }
 
-    override size_t getHash(in void* p)
+    override size_t getHash(scope const void* p)
     {
         return rt.util.hash.hashOf(p[0 .. cent.sizeof], 0);
     }
