@@ -1555,6 +1555,10 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
 int VarDeclaration::isDataseg()
 {
+    if (ident == Id::ctfe)
+    {
+        return true;
+    }
 #if 0
     printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
     printf("%llx, %p, %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());

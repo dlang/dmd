@@ -721,6 +721,10 @@ elem *VarExp::toElem(IRState *irs)
 
     //printf("VarExp::toElem('%s') %p\n", toChars(), this);
     //printf("\tparent = '%s'\n", var->parent ? var->parent->toChars() : "null");
+    if (var->ident == Id::ctfe)
+    {
+        return el_long(TYint, 0);
+    }
     if (var->needThis())
     {
         error("need 'this' to access member %s", toChars());
