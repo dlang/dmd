@@ -1624,11 +1624,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
     SymbolDeclaration *s = d->isSymbolDeclaration();
     if (v)
     {
-#if DMDV2
         /* Magic variable __ctfe always returns true when interpreting
          */
         if (v->ident == Id::ctfe)
             return new IntegerExp(loc, 1, Type::tbool);
+#if DMDV2
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
             && v->init && !v->hasValue() && !v->isCTFE())
 #else

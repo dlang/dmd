@@ -255,6 +255,8 @@ Msgtable msgtable[] =
     { "bsf" },
     { "bsr" },
     { "bswap" },
+    // ctfe
+    { "ctfe", "__ctfe" },
 };
 
 
