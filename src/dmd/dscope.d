@@ -390,7 +390,7 @@ struct Scope
 
             static void printMsg(string txt, Dsymbol s)
             {
-                printf("%.*s  %s.%s, kind = '%s'\n", cast(int)msg.length, msg.ptr,
+                printf("%.*s  %s.%s, kind = '%s'\n", cast(int)txt.length, txt.ptr,
                     s.parent ? s.parent.toChars() : "", s.toChars(), s.kind());
             }
         }

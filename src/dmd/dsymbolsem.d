@@ -5507,11 +5507,10 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     }
     Scope* sc2;
     sc2 = _scope.push(tempinst);
-    //printf("enclosing = %d, sc.parent = %s\n", enclosing, sc.parent.toChars());
+    //printf("enclosing = %d, sc.parent = %s\n", tempinst.enclosing, sc.parent.toChars());
     sc2.parent = tempinst;
     sc2.tinst = tempinst;
     sc2.minst = tempinst.minst;
-
     tempinst.tryExpandMembers(sc2);
 
     tempinst.semanticRun = PASS.semanticdone;
@@ -5603,12 +5602,20 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
     else if (tempinst.tinst)
     {
         bool doSemantic3 = false;
-        if (sc.func && tempinst.aliasdecl && tempinst.aliasdecl.toAlias().isFuncDeclaration())
+        FuncDeclaration fd;
+        if (tempinst.aliasdecl)
+            fd = tempinst.aliasdecl.toAlias().isFuncDeclaration();
+
+        if (fd)
         {
             /* Template function instantiation should run semantic3 immediately
              * for attribute inference.
              */
-            doSemantic3 = true;
+            scope fld = fd.isFuncLiteralDeclaration;
+            if (fld && fld.tok == TOK.reserved)
+                doSemantic3 = true;
+            else if (sc.func)
+                doSemantic3 = true;
         }
         else if (sc.func)
         {
