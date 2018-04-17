@@ -233,14 +233,14 @@ void cv8_termfile(const char *objfilename)
         if (f2seg != seg && fd->f1buf->size())
         {
             // Write out "F1" section
-            unsigned f1offset = SegData[f2seg]->SDoffset;
+            const unsigned f1offset = SegData[f2seg]->SDoffset;
             cv8_writesection(f2seg, 0xF1, fd->f1buf);
 
             // Fixups for "F1" section
-            unsigned length = fd->f1fixup->size();
-            unsigned char *p = fd->f1fixup->buf;
-            for (unsigned u = 0; u < length; u += sizeof(F1_Fixups))
-            {   F1_Fixups *f = (F1_Fixups *)(p + u);
+            const unsigned fixupLength = fd->f1fixup->size();
+            unsigned char *pfixup = fd->f1fixup->buf;
+            for (unsigned v = 0; v < fixupLength; v += sizeof(F1_Fixups))
+            {   F1_Fixups *f = (F1_Fixups *)(pfixup + v);
 
                 objmod->reftoident(f2seg, f1offset + 8 + f->offset, f->s, f->value, CFseg | CFoff);
             }
