@@ -9,7 +9,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgsched.c, backend/cgsched.c)
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -2009,26 +2009,24 @@ if (c2->IEVpointer1 + sz2 <= c1->IEVpointer1) printf("t5\n");
 
 Lswap:
     if (fpsched)
-    {   unsigned char a1,b1;
-        unsigned char a2,b2;
-
+    {
         //printf("\tfpsched %d,%d:\n",ci1->fp_op,ci2->fp_op);
-        a1 = ci1->fxch_pre;
-        b1 = ci1->fxch_post;
-        a2 = ci2->fxch_pre;
-        b2 = ci2->fxch_post;
+        unsigned char x1 = ci1->fxch_pre;
+        unsigned char y1 = ci1->fxch_post;
+        unsigned char x2 = ci2->fxch_pre;
+        unsigned char y2 = ci2->fxch_post;
 
         #define X(a,b) ((a << 8) | b)
         switch (X(ci1->fp_op,ci2->fp_op))
         {
             case X(FPfstp,FPfld):
-                if (a1 || b1)
+                if (x1 || y1)
                     goto Lconflict;
-                if (a2)
+                if (x2)
                     goto Lconflict;
-                if (b2 == 0)
+                if (y2 == 0)
                     ci2->fxch_post++;
-                else if (b2 == 1)
+                else if (y2 == 1)
                 {
                     ci2->fxch_pre++;
                     ci2->fxch_post++;
@@ -2040,28 +2038,28 @@ Lswap:
                 break;
 
             case X(FPfstp,FPfop):
-                if (a1 || b1)
+                if (x1 || y1)
                     goto Lconflict;
                 ci2->fxch_pre++;
                 ci2->fxch_post++;
                 break;
 
             case X(FPfop,FPfop):
-                if (a1 == 0 && b1 == 1 && a2 == 0 && b2 == 0)
+                if (x1 == 0 && y1 == 1 && x2 == 0 && y2 == 0)
                 {   ci2->fxch_pre = 1;
                     ci2->fxch_post = 1;
                     break;
                 }
-                if (a1 == 0 && b1 == 0 && a2 == 1 && b2 == 1)
+                if (x1 == 0 && y1 == 0 && x2 == 1 && y2 == 1)
                     break;
                 goto Lconflict;
 
             case X(FPfop,FPfld):
-                if (a1 || b1)
+                if (x1 || y1)
                     goto Lconflict;
-                if (a2)
+                if (x2)
                     goto Lconflict;
-                if (b2)
+                if (y2)
                     break;
                 else if (fpsched == 2)
                     ci1->fxch_post = 1;
@@ -2254,12 +2252,11 @@ code **Schedule::assemble(code **pc)
     // Just append any instructions left in the staging area
     for (; l; l = list_next(l))
     {   Cinfo *ci = (Cinfo *)list_ptr(l);
-        code *c = ci->c;
 
 #ifdef DEBUG
-        if (debugs) { printf("appending: "); c->print(); }
+        if (debugs) { printf("appending: "); ci->c->print(); }
 #endif
-        *pc = c;
+        *pc = ci->c;
         do
         {
             pc = &code_next(*pc);
@@ -2879,33 +2876,34 @@ code *peephole(code *cstart,regm_t scratch)
         // Do:
         //      PUSH    reg
         if (I32 && (c->Iop & ~7) == 0x50)
-        {   unsigned reg = c->Iop & 7;
+        {
+            unsigned regx = c->Iop & 7;
 
-            //  MOV     [ESP],reg       =>      NOP
+            //  MOV     [ESP],regx       =>      NOP
             if (c1->Iop == 0x8B &&
-                c1->Irm == modregrm(0,reg,4) &&
+                c1->Irm == modregrm(0,regx,4) &&
                 c1->Isib == modregrm(0,4,SP))
             {   c1->Iop = NOP;
                 continue;
             }
 
-            //  PUSH    [ESP]           =>      PUSH    reg
+            //  PUSH    [ESP]           =>      PUSH    regx
             if (c1->Iop == 0xFF &&
                 c1->Irm == modregrm(0,6,4) &&
                 c1->Isib == modregrm(0,4,SP))
-            {   c1->Iop = 0x50 + reg;
+            {   c1->Iop = 0x50 + regx;
                 continue;
             }
 
-            //  CMP     [ESP],imm       =>      CMP     reg,i,,
+            //  CMP     [ESP],imm       =>      CMP     regx,i,,
             if (c1->Iop == 0x83 &&
                 c1->Irm == modregrm(0,7,4) &&
                 c1->Isib == modregrm(0,4,SP))
-            {   c1->Irm = modregrm(3,7,reg);
+            {   c1->Irm = modregrm(3,7,regx);
                 if (c1->IFL2 == FLconst && (signed char)c1->IEV2.Vuns == 0)
-                {   // to TEST reg,reg
+                {   // to TEST regx,regx
                     c1->Iop = (c1->Iop & 1) | 0x84;
-                    c1->Irm = modregrm(3,reg,reg);
+                    c1->Irm = modregrm(3,regx,regx);
                 }
                 continue;
             }
@@ -2919,8 +2917,9 @@ code *peephole(code *cstart,regm_t scratch)
             c->Isib == modregrm(0,4,SP) &&
             c1->Iop == 0x83 && (c1->Irm & 0xC7) == modregrm(3,0,SP) &&
             !(c1->Iflags & CFpsw) && c1->IFL2 == FLconst && c1->IEV2.Vint == 4)
-        {   unsigned reg = (c->Irm >> 3) & 7;
-            c->Iop = 0x58 + reg;
+        {
+            unsigned regx = (c->Irm >> 3) & 7;
+            c->Iop = 0x58 + regx;
             c1->Iop = NOP;
             continue;
         }
