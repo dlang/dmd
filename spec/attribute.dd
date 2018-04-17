@@ -28,24 +28,23 @@ $(GNAME Attribute):
     $(RELATIVE_LINK2 inout, $(D inout))
     $(RELATIVE_LINK2 shared, $(D shared))
     $(RELATIVE_LINK2 gshared, $(D __gshared))
-    $(GLINK Property)
+    $(GLINK AtAttribute)
     $(RELATIVE_LINK2 nothrow, $(D nothrow))
     $(RELATIVE_LINK2 pure, $(D pure))
     $(RELATIVE_LINK2 ref, $(D ref))
     $(RELATIVE_LINK2 return, $(D return))
 
-$(GNAME Property):
-    $(D @) $(GLINK PropertyIdentifier)
+$(GNAME AtAttribute):
+    $(D @) $(RELATIVE_LINK2 disable, $(D disable))
+    $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
+    $(GLINK Property)
+    $(D @) $(RELATIVE_LINK2 safe, $(D safe))
+    $(D @) $(RELATIVE_LINK2 safe, $(D system))
+    $(D @) $(RELATIVE_LINK2 safe, $(D trusted))
     $(GLINK UserDefinedAttribute)
 
-$(GNAME PropertyIdentifier):
-    $(RELATIVE_LINK2 property, `property`)
-    $(RELATIVE_LINK2 safe, `@safe`)
-    $(RELATIVE_LINK2 safe, `@trusted`)
-    $(RELATIVE_LINK2 safe, `@system`)
-    $(RELATIVE_LINK2 disable, $(D disable))
-    $(RELATIVE_LINK2 nogc, `nogc`)
-    $(RELATIVE_LINK2 disable, `@disable`)
+$(GNAME Property):
+    $(D @) $(RELATIVE_LINK2 property, $(D property))
 
 $(GNAME DeclarationBlock):
     $(GLINK2 module, DeclDef)
