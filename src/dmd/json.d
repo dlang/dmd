@@ -228,12 +228,36 @@ public:
         buf.writestring(" : ");
     }
 
+    /**
+    Write the given string object property only if `s` is not null.
+
+    Params:
+     name = the name of the object property
+     s = the string value of the object property
+    */
     void property(const(char)* name, const(char)* s)
     {
         if (s is null)
             return;
         propertyStart(name);
         value(s);
+        comma();
+    }
+
+    /**
+    Write the given string object property.
+
+    Params:
+     name = the name of the object property
+     s = the string value of the object property
+    */
+    void requiredProperty(const(char)* name, const(char)* s)
+    {
+        propertyStart(name);
+        if (s is null)
+            buf.writestring("null");
+        else
+            value(s);
         comma();
     }
 
@@ -826,9 +850,67 @@ public:
     private void generateCompilerInfo()
     {
         objectStart();
-        property("binary", global.params.argv0);
-        property("version", global._version);
-        propertyBool("supportsIncludeImports", true);
+        requiredProperty("vendor", global.compiler.vendor);
+        requiredProperty("version", global._version);
+        property("__VERSION__", global.versionNumber());
+        requiredProperty("interface", determineCompilerInterface());
+        property("size_t", size_t.sizeof);
+        propertyStart("platforms");
+        arrayStart();
+        if (global.params.isWindows)
+        {
+            item("windows");
+        }
+        else
+        {
+            item("posix");
+            if (global.params.isLinux)
+                item("linux");
+            else if (global.params.isOSX)
+                item("osx");
+            else if (global.params.isFreeBSD)
+            {
+                item("freebsd");
+                item("bsd");
+            }
+            else if (global.params.isOpenBSD)
+            {
+                item("openbsd");
+                item("bsd");
+            }
+            else if (global.params.isSolaris)
+            {
+                item("solaris");
+                item("bsd");
+            }
+        }
+        arrayEnd();
+
+        propertyStart("architectures");
+        arrayStart();
+        if (global.params.is64bit)
+            item("x86_64");
+        else
+            version(X86) item("x86");
+        arrayEnd();
+
+        propertyStart("predefinedVersions");
+        arrayStart();
+        if (global.versionids)
+        {
+            foreach (const versionid; *global.versionids)
+            {
+                item(versionid.toChars());
+            }
+        }
+        arrayEnd();
+
+        propertyStart("supportedFeatures");
+        {
+            objectStart();
+            scope(exit) objectEnd();
+            propertyBool("includeImports", true);
+        }
         objectEnd();
     }
 
@@ -839,18 +921,50 @@ public:
     private void generateBuildInfo()
     {
         objectStart();
-        property("cwd", getcwd(null, 0));
-        property("config", global.inifilename ? global.inifilename : null);
-        if (global.params.lib) {
-            property("library", global.params.libname);
-        }
+        requiredProperty("cwd", getcwd(null, 0));
+        requiredProperty("argv0", global.params.argv0);
+        requiredProperty("config", global.inifilename);
+        requiredProperty("libName", global.params.libname);
+
         propertyStart("importPaths");
         arrayStart();
-        foreach (importPath; *global.params.imppath)
+        if (global.params.imppath)
         {
-            item(importPath);
+            foreach (importPath; *global.params.imppath)
+            {
+                item(importPath);
+            }
         }
         arrayEnd();
+
+        propertyStart("objectFiles");
+        arrayStart();
+        foreach (objfile; global.params.objfiles)
+        {
+            item(objfile);
+        }
+        arrayEnd();
+
+        propertyStart("libraryFiles");
+        arrayStart();
+        foreach (lib; global.params.libfiles)
+        {
+            item(lib);
+        }
+        arrayEnd();
+
+        propertyStart("ddocFiles");
+        arrayStart();
+        foreach (ddocFile; global.params.ddocfiles)
+        {
+            item(ddocFile);
+        }
+        arrayEnd();
+
+        requiredProperty("mapFile", global.params.mapfile);
+        requiredProperty("resourceFile", global.params.resfile);
+        requiredProperty("defFile", global.params.deffile);
+
         objectEnd();
     }
 
@@ -867,9 +981,8 @@ public:
         foreach (m; Module.amodules)
         {
             objectStart();
-            if(m.md)
-                property("name", m.md.toChars());
-            property("file", m.srcfile.toChars());
+            requiredProperty("name", m.md ? m.md.toChars() : null);
+            requiredProperty("file", m.srcfile.toChars());
             propertyBool("isRoot", m.isRoot());
             if(m.contentImportedFiles.dim > 0)
             {
@@ -891,6 +1004,8 @@ public:
 extern (C++) void json_generate(OutBuffer* buf, Modules* modules)
 {
     scope ToJsonVisitor json = new ToJsonVisitor(buf);
+    // write trailing newline
+    scope(exit) buf.writeByte('\n');
 
     if (global.params.jsonFieldFlags == 0)
     {
@@ -967,4 +1082,21 @@ JsonFieldFlags tryParseJsonField(const(char)* fieldName)
         }
     }
     return JsonFieldFlags.none;
+}
+
+/**
+Determines and returns the compiler interface which is one of `dmd`, `ldc`,
+`gdc` or `sdc`. Returns `null` if no interface can be determined.
+*/
+private const(char)* determineCompilerInterface()
+{
+    if (!strcmp(global.compiler.vendor, "Digital Mars D"))
+        return "dmd";
+    if (!strcmp(global.compiler.vendor, "LDC"))
+        return "ldc";
+    if (!strcmp(global.compiler.vendor, "GNU"))
+        return "gdc";
+    if (!strcmp(global.compiler.vendor, "SDC"))
+        return "sdc";
+    return null;
 }

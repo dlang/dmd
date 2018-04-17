@@ -1,25 +1,14 @@
 #!/usr/bin/env bash
 
-src=runnable${SEP}extra-files
+
 dir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}${SEP}link14834.sh.out
 
-rm -f ${output_file}
+libname=${OUTPUT_BASE}${LIBEXT}
+exename=${OUTPUT_BASE}${EXE}
 
-if [ $OS == "win32" -o  $OS == "win64" ]; then
-	LIBEXT=.lib
-else
-	LIBEXT=.a
-fi
+$DMD -m${MODEL} -I${EXTRA_FILES} -lib           -of${libname} ${EXTRA_FILES}${SEP}link14834a.d
+$DMD -m${MODEL} -I${EXTRA_FILES} -inline -debug -of${exename} ${EXTRA_FILES}${SEP}link14834b.d ${libname}
 
-libname=${dir}${SEP}link14834${LIBEXT}
-exename=${dir}${SEP}link14834${EXE}
+${exename}
 
-$DMD -m${MODEL} -I${src} -lib           -of${libname} ${src}${SEP}link14834a.d            > ${output_file} || exit 1
-$DMD -m${MODEL} -I${src} -inline -debug -of${exename} ${src}${SEP}link14834b.d ${libname} > ${output_file} || exit 1
-
-${dir}/link14834 || exit 1
-
-rm ${libname} ${exename} ${dir}${SEP}link14834${OBJ}
-
-echo Success > ${output_file}
+rm ${OUTPUT_BASE}{${LIBEXT},${EXE},${OBJ}}

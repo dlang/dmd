@@ -40,7 +40,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -72,6 +71,247 @@ import dmd.typesem;
 import dmd.visitor;
 
 enum LOG = false;
+
+/*****************************************
+ * Create inclusive postblit for struct by aggregating
+ * all the postblits in postblits[] with the postblits for
+ * all the members.
+ * Note the close similarity with AggregateDeclaration::buildDtor(),
+ * and the ordering changes (runs forward instead of backwards).
+ */
+private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
+{
+    //printf("StructDeclaration::buildPostBlit() %s\n", sd.toChars());
+    if (sd.isUnionDeclaration())
+        return null;
+
+    // by default, the storage class of the created postblit
+    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    Loc declLoc = sd.postblits.dim ? sd.postblits[0].loc : sd.loc;
+    Loc loc; // internal code should have no loc to prevent coverage
+
+    // if any of the postblits are disabled, then the generated postblit
+    // will be disabled
+    for (size_t i = 0; i < sd.postblits.dim; i++)
+    {
+        stc |= sd.postblits[i].storage_class & STC.disable;
+    }
+
+    auto postblitCalls = new Statements();
+    // iterate through all the struct fields that are not disabled
+    for (size_t i = 0; i < sd.fields.dim && !(stc & STC.disable); i++)
+    {
+        auto structField = sd.fields[i];
+        if (structField.storage_class & STC.ref_)
+            continue;
+        if (structField.overlapped)
+            continue;
+        // if it's a struct declaration or an array of structs
+        Type tv = structField.type.baseElemOf();
+        if (tv.ty != Tstruct)
+            continue;
+        auto sdv = (cast(TypeStruct)tv).sym;
+        // which has a postblit declaration
+        if (!sdv.postblit)
+            continue;
+        assert(!sdv.isUnionDeclaration());
+
+        // perform semantic on the member postblit in order to
+        // be able to aggregate it later on with the rest of the
+        // postblits
+        sdv.postblit.functionSemantic();
+
+        stc = mergeFuncAttrs(stc, sdv.postblit);
+        stc = mergeFuncAttrs(stc, sdv.dtor);
+
+        // if any of the struct member fields has disabled
+        // its postblit, then `sd` is not copyable, so no
+        // postblit is generated
+        if (stc & STC.disable)
+        {
+            postblitCalls.setDim(0);
+            break;
+        }
+
+        Expression ex;
+        tv = structField.type.toBasetype();
+        if (tv.ty == Tstruct)
+        {
+            // this.v.__xpostblit()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, structField);
+
+            // This is a hack so we can call postblits on const/immutable objects.
+            ex = new AddrExp(loc, ex);
+            ex = new CastExp(loc, ex, structField.type.mutableOf().pointerTo());
+            ex = new PtrExp(loc, ex);
+            if (stc & STC.safe)
+                stc = (stc & ~STC.safe) | STC.trusted;
+
+            ex = new DotVarExp(loc, ex, sdv.postblit, false);
+            ex = new CallExp(loc, ex);
+        }
+        else
+        {
+            // _ArrayPostblit((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t length = 1;
+            while (tv.ty == Tsarray)
+            {
+                length *= (cast(TypeSArray)tv).dim.toUInteger();
+                tv = tv.nextOf().toBasetype();
+            }
+            if (length == 0)
+                continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, structField);
+
+            // This is a hack so we can call postblits on const/immutable objects.
+            ex = new DotIdExp(loc, ex, Id.ptr);
+            ex = new CastExp(loc, ex, sdv.type.pointerTo());
+            if (stc & STC.safe)
+                stc = (stc & ~STC.safe) | STC.trusted;
+
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, length, Type.tsize_t));
+            // Prevent redundant bounds check
+            (cast(SliceExp)ex).upperIsInBounds = true;
+            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayPostblit), ex);
+        }
+        postblitCalls.push(new ExpStatement(loc, ex)); // combine in forward order
+
+        /* https://issues.dlang.org/show_bug.cgi?id=10972
+         * When the following field postblit calls fail,
+         * this field should be destructed for Exception Safety.
+         */
+        if (!sdv.dtor)
+            continue;
+        sdv.dtor.functionSemantic();
+
+        tv = structField.type.toBasetype();
+        if (tv.ty == Tstruct)
+        {
+            // this.v.__xdtor()
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, structField);
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new AddrExp(loc, ex);
+            ex = new CastExp(loc, ex, structField.type.mutableOf().pointerTo());
+            ex = new PtrExp(loc, ex);
+            if (stc & STC.safe)
+                stc = (stc & ~STC.safe) | STC.trusted;
+
+            ex = new DotVarExp(loc, ex, sdv.dtor, false);
+            ex = new CallExp(loc, ex);
+        }
+        else
+        {
+            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+            uinteger_t length = 1;
+            while (tv.ty == Tsarray)
+            {
+                length *= (cast(TypeSArray)tv).dim.toUInteger();
+                tv = tv.nextOf().toBasetype();
+            }
+            //if (n == 0)
+            //    continue;
+
+            ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, structField);
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            ex = new DotIdExp(loc, ex, Id.ptr);
+            ex = new CastExp(loc, ex, sdv.type.pointerTo());
+            if (stc & STC.safe)
+                stc = (stc & ~STC.safe) | STC.trusted;
+
+            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                       new IntegerExp(loc, length, Type.tsize_t));
+            // Prevent redundant bounds check
+            (cast(SliceExp)ex).upperIsInBounds = true;
+            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
+            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
+        }
+        postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
+    }
+
+    void checkShared()
+    {
+        if (sd.type.isShared())
+            stc |= STC.shared_;
+    }
+
+    // Build our own "postblit" which executes a, but only if needed.
+    if (postblitCalls.dim || (stc & STC.disable))
+    {
+        //printf("Building __fieldPostBlit()\n");
+        checkShared();
+        auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__fieldPostblit);
+        dd.generated = true;
+        dd.storage_class |= STC.inference;
+        dd.fbody = (stc & STC.disable) ? null : new CompoundStatement(loc, postblitCalls);
+        sd.postblits.shift(dd);
+        sd.members.push(dd);
+        dd.dsymbolSemantic(sc);
+    }
+
+    // create __xpostblit, which is the generated postblit
+    FuncDeclaration xpostblit = null;
+    switch (sd.postblits.dim)
+    {
+    case 0:
+        break;
+
+    case 1:
+        xpostblit = sd.postblits[0];
+        break;
+
+    default:
+        Expression e = null;
+        stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+        for (size_t i = 0; i < sd.postblits.dim; i++)
+        {
+            auto fd = sd.postblits[i];
+            stc = mergeFuncAttrs(stc, fd);
+            if (stc & STC.disable)
+            {
+                e = null;
+                break;
+            }
+            Expression ex = new ThisExp(loc);
+            ex = new DotVarExp(loc, ex, fd, false);
+            ex = new CallExp(loc, ex);
+            e = Expression.combine(e, ex);
+        }
+
+        checkShared();
+        auto dd = new PostBlitDeclaration(declLoc, Loc.initial, stc, Id.__aggrPostblit);
+        dd.generated = true;
+        dd.storage_class |= STC.inference;
+        dd.fbody = new ExpStatement(loc, e);
+        sd.members.push(dd);
+        dd.dsymbolSemantic(sc);
+        xpostblit = dd;
+        break;
+    }
+
+    // Add an __xpostblit alias to make the inclusive postblit accessible
+    if (xpostblit)
+    {
+        auto _alias = new AliasDeclaration(Loc.initial, Id.__xpostblit, xpostblit);
+        _alias.dsymbolSemantic(sc);
+        sd.members.push(_alias);
+        _alias.addMember(sc, sd); // add to symbol table
+    }
+    return xpostblit;
+}
 
 private uint setMangleOverride(Dsymbol s, char* sym)
 {
@@ -655,9 +895,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 if (global.params.vfield && dsym.storage_class & (STC.const_ | STC.immutable_) && dsym._init && !dsym._init.isVoidInitializer())
                 {
-                    const(char)* p = dsym.loc.toChars();
                     const(char)* s = (dsym.storage_class & STC.immutable_) ? "immutable" : "const";
-                    message("%s: %s.%s is %s field", p ? p : "", ad.toPrettyChars(), dsym.toChars(), s);
+                    message(dsym.loc, "`%s.%s` is `%s` field", ad.toPrettyChars(), dsym.toChars(), s);
                 }
                 dsym.storage_class |= STC.field;
                 if (tbn.ty == Tstruct && (cast(TypeStruct)tbn).sym.noDefaultCtor)
@@ -823,7 +1062,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym._init = new ExpInitializer(dsym.loc, e);
                 goto Ldtor;
             }
-            if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit == 1)
+            if (tv.ty == Tstruct && (cast(TypeStruct)tv).sym.zeroInit)
             {
                 /* If a struct is all zeros, as a special case
                  * set it's initializer to the integer 0.
@@ -2002,8 +2241,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (!em.ed.isAnonymous())
                     em.ed.memtype = t;
             }
-            Expression e = new IntegerExp(em.loc, 0, Type.tint32);
-            e = e.implicitCastTo(sc, t);
+            Expression e = new IntegerExp(em.loc, 0, t);
             e = e.ctfeInterpret();
 
             // save origValue for better json output
@@ -3169,8 +3407,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
 
                 if (s)
-                    funcdecl.error("does not override any function, did you mean to override `%s%s`?",
-                        bc.sym.isCPPclass() ? "extern (C++) ".ptr : "".ptr, s.toPrettyChars());
+                {
+                    auto fd = s.isFuncDeclaration();
+                    assert(fd);
+
+                    HdrGenState hgs;
+                    OutBuffer buf1, buf2;
+
+                    functionToBufferFull(cast(TypeFunction)(fd.type), &buf1,
+                        new Identifier(fd.toPrettyChars()), &hgs, null);
+                    functionToBufferFull(cast(TypeFunction)(funcdecl.type), &buf2,
+                        new Identifier(funcdecl.toPrettyChars()), &hgs, null);
+
+                    error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
+                        buf2.extractString(), buf1.extractString());
+                }
                 else
                     funcdecl.error("does not override any function");
             }
@@ -3387,7 +3638,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         StructDeclaration ad = p.isStructDeclaration();
         if (!ad)
         {
-            error(pbd.loc, "postblit can only be a member of struct/union, not %s `%s`", p.kind(), p.toChars());
+            error(pbd.loc, "postblit can only be a member of struct, not %s `%s`", p.kind(), p.toChars());
             pbd.type = Type.terror;
             pbd.errors = true;
             return;
@@ -3672,6 +3923,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(NewDeclaration nd)
     {
         //printf("NewDeclaration::semantic()\n");
+
+        // `@disable new();` should not be deprecated
+        if (!nd.isDisabled())
+        {
+            // @@@DEPRECATED_2.084@@@
+            // Should be changed to an error in 2.084
+            deprecation(nd.loc, "class allocators have been deprecated, consider moving the allocation strategy outside of the class");
+        }
+
         if (nd.semanticRun >= PASS.semanticdone)
             return;
         if (nd._scope)
@@ -3695,17 +3955,21 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         nd.type = nd.type.typeSemantic(nd.loc, sc);
 
-        // Check that there is at least one argument of type size_t
-        TypeFunction tf = nd.type.toTypeFunction();
-        if (Parameter.dim(tf.parameters) < 1)
+        // allow for `@disable new();` to force users of a type to use an external allocation strategy
+        if (!nd.isDisabled())
         {
-            nd.error("at least one argument of type `size_t` expected");
-        }
-        else
-        {
-            Parameter fparam = Parameter.getNth(tf.parameters, 0);
-            if (!fparam.type.equals(Type.tsize_t))
-                nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
+            // Check that there is at least one argument of type size_t
+            TypeFunction tf = nd.type.toTypeFunction();
+            if (Parameter.dim(tf.parameters) < 1)
+            {
+                nd.error("at least one argument of type `size_t` expected");
+            }
+            else
+            {
+                Parameter fparam = Parameter.getNth(tf.parameters, 0);
+                if (!fparam.type.equals(Type.tsize_t))
+                    nd.error("first argument must be type `size_t`, not `%s`", fparam.type.toChars());
+            }
         }
 
         funcDeclarationSemantic(nd);
@@ -3714,6 +3978,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     override void visit(DeleteDeclaration deld)
     {
         //printf("DeleteDeclaration::semantic()\n");
+
+        // @@@DEPRECATED_2.084@@@
+        // Should be changed to an error in 2.084
+        deprecation(deld.loc, "class deallocators have been deprecated, consider moving the deallocation strategy outside of the class");
+
         if (deld.semanticRun >= PASS.semanticdone)
             return;
         if (deld._scope)
@@ -4172,6 +4441,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             // Treat the remaining entries in baseclasses as interfaces
             // Check for errors, handle forward references
+            bool multiClassError = false;
+
             for (size_t i = (cldec.baseClass ? 1 : 0); i < cldec.baseclasses.dim;)
             {
                 BaseClass* b = (*cldec.baseclasses)[i];
@@ -4179,8 +4450,29 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 TypeClass tc = (tb.ty == Tclass) ? cast(TypeClass)tb : null;
                 if (!tc || !tc.sym.isInterfaceDeclaration())
                 {
-                    if (b.type != Type.terror)
-                        cldec.error("base type must be `interface`, not `%s`", b.type.toChars());
+                    // It's a class
+                    if (tc)
+                    {
+                        if (!multiClassError)
+                        {
+                            error(cldec.loc,"`%s`: multiple class inheritance is not supported." ~
+                                  " Use multiple interface inheritance and/or composition.", cldec.toPrettyChars());
+                            multiClassError = true;
+                        }
+
+                        if (tc.sym.fields.dim)
+                            errorSupplemental(cldec.loc,"`%s` has fields, consider making it a member of `%s`",
+                                              b.type.toChars(), cldec.type.toChars());
+                        else
+                            errorSupplemental(cldec.loc,"`%s` has no fields, consider making it an `interface`",
+                                              b.type.toChars());
+                    }
+                    // It's something else: e.g. `int` in `class Foo : Bar, int { ... }`
+                    else if (b.type != Type.terror)
+                    {
+                        error(cldec.loc,"`%s`: base type must be `interface`, not `%s`",
+                              cldec.toPrettyChars(), b.type.toChars());
+                    }
                     cldec.baseclasses.remove(i);
                     continue;
                 }
@@ -4805,6 +5097,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (idec.baseok == Baseok.done)
         {
             idec.baseok = Baseok.semanticdone;
+            objc.setMetaclass(idec);
 
             // initialize vtbl
             if (idec.vtblOffset())

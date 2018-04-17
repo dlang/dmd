@@ -49,6 +49,7 @@ import dmd.identifier;
 import dmd.inline;
 import dmd.mtype;
 import dmd.nspace;
+import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
 import dmd.root.ctfloat;
@@ -96,6 +97,18 @@ extern (C++) Expression getRightThis(const ref Loc loc, Scope* sc, AggregateDecl
 L1:
     Type t = e1.type.toBasetype();
     //printf("e1.type = %s, var.type = %s\n", e1.type.toChars(), var.type.toChars());
+
+    if (e1.op == TOK.objcClassReference)
+    {
+        // We already have an Objective-C class reference, just use that as 'this'.
+        return e1;
+    }
+    else if (ad && ad.isClassDeclaration && ad.isClassDeclaration.classKind == ClassKind.objc &&
+             var.isFuncDeclaration && var.isFuncDeclaration.isStatic &&
+             var.isFuncDeclaration.selector)
+    {
+        return new ObjcClassReferenceExp(e1.loc, cast(ClassDeclaration) ad);
+    }
 
     /* If e1 is not the 'this' pointer for ad
      */
@@ -466,7 +479,7 @@ extern (C++) bool isNeedThisScope(Scope* sc, Declaration d)
  * Bugs:
  * This doesn't appear to do anything.
  */
-private bool checkPropertyCall(Expression e, Expression emsg)
+private bool checkPropertyCall(Expression e)
 {
     while (e.op == TOK.comma)
         e = (cast(CommaExp)e).e2;
@@ -522,9 +535,8 @@ extern (C++) Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         os = (cast(OverExp)e1).vars;
     Los:
         assert(os);
-        for (size_t i = 0; i < os.a.dim; i++)
+        foreach (s; os.a)
         {
-            Dsymbol s = os.a[i];
             fd = s.isFuncDeclaration();
             td = s.isTemplateDeclaration();
             if (fd)
@@ -884,7 +896,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             e = e.trySemantic(sc);
             if (!e)
             {
-                checkPropertyCall(ex, e1);
+                checkPropertyCall(ex);
                 ex = new AssignExp(loc, ex, e2);
                 return ex.expressionSemantic(sc);
             }
@@ -894,7 +906,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
             // strict setter prints errors if fails
             e = e.expressionSemantic(sc);
         }
-        checkPropertyCall(e, e1);
+        checkPropertyCall(e);
         return e;
     }
     else
@@ -906,7 +918,7 @@ extern (C++) Expression resolveUFCSProperties(Scope* sc, Expression e1, Expressi
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
         e = e.expressionSemantic(sc);
-        checkPropertyCall(e, e1);
+        checkPropertyCall(e);
         return e.expressionSemantic(sc);
     }
 }
@@ -919,16 +931,15 @@ extern (C++) bool arrayExpressionSemantic(Expressions* exps, Scope* sc, bool pre
     bool err = false;
     if (exps)
     {
-        for (size_t i = 0; i < exps.dim; i++)
+        foreach (ref e; *exps)
         {
-            Expression e = (*exps)[i];
             if (e)
             {
-                e = e.expressionSemantic(sc);
-                if (e.op == TOK.error)
+                auto e2 = e.expressionSemantic(sc);
+                if (e2.op == TOK.error)
                     err = true;
-                if (preserveErrors || e.op != TOK.error)
-                    (*exps)[i] = e;
+                if (preserveErrors || e2.op != TOK.error)
+                    e = e2;
             }
         }
     }
@@ -1030,9 +1041,9 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
         if (td)
         {
             exps.remove(u);
-            for (size_t i = 0; i < td.objects.dim; ++i)
+            foreach (i, o; *td.objects)
             {
-                Expression e = isExpression((*td.objects)[i]);
+                Expression e = isExpression(o);
                 assert(e);
                 assert(e.op == TOK.dSymbol);
                 DsymbolExp se = cast(DsymbolExp)e;
@@ -1046,9 +1057,8 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
             version (none)
             {
                 printf("expansion ->\n");
-                for (size_t i = 0; i < exps.dim; ++i)
+                foreach (e; exps)
                 {
-                    Expression e = (*exps)[i];
                     printf("\texps[%d] e = %s %s\n", i, Token.tochars[e.op], e.toChars());
                 }
             }
@@ -1059,7 +1069,12 @@ extern (C++) int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
 }
 
 /****************************************
- * Get TemplateDeclaration enclosing FuncDeclaration.
+ * If `s` is a function template, i.e. the only member of a template
+ * and that member is a function, return that template.
+ * Params:
+ *      s = symbol that might be a function template
+ * Returns:
+ *      template for that function, otherwise null
  */
 extern (C++) TemplateDeclaration getFuncTemplateDecl(Dsymbol s)
 {
@@ -1362,12 +1377,11 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.slice);
     //printf("slice = %s %s\n", slice.kind(), slice.toChars());
-    for (size_t i = 0; i < ae.arguments.dim; i++)
+    foreach (i, e; *ae.arguments)
     {
         if (i == 0)
             *pe0 = extractOpDollarSideEffect(sc, ae);
 
-        Expression e = (*ae.arguments)[i];
         if (e.op == TOK.interval && !(slice && slice.isTemplateDeclaration()))
         {
         Lfallback:
@@ -1455,7 +1469,7 @@ extern (C++) Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, 
     sym.parent = sc.scopesym;
     sc = sc.push(sym);
 
-    for (size_t i = 0; i < 2; ++i)
+    foreach (i; 0 .. 2)
     {
         Expression e = i == 0 ? ie.lwr : ie.upr;
         e = e.expressionSemantic(sc);
@@ -1516,6 +1530,58 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
         return null;
     }
     return se;
+}
+
+/***************************************************
+ * Given an Expression, find the variable it really is.
+ *
+ * For example, `a[index]` is really `a`, and `s.f` is really `s`.
+ * Params:
+ *      e = Expression to look at
+ * Returns:
+ *      variable if there is one, null if not
+ */
+VarDeclaration expToVariable(Expression e)
+{
+    while (1)
+    {
+        switch (e.op)
+        {
+            case TOK.variable:
+                return (cast(VarExp)e).var.isVarDeclaration();
+
+            case TOK.dotVariable:
+                e = (cast(DotVarExp)e).e1;
+                continue;
+
+            case TOK.index:
+            {
+                IndexExp ei = cast(IndexExp)e;
+                e = ei.e1;
+                Type ti = e.type.toBasetype();
+                if (ti.ty == Tsarray)
+                    continue;
+                return null;
+            }
+
+            case TOK.slice:
+            {
+                SliceExp ei = cast(SliceExp)e;
+                e = ei.e1;
+                Type ti = e.type.toBasetype();
+                if (ti.ty == Tsarray)
+                    continue;
+                return null;
+            }
+
+            case TOK.this_:
+            case TOK.super_:
+                return (cast(ThisExp)e).var.isVarDeclaration();
+
+            default:
+                return null;
+        }
+    }
 }
 
 enum OwnedBy : int
@@ -1699,9 +1765,8 @@ extern (C++) abstract class Expression : RootObject
         {
             a = new Expressions();
             a.setDim(exps.dim);
-            for (size_t i = 0; i < a.dim; i++)
+            foreach (i, e; *exps)
             {
-                Expression e = (*exps)[i];
                 (*a)[i] = e ? e.syntaxCopy() : null;
             }
         }
@@ -1764,9 +1829,9 @@ extern (C++) abstract class Expression : RootObject
             loc = e.loc;
 
         if (e.op == TOK.type)
-            error("%s `%s` is a type, not an lvalue", e.type.kind(), e.type.toChars());
+            error("`%s` is a `%s` definition and cannot be modified", e.type.toChars(), e.type.kind());
         else
-            error("`%s` is not an lvalue", e.toChars());
+            error("`%s` is not an lvalue and cannot be modified", e.toChars());
 
         return new ErrorExp();
     }
@@ -2052,6 +2117,13 @@ extern (C++) abstract class Expression : RootObject
         if (v.storage_class & STC.manifest)
             return false; // ...or manifest constants
 
+        if (v.type.ty == Tstruct)
+        {
+            StructDeclaration sd = (cast(TypeStruct)type).sym;
+            if (sd.hasNoFields)
+                return false;
+        }
+
         bool err = false;
         if (v.isDataseg())
         {
@@ -2299,11 +2371,9 @@ extern (C++) abstract class Expression : RootObject
             break;
         }
 
-        deprecation("read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead.", Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
-        return false;
+        error("read-modify-write operations are not allowed for `shared` variables. Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead.", Token.toChars(rmwOp), toChars(), ex ? ex.toChars() : "1");
 
-        // note: enable when deprecation becomes an error.
-        // return true;
+         return true;
     }
 
     /***************************************
@@ -2544,7 +2614,7 @@ extern (C++) final class IntegerExp : Expression
             e = this;
         else if (!loc.isValid())
             loc = e.loc;
-        e.error("constant `%s` is not an lvalue", e.toChars());
+        e.error("cannot modify constant `%s`", e.toChars());
         return new ErrorExp();
     }
 
@@ -3245,7 +3315,7 @@ extern (C++) final class StringExp : Expression
                 {
                     wchar* s1 = cast(wchar*)string;
                     wchar* s2 = cast(wchar*)se2.string;
-                    for (size_t u = 0; u < len; u++)
+                    foreach (u; 0 .. len)
                     {
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
@@ -3256,7 +3326,7 @@ extern (C++) final class StringExp : Expression
                 {
                     dchar* s1 = cast(dchar*)string;
                     dchar* s2 = cast(dchar*)se2.string;
-                    for (size_t u = 0; u < len; u++)
+                    foreach (u; 0 .. len)
                     {
                         if (s1[u] != s2[u])
                             return s1[u] - s2[u];
@@ -3378,9 +3448,8 @@ extern (C++) final class TupleExp : Expression
         this.exps = new Expressions();
 
         this.exps.reserve(tup.objects.dim);
-        for (size_t i = 0; i < tup.objects.dim; i++)
+        foreach (o; *tup.objects)
         {
-            RootObject o = (*tup.objects)[i];
             if (Dsymbol s = getDsymbol(o))
             {
                 /* If tuple element represents a symbol, translate to DsymbolExp
@@ -3424,9 +3493,8 @@ extern (C++) final class TupleExp : Expression
                 return false;
             if (e0 && !e0.equals(te.e0) || !e0 && te.e0)
                 return false;
-            for (size_t i = 0; i < exps.dim; i++)
+            foreach (i, e1; *exps)
             {
-                Expression e1 = (*exps)[i];
                 Expression e2 = (*te.exps)[i];
                 if (!e1.equals(e2))
                     return false;
@@ -3503,9 +3571,8 @@ extern (C++) final class ArrayLiteralExp : Expression
             {
                 return false;
             }
-            for (size_t i = 0; i < elements.dim; i++)
+            foreach (i, e1; *elements)
             {
-                Expression e1 = (*elements)[i];
                 Expression e2 = (*ae.elements)[i];
                 if (!e1)
                     e1 = basis;
@@ -3547,7 +3614,7 @@ extern (C++) final class ArrayLiteralExp : Expression
                 return;
             auto d = elems.dim;
             elems.append(ale.elements);
-            foreach (ref el; (*elems)[][d .. elems.dim])
+            foreach (ref el; (*elems)[d .. elems.dim])
             {
                 if (!el)
                     el = ale.basis;
@@ -3590,7 +3657,7 @@ extern (C++) final class ArrayLiteralExp : Expression
             OutBuffer buf;
             if (elements)
             {
-                for (size_t i = 0; i < elements.dim; ++i)
+                foreach (i; 0 .. elements.dim)
                 {
                     auto ch = getElement(i);
                     if (ch.op != TOK.int64)
@@ -3665,11 +3732,11 @@ extern (C++) final class AssocArrayLiteralExp : Expression
             if (keys.dim != ae.keys.dim)
                 return false;
             size_t count = 0;
-            for (size_t i = 0; i < keys.dim; i++)
+            foreach (i, key; *keys)
             {
-                for (size_t j = 0; j < ae.keys.dim; j++)
+                foreach (j, akey; *ae.keys)
                 {
-                    if ((*keys)[i].equals((*ae.keys)[j]))
+                    if (key.equals(akey))
                     {
                         if (!(*values)[i].equals((*ae.values)[j]))
                             return false;
@@ -3765,9 +3832,8 @@ extern (C++) final class StructLiteralExp : Expression
                 return false;
             if (elements.dim != se.elements.dim)
                 return false;
-            for (size_t i = 0; i < elements.dim; i++)
+            foreach (i, e1; *elements)
             {
-                Expression e1 = (*elements)[i];
                 Expression e2 = (*se.elements)[i];
                 if (e1 != e2 && (!e1 || !e2 || !e1.equals(e2)))
                     return false;
@@ -3816,8 +3882,8 @@ extern (C++) final class StructLiteralExp : Expression
                     size_t length = cast(size_t)tsa.dim.toInteger();
                     auto z = new Expressions();
                     z.setDim(length);
-                    for (size_t q = 0; q < length; ++q)
-                        (*z)[q] = e.copy();
+                    foreach (ref q; *z)
+                        q = e.copy();
                     e = new ArrayLiteralExp(loc, z);
                     e.type = type;
                 }
@@ -3846,9 +3912,8 @@ extern (C++) final class StructLiteralExp : Expression
          */
         if (elements.dim)
         {
-            for (size_t i = 0; i < sd.fields.dim; i++)
+            foreach (i, v; sd.fields)
             {
-                VarDeclaration v = sd.fields[i];
                 if (offset == v.offset && type.size() == v.type.size())
                 {
                     /* context field might not be filled. */
@@ -4209,7 +4274,7 @@ extern (C++) final class VarExp : SymbolExp
     {
         //printf("VarExp::checkModifiable %s", toChars());
         assert(type);
-        return var.checkModify(loc, sc, type, null, flag);
+        return var.checkModify(loc, sc, null, flag);
     }
 
     bool checkReadModifyWrite();
@@ -4225,22 +4290,22 @@ extern (C++) final class VarExp : SymbolExp
     {
         if (var.storage_class & STC.manifest)
         {
-            error("manifest constant `%s` is not lvalue", var.toChars());
+            error("manifest constant `%s` cannot be modified", var.toChars());
             return new ErrorExp();
         }
         if (var.storage_class & STC.lazy_)
         {
-            error("lazy variables cannot be lvalues");
+            error("lazy variable `%s` cannot be modified", var.toChars());
             return new ErrorExp();
         }
         if (var.ident == Id.ctfe)
         {
-            error("compiler-generated variable `__ctfe` is not an lvalue");
+            error("cannot modify compiler-generated variable `__ctfe`");
             return new ErrorExp();
         }
         if (var.ident == Id.dollar) // https://issues.dlang.org/show_bug.cgi?id=13574
         {
-            error("`$` is not an lvalue");
+            error("cannot modify operator `$`");
             return new ErrorExp();
         }
         return this;
@@ -4342,15 +4407,7 @@ extern (C++) final class FuncExp : Expression
             if (fd.fes)
                 s = "__foreachbody";
             else if (fd.tok == TOK.reserved)
-            {
-                import dmd.lambdacomp;
-
                 s = "__lambda";
-                auto serVisitor = new SerializeVisitor(sc);
-                fd.accept(serVisitor);
-                fd.serialization = serVisitor.buf.offset == 0 ? "uncomparable" : serVisitor.buf.extractString();
-                //printf("serialization: %s\n", fd.serialization);
-            }
             else if (fd.tok == TOK.delegate_)
                 s = "__dgliteral";
             else
@@ -4450,9 +4507,8 @@ extern (C++) final class FuncExp : Expression
             auto tiargs = new Objects();
             tiargs.reserve(td.parameters.dim);
 
-            for (size_t i = 0; i < td.parameters.dim; i++)
+            foreach (tp; *td.parameters)
             {
-                TemplateParameter tp = (*td.parameters)[i];
                 size_t u = 0;
                 for (; u < dim; u++)
                 {
@@ -4724,8 +4780,8 @@ extern (C++) final class IsExp : Expression
         {
             p = new TemplateParameters();
             p.setDim(parameters.dim);
-            for (size_t i = 0; i < p.dim; i++)
-                (*p)[i] = (*parameters)[i].syntaxCopy();
+            foreach (i, el; *parameters)
+                (*p)[i] = el.syntaxCopy();
         }
         return new IsExp(loc, targ.syntaxCopy(), id, tok, tspec ? tspec.syntaxCopy() : null, tok2, p);
     }
@@ -5249,7 +5305,7 @@ extern (C++) final class DotVarExp : UnaExp
             return 2;
 
         if (e1.op == TOK.this_)
-            return var.checkModify(loc, sc, type, e1, flag);
+            return var.checkModify(loc, sc, e1, flag);
 
         //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
@@ -5439,6 +5495,19 @@ extern (C++) final class CallExp : UnaExp
         this.arguments = arguments;
     }
 
+    /***********************************************************
+    * Instatiates a new function call expression
+    * Params:
+    *       loc   = location
+    *       fd    = the declaration of the function to call
+    *       earg1 = the function argument
+    */
+    extern(D) this(const ref Loc loc, FuncDeclaration fd, Expression earg1)
+    {
+        this(loc, new VarExp(loc, fd, false), earg1);
+        this.f = fd;
+    }
+
     static CallExp create(Loc loc, Expression e, Expressions* exps)
     {
         return new CallExp(loc, e, exps);
@@ -5452,6 +5521,18 @@ extern (C++) final class CallExp : UnaExp
     static CallExp create(Loc loc, Expression e, Expression earg1)
     {
         return new CallExp(loc, e, earg1);
+    }
+
+    /***********************************************************
+    * Creates a new function call expression
+    * Params:
+    *       loc   = location
+    *       fd    = the declaration of the function to call
+    *       earg1 = the function argument
+    */
+    static CallExp create(Loc loc, FuncDeclaration fd, Expression earg1)
+    {
+        return new CallExp(loc, fd, earg1);
     }
 
     override Expression syntaxCopy()
@@ -5598,7 +5679,7 @@ extern (C++) final class PtrExp : UnaExp
         if (e1.op == TOK.symbolOffset)
         {
             SymOffExp se = cast(SymOffExp)e1;
-            return se.var.checkModify(loc, sc, type, null, flag);
+            return se.var.checkModify(loc, sc, null, flag);
         }
         else if (e1.op == TOK.address)
         {
@@ -7213,6 +7294,29 @@ extern (C++) final class PrettyFuncInitExp : DefaultInitExp
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, type);
         return e;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+/**
+ * Objective-C class reference expression.
+ *
+ * Used to get the metaclass of an Objective-C class, `NSObject.Class`.
+ */
+extern (C++) final class ObjcClassReferenceExp : Expression
+{
+    ClassDeclaration classDeclaration;
+
+    extern (D) this(Loc loc, ClassDeclaration classDeclaration)
+    {
+        super(loc, TOK.objcClassReference,
+            __traits(classInstanceSize, ObjcClassReferenceExp));
+        this.classDeclaration = classDeclaration;
+        type = objc.getRuntimeMetaclass(classDeclaration).getType();
     }
 
     override void accept(Visitor v)

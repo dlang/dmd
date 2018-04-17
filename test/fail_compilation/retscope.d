@@ -7,7 +7,7 @@ fail_compilation/retscope.d(23): Error: scope variable `p` may not be returned
 fail_compilation/retscope.d(33): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
 fail_compilation/retscope.d(46): Error: scope variable `p` assigned to non-scope `q`
 fail_compilation/retscope.d(48): Error: address of variable `i` assigned to `q` with longer lifetime
-fail_compilation/retscope.d(49): Error: variadic variable `a` assigned to non-scope `b`
+fail_compilation/retscope.d(49): Error: scope variable `a` assigned to non-scope `b`
 fail_compilation/retscope.d(50): Error: reference to stack allocated value returned by `(*fp2)()` assigned to non-scope `q`
 ---
 */
@@ -202,7 +202,7 @@ void* escapeDg1(scope void* d) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(213): Error: scope variable `p` assigned to non-scope `e`
+fail_compilation/retscope.d(213): Error: scope variable `p` assigned to non-scope `e.e`
 ---
 */
 struct Escaper3 { void* e; }

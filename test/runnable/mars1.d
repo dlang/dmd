@@ -1,6 +1,6 @@
 /*
 REQUIRED_ARGS: -mcpu=native -transition=16997 -transition=intpromote
-PERMUTE_ARGS: -O -inline
+PERMUTE_ARGS: -O -inline -release
 */
 
 import core.stdc.stdio;
@@ -1244,6 +1244,19 @@ void test9449()
     if (arr[0].g != 4.0) assert(0);
 }
 
+struct Point9449x
+{
+    float  f = 0.0;
+    double g = 0.0;
+}
+
+void test9449x()
+{
+    Point9449x[1] arr;
+    if (arr[0].f != 0.0) assert(0);
+    if (arr[0].g != 0.0) assert(0);
+}
+
 ////////////////////////////////////////////////////////////////////////
 // https://issues.dlang.org/show_bug.cgi?id=12057
 
@@ -1677,6 +1690,23 @@ void testdivcmp()
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=16189
+
+void test16189()
+{
+    ubyte[9][1] data;
+    uint a = 0;
+  loop:
+    data[0] = data[a];
+    a--;
+    bool b = false;
+    if (b) goto loop;
+    assert(a == -1); // was failing with -O
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
 // https://issues.dlang.org/show_bug.cgi?id=16997
 
 void test16997()
@@ -1736,6 +1766,20 @@ void test18315() // https://issues.dlang.org/show_bug.cgi?id=18315
 
 ////////////////////////////////////////////////////////////////////////
 
+// https://issues.dlang.org/show_bug.cgi?id=18461
+
+void test18461()
+{
+    import core.bitop;
+
+    size_t test_val = 0b0001_0000;
+
+    if (bt(&test_val, 4) == 0)
+        assert(false);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     testgoto();
@@ -1775,6 +1819,7 @@ int main()
     test13023(0x10_0000_0000);
     test12833();
     test9449();
+    test9449x();
     test12057();
     test13784();
     test14220();
@@ -1795,8 +1840,11 @@ int main()
     test6();
     testeqeqranges();
     testdivcmp();
+    test16189();
     test16997();
     test18315();
+    test18461();
+
     printf("Success\n");
     return 0;
 }

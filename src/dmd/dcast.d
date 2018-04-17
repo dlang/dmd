@@ -24,11 +24,13 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.errors;
+import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.impcnvtab;
+import dmd.id;
 import dmd.init;
 import dmd.intrange;
 import dmd.mtype;
@@ -783,7 +785,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
 
         override void visit(CallExp e)
         {
-            enum LOG = 0;
+            enum LOG = false;
             static if (LOG)
             {
                 printf("CallExp::implicitConvTo(this=%s, type=%s, t=%s)\n", e.toChars(), e.type.toChars(), t.toChars());
@@ -796,7 +798,13 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             /* Allow the result of strongly pure functions to
              * convert to immutable
              */
-            if (e.f && e.f.isReturnIsolated())
+            if (e.f && e.f.isReturnIsolated() &&
+                (!global.params.vsafe ||        // lots of legacy code breaks with the following purity check
+                 e.f.isPure() >= PURE.strong ||
+                 // Special case exemption for Object.dup() which we assume is implemented correctly
+                 e.f.ident == Id.dup &&
+                 e.f.toParent2() == ClassDeclaration.object.toParent())
+               )
             {
                 result = e.type.immutableOf().implicitConvTo(t);
                 if (result > MATCH.constant) // Match level is MATCH.constant at best.
@@ -2070,14 +2078,24 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             {
                 printf("ArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
             }
+
+            ArrayLiteralExp ae = e;
+
+            Type tb = t.toBasetype();
+            if (tb.ty == Tarray && global.params.vsafe)
+            {
+                if (checkArrayLiteralEscape(sc, ae, false))
+                {
+                    result = new ErrorExp();
+                    return;
+                }
+            }
+
             if (e.type == t)
             {
                 result = e;
                 return;
             }
-            ArrayLiteralExp ae = e;
-
-            Type tb = t.toBasetype();
             Type typeb = e.type.toBasetype();
 
             if ((tb.ty == Tarray || tb.ty == Tsarray) &&
@@ -2166,6 +2184,7 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
 
         override void visit(AssocArrayLiteralExp e)
         {
+            //printf("AssocArrayLiteralExp::castTo(this=%s, type=%s, => %s)\n", e.toChars(), e.type.toChars(), t.toChars());
             if (e.type == t)
             {
                 result = e;
@@ -3450,7 +3469,7 @@ extern (C++) bool arrayTypeCompatible(Loc loc, Type t1, Type t2)
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-extern (C++) bool arrayTypeCompatibleWithoutCasting(Loc loc, Type t1, Type t2)
+extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
 {
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();

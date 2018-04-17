@@ -150,7 +150,7 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT) MAKE="$(MAKE)" HOST_DC="$
 # D front end
 FRONT_SRCS=$D/access.d $D/aggregate.d $D/aliasthis.d $D/apply.d $D/argtypes.d $D/arrayop.d	\
 	$D/arraytypes.d $D/astcodegen.d $D/attrib.d $D/builtin.d $D/canthrow.d $D/cli.d $D/clone.d $D/compiler.d $D/complex.d	\
-	$D/cond.d $D/constfold.d $D/cppmangle.d $D/cppmanglewin.d $D/ctfeexpr.d $D/dcast.d $D/dclass.d		\
+	$D/cond.d $D/constfold.d $D/cppmangle.d $D/cppmanglewin.d $D/ctfeexpr.d $D/ctorflow.d $D/dcast.d $D/dclass.d		\
 	$D/declaration.d $D/delegatize.d $D/denum.d $D/dimport.d $D/dinifile.d $D/dinterpret.d	\
 	$D/dmacro.d $D/dmangle.d $D/dmodule.d $D/doc.d $D/dscope.d $D/dstruct.d $D/dsymbol.d $D/dsymbolsem.d		\
 	$D/lambdacomp.d $D/dtemplate.d $D/dversion.d $D/escape.d			\
@@ -240,7 +240,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
-	$C\divcoeff.c $C\dwarfeh.c $C\varstats.c $C\varstats.h \
+	$C\divcoeff.d $C\dwarfeh.c $C\varstats.c $C\varstats.h \
 	$C\backend.txt
 
 # Toolkit
@@ -252,7 +252,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 ROOTSRCC=$(ROOT)\newdelete.c
 ROOTSRCD=$(ROOT)\rmem.d $(ROOT)\stringtable.d $(ROOT)\hash.d $(ROOT)\man.d $(ROOT)\port.d \
 	$(ROOT)\response.d $(ROOT)\rootobject.d $(ROOT)\speller.d $(ROOT)\aav.d \
-	$(ROOT)\ctfloat.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
+	$(ROOT)\ctfloat.d $(ROOT)\longdouble.d $(ROOT)\outbuffer.d $(ROOT)\filename.d \
 	$(ROOT)\file.d $(ROOT)\array.d
 ROOTSRC= $(ROOT)\root.h $(ROOT)\stringtable.h \
 	$(ROOT)\longdouble.h $(ROOT)\outbuffer.h $(ROOT)\object.h $(ROOT)\ctfloat.h \
@@ -514,8 +514,8 @@ $G/cv8.obj : $C\cv8.c
 $G/debug.obj : $C\debug.c
 	$(CC) -c -o$@ $(MFLAGS) -I$D -I$G $C\debug
 
-$G/divcoeff.obj : $C\divcoeff.c
-	$(CC) -c -o$@ -cpp -e $(DEBUG) $C\divcoeff
+$G/divcoeff.obj : $C\divcoeff.d
+	$(HOST_DC) -c -of$@ $(DFLAGS) -betterC $C\divcoeff
 
 $G/dt.obj : $C\dt.h $C\dt.c
 	$(CC) -c -o$@ $(MFLAGS) $C\dt

@@ -14,6 +14,7 @@ module dmd.declaration;
 
 import dmd.aggregate;
 import dmd.arraytypes;
+import dmd.ctorflow;
 import dmd.dclass;
 import dmd.delegatize;
 import dmd.dscope;
@@ -95,13 +96,13 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
             var.ctorinit = true;
             //printf("setting ctorinit\n");
 
-            if (var.isField() && sc.fieldinit && !sc.intypeof)
+            if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
             {
                 assert(e1);
                 auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
                                  var.type.needsNested());
 
-                auto dim = sc.fieldinit_dim;
+                const dim = sc.ctorflow.fieldinit.length;
                 auto ad = fd.isMember2();
                 assert(ad);
                 size_t i;
@@ -111,7 +112,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         break;
                 }
                 assert(i < dim);
-                uint fi = sc.fieldinit[i];
+                const fi = sc.ctorflow.fieldinit[i];
 
                 if (fi & CSX.this_ctor)
                 {
@@ -120,10 +121,18 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     else
                     {
                         const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
-                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        // Deprecated in 2018-04.
+                        // Change to error in 2019-04 by deleting the following
+                        // if-branch and the deprecate_18719 enum member in the
+                        // dmd.ctorflow.CSX enum.
+                        // @@@DEPRECATED_2019-01@@@.
+                        if (fi & CSX.deprecate_18719)
+                            .deprecation(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        else
+                            .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
                     }
                 }
-                else if (sc.noctor || (fi & CSX.label))
+                else if (sc.inLoop || (fi & CSX.label))
                 {
                     if (!mustInit && var.type.isMutable() && e1.type.isMutable())
                         result = false;
@@ -134,7 +143,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                     }
                 }
 
-                sc.fieldinit[i] |= CSX.this_ctor;
+                sc.ctorflow.fieldinit[i] |= CSX.this_ctor;
                 if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
                 {
                     foreach (j, v; ad.fields)
@@ -142,7 +151,7 @@ private int modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1
                         if (v is var || !var.isOverlappedWith(v))
                             continue;
                         v.ctorinit = true;
-                        sc.fieldinit[j] = CSX.this_ctor;
+                        sc.ctorflow.fieldinit[j] = CSX.this_ctor;
                     }
                 }
             }
@@ -344,7 +353,7 @@ extern (C++) abstract class Declaration : Dsymbol
      * Check to see if declaration can be modified in this context (sc).
      * Issue error if not.
      */
-    final int checkModify(Loc loc, Scope* sc, Type t, Expression e1, int flag)
+    final int checkModify(Loc loc, Scope* sc, Expression e1, int flag)
     {
         VarDeclaration v = isVarDeclaration();
         if (v && v.canassign)
@@ -475,7 +484,7 @@ extern (C++) abstract class Declaration : Dsymbol
         return (storage_class & STC.parameter) != 0;
     }
 
-    override final bool isDeprecated() const pure nothrow @nogc @safe
+    override final bool isDeprecated() pure nothrow @nogc @safe
     {
         return (storage_class & STC.deprecated_) != 0;
     }

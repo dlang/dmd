@@ -158,6 +158,7 @@ void type_dehydrate(type **);
 
 targ_size_t type_size(type *);
 uint type_alignsize(type *);
+uint type_parameterSize(type *t, tym_t tyf);
 uint type_paramsize(type *t);
 type *type_alloc(tym_t);
 type *type_alloc_template(Symbol *s);
@@ -188,5 +189,5 @@ type *type_delegate(type *tnext);
 extern (C) type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
 type *type_enum(const(char) *name, type *tbase);
 type *type_struct_class(const(char)* name, uint alignsize, uint structsize,
-        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD, bool is0size);
 

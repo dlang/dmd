@@ -142,6 +142,8 @@ immutable Msgtable[] msgtable =
     { "xopCmp", "__xopCmp" },
     { "xtoHash", "__xtoHash" },
 
+    { "Class" },
+
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
     { "MODULE", "__MODULE__" },
@@ -293,6 +295,7 @@ immutable Msgtable[] msgtable =
     { "_ArrayPostblit" },
     { "_ArrayDtor" },
     { "_d_delThrowable" },
+    { "dup" },
 
     // For pragma's
     { "Pinline", "inline" },
@@ -395,6 +398,7 @@ immutable Msgtable[] msgtable =
     { "getUnitTests" },
     { "getVirtualIndex" },
     { "getPointerBitmap" },
+    { "isReturnOnStack" },
 
     // For C++ mangling
     { "allocator" },
@@ -412,6 +416,7 @@ immutable Msgtable[] msgtable =
     { "TRUE" },
     { "FALSE" },
     { "unsigned" },
+    { "wchar_t" },
 ];
 
 

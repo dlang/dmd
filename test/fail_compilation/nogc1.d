@@ -3,6 +3,14 @@
 
 /***************** NewExp *******************/
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/nogc1.d(17): Deprecation: class allocators have been deprecated, consider moving the allocation strategy outside of the class
+fail_compilation/nogc1.d(18): Deprecation: class allocators have been deprecated, consider moving the allocation strategy outside of the class
+---
+*/
+
 struct S1 { }
 struct S2 { this(int); }
 struct S3 { this(int) @nogc; }
@@ -12,14 +20,14 @@ struct S5 { @nogc new(size_t); }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(27): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(29): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(30): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(32): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(33): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(34): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(35): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc allocator `nogc1.S4.new`
+fail_compilation/nogc1.d(35): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(37): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
 fail_compilation/nogc1.d(38): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(40): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(41): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
+fail_compilation/nogc1.d(42): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(43): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc allocator `nogc1.S4.new`
+fail_compilation/nogc1.d(46): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
 ---
 */
 @nogc void testNew()
@@ -41,13 +49,13 @@ fail_compilation/nogc1.d(38): Error: cannot use `new` in `@nogc` function `nogc1
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(55): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(57): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(58): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(60): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(61): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(62): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(63): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc allocator `nogc1.S4.new`
+fail_compilation/nogc1.d(63): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(65): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(66): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(68): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(69): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
+fail_compilation/nogc1.d(70): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+fail_compilation/nogc1.d(71): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc allocator `nogc1.S4.new`
 ---
 */
 @nogc void testNewScope()
@@ -72,12 +80,12 @@ fail_compilation/nogc1.d(63): Error: `@nogc` function `nogc1.testNewScope` canno
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(85): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-fail_compilation/nogc1.d(85): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
-fail_compilation/nogc1.d(86): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-fail_compilation/nogc1.d(86): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
-fail_compilation/nogc1.d(87): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
-fail_compilation/nogc1.d(87): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
+fail_compilation/nogc1.d(93): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/nogc1.d(93): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
+fail_compilation/nogc1.d(94): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/nogc1.d(94): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
+fail_compilation/nogc1.d(95): Deprecation: The `delete` keyword has been deprecated.  Use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead.
+fail_compilation/nogc1.d(95): Error: cannot use `delete` in `@nogc` function `nogc1.testDelete`
 ---
 */
 @nogc void testDelete(int* p, Object o, S1* s)

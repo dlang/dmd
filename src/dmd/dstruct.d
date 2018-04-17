@@ -226,9 +226,10 @@ enum StructPOD : int
  */
 extern (C++) class StructDeclaration : AggregateDeclaration
 {
-    int zeroInit;               // !=0 if initialize with 0 fill
+    bool zeroInit;              // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
+    bool hasNoFields;           // has no fields
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration postblit;   // aggregate postblit
 
@@ -253,7 +254,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
         super(loc, id);
-        zeroInit = 0; // assume false until we do semantic processing
+        zeroInit = false; // assume false until we do semantic processing
         ispod = StructPOD.fwd;
         // For forward references
         type = new TypeStruct(this);
@@ -373,6 +374,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         // 0 sized struct's are set to 1 byte
         if (structsize == 0)
         {
+            hasNoFields = true;
             structsize = 1;
             alignsize = 1;
         }
@@ -400,18 +402,18 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         }
 
         // Determine if struct is all zeros or not
-        zeroInit = 1;
+        zeroInit = true;
         foreach (vd; fields)
         {
             if (vd._init)
             {
                 // Should examine init to see if it is really all 0's
-                zeroInit = 0;
+                zeroInit = false;
                 break;
             }
             else if (!vd.type.isZeroInit(loc))
             {
-                zeroInit = 0;
+                zeroInit = false;
                 break;
             }
         }
@@ -476,6 +478,19 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                 t = t.addMod(stype.mod);
             Type origType = t;
             Type tb = t.toBasetype();
+
+            const hasPointers = tb.hasPointers();
+            if (hasPointers)
+            {
+                if ((stype.alignment() < Target.ptrsize ||
+                     (v.offset & (Target.ptrsize - 1))) &&
+                    sc.func.setUnsafe())
+                {
+                    .error(loc, "field `%s.%s` cannot assign to misaligned pointers in `@safe` code",
+                        toChars(), v.toChars());
+                    return false;
+                }
+            }
 
             /* Look for case of initializing a static array with a too-short
              * string literal, such as:

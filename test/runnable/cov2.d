@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// POST_SCRIPT: runnable/extra-files/cov2-postscript.sh
+// POST_SCRIPT: runnable/extra-files/coverage-postscript.sh
 // REQUIRED_ARGS: -cov
 // EXECUTE_ARGS: ${RESULTS_DIR}/runnable
 

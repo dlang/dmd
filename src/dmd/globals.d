@@ -362,6 +362,44 @@ struct Global
         _version = (import("VERSION") ~ '\0').ptr;
         compiler.vendor = "Digital Mars D";
     }
+
+    /**
+    Returns: the version as the number that would be returned for __VERSION__
+    */
+    extern(C++) uint versionNumber()
+    {
+        import core.stdc.ctype;
+        __gshared static uint cached = 0;
+        if (cached == 0)
+        {
+            //
+            // parse _version
+            //
+            uint major = 0;
+            uint minor = 0;
+            bool point = false;
+            for (const(char)* p = _version + 1;; p++)
+            {
+                const c = *p;
+                if (isdigit(cast(char)c))
+                {
+                    minor = minor * 10 + c - '0';
+                }
+                else if (c == '.')
+                {
+                    if (point)
+                        break; // ignore everything after second '.'
+                    point = true;
+                    major = minor;
+                    minor = 0;
+                }
+                else
+                    break;
+            }
+            cached = major * 1000 + minor;
+        }
+        return cached;
+    }
 }
 
 // Because int64_t and friends may be any integral type of the

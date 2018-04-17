@@ -2,7 +2,7 @@
 
 set -uexo pipefail
 
-HOST_DMD_VER=2.072.2 # same as in dmd/src/posix.mak
+HOST_DMD_VER=2.074.1 # same as in dmd/src/posix.mak
 CURL_USER_AGENT="CirleCI $(curl --version | head -n 1)"
 N=4
 CIRCLE_NODE_INDEX=${CIRCLE_NODE_INDEX:-0}
@@ -158,8 +158,17 @@ check_clean_git()
     # Remove temporary directory + install script
     rm -rf _generated
     rm -f install.sh
+    # auto-removal of this file doesn't work on CirleCi
+    rm -f test/compilable/vcg-ast.d.cg
     # Ensure that there are no untracked changes
     make -f posix.mak check-clean-git
+}
+
+# sanitycheck for the run_individual_tests script
+check_run_individual()
+{
+    local build_path=generated/linux/release/$MODEL
+	"${build_path}/dmd"  -i -run ./test/run_individual_tests.d test/runnable/template2962.d ./test/compilable/test14275.d
 }
 
 codecov()
@@ -183,6 +192,7 @@ case $1 in
     all)
         coverage;
         check_clean_git;
+        check_run_individual;
         codecov;
     ;;
 esac

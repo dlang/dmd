@@ -125,7 +125,7 @@ public:
     Expression *ealign;
     structalign_t salign;
 
-    AlignDeclaration(Loc loc, Expression *ealign, Dsymbols *decl);
+    AlignDeclaration(const Loc &loc, Expression *ealign, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Scope *newScope(Scope *sc);
     void accept(Visitor *v) { v->visit(this); }

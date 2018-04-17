@@ -41,6 +41,7 @@ import dmd.tokens;
 
 bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 {
+    //printf("checkUnsafeAccess(e: '%s', readonly: %d, printmsg: %d)\n", e.toChars(), readonly, printmsg);
     if (e.op != TOK.dotVariable)
         return false;
     DotVarExp dve = cast(DotVarExp)e;
@@ -53,18 +54,25 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (!ad)
             return false;
 
-        if (v.overlapped && v.type.hasPointers() && sc.func.setUnsafe())
+        const hasPointers = v.type.hasPointers();
+        if (hasPointers)
         {
-            if (printmsg)
-                e.error("field `%s.%s` cannot access pointers in `@safe` code that overlap other fields",
-                    ad.toChars(), v.toChars());
-            return true;
+            if (ad.sizeok != Sizeok.done)
+                ad.determineSize(ad.loc);       // needed to set v.overlapped
+
+            if (v.overlapped && sc.func.setUnsafe())
+            {
+                if (printmsg)
+                    e.error("field `%s.%s` cannot access pointers in `@safe` code that overlap other fields",
+                        ad.toChars(), v.toChars());
+                return true;
+            }
         }
 
         if (readonly || !e.type.isMutable())
             return false;
 
-        if (v.type.hasPointers() && v.type.toBasetype().ty != Tstruct)
+        if (hasPointers && v.type.toBasetype().ty != Tstruct)
         {
             if ((ad.type.alignment() < Target.ptrsize ||
                  (v.offset & (Target.ptrsize - 1))) &&

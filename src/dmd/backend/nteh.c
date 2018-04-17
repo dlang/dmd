@@ -666,7 +666,7 @@ void cdsetjmp(CodeBuilder& cdb, elem *e,regm_t *pretregs)
     stackpush += 4;
     cdb.genadjesp(4);
 
-    pushParams(cdb,e->E1,REGSIZE);
+    pushParams(cdb,e->E1,REGSIZE, TYnfunc);
 
     getregs(cdb,~getRtlsym(RTLSYM_SETJMP3)->Sregsaved & (ALLREGS | mES));
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM_SETJMP3));      // CALL __setjmp3

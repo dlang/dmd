@@ -138,11 +138,11 @@ Expression *resolveSlice(Expression *e);
 uinteger_t resolveArrayLength(Expression *e);
 
 /// Create an array literal consisting of 'elem' duplicated 'dim' times.
-ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
+ArrayLiteralExp *createBlockDuplicatedArrayLiteral(const Loc &loc, Type *type,
         Expression *elem, size_t dim);
 
 /// Create a string literal consisting of 'value' duplicated 'dim' times.
-StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
+StringExp *createBlockDuplicatedStringLiteral(const Loc &loc, Type *type,
         unsigned value, size_t dim, unsigned char sz);
 
 
@@ -154,17 +154,14 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
  */
 void assignInPlace(Expression *dest, Expression *src);
 
-/// Create a new struct literal, which is the same as se except that se.field[offset] = elem
-Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, Expression *newval);
-
 /// Given an AA literal aae,  set arr[index] = newval and return the new array.
-Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
+Expression *assignAssocArrayElement(const Loc &loc, AssocArrayLiteralExp *aae,
     Expression *index, Expression *newval);
 
 /// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
 /// oldlen, change its length to newlen. If the newlen is longer than oldlen,
 /// all new elements will be set to the default initializer for the element type.
-UnionExp changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
+UnionExp changeArrayLiteralLength(const Loc &loc, TypeArray *arrayType,
     Expression *oldval,  size_t oldlen, size_t newlen);
 
 
@@ -188,15 +185,15 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs);
 bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2);
 
 // return e1 - e2 as an integer, or error if not possible
-UnionExp pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp pointerDifference(const Loc &loc, Type *type, Expression *e1, Expression *e2);
 
 /// Return 1 if true, 0 if false
 /// -1 if comparison is illegal because they point to non-comparable memory blocks
-int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2);
+int comparePointers(TOK op, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2);
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-UnionExp pointerArithmetic(Loc loc, TOK op, Type *type,
+UnionExp pointerArithmetic(const Loc &loc, TOK op, Type *type,
     Expression *eptr, Expression *e2);
 
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
@@ -216,7 +213,7 @@ TypeAArray *toBuiltinAAType(Type *t);
  *  Return ae[e2] if present, or NULL if not found.
  *  Return TOKcantexp on error.
  */
-Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
+Expression *findKeyInAA(const Loc &loc, AssocArrayLiteralExp *ae, Expression *e2);
 
 /// True if type is TypeInfo_Class
 bool isTypeInfo_Class(Type *type);
@@ -231,10 +228,10 @@ bool isTypeInfo_Class(Type *type);
 bool isCtfeComparable(Expression *e);
 
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
-int ctfeEqual(Loc loc, TOK op, Expression *e1, Expression *e2);
+int ctfeEqual(const Loc &loc, TOK op, Expression *e1, Expression *e2);
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
-int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2);
+int ctfeIdentity(const Loc &loc, TOK op, Expression *e1, Expression *e2);
 
 /// Returns rawCmp OP 0; where OP is ==, !=, <, >=, etc. Result is 0 or 1
 int specificCmp(TOK op, int rawCmp);
@@ -249,17 +246,17 @@ int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2);
 int realCmp(TOK op, real_t r1, real_t r2);
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
-int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2);
+int ctfeCmp(const Loc &loc, TOK op, Expression *e1, Expression *e2);
 
 /// Returns e1 ~ e2. Resolves slices before concatenation.
-UnionExp ctfeCat(Loc loc, Type *type, Expression *e1, Expression *e2);
+UnionExp ctfeCat(const Loc &loc, Type *type, Expression *e1, Expression *e2);
 
 /// Same as for constfold.Index, except that it only works for static arrays,
 /// dynamic arrays, and strings.
-Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx);
+Expression *ctfeIndex(const Loc &loc, Type *type, Expression *e1, uinteger_t indx);
 
 /// Cast 'e' of type 'type' to type 'to'.
-Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e);
+Expression *ctfeCast(const Loc &loc, Type *type, Type *to, Expression *e);
 
 
 #endif /* DMD_CTFE_H */

@@ -139,14 +139,6 @@ __gshared PREC[TOK.max_] precedence =
     TOK.lessOrEqual : PREC.rel,
     TOK.greaterThan : PREC.rel,
     TOK.greaterOrEqual : PREC.rel,
-    TOK.unord : PREC.rel,
-    TOK.lg : PREC.rel,
-    TOK.leg : PREC.rel,
-    TOK.ule : PREC.rel,
-    TOK.ul : PREC.rel,
-    TOK.uge : PREC.rel,
-    TOK.ug : PREC.rel,
-    TOK.ue : PREC.rel,
     TOK.in_ : PREC.rel,
 
     /* Note that we changed precedence, so that < and != have the same
@@ -2109,12 +2101,11 @@ final class Parser(AST) : Lexer
      */
     AST.Type parseVector()
     {
-        const loc = token.loc;
         nextToken();
         check(TOK.leftParentheses);
         AST.Type tb = parseType();
         check(TOK.rightParentheses);
-        return new AST.TypeVector(loc, tb);
+        return new AST.TypeVector(tb);
     }
 
     /***********************************
@@ -2366,8 +2357,14 @@ final class Parser(AST) : Lexer
             check(TOK.rightParentheses);
 
             stc = parsePostfix(stc, &udas);
+            if (stc & AST.STC.immutable_)
+                deprecation("`immutable` postblit is deprecated. Please use an unqualified postblit.");
+            if (stc & AST.STC.shared_)
+                deprecation("`shared` postblit is deprecated. Please use an unqualified postblit.");
+            if (stc & AST.STC.const_)
+                deprecation("`const` postblit is deprecated. Please use an unqualified postblit.");
             if (stc & AST.STC.static_)
-                error(loc, "postblit cannot be static");
+                error(loc, "postblit cannot be `static`");
 
             auto f = new AST.PostBlitDeclaration(loc, Loc.initial, stc, Id.postblit);
             AST.Dsymbol s = parseContracts(f);
@@ -3397,7 +3394,19 @@ final class Parser(AST) : Lexer
 
         case TOK.int64:
             t = AST.Type.tint64;
-            goto LabelX;
+            nextToken();
+            if (token.value == TOK.int64)   // if `long long`
+            {
+                error("use `long` for a 64 bit integer instead of `long long`");
+                nextToken();
+            }
+            else if (token.value == TOK.float64)   // if `long double`
+            {
+                error("use `real` instead of `long double`");
+                t = AST.Type.tfloat80;
+                nextToken();
+            }
+            break;
 
         case TOK.uns64:
             t = AST.Type.tuns64;
@@ -4423,16 +4432,6 @@ final class Parser(AST) : Lexer
             else if (t.ty == AST.Tfunction)
             {
                 AST.Expression constraint = null;
-                version (none)
-                {
-                    TypeFunction tf = cast(TypeFunction)t;
-                    if (Parameter.isTPL(tf.parameters))
-                    {
-                        if (!tpl)
-                            tpl = new TemplateParameters();
-                    }
-                }
-
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
                 auto f = new AST.FuncDeclaration(loc, Loc.initial, ident, storage_class | (disable ? AST.STC.disable : 0), t);
                 if (pAttrs)
@@ -6040,19 +6039,59 @@ final class Parser(AST) : Lexer
         switch (token.value)
         {
         case TOK.leftCurly:
-            /* Scan ahead to see if it is a struct initializer or
-             * a function literal.
-             * If it contains a ';', it is a function literal.
-             * Treat { } as a struct initializer.
+            /* Scan ahead to discern between a struct initializer and
+             * parameterless function literal.
+             *
+             * We'll scan the topmost curly bracket level for statement-related
+             * tokens, thereby ruling out a struct initializer.  (A struct
+             * initializer which itself contains function literals may have
+             * statements at nested curly bracket levels.)
+             *
+             * It's important that this function literal check not be
+             * pendantic, otherwise a function having the slightest syntax
+             * error would emit confusing errors when we proceed to parse it
+             * as a struct initializer.
+             *
+             * The following two ambiguous cases will be treated as a struct
+             * initializer (best we can do without type info):
+             *     {}
+             *     {{statements...}}  - i.e. it could be struct initializer
+             *        with one function literal, or function literal having an
+             *        extra level of curly brackets
+             * If a function literal is intended in these cases (unlikely),
+             * source can use a more explicit function literal syntax
+             * (e.g. prefix with "()" for empty parameter list).
              */
             braces = 1;
             for (t = peek(&token); 1; t = peek(t))
             {
                 switch (t.value)
                 {
+                /* Look for a semicolon or keyword of statements which don't
+                 * require a semicolon (typically containing BlockStatement).
+                 * Tokens like "else", "catch", etc. are omitted where the
+                 * leading token of the statement is sufficient.
+                 */
+                case TOK.asm_:
+                case TOK.class_:
+                case TOK.debug_:
+                case TOK.enum_:
+                case TOK.if_:
+                case TOK.interface_:
+                case TOK.pragma_:
+                case TOK.scope_:
                 case TOK.semicolon:
-                case TOK.return_:
-                    goto Lexpression;
+                case TOK.struct_:
+                case TOK.switch_:
+                case TOK.synchronized_:
+                case TOK.try_:
+                case TOK.union_:
+                case TOK.version_:
+                case TOK.while_:
+                case TOK.with_:
+                    if (braces == 1)
+                        goto Lexpression;
+                    continue;
 
                 case TOK.leftCurly:
                     braces++;
@@ -8234,14 +8273,6 @@ final class Parser(AST) : Lexer
         case TOK.lessOrEqual:
         case TOK.greaterThan:
         case TOK.greaterOrEqual:
-        case TOK.unord:
-        case TOK.lg:
-        case TOK.leg:
-        case TOK.ule:
-        case TOK.ul:
-        case TOK.uge:
-        case TOK.ug:
-        case TOK.ue:
             nextToken();
             auto e2 = parseShiftExp();
             e = new AST.CmpExp(op, loc, e, e2);

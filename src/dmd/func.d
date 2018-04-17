@@ -1336,7 +1336,7 @@ extern (C++) class FuncDeclaration : Declaration
         Module m = getModule();
         if (m && m.isRoot() && !inUnittest())
         {
-            message("%s: vgc: %s", loc.toChars(), warn);
+            message(loc, "vgc: %s", warn);
         }
     }
 
@@ -1518,7 +1518,7 @@ extern (C++) class FuncDeclaration : Declaration
     override inout(AggregateDeclaration) isThis() inout
     {
         //printf("+FuncDeclaration::isThis() '%s'\n", toChars());
-        auto ad = (storage_class & STC.static_) ? null : isMember2();
+        auto ad = (storage_class & STC.static_) ? objc.isThis(this) : isMember2();
         //printf("-FuncDeclaration::isThis() %p\n", ad);
         return ad;
     }
@@ -2436,8 +2436,33 @@ extern (C++) int overloadApply(Dsymbol fstart, void* param, int function(void*, 
     return overloadApply(fstart, s => (*fp)(param, s));
 }
 
-void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
+/**
+Checks for mismatching modifiers between `lhsMod` and `rhsMod` and prints the
+mismatching modifiers to `buf`.
+
+The modifiers of the `lhsMod` mismatching the ones with the `rhsMod` are printed, i.e.
+lhs(shared) vs. rhs() prints "`shared`", wheras lhs() vs rhs(shared) prints "non-shared".
+
+Params:
+    buf = output buffer to write to
+    lhsMod = modifier on the left-hand side
+    lhsMod = modifier on the right-hand side
+
+Returns:
+
+A tuple with `isMutable` and `isNotShared` set
+if the `lhsMod` is missing those modifiers (compared to rhs).
+*/
+auto MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
 {
+    static struct Mismatches
+    {
+        bool isNotShared;
+        bool isMutable;
+    }
+
+    Mismatches mismatches;
+
     bool bothMutable = ((lhsMod & rhsMod) == 0);
     bool sharedMismatch = ((lhsMod ^ rhsMod) & MODFlags.shared_) != 0;
     bool sharedMismatchOnly = ((lhsMod ^ rhsMod) == MODFlags.shared_);
@@ -2445,7 +2470,10 @@ void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
     if (lhsMod & MODFlags.shared_)
         buf.writestring("`shared` ");
     else if (sharedMismatch && !(lhsMod & MODFlags.immutable_))
+    {
         buf.writestring("non-shared ");
+        mismatches.isNotShared = true;
+    }
 
     if (bothMutable && sharedMismatchOnly)
     {
@@ -2457,7 +2485,36 @@ void MODMatchToBuffer(OutBuffer* buf, ubyte lhsMod, ubyte rhsMod)
     else if (lhsMod & MODFlags.wild)
         buf.writestring("`inout` ");
     else
+    {
         buf.writestring("mutable ");
+        mismatches.isMutable = true;
+    }
+
+    return mismatches;
+}
+
+///
+unittest
+{
+    OutBuffer buf;
+    auto mismatches = MODMatchToBuffer(&buf, MODFlags.shared_, 0);
+    assert(buf.peekSlice == "`shared` ");
+    assert(!mismatches.isNotShared);
+
+    buf.reset;
+    mismatches = MODMatchToBuffer(&buf, 0, MODFlags.shared_);
+    assert(buf.peekSlice == "non-shared ");
+    assert(mismatches.isNotShared);
+
+    buf.reset;
+    mismatches = MODMatchToBuffer(&buf, MODFlags.const_, 0);
+    assert(buf.peekSlice == "`const` ");
+    assert(!mismatches.isMutable);
+
+    buf.reset;
+    mismatches = MODMatchToBuffer(&buf, 0, MODFlags.const_);
+    assert(buf.peekSlice == "mutable ");
+    assert(mismatches.isMutable);
 }
 
 private const(char)* prependSpace(const(char)* str)
@@ -2601,13 +2658,16 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
         {
             assert(fd);
 
+            if (fd.checkDisabled(loc, sc))
+                return null;
+
             bool hasOverloads = fd.overnext !is null;
             auto tf = fd.type.toTypeFunction();
             if (tthis && !MODimplicitConv(tthis.mod, tf.mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
                 MODMatchToBuffer(&thisBuf, tthis.mod, tf.mod);
-                MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
+                auto mismatches = MODMatchToBuffer(&funcBuf, tf.mod, tthis.mod);
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using a %sobject, candidates are:",
@@ -2615,9 +2675,15 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 }
                 else
                 {
+                    auto fullFdPretty = fd.toPrettyChars();
                     .error(loc, "%smethod `%s` is not callable using a %sobject",
-                        funcBuf.peekString(), fd.toPrettyChars(),
+                        funcBuf.peekString(), fullFdPretty,
                         thisBuf.peekString());
+
+                    if (mismatches.isNotShared)
+                        .errorSupplemental(loc, "Consider adding `shared` to %s", fullFdPretty);
+                    else if (mismatches.isMutable)
+                        .errorSupplemental(loc, "Consider adding `const` or `inout` to %s", fullFdPretty);
                 }
             }
             else
@@ -2626,7 +2692,7 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                 if (hasOverloads)
                 {
                     .error(loc, "none of the overloads of `%s` are callable using argument types `%s`, candidates are:",
-                        fd.ident.toChars(), fargsBuf.peekString());
+                        fd.toChars(), fargsBuf.peekString());
                 }
                 else
                 {
@@ -2951,13 +3017,6 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
 {
     TOK tok;        // TOK.function_ or TOK.delegate_
     Type treq;      // target of return type inference
-
-    /**
-     * The serialization of this. It is used to compare
-     * lambda functions.
-     * != null only if tok == TOK.reserved.
-     */
-    const(char)* serialization;
 
     // backend
     bool deferToObj;

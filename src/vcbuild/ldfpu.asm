@@ -272,6 +272,25 @@ ld_cmpne PROC
 	ret
 ld_cmpne ENDP
 
+; int ld_cmp(long_double x, long_double y);
+; rcx: &x
+; rdx: &y
+; return -1 if x < y, 0 if x == y or unordered, 1 if x > y
+ld_cmp PROC
+	fld tbyte ptr [rdx]
+	fld tbyte ptr [rcx]
+	fucomip ST(0),ST(1)
+	seta    AL
+	setb    AH
+	setp    DL
+	or      AL,DL
+	or      AH,DL
+	sub     AL,AH
+	movsx   EAX, AL
+	fstp    ST(0)
+	ret
+ld_cmp ENDP
+
 ; long_double ld_sqrt(long_double x);
 ; rcx: &res
 ; rdx: &x

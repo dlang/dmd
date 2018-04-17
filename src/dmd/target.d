@@ -18,9 +18,11 @@ import dmd.cppmanglewin;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dmodule;
+import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.expression;
 import dmd.globals;
+import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
 import dmd.typesem;
@@ -42,16 +44,16 @@ struct Target
     extern (C++) __gshared
     {
         // D ABI
-        int ptrsize;              /// size of a pointer in bytes
-        int realsize;             /// size a real consumes in memory
-        int realpad;              /// padding added to the CPU real size to bring it up to realsize
-        int realalignsize;        /// alignment for reals
-        int classinfosize;        /// size of `ClassInfo`
+        uint ptrsize;             /// size of a pointer in bytes
+        uint realsize;            /// size a real consumes in memory
+        uint realpad;             /// padding added to the CPU real size to bring it up to realsize
+        uint realalignsize;       /// alignment for reals
+        uint classinfosize;       /// size of `ClassInfo`
         ulong maxStaticDataSize;  /// maximum size of static data
 
         // C ABI
-        int c_longsize;           /// size of a C `long` or `unsigned long` type
-        int c_long_doublesize;    /// size of a C `long double`
+        uint c_longsize;          /// size of a C `long` or `unsigned long` type
+        uint c_long_doublesize;   /// size of a C `long double`
 
         // C++ ABI
         bool reverseCppOverloads; /// set if overloaded functions are grouped and in reverse order (such as in dmc and cl)
@@ -67,12 +69,12 @@ struct Target
     {
         static __gshared
         {
-            real_t max = T.max;                 /// largest representable value that's not infinity
-            real_t min_normal = T.min_normal;   /// smallest representable normalized value that's not 0
-            real_t nan = T.nan;                 /// NaN value
-            real_t snan = T.init;               /// signalling NaN value
-            real_t infinity = T.infinity;       /// infinity value
-            real_t epsilon = T.epsilon;         /// smallest increment to the value 1
+            real_t max;                         /// largest representable value that's not infinity
+            real_t min_normal;                  /// smallest representable normalized value that's not 0
+            real_t nan;                         /// NaN value
+            real_t snan;                        /// signalling NaN value
+            real_t infinity;                    /// infinity value
+            real_t epsilon;                     /// smallest increment to the value 1
 
             d_int64 dig = T.dig;                /// number of decimal digits of precision
             d_int64 mant_dig = T.mant_dig;      /// number of bits in mantissa
@@ -80,6 +82,15 @@ struct Target
             d_int64 min_exp = T.min_exp;        /// minimum int value such that 2$(SUPERSCRIPT `min_exp-1`) is representable as a normalized value
             d_int64 max_10_exp = T.max_10_exp;  /// maximum int value such that 10$(SUPERSCRIPT `max_10_exp` is representable)
             d_int64 min_10_exp = T.min_10_exp;  /// minimum int value such that 10$(SUPERSCRIPT `min_10_exp`) is representable as a normalized value
+        }
+        static void _init()
+        {
+            max = T.max;
+            min_normal = T.min_normal;
+            nan = T.nan;
+            snan = T.init;
+            infinity = T.infinity;
+            epsilon = T.epsilon;
         }
     }
 
@@ -95,6 +106,10 @@ struct Target
      */
     extern (C++) static void _init()
     {
+        FloatProperties._init();
+        DoubleProperties._init();
+        RealProperties._init();
+
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
         ptrsize = 4;
@@ -366,10 +381,6 @@ struct Target
             supported = false;
             break;
 
-        case TOK.unord, TOK.lg, TOK.leg, TOK.ule, TOK.ul, TOK.uge, TOK.ug, TOK.ue:
-            supported = false;
-            break;
-
         case TOK.leftShift, TOK.leftShiftAssign, TOK.rightShift, TOK.rightShiftAssign, TOK.unsignedRightShift, TOK.unsignedRightShiftAssign:
             supported = false;
             break;
@@ -570,6 +581,191 @@ struct Target
     extern (C++) static TypeTuple toArgTypes(Type t)
     {
         return .toArgTypes(t);
+    }
+
+    /**
+     * Params:
+     *   tf = function type to check
+     * Returns:
+     *   true if return value from function is on the stack
+     */
+    extern (C++) static bool isReturnOnStack(TypeFunction tf)
+    {
+        if (tf.isref)
+        {
+            //printf("  ref false\n");
+            return false;                 // returns a pointer
+        }
+
+        Type tn = tf.next.toBasetype();
+        //printf("tn = %s\n", tn.toChars());
+        d_uns64 sz = tn.size();
+        Type tns = tn;
+
+        if (global.params.isWindows && global.params.is64bit)
+        {
+            // http://msdn.microsoft.com/en-us/library/7572ztz4.aspx
+            if (tns.ty == Tcomplex32)
+                return true;
+            if (tns.isscalar())
+                return false;
+
+            tns = tns.baseElemOf();
+            if (tns.ty == Tstruct)
+            {
+                StructDeclaration sd = (cast(TypeStruct)tns).sym;
+                if (sd.ident == Id.__c_long_double)
+                    return false;
+                if (!sd.isPOD() || sz > 8)
+                    return true;
+                if (sd.fields.dim == 0)
+                    return true;
+            }
+            if (sz <= 16 && !(sz & (sz - 1)))
+                return false;
+            return true;
+        }
+        else if (global.params.isWindows && global.params.mscoff)
+        {
+            Type tb = tns.baseElemOf();
+            if (tb.ty == Tstruct)
+            {
+                StructDeclaration sd = (cast(TypeStruct)tb).sym;
+                if (sd.ident == Id.__c_long_double)
+                    return false;
+            }
+        }
+
+    Lagain:
+        if (tns.ty == Tsarray)
+        {
+            tns = tns.baseElemOf();
+            if (tns.ty != Tstruct)
+            {
+    L2:
+                if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
+                {
+                                                    // 32 bit C/C++ structs always on stack
+                }
+                else
+                {
+                    switch (sz)
+                    {
+                        case 1:
+                        case 2:
+                        case 4:
+                        case 8:
+                            //printf("  sarray false\n");
+                            return false; // return small structs in regs
+                                                // (not 3 byte structs!)
+                        default:
+                            break;
+                    }
+                }
+                //printf("  sarray true\n");
+                return true;
+            }
+        }
+
+        if (tns.ty == Tstruct)
+        {
+            StructDeclaration sd = (cast(TypeStruct)tns).sym;
+            if (global.params.isLinux && tf.linkage != LINK.d && !global.params.is64bit)
+            {
+                if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
+                    return false;
+
+                //printf("  2 true\n");
+                return true;            // 32 bit C/C++ structs always on stack
+            }
+            if (global.params.isWindows && tf.linkage == LINK.cpp && !global.params.is64bit &&
+                     sd.isPOD() && sd.ctor)
+            {
+                // win32 returns otherwise POD structs with ctors via memory
+                // unless it's not really a struct
+                if (sd.ident == Id.__c_long || sd.ident == Id.__c_ulong)
+                    return false;
+                return true;
+            }
+            if (sd.arg1type && !sd.arg2type)
+            {
+                tns = sd.arg1type;
+                if (tns.ty != Tstruct)
+                    goto L2;
+                goto Lagain;
+            }
+            else if (global.params.is64bit && !sd.arg1type && !sd.arg2type)
+                return true;
+            else if (sd.isPOD())
+            {
+                switch (sz)
+                {
+                    case 1:
+                    case 2:
+                    case 4:
+                    case 8:
+                        //printf("  3 false\n");
+                        return false;     // return small structs in regs
+                                            // (not 3 byte structs!)
+                    case 16:
+                        if (!global.params.isWindows && global.params.is64bit)
+                           return false;
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            //printf("  3 true\n");
+            return true;
+        }
+        else if ((global.params.isLinux || global.params.isOSX ||
+                  global.params.isFreeBSD || global.params.isSolaris ||
+                  global.params.isDragonFlyBSD) &&
+                 tf.linkage == LINK.c &&
+                 tns.iscomplex())
+        {
+            if (tns.ty == Tcomplex32)
+                return false;     // in EDX:EAX, not ST1:ST0
+            else
+                return true;
+        }
+        else
+        {
+            //assert(sz <= 16);
+            //printf("  4 false\n");
+            return false;
+        }
+    }
+
+    /***
+     * Determine the size a value of type `t` will be when it
+     * is passed on the function parameter stack.
+     * Params:
+     *  loc = location to use for error messages
+     *  t = type of parameter
+     * Returns:
+     *  size used on parameter stack
+     */
+    extern (C++) static ulong parameterSize(const ref Loc loc, Type t)
+    {
+        if (!global.params.is64bit &&
+            (global.params.isFreeBSD || global.params.isOSX))
+        {
+            /* These platforms use clang, which regards a struct
+             * with size 0 as being of size 0 on the parameter stack,
+             * even while sizeof(struct) is 1.
+             * It's an ABI incompatibility with gcc.
+             */
+            if (t.ty == Tstruct)
+            {
+                auto ts = cast(TypeStruct)t;
+                if (ts.sym.hasNoFields)
+                    return 0;
+            }
+        }
+        const sz = t.size(loc);
+        return global.params.is64bit ? (sz + 7) & ~7 : (sz + 3) & ~3;
     }
 }
 

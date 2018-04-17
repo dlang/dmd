@@ -10,7 +10,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cod3.c
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -42,9 +42,9 @@ enum MF
         MFword          = 3
 };
 
-targ_size_t paramsize(elem *e);
+targ_size_t paramsize(elem *e, tym_t tyf);
 static void funccall(CodeBuilder& cdb,elem *,unsigned,unsigned,regm_t *,regm_t,bool);
-static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned funcargtos);
+static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned funcargtos, tym_t tyf);
 
 /* array to convert from index register to r/m field    */
                                        /* AX CX DX BX SP BP SI DI       */
@@ -2713,12 +2713,13 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
 
 /*****************************************
  * Allocate parameter of type t and ty to registers *preg1 and *preg2.
+ * Params:
+ *      t = type, valid only if ty is TYstruct or TYarray
  * Returns:
  *      0       not allocated to any register
  *      1       *preg1, *preg2 set to allocated register pair
  */
 
-// t is valid only if ty is a TYstruct or TYarray
 static int type_jparam2(type *t, tym_t ty)
 {
     ty = tybasic(ty);
@@ -2741,7 +2742,6 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
 {
     //printf("FuncParamRegs::alloc(ty = TY%s)\n", tystring[tybasic(ty)]);
     //if (t) type_print(t);
-    ++i;
 
     *preg1 = NOREG;
     *preg2 = NOREG;
@@ -2749,8 +2749,14 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
     type *t2 = NULL;
     tym_t ty2 = TYMAX;
 
+    const tym_t tyb = tybasic(ty);
+    if (tyb == TYstruct && type_zeroSize(t, tyf))
+        return 0;               // don't allocate into registers
+
+    ++i;
+
     // If struct just wraps another type
-    if (tybasic(ty) == TYstruct && tybasic(t->Tty) == TYstruct)
+    if (tyb == TYstruct && tybasic(t->Tty) == TYstruct)
     {
         if (config.exe == EX_WIN64)
         {
@@ -2907,7 +2913,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        unsigned psize = _align(stackalign, paramsize(ep));     // align on stack boundary
+        unsigned psize = _align(stackalign, paramsize(ep, tyf));     // align on stack boundary
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
@@ -3056,9 +3062,9 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             msavereg |= keepmsk;
             CodeBuilder cdbparams;
             if (usefuncarg)
-                movParams(cdbparams, ep, stackalign, funcargtos);
+                movParams(cdbparams, ep, stackalign, funcargtos, tyf);
             else
-                pushParams(cdbparams,ep,stackalign);
+                pushParams(cdbparams,ep,stackalign, tyf);
             regm_t tosave = keepmsk & ~msavereg;
             msavereg &= ~keepmsk | overlap;
 
@@ -3084,7 +3090,7 @@ void cdfunc(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             unsigned numalign = parameters[i].numalign;
             if (usefuncarg)
             {
-                funcargtos -= _align(stackalign, paramsize(ep)) + numalign;
+                funcargtos -= _align(stackalign, paramsize(ep, tyf)) + numalign;
                 cgstate.funcargtos = funcargtos;
             }
             else if (numalign)
@@ -3623,7 +3629,7 @@ static void funccall(CodeBuilder& cdb,elem *e,unsigned numpara,unsigned numalign
  * Determine size of argument e that will be pushed.
  */
 
-targ_size_t paramsize(elem *e)
+targ_size_t paramsize(elem *e, tym_t tyf)
 {
     assert(e->Eoper != OPparam);
     targ_size_t szb;
@@ -3631,7 +3637,7 @@ targ_size_t paramsize(elem *e)
     if (tyscalar(tym))
         szb = size(tym);
     else if (tym == TYstruct || tym == TYarray)
-        szb = type_size(e->ET);
+        szb = type_parameterSize(e->ET, tyf);
     else
     {
         WRTYxx(tym);
@@ -3644,7 +3650,7 @@ targ_size_t paramsize(elem *e)
  * Generate code to move argument e on the stack.
  */
 
-static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned funcargtos)
+static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned funcargtos, tym_t tyf)
 {
     //printf("movParams(e = %p, stackalign = %d, funcargtos = %d)\n", e, stackalign, funcargtos);
     //printf("movParams()\n"); elem_print(e);
@@ -3657,7 +3663,7 @@ static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned fun
 
     int grex = I64 ? REX_W << 16 : 0;
 
-    targ_size_t szb = paramsize(e);               // size before alignment
+    targ_size_t szb = paramsize(e, tyf);          // size before alignment
     targ_size_t sz = _align(stackalign,szb);       // size after alignment
     assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
     assert((sz & (REGSIZE - 1)) == 0);
@@ -3844,7 +3850,7 @@ static void movParams(CodeBuilder& cdb,elem *e,unsigned stackalign, unsigned fun
  * stackpush is incremented by stackalign for each PUSH.
  */
 
-void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
+void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign, tym_t tyf)
 {
   //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
   //printf("params()\n"); elem_print(e);
@@ -3857,7 +3863,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
 
   int grex = I64 ? REX_W << 16 : 0;
 
-  targ_size_t szb = paramsize(e);               // size before alignment
+  targ_size_t szb = paramsize(e, tyf);          // size before alignment
   targ_size_t sz = _align(stackalign,szb);      // size after alignment
   assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
   assert((sz & (REGSIZE - 1)) == 0);
@@ -4152,7 +4158,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
                 code_orflag(cdb.last(),CFopsize);        // push a word
             cdb.genadjesp(stackalign);
             stackpush += stackalign;
-            pushParams(cdb,e1,stackalign);
+            pushParams(cdb,e1,stackalign, tyf);
             freenode(e);
             return;
         }
@@ -4222,7 +4228,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
         {   // Avoid PUSH MEM on the Pentium when optimizing for speed
             break;
         }
-        else if (movOnly(e))
+        else if (movOnly(e) || (tyxmmreg(tym) && config.fpxmmregs) || tyvector(tym))
             break;                      // no PUSH MEM
         else
         {
@@ -4360,7 +4366,7 @@ void pushParams(CodeBuilder& cdb,elem *e,unsigned stackalign)
   }
 
     regm_t retregs = tybyte(tym) ? BYTEREGS : allregs;
-    if (tyvector(tym))
+    if (tyvector(tym) || (tyxmmreg(tym) && config.fpxmmregs))
     {
         regm_t retregs = XMMREGS;
         codelem(cdb,e,&retregs,FALSE);

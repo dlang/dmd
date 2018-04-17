@@ -22,6 +22,7 @@ import dmd.astcodegen;
 import dmd.attrib;
 import dmd.blockexit;
 import dmd.clone;
+import dmd.ctorflow;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -41,7 +42,6 @@ import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
-import dmd.gluelayer;
 import dmd.id;
 import dmd.identifier;
 import dmd.init;
@@ -232,7 +232,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.errors = true;
             return;
         }
-        //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent.toChars(), toChars(), this, sc, loc.toChars());
+        //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", funcdecl.parent.toChars(), funcdecl.toChars(), funcdecl, sc, funcdecl.loc.toChars());
         //fflush(stdout);
         //printf("storage class = x%x %x\n", sc.stc, storage_class);
         //{ static int x; if (++x == 2) *(char*)0=0; }
@@ -320,7 +320,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Scope* sc2 = sc.push(ss);
             sc2.func = funcdecl;
             sc2.parent = funcdecl;
-            sc2.callSuper = 0;
+            sc2.ctorflow.callSuper = CSX.none;
             sc2.sbreak = null;
             sc2.scontinue = null;
             sc2.sw = null;
@@ -335,12 +335,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.flags &= ~SCOPE.compile;
             sc2.tf = null;
             sc2.os = null;
-            sc2.noctor = 0;
+            sc2.inLoop = false;
             sc2.userAttribDecl = null;
             if (sc2.intypeof == 1)
                 sc2.intypeof = 2;
-            sc2.fieldinit = null;
-            sc2.fieldinit_dim = 0;
+            sc2.ctorflow.fieldinit = null;
 
             /* Note: When a lambda is defined immediately under aggregate member
              * scope, it should be contextless due to prevent interior pointers.
@@ -443,7 +442,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     //printf("declaring parameter %s of type %s\n", v.toChars(), v.type.toChars());
                     stc |= STC.parameter;
                     if (f.varargs == 2 && i + 1 == nparams)
+                    {
                         stc |= STC.variadic;
+                        auto vtypeb = vtype.toBasetype();
+                        if (vtypeb.ty == Tarray)
+                        {
+                            /* Since it'll be pointing into the stack for the array
+                             * contents, it needs to be `scope`
+                             */
+                            stc |= STC.scope_;
+                        }
+                    }
                     if (funcdecl.flags & FUNCFLAG.inferScope && !(fparam.storageClass & STC.scope_))
                         stc |= STC.maybescope;
                     stc |= fparam.storageClass & (STC.in_ | STC.out_ | STC.ref_ | STC.return_ | STC.scope_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
@@ -557,14 +566,14 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  */
                 if (ad2 && funcdecl.isCtorDeclaration())
                 {
-                    sc2.allocFieldinit(ad2.fields.dim);
+                    sc2.ctorflow.allocFieldinit(ad2.fields.dim);
                     foreach (v; ad2.fields)
                     {
                         v.ctorinit = 0;
                     }
                 }
 
-                if (!funcdecl.inferRetType && retStyle(f) != RET.stack)
+                if (!funcdecl.inferRetType && !Target.isReturnOnStack(f))
                     funcdecl.nrvo_can = 0;
 
                 bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
@@ -618,7 +627,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
                 }
-                if (retStyle(f) != RET.stack)
+                if (!Target.isReturnOnStack(f))
                     funcdecl.nrvo_can = 0;
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -641,7 +650,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     ClassDeclaration cd = ad2.isClassDeclaration();
 
                     // Verify that all the ctorinit fields got initialized
-                    if (!(sc2.callSuper & CSX.this_ctor))
+                    if (!(sc2.ctorflow.callSuper & CSX.this_ctor))
                     {
                         foreach (i, v; ad2.fields)
                         {
@@ -665,18 +674,18 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             else
                             {
                                 bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                                if (mustInit && !(sc2.fieldinit[i] & CSX.this_ctor))
+                                if (mustInit && !(sc2.ctorflow.fieldinit[i] & CSX.this_ctor))
                                 {
                                     funcdecl.error("field `%s` must be initialized but skipped", v.toChars());
                                 }
                             }
                         }
                     }
-                    sc2.freeFieldinit();
+                    sc2.ctorflow.freeFieldinit();
 
-                    if (cd && !(sc2.callSuper & CSX.any_ctor) && cd.baseClass && cd.baseClass.ctor)
+                    if (cd && !(sc2.ctorflow.callSuper & CSX.any_ctor) && cd.baseClass && cd.baseClass.ctor)
                     {
-                        sc2.callSuper = 0;
+                        sc2.ctorflow.callSuper = CSX.none;
 
                         // Insert implicit super() at start of fbody
                         FuncDeclaration fd = resolveFuncCall(Loc.initial, sc2, cd.baseClass.ctor, null, funcdecl.vthis.type, null, 1);
@@ -697,7 +706,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             funcdecl.fbody = new CompoundStatement(Loc.initial, s, funcdecl.fbody);
                         }
                     }
-                    //printf("callSuper = x%x\n", sc2.callSuper);
+                    //printf("ctorflow.callSuper = x%x\n", sc2.ctorflow.callSuper);
                 }
 
                 /* https://issues.dlang.org/show_bug.cgi?id=17502
@@ -721,7 +730,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 if (f.isnothrow && blockexit & BE.throw_)
                     error(funcdecl.loc, "`nothrow` %s `%s` may throw", funcdecl.kind(), funcdecl.toPrettyChars());
 
-                if (!(blockexit & BE.throw_ || funcdecl.flags & FUNCFLAG.hasCatches))
+                if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.flags & FUNCFLAG.hasCatches))
                 {
                     /* Disable optimization on Win32 due to
                      * https://issues.dlang.org/show_bug.cgi?id=17997
@@ -946,7 +955,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         VarDeclaration v = (*funcdecl.parameters)[i];
                         if (v.storage_class & STC.out_)
                         {
-                            assert(v._init);
+                            if (!v._init)
+                            {
+                                v.error("Zero-length `out` parameters are not allowed.");
+                                return;
+                            }
                             ExpInitializer ie = v._init.isExpInitializer();
                             assert(ie);
                             if (ie.exp.op == TOK.construct)
@@ -1108,7 +1121,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             if (funcdecl.naked && (funcdecl.fensure || funcdecl.frequire))
                 funcdecl.error("naked assembly functions with contracts are not supported");
 
-            sc2.callSuper = 0;
+            sc2.ctorflow.callSuper = CSX.none;
             sc2.pop();
         }
 
@@ -1168,7 +1181,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     //printf("Inferring scope for %s\n", v.toChars());
                     Parameter p = Parameter.getNth(f.parameters, u);
-                    v.storage_class &= ~STC.maybescope;
+                    notMaybeScope(v);
                     v.storage_class |= STC.scope_ | STC.scopeinferred;
                     p.storageClass |= STC.scope_ | STC.scopeinferred;
                     assert(!(p.storageClass & STC.maybescope));
@@ -1178,7 +1191,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         if (funcdecl.vthis && funcdecl.vthis.storage_class & STC.maybescope)
         {
-            funcdecl.vthis.storage_class &= ~STC.maybescope;
+            notMaybeScope(funcdecl.vthis);
             funcdecl.vthis.storage_class |= STC.scope_ | STC.scopeinferred;
             f.isscope = true;
             f.isscopeinferred = true;

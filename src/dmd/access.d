@@ -189,9 +189,9 @@ extern (C++) bool checkAccess(AggregateDeclaration ad, Loc loc, Scope* sc, Dsymb
             printf("result4 = %d\n", result);
         }
     }
-    if (!result)
+    if (!result && (!(sc.flags & SCOPE.onlysafeaccess) || sc.func.setUnsafe()))
     {
-        ad.error(loc, "member `%s` is not accessible", smember.toChars());
+        ad.error(loc, "member `%s` is not accessible%s", smember.toChars(), (sc.flags & SCOPE.onlysafeaccess) ? " from `@safe` code".ptr : "".ptr);
         //printf("smember = %s %s, prot = %d, semanticRun = %d\n",
         //        smember.kind(), smember.toPrettyChars(), smember.prot(), smember.semanticRun);
         return true;

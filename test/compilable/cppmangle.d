@@ -438,3 +438,15 @@ version (linux)
 {
     static assert(test36.mangleof == "_Z6test36PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPiPS12_");
 }
+
+/*****************************************/
+// https://issues.dlang.org/show_bug.cgi?id=17772
+
+extern(C++, SPACE)
+int test37(T)(){ return 0;}
+
+version (Posix) // all non-Windows machines
+{
+    static assert(test37!int.mangleof == "_ZN5SPACE6test37IiEEiv");
+}
+

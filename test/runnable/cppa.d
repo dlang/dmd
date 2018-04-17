@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -g
+// PERMUTE_ARGS: -g -version=PULL8152
 // EXTRA_CPP_SOURCES: cppb.cpp
 
 import core.stdc.stdio;
@@ -249,21 +249,7 @@ extern(C++) void check13956(S13956 arg0, int arg1, int arg2, int arg3, int arg4,
     assert(arg3 == 3);
     assert(arg4 == 4);
     assert(arg5 == 5);
-    version (OSX)
-    {
-        version (D_LP64)
-            assert(arg6 == 6);
-        // fails on OSX 32-bit
-    }
-    else version (FreeBSD)
-    {
-        version (D_LP64)
-            assert(arg6 == 6);
-        // fails on FreeBSD 32-bit
-        // https://issues.dlang.org/show_bug.cgi?id=16243
-    }
-    else
-        assert(arg6 == 6);
+    assert(arg6 == 6);
 }
 
 void test13956()
@@ -619,13 +605,19 @@ extern(C++)
 
 version (CRuntime_Microsoft)
 {
-    struct __c_long_double
+    version (PULL8152)
     {
-        this(double d) { ld = d; }
-        double ld;
-        alias ld this;
+        enum __c_long_double : double;
     }
-
+    else
+    {
+        struct __c_long_double
+        {
+            this(double d) { ld = d; }
+            double ld;
+            alias ld this;
+        }
+    }
     alias __c_long_double myld;
 }
 else
@@ -662,18 +654,26 @@ else
   }
 }
 
-struct __c_long
+version (PULL8152)
 {
-    this(x_long d) { ld = d; }
-    x_long ld;
-    alias ld this;
+    enum __c_long : x_long;
+    enum __c_ulong : x_ulong;
 }
-
-struct __c_ulong
+else
 {
-    this(x_ulong d) { ld = d; }
-    x_ulong ld;
-    alias ld this;
+    struct __c_long
+    {
+        this(x_long d) { ld = d; }
+        x_long ld;
+        alias ld this;
+    }
+
+    struct __c_ulong
+    {
+        this(x_ulong d) { ld = d; }
+        x_ulong ld;
+        alias ld this;
+    }
 }
 
 alias __c_long mylong;
@@ -688,6 +688,7 @@ void test16()
   {
     mylong ld = 5;
     ld = testl(ld);
+    printf("ld = %lld, mylong.sizeof = %lld\n", cast(long)ld, cast(long)mylong.sizeof);
     assert(ld == 5 + mylong.sizeof);
   }
   {
@@ -695,7 +696,54 @@ void test16()
     ld = testul(ld);
     assert(ld == 5 + myulong.sizeof);
   }
+
+    version (PULL8152)
+    {
+        static if (__c_long.sizeof == long.sizeof)
+        {
+            static assert(__c_long.max == long.max);
+            static assert(__c_long.min == long.min);
+            static assert(__c_long.init == long.init);
+
+            static assert(__c_ulong.max == ulong.max);
+            static assert(__c_ulong.min == ulong.min);
+            static assert(__c_ulong.init == ulong.init);
+
+            __c_long cl = 0;
+            cl = cl + 1;
+            long l = cl;
+            cl = l;
+
+            __c_ulong cul = 0;
+            cul = cul + 1;
+            ulong ul = cul;
+            cul = ul;
+        }
+        else static if (__c_long.sizeof == int.sizeof)
+        {
+            static assert(__c_long.max == int.max);
+            static assert(__c_long.min == int.min);
+            static assert(__c_long.init == int.init);
+
+            static assert(__c_ulong.max == uint.max);
+            static assert(__c_ulong.min == uint.min);
+            static assert(__c_ulong.init == uint.init);
+
+            __c_long cl = 0;
+            cl = cl + 1;
+            int i = cl;
+            cl = i;
+
+            __c_ulong cul = 0;
+            cul = cul + 1;
+            uint u = cul;
+            cul = u;
+        }
+        else
+            static assert(0);
+    }
 }
+
 
 /****************************************/
 

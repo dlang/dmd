@@ -1,38 +1,14 @@
 #!/usr/bin/env bash
 
+
 dir=${RESULTS_DIR}/runnable
-dmddir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}/test44.sh.out
 
-rm -f ${output_file}
+$DMD -m${MODEL} -I${TEST_DIR} -od${RESULTS_TEST_DIR} -of${OUTPUT_BASE}_1${EXE} ${EXTRA_FILES}/test44.d ${TEST_DIR}/imports/test44a.d
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -of${dmddir}${SEP}test44_1${EXE} runnable/extra-files/test44.d runnable/imports/test44a.d >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+${OUTPUT_BASE}_1
 
-${dir}/test44_1 >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+$DMD -m${MODEL} -I${TEST_DIR} -od${RESULTS_TEST_DIR} -of${OUTPUT_BASE}_2${EXE} ${TEST_DIR}/imports/test44a.d ${EXTRA_FILES}/test44.d
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -of${dmddir}${SEP}test44_2${EXE} runnable/imports/test44a.d runnable/extra-files/test44.d >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
+${OUTPUT_BASE}_2
 
-${dir}/test44_2 >> ${output_file}
-if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
-    exit 1
-fi
-
-rm ${dir}/{test44_1${OBJ},test44_1${EXE},test44_2${OBJ},test44_2${EXE}}
-
+rm ${OUTPUT_BASE}{_1${OBJ},_1${EXE},_2${OBJ},_2${EXE}}

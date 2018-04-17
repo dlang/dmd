@@ -14,6 +14,7 @@
 
 #include        <stdio.h>
 #include        <string.h>
+#include        <stdint.h>
 #include        <time.h>
 #include        "cc.h"
 #include        "oper.h"
@@ -32,9 +33,11 @@ int cdcmp_flag;
 extern signed char regtorm[8];
 
 // from divcoeff.c
-extern bool choose_multiplier(int N, targ_ullong d, int prec, targ_ullong *pm, int *pshpost);
-extern bool udiv_coefficients(int N, targ_ullong d, int *pshpre, targ_ullong *pm, int *pshpost);
-
+extern "C"
+{
+extern bool choose_multiplier(int N, uint64_t d, int prec, uint64_t *pm, int *pshpost);
+extern bool udiv_coefficients(int N, uint64_t d, int *pshpre, uint64_t *pm, int *pshpost);
+}
 
 /*******************************
  * Swap two integers.
@@ -1090,7 +1093,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
             unsigned r3;
 
-            targ_ullong m;
+            uint64_t m;
             int shpost;
             int N = sz * 8;
             bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
@@ -1191,7 +1194,7 @@ void cdmul(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             unsigned r3;
             regm_t regm;
             unsigned reg;
-            targ_ullong m;
+            uint64_t m;
             int shpre;
             int shpost;
             if (udiv_coefficients(sz * 8, e2factor, &shpre, &m, &shpost))
@@ -1998,9 +2001,19 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         targ_size_t v1,v2;
         int opcode;
 
-        retregs = *pretregs & (ALLREGS | mBP);
-        if (!retregs)
-            retregs = ALLREGS;
+        if (sz2 != 1 || I64)
+        {
+            retregs = *pretregs & (ALLREGS | mBP);
+            if (!retregs)
+                retregs = ALLREGS;
+        }
+        else
+        {
+            retregs = *pretregs & BYTEREGS;
+            if (!retregs)
+                retregs = BYTEREGS;
+        }
+
         cdcmp_flag = 1;
         v1 = e21->EV.Vllong;
         v2 = e22->EV.Vllong;
@@ -2046,7 +2059,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
             {
                 v1 -= v2;
                 cdb.genc2(opcode,grex | modregrmx(3,4,reg),v1);   // AND reg,v1-v2
-                if (I64 && sz1 == 1 && reg >= 4)
+                if (I64 && sz2 == 1 && reg >= 4)
                     code_orrex(cdb.last(), REX);
                 if (v2 == 1 && !I64)
                     cdb.gen1(0x40 + reg);                     // INC reg
@@ -2054,7 +2067,7 @@ void cdcond(CodeBuilder& cdb,elem *e,regm_t *pretregs)
                     cdb.gen1(0x48 + reg);                     // DEC reg
                 else
                 {   cdb.genc2(opcode,grex | modregrmx(3,0,reg),v2);   // ADD reg,v2
-                    if (I64 && sz1 == 1 && reg >= 4)
+                    if (I64 && sz2 == 1 && reg >= 4)
                         code_orrex(cdb.last(), REX);
                 }
             }
@@ -3671,6 +3684,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 
     unsigned char rex = I64 ? REX_W : 0;
 
+    bool e2E2isConst = false;
     if (e2->E2->Eoper == OPconst)
     {
         value = el_tolong(e2->E2);
@@ -3678,6 +3692,12 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         value |= value << 8;
         value |= value << 16;
         value |= value << 32;
+        e2E2isConst = true;
+    }
+    else if (e2->E2->Eoper == OPstrpar)  // happens if e2->E2 is a struct of 0 size
+    {
+        value = 0;
+        e2E2isConst = true;
     }
     else
         value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
@@ -3687,7 +3707,7 @@ void cdmemset(CodeBuilder& cdb,elem *e,regm_t *pretregs)
         numbytes = el_tolong(e2->E1);
         if (numbytes <= REP_THRESHOLD &&
             !I16 &&                     // doesn't work for 16 bits
-            e2->E2->Eoper == OPconst)
+            e2E2isConst)
         {
             targ_uns offset = 0;
             retregs1 = *pretregs;
@@ -3758,7 +3778,7 @@ fixres:
 
     // Get nbytes into CX
     retregs2 = mCX;
-    if (!I16 && e2->E1->Eoper == OPconst && e2->E2->Eoper == OPconst)
+    if (!I16 && e2->E1->Eoper == OPconst && e2E2isConst)
     {
         remainder = numbytes & (4 - 1);
         numwords  = numbytes / 4;               // number of words
@@ -3776,7 +3796,7 @@ fixres:
     // Get val into AX
 
     retregs3 = mAX;
-    if (!I16 && e2->E2->Eoper == OPconst)
+    if (!I16 && e2E2isConst)
     {
         regwithvalue(cdb, mAX, value, NULL, I64?64:0);
         freenode(e2->E2);

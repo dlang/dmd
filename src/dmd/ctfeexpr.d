@@ -126,7 +126,7 @@ extern (C++) final class VoidInitExp : Expression
 {
     VarDeclaration var;
 
-    extern (D) this(VarDeclaration var, Type type)
+    extern (D) this(VarDeclaration var)
     {
         super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
         this.var = var;
@@ -913,7 +913,7 @@ extern (C++) UnionExp pointerArithmetic(const ref Loc loc, TOK op, Type type, Ex
 
 // Return 1 if true, 0 if false
 // -1 if comparison is illegal because they point to non-comparable memory blocks
-extern (C++) int comparePointers(const ref Loc loc, TOK op, Type type, Expression agg1, dinteger_t ofs1, Expression agg2, dinteger_t ofs2)
+extern (C++) int comparePointers(TOK op, Expression agg1, dinteger_t ofs1, Expression agg2, dinteger_t ofs2)
 {
     if (pointToSameMemoryBlock(agg1, agg2))
     {
@@ -1997,6 +1997,6 @@ extern (C++) UnionExp voidInitLiteral(Type t, VarDeclaration var)
         se.ownedByCtfe = OwnedBy.ctfe;
     }
     else
-        emplaceExp!(VoidInitExp)(&ue, var, t);
+        emplaceExp!(VoidInitExp)(&ue, var);
     return ue;
 }

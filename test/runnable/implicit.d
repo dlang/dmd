@@ -265,7 +265,7 @@ int*[] pureFoo() pure { return null; }
 
 void testDIP29_5() pure
 {
-    { char[] s; immutable x = s.dup; }
+    { char[] s; immutable x = s.idup; }
     { immutable x = (cast(int*[])null).dup; }
     { immutable x = pureFoo(); }
     { immutable x = pureFoo().dup; }

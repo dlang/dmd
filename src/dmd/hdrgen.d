@@ -721,7 +721,7 @@ public:
     {
         if (t.ty == Tfunction)
         {
-            visitFuncIdentWithPrefix(cast(TypeFunction)t, ident, null, true);
+            visitFuncIdentWithPrefix(cast(TypeFunction)t, ident, null);
             return;
         }
         visitWithMask(t, 0);
@@ -912,7 +912,7 @@ public:
         t.inuse--;
     }
 
-    void visitFuncIdentWithPrefix(TypeFunction t, Identifier ident, TemplateDeclaration td, bool isPostfixStyle)
+    void visitFuncIdentWithPrefix(TypeFunction t, Identifier ident, TemplateDeclaration td)
     {
         if (t.inuse)
         {
@@ -3370,7 +3370,7 @@ extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifi
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
-    v.visitFuncIdentWithPrefix(tf, ident, td, true);
+    v.visitFuncIdentWithPrefix(tf, ident, td);
 }
 
 // ident is inserted before the argument list and will be "function" or "delegate" for a type

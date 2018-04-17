@@ -30,9 +30,12 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 /* Since many routines are nearly identical, we can combine them with   */
 /* this flag:                                                           */
 
-#define AE      1
-#define CP      2
-#define VBE     3
+enum
+{
+    AE = 1,
+    CP,
+    VBE
+};
 
 static int flowxx;              /* one of the above values              */
 
@@ -1459,6 +1462,13 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                         vec_setbit(s->Ssymnum,KILL);
                     }
                 }
+                break;
+
+            case OPbt:                          // much like OPind
+                accumlv(GEN,KILL,n->E1);
+                accumlv(GEN,KILL,n->E2);
+                vec_orass(GEN,ambigsym);
+                vec_subass(GEN,KILL);
                 break;
 
             case OPind:

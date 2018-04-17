@@ -15,13 +15,13 @@ src/dmd/astbase* @RazvanN7
 src/dmd/astcodegen.d @RazvanN7
 src/dmd/asttypename.d @UplinkCoder
 src/dmd/builtin.d @klickvebot @WalterBright
-src/dmd/cond.d @mathias-lang-sociomantic @Geod24
+src/dmd/cond.d @Geod24
 src/dmd/console.d @CyberShadow
 src/dmd/cppmangle.d @ibuclaw
 src/dmd/ctfeexpr.d @UplinkCoder
 src/dmd/doc.d @andralex @jacob-carlborg
 src/dmd/hdrgen.d @UplinkCoder @WalterBright
-src/dmd/mars.d @MartinNowak @mathias-lang-sociomantic @Geod24 @rainers @UplinkCoder @WalterBright
+src/dmd/mars.d @MartinNowak @Geod24 @rainers @UplinkCoder @WalterBright
 src/dmd/objc* @jacob-carlborg
 src/dmd/permissivevisitor.d @RazvanN7
 src/dmd/target.d @ibuclaw @MartinNowak

@@ -27,6 +27,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.objc;
 import dmd.root.rmem;
 import dmd.target;
 import dmd.visitor;
@@ -243,6 +244,12 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     /// set the progress of base classes resolving
     Baseok baseok;
+
+    /**
+     * Data for a class declaration that is needed for the Objective-C
+     * integration.
+     */
+    ObjcClassDeclaration objc;
 
     Symbol* cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 

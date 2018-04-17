@@ -205,10 +205,7 @@ Symbol *toSymbol(Dsymbol s)
 
                     if (global.params.vtls)
                     {
-                        const(char)* p = vd.loc.toChars();
-                        message("%s: %s is thread local", p ? p : "", vd.toChars());
-                        if (p)
-                            mem.xfree(cast(void*)p);
+                        message(vd.loc, "`%s` is thread local", vd.toChars());
                     }
                 }
                 s.Sclass = SCextern;
@@ -536,7 +533,7 @@ Classsym *fake_classsym(Identifier id)
 {
     auto t = type_struct_class(id.toChars(),8,0,
         null,null,
-        false, false, true);
+        false, false, true, false);
 
     t.Ttag.Sstruct.Sflags = STRglobal;
     t.Tflags |= TFsizeunknown | TFforward;

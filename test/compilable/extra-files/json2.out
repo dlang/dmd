@@ -1,16 +1,42 @@
 {
     "buildInfo": {
+        "argv0": "VALUE_REMOVED_FOR_TEST",
         "config": "VALUE_REMOVED_FOR_TEST",
         "cwd": "VALUE_REMOVED_FOR_TEST",
+        "ddocFiles": [],
+        "defFile": null,
         "importPaths": [
             "compilable",
             "../../druntime/import",
             "../../phobos"
-        ]
+        ],
+        "libName": "VALUE_REMOVED_FOR_TEST",
+        "libraryFiles": [
+            "VALUES_REMOVED_FOR_TEST"
+        ],
+        "mapFile": "VALUE_REMOVED_FOR_TEST",
+        "objectFiles": [
+            "VALUES_REMOVED_FOR_TEST"
+        ],
+        "resourceFile": null
     },
     "compilerInfo": {
-        "binary": "VALUE_REMOVED_FOR_TEST",
-        "supportsIncludeImports": true,
+        "__VERSION__": 0,
+        "architectures": [
+            "VALUES_REMOVED_FOR_TEST"
+        ],
+        "interface": "dmd",
+        "platforms": [
+            "VALUES_REMOVED_FOR_TEST"
+        ],
+        "predefinedVersions": [
+            "VALUES_REMOVED_FOR_TEST"
+        ],
+        "size_t": 0,
+        "supportedFeatures": {
+            "includeImports": true
+        },
+        "vendor": "VALUE_REMOVED_FOR_TEST",
         "version": "VALUE_REMOVED_FOR_TEST"
     },
     "modules": [
@@ -32,7 +58,8 @@
         "modules": [
             {
                 "file": "compilable/json2.d",
-                "isRoot": true
+                "isRoot": true,
+                "name": null
             },
             {
                 "file": "compilable/json.d",

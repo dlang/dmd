@@ -122,7 +122,7 @@ public:
     bool determineFields();
     bool determineSize(Loc loc);
     virtual void finalizeSize() = 0;
-    d_uns64 size(Loc loc);
+    d_uns64 size(const Loc &loc);
     bool checkOverlappedFields();
     bool fill(Loc loc, Expressions *elements, bool ctorinit);
     static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
@@ -161,9 +161,10 @@ struct StructFlags
 class StructDeclaration : public AggregateDeclaration
 {
 public:
-    int zeroInit;               // !=0 if initialize with 0 fill
+    bool zeroInit;              // !=0 if initialize with 0 fill
     bool hasIdentityAssign;     // true if has identity opAssign
     bool hasIdentityEquals;     // true if has identity opEquals
+    bool hasNoFields;           // has no fields
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
 
@@ -191,7 +192,7 @@ public:
     Dsymbol *search(Loc, Identifier *ident, int flags = SearchLocalsOnly);
     const char *kind() const;
     void finalizeSize();
-    bool fit(Loc loc, Scope *sc, Expressions *elements, Type *stype);
+    bool fit(const Loc &loc, Scope *sc, Expressions *elements, Type *stype);
     bool isPOD();
 
     StructDeclaration *isStructDeclaration() { return this; }
@@ -289,6 +290,7 @@ public:
 
     Abstract isabstract;                // 0: fwdref, 1: is abstract class, 2: not abstract
     Baseok baseok;                      // set the progress of base classes resolving
+    ObjcClassDeclaration objc;          // Data for a class declaration that is needed for the Objective-C integration
     Symbol *cpp_type_info_ptr_sym;      // cached instance of class Id.cpp_type_info_ptr
 
     static ClassDeclaration *create(Loc loc, Identifier *id, BaseClasses *baseclasses, Dsymbols *members, bool inObject);

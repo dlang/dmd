@@ -1075,7 +1075,8 @@ Lagain:
  */
 
 STATIC void cpwalk(elem *n,vec_t IN)
-{       unsigned op,i;
+{
+        unsigned op;
         elem *t;
         vec_t L;
 
@@ -1150,6 +1151,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
         {       int ambig;              /* TRUE if ambiguous def        */
 
                 ambig = !OTassign(op) || t->Eoper == OPind;
+                unsigned i;
                 foreach (i,go.exptop,IN)           /* for each active copy elem */
                 {       symbol *v;
 
@@ -1201,6 +1203,7 @@ STATIC void cpwalk(elem *n,vec_t IN)
                 if (sz == -1 && !tyfunc(n->Ety))
                     sz = type_size(v->Stype);
 
+                unsigned i;
                 foreach(i,go.exptop,IN)    /* for all active copy elems    */
                 {       elem *c;
 
@@ -1253,10 +1256,10 @@ STATIC void cpwalk(elem *n,vec_t IN)
                          *  d = g   => d = f !!error
                          * Therefore, if n appears as an rvalue in go.expnod[], then recalc
                          */
-                        for (size_t i = 1; i < go.exptop; ++i)
+                        for (size_t j = 1; j < go.exptop; ++j)
                         {
-                            //printf("go.expnod[%d]: ", i); elem_print(go.expnod[i]);
-                            if (go.expnod[i]->E2 == n)
+                            //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
+                            if (go.expnod[j]->E2 == n)
                             {
                                 ++recalc;
                                 break;
@@ -1516,6 +1519,12 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPasm:         // reference everything
                 for (unsigned i = 0; i < assnum; i++)
                     vec_clearbit(i,POSS);
+                break;
+
+            case OPbt:
+                accumda(n->E1,DEAD,POSS);
+                accumda(n->E2,DEAD,POSS);
+                vec_subass(POSS,ambigref);      // remove possibly refed
                 break;
 
             case OPind:

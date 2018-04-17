@@ -2766,38 +2766,31 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
  */
 
 STATIC void elimbasivs(loop *l)
-{ famlist *fl;
-  unsigned i;
-  tym_t ty;
-  elem **pref,*fofe,*C2;
-  symbol *X;
-  int refcount;
-
-  cmes2("elimbasivs(%p)\n",l);
-  for (Iv *biv = l->Livlist; biv; biv = biv->IVnext)        // for each basic IV
-  {
-
+{
+    cmes2("elimbasivs(%p)\n",l);
+    for (Iv *biv = l->Livlist; biv; biv = biv->IVnext)        // for each basic IV
+    {
         /* Can't eliminate this basic IV if we have a goal for the      */
         /* increment elem.                                              */
         // Be careful about Nflags being in a union...
-        if (!((*biv->IVincr)->Nflags & NFLnogoal))
+        elem* einc = *biv->IVincr;
+        if (!(einc->Nflags & NFLnogoal))
                 continue;
 
-        X = biv->IVbasic;
+        Symbol* X = biv->IVbasic;
         assert(symbol_isintab(X));
-        ty = X->ty();
-        pref = onlyref(X,l,*biv->IVincr,&refcount);
+        tym_t ty = X->ty();
+        int refcount;
+        elem** pref = onlyref(X,l,einc,&refcount);
 
         /* if only ref of X is of the form (X) or (X relop e) or (e relop X) */
         if (pref != NULL && refcount <= 1)
-        {       elem *ref;
-                tym_t flty;
-
-                fl = biv->IVfamily;
+        {
+                famlist* fl = biv->IVfamily;
                 if (!fl)                // if no elems in family of biv
                     continue;
 
-                ref = *pref;
+                elem* ref = *pref;
 
                 /* Replace (X) with (X != 0)                            */
                 if (ref->Eoper == OPvar)
@@ -2809,7 +2802,7 @@ STATIC void elimbasivs(loop *l)
 
                 // Don't do the replacement if we would replace a
                 // signed comparison with an unsigned one
-                flty = fl->FLty;
+                tym_t flty = fl->FLty;
                 if (tyuns(ref->E1->Ety) | tyuns(ref->E2->Ety))
                     flty = touns(flty);
 
@@ -2820,9 +2813,8 @@ STATIC void elimbasivs(loop *l)
 
                 /* if we have (e relop X), replace it with (X relop e)  */
                 if (ref->E2->Eoper == OPvar && ref->E2->EV.sp.Vsym == X)
-                {       elem *tmp;
-
-                        tmp = ref->E2;
+                {
+                        elem* tmp = ref->E2;
                         ref->E2 = ref->E1;
                         ref->E1 = tmp;
                         ref->Eoper = swaprel(ref->Eoper);
@@ -2832,11 +2824,8 @@ STATIC void elimbasivs(loop *l)
                 // then we can't do it
                 if (fl->c1->Eoper == OPconst)
                 {
-                    targ_llong c1;
-                    int sz;
-
-                    c1 = el_tolong(fl->c1);
-                    sz = tysize(ty);
+                    targ_llong c1 = el_tolong(fl->c1);
+                    const int sz = tysize(ty);
                     if (sz == SHORTSIZE &&
                         ((ref->E2->Eoper == OPconst &&
                         c1 * el_tolong(ref->E2) & ~0x7FFFL) ||
@@ -2857,6 +2846,15 @@ STATIC void elimbasivs(loop *l)
                        )
                         continue;
                 }
+
+                /* If the incr is a decrement, and the relational is < or <=,
+                 * and its unsigned, then don't do it because it could drop below 0.
+                 * https://issues.dlang.org/show_bug.cgi?id=16189
+                 */
+                if ((einc->Eoper == OPminass || einc->E2->Eoper == OPconst && el_tolong(einc->E2) < 0) &&
+                    (ref->Eoper == OPlt || ref->Eoper == OPle) &&
+                    (tyuns(ref->E1->Ety) | tyuns(ref->E2->Ety)))
+                    continue;
 
                 /* If loop started out with a signed conditional that was
                  * replaced with an unsigned one, don't do it if c2
@@ -2889,8 +2887,8 @@ STATIC void elimbasivs(loop *l)
                     refE2 = el_una(OP32_16,flty,refE2);
 
                 /* replace e with e*c1 + c2             */
-                C2 = el_copytree(fl->c2);
-                fofe = el_bin(OPadd,flty,
+                elem* C2 = el_copytree(fl->c2);
+                elem* fofe = el_bin(OPadd,flty,
                                 el_bin(OPmul,refE2->Ety,
                                         refE2,
                                         el_copytree(fl->c1)),
@@ -2922,7 +2920,7 @@ STATIC void elimbasivs(loop *l)
                 ref->E2 = refE2;
                 ref->Eoper = refEoper;
 
-                elimass(*biv->IVincr);          // dump the increment elem
+                elimass(einc);          // dump the increment elem
 
                 // replace X with T
                 assert(ref->E1->EV.sp.Voffset == 0);
@@ -2934,19 +2932,17 @@ STATIC void elimbasivs(loop *l)
                    Which can happen if we have (int)ptr==e
                  */
                 if (EBIN(fofe))         /* if didn't optimize it away   */
-                {   int sz;
-                    tym_t ty,ty1,ty2;
-
-                    ty = fofe->Ety;
-                    sz = tysize(ty);
-                    ty1 = fofe->E1->Ety;
-                    ty2 = fofe->E2->Ety;
+                {
+                    const tym_t fofety = fofe->Ety;
+                    const int sz = tysize(fofety);
+                    tym_t ty1 = fofe->E1->Ety;
+                    const tym_t ty2 = fofe->E2->Ety;
                     /* Sizes of + expression must all be the same       */
                     if (sz != tysize(ty1) &&
                         sz != tysize(ty2)
                        )
                     {
-                        if (tyuns(ty))          /* if unsigned comparison */
+                        if (tyuns(fofety))      // if unsigned comparison
                             ty1 = touns(ty1);   /* to unsigned type     */
                         fofe->Ety = ty1;
                         ref->E1->Ety = ty1;
@@ -2973,6 +2969,7 @@ STATIC void elimbasivs(loop *l)
                 /* if X is live on entry to any successor S outside loop */
                 /*      prepend elem X=(T-c2)/c1 to S.Belem     */
 
+                unsigned i;
                 foreach (i,dfotop,l->Lexit)     /* for each exit block  */
                 {       elem *ne;
                         block *b;
@@ -3050,6 +3047,7 @@ STATIC void elimbasivs(loop *l)
         }
         else if (refcount == 0)                 /* if no uses of IV in loop  */
         {       /* Eliminate the basic IV if it is not live on any successor */
+                unsigned i;
                 foreach (i,dfotop,l->Lexit)     /* for each exit block       */
                 {
                         for (list_t bl = dfo[i]->Bsucc; bl; bl = list_next(bl))

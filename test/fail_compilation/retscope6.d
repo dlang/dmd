@@ -6,7 +6,7 @@ PERMUTE_ARGS:
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope6.d(6007): Error: reference to local variable `i` assigned to non-scope `arr[0]`
+fail_compilation/retscope6.d(6007): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
 ---
 */
 

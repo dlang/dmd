@@ -734,14 +734,26 @@ private extern (C++) class S2irVisitor : Visitor
                     sle.sym = irs.shidden;
                     writetohp = true;
                 }
-                /* Detect:
-                 *    structliteral.ctor(args)
+                /* Detect function call that returns the same struct
                  * and construct directly into *shidden
                  */
                 else if (s.exp.op == TOK.call)
                 {
                     auto ce = cast(CallExp)s.exp;
-                    if (ce.e1.op == TOK.dotVariable)
+                    if (ce.e1.op == TOK.variable || ce.e1.op == TOK.star)
+                    {
+                        Type t = ce.e1.type.toBasetype();
+                        if (t.ty == Tdelegate)
+                            t = t.nextOf();
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        {
+                            irs.ehidden = el_var(irs.shidden);
+                            e = toElemDtor(s.exp, irs);
+                            e = el_una(OPaddr, TYnptr, e);
+                            goto L1;
+                        }
+                    }
+                    else if (ce.e1.op == TOK.dotVariable)
                     {
                         auto dve = cast(DotVarExp)ce.e1;
                         auto fd = dve.var.isFuncDeclaration();
@@ -753,6 +765,16 @@ private extern (C++) class S2irVisitor : Visitor
                                 sle.sym = irs.shidden;
                                 writetohp = true;
                             }
+                        }
+                        Type t = ce.e1.type.toBasetype();
+                        if (t.ty == Tdelegate)
+                            t = t.nextOf();
+                        if (t.ty == Tfunction && retStyle(cast(TypeFunction)t) == RET.stack)
+                        {
+                            irs.ehidden = el_var(irs.shidden);
+                            e = toElemDtor(s.exp, irs);
+                            e = el_una(OPaddr, TYnptr, e);
+                            goto L1;
                         }
                     }
                 }
@@ -770,15 +792,8 @@ private extern (C++) class S2irVisitor : Visitor
                 {
                     // Return value via hidden pointer passed as parameter
                     // Write *shidden=exp; return shidden;
-                    int op;
-                    tym_t ety;
-
-                    ety = e.Ety;
-                    es = el_una(OPind,ety,el_var(irs.shidden));
-                    op = (tybasic(ety) == TYstruct) ? OPstreq : OPeq;
-                    es = el_bin(op, ety, es, e);
-                    if (op == OPstreq)
-                        es.ET = Type_toCtype(s.exp.type);
+                    es = el_una(OPind,e.Ety,el_var(irs.shidden));
+                    es = elAssign(es, e, s.exp.type, null);
                 }
                 e = el_var(irs.shidden);
                 e = el_bin(OPcomma, e.Ety, es, e);
@@ -794,9 +809,12 @@ private extern (C++) class S2irVisitor : Visitor
                 e = toElemDtor(s.exp, irs);
                 assert(e);
             }
+        L1:
             elem_setLoc(e, s.loc);
             block_appendexp(blx.curblock, e);
             bc = BCretexp;
+//            if (type_zeroCopy(Type_toCtype(s.exp.type)))
+//                bc = BCret;
         }
         else
             bc = BCret;
@@ -1647,16 +1665,7 @@ void insertFinallyBlockCalls(block *startblock)
                 }
                 b.BC = BCgoto;
                 b.appendSucc(bcretexp);
-
-                elem *eeq = el_bin(OPeq,e.Ety,el_var(stmp),e);
-                if (ty == TYstruct || ty == TYarray)
-                {
-                    eeq.Eoper = OPstreq;
-                    eeq.ET = e.ET;
-                    eeq.EV.E1.ET = e.ET;
-                }
-                b.Belem = eeq;
-
+                b.Belem = elAssign(el_var(stmp), e, null, e.ET);
                 goto case_goto;
             }
 

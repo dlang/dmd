@@ -242,19 +242,26 @@ private int tryMain(size_t argc, const(char)** argv)
      */
     sections.push("Environment");
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
-    Strings dflags;
-    getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
-    environment.reset(7); // erase cached environment updates
+
     const(char)* arch = global.params.is64bit ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
-    arch = parse_arch_arg(&dflags, arch);
+
+    // parse architecture from DFLAGS read from [Environment] section
+    {
+        Strings dflags;
+        getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
+        environment.reset(7); // erase cached environment updates
+        arch = parse_arch_arg(&dflags, arch);
+    }
+
     bool is64bit = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
         if (is64bit || strcmp(arch, "32mscoff") == 0)
             environment.update("LIB", 3).ptrvalue = null;
 
-    char[80] envsection;
+    // read from DFLAGS in [Environment{arch}] section
+    char[80] envsection = void;
     sprintf(envsection.ptr, "Environment%s", arch);
     sections.push(envsection.ptr);
     parseConfFile(&environment, global.inifilename, inifilepath, inifile.len, inifile.buffer, &sections);
@@ -497,6 +504,8 @@ private int tryMain(size_t argc, const(char)** argv)
         message("config    %s", global.inifilename ? global.inifilename : "(none)");
         // Print DFLAGS environment variable
         {
+            Strings dflags;
+            getenv_setargv(readFromEnv(&environment, "DFLAGS"), &dflags);
             OutBuffer buf;
             foreach (flag; dflags.asDArray)
             {

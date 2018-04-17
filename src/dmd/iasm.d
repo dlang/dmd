@@ -394,6 +394,7 @@ immutable REG[73] regtab64 =
     {"YMM13", 13,    _ymm},
     {"YMM14", 14,    _ymm},
     {"YMM15", 15,    _ymm},
+    {"CR8",   8,     _r64 | _special | _crn},
 ];
 
 
@@ -3391,10 +3392,10 @@ code *asm_db_parse(OP *pop)
                 switch (op)
                 {
                     case OPdf:
-                        dt.f = asmstate.tok.floatvalue;
+                        dt.f = cast(float) asmstate.tok.floatvalue;
                         break;
                     case OPdd:
-                        dt.d = asmstate.tok.floatvalue;
+                        dt.d = cast(double) asmstate.tok.floatvalue;
                         break;
                     case OPde:
                         dt.ld = asmstate.tok.floatvalue;
@@ -3476,10 +3477,10 @@ code *asm_db_parse(OP *pop)
                     switch (op)
                     {
                         case OPdf:
-                            dt.f = e.toReal();
+                            dt.f = cast(float) e.toReal();
                             break;
                         case OPdd:
-                            dt.d = e.toReal();
+                            dt.d = cast(double) e.toReal();
                             break;
                         case OPde:
                             dt.ld = e.toReal();
@@ -4378,7 +4379,9 @@ extern (C++) public Statement asmSemantic(AsmStatement s, Scope *sc)
     if (!s.tokens)
         return null;
 
-    memset(&asmstate, 0, asmstate.sizeof);
+    asmstate.ucItype = 0;
+    asmstate.bReturnax = false;
+    asmstate.lbracketNestCount = 0;
 
     asmstate.statement = s;
     asmstate.sc = sc;

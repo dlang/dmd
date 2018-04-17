@@ -29,16 +29,16 @@ struct OutBuffer;
 struct Target
 {
     // D ABI
-    static int ptrsize;
-    static int realsize;                // size a real consumes in memory
-    static int realpad;                 // 'padding' added to the CPU real size to bring it up to realsize
-    static int realalignsize;           // alignment for reals
-    static int classinfosize;           // size of 'ClassInfo'
+    static unsigned ptrsize;
+    static unsigned realsize;           // size a real consumes in memory
+    static unsigned realpad;            // 'padding' added to the CPU real size to bring it up to realsize
+    static unsigned realalignsize;      // alignment for reals
+    static unsigned classinfosize;      // size of 'ClassInfo'
     static unsigned long long maxStaticDataSize;  // maximum size of static data
 
     // C ABI
-    static int c_longsize;              // size of a C 'long' or 'unsigned long' type
-    static int c_long_doublesize;       // size of a C 'long double'
+    static unsigned c_longsize;         // size of a C 'long' or 'unsigned long' type
+    static unsigned c_long_doublesize;  // size of a C 'long double'
 
     // C++ ABI
     static bool reverseCppOverloads;    // with dmc and cl, overloaded functions are grouped and in reverse order
@@ -86,6 +86,7 @@ struct Target
     static Type *cppParameterType(Parameter *p);
     static LINK systemLinkage();
     static TypeTuple *toArgTypes(Type *t);
+    static d_uns64 parameterSize(const Loc& loc, Type *t);
 };
 
 #endif

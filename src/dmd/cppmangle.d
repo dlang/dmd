@@ -584,7 +584,20 @@ private final class CppMangleVisitor : Visitor
              */
             TemplateInstance ti = d.parent.isTemplateInstance();
             assert(ti);
-            source_name(ti);
+            Dsymbol p = ti.toParent();
+            if (p && !p.isModule() && tf.linkage == LINK.cpp)
+            {
+                buf.writeByte('N');
+                CV_qualifiers(d.type);
+                prefix_name(p);
+                if (d.isDtorDeclaration())
+                    buf.writestring("D1");
+                else
+                    source_name(ti);
+                buf.writeByte('E');
+            }
+            else
+                source_name(ti);
             headOfType(tf.nextOf());  // mangle return type
         }
         else
@@ -960,6 +973,15 @@ public:
     {
         if (t.isImmutable() || t.isShared())
             return error(t);
+
+        /* __c_long and __c_ulong get special mangling
+         */
+        const id = t.sym.ident;
+        //printf("struct id = '%s'\n", id.toChars());
+        if (id == Id.__c_long)
+            return writeBasicType(t, 0, 'l');
+        else if (id == Id.__c_ulong)
+            return writeBasicType(t, 0, 'm');
 
         doSymbol(t);
     }

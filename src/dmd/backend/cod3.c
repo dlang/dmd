@@ -2704,7 +2704,7 @@ L1:
                         goto L4;
                     genregs(cdb,0x31,reg,reg);
                     goto inc;
-                case -1:
+                case ~(targ_size_t)0:
                     if (I64)
                         goto L4;
                     genregs(cdb,0x31,reg,reg);

@@ -212,9 +212,8 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
         if (ectorgates)
         {
-            for (size_t i = 0; i < ectorgates.dim; i++)
-            {   StaticDtorDeclaration f = (*ectorgates)[i];
-
+            foreach (f; *ectorgates)
+            {
                 Symbol *s = toSymbol(f.vgate);
                 elem *e = el_var(s);
                 e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
@@ -224,8 +223,8 @@ private Symbol *callFuncsAndGates(Module m, symbols *sctors, StaticDtorDeclarati
 
         if (sctors)
         {
-            for (size_t i = 0; i < sctors.dim; i++)
-            {   Symbol *s = (*sctors)[i];
+            foreach (s; *sctors)
+            {
                 elem *e = el_una(OPucall, TYvoid, el_var(s));
                 ector = el_combine(ector, e);
             }
@@ -326,9 +325,8 @@ void genObjFile(Module m, bool multiobj)
         bool v = global.params.verbose;
         global.params.verbose = false;
 
-        for (size_t i = 0; i < m.members.dim; i++)
+        foreach (member; *m.members)
         {
-            Dsymbol member = (*m.members)[i];
             //printf("toObjFile %s %s\n", member.kind(), member.toChars());
             toObjFile(member, global.params.multiobj);
         }
@@ -399,9 +397,8 @@ void genObjFile(Module m, bool multiobj)
         m.covb = cast(uint *)calloc((m.numlines + 32) / 32, (*m.covb).sizeof);
     }
 
-    for (size_t i = 0; i < m.members.dim; i++)
+    foreach (member; *m.members)
     {
-        Dsymbol member = (*m.members)[i];
         //printf("toObjFile %s %s\n", member.kind(), member.toChars());
         toObjFile(member, multiobj);
     }
@@ -689,9 +686,9 @@ bool isDruntimeArrayOp(Identifier ident)
 
     debug    // Make sure our array is alphabetized
     {
-        for (i = 0; i < libArrayopFuncs.length; i++)
+        foreach (s; libArrayopFuncs)
         {
-            if (strcmp(name, libArrayopFuncs[i]) == 0)
+            if (strcmp(name, s) == 0)
                 assert(0);
         }
     }
@@ -856,9 +853,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
          * nested function bodies, the enclosing of the functions must be
          * generated first, in order to calculate correct frame pointer offset.
          */
-        for (size_t i = 0; i < fd.inlinedNestedCallees.dim; i++)
+        foreach (fdc; *fd.inlinedNestedCallees)
         {
-            FuncDeclaration fdc = (*fd.inlinedNestedCallees)[i];
             FuncDeclaration fp = fdc.toParent2().isFuncDeclaration();
             if (fp && fp.semanticRun < PASS.obj)
             {
@@ -884,96 +880,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     else
     {
-        const(char)* libname = (global.params.symdebug)
-                                ? global.params.debuglibname
-                                : global.params.defaultlibname;
-
-        // Pull in RTL startup code (but only once)
-        if (fd.isMain() && onlyOneMain(fd.loc))
-        {
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-                global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
-            {
-                objmod.external_def("_main");
-            }
-            else if (global.params.mscoff)
-            {
-                objmod.external_def("main");
-            }
-            else if (config.exe == EX_WIN32)
-            {
-                objmod.external_def("_main");
-                objmod.external_def("__acrtused_con");
-            }
-            if (libname)
-                objmod.includelib(libname);
-            s.Sclass = SCglobal;
-        }
-        else if (fd.isRtInit())
-        {
-            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
-                global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
-                global.params.mscoff)
-            {
-                objmod.ehsections();   // initialize exception handling sections
-            }
-        }
-        else if (fd.isCMain())
-        {
-            if (global.params.mscoff)
-            {
-                if (global.params.mscrtlib && global.params.mscrtlib[0])
-                    objmod.includelib(global.params.mscrtlib);
-                objmod.includelib("OLDNAMES");
-            }
-            else if (config.exe == EX_WIN32)
-            {
-                objmod.external_def("__acrtused_con");        // bring in C startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-            }
-            s.Sclass = SCglobal;
-        }
-        else if (global.params.isWindows && fd.isWinMain() && onlyOneMain(fd.loc))
-        {
-            if (global.params.mscoff)
-            {
-                objmod.includelib("uuid");
-                if (global.params.mscrtlib && global.params.mscrtlib[0])
-                    objmod.includelib(global.params.mscrtlib);
-                objmod.includelib("OLDNAMES");
-            }
-            else
-            {
-                objmod.external_def("__acrtused");
-            }
-            if (libname)
-                objmod.includelib(libname);
-            s.Sclass = SCglobal;
-        }
-
-        // Pull in RTL startup code
-        else if (global.params.isWindows && fd.isDllMain() && onlyOneMain(fd.loc))
-        {
-            if (global.params.mscoff)
-            {
-                objmod.includelib("uuid");
-                if (global.params.mscrtlib && global.params.mscrtlib[0])
-                    objmod.includelib(global.params.mscrtlib);
-                objmod.includelib("OLDNAMES");
-            }
-            else
-            {
-                objmod.external_def("__acrtused_dll");
-            }
-            if (libname)
-                objmod.includelib(libname);
-            s.Sclass = SCglobal;
-        }
-        else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
-        {
-            // TODO: Change linkage in druntime to extern(C).
-            f.Fredirect = cast(char*)Id.tls_get_addr.toChars();
-        }
+        specialFunctions(objmod, fd);
     }
 
     symtab_t *symtabsave = cstate.CSpsymtab;
@@ -1058,9 +965,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
     if (fd.parameters)
     {
-        for (size_t i = 0; i < fd.parameters.dim; i++)
+        foreach (i, v; *fd.parameters)
         {
-            VarDeclaration v = (*fd.parameters)[i];
             //printf("param[%d] = %p, %s\n", i, v, v.toChars());
             assert(!v.csym);
             params[pi + i] = toSymbol(v);
@@ -1071,9 +977,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (reverse)
     {
         // Reverse params[] entries
-        for (size_t i = 0; i < pi/2; i++)
+        foreach (i, sptmp; params[0 .. pi/2])
         {
-            Symbol *sptmp = params[i];
             params[i] = params[pi - 1 - i];
             params[pi - 1 - i] = sptmp;
         }
@@ -1114,9 +1019,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         params[1] = sp;
     }
 
-    for (size_t i = 0; i < pi; i++)
+    foreach (sp; params[0 .. pi])
     {
-        Symbol *sp = params[i];
         sp.Sclass = SCparameter;
         sp.Sflags &= ~SFLspill;
         sp.Sfl = FLpara;
@@ -1128,9 +1032,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         FuncParamRegs fpr = FuncParamRegs.create(tyf);
 
-        for (size_t i = 0; i < pi; i++)
+        foreach (sp; params[0 .. pi])
         {
-            Symbol *sp = params[i];
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
             {
                 sp.Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
@@ -1167,7 +1070,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (global.params.is64bit &&
                 !global.params.isWindows)
             {
-                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true);
+                type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3, null, null, false, false, true, false);
                 // The backend will pick this up by name
                 Symbol *sv = symbol_name("__va_argsave", SCauto, t);
                 sv.Stype.Tty |= mTYvolatile;
@@ -1324,22 +1227,21 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.isExport())
         objmod.export_symbol(s, cast(uint)Para.offset);
 
-    for (size_t i = 0; i < irs.deferToObj.dim; i++)
+    foreach (sd; *irs.deferToObj)
     {
-        Dsymbol sd = (*irs.deferToObj)[i];
         toObjFile(sd, false);
     }
 
     if (ud)
     {
-        for (size_t i = 0; i < ud.deferredNested.dim; i++)
+        foreach (fdn; ud.deferredNested)
         {
-            FuncDeclaration fdn = ud.deferredNested[i];
             toObjFile(fdn, false);
         }
     }
 
-    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+    if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+        global.params.isDragonFlyBSD || global.params.isSolaris)
     {
         // A hack to get a pointer to this function put in the .dtors segment
         if (fd.ident && memcmp(fd.ident.toChars(), "_STD".ptr, 4) == 0)
@@ -1350,6 +1252,112 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         //printf("Setting start address\n");
         objmod.startaddress(irs.startaddress);
+    }
+}
+
+
+/*******************************************
+ * Detect special functions like `main()` and do special handling for them,
+ * like special mangling, including libraries, setting the storage class, etc.
+ * `objmod` and `fd` are updated.
+ *
+ * Params:
+ *      objmod = object module
+ *      fd = function symbol
+ */
+private void specialFunctions(Obj objmod, FuncDeclaration fd)
+{
+    const(char)* libname = (global.params.symdebug)
+                            ? global.params.debuglibname
+                            : global.params.defaultlibname;
+
+    Symbol* s = fd.toSymbol();  // backend symbol corresponding to fd
+
+    // Pull in RTL startup code (but only once)
+    if (fd.isMain() && onlyOneMain(fd.loc))
+    {
+        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris)
+        {
+            objmod.external_def("_main");
+        }
+        else if (global.params.mscoff)
+        {
+            objmod.external_def("main");
+        }
+        else if (config.exe == EX_WIN32)
+        {
+            objmod.external_def("_main");
+            objmod.external_def("__acrtused_con");
+        }
+        if (libname)
+            objmod.includelib(libname);
+        s.Sclass = SCglobal;
+    }
+    else if (fd.isRtInit())
+    {
+        if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD ||
+            global.params.isOpenBSD || global.params.isDragonFlyBSD || global.params.isSolaris ||
+            global.params.mscoff)
+        {
+            objmod.ehsections();   // initialize exception handling sections
+        }
+    }
+    else if (fd.isCMain())
+    {
+        if (global.params.mscoff)
+        {
+            if (global.params.mscrtlib && global.params.mscrtlib[0])
+                objmod.includelib(global.params.mscrtlib);
+            objmod.includelib("OLDNAMES");
+        }
+        else if (config.exe == EX_WIN32)
+        {
+            objmod.external_def("__acrtused_con");        // bring in C startup code
+            objmod.includelib("snn.lib");          // bring in C runtime library
+        }
+        s.Sclass = SCglobal;
+    }
+    else if (global.params.isWindows && fd.isWinMain() && onlyOneMain(fd.loc))
+    {
+        if (global.params.mscoff)
+        {
+            objmod.includelib("uuid");
+            if (global.params.mscrtlib && global.params.mscrtlib[0])
+                objmod.includelib(global.params.mscrtlib);
+            objmod.includelib("OLDNAMES");
+        }
+        else
+        {
+            objmod.external_def("__acrtused");
+        }
+        if (libname)
+            objmod.includelib(libname);
+        s.Sclass = SCglobal;
+    }
+
+    // Pull in RTL startup code
+    else if (global.params.isWindows && fd.isDllMain() && onlyOneMain(fd.loc))
+    {
+        if (global.params.mscoff)
+        {
+            objmod.includelib("uuid");
+            if (global.params.mscrtlib && global.params.mscrtlib[0])
+                objmod.includelib(global.params.mscrtlib);
+            objmod.includelib("OLDNAMES");
+        }
+        else
+        {
+            objmod.external_def("__acrtused_dll");
+        }
+        if (libname)
+            objmod.includelib(libname);
+        s.Sclass = SCglobal;
+    }
+    else if (fd.ident == Id.tls_get_addr && fd.linkage == LINK.d)
+    {
+        // TODO: Change linkage in druntime to extern(C).
+        s.Sfunc.Fredirect = cast(char*)Id.tls_get_addr.toChars();
     }
 }
 
@@ -1426,8 +1434,19 @@ uint totym(Type tx)
             break;
 
         case Tenum:
-            t = totym(tx.toBasetype());
+        {
+            Type tb = tx.toBasetype();
+            const id = tx.toDsymbol(null).ident;
+            if (id == Id.__c_long)
+                t = tb.ty == Tint32 ? TYlong : TYllong;
+            else if (id == Id.__c_ulong)
+                t = tb.ty == Tuns32 ? TYulong : TYullong;
+            else if (id == Id.__c_long_double)
+                t = TYdouble;
+            else
+                t = totym(tb);
             break;
+        }
 
         case Tident:
         case Ttypeof:

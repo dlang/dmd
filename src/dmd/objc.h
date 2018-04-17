@@ -14,12 +14,14 @@
 #include "root.h"
 #include "stringtable.h"
 
+class AggregateDeclaration;
 class Identifier;
 class FuncDeclaration;
 class ClassDeclaration;
 class InterfaceDeclaration;
 struct Scope;
 class StructDeclaration;
+class Type;
 
 struct ObjcSelector
 {
@@ -41,6 +43,12 @@ struct ObjcSelector
     static ObjcSelector *create(FuncDeclaration *fdecl);
 };
 
+struct ObjcClassDeclaration
+{
+    bool isMeta;
+    ClassDeclaration* metaclass;
+};
+
 class Objc
 {
 public:
@@ -48,9 +56,15 @@ public:
 
     virtual void setObjc(ClassDeclaration* cd) = 0;
     virtual void setObjc(InterfaceDeclaration*) = 0;
+
     virtual void setSelector(FuncDeclaration*, Scope* sc) = 0;
     virtual void validateSelector(FuncDeclaration* fd) = 0;
     virtual void checkLinkage(FuncDeclaration* fd) = 0;
+    virtual AggregateDeclaration* isThis(FuncDeclaration* fd) = 0;
+
+    virtual void setMetaclass(InterfaceDeclaration* id) = 0;
+    virtual void setMetaclass(ClassDeclaration* id) = 0;
+    virtual ClassDeclaration* getRuntimeMetaclass(ClassDeclaration* cd) = 0;
 };
 
 #endif /* DMD_OBJC_H */

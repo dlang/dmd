@@ -739,7 +739,12 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 fparam.storageClass &= (STC.in_ | STC.out_ | STC.ref_ | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
                 fparam.storageClass |= STC.parameter;
                 if (fvarargs == 2 && i + 1 == nfparams)
+                {
                     fparam.storageClass |= STC.variadic;
+                    /* Don't need to set STC.scope_ because this will only
+                     * be evaluated at compile time
+                     */
+                }
             }
             for (size_t i = 0; i < fparameters.dim; i++)
             {
@@ -4324,6 +4329,16 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
                 }
             }
 
+            /* Returns `true` if `t` is a reference type, or an array of reference types
+             */
+            bool isTopRef(Type t)
+            {
+                auto tb = t.baseElemOf();
+                return tb.ty == Tclass ||
+                       tb.ty == Taarray ||
+                       tb.ty == Tstruct && tb.hasPointers();
+            }
+
             Type at = cast(Type)(*dedtypes)[i];
             Type tt;
             if (ubyte wx = deduceWildHelper(e.type, &tt, tparam))
@@ -4334,6 +4349,17 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, TemplateParameters* param
             else if (MATCH m = deduceTypeHelper(e.type, &tt, tparam))
             {
                 result = m;
+            }
+            else if (!isTopRef(e.type))
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=15653
+                 * In IFTI, recognize top-qualifier conversions
+                 * through the value copy, e.g.
+                 *      int --> immutable(int)
+                 *      immutable(string[]) --> immutable(string)[]
+                 */
+                tt = e.type.mutableOf();
+                result = MATCH.convert;
             }
             else
                 return; // nomatch

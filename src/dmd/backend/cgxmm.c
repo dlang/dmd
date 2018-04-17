@@ -8,7 +8,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.c, backend/cgxmm.c)
  */
 
-#if !SPP
+#if (SCPP && !HTOD) || MARS
 
 #include        <stdio.h>
 #include        <string.h>
@@ -276,31 +276,31 @@ void xmmeq(CodeBuilder& cdb, elem *e, unsigned op, elem *e1, elem *e2,regm_t *pr
 Lp:
     if (postinc)
     {
-        int reg = findreg(idxregm(&cs));
+        unsigned increg = findreg(idxregm(&cs));  // the register to increment
         if (*pretregs & mPSW)
         {   // Use LEA to avoid touching the flags
             unsigned rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
                 rm |= 8;
-            cdb.genc1(0x8D,buildModregrm(2,reg,rm),FLconst,postinc);
+            cdb.genc1(0x8D,buildModregrm(2,increg,rm),FLconst,postinc);
             if (tysize(e11->E1->Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
         else if (I64)
         {
-            cdb.genc2(0x81,modregrmx(3,0,reg),postinc);
+            cdb.genc2(0x81,modregrmx(3,0,increg),postinc);
             if (tysize(e11->E1->Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
         else
         {
             if (postinc == 1)
-                cdb.gen1(0x40 + reg);         // INC reg
+                cdb.gen1(0x40 + increg);       // INC increg
             else if (postinc == -(targ_int)1)
-                cdb.gen1(0x48 + reg);         // DEC reg
+                cdb.gen1(0x48 + increg);       // DEC increg
             else
             {
-                cdb.genc2(0x81,modregrm(3,0,reg),postinc);
+                cdb.genc2(0x81,modregrm(3,0,increg),postinc);
             }
         }
     }

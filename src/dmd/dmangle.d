@@ -171,8 +171,8 @@ private extern (C++) final class Mangler : Visitor
     alias visit = Visitor.visit;
 public:
     static assert(Key.sizeof == size_t.sizeof);
-    AA* types;
-    AA* idents;
+    AssocArray!(Type, size_t) types;
+    AssocArray!(Identifier, size_t) idents;
     OutBuffer* buf;
 
     extern (D) this(OutBuffer* buf)
@@ -225,7 +225,7 @@ public:
     {
         if (!t.isTypeBasic())
         {
-            auto p = cast(size_t*)dmd_aaGet(&types, cast(Key)t);
+            auto p = types.getLvalue(t);
             if (*p)
             {
                 writeBackRef(buf.offset - *p);
@@ -251,7 +251,7 @@ public:
     */
     final bool backrefIdentifier(Identifier id)
     {
-        auto p = cast(size_t*)dmd_aaGet(&idents, cast(Key)id);
+        auto p = idents.getLvalue(id);
         if (*p)
         {
             writeBackRef(buf.offset - *p);
@@ -275,14 +275,14 @@ public:
     final void mangleIdentifier(Identifier id, Dsymbol s)
     {
         if (!backrefIdentifier(id))
-            toBuffer(id.toChars(), s);
+            toBuffer(id.toString(), s);
     }
 
     ////////////////////////////////////////////////////////////////////////////
     /**************************************************
      * Type mangling
      */
-    void visitWithMask(Type t, ubyte modMask)
+    final void visitWithMask(Type t, ubyte modMask)
     {
         if (modMask != t.mod)
         {
@@ -338,7 +338,7 @@ public:
         mangleFuncType(t, t, t.mod, t.next);
     }
 
-    void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
+    final void mangleFuncType(TypeFunction t, TypeFunction ta, ubyte modMask, Type tret)
     {
         //printf("mangleFuncType() %s\n", t.toChars());
         if (t.inuse && tret)
@@ -350,7 +350,8 @@ public:
         t.inuse++;
         if (modMask != t.mod)
             MODtoDecoBuffer(buf, t.mod);
-        ubyte mc;
+
+        char mc;
         final switch (t.linkage)
         {
         case LINK.default_:
@@ -375,24 +376,25 @@ public:
             break;
         }
         buf.writeByte(mc);
-        if (ta.purity || ta.isnothrow || ta.isnogc || ta.isproperty || ta.isref || ta.trust || ta.isreturn || ta.isscope)
+
+        if (ta.purity)
+            buf.writestring("Na");
+        if (ta.isnothrow)
+            buf.writestring("Nb");
+        if (ta.isref)
+            buf.writestring("Nc");
+        if (ta.isproperty)
+            buf.writestring("Nd");
+        if (ta.isnogc)
+            buf.writestring("Ni");
+
+        if (ta.isreturn)
+            buf.writestring("Nj");
+        else if (ta.isscope && !ta.isscopeinferred)
+            buf.writestring("Nl");
+
+        switch (ta.trust)
         {
-            if (ta.purity)
-                buf.writestring("Na");
-            if (ta.isnothrow)
-                buf.writestring("Nb");
-            if (ta.isref)
-                buf.writestring("Nc");
-            if (ta.isproperty)
-                buf.writestring("Nd");
-            if (ta.isnogc)
-                buf.writestring("Ni");
-            if (ta.isreturn)
-                buf.writestring("Nj");
-            if (ta.isscope && !ta.isreturn && !ta.isscopeinferred)
-                buf.writestring("Nl");
-            switch (ta.trust)
-            {
             case TRUST.trusted:
                 buf.writestring("Ne");
                 break;
@@ -401,8 +403,8 @@ public:
                 break;
             default:
                 break;
-            }
         }
+
         // Write argument types
         paramsToDecoBuffer(t.parameters);
         //if (buf.data[buf.offset - 1] == '@') assert(0);
@@ -415,9 +417,8 @@ public:
     override void visit(TypeIdentifier t)
     {
         visit(cast(Type)t);
-        const(char)* name = t.ident.toChars();
-        size_t len = strlen(name);
-        buf.print(len);
+        auto name = t.ident.toString();
+        buf.print(cast(int)name.length);
         buf.writestring(name);
     }
 
@@ -455,7 +456,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    void mangleDecl(Declaration sthis)
+    final void mangleDecl(Declaration sthis)
     {
         mangleParent(sthis);
         assert(sthis.ident);
@@ -472,7 +473,7 @@ public:
             assert(0);
     }
 
-    void mangleParent(Dsymbol s)
+    final void mangleParent(Dsymbol s)
     {
         Dsymbol p;
         if (TemplateInstance ti = s.isTemplateInstance())
@@ -498,7 +499,7 @@ public:
         }
     }
 
-    void mangleFunc(FuncDeclaration fd, bool inParent)
+    final void mangleFunc(FuncDeclaration fd, bool inParent)
     {
         //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
         //printf("fd.type = %s\n", fd.type.toChars());
@@ -529,19 +530,24 @@ public:
     /************************************************************
      * Write length prefixed string to buf.
      */
-    void toBuffer(const(char)* id, Dsymbol s)
+    final void toBuffer(const(char)* id, Dsymbol s)
     {
-        size_t len = strlen(id);
+        toBuffer(id[0 .. strlen(id)], s);
+    }
+
+    extern (D) final void toBuffer(const(char)[] id, Dsymbol s)
+    {
+        const len = id.length;
         if (buf.offset + len >= 8 * 1024 * 1024) // 8 megs ought be enough for anyone
-            s.error("excessive length %llu for symbol, possible recursive expansion?", buf.offset + len);
+            s.error("excessive length %llu for symbol, possible recursive expansion?", cast(ulong)(buf.offset + len));
         else
         {
             buf.print(len);
-            buf.write(id, len);
+            buf.writestring(id);
         }
     }
 
-    static const(char)* externallyMangledIdentifier(Declaration d)
+    extern (D) static const(char)[] externallyMangledIdentifier(Declaration d)
     {
         if (!d.parent || d.parent.isModule() || d.linkage == LINK.cpp) // if at global scope
         {
@@ -553,13 +559,16 @@ public:
                 case LINK.windows:
                 case LINK.pascal:
                 case LINK.objc:
-                    return d.ident.toChars();
+                    return d.ident.toString();
                 case LINK.cpp:
-                    return Target.toCppMangle(d);
+                {
+                    const p = Target.toCppMangle(d);
+                    return p[0 .. strlen(p)];
+                }
                 case LINK.default_:
                 case LINK.system:
                     d.error("forward declaration");
-                    return d.ident.toChars();
+                    return d.ident.toString();
             }
         }
         return null;
@@ -569,7 +578,7 @@ public:
     {
         //printf("Declaration.mangle(this = %p, '%s', parent = '%s', linkage = %d)\n",
         //        d, d.toChars(), d.parent ? d.parent.toChars() : "null", d.linkage);
-        if (auto id = externallyMangledIdentifier(d))
+        if (const id = externallyMangledIdentifier(d))
         {
             buf.writestring(id);
             return;
@@ -667,7 +676,7 @@ public:
         visit(cast(Dsymbol)od);
     }
 
-    void mangleExact(FuncDeclaration fd)
+    final void mangleExact(FuncDeclaration fd)
     {
         assert(!fd.isFuncAliasDeclaration());
         if (fd.mangleOverride)
@@ -822,7 +831,7 @@ public:
                         toBuffer(d.mangleOverride, d);
                         continue;
                     }
-                    if (auto id = externallyMangledIdentifier(d))
+                    if (const id = externallyMangledIdentifier(d))
                     {
                         buf.writeByte('X');
                         toBuffer(id, d);
@@ -892,7 +901,7 @@ public:
         realToMangleBuffer(e.value);
     }
 
-    void realToMangleBuffer(real_t value)
+    final void realToMangleBuffer(real_t value)
     {
         /* Rely on %A to get portable mangling.
          * Must munge result to get only identifier characters.
@@ -979,9 +988,9 @@ public:
             break;
         case 4:
             m = 'd';
-            for (size_t u = 0; u < e.len; u++)
+            foreach (u; 0 .. e.len)
             {
-                uint c = (cast(uint*)e.string)[u];
+                const c = (cast(uint*)e.string)[u];
                 if (!utf_isValidDchar(c))
                     e.error("invalid UCS-32 char \\U%08x", c);
                 else
@@ -1009,10 +1018,10 @@ public:
 
     override void visit(ArrayLiteralExp e)
     {
-        size_t dim = e.elements ? e.elements.dim : 0;
+        const dim = e.elements ? e.elements.dim : 0;
         buf.writeByte('A');
         buf.print(dim);
-        for (size_t i = 0; i < dim; i++)
+        foreach (i; 0 .. dim)
         {
             e.getElement(i).accept(this);
         }
@@ -1020,10 +1029,10 @@ public:
 
     override void visit(AssocArrayLiteralExp e)
     {
-        size_t dim = e.keys.dim;
+        const dim = e.keys.dim;
         buf.writeByte('A');
         buf.print(dim);
-        for (size_t i = 0; i < dim; i++)
+        foreach (i; 0 .. dim)
         {
             (*e.keys)[i].accept(this);
             (*e.values)[i].accept(this);
@@ -1032,10 +1041,10 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        size_t dim = e.elements ? e.elements.dim : 0;
+        const dim = e.elements ? e.elements.dim : 0;
         buf.writeByte('S');
         buf.print(dim);
-        for (size_t i = 0; i < dim; i++)
+        foreach (i; 0 .. dim)
         {
             Expression ex = (*e.elements)[i];
             if (ex)
@@ -1046,7 +1055,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    void paramsToDecoBuffer(Parameters* parameters)
+    final void paramsToDecoBuffer(Parameters* parameters)
     {
         //printf("Parameter.paramsToDecoBuffer()\n");
 
