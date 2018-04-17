@@ -474,14 +474,14 @@ STATIC elem *fixconvop(elem *e)
         elem *ex = e;
         elem **pe = &e;
         while (OTconv(ed->Eoper))
-        {   unsigned copx = ed->Eoper;
-
-            unsigned icop = invconvtab[convidx(copx)];
+        {
+            const unsigned copx = ed->Eoper;
+            const unsigned icopx = invconvtab[convidx(copx)];
             tym_t tymx = ex->E1->E1->Ety;
             ex->E1 = el_selecte1(ex->E1);       // dump it for now
             e1 = ex->E1;
             e1->Ety = tymx;
-            ex->E2 = el_una(icop,e1->Ety,ex->E2);
+            ex->E2 = el_una(icopx,e1->Ety,ex->E2);
             ex->Ety = tymx;
             tym = tymx;
 
@@ -1429,7 +1429,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             ELCONST(e1->E1,1) &&
             tysize(e->E1->Ety) <= REGSIZE)
         {
-            int sz = tysize(e->E1->Ety);
+            const int sz1 = tysize(e->E1->Ety);
             e->Eoper = OPbtst;
             e->Ety = TYbool;
             e->E1 = e2;
@@ -1438,11 +1438,11 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             e1->E2 = NULL;
             el_free(e1);
 
-            if (sz >= 2)
+            if (sz1 >= 2)
                 e = el_una(OPu8_16, TYushort, e);
-            if (sz >= 4)
+            if (sz1 >= 4)
                 e = el_una(OPu16_32, TYulong, e);
-            if (sz >= 8)
+            if (sz1 >= 8)
                 e = el_una(OPu32_64, TYullong, e);
 
             return optelem(e, goal);
@@ -3055,9 +3055,9 @@ STATIC elem * eladdr(elem *e, goal_t goal)
             //  & (*p1 = e) => ((*(t = p1) = e), t)
             else if (e1->E1->Eoper == OPind)
             {
-                tym_t tym = e1->E1->E1->Ety;
-                elem *tmp = el_alloctmp(tym);
-                e1->E1->E1 = el_bin(OPeq,tym,tmp,e1->E1->E1);
+                const tym_t tym111 = e1->E1->E1->Ety;
+                elem *tmp = el_alloctmp(tym111);
+                e1->E1->E1 = el_bin(OPeq,tym111,tmp,e1->E1->E1);
                 e->Eoper = OPcomma;
                 e->E2 = el_copytree(tmp);
                 goto L1;
