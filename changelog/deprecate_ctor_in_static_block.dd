@@ -1,0 +1,54 @@
+Deprecate allowing a constructor declaration in a static block
+
+Before patch:
+The language specification states that a static constructor is
+defined using the construction "static this()". Defining a
+constructor inside a static block does not have any effect
+on the constructor. The following code samples do not affect
+the constructor in any way:
+
+---
+static:
+    this() {}
+---
+
+---
+static
+{
+    this() {}
+}
+---
+
+The compiler does not issue any warning/error on the above code
+samples and generates a normal constructor which is not ran before
+the main() function. This leads to situations in which the
+compiler is not able to correctly indicate the problem:
+
+---
+class A
+{
+    static
+    {
+        this() {}
+    }
+
+    this() {}
+}
+
+void main()
+{
+    new A();
+}
+---
+
+This code will result in an error message indicating that
+there is a multiple definition of the constructor this()
+which is a misleading message.
+
+After patch:
+Whenever a constructor is encountered in a static context a
+deprecation message is issued stating that the `static`
+keyword does not have any effect on the constructor.
+The solution is to declare the constructor outside the
+static block either as a normal constructor or a static
+one (`static this()`).
