@@ -2497,8 +2497,15 @@ elem *toElem(Expression e, IRState *irs)
 
             //printf("IdentityExp.toElem() %s\n", ie.toChars());
 
+            /* Fix Issue 18746 : https://issues.dlang.org/show_bug.cgi?id=18746
+             * Before skipping the comparison for empty structs
+             * it is necessary to check whether the expressions involved
+             * have any sideeffects
+             */
+
+            const canSkipCompare = isTrivialExp(ie.e1) && isTrivialExp(ie.e2);
             elem *e;
-            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0)
+            if (t1.ty == Tstruct && (cast(TypeStruct)t1).sym.fields.dim == 0 && canSkipCompare)
             {
                 // we can skip the compare if the structs are empty
                 e = el_long(TYbool, ie.op == TOK.identity);
