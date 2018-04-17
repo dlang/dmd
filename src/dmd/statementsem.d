@@ -252,7 +252,7 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
                         sexception = sexception.statementSemantic(sc);
                     if (sexception)
                     {
-                        if (i + 1 == cs.statements.dim && !sfinally)
+                        if (!sfinally)
                         {
                         }
                         else
