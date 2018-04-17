@@ -3,6 +3,18 @@ ROOT = ..
 SEARCHDEFAULT_SPEC = selected
 DDOC_BLANKLINE = $(DIVC blankline)
 
+
+_ = special specification boxes
+$(COMMENT While not part of the spec, best practices offers advice on how to best use a feature)
+BEST_PRACTICE= $(DIVC spec-boxes best-practice, $(B Best Practices:) $0)
+
+$(COMMENT Identifies implementation-defined behavior in the spec)
+IMPLEMENTATION_DEFINED=$(DIVC spec-boxes implementation-defined, $(B Implementation Defined): $0)
+
+$(COMMENT Identifies undefined-defined behavior in the spec)
+UNDEFINED_BEHAVIOR=$(DIVC spec-boxes undefined-behavior, $(B Undefined Behavior): $0)
+_ =
+
 BODY_PREFIX =
 $(T style,
     body { counter-reset: h1 $(CHAPTER); counter-increment: h1 -1; }
@@ -26,11 +38,11 @@ $(T style,
         counter-increment: h4;
         content: counter(h1) "." counter(h2) "." counter(h3) "." counter(h4) " ";
     }
-    p::before {
+    p::before, .spec-boxes::before {
         counter-increment: p;
         content: counter(p) ". ";
     }
-    h1::before, h2::before, h3::before, h4::before, p::before
+    h1::before, h2::before, h3::before, h4::before, p::before, .spec-boxes::before
     {
         color: #999;
         font-size: 80%;

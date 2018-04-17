@@ -6,8 +6,8 @@ $(HEADERNAV_TOC)
 
     $(P
         D has limited support for interfacing with Objective-C. It supports
-        external classes and calling instance methods. It is only available on
-        OS X, compiling for 64bit.
+        external classes and calling instance and class methods. It is only
+        available on macOS, compiling for 64bit.
     )
 
     $(P
@@ -89,8 +89,8 @@ $(HEADERNAV_TOC)
 
     $(P
         The attribute is defined in druntime in
-        $(LINK2 ../phobos/core_attribute.html, `core.attribute`) and aliased in
-        $(LINK2 ../phobos/object.html, `object`), meaning it will be implicitly
+        $(DPLLINK phobos/core_attribute.html, `core.attribute`) and aliased in
+        $(DPLLINK phobos/object.html, `object`), meaning it will be implicitly
         imported. The attribute is only defined when the version identifier
         $(LINK2 #objc-version-identifier, `D_ObjectiveC`) is enabled.
     )
@@ -191,7 +191,7 @@ $(HEADERNAV_TOC)
         where `<Framework>` is the name of the framework to link with, without
         the `.framework` extension. The two `-L` flags are required because the
         linker expects a space between the `-framework` flag and the name of
-        the framework. DMD cannot handle this and will instead interpet the
+        the framework. DMD cannot handle this and will instead interpret the
         name of the framework as a separate flag.
 
     $(SECTION3 $(LNAME2 framework-paths, Framework Paths))
@@ -223,58 +223,29 @@ $(HEADERNAV_TOC)
     $(SECTION2 $(LNAME2 usage-example, Full Usage Example))
 
     $(P
-        Since the only parts of Objective-C that is currently supported is
-        calling instance methods, this example demonstrates how the Objective-C
-        runtime can be used to achieve a running example.
-    )
-
-    $(P
         This example will create an Objective-C string, `NSString`, and log the
         message using `NSLog` to stderr.
     )
 
     ---
     extern (Objective-C)
-    interface Class
-    {
-        NSString alloc() @selector("alloc");
-    }
-    ---
-
-    $(P
-        This interface is used to emulate the $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ObjCRuntimeRef/#//apple_ref/c/tdef/Class, `Class`)
-        type available in the Objective-C runtime. The instance method `alloc`
-        will be used to emulate a class method in `NSObject`,
-        $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSObject_Class/#//apple_ref/occ/clm/NSObject/alloc, alloc).
-    )
-
-    ---
-    extern (Objective-C)
     interface NSString
     {
+        static NSString alloc() @selector("alloc");
         NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
         void release() @selector("release");
     }
     ---
 
     $(P
-        This is a simplified declaration of the $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSString_Class/, `NSString`)
-        class. The $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Classes/NSString_Class/#//apple_ref/occ/instm/NSString/initWithUTF8String:, `initWithUTF8String:`)
+        This is a simplified declaration of the $(LINK2 https://developer.apple.com/documentation/foundation/nsstring?language=objc, `NSString`)
+        class. The $(LINK2 https://developer.apple.com/documentation/objectivec/nsobject/1571958-alloc?language=objc, `alloc`)
+        method allocates an instance of the class. The $(LINK2 https://developer.apple.com/documentation/foundation/nsstring/1412128-initwithutf8string?language=objc, `initWithUTF8String:`)
         method will be used to convert a C string in UTF-8 to an Objective-C
-        string, `NSString`. The $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/Foundation/Protocols/NSObject_Protocol/index.html#//apple_ref/occ/intfm/NSObject/release, `release`)
+        string, `NSString`. The $(LINK2 https://developer.apple.com/documentation/objectivec/1418956-nsobject/1571957-release?language=objc, `release`)
         method is used to release an deallocate the string. Since D doesn't
         support $(LINK2 https://developer.apple.com/library/mac/releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html, ARC)
         it's needed to manually release Objective-C instances.
-    )
-
-    ---
-    extern (C) Class objc_lookUpClass(in char* name)
-    ---
-
-    $(P
-        The $(LINK2 https://developer.apple.com/library/mac/documentation/Cocoa/Reference/ObjCRuntimeRef/#//apple_ref/c/func/objc_lookUpClass, `objc_lookUpClass`)
-        function is used to get the class definition of the class with the
-        given name.
     )
 
     ---
@@ -288,13 +259,7 @@ $(HEADERNAV_TOC)
     )
 
     ---
-    auto cls = objc_lookUpClass("NSString");
-    ---
-
-    $(P Get the class definition of `NSString`.)
-
-    ---
-    auto str = cls.alloc();
+    auto str = NSString.alloc();
     ---
 
     $(P Allocate an instance of the class, `NSString`.)
@@ -330,25 +295,18 @@ $(HEADERNAV_TOC)
     module main;
 
     extern (Objective-C)
-    interface Class
-    {
-        NSString alloc() @selector("alloc");
-    }
-
-    extern (Objective-C)
     interface NSString
     {
+        static NSString alloc() @selector("alloc");
         NSString initWithUTF8String(in char* str) @selector("initWithUTF8String:");
         void release() @selector("release");
     }
 
     extern (C) void NSLog(NSString, ...);
-    extern (C) Class objc_lookUpClass(in char* name);
 
     void main()
     {
-        auto cls = objc_lookUpClass("NSString");
-        auto str = cls.alloc().initWithUTF8String("Hello World!");
+        auto str = NSString.alloc().initWithUTF8String("Hello World!");
         NSLog(str);
         str.release();
     }

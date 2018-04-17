@@ -62,6 +62,8 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     the first field and the start of the object.
     )
 
+    $(P Structs with no fields of non-zero size (aka $(I Empty Structs)) have a size of one byte.)
+
     $(P Non-static $(RELATIVE_LINK2 nested, function-nested D structs), which access the context of
     their enclosing scope, have an extra field.
     )
@@ -70,11 +72,21 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     $(OL
     $(LI The default layout of the fields of a struct is an exact
     match with the $(I associated C compiler).)
+    $(LI g++ and clang++ differ in how empty structs are handled. Both return `1` from `sizeof`,
+    however, clang++ does not push them onto the parameter stack while g++ does. This is a
+    binary incompatibility between g++ and clang++.
+    dmd follows clang++ behavior for OSX and FreeBSD, and g++ behavior for Linux and other
+    Posix platforms.
+    )
+    $(LI clang and gcc both return `0` from `sizeof` for empty structs. Using `extern "C++"`
+    in clang++ and g++ does not cause them to conform to the behavior of their respective C compilers.)
     ))
 
     $(UNDEFINED_BEHAVIOR
     $(OL
     $(LI The padding data can be accessed, but its contents are undefined.)
+    $(LI Do not pass or return structs with no fields of non-zero size to `extern (C)` functions.
+    According to C11 6.7.2.1p8 this is undefined behavior.)
     ))
 
     $(BEST_PRACTICE
@@ -83,6 +95,8 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     attributes to describe an exact match. Using a $(DDSUBLINK spec/version, static-assert, Static Assert)
     to ensure the result is as expected.)
     $(LI Although the contents of the padding are often zero, do not rely on that.)
+    $(LI Avoid using empty structs when interfacing with C and C++ code.)
+    $(LI Avoid using empty structs as parameters or arguments to variadic functions.)
     ))
 
 $(H2 $(LNAME2 POD, Plain Old Data))
@@ -111,75 +125,122 @@ union U;
         on those types are ones that do not require any knowledge of the contents
         of those types. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
 struct S;
 S.sizeof; // error, size is not known
 S s;      // error, cannot initialize unknown contents
 S* p;     // ok, knowledge of members is not necessary
 ---
+)
 
-        $(P They can be used to implement the
+        $(BEST_PRACTICE They can be used to implement the
         $(LINK2 https://en.wikipedia.org/wiki/Opaque_pointer, PIMPL idiom).)
 
 
+$(H2 $(LNAME2 default_struct_init, Default Initialization of Structs))
+
+        $(P Struct fields are by default initialized to whatever the
+        $(GLINK2 declaration, Initializer) for the field is, and if none is supplied, to
+        the default initializer for the field's type.
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S { int a = 4; int b; }
+        S x; // x.a is set to 4, x.b to 0
+        ---
+        )
+
+        $(P The default initializers are evaluated at compile time.)
+
 $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
-        $(P Static struct members are by default initialized to whatever the
-        default initializer for the member is, and if none is supplied, to
-        the default initializer for the member's type.
+        $(P If a $(GLINK2 declaration, StructInitializer) is supplied, the
+        fields are initialized by the $(GLINK2 declaration, StructMemberInitializer) syntax.
+        $(I StructMemberInitializers) with the $(I Identifier : NonVoidInitializer) syntax
+        may be appear in any order, where $(I Identifier) is the field identifer.
+        $(I StructMemberInitializer)s with the $(GLINK2 declaration, NonVoidInitializer) syntax
+        appear in the lexical order of the fields in the $(GLINK StructDeclaration).
         )
 
-------
-struct S { int a = 4; int b; }
-static S x; // a is set to 4, b to 0
-------
+        $(P Fields not specified in the $(I StructInitializer) are default initialized.)
 
-        $(P If a static initializer is supplied, the
-        members are initialized by the `memberName:expression` syntax.
-        The members may be initialized in any order.
-        Initializers for statics must be evaluatable at
-        compile time. Members not specified in the initializer list are default
-        initialized.
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S { int a, b, c, d = 7; }
+        S r;                          // r.a = 0, r.b = 0, r.c = 0, r.d = 7
+        S s = { a:1, b:2 };           // s.a = 1, s.b = 2, s.c = 0, s.d = 7
+        S t = { c:4, b:5, a:2, d:5 }; // t.a = 2, t.b = 5, t.c = 4, t.d = 5
+        S u = { 1, 2 };               // u.a = 1, u.b = 2, u.c = 0, u.d = 7
+        S v = { 1, d:3 };             // v.a = 1, v.b = 0, v.c = 0, v.d = 3
+        S w = { b:1, 3 };             // v.a = 0, v.b = 1, v.c = 3, v.d = 7
+        ---
         )
 
-------
-struct S { int a, b, c, d = 7; }
-static S x = { a:1, b:2 };           // c is set to 0, d to 7
-static S z = { c:4, b:5, a:2, d:5 }; // z.a = 2, z.b = 5, z.c = 4, z.d = 5
-------
+        $(P Initializing a field more than once is an error:)
 
-$(P C-style initialization, based on the order of the members in the struct
-declaration, is also supported:)
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        S x = { 1, a:2 };  // error: duplicate initializer for field `a`
+        ---
+        )
 
-------
-static S q = { 1, 2 }; // q.a = 1, q.b = 2, q.c = 0, q.d = 7
-------
+$(H2 $(LNAME2 default_union_init, Default Initialization of Unions))
 
-        $(P The two styles can be combined:)
+        $(P Unions are by default initialized to whatever the
+        $(GLINK2 declaration, Initializer) for the first field is, and if none is supplied, to
+        the default initializer for the first field's type.
+        )
 
-------
-static S q = { 1, d:3 }; // q.a = 1, q.b = 0, q.c = 0, q.d = 3
-------
+        $(P If the union is larger than the first field, the remaining bits
+        are set to 0.)
 
-        $(P Struct literals can also be used to initialize statics, but
-        they must be evaluable at compile time.)
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        union U { int a = 4; long b; }
+        U x; // x.a is set to 4, x.b to an implementation-defined value
 
------
-static S q = S( 1, 2+3 ); // q.a = 1, q.b = 5, q.c = 0, q.d = 7
------
+        union V { int a; long b = 4; }
+        V y; // y.a is set to 0, y.b to an implementation-defined value
+        ---
+        )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        union W { int a = 4; long b = 5; } // error: overlapping default initialization for `a` and `b`
+        ---
+        )
+
+        $(P The default initializer is evaluated at compile time.)
+
+        $(IMPLEMENTATION_DEFINED The values the fields other than the
+        default initialized field are set to.)
 
 $(H2 $(LNAME2 static_union_init, Static Initialization of Unions))
 
-$(P Unions are initialized explicitly.)
+        $(P Unions are initialized similarly to structs, except that only
+        one initializer is allowed.)
 
-------
-union U { int a; double b; }
-static U u = { b : 5.0 }; // u.b = 5.0
-------
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        union U { int a; double b; }
+        U u = { 2 };       // u.a = 2
+        U v = { b : 5.0 }; // v.b = 5.0
+        ---
+        )
 
-$(P Other members of the union that overlay the initializer, but occupy more
-storage, have the extra storage initialized to zero.)
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        U w = { 2, 3 };    // error: overlapping initialization for field `a` and `b`
+        ---
+        )
+
+        $(P If the union is larger than the initialized field, the remaining bits
+        are set to 0.)
+
+        $(IMPLEMENTATION_DEFINED The values the fields other than the
+        initialized field are set to.)
 
 $(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
 
@@ -187,6 +248,7 @@ $(H2 $(LNAME2 dynamic_struct_init, Dynamic Initialization of Structs))
         can also be used to initialize non-static variables.
         The initializer need not be evaluable at compile time.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct S { int a, b, c, d = 7; }
 
@@ -195,34 +257,38 @@ void test(int i)
     S q = { 1, b:i }; // q.a = 1, q.b = i, q.c = 0, q.d = 7
 }
 ----
+)
 
         $(P Structs can be dynamically initialized from another
         value of the same type:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct S { int a; }
 S t;      // default initialized
 t.a = 3;
 S s = t;  // s.a is set to 3
 ----
+)
 
         $(P If $(D opCall) is overridden for the struct, and the struct
         is initialized with a value that is of a different type,
         then the $(D opCall) operator is called:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ----
 struct S
 {
     int a;
 
-    static S $(CODE_HIGHLIGHT opCall)(int v)
+    static S opCall(int v)
     {
         S s;
         s.a = v;
         return s;
     }
 
-    static S $(CODE_HIGHLIGHT opCall)(S v)
+    static S opCall(S v)
     {
         assert(0);
     }
@@ -231,12 +297,14 @@ struct S
 S s = 3; // sets s.a to 3 using S.opCall(int)
 S t = s; // sets t.a to 3, S.opCall(S) is not called
 ----
+)
 
 $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         $(P Struct literals consist of the name of the struct followed
         by a parenthesized argument list:)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S { int x; float y; }
 
@@ -244,6 +312,7 @@ $(H2 $(LEGACY_LNAME2 StructLiteral, struct-literal, Struct Literals))
 
         foo( S(1, 2) ); // set field x to 1, field y to 2
         ---
+        )
 
         $(P Struct literals are syntactically like function calls.
         If a struct has a member function named $(CODE opCall), then
@@ -293,6 +362,7 @@ $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Stru
         $(CODE const), $(CODE immutable) or $(CODE shared).
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ----
         const struct S { int a; int b = 2; }
 
@@ -304,6 +374,7 @@ $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Stru
             t.a = 4;    // error, t.a is const
         }
         ----
+        )
 
 $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors))
 
@@ -314,6 +385,7 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
         are default initialized to their $(CODE .init) value.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ------
         struct S
         {
@@ -336,6 +408,7 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
             auto b = S();  // same as auto b = S.init;
         }
         ------
+        )
 
 $(COMMENT
 $(P Inside a constructor, the first occurrence (in lexical order) of assignments
@@ -343,6 +416,7 @@ of the form $(CODE member = expression;) are handled differently than usual
 assignments. The first such assignment in lexical order is converted to a
 constructor call for the member's type. Example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 import std.stdio;
 
@@ -363,12 +437,13 @@ struct B
     }
 }
 
-void main(string[] args)
+void main()
 {
     auto b = B(10);
     // b.a = 10; does not compile here, A does not define opAssign(int).
 }
 ------
+)
 
 $(P The program above prints the line $(CODE "[= A.this(10) =]"). Anywhere else
 attempting to assign an integer to an object of type `A` would count as an
@@ -378,7 +453,12 @@ $(P Finding the first assignment in lexical order is flow-sensitive upon the
 `if` statement. Consider a change to struct `B` in the previous example as
 follows:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
+struct A
+{
+    this(int x) {}
+}
 struct B
 {
     A a;
@@ -391,11 +471,13 @@ struct B
     }
 }
 ------
+)
 
 $(P This code issues a constructor call on each branch of the `if` statement.
 However, such flow sensitivity is limited. There is no static or dynamic
 analysis of coverage of the `if` statement. For example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ------
 struct B
 {
@@ -407,11 +489,13 @@ struct B
     }
 }
 ------
+)
 
 $(P Also, member assignments inside loops are never considered constructors,
 even if it can be determined statically that the loop executes at most once.
 Example:)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ------
 struct B
 {
@@ -422,6 +506,7 @@ struct B
     }
 }
 ------
+)
 
 $(P If an exception is thrown at any point from within a constructor,
 destructors are called for all members, in reverse lexical order of their
@@ -433,6 +518,7 @@ constructor will have their `.init` values upon destruction.)
         that specific qualifier.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ------
         struct S1
         {
@@ -471,28 +557,56 @@ constructor will have their `.init` values upon destruction.)
             immutable i2 = immutable S2(1);
         }
         ------
+        )
+
+$(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Construction))
 
         $(P If struct constructor is annotated with $(D @disable) and has
-        empty parameter, the struct is disabled construction without calling
-        other constructor.
+        an empty $(GLINK2 function, ParameterList), the struct has disabled default construction.
+        The only way it can be constructed is via a call to another constructor with a non-empty
+        $(I ParameterList).
         )
-        ------
+
+        $(P A struct with a disabled default constructor, and no other constructors, cannot
+        be instantiated other than via a $(GLINK2 declaration, VoidInitializer).)
+
+        $(P A disabled default constructor may not have a $(GLINK2 function, FunctionBody).)
+
+        $(P If any fields have disabled default construction, the struct default construction is
+        also disabled.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
         struct S
         {
             int x;
 
-            // Disables default construction, function body can be empty.
+            // Disables default construction
             @disable this();
 
             this(int v) { x = v; }
         }
+        struct T
+        {
+            int y;
+            S s;
+        }
         void main()
         {
-            //S s;        // default construction is disabled
-            //S s = S();  // also disabled
-            S s = S(1);   // construction with calling constructor
+            S s;          // error: default construction is disabled
+            S t = S();    // error: also disabled
+            S u = S(1);   // constructed by calling `S.this(1)`
+            S v = void;   // not initialized, but allowed
+            S w = { 1 };  // error: cannot use { } since constructor exists
+            S[3] a;       // error: default construction is disabled
+            S[3] b = [S(1), S(20), S(-2)]; // ok
+            T t;          // error: default construction is disabled
         }
-        ------
+        ---
+        )
+
+        $(BEST_PRACTICE Disabling default construction is useful when the default value,
+        such as `null`, is not acceptable.)
 
 $(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
@@ -521,6 +635,7 @@ $(GNAME Postblit):
         etc. For example:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         struct S
         {
@@ -531,10 +646,12 @@ $(GNAME Postblit):
             }
         }
         ---
+        )
 
         $(P Disabling struct postblit makes the object not copyable.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         struct T
         {
@@ -551,6 +668,349 @@ $(GNAME Postblit):
             S t = s; // error, S is not copyable
         }
         ---
+        )
+
+        $(P Depending on the struct layout, the compiler may generate the following
+        internal postblit functions:)
+
+        $(OL
+        $(LI `void __postblit()`. The compiler assigns this name to the explicitly
+        defined postblit `this(this)` so that it can be treated exactly as
+        a normal function. Note that if a struct defines a postblit, it cannot
+        define a function named `__postblit` - no matter the signature -
+        as this would result in a compilation error due to the name conflict.)
+        $(LI `void __fieldPostblit()`. If a struct `X` has at least one `struct`
+        member that in turn defines (explicitly or implicitly) a postblit, then a field
+        postblit is generated for `X` that calls all the underlying postblits
+        of the struct fields in declaration order.)
+        $(LI `void __aggrPostblit()`. If a struct has an explicitly defined postblit
+        and at least 1 struct member that has a postblit (explicit or implicit)
+        an aggregated postblit is generated which calls `__fieldPostblit` first
+        and then `__postblit`.)
+        $(LI `void __xpostblit()`. The field and aggregated postblits, although
+        generated for a struct, are not actual struct members. In order to be able
+        to call them, the compiler internally creates an alias, called `__xpostblit`
+        which is a member of the struct and which points to the generated postblit that
+        is the most inclusive.)
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+// struct with alias __xpostblit = __postblit
+struct X
+{
+    this(this) {}
+}
+
+// struct with alias __xpostblit = __fieldPostblit
+// which contains a call to X.__xpostblit
+struct Y
+{
+    X a;
+}
+
+// struct with alias __xpostblit = __aggrPostblit which contains
+// a call to Y.__xpostblit and a call to Z.__postblit
+struct Z
+{
+    Y a;
+    this(this) {}
+}
+
+void main()
+{
+    // X has __postblit and __xpostblit (pointing to __postblit)
+    static assert(__traits(hasMember, X, "__postblit"));
+    static assert(__traits(hasMember, X, "__xpostblit"));
+
+    // Y does not have __postblit, but has __xpostblit (pointing to __fieldPostblit)
+    static assert(!__traits(hasMember, Y, "__postblit"));
+    static assert(__traits(hasMember, Y, "__xpostblit"));
+    // __fieldPostblit is not a member of the struct
+    static assert(!__traits(hasMember, Y, "__fieldPostblit"));
+
+    // Z has  __postblit and __xpostblit (pointing to __aggrPostblit)
+    static assert(__traits(hasMember, Z, "__postblit"));
+    static assert(__traits(hasMember, Z, "__xpostblit"));
+    // __aggrPostblit is not a member of the struct
+    static assert(!__traits(hasMember, Z, "__aggrPostblit"));
+}
+---
+)
+
+        $(P Neither of the above postblits is defined for structs that don't
+        define `this(this)` and don't have fields that transitively define it.
+        If a struct does not define a postblit (implicit or explicit) but
+        defines functions that use the same name/signature as the internally
+        generated postblits, the compiler is able to identify that the functions
+        are not actual postblits and does not insert calls to them when the
+        struct is copied. Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct X
+{}
+
+int a;
+
+struct Y
+{
+    int a;
+    X b;
+    void __fieldPostPostblit()
+    {
+        a = 42;
+    }
+}
+
+void main()
+{
+    static assert(!__traits(hasMember, X, "__postblit"));
+    static assert(!__traits(hasMember, X, "__xpostblit"));
+
+    static assert(!__traits(hasMember, Y, "__postblit"));
+    static assert(!__traits(hasMember, Y, "__xpostblit"));
+
+    Y y;
+    auto y2 = y;
+    assert(a == 0); // __fieldPostBlit does not get called
+}
+---
+)
+
+        $(P Postblits cannot be overloaded. If two or more postblits are defined,
+        even if the signatures differ, the compiler assigns the
+        `__postblit` name to both and later issues a conflicting function
+        name error:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct X
+{
+    this(this) {}
+    this(this) const {} // error: function X.__postblit conflicts with function X.__postblit
+}
+---
+)
+
+        $(P The following describes the behavior of the
+        qualified postblit definitions:)
+
+        $(OL
+        $(LI `const`. When a postblit is qualified with `const` as in
+        $(D this(this) const;) or $(D const this(this);) then the postblit
+        is succesfully called on mutable (unqualified), `const`,
+        and `immutable` objects, but the postblit cannot modify the object
+        because it regards it as `const`; hence `const` postblits are of
+        limited usefulness. Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int n;
+    this(this) const
+    {
+        import std.stdio : writeln;
+        writeln("postblit called");
+        //++n; // error: cannot modify this.n in `const` function
+    }
+}
+
+void main()
+{
+    S s1;
+    auto s2 = s1;
+    const S s3;
+    auto s4 = s3;
+    immutable S s5;
+    auto s6 = s5;
+}
+---
+)
+        $(LI `immutable`. When a postblit is qualified with `immutable`
+        as in $(D this(this) immutable) or $(D immutable this(this))
+        the code is ill-formed. The `immutable` postblit passes the
+        compilation phase but cannot be invoked. Example:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct Y
+{
+    // not invoked anywhere, no error is issued
+    this(this) immutable
+    { }
+}
+
+struct S
+{
+    this(this) immutable
+    { }
+}
+
+void main()
+{
+    S s1;
+    auto s2 = s1;    // error: immutable method `__postblit` is not callable using a mutable object
+    const S s3;
+    auto s4 = s3;    // error: immutable method `__postblit` is not callable using a mutable object
+    immutable S s5;
+    auto s6 = s5;    // error: immutable method `__postblit` is not callable using a mutable object
+}
+---
+)
+
+        $(LI `shared`. When a postblit is qualified with `shared` as in
+        $(D this(this) shared) or $(D shared this(this)) solely `shared`
+        objects may invoke the postblit; attempts of postbliting unshared
+        objects will result in compile time errors:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+    this(this) shared
+    { }
+}
+
+void main()
+{
+    S s1;
+    auto s2 = s1;    // error: shared method `__postblit` is not callable using a non-shared object
+    const S s3;
+    auto s4 = s3;    // error: shared method `__postblit` is not callable using a non-shared object
+    immutable S s5;
+    auto s6 = s5;    // error: shared method `__postblit` is not callable using a non-shared object
+
+    // calling the shared postblit on a shared object is accepted
+    shared S s7;
+    auto s8 = s7;
+}
+---
+)
+        )
+
+        $(P An unqualified postblit will get called even if the
+        struct is instantiated as `immutable` or `const`, but
+        the compiler issues an error if the struct is instantiated
+        as `shared`:)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S
+{
+    int n;
+    this(this) { ++n; }
+}
+
+void main()
+{
+    immutable S a;      // shared S a; => error : non-shared method is not callable using a shared object
+    auto a2 = a;
+    import std.stdio: writeln;
+    writeln(a2.n);     // prints 1
+}
+---
+)
+
+        $(P From a postblit perspective, qualifiying the struct definition
+        yields the same result as explicitly qualifying the postblit.)
+
+        $(P The following table lists all the possibilities of grouping
+        qualifiers for a postblit associated with the type of object that
+        needs to be used in order to succesfully invoke the postblit:)
+
+        $(TABLE_10 $(ARGS Qualifier Groups),
+        $(VERTROW object type to be invoked on, $(D const), $(D immutable), $(D shared)),
+        $(TROW any object type,                 $(YES),     $(NO),          $(NO) )
+        $(TROW uncallable,                      $(NO),      $(YES),         $(NO) )
+        $(TROW shared object,                   $(NO),      $(NO),          $(YES))
+        $(TROW uncallable,                      $(YES),     $(YES),         $(NO) )
+        $(TROW shared object,                   $(YES),     $(NO),          $(YES))
+        $(TROW uncallable,                      $(NO),      $(YES),         $(YES))
+        $(TROW uncallable,                      $(YES),     $(YES),         $(YES))
+        )
+
+        $(P Note that when `const` and `immutable` are used to explicitly
+        qualify a postblit as in `this(this) const immutable;` or
+        `const immutable this(this);` - the order in which the qualifiers
+        are declared does not matter - the compiler generates a conflicting
+        attribute error, however declaring the struct as `const`/`immutable`
+        and the postblit as `immutable`/`const` achieves the effect of applying
+        both qualifiers to the postblit. In both cases the postblit is
+        qualified with the more restrictive qualifier, which is `immutable`.
+        )
+
+        $(P The postblits `__fieldPostblit` and `__aggrPostblit`
+        are generated without any implicit qualifiers and are not considered
+        struct members. This leads to the situation where qualifying an
+        entire struct declaration does not have any impact on the above
+        mentioned postblits. However, since `__xpostblit` is a member of
+        the struct and an alias of one of the other postblits, the qualifiers
+        applied to the struct will affect the aliased postblit:)
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+struct S
+{
+    this(this)
+    { }
+}
+
+// `__xpostblit` aliases the aggregated postblit so the `const` applies to it.
+// However, the aggregated postblit calls the field postblit which does not have
+// any qualifier applied, resulting in a qualifier mismatch error
+const struct B
+{
+    S a;        // error : mutable method B.__fieldPostblit is not callable using a const object
+    this(this)
+    { }
+}
+
+// `__xpostblit` aliases the field postblit; no error
+const struct B2
+{
+    S a;
+}
+
+// Similar to B
+immutable struct C
+{
+    S a;        // error : mutable method C.__fieldPostblit is not callable using a immutable object
+    this(this)
+    { }
+}
+
+// Similar to B2, compiles
+immutable struct C2
+{
+    S a;
+}
+
+// Similar to B
+shared struct D
+{
+    // error: non-shared method S.__postblit is not callable using a shared object
+    // error: non-shared method D.__fieldPostblit is not callable using a shared object
+    S a;
+    this(this)
+    { }
+}
+
+// Unlike B2, this example also does not work due to additional restrictions on shared.
+shared struct D2
+{
+    // error: non-shared method S.__postblit is not callable using a shared object
+    S a;
+}
+---
+)
+
+        $(P In the above situations the errors do not contain line numbers because
+        the errors are regarding generated code. In the case of the `shared` struct,
+        the first error message can be suppressed by qualifying the postblit of `S`
+        with `shared`.
+        )
 
         $(P Unions may not have fields that have postblits.)
 
@@ -605,6 +1065,7 @@ $(GNAME StructInvariant):
     $(P The invariant need not hold if the struct instance is implicitly constructed using
     the default $(D .init) value.)
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     struct Date
     {
@@ -625,9 +1086,11 @@ $(GNAME StructInvariant):
         int hour;
     }
     ---
+    )
 
     $(P Public or exported non-static member functions cannot be called from within an invariant.)
 
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
     ---
     struct Foo
     {
@@ -641,6 +1104,7 @@ $(GNAME StructInvariant):
         }
     }
     ---
+    )
 
     $(UNDEFINED_BEHAVIOR happens if the invariant does not hold and execution continues.)
 
@@ -723,6 +1187,7 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
         is if the struct has a reference to a local buffer:
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S
         {
@@ -741,6 +1206,7 @@ $(H2 $(LEGACY_LNAME2 AssignOverload, assign-overload, Identity Assignment Overlo
             }
         }
         ---
+        )
 
         $(P Here, $(CODE S) has a temporary workspace $(CODE buf[]).
         The normal postblit
@@ -757,6 +1223,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
         It has access to the context of its enclosing scope
         (via an added hidden field).)
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
         void foo()
         {
@@ -771,12 +1238,14 @@ $(H2 $(LNAME2 nested, Nested Structs))
             s.bar(); // returns 11
         }
         ---
+        )
 
     $(P A struct can be prevented from being nested by
         using the static attribute, but then of course it
         will not be able to access variables from its enclosing
         scope.)
 
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ---
         void foo()
         {
@@ -791,6 +1260,7 @@ $(H2 $(LNAME2 nested, Nested Structs))
             }
         }
         ---
+        )
 
 $(H2 $(LNAME2 unions_and_special_memb_funct, Unions and Special Member Functions))
 

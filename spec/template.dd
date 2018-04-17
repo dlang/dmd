@@ -1082,6 +1082,23 @@ $(H2 $(LNAME2 function-templates, Function Templates))
         }
         ---
 
+    $(P Variadic Function Templates can have parameters with default values.
+        These parameters are always set to their default value in case of IFTI.
+    )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        size_t fun(T...)(T t, string file = __FILE__)
+        {
+            import std.stdio;
+            writeln(file, " ", t);
+            return T.length;
+        }
+        assert(fun(1, "foo") == 2);  // uses IFTI
+        assert(fun!int(1, "foo") == 1);  // no IFTI
+        ---
+        )
+
 $(H2 $(LNAME2 variable-template, Variable Templates))
 
     $(P Same as aggregates and functions, variable declarations with

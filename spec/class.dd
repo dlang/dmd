@@ -299,16 +299,12 @@ $(GNAME Constructor):
     $(GLINK2 template, ConstructorTemplate)
 )
 
-        $(P Members are always initialized to the
+        $(P Fields are by default initialized to the
         $(LNAME2 class-default-initializer, default initializer)
-        for their type, which is usually 0 for integer types and
-        NAN for floating point types.
-        This eliminates an entire
-        class of obscure problems that come from
-        neglecting to initialize a member in one of the constructors.
-        In the class definition,
-        there can be a static initializer to be
-        used instead of the default:
+        for their type (usually 0 for integer types and
+        NAN for floating point types).
+        If the field declaration has an optional $(GLINK2 declaration, Initializer)
+        that will be used instead of the default.
         )
         ------
         class Abc
@@ -319,7 +315,9 @@ $(GNAME Constructor):
         }
         ------
 
-        $(P This static initialization is done before any constructors are
+        $(P The $(I Initializer) is evaluated at compile time.)
+
+        $(P This initialization is done before any constructors are
         called.)
 
         $(P Constructors are defined with a function name of $(D this)
@@ -355,9 +353,9 @@ $(GNAME Constructor):
         }
         ------
 
-        $(P Constructors can also call other constructors for the same class
+        $(P Constructors can call other constructors for the same class
         in order to share common initializations
-        $(LNAME2 delegating-constructors, (this is called delegating constructors)):
+        (this is called a $(LNAME2 delegating-constructors, delegating constructor)):
         )
 
         ------
@@ -370,7 +368,7 @@ $(GNAME Constructor):
             }
             this(int i)
             {
-                $(CODE_HIGHLIGHT this)();
+                $(CODE_HIGHLIGHT this)(); // delegating constructor call
                 j = i;
             }
         }
@@ -388,23 +386,12 @@ $(GNAME Constructor):
         this() { }
         ------
 
-        $(P Class object construction is very flexible, but some restrictions
-        apply:)
+        $(P The following restrictions apply to class construction:)
 
     $(OL
-        $(LI It is illegal for constructors to mutually call each other,
-        although the compiler is not required to detect it. It will result
-        in undefined behavior.
-
-        ------
-        this() { this(1); }
-        this(int i) { this(); } // illegal, cyclic constructor calls
-        ------
-        )
-
-        $(LI If any constructor call appears inside a constructor, any
-        path through the constructor must make exactly one constructor
-        call:
+        $(LI If a constructor's code contains a delegate constructor call, all
+        possible execution paths through the constructor must make exactly one
+        delegate constructor call:
 
         ------
         this() { a || super(); }       // illegal
@@ -422,13 +409,12 @@ $(GNAME Constructor):
         )
 
         $(LI It is illegal to refer to $(D this) implicitly or explicitly
-        prior to making a constructor call.)
+        prior to making a delegate constructor call.)
 
-        $(LI Constructor calls cannot appear after labels (in order to make
-        it easy to check for the previous conditions in the presence of goto's).)
+        $(LI Delegate constructor calls cannot appear after labels.)
     )
 
-        $(P Instances of class objects are created with $(I NewExpression)s:)
+        $(P Instances of class objects are created with a $(GLINK2 expression, NewExpression):)
 
         ------
         A a = new A(3);
@@ -439,7 +425,7 @@ $(GNAME Constructor):
     $(OL
         $(LI Storage is allocated for the object.
         If this fails, rather than return $(D null), an
-        $(D OutOfMemoryError) is thrown.
+        $(LINK2 $(ROOT_DIR)library/core/exception/out_of_memory_error.html, OutOfMemoryError) is thrown.
         Thus, tedious checks for null references are unnecessary.
         )
 
@@ -447,18 +433,21 @@ $(GNAME Constructor):
         in the class definition.
         The pointer to the vtbl[] (the array of pointers to virtual functions)
         is assigned.
-        This ensures that constructors are
+        Constructors are
         passed fully formed objects for which virtual functions can be called.
         This operation is equivalent to doing a memory copy of a static
-        version of the object onto the newly allocated one,
-        although more advanced compilers
-        may be able to optimize much of this away.
+        version of the object onto the newly allocated one.
         )
 
         $(LI If there is a constructor defined for the class,
         the constructor matching the
         argument list is called.
         )
+
+        $(LI If a delegating constructor is not called, a call to the base
+        class's default constructor is issued.)
+
+        $(LI The body of the constructor is executed.)
 
         $(LI If class invariant checking is turned on, the class invariant
         is called at the end of the constructor.
@@ -503,7 +492,7 @@ $(GNAME Constructor):
         immutable i = new immutable C();
         ------
 
-        $(P If the constructor can create unique object (e.g. if it is pure),
+        $(P If the constructor can create a unique object (e.g. if it is `pure`),
         the object can be implicitly convertible to any qualifiers.
         )
         ------
@@ -512,15 +501,14 @@ $(GNAME Constructor):
             this() pure;
             // Based on the definition, this creates a mutable object. But the
             // created object cannot contain any mutable global data.
-            // Then compiler can guarantee that the created object is unique.
+            // Therefore the created object is unique.
 
             this(int[] arr) immutable pure;
             // Based on the definition, this creates an immutable object. But
             // the argument int[] never appears in the created object so it
             // isn't implicitly convertible to immutable. Also, it cannot store
             // any immutable global data.
-            // Therefore the compiler can guarantee that the created object is
-            // unique.
+            // Therefore the created object is unique.
         }
 
         immutable i = new immutable C();           // this() pure is called
@@ -530,9 +518,9 @@ $(GNAME Constructor):
 
 $(H2 $(LNAME2 field-init, Field initialization inside constructor))
 
-    $(P Inside constructor, the first instance field assignment is specially
-        handled for its initialization.
-    )
+        $(P In a constructor body, the first instance of field assignment is
+        its initialization.
+        )
 
         ------
         class C
@@ -540,32 +528,33 @@ $(H2 $(LNAME2 field-init, Field initialization inside constructor))
             int num;
             this()
             {
-                num = 1;  // initialize
+                num = 1;  // initialization
                 num = 2;  // assignment
             }
         }
         ------
 
-    $(P If the field type has opAssign method, it won't be used for initialization.)
+       $(P If the field type has an $(LINK2 operatoroverloading.html#assignment, `opAssign`)
+       method, it will not be used for initialization.)
 
         ------
         struct A
         {
             this(int n) {}
-            void opAssign(A rhs) {}
+            void $(CODE_HIGHLIGHT opAssign)(A rhs) {}
         }
         class C
         {
             A val;
             this()
             {
-                val = A(1);  // A(1) is moved in this.val for initializing
+                val = A(1);  // val is initialized to the value of A(1)
                 val = A(2);  // rewritten to val.opAssign(A(2))
             }
         }
         ------
 
-    $(P If the field type is not modifiable, multiple initialization will be rejected.)
+        $(P If the field type is not mutable, multiple initialization will be rejected.)
 
         ------
         class C
@@ -579,9 +568,30 @@ $(H2 $(LNAME2 field-init, Field initialization inside constructor))
         }
         ------
 
-    $(P If the assignment expression for the field initialization may be invoked
-        multiple times, it would also be rejected.
-    )
+        $(P If the field is initialized on one path, it must be initialized on all paths.)
+        ---
+        class C
+        {
+            immutable int num;
+            immutable int ber;
+            this(int i)
+            {
+                if (i)
+                    num = 3;   // initialization
+                else
+                    num = 4;   // initialization
+            }
+            this(long j)
+            {
+                j ? (num = 3) : (num = 4); // ok
+                j || (ber = 3);  // error, intialized on only one path
+                j && (ber = 3);  // error, intialized on only one path
+            }
+        }
+        ---
+
+        $(P A field initialization may not appear in a loop or after
+        a label.)
 
         ------
         class C
@@ -602,6 +612,20 @@ $(H2 $(LNAME2 field-init, Field initialization inside constructor))
             }
         }
         ------
+
+        $(P If a field's type has disabled default construction, then it must be initialized
+        in the constructor.)
+        ---
+        struct S { int y; @disable this(); }
+
+        class C
+        {
+            S s;
+            this(S t) { s = t; }    // ok
+            this(int i) { this(); } // ok
+            this() { }              // error, s not initialized
+        }
+        ---
 
 $(H2 $(LNAME2 destructors, Destructors))
 
@@ -632,11 +656,10 @@ $(GNAME Destructor):
         object.
         )
 
-        $(P The  program can explicitly inform the garbage collector that an
-        object is no longer referred to (with the delete expression), and
-        then the garbage collector calls the destructor
-        immediately, and adds the object's memory to the free storage.
-        The destructor is guaranteed to never be called twice.
+        $(P The program can explicitly inform the garbage collector that an
+        object is no longer referred to with $(REF1 destroy, object), and
+        then the garbage collector calls the destructor immediately.  The
+        destructor is guaranteed to never be called twice.
         )
 
         $(P The destructor for the super class automatically gets called when
@@ -654,8 +677,8 @@ $(GNAME Destructor):
         members that are references to garbage collected objects, those
         references may no longer be valid. This means that destructors
         cannot reference sub objects.
-        This rule does not apply to auto objects or objects deleted
-        with the $(I DeleteExpression), as the destructor is not being run
+        This rule does not apply to auto objects or objects destructed
+        with $(REF1 destroy, object), as the destructor is not being run
         by the garbage collector, meaning all references are valid.
         )
 

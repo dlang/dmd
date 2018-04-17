@@ -2395,7 +2395,6 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
         $(LI $(DDSUBLINK expression, IndexExpression, indexing) an associative array
             (because it may throw $(D RangeError) if the specified key is not present))
         $(LI $(DDSUBLINK expression, NewExpression, allocating an object) on the heap)
-        $(LI $(DDSUBLINK expression, DeleteExpression, deleting an object) on the heap)
         )
 
             ---
@@ -2410,7 +2409,6 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
                 aa["abc"];         // error, indexing may allocate and throws
 
                 auto p = new int;  // error, operator new allocates
-                delete p;          // error, operator delete deallocates
             }
             ---
 

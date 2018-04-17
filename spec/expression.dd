@@ -11,8 +11,9 @@ $(HEADERNAV_TOC)
 
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
 
-$(P Binary expressions and function arguments are evaluated in strictly
-left-to-right order.)
+$(P Binary expressions are evaluated in strictly left-to-right order.
+Function arguments are evaluated in strictly left-to-right order for
+functions with `extern (D)` $(DDSUBLINK spec/attribute, linkage, linkage).)
 
         -------------
         import std.conv;
@@ -25,10 +26,10 @@ left-to-right order.)
     $(IMPLEMENTATION_DEFINED
     $(OL
     $(LI The order of evaluation of the operands of $(GLINK AssignExpression).)
-    $(LI The order of evaluation of function arguments.)
+    $(LI The order of evaluation of function arguments for functions with linkage other than `extern (D)`.)
     ))
 
-    $(BEST_PRACTICE Even though the order of evaluation is well defined, writing code that
+    $(BEST_PRACTICE Even though the order of evaluation is well-defined, writing code that
     depends on it is rarely recommended.)
 
 $(H2 $(LEGACY_LNAME2 Expression, expression, Expressions))
@@ -76,9 +77,17 @@ $(GNAME AssignExpression):
     )
 
     $(UNDEFINED_BEHAVIOR
+    If either operand is a reference type and one of the following:
     $(OL
-    $(LI if the lvalue and rvalue have partially overlapping storage)
-    $(LI if the lvalue and rvalue's storage overlaps exactly but the types are different)
+    $(LI the operands have partially overlapping storage)
+    $(LI the operands' storage overlaps exactly but the types are different)
+    ))
+
+    $(IMPLEMENTATION_DEFINED
+    If neither operand is a reference type and one of the following:
+    $(OL
+    $(LI the operands have partially overlapping storage)
+    $(LI the operands' storage overlaps exactly but the types are different)
     ))
 
 $(H3 $(LNAME2 simple_assignment_expressions, Simple Assignment Expression))
@@ -124,7 +133,7 @@ $(H3 $(LNAME2 assignment_operator_expressions, Assignment Operator Expressions))
     $(UL
         $(LI operand $(D a) is only evaluated once,)
         $(LI overloading $(I op) uses a different function than overloading $(I op)= does, and)
-        $(LI the left operand of $(D >>>=) does not undergo integral promotions before shifting.)
+        $(LI the left operand of $(D >>>=) does not undergo $(INTEGER_PROMOTIONS) before shifting.)
     )
 
     $(P For user-defined types, assignment operator expressions are overloaded separately from
@@ -216,7 +225,7 @@ $(H2 $(LNAME2 bitwise_expressions, Bitwise Expressions))
 
     $(P Bit wise expressions perform a bitwise operation on their operands.
         Their operands must be integral types.
-        First, the default integral promotions are done. Then, the bitwise
+        First, the $(USUAL_ARITHMETIC_CONVERSIONS) are done. Then, the bitwise
         operation is done.
     )
 
@@ -272,7 +281,7 @@ $(GNAME EqualExpression):
     $(P Equality expressions compare the two operands for equality ($(D ==))
         or inequality ($(D !=)).
         The type of the result is $(D bool). The operands
-        go through the usual conversions to bring them to a common type before
+        undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
         comparison.
     )
 
@@ -345,7 +354,7 @@ $(GNAME IdentityExpression):
     $(P The $(D is) compares for identity.
         To compare for nonidentity, use $(D e1 !is e2).
         The type of the result is $(D bool). The operands
-        go through the usual conversions to bring them to a common type before
+        undergo the $(USUAL_ARITHMETIC_CONVERSIONS) to bring them to a common type before
         comparison.
     )
 
@@ -379,7 +388,7 @@ $(GNAME RelExpression):
     $(GLINK ShiftExpression) $(D >=) $(GLINK ShiftExpression)
 )
 
-    $(P First, the integral promotions are done on the operands.
+    $(P First, the $(USUAL_ARITHMETIC_CONVERSIONS) are done on the operands.
         The result type of a relational expression is $(D bool).
     )
 
@@ -495,8 +504,8 @@ $(GNAME ShiftExpression):
     $(I ShiftExpression) $(D >)$(D >)$(D >) $(GLINK AddExpression)
 )
 
-    $(P The operands must be integral types, and undergo the usual integral
-        promotions. The result type is the type of the left operand after
+    $(P The operands must be integral types, and undergo the $(USUAL_ARITHMETIC_CONVERSIONS).
+        The result type is the type of the left operand after
         the promotions. The result value is the result of shifting the bits
         by the right operand's value.
     )
@@ -524,14 +533,14 @@ $(GNAME AddExpression):
     $(GLINK CatExpression)
 )
 
-    $(P If the operands are of integral types, they undergo integral
-        promotions, and then are brought to a common type using the
-        usual arithmetic conversions.
+    $(P If the operands are of integral types, they undergo the $(USUAL_ARITHMETIC_CONVERSIONS),
+        and then are brought to a common type using the
+        $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
     $(P If either operand is a floating point type, the other is implicitly
         converted to floating point and they are brought to a common type
-        via the usual arithmetic conversions.
+        via the $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
     $(P If the operator is $(D +) or $(D -), and
@@ -554,7 +563,8 @@ $(GNAME AddExpression):
     $(P If both operands are pointers, and the operator is $(D -),
         the pointers are subtracted and the
         result is divided by the size of the type pointed to by the
-        operands. It is an error if the pointers point to different types.
+        operands. In this calculation the assumed size of $(D void) is one byte.
+        It is an error if the pointers point to different types.
         The type of the result is $(D ptrdiff_t).
     )
 
@@ -591,9 +601,8 @@ $(GNAME MulExpression):
     $(I MulExpression) $(D %) $(GLINK UnaryExpression)
 )
 
-    $(P The operands must be arithmetic types. They undergo integral
-        promotions, and then are brought to a common type using the
-        usual arithmetic conversions.
+    $(P The operands must be arithmetic types.
+        They undergo the $(USUAL_ARITHMETIC_CONVERSIONS).
     )
 
     $(P For integral operands, the $(D *), $(D /), and $(D %)
@@ -647,7 +656,7 @@ $(GNAME ComplementExpression):
         All the bits in the value are complemented.
     )
 
-    $(P $(B Note:) the usual integral promotions are not performed
+    $(P $(B Note:) the usual $(INTEGER_PROMOTIONS) are not performed
         prior to the complement operation.
     )
 
@@ -732,6 +741,9 @@ $(GRAMMAR
 $(GNAME DeleteExpression):
     $(D delete) $(GLINK UnaryExpression)
 )
+    $(P NOTE: `delete` has been deprecated.  Instead, please use $(REF1 destroy, object)
+    if feasible, or $(REF __delete, core, memory) as a last resort.)
+
     $(P If the $(I UnaryExpression) is a class object reference, and
         there is a destructor for that class, the destructor
         is called for that object instance.
@@ -953,18 +965,18 @@ $(GNAME IndexExpression):
 
 $(P $(I PostfixExpression) is evaluated. If $(I PostfixExpression) is an
 expression of type static array or dynamic array, the symbol $(DOLLAR) is set to
-be the the number of elements in the array. If $(I PostfixExpression) is an $(I
-ExpressionTuple), the symbol $(DOLLAR) is set to be the the number of elements
-in the tuple. A new declaration scope is created for the evaluation of the
+be the number of elements in the array. If $(I PostfixExpression) is a $(I
+ValueSeq), the symbol $(DOLLAR) is set to be the number of elements
+in the sequence. A new declaration scope is created for the evaluation of the
 $(GLINK ArgumentList) and $(DOLLAR) appears in that scope only.)
 
-    $(P If $(I PostfixExpression) is an $(I ExpressionTuple),
+    $(P If $(I PostfixExpression) is a $(I ValueSeq),
         then the $(GLINK ArgumentList) must consist of only one argument,
         and that must be statically evaluatable to an integral constant.
         That integral constant $(I n) then selects the $(I n)th
-        expression in the $(I ExpressionTuple), which is the result
+        expression in the $(I ValueSeq), which is the result
         of the $(I IndexExpression).
-        It is an error if $(I n) is out of bounds of the $(I ExpressionTuple).
+        It is an error if $(I n) is out of bounds of the $(I ValueSeq).
     )
 
 $(H2 $(LNAME2 slice_expressions, Slice Expressions))
@@ -1065,8 +1077,8 @@ type:)
         $(TROW $(D arr[e-a .. e-b]), $(D a - b) $(I if) $(D a >= b))
         )
 
-    $(P If $(I PostfixExpression) is an $(I ExpressionTuple), then
-        the result of the slice is a new $(I ExpressionTuple) formed
+    $(P If $(I PostfixExpression) is a $(I ValueSeq), then
+        the result of the slice is a new $(I ValueSeq) formed
         from the upper and lower bounds, which must statically evaluate
         to integral constants.
         It is an error if those
@@ -1106,8 +1118,8 @@ $(GNAME PrimaryExpression):
     $(GLINK TypeidExpression)
     $(GLINK IsExpression)
     $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
+    $(GLINK SpecialKeyword)
     $(GLINK2 traits, TraitsExpression)
-    $(GLINK2 traits, SpecialKeyword)
 )
 
 $(H3 $(LNAME2 identifier, .Identifier))
@@ -1299,8 +1311,8 @@ $(GNAME ArrayLiteral):
         -------------
 
     $(P If any of the arguments in the $(GLINK ArgumentList) are
-        an $(I ExpressionTuple), then the elements of the $(I ExpressionTuple)
-        are inserted as arguments in place of the tuple.
+        a $(I ValueSeq), then the elements of the $(I ValueSeq)
+        are inserted as arguments in place of the sequence.
     )
 
     $(P Array literals are allocated on the memory managed heap.
@@ -1379,8 +1391,8 @@ $(GNAME ValueExpression):
         ---
 
     $(P If any of the keys or values in the $(I KeyValuePairs) are
-        an $(I ExpressionTuple), then the elements of the $(I ExpressionTuple)
-        are inserted as arguments in place of the tuple.
+        a $(I ValueSeq), then the elements of the $(I ValueSeq)
+        are inserted as arguments in place of the sequence.
     )
 
 $(H3 $(LNAME2 function_literals, Function Literals))
@@ -1747,13 +1759,13 @@ $(GNAME TypeidExpression):
 )
 
     $(P If $(I Type), returns an instance of class
-        $(DPLLINK $(ROOT_DIR)phobos/object.html, $(D TypeInfo))
+        $(DPLLINK phobos/object.html, $(D TypeInfo))
         corresponding
         to $(I Type).
     )
 
     $(P If $(I Expression), returns an instance of class
-        $(DPLLINK $(ROOT_DIR)phobos/object.html, $(D TypeInfo))
+        $(DPLLINK phobos/object.html, $(D TypeInfo))
         corresponding
         to the type of the $(I Expression).
         If the type is a class, it returns the $(D TypeInfo)
@@ -1999,15 +2011,15 @@ void foo()
         $(TROW $(D union), $(I Type))
         $(TROW $(D class), $(I Type))
         $(TROW $(D interface), $(I Type))
-        $(TROW $(D super), $(I TypeTuple) of base classes and interfaces)
+        $(TROW $(D super), $(I TypeSeq) of base classes and interfaces)
         $(TROW $(D enum), the base type of the enum)
-        $(TROW $(D function), $(ARGS $(I TypeTuple) of the function parameter types.
+        $(TROW $(D function), $(ARGS $(I TypeSeq) of the function parameter types.
              For C- and D-style variadic functions,
              only the non-variadic parameters are included.
              For typesafe variadic functions, the $(D ...) is ignored.))
         $(TROW $(CODE delegate), the function type of the delegate)
         $(TROW $(CODE return), $(ARGS the return type of the function, delegate, or function pointer))
-        $(TROW $(CODE __parameters), $(ARGS the parameter tuple of a function, delegate, or function pointer.
+        $(TROW $(CODE __parameters), $(ARGS the parameter sequence of a function, delegate, or function pointer.
          This includes the parameter types, names, and default values.))
         $(TROW $(D const), $(I Type))
         $(TROW
@@ -2091,6 +2103,67 @@ void main()
 
     )
 
+$(H2 $(LNAME2 specialkeywords, Special Keywords))
+
+$(GRAMMAR
+$(GNAME SpecialKeyword):
+    $(D $(RELATIVE_LINK2 specialkeywords, __FILE__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __FILE_FULL_PATH__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __MODULE__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __LINE__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __FUNCTION__))
+    $(D $(RELATIVE_LINK2 specialkeywords, __PRETTY_FUNCTION__))
+)
+
+
+    $(P $(CODE __FILE__) and $(CODE __LINE__) expand to the source
+    file name and line number at the point of instantiation. The path of
+    the source file is left up to the compiler. )
+
+    $(P $(CODE __FILE_FULL_PATH__) expands to the absolute source
+    file name at the point of instantiation.)
+
+    $(P $(CODE __MODULE__) expands to the module name at the point of
+    instantiation.)
+
+    $(P $(CODE __FUNCTION__) expands to the fully qualified name of the
+    function at the point of instantiation.)
+
+    $(P $(CODE __PRETTY_FUNCTION__) is similar to $(CODE __FUNCTION__),
+    but also expands the function return type, its parameter types,
+    and its attributes.)
+
+    $(P Example:)
+
+    ---
+    module test;
+    import std.stdio;
+
+    void test(string file = __FILE__, size_t line = __LINE__,
+            string mod = __MODULE__, string func = __FUNCTION__,
+            string pretty = __PRETTY_FUNCTION__,
+            string fileFullPath = __FILE_FULL_PATH__)
+    {
+        writefln("file: '%s', line: '%s', module: '%s',\nfunction: '%s', " ~
+            "pretty function: '%s',\nfile full path: '%s'",
+            file, line, mod, func, pretty, fileFullPath);
+    }
+
+    int main(string[] args)
+    {
+        test();
+        return 0;
+    }
+    ---
+
+    $(P Assuming the file was at /example/test.d, this will output:)
+
+$(CONSOLE
+file: 'test.d', line: '13', module: 'test',
+function: 'test.main', pretty function: 'int test.main(string[] args)',
+file full path: '/example/test.d'
+)
+
 $(H2 $(LNAME2 associativity, Associativity and Commutativity))
 
     $(P An implementation may rearrange the evaluation of expressions
@@ -2109,4 +2182,6 @@ Macros:
         CHAPTER=10
         TITLE=Expressions
         IDENTIFIER=$(GLINK2 lex, Identifier)
+        USUAL_ARITHMETIC_CONVERSIONS=$(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions)
+        INTEGER_PROMOTIONS=$(DDSUBLINK spec/type, integer-promotions, Integer Promotions)
         _=
