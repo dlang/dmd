@@ -2330,7 +2330,7 @@ regm_t getscratch()
 static void comsub(CodeBuilder& cdb,elem *e,regm_t *pretregs)
 {   tym_t tym;
     regm_t regm,emask,csemask;
-    unsigned reg,i,byte,sz;
+    unsigned reg,byte,sz;
 
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
@@ -2863,9 +2863,9 @@ void scodelem(CodeBuilder& cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool con
             }
             else                        // else use memory
             {
-                CodeBuilder cdbx;
-                unsigned size = gensaverestore(mask[i], cdbs1, cdbx);
-                cs2 = cat(cdbx.finish(),cs2);
+                CodeBuilder cdby;
+                unsigned size = gensaverestore(mask[i], cdbs1, cdby);
+                cs2 = cat(cdby.finish(),cs2);
                 if (size)
                 {
                     stackchanged = 1;
