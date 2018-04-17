@@ -2932,19 +2932,17 @@ STATIC void elimbasivs(loop *l)
                    Which can happen if we have (int)ptr==e
                  */
                 if (EBIN(fofe))         /* if didn't optimize it away   */
-                {   int sz;
-                    tym_t ty,ty1,ty2;
-
-                    ty = fofe->Ety;
-                    sz = tysize(ty);
-                    ty1 = fofe->E1->Ety;
-                    ty2 = fofe->E2->Ety;
+                {
+                    const tym_t fofety = fofe->Ety;
+                    const int sz = tysize(fofety);
+                    tym_t ty1 = fofe->E1->Ety;
+                    const tym_t ty2 = fofe->E2->Ety;
                     /* Sizes of + expression must all be the same       */
                     if (sz != tysize(ty1) &&
                         sz != tysize(ty2)
                        )
                     {
-                        if (tyuns(ty))          /* if unsigned comparison */
+                        if (tyuns(fofety))      // if unsigned comparison
                             ty1 = touns(ty1);   /* to unsigned type     */
                         fofe->Ety = ty1;
                         ref->E1->Ety = ty1;
