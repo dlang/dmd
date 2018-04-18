@@ -589,7 +589,7 @@ void build_syment_table(bool bigobj)
             aux.x_section.length = pseg->SDoffset;
 
         if (pseg->SDrel)
-            aux.x_section.NumberOfRelocations = pseg->SDrel->size() / sizeof(struct Relocation);
+            aux.x_section.NumberOfRelocations = (unsigned short)(pseg->SDrel->size() / sizeof(struct Relocation));
 
         if (psechdr->Characteristics & IMAGE_SCN_LNK_COMDAT)
         {

@@ -75,10 +75,7 @@ STATIC void flowaecp(void);
  */
 
 void flowrd()
-{       vec_t tmp;
-        unsigned i;
-        bool anychng;
-
+{
         rdgenkill();            /* Compute Bgen and Bkill for RDs       */
         if (go.deftop == 0)        /* if no definition elems               */
                 return;         /* no analysis to be done               */
@@ -91,7 +88,8 @@ void flowrd()
         for (unsigned i = 0; i < dfotop; i++)
                 vec_copy(dfo[i]->Boutrd,dfo[i]->Bgen);
 
-        tmp = vec_calloc(go.deftop);
+        bool anychng;
+        vec_t tmp = vec_calloc(go.deftop);
         do
         {       anychng = FALSE;
                 for (unsigned i = 0; i < dfotop; i++)    // for each block
@@ -1602,11 +1600,11 @@ void flowvbe()
  */
 
 STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
-{       unsigned op,i;
+{
         elem *t;
 
         assert(GEN && KILL && n);
-        op = n->Eoper;
+        unsigned op = n->Eoper;
 
         switch (op)
         {
