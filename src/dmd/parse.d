@@ -513,6 +513,7 @@ final class Parser(AST) : Lexer
             case TOK.union_:
             case TOK.class_:
             case TOK.interface_:
+            case TOK.traits:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.dim)
@@ -3506,6 +3507,28 @@ final class Parser(AST) : Lexer
         case TOK.vector:
             t = parseVector();
             break;
+
+        case TOK.traits:
+        {
+            AST.TraitsExp te = cast(AST.TraitsExp) parsePrimaryExp();
+            if (!te)
+            {
+                // error already emitted while parsing primary
+                t = new AST.TypeError;
+            }
+            else if (te.ident != Id.getMember)
+            {
+                // even if this is not a grammar error, it's not worth continuing.
+                error("invalid `__traits`, only `getMember` can be aliased and not `%s`",
+                    te.ident.toChars);
+                t = new AST.TypeError;
+            }
+            else
+            {
+                t = new AST.TypeTraits(loc, te);
+            }
+            break;
+        }
 
         case TOK.const_:
             // const(type)
@@ -6553,6 +6576,16 @@ final class Parser(AST) : Lexer
             if (!skipParens(t, &t))
                 goto Lfalse;
             goto L3;
+
+        case TOK.traits:
+            // __traits(getMember
+            t = peek(t);
+            if (t.value != TOK.leftParentheses)
+                goto Lfalse;
+            t = peek(t);
+            if (t.value != TOK.identifier || t.ident != Id.getMember)
+                goto Lfalse;
+            break;
 
         case TOK.const_:
         case TOK.immutable_:

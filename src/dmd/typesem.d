@@ -1307,6 +1307,21 @@ private extern (C++) final class TypeSemanticVisitor : Visitor
         result = t;
     }
 
+    override void visit(TypeTraits mtype)
+    {
+        import dmd.traits : semanticTraits;
+        import dmd.dtemplate : getType;
+
+        result = null;
+        if (Expression e = semanticTraits(mtype.exp, sc))
+            if (Type t = getType(e))
+                result = t.addMod(mtype.mod);
+        //if (result) printf("TypeTraits found to be %s\n".ptr, result.toChars);
+        if (result is null)
+            mtype.error(loc, "`%s` cannot be resolved to a valid type",
+                mtype.toChars());
+    }
+
     override void visit(TypeReturn mtype)
     {
         //printf("TypeReturn::semantic() %s\n", toChars());
