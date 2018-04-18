@@ -7244,7 +7244,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.op == TOK.blit)
                 e2x = e2x.castTo(sc, exp.e1.type);
             else
+            {
                 e2x = e2x.implicitCastTo(sc, exp.e1.type);
+
+                // Fix Issue 13435: https://issues.dlang.org/show_bug.cgi?id=13435
+
+                // If the implicit cast has failed and the assign expression is
+                // the initialization of a struct member field
+                if (e2x.op == TOK.error && exp.op == TOK.construct && t1.ty == Tstruct)
+                {
+                    scope sd = (cast(TypeStruct)t1).sym;
+                    Dsymbol opAssign = search_function(sd, Id.assign);
+
+                    // and the struct defines an opAssign
+                    if (opAssign)
+                    {
+                        // offer more information about the cause of the problem
+                        errorSupplemental(exp.loc,
+                                          "`%s` is the first assignment of `%s` therefore it represents its initialization",
+                                          exp.toChars(), exp.e1.toChars());
+                        errorSupplemental(exp.loc,
+                                          "`opAssign` methods are not used for initialization, but for subsequent assignments");
+                    }
+                }
+            }
         }
         if (e2x.op == TOK.error)
         {
