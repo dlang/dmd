@@ -4761,6 +4761,48 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.op == TOK.dotVariable)
         {
             DotVarExp dve = cast(DotVarExp)exp.e1;
+
+            // Fix Issue 14245 : https://issues.dlang.org/show_bug.cgi?id=14245
+            // The address of an uninitialized immutable field cannot be taken
+            // inside a constructor because it will break immutability once
+            // the field is assigned
+            if (sc.func)
+            {
+                // if inside a constructor
+                if(const ctd = sc.func.isCtorDeclaration())
+                {
+                    const decl = dve.var;
+
+                    // The below condition checks for (&this.var && var is immutable). Note that
+                    // var might not be declared immutable, but if the address is taken inside an
+                    // immutable constructor then var will be part  of an immutable object, thus
+                    // being immutable. This case can be identified by checking if the constructor
+                    // is immutable.
+                    if (dve.e1.op == TOK.this_ && decl.isField() && (decl.isImmutable() || ctd.type.isImmutable()))
+                    {
+                        const dim = sc.ctorflow.fieldinit.length;
+                        auto ad = ctd.isMember2();
+
+                        size_t i;
+                        // obtain the position of the variable in the fieldinit array
+                        for (i = 0; i < dim; i++)
+                        {
+                            if (ad.fields[i] == decl)
+                                break;
+                        }
+                        assert(i < dim);
+
+                        // get the field initializer state for var
+                        const fi = sc.ctorflow.fieldinit[i];
+
+                        // if the field wasn't initialized
+                        if (!(fi & CSX.this_ctor))
+                        {
+                            error(exp.loc, "cannot take address of uninitialized `immutable` field `%s`", dve.toChars());
+                        }
+                    }
+                }
+            }
             FuncDeclaration f = dve.var.isFuncDeclaration();
             if (f)
             {
