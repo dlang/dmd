@@ -5604,14 +5604,14 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, Expressions*
         bool doSemantic3 = false;
         FuncDeclaration fd;
         if (tempinst.aliasdecl)
-            fd = tempinst.aliasdecl.toAlias().isFuncDeclaration();
+            fd = tempinst.aliasdecl.toAlias2().isFuncDeclaration();
 
         if (fd)
         {
             /* Template function instantiation should run semantic3 immediately
              * for attribute inference.
              */
-            scope fld = fd.isFuncLiteralDeclaration;
+            scope fld = fd.isFuncLiteralDeclaration();
             if (fld && fld.tok == TOK.reserved)
                 doSemantic3 = true;
             else if (sc.func)
