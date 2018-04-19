@@ -108,40 +108,65 @@ nothrow @nogc pure:
         else
             ld_set(&this, d);
     }
-    static if (real.sizeof > 8)
-        this(real r) { *cast(real*)&this = r; }
+    this(real r)
+    {
+        static if (real.sizeof > 8)
+            *cast(real*)&this = r;
+        else
+            this(cast(double)r);
+    }
 
     ushort exponent() const { return exp_sign & 0x7fff; }
     bool sign() const { return (exp_sign & 0x8000) != 0; }
 
-    void opAssign(float f) { ld_set(&this, f); }
-    void opAssign(double f) { ld_set(&this, f); }
-    longdouble_soft opNeg() const { return longdouble_soft(mantissa, exp_sign ^ 0x8000); }
-
-    bool opEquals(longdouble_soft rhs) const { return this.ld_cmpe(rhs); }
-    int  opCmp(longdouble_soft rhs) const { return this.ld_cmp(rhs); }
-    longdouble_soft opAdd(longdouble_soft rhs) const { return this.ld_add(rhs); }
-    longdouble_soft opSub(longdouble_soft rhs) const { return this.ld_sub(rhs); }
-    longdouble_soft opMul(longdouble_soft rhs) const { return this.ld_mul(rhs); }
-    longdouble_soft opDiv(longdouble_soft rhs) const { return this.ld_div(rhs); }
-    longdouble_soft opMod(longdouble_soft rhs) const { return this.ld_mod(rhs); }
-
-    T opCast(T)() const @trusted
+    extern(D)
     {
-        static      if(is(T == bool))   return mantissa != 0 || (exp_sign & 0x7fff) != 0;
-        else static if(is(T == byte))   return cast(T)ld_read(&this);
-        else static if(is(T == ubyte))  return cast(T)ld_read(&this);
-        else static if(is(T == short))  return cast(T)ld_read(&this);
-        else static if(is(T == ushort)) return cast(T)ld_read(&this);
-        else static if(is(T == int))    return cast(T)ld_read(&this);
-        else static if(is(T == uint))   return cast(T)ld_read(&this);
-        else static if(is(T == float))  return cast(T)ld_read(&this);
-        else static if(is(T == double)) return cast(T)ld_read(&this);
-        else static if(is(T == long))   return ld_readll(&this);
-        else static if(is(T == ulong))  return ld_readull(&this);
-        else static if (is(T == real) &&  // convert to front end real if built with dmd
-                        real.sizeof > 8) return *cast(real*)&this;
-        else static assert(false, "usupported type");
+        ref longdouble_soft opAssign(longdouble_soft ld) { mantissa = ld.mantissa; exp_sign = ld.exp_sign; return this; }
+        ref longdouble_soft opAssign(T)(T rhs) { this = longdouble_soft(rhs); return this; }
+
+        longdouble_soft opNeg() const { return longdouble_soft(mantissa, exp_sign ^ 0x8000); }
+
+        bool opEquals(T)(T rhs) const { return this.ld_cmpe(longdouble_soft(rhs)); }
+        int  opCmp(T)(T rhs) const { return this.ld_cmp(longdouble_soft(rhs)); }
+        longdouble_soft opAdd(T)(T rhs) const { return this.ld_add(longdouble_soft(rhs)); }
+        longdouble_soft opSub(T)(T rhs) const { return this.ld_sub(longdouble_soft(rhs)); }
+        longdouble_soft opMul(T)(T rhs) const { return this.ld_mul(longdouble_soft(rhs)); }
+        longdouble_soft opDiv(T)(T rhs) const { return this.ld_div(longdouble_soft(rhs)); }
+        longdouble_soft opMod(T)(T rhs) const { return this.ld_mod(longdouble_soft(rhs)); }
+        longdouble_soft opAdd_r(T)(T rhs) const { return longdouble_soft(rhs).ld_add(this); }
+        longdouble_soft opSub_r(T)(T rhs) const { return longdouble_soft(rhs).ld_sub(this); }
+        longdouble_soft opMul_r(T)(T rhs) const { return longdouble_soft(rhs).ld_mul(this); }
+        longdouble_soft opMod_r(T)(T rhs) const { return longdouble_soft(rhs).ld_mod(this); }
+
+        ref longdouble_soft opOpAssign(string op)(longdouble_soft rhs)
+        {
+            mixin("this = this " ~ op ~ " rhs;");
+            return this;
+        }
+
+        T opCast(T)() const @trusted
+        {
+            static      if (is(T == bool))   return mantissa != 0 || (exp_sign & 0x7fff) != 0;
+            else static if (is(T == byte))   return cast(T)ld_read(&this);
+            else static if (is(T == ubyte))  return cast(T)ld_read(&this);
+            else static if (is(T == short))  return cast(T)ld_read(&this);
+            else static if (is(T == ushort)) return cast(T)ld_read(&this);
+            else static if (is(T == int))    return cast(T)ld_read(&this);
+            else static if (is(T == uint))   return cast(T)ld_read(&this);
+            else static if (is(T == float))  return cast(T)ld_read(&this);
+            else static if (is(T == double)) return cast(T)ld_read(&this);
+            else static if (is(T == long))   return ld_readll(&this);
+            else static if (is(T == ulong))  return ld_readull(&this);
+            else static if (is(T == real))
+            {
+                // convert to front end real if built with dmd
+                if (real.sizeof > 8)
+                    return *cast(real*)&this;
+                else
+                    return ld_read(&this);
+            }
+            else static assert(false, "usupported type");
+        }
     }
 
     static longdouble_soft nan() { return longdouble_soft(0xC000000000000000UL, 0x7fff); }
