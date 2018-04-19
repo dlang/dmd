@@ -1445,7 +1445,7 @@ else version ( CRuntime_UClibc )
     struct ipv6_mreq
     {
         in6_addr    ipv6mr_multiaddr;
-        int         ipv6mr_ifindex;
+        uint        ipv6mr_interface;
     }
 
     enum : uint
