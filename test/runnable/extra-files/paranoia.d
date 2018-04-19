@@ -4,7 +4,7 @@ module paranoia;
 
 			Rainer Schuetze, April 2018
 
-	This is a translation from the C version 
+	This is a translation from the C version
 	(http://www.netlib.org/paranoia/paranoia.c) by
 
 			Thos Sumner, UCSF, Feb. 1985
@@ -233,9 +233,9 @@ import core.stdc.math;
 
 // default to double
 version(Single) {} else
-version(Extended) {} else
+version(Double) {} else
 version(LongDouble) {} else
-version = Double;
+version = Extended;
 
 version = NOSIGNAL;
 version = NOPAUSE;
@@ -660,6 +660,7 @@ void part2(){
 	if (Radix == One)
 		printf("logarithmic encoding has precision characterized solely by U1.\n");
 	else  printf("The number of significant digits of the Radix is "), printFLOAT("%f", Precision), printf(" .\n");
+	assert(Radix == 2 && Precision == FLOAT.mant_dig);
 	TstCond (Serious, U2 * Nine * Nine * TwoForty < One,
 		   "Precision worse than 5 decimal figures  ");
 	/*=============================================*/
@@ -1275,7 +1276,8 @@ void part5(){
 				}
 			}
 		if ((I == 0) || Anomaly) {
-			BadCond(Failure, "Anomalous arithmetic with Integer < ");
+			enum Category = (FLOAT.sizeof > 8 ? Defect : Failure);
+			BadCond(Category, "Anomalous arithmetic with Integer < ");
 			printf("Radix^Precision = "); printFLOAT("%.7e", W); printf("\n");
 			printf(" fails test whether sqrt rounds or chops.\n");
 			SqRWrng = True;
@@ -1299,7 +1301,8 @@ void part5(){
 		printf("Square root is neither chopped nor correctly rounded.\n");
 		printf("Observed errors run from "); printFLOAT("%.7e", MinSqEr - Half); printf(" ");
 		printf("to "); printFLOAT("%.7e", Half + MaxSqEr); printf(" ulps.\n");
-		TstCond (Serious, MaxSqEr - MinSqEr < Radix * Radix,
+		enum Category = (FLOAT.sizeof > 8 ? Defect : Serious);
+		TstCond (Category, MaxSqEr - MinSqEr < Radix * Radix,
 			"sqrt gets too many last digits wrong");
 		}
 	/*=============================================*/
@@ -1951,7 +1954,11 @@ version(NOPAUSE) {} else {
 		printf("\nA total of %d floating point exceptions were registered.\n",
 			fpecount);
 	printf("END OF TEST.\n");
-	return ErrCnt[Failure] + ErrCnt[Serious] + ErrCnt[Defect]; // allow Flaws
+	// allow Flaws (and Defects for real)
+	int errors = ErrCnt[Failure] + ErrCnt[Serious];
+	if (FLOAT.sizeof <= 8)
+		errors += ErrCnt[Defect];
+	return errors;
 	}
 
 /*SPLIT subs.c
