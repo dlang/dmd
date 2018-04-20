@@ -564,7 +564,7 @@ extern (C++) struct Token
         TOK.shared_: "shared",
         TOK.immutable_: "immutable",
 
-        TOK.endOfFile: "EOF",
+        TOK.endOfFile: "End of File",
         TOK.leftCurly: "{",
         TOK.rightCurly: "}",
         TOK.leftParentheses: "(",
