@@ -273,7 +273,7 @@ alias  FLOAT  toFLOAT;
  auto  LOG(  ARG1 )(ARG1  x) { return  log(x); }
  auto  POW(  ARG1,  ARG2 )(ARG1  x, ARG2  y) { return  pow(x,y); }
  auto  SQRT(  ARG1 )(ARG1  x) { return  sqrt(x); }
-void  printFLOAT(const(char) *fmt, FLOAT  f) { printf("%Lg", f); }
+void  printFLOAT(const(char) *fmt, FLOAT  f) { printExtended(fmt, f); }
 } else version(ExtendedSoft) {
 import dmd.root.longdouble;
 alias  longdouble_soft  FLOAT;
