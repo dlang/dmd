@@ -4,12 +4,19 @@ TESTS:=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dto
 
 ifeq ($(OS)-$(BUILD),linux-debug)
 	TESTS:=$(TESTS) line_trace rt_trap_exceptions
+	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
 	TESTS:=$(TESTS) line_trace
+	LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS)-$(BUILD),dragonflybsd-debug)
 	TESTS:=$(TESTS) line_trace
+	LINE_TRACE_DFLAGS:=-L--export-dynamic
+endif
+ifeq ($(OS)-$(BUILD),osx-debug)
+	TESTS:=$(TESTS) line_trace
+	LINE_TRACE_DFLAGS:=
 endif
 
 DIFF:=diff
@@ -47,7 +54,7 @@ $(ROOT)/%.done: $(ROOT)/%
 	@touch $@
 
 $(ROOT)/unittest_assert: DFLAGS+=-unittest
-$(ROOT)/line_trace: DFLAGS+=-L--export-dynamic
+$(ROOT)/line_trace: DFLAGS+=$(LINE_TRACE_DFLAGS)
 $(ROOT)/%: $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 

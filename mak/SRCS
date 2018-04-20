@@ -344,6 +344,7 @@ SRCS=\
 	\
 	src\rt\backtrace\dwarf.d \
 	src\rt\backtrace\elf.d \
+	src\rt\backtrace\macho.d \
 	\
 	src\rt\util\array.d \
 	src\rt\util\hash.d \
