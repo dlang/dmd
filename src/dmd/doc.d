@@ -136,7 +136,7 @@ extern (C++) class Section
                 char c = name[u];
                 buf.writeByte((c == '_') ? ' ' : c);
             }
-            escapeStrayParenthesis(loc, buf, o);
+            escapeStrayParenthesis(loc, buf, o, false);
             buf.writestring(")");
         }
         else
@@ -146,8 +146,8 @@ extern (C++) class Section
     L1:
         size_t o = buf.offset;
         buf.write(_body, bodylen);
-        escapeStrayParenthesis(loc, buf, o);
-        highlightText(sc, a, buf, o);
+        escapeStrayParenthesis(loc, buf, o, true);
+        highlightText(sc, a, loc, buf, o);
         buf.writestring(")");
     }
 }
@@ -252,7 +252,7 @@ extern (C++) final class ParamSection : Section
                             }
                             buf.write(namestart, namelen);
                         }
-                        escapeStrayParenthesis(loc, buf, o);
+                        escapeStrayParenthesis(loc, buf, o, true);
                         highlightCode(sc, a, buf, o);
                     }
                     buf.writestring(")");
@@ -260,8 +260,8 @@ extern (C++) final class ParamSection : Section
                     {
                         size_t o = buf.offset;
                         buf.write(textstart, textlen);
-                        escapeStrayParenthesis(loc, buf, o);
-                        highlightText(sc, a, buf, o);
+                        escapeStrayParenthesis(loc, buf, o, true);
+                        highlightText(sc, a, loc, buf, o);
                     }
                     buf.writestring(")");
                 }
@@ -419,6 +419,8 @@ extern (C++) void gendocfile(Module m)
     if (m.isDocFile)
     {
         Loc loc = m.md ? m.md.loc : m.loc;
+        if (!loc.filename)
+            loc.filename = srcfilename;
         size_t commentlen = strlen(cast(char*)m.comment);
         Dsymbols a;
         // https://issues.dlang.org/show_bug.cgi?id=9764
@@ -429,7 +431,7 @@ extern (C++) void gendocfile(Module m)
             dc.macros.write(loc, dc, sc, &a, &buf);
         }
         buf.write(m.comment, commentlen);
-        highlightText(sc, &a, &buf, 0);
+        highlightText(sc, &a, loc, &buf, 0);
     }
     else
     {
@@ -551,7 +553,7 @@ extern (C++) void escapeDdocString(OutBuffer* buf, size_t start)
  *
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
+extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start, bool respectMarkdownEscapes)
 {
     uint par_open = 0;
     bool inCode = 0;
@@ -599,6 +601,20 @@ extern (C++) void escapeStrayParenthesis(Loc loc, OutBuffer* buf, size_t start)
             }
             if (numdash >= 3)
                 inCode = !inCode;
+            break;
+        case '\\':
+            if (!inCode && respectMarkdownEscapes && u+1 < buf.offset)
+            {
+                if (buf.data[u+1] == '(' || buf.data[u+1] == ')')
+                {
+                    string paren = buf.data[u+1] == '(' ? "$(LPAREN)" : "$(RPAREN)";
+                    buf.remove(u, 2); //remove the \)
+                    buf.insert(u, paren); //insert this instead
+                    u += 8; //skip over newly inserted macro
+                }
+                else if (buf.data[u+1] == '\\')
+                    ++u;
+            }
             break;
         default:
             break;
@@ -1740,8 +1756,8 @@ struct DocComment
                 buf.writestring("$(DDOC_SUMMARY ");
                 size_t o = buf.offset;
                 buf.write(sec._body, sec.bodylen);
-                escapeStrayParenthesis(loc, buf, o);
-                highlightText(sc, a, buf, o);
+                escapeStrayParenthesis(loc, buf, o, true);
+                highlightText(sc, a, loc, buf, o);
                 buf.writestring(")");
             }
             else
@@ -1772,7 +1788,7 @@ struct DocComment
                     buf.writestring("----\n");
                     buf.writestring(codedoc);
                     buf.writestring("----\n");
-                    highlightText(sc, a, buf, o);
+                    highlightText(sc, a, loc, buf, o);
                 }
                 buf.writestring(")");
             }
@@ -2148,9 +2164,13 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
 /**************************************************
  * Highlight text section.
  */
-extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t offset)
+extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf, size_t offset)
 {
     Dsymbol s = a.dim ? (*a)[0] : null; // test
+    bool incrementLoc = loc.linnum == 0;
+    if (incrementLoc)
+        ++loc.linnum;
+    loc.charnum = 0;
     //printf("highlightText()\n");
     int leadingBlank = 1;
     int inCode = 0;
@@ -2189,6 +2209,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             leadingBlank = 1;
             iLineStart = i + 1;
+            if (incrementLoc)
+                ++loc.linnum;
             break;
         case '<':
             {
@@ -2412,6 +2434,35 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
             }
             break;
 
+        case '\\':
+        {
+            leadingBlank = false;
+            if (inCode || i+1 >= buf.offset)
+                break;
+
+            /* Escape Markdown special characters */
+            char c1 = buf.data[i+1];
+            if (ispunct(c1))
+            {
+                if (global.params.vmarkdown)
+                    message(loc, "Ddoc: backslash-escaped %c", c1);
+
+                buf.remove(i, 1);
+
+                auto se = sc._module.escapetable.escapeChar(c1);
+                if (!se)
+                    se = c1 == '$' ? "$(DOLLAR)".ptr : c1 == ',' ? "$(COMMA)".ptr : null;
+                if (se)
+                {
+                    const len = strlen(se);
+                    buf.remove(i, 1);
+                    i = buf.insert(i, se, len);
+                    i--; // point to escaped char
+                }
+            }
+            break;
+        }
+
         case '$':
         {
             /* Look for the start of a macro, '$(Identifier'
@@ -2497,7 +2548,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, OutBuffer* buf, size_t o
         }
     }
     if (inCode)
-        error(s ? s.loc : Loc.initial, "unmatched `---` in DDoc comment");
+        error(loc, "unmatched `---` in DDoc comment");
 }
 
 /**************************************************

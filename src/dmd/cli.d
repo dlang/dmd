@@ -609,6 +609,8 @@ dmd -cov -unittest myprog.d
             "fix integral promotions for unary + - ~ operators"),
         Transition(null, "tls", "vtls",
             "list all variables going into thread local storage"),
+        Transition(null, "markdown", "vmarkdown",
+            "list instances of Markdown replacements in Ddoc"),
     ];
 }
 
