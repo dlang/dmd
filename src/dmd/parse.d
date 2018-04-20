@@ -5523,6 +5523,11 @@ final class Parser(AST) : Lexer
                     s = null; // don't propagate parsing errors
                 break;
             }
+
+        case TOK.else_:
+            error("found `else` without a corresponding `if`, `version` or `debug` statement");
+            goto Lerror;
+
         case TOK.scope_:
             if (peek(&token).value != TOK.leftParentheses)
                 goto Ldeclaration; // scope used as storage class
