@@ -229,16 +229,23 @@ q
 import core.stdc.stdio;
 import core.stdc.signal;
 import core.stdc.stdlib;
-import core.stdc.math;
+import std.math : fabs, floor, log, sqrt, pow;
 
 // default to double
 version(Single) {} else
-version(Double) {} else
-version(LongDouble) {} else
-version = Extended;
+version(Extended) {} else
+version(ExtendedSoft) {} else
+version = Double;
 
 version = NOSIGNAL;
 version = NOPAUSE;
+
+version(ExtendedSoft) // inaccuracy of C runtime sqrt function
+	enum relaxedChecks = true;
+else version(CTFE)
+	enum relaxedChecks = true;
+else
+	enum relaxedChecks = false;
 
 version(Single) {
 alias  float  FLOAT;
@@ -267,7 +274,7 @@ alias  FLOAT  toFLOAT;
  auto  POW(  ARG1,  ARG2 )(ARG1  x, ARG2  y) { return  pow(x,y); }
  auto  SQRT(  ARG1 )(ARG1  x) { return  sqrt(x); }
 void  printFLOAT(const(char) *fmt, FLOAT  f) { printf("%Lg", f); }
-} else version(LongDouble) {
+} else version(ExtendedSoft) {
 import dmd.root.longdouble;
 alias  longdouble_soft  FLOAT;
 alias  longdouble_soft  toFLOAT;
@@ -275,17 +282,26 @@ alias  longdouble_soft  toFLOAT;
  auto  FLOOR(  ARG1 )(ARG1  x) { return  toFLOAT(floor(cast(double)x)); }
  auto  LOG(  ARG1 )(ARG1  x) { return    toFLOAT(log(cast(double)x)); }
  auto  POW(  ARG1,  ARG2 )(ARG1  x, ARG2  y) { return  toFLOAT(pow(cast(double)x,cast(double)y)); }
- auto  SQRT(  ARG1 )(ARG1  x) { return   sqrtl(x); }
-void  printFLOAT(const(char) *fmt, FLOAT  f)
+ auto  SQRT(  ARG1 )(ARG1  x) { return   sqrtl(toFLOAT(x)); }
+void  printFLOAT(const(char) *fmt, FLOAT  f) { printExtended(fmt, f); }
+}
+else static assert(false, "no floating point type selected");
+
+version(ExtendedSoft)
+void printExtended(const(char) *fmt, FLOAT f)
 {
+	if (__ctfe)
+		return;
+
 	version(CRuntime_Microsoft)
 	{
+		import dmd.root.longdouble;
 		char[64] str;
 		if (cast(double)f == f)
 			printf("%lg", cast(double)f);
 		else
 		{
-			ld_sprint(str.ptr, 'A', f);
+			ld_sprint(str.ptr, 'A', longdouble(f));
 			printf("%s", str.ptr);
 		}
 	}
@@ -293,14 +309,16 @@ void  printFLOAT(const(char) *fmt, FLOAT  f)
 		printf("%Lg", f);
 }
 
-}
-else static assert(false, "no floating point type selected");
 
-jmp_buf  ovfl_buf;
 
 version(NOSIGNAL) {
 	alias jmp_buf = int;
-	int setjmp(ref jmp_buf) { return 0; }
+	const jmp_buf ovfl_buf = 0;
+	int setjmp(const jmp_buf) { return 0; }
+}
+else
+{
+	jmp_buf  ovfl_buf;
 }
 
 // not #if KR_headers
@@ -324,6 +342,9 @@ alias  void function(int) Sig_type;
 FLOAT  Sign(FLOAT);
 FLOAT  Random();
 
+// embed everything into struct to avoid globals
+struct Paranoia {
+
 Sig_type  sigsave;
 
 enum  KEYBOARD = 0;
@@ -345,24 +366,6 @@ FLOAT  ThirtyTwo;
 FLOAT  TwoForty;
 FLOAT  MinusOne;
 FLOAT  OneAndHalf;
-
-static this()
-{
-	Zero = toFLOAT(0.0);
-	Half = toFLOAT(0.5);
-	One = toFLOAT(1.0);
-	Two = toFLOAT(2.0);
-	Three = toFLOAT(3.0);
-	Four = toFLOAT(4.0);
-	Five = toFLOAT(5.0);
-	Eight = toFLOAT(8.0);
-	Nine = toFLOAT(9.0);
-	TwentySeven = toFLOAT(27.0);
-	ThirtyTwo = toFLOAT(32.0);
-	TwoForty = toFLOAT(240.0);
-	MinusOne = toFLOAT(-1.0);
-	OneAndHalf = toFLOAT(1.5);
-}
 
 /*Integer constants*/
 int  NoTrials = 20; /*Number of tests for commutativity. */
@@ -660,7 +663,8 @@ void part2(){
 	if (Radix == One)
 		printf("logarithmic encoding has precision characterized solely by U1.\n");
 	else  printf("The number of significant digits of the Radix is "), printFLOAT("%f", Precision), printf(" .\n");
-	assert(Radix == 2 && Precision == FLOAT.mant_dig);
+	assert(Radix == 2);
+	assert(__ctfe || Precision == FLOAT.mant_dig);
 	TstCond (Serious, U2 * Nine * Nine * TwoForty < One,
 		   "Precision worse than 5 decimal figures  ");
 	/*=============================================*/
@@ -1276,7 +1280,7 @@ void part5(){
 				}
 			}
 		if ((I == 0) || Anomaly) {
-			enum Category = (FLOAT.sizeof > 8 ? Defect : Failure);
+			enum Category = relaxedChecks ? Defect : Failure;
 			BadCond(Category, "Anomalous arithmetic with Integer < ");
 			printf("Radix^Precision = "); printFLOAT("%.7e", W); printf("\n");
 			printf(" fails test whether sqrt rounds or chops.\n");
@@ -1301,7 +1305,7 @@ void part5(){
 		printf("Square root is neither chopped nor correctly rounded.\n");
 		printf("Observed errors run from "); printFLOAT("%.7e", MinSqEr - Half); printf(" ");
 		printf("to "); printFLOAT("%.7e", Half + MaxSqEr); printf(" ulps.\n");
-		enum Category = (FLOAT.sizeof > 8 ? Defect : Serious);
+		enum Category = relaxedChecks ? Defect : Serious;
 		TstCond (Category, MaxSqEr - MinSqEr < Radix * Radix,
 			"sqrt gets too many last digits wrong");
 		}
@@ -1893,7 +1897,7 @@ version(NOPAUSE) {} else {
 	Pause();
 	printf("\n");
 	{
-		static  CHARP[4]msg = [
+		static const CHARP[4]msg = [
 			"FAILUREs  encountered =",
 			"SERIOUS DEFECTs  discovered =",
 			"DEFECTs  discovered =",
@@ -1954,10 +1958,12 @@ version(NOPAUSE) {} else {
 		printf("\nA total of %d floating point exceptions were registered.\n",
 			fpecount);
 	printf("END OF TEST.\n");
-	// allow Flaws (and Defects for real)
+	// allow Flaws (and Defects for relaxed checks)
 	int errors = ErrCnt[Failure] + ErrCnt[Serious];
-	if (FLOAT.sizeof <= 8)
+	if (!relaxedChecks)
 		errors += ErrCnt[Defect];
+	if (__ctfe)
+		return 10000 * ErrCnt[Failure] + ErrCnt[Serious] * 100 + ErrCnt[Defect] + ErrCnt[Flaw];
 	return errors;
 	}
 
@@ -2000,10 +2006,12 @@ version(NOPAUSE) {} else {
 
 
 {
-	static  CHARP[4]msg = [ "FAILURE", "SERIOUS DEFECT", "DEFECT", "FLAW" ];
+	static const string[4]msg = [ "FAILURE", "SERIOUS DEFECT", "DEFECT", "FLAW" ];
 
 	ErrCnt [K] = ErrCnt [K] + 1;
-	printf("%s:  %s", msg[K], T);
+	printf("%s:  %s", msg[K].ptr, T);
+	if (__ctfe)
+		assert(K >= 2, msg[K]);
 	}
 
 
@@ -2203,7 +2211,7 @@ very_serious:
 	"Answer questions with Y, y, N or n (unless otherwise indicated).\n",
 	null];
 
-	msglist(instr.ptr);
+	if (!__ctfe) msglist(instr.ptr);
 	}
 
  void
@@ -2230,7 +2238,7 @@ very_serious:
 	"\tOther relevant compiler options:",
 	null];
 
-	msglist(head.ptr);
+	if (!__ctfe) msglist(head.ptr);
 	}
 
  void
@@ -2258,7 +2266,7 @@ very_serious:
 	"     Decimal-Binary conversion is NOT YET tested for accuracy.",
 	 null];
 
-	msglist(chars.ptr);
+	if (!__ctfe) msglist(chars.ptr);
 	}
 
  void
@@ -2287,5 +2295,29 @@ very_serious:
 	"see source comments for more history.",
 	null];
 
-	msglist(hist.ptr);
+	if (!__ctfe) msglist(hist.ptr);
 	}
+
+} // struct Paranoia
+
+version(CTFE)
+{
+	int printf(T...)(const(char)* fmt, T) { return 0; }
+	enum errors = Paranoia().main();
+	enum failures = errors / 10000;
+	enum serious  = (errors % 10000) / 100;
+	enum defects  = errors % 100;
+	pragma(msg, failures.stringof ~ " failures");
+	pragma(msg, serious.stringof ~ " serious defects");
+	pragma(msg, defects.stringof ~ " defects/flaws");
+	static assert(failures < 100, "Paranoia has faliures/serious defects failures for CTFE " ~ FLOAT.stringof);
+}
+else
+{
+	int main()
+	{
+		Paranoia test;
+		return test.main();
+	}
+}
+
