@@ -3337,33 +3337,33 @@ else version(DragonFlyBSD)
     /* double */
     double acos(double x);
     double asin(double x);
-    double atan(double x);
+    pure double atan(double x);
     double atan2(double, double);
-    double cos(double x);
-    double sin(double x);
-    double tan(double x);
+    pure double cos(double x);
+    pure double sin(double x);
+    pure double tan(double x);
 
     double cosh(double x);
     double sinh(double x);
-    double tanh(double x);
+    pure double tanh(double x);
 
     double exp(double x);
-    double frexp(double, int *exp);
+    pure double frexp(double, int *exp);
     double ldexp(double, int exp);
     double log(double x);
     double log10(double x);
-    double modf(double x, double *iptr);
+    pure double modf(double x, double *iptr);
 
     double pow(double x, double y);
     double sqrt(double x);
 
-    double ceil(double x);
-    double fabs(double x);
-    double floor(double x);
+    pure double ceil(double x);
+    pure double fabs(double x);
+    pure double floor(double x);
     double fmod(double x, double);
 
     double acosh(double x);
-    double asinh(double x);
+    pure double asinh(double x);
     double atanh(double x);
 
     double exp2(double x);
@@ -3375,36 +3375,36 @@ else version(DragonFlyBSD)
     double scalbn(double x, int n);
     double scalbln(double x, c_long n);
 
-    double cbrt(double x);
+    pure double cbrt(double x);
     double hypot(double x, double y);
 
-    double erf(double x);
+    pure double erf(double x);
     double erfc(double x);
     double lgamma(double x);
     double tgamma(double x);
 
-    double nearbyint(double x);
-    double rint(double x);
+    pure double nearbyint(double x);
+    pure double rint(double x);
     c_long lrint(double x);
     long llrint(double x);
-    double round(double x);
+    pure double round(double x);
     c_long lround(double x);
     long  llround(double x);
-    double trunc(double x);
+    pure double trunc(double x);
 
     double remainder(double x , double y);
     double remquo(double x, double y, int * quo);
 
-    double copysign(double x, double y);
-    double nan(const char *);
+    pure double copysign(double x, double y);
+    pure double nan(const char *);
     double nextafter(double x, double y);
     double nexttoward(double x, real y);
 
     double fdim(double x, double y);
-    double fmax(double x, double y);
-    double fmin(double x, double y);
+    pure double fmax(double x, double y);
+    pure double fmin(double x, double y);
 
-    double fma(double x, double y, double z);
+    pure double fma(double x, double y, double z);
 
     double j0(double x);
     double j1(double x);
@@ -3426,23 +3426,23 @@ else version(DragonFlyBSD)
     /* float */
     float acosf(float x);
     float asinf(float x);
-    float atanf(float x);
+    pure float atanf(float x);
     float atan2f(float x, float y);
-    float cosf(float x);
-    float sinf(float x);
-    float tanf(float x);
+    pure float cosf(float x);
+    pure float sinf(float x);
+    pure float tanf(float x);
 
     float acoshf(float x);
-    float asinhf(float x);
+    pure float asinhf(float x);
     float atanhf(float x);
     float coshf(float x);
     float sinhf(float x);
-    float tanhf(float x);
+    pure float tanhf(float x);
 
     float expf(float x);
     float exp2f(float x);
     float expm1f(float x);
-    float frexpf(float x, int *exp);
+    pure float frexpf(float x, int *exp);
     int ilogbf(float x);
     float ldexpf(float x, int exp);
     float logf(float x);
@@ -3450,46 +3450,46 @@ else version(DragonFlyBSD)
     float log1pf(float x);
     float log2f(float x);
     float logbf(float x);
-    float modff(float x, float *iptr);
+    pure float modff(float x, float *iptr);
     float scalbnf(float x, int y);
     float scalblnf(float x, c_long y);
 
-    float cbrtf(float x);
-    float fabsf(float x);
+    pure float cbrtf(float x);
+    pure float fabsf(float x);
     float hypotf(float x, float y);
     float powf(float x, float y);
     float sqrtf(float x);
 
-    float erff(float x);
+    pure float erff(float x);
     float erfcf(float x);
     float lgammaf(float x);
     float tgammaf(float x);
 
-    float ceilf(float x);
-    float floorf(float x);
-    float nearbyintf(float x);
-    float rintf(float x);
+    pure float ceilf(float x);
+    pure float floorf(float x);
+    pure float nearbyintf(float x);
+    pure float rintf(float x);
     c_long lrintf(float x);
     long llrintf(float x);
-    float roundf(float x);
+    pure float roundf(float x);
     c_long lroundf(float x);
     long llroundf(float x);
-    float truncf(float x);
+    pure float truncf(float x);
 
-    float fmodf(float x, float y);
+    pure float fmodf(float x, float y);
     float remainderf(float x, float y);
     float remquof(float x, float y, int *iptr);
 
-    float copysignf(float x, float y);
-    float nanf(const char *);
+    pure float copysignf(float x, float y);
+    pure float nanf(const char *);
     float nextafterf(float x, float y);
     float nexttowardf(float x, real y);
 
     float fdimf(float x, float y);
-    float fmaxf(float x, float y);
-    float fminf(float x, float y);
+    pure float fmaxf(float x, float y);
+    pure float fminf(float x, float y);
 
-    float fmaf(float x, float y, float z);
+    pure float fmaf(float x, float y, float z);
 
     float j0f(float x);
     float j1f(float x);
@@ -3500,34 +3500,34 @@ else version(DragonFlyBSD)
     float ynf(int, float);
     float gammaf(float x);
     float dremf(float x, float);
-    int finitef(float x);
-    int isinff(float x);
-    int isnanf(float x);
+    pure int finitef(float x);
+    pure int isinff(float x);
+    pure int isnanf(float x);
 
     float gammaf_r(float x, int *);
     float lgammaf_r(float x, int *);
     float significandf(float x);
 
     /* real */
-    real acosl(real x);
-    real asinl(real x);
-    real atanl(real x);
+    pure real acosl(real x);
+    pure real asinl(real x);
+    pure real atanl(real x);
     real atan2l(real x, real y);
-    real cosl(real x);
-    real sinl(real x);
-    real tanl(real x);
+    pure real cosl(real x);
+    pure real sinl(real x);
+    pure real tanl(real x);
 
     real acoshl(real x);
-    real asinhl(real x);
+    pure real asinhl(real x);
     real atanhl(real x);
     real coshl(real x);
     real sinhl(real x);
-    real tanhl(real x);
+    pure real tanhl(real x);
 
     real expl(real x);
     real exp2l(real x);
     real expm1l(real x);
-    real frexpl(real x, int *exp);
+    pure real frexpl(real x, int *exp);
     int ilogbl(real x);
     real ldexpl(real x, int exp);
     real logl(real x);
@@ -3535,46 +3535,46 @@ else version(DragonFlyBSD)
     real log1pl(real x);
     real log2l(real x);
     real logbl(real x);
-    real modfl(real x, real *iptr);
+    pure real modfl(real x, real *iptr);
     real scalbnl(real x, int y);
     real scalblnl(real x, c_long y);
 
-    real cbrtl(real x);
-    real fabsl(real x);
+    pure real cbrtl(real x);
+    pure real fabsl(real x);
     real hypotl(real x, real y);
     real powl(real x, real y);
     real sqrtl(real x);
 
-    real erfl(real x);
+    pure real erfl(real x);
     real erfcl(real x);
     real lgammal(real x);
     real tgammal(real x);
 
-    real ceill(real x);
-    real floorl(real x);
-    real nearbyintl(real x);
-    real rintl(real x);
+    pure real ceill(real x);
+    pure real floorl(real x);
+    pure real nearbyintl(real x);
+    pure real rintl(real x);
     c_long lrintl(real x);
     long llrintl(real x);
-    real roundl(real x);
+    pure real roundl(real x);
     c_long lroundl(real x);
     long llroundl(real x);
-    real truncl(real x);
+    pure real truncl(real x);
 
-    real fmodl(real x, real);
-    real remainderl(real x, real);
-    real remquol(real x, real y, int *iptr);
+    pure real fmodl(real x, real);
+    pure real remainderl(real x, real);
+    pure real remquol(real x, real y, int *iptr);
 
-    real copysignl(real x, real y);
-    real nanl(const char *);
+    pure real copysignl(real x, real y);
+    pure real nanl(const char *);
     real nextafterl(real x, real y);
     real nexttowardl(real x, real y);
 
     real fdiml(real x, real y);
-    real fmaxl(real x, real y);
-    real fminl(real x, real y);
+    pure real fmaxl(real x, real y);
+    pure real fminl(real x, real y);
 
-    real fmal(real x, real, real);
+    pure real fmal(real x, real, real);
 }
 else version(CRuntime_Bionic)
 {
