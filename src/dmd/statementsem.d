@@ -3837,6 +3837,7 @@ else
             result = new CompoundStatement(tfs.loc, tfs._body, tfs.finalbody);
             return;
         }
+        tfs.bodyFallsThru = (blockexit & BE.fallthru) != 0;
         result = tfs;
     }
 
