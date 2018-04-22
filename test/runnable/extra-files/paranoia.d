@@ -287,13 +287,14 @@ void  printFLOAT(const(char) *fmt, FLOAT  f) { printExtended(fmt, f); }
 }
 else static assert(false, "no floating point type selected");
 
-version(ExtendedSoft)
+version(Single) {} else
+version(Double) {} else
 void printExtended(const(char) *fmt, FLOAT f)
 {
-	if (__ctfe)
+	version(CTFE)
 		return;
 
-	version(CRuntime_Microsoft)
+	else version(CRuntime_Microsoft)
 	{
 		import dmd.root.longdouble;
 		char[64] str;
@@ -301,7 +302,7 @@ void printExtended(const(char) *fmt, FLOAT f)
 			printf("%lg", cast(double)f);
 		else
 		{
-			ld_sprint(str.ptr, 'A', longdouble(f));
+			ld_sprint(str.ptr, 'A', longdouble_soft(f));
 			printf("%s", str.ptr);
 		}
 	}

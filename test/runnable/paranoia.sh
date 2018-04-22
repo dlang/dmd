@@ -7,9 +7,7 @@ echo ======== Testing Double Precision ========
 $DMD -m${MODEL} ${EXTRA_FILES}/paranoia.d -version=Double -of${OUTPUT_BASE}_2${EXE}
 ${OUTPUT_BASE}_2${EXE}
 
-if [ "PR" == "8169" ]; then
-# needs PR 8169
-# if [ "${OS}" == "win64" -o "${MODEL}" == "32mscoff" ]; then
+if [ "${OS}" == "win64" -o "${MODEL}" == "32mscoff" ]; then
     echo ======== Testing Extended Precision ========
     $DMD -m${MODEL} ${EXTRA_FILES}/paranoia.d -version=Extended ../src/dmd/root/longdouble.d -of${OUTPUT_BASE}_3${EXE}
     ${OUTPUT_BASE}_3${EXE}
