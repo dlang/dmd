@@ -5313,6 +5313,47 @@ extern (C++) final class DotVarExp : UnaExp
         if (e1.op == TOK.this_)
             return var.checkModify(loc, sc, e1, flag);
 
+        /* https://issues.dlang.org/show_bug.cgi?id=12764
+         * If inside a constructor and an expression of type `this.field.var`
+         * is encountered, where `field` is a struct declaration with
+         * default construction disabled, we must make sure that
+         * assigning to `var` does not imply that `field` was initialized
+         */
+        if (sc.func)
+        {
+            auto ctd = sc.func.isCtorDeclaration();
+
+            // if inside a constructor scope and e1 of this DotVarExp
+            // is a DotVarExp, then check if e1.e1 is a `this` identifier
+            if (ctd && e1.op == TOK.dotVariable)
+            {
+                scope dve = cast(DotVarExp)e1;
+                if (dve.e1.op == TOK.this_)
+                {
+                    scope v = dve.var.isVarDeclaration();
+                    /* if v is a struct member field with no initializer, no default construction
+                     * and v wasn't intialized before
+                     */
+                    if (v && v.isField() && v.type.ty == Tstruct && !v._init && !v.ctorinit)
+                    {
+                        const sd = (cast(TypeStruct)v.type).sym;
+                        if (sd.noDefaultCtor)
+                        {
+                            /* checkModify will consider that this is an initialization
+                             * of v while it is actually an assignment of a field of v
+                             */
+                            scope modifyLevel = v.checkModify(loc, sc, dve.e1, flag);
+                            // reflect that assigning a field of v is not initialization of v
+                            v.ctorinit = false;
+                            if (modifyLevel == 2)
+                                return 1;
+                            return modifyLevel;
+                        }
+                    }
+                }
+            }
+        }
+
         //printf("\te1 = %s\n", e1.toChars());
         return e1.checkModifiable(sc, flag);
     }

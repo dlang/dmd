@@ -6600,7 +6600,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          */
         if (exp.op == TOK.assign && exp.e1.checkModifiable(sc) == 2)
         {
-            //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
+            //printf("[%s] change to init - %s\n", exp.loc.toChars(), exp.toChars());
             exp.op = TOK.construct;
 
             // https://issues.dlang.org/show_bug.cgi?id=13515
