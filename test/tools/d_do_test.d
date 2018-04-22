@@ -862,19 +862,21 @@ int tryMain(string[] args)
         }
     }
 
+    size_t index = 0; // index over all tests to avoid identical output names in consecutive tests
     auto argSets = (testArgs.argSets.length == 0) ? [""] : testArgs.argSets;
     for(auto autoCompileImports = false;; autoCompileImports = true)
     {
         foreach(argSet; argSets)
         {
-            foreach (i, c; combinations(testArgs.permuteArgs))
+            foreach (c; combinations(testArgs.permuteArgs))
             {
-                final switch(testCombination(autoCompileImports, argSet, i, c))
+                final switch(testCombination(autoCompileImports, argSet, index, c))
                 {
                     case Result.continue_: break;
                     case Result.return0: return 0;
                     case Result.return1: return 1;
                 }
+                index++;
             }
         }
         if(autoCompileImports || testArgs.compiledImports.length == 0)
