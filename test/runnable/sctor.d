@@ -416,6 +416,36 @@ void test15665()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15869
+
+struct Set {
+    @disable this(this);
+    int value = 0;
+}
+
+Set clobber(ref Set a) {
+    Set ret; // <- This overwrites *a, i.e. &ret is the same as a
+    ret.value = a.value; // <- Now a.value is 0
+    return ret;
+}
+
+struct XX {
+    Set a = Set(1);
+    this(int n) {
+        a = clobber(a); // fix is to make this an assignment, not a construction
+    }
+}
+void test15869()
+{
+    Set a = Set(1);
+    a = clobber(a);
+    assert(a.value == 1);
+
+    XX xx = XX(0);
+    assert(xx.a.value == 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -426,6 +456,7 @@ int main()
     test14450();
     test14944();
     test15665();
+    test15869();
 
     printf("Success\n");
     return 0;
