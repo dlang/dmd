@@ -6132,6 +6132,18 @@ void test5332()
 }
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=11742
+
+const int x11472 = void;
+
+static this() { x11472 = 10; }
+
+void test11472()
+{
+    assert(x11472 == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6433,6 +6445,7 @@ int main()
     test252();
     test7997();
     test5332();
+    test11472();
 
     writefln("Success");
     return 0;
