@@ -2997,6 +2997,8 @@ private extern(C++) final class DotExpVisitor : Visitor
     {
         //printf("Type.noMember(e: %s ident: %s flag: %d)\n", e.toChars(), ident.toChars(), flag);
 
+        bool gagError = flag & 1;
+
         static __gshared int nest;      // https://issues.dlang.org/show_bug.cgi?id=17380
 
         static Expression returnExp(Expression e)
@@ -3008,7 +3010,7 @@ private extern(C++) final class DotExpVisitor : Visitor
         if (++nest > 500)
         {
             .error(e.loc, "cannot resolve identifier `%s`", ident.toChars());
-            return returnExp(flag & 1 ? null : new ErrorExp());
+            return returnExp(gagError ? null : new ErrorExp());
         }
 
 
@@ -3062,13 +3064,12 @@ private extern(C++) final class DotExpVisitor : Visitor
                 auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
                 dti.ti.tempdecl = td;
                 /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
-                 * It should be gagged if flag & 1.
                  * e.g.
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
-                uint errors = flag & 1 ? global.startGagging() : 0;
+                uint errors = gagError ? global.startGagging() : 0;
                 e = dti.semanticY(sc, 0);
-                if (flag & 1 && global.endGagging(errors))
+                if (gagError && global.endGagging(errors))
                     e = null;
                 return returnExp(e);
             }
@@ -3080,9 +3081,20 @@ private extern(C++) final class DotExpVisitor : Visitor
                 /* Rewrite e.ident as:
                  *  e.aliasthis.ident
                  */
-                e = resolveAliasThis(sc, e);
-                auto die = new DotIdExp(e.loc, e, ident);
-                return returnExp(die.semanticY(sc, flag & 1));
+                auto alias_e = resolveAliasThis(sc, e, gagError);
+
+                if (!alias_e)
+                    return returnExp(null);
+
+                auto die = new DotIdExp(e.loc, alias_e, ident);
+                auto exp = die.semanticY(sc, gagError);
+
+                if (exp && gagError)
+                    // now that we know that the alias this leads somewhere useful,
+                    // go back and print deprecations/warnings that we skipped earlier due to the gag
+                    resolveAliasThis(sc, e, false);
+
+                return returnExp(exp);
             }
         }
         visit(cast(Type)mt);
