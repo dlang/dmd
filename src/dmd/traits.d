@@ -925,7 +925,33 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                     ex = dve.e1;
             }
 
-            overloadApply(f, (Dsymbol s)
+            bool[string] funcTypeHash;
+
+            /* Compute the function signature and insert it in the
+             * hashtable, if not present. This is needed so that
+             * traits(getOverlods, F3, "visit") does not count `int visit(int)`
+             * twice in the following example:
+             *
+             * =============================================
+             * interface F1 { int visit(int);}
+             * interface F2 { int visit(int); void visit(); }
+             * interface F3 : F2, F1 {}
+             *==============================================
+             */
+            void insertInterfaceInheritedFunction(FuncDeclaration fd, Expression e)
+            {
+                auto funcType = fd.type.toChars();
+                auto len = strlen(funcType);
+                string signature = funcType[0 .. len].idup;
+                //printf("%s - %s\n", fd.toChars, signature);
+                if (signature !in funcTypeHash)
+                {
+                    funcTypeHash[signature] = true;
+                    exps.push(e);
+                }
+            }
+
+            int dg(Dsymbol s)
             {
                 auto fd = s.isFuncDeclaration();
                 if (!fd)
@@ -941,9 +967,32 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
                 auto e = ex ? new DotVarExp(Loc.initial, ex, fa, false)
                             : new DsymbolExp(Loc.initial, fa, false);
 
-                exps.push(e);
+                // if the parent is an interface declaration
+                // we must check for functions with the same signature
+                // in different inherited interfaces
+                if (sym.isInterfaceDeclaration())
+                    insertInterfaceInheritedFunction(fd, e);
+                else
+                    exps.push(e);
                 return 0;
-            });
+            }
+
+            InterfaceDeclaration ifd = null;
+            if (sym)
+                ifd = sym.isInterfaceDeclaration();
+            // If the symbol passed as a parameter is an
+            // interface that inherits other interfaces
+            if (ifd && ifd.interfaces)
+            {
+                // check the overloads of each inherited interface individually
+                foreach (bc; ifd.interfaces)
+                {
+                    if (auto fd = bc.sym.search(e.loc, f.ident))
+                        overloadApply(fd, &dg);
+                }
+            }
+            else
+                overloadApply(f, &dg);
 
             auto tup = new TupleExp(e.loc, exps);
             return tup.expressionSemantic(scx);
