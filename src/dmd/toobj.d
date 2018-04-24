@@ -379,7 +379,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(cd.loc, cd.type, null);
+            if (global.params.useTypeInfo && Type.dtypeinfo)
+                genTypeInfo(cd.loc, cd.type, null);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             //////////////////////////////////////////////
@@ -678,8 +679,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
-            genTypeInfo(id.loc, id.type, null);
-            id.type.vtinfo.accept(this);
+            if (global.params.useTypeInfo && Type.dtypeinfo)
+            {
+                genTypeInfo(id.loc, id.type, null);
+                id.type.vtinfo.accept(this);
+            }
 
             //////////////////////////////////////////////
 
