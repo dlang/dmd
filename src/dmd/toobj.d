@@ -1009,7 +1009,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             else if (global.params.symdebug)
                 toDebug(ed);
 
-            if (global.params.useTypeInfo)
+            if (global.params.useTypeInfo && Type.dtypeinfo)
                 genTypeInfo(ed.loc, ed.type, null);
 
             TypeEnum tc = cast(TypeEnum)ed.type;
