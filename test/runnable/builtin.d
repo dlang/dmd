@@ -45,10 +45,6 @@ void test2()
     i = i ^^ 2;
     assert(i == 9);
 
-    int j = 2;
-    j = j ^^ 1;
-    assert(j == 2);
-
     i = 4;
     i = i ^^ .5;
     assert(i == 2);

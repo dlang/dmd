@@ -198,7 +198,7 @@ bool mergeFieldInit(ref CSX a, const CSX b) pure nothrow
     if (!bHalt && bRet)
     {
         ok = (b & CSX.this_ctor);
-        a = a;
+        // a = a;
     }
     else if (!aHalt && aRet)
     {
@@ -208,7 +208,7 @@ bool mergeFieldInit(ref CSX a, const CSX b) pure nothrow
     else if (bHalt)
     {
         ok = (a & CSX.this_ctor);
-        a = a;
+        // a = a;
     }
     else if (aHalt)
     {

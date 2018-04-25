@@ -12,6 +12,8 @@
 
 module dmd.sideeffect;
 
+import core.stdc.stdio;
+
 import dmd.apply;
 import dmd.declaration;
 import dmd.dscope;
@@ -205,6 +207,7 @@ private bool lambdaHasSideEffect(Expression e)
                 return true;
             break;
         }
+
     default:
         break;
     }
@@ -219,12 +222,54 @@ private bool lambdaHasSideEffect(Expression e)
  */
 extern (C++) bool discardValue(Expression e)
 {
-    if (lambdaHasSideEffect(e)) // check side-effect shallowly
-        return false;
     switch (e.op)
     {
+    case TOK.assign:
+        // https://issues.dlang.org/show_bug.cgi?id=11970
+        auto ae = cast(AssignExp)e;
+        Identifier getIdent(Expression ei)
+        {
+            switch(ei.op)
+            {
+                case TOK.variable:
+                    VarExp ve = cast(VarExp)ei;
+                    return ve.var.ident;
+
+                case TOK.identifier:
+                    IdentifierExp ie = cast(IdentifierExp)ei;
+                    return ie.ident;
+
+                default:
+                    return null;
+            }
+        }
+
+        auto i1 = getIdent(ae.e1);
+        auto i2 = getIdent(ae.e2);
+        if (i1 && i2 && i1.toString() == i2.toString())
+        {
+            auto t = ae.e1.type.toBasetype();
+            if (t.ty == Tsarray || t.ty == Tarray)
+            {
+                auto tn = t.nextOf();
+                if (tn.ty == Tstruct)
+                {
+                    auto sd = (cast(TypeStruct)tn).sym;
+                    if(sd.hasIdentityAssign)
+                        return false;
+                }
+            }
+
+            break;
+        }
+        if (lambdaHasSideEffect(e)) // check side-effect shallowly
+            return false;
+        else
+            break;
     case TOK.cast_:
         {
+            if (lambdaHasSideEffect(e)) // check side-effect shallowly
+                return false;
             CastExp ce = cast(CastExp)e;
             if (ce.to.equals(Type.tvoid))
             {
@@ -239,6 +284,8 @@ extern (C++) bool discardValue(Expression e)
         return false;
     case TOK.variable:
         {
+            if (lambdaHasSideEffect(e)) // check side-effect shallowly
+                return false;
             VarDeclaration v = (cast(VarExp)e).var.isVarDeclaration();
             if (v && (v.storage_class & STC.temp))
             {
@@ -249,6 +296,9 @@ extern (C++) bool discardValue(Expression e)
             break;
         }
     case TOK.call:
+        if (lambdaHasSideEffect(e)) // check side-effect shallowly
+            return false;
+
         /* Issue 3882: */
         if (global.params.warnings && !global.gag)
         {
@@ -288,11 +338,16 @@ extern (C++) bool discardValue(Expression e)
     case TOK.andAnd:
     case TOK.orOr:
         {
+            if (lambdaHasSideEffect(e)) // check side-effect shallowly
+                return false;
             LogicalExp aae = cast(LogicalExp)e;
             return discardValue(aae.e2);
         }
     case TOK.question:
         {
+            if (lambdaHasSideEffect(e)) // check side-effect shallowly
+                return false;
+
             CondExp ce = cast(CondExp)e;
             /* https://issues.dlang.org/show_bug.cgi?id=6178
              * https://issues.dlang.org/show_bug.cgi?id=14089
@@ -323,6 +378,9 @@ extern (C++) bool discardValue(Expression e)
         }
     case TOK.comma:
         {
+            if (lambdaHasSideEffect(e)) // check side-effect shallowly
+                return false;
+
             CommaExp ce = cast(CommaExp)e;
             /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
              * In such cases, only check e for side effect (it's OK for __tmp to have
@@ -341,6 +399,9 @@ extern (C++) bool discardValue(Expression e)
             return discardValue(ce.e2);
         }
     case TOK.tuple:
+        if (lambdaHasSideEffect(e)) // check side-effect shallowly
+            return false;
+
         /* Pass without complaint if any of the tuple elements have side effects.
          * Ideally any tuple elements with no side effects should raise an error,
          * this needs more investigation as to what is the right thing to do.
@@ -349,6 +410,8 @@ extern (C++) bool discardValue(Expression e)
             break;
         return false;
     default:
+        if (lambdaHasSideEffect(e)) // check side-effect shallowly
+            return false;
         break;
     }
     e.error("`%s` has no effect", e.toChars());

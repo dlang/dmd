@@ -24,7 +24,6 @@ void test7444()
         da[] = e;      // b
 
         // lhs is static array
-        sa   = sa;     // b == identity assign
         sa   = sa[];   // X
         sa[] = sa;     // X
         sa[] = sa[];   // b
@@ -40,7 +39,6 @@ void test7444()
         da[] = sa;     // X
         da[] = sa[];   // b
 
-        da   = da;     // a == identity assign
         da   = da[];   // a
         da[] = da;     // X
         da[] = da[];   // b

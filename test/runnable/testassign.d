@@ -881,7 +881,6 @@ void test12211()
 void test4791()
 {
     int[2] na;
-    na = na;
 
     static struct S
     {
