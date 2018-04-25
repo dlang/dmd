@@ -1861,6 +1861,41 @@ extern (C++) const(char)* skipwhitespace(const(char)* p)
 }
 
 /************************************************
+ * Scan past all instances of the given characters.
+ * Params:
+ *  buf =           an OutBuffer containing the DDoc
+ *  i =             the index within `buf` to start scanning from
+ *  chars =         the characters to skip; order is unimportant
+ * Returns: the index after skipping characters.
+ */
+private size_t skipChars(OutBuffer* buf, size_t i, string chars)
+{
+    Outer:
+    foreach (j, c; buf.peekSlice()[i..$])
+    {
+        foreach (d; chars)
+        {
+            if (d == c)
+                continue Outer;
+        }
+        return i + j;
+    }
+    return buf.offset;
+}
+
+unittest {
+    OutBuffer buf;
+    string data = "test ---\r\n\r\nend";
+    buf.write(data.ptr, data.length);
+
+    assert(skipChars(&buf, 0, "-") == 0);
+    assert(skipChars(&buf, 4, "-") == 4);
+    assert(skipChars(&buf, 4, " -") == 8);
+    assert(skipChars(&buf, 8, "\r\n") == 12);
+    assert(skipChars(&buf, 12, "dne") == 15);
+}
+
+/************************************************
  * Scan forward to one of:
  *      start of identifier
  *      beginning of next line
@@ -1962,6 +1997,99 @@ extern (C++) size_t skippastURL(OutBuffer* buf, size_t i)
         return i + j;
 Lno:
     return i;
+}
+
+/****************************************************
+ * Replace Markdown emphasis with the appropriate macro,
+ * e.g. `*very* **nice**` becomes `$(EM very) $(STRONG nice)`.
+ * Params:
+ *  buf =               an OutBuffer containing the DDoc
+ *  loc =               the current location within the file
+ *  inlineDelimiters =  the collection of delimiters found within a paragraph. When this function returns its length will be reduced to `downToLevel`.
+ *  downToLevel =       the length within `inlineDelimiters`` to reduce emphasis to
+ * Returns: the number of characters added to the buffer by the replacements
+ */
+private size_t replaceMarkdownEmphasis(OutBuffer *buf, Loc loc, ref MarkdownDelimiter[] inlineDelimiters, int downToLevel = 0)
+{
+    size_t replaceEmphasisPair(ref MarkdownDelimiter start, ref MarkdownDelimiter end)
+    {
+        immutable count = start.count == 1 || end.count == 1 ? 1 : 2;
+
+        size_t iStart = start.iStart;
+        size_t iEnd = end.iStart;
+        end.count -= count;
+        start.count -= count;
+        iStart += start.count;
+
+        if (!start.count)
+            start.type = 0;
+        if (!end.count)
+            end.type = 0;
+
+        if (global.params.vmarkdown)
+        {
+            const s = buf.peekSlice()[iStart + count..iEnd];
+            message(loc, "Ddoc: emphasized text '%.*s'", s.length, s.ptr);
+        }
+
+        buf.remove(iStart, count);
+        iEnd -= count;
+        buf.remove(iEnd, count);
+
+        string macroName = count >= 2 ? "$(STRONG " : "$(EM ";
+        buf.insert(iEnd, ")");
+        buf.insert(iStart, macroName);
+
+        const delta = 1 + macroName.length - (count + count);
+        end.iStart += count;
+        return delta;
+    }
+
+    size_t delta = 0;
+    int start = (cast(int) inlineDelimiters.length) - 1;
+    while (start >= downToLevel)
+    {
+        // find start emphasis
+        while (start >= downToLevel &&
+            (inlineDelimiters[start].type != '*' || !inlineDelimiters[start].leftFlanking))
+            --start;
+        if (start < downToLevel)
+            break;
+
+        // find the nearest end emphasis
+        int end = start + 1;
+        while (end < inlineDelimiters.length &&
+            (inlineDelimiters[end].type != inlineDelimiters[start].type ||
+                inlineDelimiters[end].macroLevel != inlineDelimiters[start].macroLevel ||
+                !inlineDelimiters[end].rightFlanking))
+            ++end;
+        if (end == inlineDelimiters.length)
+        {
+            // the start emphasis has no matching end; if it isn't an end itself then kill it
+            if (!inlineDelimiters[start].rightFlanking)
+                inlineDelimiters[start].type = 0;
+            --start;
+            continue;
+        }
+
+        // multiple-of-3 rule
+        if (((inlineDelimiters[start].leftFlanking && inlineDelimiters[start].rightFlanking) ||
+                (inlineDelimiters[end].leftFlanking && inlineDelimiters[end].rightFlanking)) &&
+            (inlineDelimiters[start].count + inlineDelimiters[end].count) % 3 == 0)
+        {
+            --start;
+            continue;
+        }
+
+        immutable delta0 = replaceEmphasisPair(inlineDelimiters[start], inlineDelimiters[end]);
+
+        for (; end < inlineDelimiters.length; ++end)
+            inlineDelimiters[end].iStart += delta0;
+        delta += delta0;
+    }
+
+    inlineDelimiters.length = downToLevel;
+    return delta;
 }
 
 /****************************************************
@@ -2161,6 +2289,20 @@ extern (C++) bool isReservedName(const(char)* str, size_t len)
     return false;
 }
 
+/****************************************************
+ * A delimiter for Markdown inline content like emphasis and links.
+ */
+private struct MarkdownDelimiter
+{
+    size_t iStart;  /// the index where this delimiter starts
+    int count;      /// the length of this delimeter's start sequence
+    int macroLevel; /// the count of nested DDoc macros when the delimiter is started
+    bool leftFlanking;  /// whether the delimiter is left-flanking, as defined by the CommonMark spec
+    bool rightFlanking; /// whether the delimiter is right-flanking, as defined by the CommonMark spec
+    bool atParagraphStart;  /// whether the delimiter is at the start of a paragraph
+    char type;      /// the type of delimiter, defined by its starting character
+}
+
 /**************************************************
  * Highlight text section.
  */
@@ -2173,10 +2315,11 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
     loc.charnum = 0;
     //printf("highlightText()\n");
     int leadingBlank = 1;
+    MarkdownDelimiter[] inlineDelimiters;
     int inCode = 0;
     int inBacktick = 0;
-    //int inComment = 0;                  // in <!-- ... --> comment
-    int inMacro = 0;
+    int macroLevel = 0;
+    int parenLevel = 0;
     size_t iCodeStart = 0; // start of code section
     size_t codeIndent = 0;
     size_t iLineStart = offset;
@@ -2205,6 +2348,8 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
             }
             if (!inCode && i == iLineStart && i + 1 < buf.offset) // if "\n\n"
             {
+                i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
+
                 i = buf.insert(i, "$(DDOC_BLANKLINE)");
             }
             leadingBlank = 1;
@@ -2434,6 +2579,32 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
             }
             break;
 
+        case '*':
+        {
+            if (inCode || inBacktick)
+                break;
+
+            // Markdown emphasis
+            char leftC = i > offset ? buf.data[i-1] : '\0';
+            size_t iAfterEmphasis = skipChars(buf, i+1, "*");
+            char rightC = iAfterEmphasis < buf.offset ? buf.data[iAfterEmphasis] : '\0';
+            int count = cast(int) (iAfterEmphasis - i);
+            bool leftFlanking = (rightC != '\0' && !isspace(rightC)) && (!ispunct(rightC) || leftC == '\0' || isspace(leftC) || ispunct(leftC));
+            bool rightFlanking = (leftC != '\0' && !isspace(leftC)) && (!ispunct(leftC) || rightC == '\0' || isspace(rightC) || ispunct(rightC));
+            auto emphasis = MarkdownDelimiter(i, count, macroLevel, leftFlanking, rightFlanking, false, c);
+
+            if (!emphasis.leftFlanking && !emphasis.rightFlanking)
+            {
+                i = iAfterEmphasis - 1;
+                break;
+            }
+
+            inlineDelimiters ~= emphasis;
+            i += emphasis.count;
+            --i;
+            break;
+        }
+
         case '\\':
         {
             leadingBlank = false;
@@ -2473,7 +2644,14 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
             const slice = buf.peekSlice();
             auto p = &slice[i];
             if (p[1] == '(' && isIdStart(&p[2]))
-                ++inMacro;
+                ++macroLevel;
+            break;
+        }
+
+        case '(':
+        {
+            if (!inCode && i > offset && buf.data[i-1] != '$')
+                ++parenLevel;
             break;
         }
 
@@ -2483,8 +2661,17 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
             leadingBlank = 0;
             if (inCode || inBacktick)
                 break;
-            if (inMacro)
-                --inMacro;
+            if (parenLevel > 0)
+                --parenLevel;
+            else if (macroLevel)
+            {
+                int downToLevel = cast(int) inlineDelimiters.length;
+                while (downToLevel > 0 && inlineDelimiters[downToLevel - 1].macroLevel >= macroLevel)
+                    --downToLevel;
+                i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters, downToLevel);
+
+                --macroLevel;
+            }
             break;
         }
 
@@ -2503,7 +2690,7 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
                     {
                         /* The URL is buf[i..k]
                          */
-                        if (inMacro)
+                        if (macroLevel)
                             /* Leave alone if already in a macro
                              */
                             i = k - 1;
@@ -2549,6 +2736,9 @@ extern (C++) void highlightText(Scope* sc, Dsymbols* a, Loc loc, OutBuffer* buf,
     }
     if (inCode)
         error(loc, "unmatched `---` in DDoc comment");
+
+    size_t i = buf.offset;
+    i += replaceMarkdownEmphasis(buf, loc, inlineDelimiters);
 }
 
 /**************************************************
