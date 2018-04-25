@@ -1073,7 +1073,6 @@ void test64()
     const s2 = S64(2,3);
     immutable S64 s3 = S64(2,3);
 
-    s1 = s1;
     s1 = s2;
     s1 = s3;
 }
@@ -1284,7 +1283,6 @@ void test80(inout(int) _ = 0)
     inout(char)[] w;
     inout(shared(char))[] sw;
 
-    c = c;
     c = i;
     static assert(!__traits(compiles, c = s));
     static assert(!__traits(compiles, c = sc));
@@ -1292,7 +1290,6 @@ void test80(inout(int) _ = 0)
     static assert(!__traits(compiles, c = sw));
 
     static assert(!__traits(compiles, i = c));
-    i = i;
     static assert(!__traits(compiles, i = s));
     static assert(!__traits(compiles, i = sc));
     static assert(!__traits(compiles, i = w));
@@ -1300,7 +1297,6 @@ void test80(inout(int) _ = 0)
 
     static assert(!__traits(compiles, s = c));
     static assert(!__traits(compiles, s = i));
-    s = s;
     static assert(!__traits(compiles, s = sc));
     static assert(!__traits(compiles, s = w));
     static assert(!__traits(compiles, s = sw));
@@ -1308,7 +1304,6 @@ void test80(inout(int) _ = 0)
     static assert(!__traits(compiles, sc = c));
     sc = i;
     sc = s;
-    sc = sc;
     static assert(!__traits(compiles, sc = w));
     sc = sw;
 
@@ -1316,7 +1311,6 @@ void test80(inout(int) _ = 0)
     static assert(!__traits(compiles, w = i));
     static assert(!__traits(compiles, w = s));
     static assert(!__traits(compiles, w = sc));
-    w = w;
     static assert(!__traits(compiles, w = sw));
 
     static assert(!__traits(compiles, sw = c));
@@ -1324,7 +1318,6 @@ void test80(inout(int) _ = 0)
     static assert(!__traits(compiles, sw = s));
     static assert(!__traits(compiles, sw = sc));
     static assert(!__traits(compiles, sw = w));
-    sw = sw;
 }
 
 /************************************/
@@ -1337,35 +1330,30 @@ void test81(inout(int) _ = 0)
     const(shared(char))* sc;
     inout(char)* w;
 
-    c = c;
     c = i;
     static assert(!__traits(compiles, c = s));
     static assert(!__traits(compiles, c = sc));
     c = w;
 
     static assert(!__traits(compiles, i = c));
-    i = i;
     static assert(!__traits(compiles, i = s));
     static assert(!__traits(compiles, i = sc));
     static assert(!__traits(compiles, i = w));
 
     static assert(!__traits(compiles, s = c));
     static assert(!__traits(compiles, s = i));
-    s = s;
     static assert(!__traits(compiles, s = sc));
     static assert(!__traits(compiles, s = w));
 
     static assert(!__traits(compiles, sc = c));
     sc = i;
     sc = s;
-    sc = sc;
     static assert(!__traits(compiles, sc = w));
 
     static assert(!__traits(compiles, w = c));
     static assert(!__traits(compiles, w = i));
     static assert(!__traits(compiles, w = s));
     static assert(!__traits(compiles, w = sc));
-    w = w;
 }
 
 /************************************/
