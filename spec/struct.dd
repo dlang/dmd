@@ -154,6 +154,8 @@ $(H2 $(LNAME2 default_struct_init, Default Initialization of Structs))
 
         $(P The default initializers are evaluated at compile time.)
 
+        $(P The default initializers may not contain references to mutable data.)
+
 $(H2 $(LNAME2 static_struct_init, Static Initialization of Structs))
 
         $(P If a $(GLINK2 declaration, StructInitializer) is supplied, the
@@ -365,7 +367,6 @@ $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Stru
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         ----
         const struct S { int a; int b = 2; }
-
         void main()
         {
             S s = S(3); // initializes s.a to 3
@@ -378,23 +379,27 @@ $(H2 $(LEGACY_LNAME2 ConstStruct, const-struct, Const, Immutable and Shared Stru
 
 $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors))
 
-        $(P Struct constructors are used to initialize an instance
-        of a struct.
-        The $(I ParameterList) may not be empty.
-        Struct instances that are not instantiated with a constructor
-        are default initialized to their $(CODE .init) value.
+        $(P Struct constructors are used to initialize an instance of a struct when a more
+        complex construction is needed than is allowed by
+        $(LINK2 #static_struct_init, static initialization) or a
+        $(LINK2 #struct-literal, struct literal).
+        )
+
+        $(P Constructors are defined with a function name of `this` and having no return value.
+        The grammar is the same as for the class $(GLINK2 class, Constructor).
+        )
+
+        $(P A struct constructor is called by the name of the struct followed by
+        $(GLINK2 class, Parameters).
+        $(P If the $(GLINK2 class, ParameterList) is empty,
+        the struct instance is default initialized.)
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
-        ------
+        ---
         struct S
         {
-            int x, y;
-
-            this()  // error, cannot implement default ctor for structs
-            {
-            }
-
+            int x, y = 4, z = 6;
             this(int a, int b)
             {
                 x = a;
@@ -404,122 +409,122 @@ $(H2 $(LEGACY_LNAME2 Struct-Constructor, struct-constructor, Struct Constructors
 
         void main()
         {
-            S a = S(4, 5);
-            auto b = S();  // same as auto b = S.init;
+            S a = S(4, 5); // calls S.this(4, 5):  a.x = 4, a.y = 5, a.z = 6
+            S b = S();  // default initialized:    a.x = 0, b.y = 4, b.y = 6
+            S c = S(1); // error, matching this(int) not found
         }
-        ------
+        ---
         )
 
-$(COMMENT
-$(P Inside a constructor, the first occurrence (in lexical order) of assignments
-of the form $(CODE member = expression;) are handled differently than usual
-assignments. The first such assignment in lexical order is converted to a
-constructor call for the member's type. Example:)
+        $(P A $(I default constructor) (i.e. one with an empty $(GLINK2 function, ParameterList))
+        is not allowed.)
 
-$(SPEC_RUNNABLE_EXAMPLE_RUN
-------
-import std.stdio;
-
-struct A
-{
-    this(int x) { writef("A.this(%s)", x); }
-}
-
-struct B
-{
-    A a;
-    this(int x)
-    {
-        write("[= ");
-        a = x;
-        writeln(" =]");
-        // a = x; does not compile here, it already occurred lexically.
-    }
-}
-
-void main()
-{
-    auto b = B(10);
-    // b.a = 10; does not compile here, A does not define opAssign(int).
-}
-------
-)
-
-$(P The program above prints the line $(CODE "[= A.this(10) =]"). Anywhere else
-attempting to assign an integer to an object of type `A` would count as an
-assignment (and is not compilable because `A` does not define `opAssign(int)`).)
-
-$(P Finding the first assignment in lexical order is flow-sensitive upon the
-`if` statement. Consider a change to struct `B` in the previous example as
-follows:)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
-------
-struct A
-{
-    this(int x) {}
-}
-struct B
-{
-    A a;
-    this(int x)
-    {
-        if (x < 0)
-            a = -x;
-        else
-            a = x;
-    }
-}
-------
-)
-
-$(P This code issues a constructor call on each branch of the `if` statement.
-However, such flow sensitivity is limited. There is no static or dynamic
-analysis of coverage of the `if` statement. For example:)
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
-------
-struct B
-{
-    A a;
-    this(int x)
-    {
-        if (false) a = 0; // constructor call even if never covered
-        a = x; // error, cannot assign
-    }
-}
-------
-)
-
-$(P Also, member assignments inside loops are never considered constructors,
-even if it can be determined statically that the loop executes at most once.
-Example:)
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
-------
-struct B
-{
-    A a;
-    this(int x)
-    {
-        foreach (i; 0 .. x ? 0 : 1) a = i; // error, cannot assign
-    }
-}
-------
-)
-
-$(P If an exception is thrown at any point from within a constructor,
-destructors are called for all members, in reverse lexical order of their
-declaration. Members that have not been explicitly initialized in the
-constructor will have their `.init` values upon destruction.)
-)
-
-        $(P A constructor qualifier allows the object to be constructed with
-        that specific qualifier.
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S
+        {
+            int x;
+            this() { } // error, struct default constructor not allowed
+        }
+        ---
         )
 
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
-        ------
+        $(P Constructors can call other constructors for the same struct
+        in order to share common initializations
+        (this is called a $(DDSUBLINK spec/class, delegating-constructors, delegating constructor)):
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S
+        {
+            int j = 1;
+            long k = 2;
+            this(long k)
+            {
+                this.k = k;
+            }
+            this(int i)
+            {
+                // At this point: j=1, k=2
+                $(CODE_HIGHLIGHT this)(6); // delegating constructor call
+                // At this point: j=1, k=6
+                j = i;
+                // At this point: j=i, k=6
+            }
+        }
+        ---
+        )
+
+        $(P The following restrictions apply to struct construction:)
+
+        $(OL
+        $(LI If a constructor's code contains a delegate constructor call, all
+        possible execution paths through the constructor must make exactly one
+        delegate constructor call:
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S
+        {
+            int a;
+            this(int i) { }
+
+            this(char c)
+            {
+                c || this(1); // error, not on all paths
+            }
+
+            this(wchar w)
+            {
+                (w) ? this(1) : this('c'); } // ok
+
+            this(byte b)
+            {
+                foreach (i; 0 .. b)
+                {
+                    this(1);  // error, inside loop
+                }
+            }
+        }
+        ---
+        )
+        )
+
+        $(LI It is illegal to refer to $(D this) implicitly or explicitly
+        prior to making a delegate constructor call.)
+
+        $(LI Once the delegate constructor returns, all fields are considered
+        constructed.)
+
+        $(LI Delegate constructor calls cannot appear after labels.)
+        )
+
+
+        $(P When an instance of a struct is created, the following steps happen:)
+
+        $(OL
+        $(LI The raw data is statically initialized using the values provided
+        in the struct definition.
+        This operation is equivalent to doing a memory copy of a static
+        version of the object onto the newly allocated one.
+        )
+
+        $(LI If there is a constructor defined for the struct,
+        the constructor matching the argument list is called.
+        )
+
+        $(LI If struct invariant checking is turned on, the struct invariant
+        is called at the end of the constructor.
+        )
+        )
+
+
+        $(P A constructor qualifier (`const`, `immutable` or `shared) constructs the object instance
+        with that specific qualifier.
+        )
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
         struct S1
         {
             int[] a;
@@ -539,25 +544,70 @@ constructor will have their `.init` values upon destruction.)
             const S1 c1 = S1(1);
 
             // Constructed mutable object is not implicitly convertible to immutable.
-            // immutable i1 = S1(1);
+            immutable i1 = S1(1); // error
 
             // Mutable constructor cannot construct immutable object.
-            // auto x1 = immutable S1(1);
+            auto x1 = immutable S1(1); // error
 
-            // Immutable constructor cannot construct mutable object.
-            // auto x2 = S2(1);
-
-            // Constructed immutable object is not implicitly convertible to mutable.
-            // S2 m2 = immutable S2(1);
-
-            // Constructed immutable object is implicitly convertible to const.
-            const S2 c2 = immutable S2(1);
 
             // Immutable constructor creates immutable object.
             immutable i2 = immutable S2(1);
+
+            // Immutable constructor cannot construct mutable object.
+            auto x2 = S2(1); // error
+
+            // Constructed immutable object is not implicitly convertible to mutable.
+            S2 m2 = immutable S2(1); // error
+
+            // Constructed immutable object is implicitly convertible to const.
+            const S2 c2 = immutable S2(1);
         }
-        ------
+        ---
         )
+
+        $(P Constructors can be overloaded with different attributes.)
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S
+        {
+            this(int);           // non-shared mutable constructor
+            this(int) shared;    // shared mutable constructor
+            this(int) immutable; // immutable constructor
+        }
+
+        S m = S(1);
+        shared s = shared S(2);
+        immutable i = immutable S(3);
+        ---
+        )
+
+        $(P If the constructor can create a unique object (i.e. if it is `pure`),
+        the object is implicitly convertible to any qualifiers.
+        )
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S
+        {
+            this(int) pure;
+            // Based on the definition, this creates a mutable object. But the
+            // created object cannot contain any mutable global data.
+            // Therefore the created object is unique.
+
+            this(int[] arr) immutable pure;
+            // Based on the definition, this creates an immutable object. But
+            // the argument int[] never appears in the created object so it
+            // isn't implicitly convertible to immutable. Also, it cannot store
+            // any immutable global data.
+            // Therefore the created object is unique.
+        }
+
+        immutable i = immutable S(1); // this(int) pure is called
+        shared s = shared S(1);       // this(int) pure is called
+        S m = S([1,2,3]);             // this(int[]) immutable pure is called
+        ---
+        )
+
+
 
 $(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Construction))
 
@@ -607,6 +657,156 @@ $(H2 $(LNAME2 disable_default_construction, Disabling Default Struct Constructio
 
         $(BEST_PRACTICE Disabling default construction is useful when the default value,
         such as `null`, is not acceptable.)
+
+
+$(H2 $(LNAME2 UnionConstructor, Union Constructors))
+
+        $(P Unions are constructed in the same way as structs.)
+
+
+$(H2 $(LNAME2 field-init, Field initialization inside constructor))
+
+        $(P In a constructor body, if a delegate constructor is called,
+        all field assignments are considered assignments.
+        Otherwise, the first instance of field assignment is
+        its initialization, and assignments of the form `field = expression`
+        are treated as equivalent to `typeof(field)(expression)`.
+        The values of fields may be read before initialization or construction
+        with a delegate constructor.
+        )
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct S
+        {
+            int num;
+            int ber;
+            this(int i)
+            {
+                num = i + 1;   // initialization
+                num = i + 2;   // assignment
+                ber = ber + 1; // ok to read before initialization
+            }
+            this(int i, int j)
+            {
+                this(i);
+                num = i + 1;  // assignment
+            }
+        }
+        ---
+        )
+
+        $(P If the field type has an $(LINK2 operatoroverloading.html#assignment, `opAssign`)
+        method, it will not be used for initialization.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        struct A
+        {
+            this(int n) {}
+            void opAssign(A rhs) {}
+        }
+        struct S
+        {
+            A val;
+            this(int i)
+            {
+                val = A(i);  // val is initialized to the value of A(i)
+                val = A(2);  // rewritten to val.opAssign(A(2))
+            }
+        }
+        ---
+        )
+
+        $(P If the field type is not mutable, multiple initialization will be rejected.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S
+        {
+            immutable int num;
+            this(int)
+            {
+                num = 1;  // OK
+                num = 2;  // Error: assignment to immutable
+            }
+        }
+        ---
+        )
+
+        $(P If the field is initialized on one path, it must be initialized on all paths.)
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S
+        {
+            immutable int num;
+            immutable int ber;
+            this(int i)
+            {
+                if (i)
+                    num = 3;   // initialization
+                else
+                    num = 4;   // initialization
+            }
+            this(long j)
+            {
+                j ? (num = 3) : (num = 4); // ok
+                j || (ber = 3);  // Error: intialized on only one path
+                j && (ber = 3);  // Error: intialized on only one path
+            }
+        }
+        ---
+        )
+
+        $(P A field initialization may not appear in a loop or after
+        a label.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S
+        {
+            immutable int num;
+            immutable string str;
+            this(int j)
+            {
+                foreach (i; 0..j)
+                {
+                    num = 1;    // Error: field initialization not allowed in loops
+                }
+                size_t i = 0;
+            Label:
+                str = "hello";  // Error: field initialization not allowed after labels
+                if (i++ < 2)
+                    goto Label;
+            }
+            this(int j, int k)
+            {
+                switch (j)
+                {
+                    case 1: ++j; break;
+                    default: break;
+                }
+                num = j;        // Error: `case` and `default` are also labels
+            }
+        }
+        ---
+        )
+
+        $(P If a field's type has disabled default construction, then it must be initialized
+        in the constructor.)
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        ---
+        struct S { int y; @disable this(); }
+
+        struct T
+        {
+            S s;
+            this(S t) { s = t; }       // ok
+            this(int i) { this('c'); } // ok
+            this(char) { }             // Error: s not initialized
+        }
+        ---
+        )
 
 $(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
