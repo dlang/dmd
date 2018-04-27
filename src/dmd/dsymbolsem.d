@@ -1333,9 +1333,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         imp.semanticRun = PASS.semantic;
 
         // Load if not already done so
+        bool loadErrored = false;
         if (!imp.mod)
         {
+            const errors = global.errors;
             imp.load(sc);
+            loadErrored = global.errors != errors;
             if (imp.mod)
                 imp.mod.importAll(null);
         }
@@ -1382,7 +1385,11 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 scopesym.addAccessiblePackage(imp.mod, imp.protection); // d
             }
 
-            imp.mod.dsymbolSemantic(null);
+            if (!loadErrored)
+            {
+                imp.mod.dsymbolSemantic(null);
+            }
+
             if (imp.mod.needmoduleinfo)
             {
                 //printf("module4 %s because of %s\n", sc.module.toChars(), mod.toChars());
