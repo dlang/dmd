@@ -97,6 +97,7 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         stc |= sd.postblits[i].storage_class & STC.disable;
     }
 
+    VarDeclaration[] fieldsToDestroy;
     auto postblitCalls = new Statements();
     // iterate through all the struct fields that are not disabled
     for (size_t i = 0; i < sd.fields.dim && !(stc & STC.disable); i++)
@@ -115,6 +116,84 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         if (!sdv.postblit)
             continue;
         assert(!sdv.isUnionDeclaration());
+
+        // if this field's postblit is not `nothrow`, add a `scope(failure)`
+        // block to destroy any prior successfully postblitted fields should
+        // this field's postblit fail
+        if (fieldsToDestroy.length > 0 && !(cast(TypeFunction)sdv.postblit.type).isnothrow)
+        {
+             // create a list of destructors that need to be called
+            Expression[] dtorCalls;
+            foreach(sf; fieldsToDestroy)
+            {
+                Expression ex;
+                tv = sf.type.toBasetype();
+                if (tv.ty == Tstruct)
+                {
+                    // this.v.__xdtor()
+
+                    ex = new ThisExp(loc);
+                    ex = new DotVarExp(loc, ex, sf);
+
+                    // This is a hack so we can call destructors on const/immutable objects.
+                    ex = new AddrExp(loc, ex);
+                    ex = new CastExp(loc, ex, sf.type.mutableOf().pointerTo());
+                    ex = new PtrExp(loc, ex);
+                    if (stc & STC.safe)
+                        stc = (stc & ~STC.safe) | STC.trusted;
+
+                    auto sfv = (cast(TypeStruct)sf.type.baseElemOf()).sym;
+
+                    ex = new DotVarExp(loc, ex, sfv.dtor, false);
+                    ex = new CallExp(loc, ex);
+
+                    dtorCalls ~= ex;
+                }
+                else
+                {
+                    // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
+
+                    uinteger_t length = 1;
+                    while (tv.ty == Tsarray)
+                    {
+                        length *= (cast(TypeSArray)tv).dim.toUInteger();
+                        tv = tv.nextOf().toBasetype();
+                    }
+                    //if (n == 0)
+                    //    continue;
+
+                    ex = new ThisExp(loc);
+                    ex = new DotVarExp(loc, ex, sf);
+
+                    // This is a hack so we can call destructors on const/immutable objects.
+                    ex = new DotIdExp(loc, ex, Id.ptr);
+                    ex = new CastExp(loc, ex, sdv.type.pointerTo());
+                    if (stc & STC.safe)
+                        stc = (stc & ~STC.safe) | STC.trusted;
+
+                    ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
+                                            new IntegerExp(loc, length, Type.tsize_t));
+                    // Prevent redundant bounds check
+                    (cast(SliceExp)ex).upperIsInBounds = true;
+                    (cast(SliceExp)ex).lowerIsLessThanUpper = true;
+
+                    ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
+
+                    dtorCalls ~= ex;
+                }
+            }
+            fieldsToDestroy = [];
+
+            // aggregate the destructor calls
+            auto dtors = new Statements();
+            foreach_reverse(dc; dtorCalls)
+            {
+                dtors.push(new ExpStatement(loc, dc));
+            }
+
+            // put destructor calls in a `scope(failure)` block
+            postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new CompoundStatement(loc, dtors)));
+        }
 
         // perform semantic on the member postblit in order to
         // be able to aggregate it later on with the rest of the
@@ -184,62 +263,17 @@ private extern (C++) FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* 
         postblitCalls.push(new ExpStatement(loc, ex)); // combine in forward order
 
         /* https://issues.dlang.org/show_bug.cgi?id=10972
-         * When the following field postblit calls fail,
+         * When subsequent field postblit calls fail,
          * this field should be destructed for Exception Safety.
          */
-        if (!sdv.dtor)
-            continue;
-        sdv.dtor.functionSemantic();
-
-        tv = structField.type.toBasetype();
-        if (tv.ty == Tstruct)
+        if (sdv.dtor)
         {
-            // this.v.__xdtor()
+            sdv.dtor.functionSemantic();
 
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, structField);
-
-            // This is a hack so we can call destructors on const/immutable objects.
-            ex = new AddrExp(loc, ex);
-            ex = new CastExp(loc, ex, structField.type.mutableOf().pointerTo());
-            ex = new PtrExp(loc, ex);
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
-
-            ex = new DotVarExp(loc, ex, sdv.dtor, false);
-            ex = new CallExp(loc, ex);
+            // keep a list of fields that need to be destroyed in case
+            // of a future postblit failure
+            fieldsToDestroy ~= structField;
         }
-        else
-        {
-            // _ArrayDtor((cast(S*)this.v.ptr)[0 .. n])
-
-            uinteger_t length = 1;
-            while (tv.ty == Tsarray)
-            {
-                length *= (cast(TypeSArray)tv).dim.toUInteger();
-                tv = tv.nextOf().toBasetype();
-            }
-            //if (n == 0)
-            //    continue;
-
-            ex = new ThisExp(loc);
-            ex = new DotVarExp(loc, ex, structField);
-
-            // This is a hack so we can call destructors on const/immutable objects.
-            ex = new DotIdExp(loc, ex, Id.ptr);
-            ex = new CastExp(loc, ex, sdv.type.pointerTo());
-            if (stc & STC.safe)
-                stc = (stc & ~STC.safe) | STC.trusted;
-
-            ex = new SliceExp(loc, ex, new IntegerExp(loc, 0, Type.tsize_t),
-                                       new IntegerExp(loc, length, Type.tsize_t));
-            // Prevent redundant bounds check
-            (cast(SliceExp)ex).upperIsInBounds = true;
-            (cast(SliceExp)ex).lowerIsLessThanUpper = true;
-
-            ex = new CallExp(loc, new IdentifierExp(loc, Id._ArrayDtor), ex);
-        }
-        postblitCalls.push(new OnScopeStatement(loc, TOK.onScopeFailure, new ExpStatement(loc, ex)));
     }
 
     void checkShared()

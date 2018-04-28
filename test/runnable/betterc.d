@@ -36,3 +36,19 @@ extern (C) void test17605()
     a = 1;
 }
 
+/*******************************************/
+// https://issues.dlang.org/show_bug.cgi?id=18493
+
+struct S18493
+{
+    this(this) nothrow { }  // Since this is attributed with `nothrow` there should be no error about using
+                            // try-catch with -betterC
+    ~this() { }  
+}
+
+struct S18493_2
+{
+    S18493 s1;
+    S18493 s2;
+}
+
