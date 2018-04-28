@@ -7,7 +7,7 @@ shared int i;
 i++; // Error: read-modify-write operations are not allowed for shared variables
 ---
 
-Use $(REF core, atomic, atomicOp) instead:
+Use $(REF atomicOp, core, atomic) instead:
 
 ---
 import core.atomic : atomicOp;
