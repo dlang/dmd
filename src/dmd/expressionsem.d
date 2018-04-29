@@ -6058,6 +6058,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return setError();
                 }
 
+                Type tbase = taa.index.baseElemOf();
+                if (tbase.ty == Tstruct)
+                {
+                    StructDeclaration sd = (cast(TypeStruct)tbase).sym;
+
+                    sd.determineSize(sd.loc);
+                    if (sd.hasNoFields)
+                    {
+                        exp.error("AA key type `struct %s` has no data fields and cannot be used as a key", sd.toChars());
+                        return setError();
+                    }
+                }
+
                 semanticTypeInfo(sc, taa);
 
                 exp.type = taa.next;

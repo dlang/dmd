@@ -995,6 +995,7 @@ void test6178x()
 
     static struct S
     {
+        byte b;
         this(int)  { ++ctor;   printf("ctor\n");   }
         this(this) { ++cpctor; printf("cpctor\n"); }
         ~this()    { ++dtor;   printf("dtor\n");   }
@@ -1182,7 +1183,7 @@ int[N6655] bar6655;
 
 /************************************************/
 
-struct ChunkLoc {}
+struct ChunkLoc { byte b; }
 
 ChunkLoc Get()
 {
