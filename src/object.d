@@ -219,9 +219,7 @@ class TypeInfo
 
     override int opCmp(Object o)
     {
-        import core.internal.traits : externDFunc;
-        alias dstrcmp = externDFunc!("core.internal.string.dstrcmp",
-                                     int function(scope const char[] s1, scope const char[] s2) @trusted pure nothrow @nogc);
+        import core.internal.string : dstrcmp;
 
         if (this is o)
             return 0;
