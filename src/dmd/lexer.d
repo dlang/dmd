@@ -2595,8 +2595,8 @@ unittest
 {
     static class AssertErrorHandler : ErrorHandler
     {
-        final void error(const(char)* format, ...) { assert(0); }
-        final void error(Loc loc, const(char)* format, ...) { assert(0); }
+        override final void error(const(char)* format, ...) { assert(0); }
+        override final void error(Loc loc, const(char)* format, ...) { assert(0); }
     }
     static void test(T)(string sequence, T expected)
     {
@@ -2646,7 +2646,7 @@ unittest
         string expected;
         bool gotError;
         this(string expected) { this.expected = expected; }
-        final void error(const(char)* format, ...)
+        override final void error(const(char)* format, ...)
         {
             gotError = true;
             char[100] buffer;
@@ -2656,7 +2656,7 @@ unittest
             va_end(ap);
             assert(expected == actual);
         }
-        final void error(Loc loc, const(char)* format, ...) { assert(0); }
+        override final void error(Loc loc, const(char)* format, ...) { assert(0); }
     }
     static void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength)
     {
