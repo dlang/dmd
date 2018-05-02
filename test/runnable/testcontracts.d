@@ -1086,6 +1086,8 @@ void test14779()
 int dip1009_1(int x)
   in  (x > 0, "x must be positive!")
   out (r; r < 0, "r must be negative!")
+  in (true, "cover trailing comma case",)
+  out (; true, "cover trailing comma case",)
 {
     return -x;
 }
