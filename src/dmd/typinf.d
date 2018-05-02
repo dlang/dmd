@@ -22,6 +22,7 @@ import dmd.globals;
 import dmd.gluelayer;
 import dmd.mtype;
 import dmd.visitor;
+import core.stdc.stdio;
 
 /****************************************************
  * Generates the `TypeInfo` object associated with `torig` if it
@@ -35,10 +36,16 @@ extern (C++) void genTypeInfo(Loc loc, Type torig, Scope* sc)
 {
     //printf("Type::genTypeInfo() %p, %s\n", this, toChars());
 
-    if (!global.params.useTypeInfo)
+    // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
+    // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
+    // https://issues.dlang.org/show_bug.cgi?id=18472
+    if (!sc || !(sc.flags & SCOPE.ctfe))
     {
-        torig.error(loc, "`TypeInfo` cannot be used with -betterC");
-        fatal();
+        if (!global.params.useTypeInfo)
+        {
+            torig.error(loc, "`TypeInfo` cannot be used with -betterC");
+            fatal();
+        }
     }
 
     if (!Type.dtypeinfo)
