@@ -923,6 +923,20 @@
                 "line": 194,
                 "linkage": "objc",
                 "name": "flinkageObjc"
+            },
+            {
+                "char": 7,
+                "kind": "template",
+                "line": 196,
+                "members": [],
+                "name": "test18211",
+                "parameters": [
+                    {
+                        "deco": "VALUE_REMOVED_FOR_TEST",
+                        "kind": "value",
+                        "name": "n"
+                    }
+                ]
             }
         ],
         "name": "json"

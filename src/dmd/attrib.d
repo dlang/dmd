@@ -1080,7 +1080,10 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         {
             return cache;
         }
-        sfe.prepare(_scope); // lower static foreach aggregate
+        if (_scope)
+        {
+            sfe.prepare(_scope); // lower static foreach aggregate
+        }
         if (!sfe.ready())
         {
             return null; // TODO: ok?

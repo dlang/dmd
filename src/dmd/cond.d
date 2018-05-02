@@ -416,7 +416,7 @@ extern (C++) final class StaticForeach : RootObject
      */
     final extern(D) bool ready()
     {
-        return aggrfe && aggrfe.aggr && aggrfe.aggr.type.toBasetype().ty == Ttuple;
+        return aggrfe && aggrfe.aggr && aggrfe.aggr.type && aggrfe.aggr.type.toBasetype().ty == Ttuple;
     }
 }
 
