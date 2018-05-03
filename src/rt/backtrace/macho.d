@@ -67,4 +67,9 @@ struct Image
         auto data = getsectiondata(self, "__DWARF", "__debug_line", &size);
         return data[0 .. size];
     }
+
+    @property size_t baseAddress()
+    {
+        return 0;
+    }
 }
