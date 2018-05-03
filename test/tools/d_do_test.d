@@ -837,7 +837,6 @@ int tryMain(string[] args)
                 }
                 return Result.return0;
             }
-
             f.writeln();
             f.writeln("==============================");
             f.writef("Test %s failed: ", input_file);
@@ -845,8 +844,21 @@ int tryMain(string[] args)
             f.close();
 
             writefln("Test %s failed.  The logged output:", input_file);
-            writeln(output_file.readText);
+            auto outputText = output_file.readText;
+            writeln(outputText);
             output_file.remove();
+
+            // auto-update if a diff is found and can be updated
+            if (envData.autoUpdate &&
+                outputText.canFind("diff ") && outputText.canFind("--- ") && outputText.canFind("+++ "))
+            {
+                import std.range : dropOne;
+                auto newFile = outputText.findSplitAfter("+++ ")[1].until("\t");
+                auto baseFile = outputText.findSplitAfter("--- ")[1].until("\t");
+                writefln("===> Updating %s with %s", baseFile, newFile);
+                newFile.copy(baseFile);
+                return Result.return0;
+            }
 
             // automatically rerun a segfaulting test and print its stack trace
             version(linux)
