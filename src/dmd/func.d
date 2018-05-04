@@ -2571,8 +2571,8 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
     Match m;
     m.last = MATCH.nomatch;
 
-    const(char)* failMessage;
-    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &failMessage);
+    size_t failIndex;
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs, &failIndex);
 
     if (m.last > MATCH.nomatch && m.lastf)
     {
@@ -2699,8 +2699,9 @@ extern (C++) FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymb
                     .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
                         fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameters, tf.varargs),
                         tf.modToChars(), fargsBuf.peekString());
-                    if (failMessage)
-                        errorSupplemental(loc, failMessage);
+                    // If no argument is provided, there's nothing to show
+                    if (fargs)
+                        showArgMismatch(loc, fargs, tf, failIndex);
                 }
             }
 
@@ -3693,3 +3694,27 @@ extern (C++) final class DeleteDeclaration : FuncDeclaration
     }
 }
 
+/** Show supplemental error message for a function call with mismatched arguments.
+ * Params:
+ *  loc = line information for error message
+ *  fargs = arguments to function
+ *  tf = function called
+ *  failIndex = index of first argument mismatch */
+void showArgMismatch(Loc loc, Expressions* fargs, TypeFunction tf, size_t failIndex)
+{
+    if (failIndex < fargs.dim && failIndex < tf.parameters.dim)
+    {
+        auto arg = (*fargs)[failIndex];
+        auto par = (*tf.parameters)[failIndex];
+        const rv = (!arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_)) ? "rvalue " : "";
+
+        // disambiguate when toChars() is the same
+        auto at = arg.type.toChars();
+        bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
+        if (qual)
+            at = arg.type.toPrettyChars(true);
+
+        errorSupplemental(loc, "cannot pass %sargument `%s` of type `%s` to parameter `%s`",
+            rv.ptr, arg.toChars(), at, parameterToChars(par, tf, qual));
+    }
+}
