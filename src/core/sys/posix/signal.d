@@ -1605,6 +1605,11 @@ else version( CRuntime_Musl )
     struct sigset_t {
         ulong[128/long.sizeof] __bits;
     }
+
+    enum SIG_BLOCK      = 0;
+    enum SIG_UNBLOCK    = 1;
+    enum SIG_SETMASK    = 2;
+
     struct siginfo_t {
         int si_signo, si_errno, si_code;
         union __si_fields_t {
@@ -3093,6 +3098,7 @@ else version (CRuntime_Bionic)
 }
 else version( CRuntime_Musl )
 {
+    enum SA_RESTART     = 0x10000000;
 }
 else version( CRuntime_UClibc )
 {

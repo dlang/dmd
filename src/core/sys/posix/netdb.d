@@ -917,7 +917,10 @@ else version( CRuntime_Musl )
         AI_PASSIVE         = 0x1,
         AI_CANONNAME       = 0x2,
         AI_NUMERICHOST     = 0x4,
-        AI_NUMERICSERV     = 0x8
+        AI_NUMERICSERV     = 0x400,
+        AI_V4MAPPED        = 0x8,
+        AI_ALL             = 0x10,
+        AI_ADDRCONFIG      = 0x20,
     }
     enum {
         NI_NUMERICHOST     = 1,
