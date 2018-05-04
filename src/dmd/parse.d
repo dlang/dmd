@@ -736,6 +736,10 @@ final class Parser(AST) : Lexer
                 stc = AST.STC.gshared;
                 goto Lstc;
 
+            case TOK.mutable:
+                stc = AST.STC.mutable;
+                goto Lstc;
+
             //case TOK.manifest:   stc = STC.manifest;     goto Lstc;
 
             case TOK.at:
@@ -4036,6 +4040,10 @@ final class Parser(AST) : Lexer
                 stc = AST.STC.manifest;
                 goto L1;
 
+            case TOK.mutable:
+                stc = AST.STC.mutable;
+                goto L1;
+
             case TOK.at:
                 {
                     stc = parseAttribute(&udas);
@@ -5225,6 +5233,7 @@ final class Parser(AST) : Lexer
         case TOK.union_:
         case TOK.class_:
         case TOK.interface_:
+        case TOK.mutable:
         Ldeclaration:
             {
                 AST.Dsymbols* a = parseDeclarations(false, null, null);

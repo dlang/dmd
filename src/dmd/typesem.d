@@ -3352,8 +3352,18 @@ private extern(C++) final class DotExpVisitor : Visitor
                 d.dsymbolSemantic(null);
             checkAccess(e.loc, sc, e, d);
             auto ve = new VarExp(e.loc, d);
-            if (d.isVarDeclaration() && d.needThis())
-                ve.type = d.type.addMod(e.type.mod);
+            auto vd = d.isVarDeclaration();
+            if (vd && vd.needThis())
+            {
+                if (vd.storage_class & STC.mutable)
+                {
+                    ve.type = d.type.mutableAddMod(e.type.mod);
+                }
+                else
+                {
+                    ve.type = d.type.addMod(e.type.mod);
+                }
+            }
             result = ve;
             return;
         }

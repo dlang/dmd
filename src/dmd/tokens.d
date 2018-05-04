@@ -286,6 +286,8 @@ enum TOK : int
 
     objcClassReference,
 
+    mutable,
+
     max_,
 }
 
@@ -418,6 +420,7 @@ private immutable TOK[] keywords =
     TOK.prettyFunction,
     TOK.shared_,
     TOK.immutable_,
+    TOK.mutable,
 ];
 
 /***********************************************************
@@ -695,6 +698,8 @@ extern (C++) struct Token
         TOK.cantExpression: "cantexp",
 
         TOK.objcClassReference: "class",
+
+        TOK.mutable: "__mutable",
     ];
 
     static assert(() {

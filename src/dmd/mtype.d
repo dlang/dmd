@@ -1962,6 +1962,38 @@ extern (C++) abstract class Type : RootObject
     }
 
     /************************************
+     * Add MODxxxx bits to type of __mutable member variable
+     */
+
+    final Type mutableAddMod(MOD mod)
+    {
+        if (isShared())
+        {
+            return this;
+        }
+        if (mod & MODFlags.immutable_)
+        {
+            mod &= ~MODFlags.immutable_;
+            mod |= MODFlags.shared_;
+        }
+        if (mod & MODFlags.wild)
+        {
+            // TODO: even /reading/ the field is actually not okay.
+            mod &= ~MODFlags.wild;
+            mod |= MODFlags.const_;
+        }
+        if (mod & MODFlags.shared_)
+        {
+            mod &= ~MODFlags.const_;
+        }
+        if (mod & MODFlags.const_)
+        {
+            mod &= ~MODFlags.const_; // TODO: best behavior?
+        }
+        return addMod(mod);
+    }
+
+    /************************************
      * Add storage class modifiers to type.
      */
     Type addStorageClass(StorageClass stc)
