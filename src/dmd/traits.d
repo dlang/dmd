@@ -121,6 +121,7 @@ shared static this()
         "isRef",
         "isOut",
         "isLazy",
+        "isUnderUnderMutable",
         "isReturnOnStack",
         "hasMember",
         "identifier",
@@ -699,6 +700,14 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return isDeclX(d => (d.storage_class & STC.lazy_) != 0);
     }
+    if (e.ident == Id.isUnderUnderMutable)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDeclX(d => (d.storage_class & STC.mutable) != 0);
+    }
+
     if (e.ident == Id.identifier)
     {
         // Get identifier for symbol as a string literal
