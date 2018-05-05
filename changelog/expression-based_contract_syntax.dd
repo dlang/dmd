@@ -1,4 +1,4 @@
-Implement DIP 1009 - $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1009.md, Add Expression-Based Contract Syntax)
+Implement DIP 1009 - Add Expression-Based Contract Syntax
 
 Expression-based contract syntax has been added: Contracts that consist of a single assertion can now be written more succinctly and multiple `in` or `out` contracts can be specified for the same function.
 
