@@ -1909,27 +1909,65 @@ public:
         hgs.tpltMember = 0;
         hgs.autoMember = 0;
         buf.writenl();
+        bool requireDo = false;
         // in{}
-        if (f.frequire)
+        if (f.frequires)
         {
-            buf.writestring("in");
-            buf.writenl();
-            f.frequire.accept(this);
+            foreach (frequire; *f.frequires)
+            {
+                buf.writestring("in");
+                if (auto es = frequire.isExpStatement())
+                {
+                    assert(es.exp && es.exp.op == TOK.assert_);
+                    buf.writestring(" (");
+                    (cast(AssertExp)es.exp).e1.accept(this);
+                    buf.writeByte(')');
+                    buf.writenl();
+                    requireDo = false;
+                }
+                else
+                {
+                    buf.writenl();
+                    frequire.accept(this);
+                    requireDo = true;
+                }
+            }
         }
         // out{}
-        if (f.fensure)
+        if (f.fensures)
         {
-            buf.writestring("out");
-            if (f.outId)
+            foreach (fensure; *f.fensures)
             {
-                buf.writeByte('(');
-                buf.writestring(f.outId.toChars());
-                buf.writeByte(')');
+                buf.writestring("out");
+                if (auto es = fensure.ensure.isExpStatement())
+                {
+                    assert(es.exp && es.exp.op == TOK.assert_);
+                    buf.writestring(" (");
+                    if (fensure.id)
+                    {
+                        buf.writestring(fensure.id.toChars());
+                    }
+                    buf.writestring("; ");
+                    (cast(AssertExp)es.exp).e1.accept(this);
+                    buf.writeByte(')');
+                    buf.writenl();
+                    requireDo = false;
+                }
+                else
+                {
+                    if (fensure.id)
+                    {
+                        buf.writeByte('(');
+                        buf.writestring(fensure.id.toChars());
+                        buf.writeByte(')');
+                    }
+                    buf.writenl();
+                    fensure.ensure.accept(this);
+                    requireDo = true;
+                }
             }
-            buf.writenl();
-            f.fensure.accept(this);
         }
-        if (f.frequire || f.fensure)
+        if (requireDo)
         {
             buf.writestring("do");
             buf.writenl();
@@ -2046,7 +2084,18 @@ public:
         if (stcToBuffer(buf, d.storage_class))
             buf.writeByte(' ');
         buf.writestring("invariant");
-        bodyToBuffer(d);
+        if(auto es = d.fbody.isExpStatement())
+        {
+            assert(es.exp && es.exp.op == TOK.assert_);
+            buf.writestring(" (");
+            (cast(AssertExp)es.exp).e1.accept(this);
+            buf.writestring(");");
+            buf.writenl();
+        }
+        else
+        {
+            bodyToBuffer(d);
+        }
     }
 
     override void visit(UnitTestDeclaration d)

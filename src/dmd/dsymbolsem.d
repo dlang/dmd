@@ -439,7 +439,7 @@ package bool allowsContractWithoutBody(FuncDeclaration funcdecl)
     InterfaceDeclaration id = parent.isInterfaceDeclaration();
 
     if (!funcdecl.isAbstract() &&
-        (funcdecl.fensure || funcdecl.frequire) &&
+        (funcdecl.fensures || funcdecl.frequires) &&
         !(id && funcdecl.isVirtual()))
     {
         auto cd = parent.isClassDeclaration();
