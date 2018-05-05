@@ -208,4 +208,9 @@ nothrow:
     {
         stringtable._init(28000);
     }
+
+    static void deinitTable()
+    {
+        stringtable.reset();
+    }
 }

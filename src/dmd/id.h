@@ -18,6 +18,7 @@
 struct Id
 {
     static void initialize();
+    static void deinitialize();
 };
 
 #endif /* DMD_ID_H */

@@ -39,6 +39,11 @@ struct Id
     {
         mixin(msgtable.generate(&initializer));
     }
+
+    extern(C++) void deinitialize()
+    {
+        mixin(msgtable.generate(&deinitializer));
+    }
 }
 
 private:
@@ -476,4 +481,10 @@ string identifier(Msgtable m)
 string initializer(Msgtable m)
 {
     return m.ident ~ ` = Identifier.idPool("` ~ m.name ~ `");`;
+}
+
+// Used to generate the code for each deinitializer, to prevent pinning.
+string deinitializer(Msgtable m)
+{
+    return m.ident ~ ` = null;`;
 }

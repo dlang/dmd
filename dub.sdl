@@ -19,6 +19,7 @@ subPackage {
   sourcePaths
 
   sourceFiles \
+    "src/dmd/compiler.d" \
     "src/dmd/console.d" \
     "src/dmd/entity.d" \
     "src/dmd/errors.d" \
