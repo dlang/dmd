@@ -7939,7 +7939,7 @@ final class Parser(AST) : Lexer
                                 error("C style cast illegal, use `%s`", e.toChars());
                             }
                             return e;
-						}
+                        }
                     }
                 }
                 e = parsePrimaryExp();
