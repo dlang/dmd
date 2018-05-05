@@ -1287,6 +1287,53 @@ class Lexer
         }
     }
 
+    /*********************************
+     * tk is on an opening (.
+     * Look ahead and determine if there is a comma at paren level 1.
+     */
+    final bool isTupleNotation(Token* tk)
+    {
+        int parens = 1;
+        int curlynest = 0;
+        while (1)
+        {
+            tk = peek(tk);
+            switch (tk.value)
+            {
+            case TOK.leftParenthesis:
+                parens++;
+                continue;
+            case TOK.rightParenthesis:
+                --parens;
+                if (parens)
+                    continue;
+                break;
+            case TOK.comma:
+                if (curlynest)
+                    continue;
+                if (parens == 1)
+                    return true;
+                continue;
+            case TOK.leftCurly:
+                curlynest++;
+                continue;
+            case TOK.rightCurly:
+                if (--curlynest >= 0)
+                    continue;
+                break;
+            case TOK.semicolon:
+                if (curlynest)
+                    continue;
+                break;
+            case TOK.endOfFile:
+                break;
+            default:
+                continue;
+            }
+            return false;
+        }
+    }
+
     /*******************************************
      * Parse escape sequence.
      */

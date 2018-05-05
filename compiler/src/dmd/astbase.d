@@ -262,6 +262,20 @@ struct ASTBase
         {
             v.visit(this);
         }
+
+        extern (D) static Dsymbols* arraySyntaxCopy(Dsymbols* a)
+        {
+            Dsymbols* b = null;
+            if (a)
+            {
+                b = a.copy();
+                for (size_t i = 0; i < b.length; i++)
+                {
+                    (*b)[i] = (*b)[i].syntaxCopy(null);
+                }
+            }
+            return b;
+        }
     }
 
     extern (C++) class AliasThis : Dsymbol
@@ -652,6 +666,30 @@ struct ASTBase
             super(id);
             this.loc = loc;
             this.objects = objects;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class UnpackDeclaration : Declaration
+    {
+        Dsymbols* vars;
+        Expression _init;
+        extern (D) this(const ref Loc loc, Dsymbols* vars, Expression _init, StorageClass storage_class)
+        {
+            super(null);
+            this.loc = loc;
+            this.vars = vars;
+            this._init = _init;
+            this.storage_class = storage_class;
+        }
+
+        override UnpackDeclaration syntaxCopy(Dsymbol s)
+        {
+            return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(vars), _init ? _init.syntaxCopy() : null, storage_class);
         }
 
         override void accept(Visitor v)

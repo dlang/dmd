@@ -52,6 +52,7 @@ public:
     void visit(AST.FuncDeclaration s) { visit(cast(AST.Declaration)s); }
     void visit(AST.AliasDeclaration s) { visit(cast(AST.Declaration)s); }
     void visit(AST.TupleDeclaration s) { visit(cast(AST.Declaration)s); }
+    void visit(AST.UnpackDeclaration s) { visit(cast(AST.Declaration)s); }
 
     // FuncDeclarations
     void visit(AST.FuncLiteralDeclaration s) { visit(cast(AST.FuncDeclaration)s); }
