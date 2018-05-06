@@ -112,6 +112,18 @@ public:
         fatal(); //Fatal, because this error should be handled in frontend
     }
 
+    override void visit(TypeNull type)
+    {
+        if (type.isImmutable() || type.isShared())
+        {
+            visit(cast(Type)type);
+            return;
+        }
+        buf.writestring("$$T");
+        flags &= ~IS_NOT_TOP_TYPE;
+        flags &= ~IGNORE_CONST;
+    }
+
     override void visit(TypeBasic type)
     {
         //printf("visit(TypeBasic); is_not_top_type = %d\n", (int)(flags & IS_NOT_TOP_TYPE));
