@@ -7471,7 +7471,7 @@ final class Parser(AST) : Lexer
                             postfix = token.postfix;
                         }
 
-                        deprecation("Implicit string concatenation is deprecated, use %s ~ %s instead",
+                        error("Implicit string concatenation is deprecated, use %s ~ %s instead",
                                     prev.toChars(), token.toChars());
 
                         const len1 = len;
