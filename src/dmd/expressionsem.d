@@ -8931,7 +8931,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             auto t1 = exp.e1.type;
             auto t2 = exp.e2.type;
             if (t1.ty == Tenum && t2.ty == Tenum && !t1.equivalent(t2))
-                exp.deprecation("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
+                exp.error("Comparison between different enumeration types `%s` and `%s`; If this behavior is intended consider using `std.conv.asOriginalType`",
                     t1.toChars(), t2.toChars());
         }
 
