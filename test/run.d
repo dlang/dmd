@@ -15,7 +15,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
        std.getopt, std.parallelism, std.path, std.process, std.range, std.stdio, std.string;
 import core.stdc.stdlib : exit;
 
-const scriptDir = __FILE_FULL_PATH__.dirName;
+const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
 string resultsDir = scriptDir.buildPath("test_results");
 immutable testDirs = ["runnable", "compilable", "fail_compilation"];
 shared bool verbose; // output verbose logging
@@ -72,7 +72,12 @@ Options:
 
     if (targets.length > 0)
     {
-        int ret;
+        if (!env["DMD"].exists)
+        {
+            stderr.writefln("%s doesn't exist, try building dmd with:\nmake -fposix.mak -j8 -C%s", env["DMD"], scriptDir.dirName.relativePath);
+            exit(1);
+        }
+
         if (verbose)
         {
             log("================================================================================");
@@ -80,6 +85,8 @@ Options:
                 log("%s=%s", key, value);
             log("================================================================================");
         }
+        
+        int ret;
         auto taskPool = new TaskPool(jobs);
         scope(exit) taskPool.finish();
         ensureToolsExists;
