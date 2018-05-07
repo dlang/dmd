@@ -195,19 +195,6 @@ public:
 
 /**************************************************************/
 
-class UnpackDeclaration final : public Declaration
-{
-public:
-    Dsymbols *vars;
-    Expression *_init;
-
-    UnpackDeclaration *syntaxCopy(Dsymbol *) override;
-    UnpackDeclaration *isUnpackDeclaration() override { return this; }
-    void accept(Visitor *v) override { v->visit(this); }
-};
-
-/**************************************************************/
-
 class AliasDeclaration final : public Declaration
 {
 public:

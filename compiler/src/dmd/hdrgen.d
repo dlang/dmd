@@ -255,6 +255,11 @@ public const(char)* toChars(const Dsymbol d)
         return buf.extractChars();
     }
 
+    if (auto upd = d.isUnpackDeclaration())
+    {
+        return "unpack declaration";
+    }
+
     return d.ident ? d.ident.toHChars2() : "__anonymous";
 }
 

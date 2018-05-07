@@ -198,3 +198,27 @@ public:
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };
+
+/***********************************************************
+ * Unpack declarations look like, e.g.:
+ * auto (a, b) = init;
+ * (int a, string b) = init;
+ */
+class UnpackDeclaration final : public AttribDeclaration
+{
+public:
+    Expression *_init;
+    ScopeDsymbol *scopesym;
+    StorageClass declared_storage_class;
+    StorageClass storage_class;
+    bool onStack;
+    bool lowered;
+
+    Dsymbols *include(Scope *sc) override;
+    void addComment(const utf8_t *comment) override;
+    UnpackDeclaration *syntaxCopy(Dsymbol *) override;
+    const char *toChars() const override;
+    const char *kind() const override;
+    UnpackDeclaration *isUnpackDeclaration() override { return this; }
+    void accept(Visitor *v) override { v->visit(this); }
+};

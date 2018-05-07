@@ -324,29 +324,6 @@ extern (C++) final class TupleDeclaration : Declaration
     }
 }
 
-extern (C++) final class UnpackDeclaration : Declaration
-{
-    Dsymbols* vars;
-    Expression _init;
-    extern (D) this(const ref Loc loc, Dsymbols* vars, Expression _init, STC storage_class)
-    {
-	    super(DSYM.unpackDeclaration, loc, null);
-        this.vars = vars;
-        this._init = _init;
-        this.storage_class = storage_class;
-    }
-
-    override UnpackDeclaration syntaxCopy(Dsymbol s)
-    {
-        return new UnpackDeclaration(loc, Dsymbol.arraySyntaxCopy(vars), _init ? _init.syntaxCopy() : null, storage_class);
-    }
-
-    override void accept(Visitor v)
-    {
-        v.visit(this);
-    }
-}
-
 /***********************************************************
  * https://dlang.org/spec/declaration.html#AliasDeclaration
  */

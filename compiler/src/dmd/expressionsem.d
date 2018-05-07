@@ -8690,6 +8690,32 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         const olderrors = global.errors;
 
+        UnpackDeclaration u = e.declaration.isUnpackDeclaration();
+
+        if (u)
+        {
+            Expression c = null;
+            import dmd.dsymbolsem : include;
+            auto d = u.include(sc);
+            if (d)
+            {
+                foreach (var; *d)
+                {
+                    auto de = new DeclarationExp(var.loc, var);
+                    c = c ? new CommaExp(e.loc, c, de) : de;
+                }
+                if (c)
+                {
+                    result = c.expressionSemantic(sc);
+                }
+            }
+            else
+            {
+                result = ErrorExp.get();
+            }
+            return;
+        }
+
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
          * wrapper.
