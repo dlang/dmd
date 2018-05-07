@@ -72,6 +72,7 @@ Options:
 
     if (targets.length > 0)
     {
+        int ret;
         if (verbose)
         {
             log("================================================================================");
@@ -86,8 +87,10 @@ Options:
         {
             auto args = [resultsDir.buildPath("d_do_test"), target];
             log("run: %-(%s %)", args);
-            spawnProcess(args, env, Config.none, scriptDir).wait;
+            ret |= spawnProcess(args, env, Config.none, scriptDir).wait;
         }
+        if (ret)
+            exit(1);
     }
 }
 
