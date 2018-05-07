@@ -97,7 +97,7 @@ $(GNAME TemplateSingleArgument):
     $(D false)
     $(D null)
     $(D this)
-    $(GLINK2 traits, SpecialKeyword)
+    $(GLINK2 grammar, SpecialKeyword)
 )
 
     $(P Once instantiated, the declarations inside the template, called
