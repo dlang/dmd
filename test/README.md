@@ -35,15 +35,15 @@ make -j10 run_runnable_tests
 ### Run only an individual test
 
 ```sh
-./run_individual_tests.d fail_compilation/diag10089.d
+./run.d fail_compilation/diag10089.d
 ```
 
 Multiple arguments are supported too.
-You can use `./run_individual_tests.d` to quickly run a custom subset of tests.
+You can use `./run.d` to quickly run a custom subset of tests.
 For example, all diagnostic tests in `fail_compilation`:
 
 ```sh
-./run_individual_tests.d fail_compilation/diag*.d
+./run.d fail_compilation/diag*.d
 ```
 
 ### Automatically update the `TEST_OUTPUT` segments
@@ -58,7 +58,7 @@ AUTO_UPDATE=1 make run_fail_compilation_tests -j10
 Updating the `TEST_OUTPUT` can also be done for a custom subset of tests:
 
 ```sh
-AUTO_UPDATE=1 ./run_individual_tests.d fail_compilation/diag*.d
+AUTO_UPDATE=1 ./run.d fail_compilation/diag*.d
 ```
 
 Note:

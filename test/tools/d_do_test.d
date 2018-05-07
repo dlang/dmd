@@ -16,6 +16,8 @@ import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
 
+const scriptDir = __FILE_FULL_PATH__.dirName.dirName;
+
 version(Win32)
 {
     extern(C) int putenv(const char*);
@@ -895,11 +897,11 @@ int runBashTest(string input_dir, string test_name)
     version(Windows)
     {
         auto process = spawnShell(format("bash %s %s %s",
-            buildPath("tools", "sh_do_test.sh"), input_dir, test_name));
+            buildPath(scriptDir, "tools", "sh_do_test.sh"), input_dir, test_name));
     }
     else
     {
-        auto process = spawnProcess(["./tools/sh_do_test.sh", input_dir, test_name]);
+        auto process = spawnProcess([scriptDir.buildPath("tools", "sh_do_test.sh"), input_dir, test_name]);
     }
     return process.wait();
 }
