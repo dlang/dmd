@@ -237,6 +237,8 @@ $(DRUNTIMESOLIB): $(OBJS) $(SRCS) $(DMD)
 $(DRUNTIME): $(OBJS) $(SRCS) $(DMD)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
+lib: $(DRUNTIME)
+
 UT_MODULES:=$(patsubst src/%.d,$(ROOT)/unittest/%,$(SRCS))
 HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
