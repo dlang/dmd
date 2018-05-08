@@ -593,7 +593,7 @@ public:
     int attributesApply(void *param, int (*fp)(void *, const char *), TRUSTformat trustFormat = TRUSTformatDefault);
 
     Type *substWildTo(unsigned mod);
-    MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
+    MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0, size_t *failedIndex = NULL);
     bool checkRetType(const Loc &loc);
 
     Expression *defaultInit(const Loc &loc) /*const*/;
