@@ -259,17 +259,17 @@ string[string] getEnvironment()
         env["OBJ"] = ".obj";
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
-        auto druntimePath = environment.get("DRUNTIME_PATH", `..\..\druntime`);
-        auto phobosPath = environment.get("PHOBOS_PATH", `..\..\phobos`);
+        auto druntimePath = environment.get("DRUNTIME_PATH", (scriptDir ~ `\..\..\druntime`).buildNormalizedPath);
+        auto phobosPath = environment.get("PHOBOS_PATH", (scriptDir ~ `\..\..\phobos`).buildNormalizedPath);
         env["DFLAGS"] = `-I%s\import -I%s`.format(druntimePath, phobosPath);
         env["LIB"] = phobosPath;
 
         // auto-tester might run the testsuite with a different $(MODEL) than DMD
         // has been compiled with. Hence we manually check which binary exists.
         // For windows the $(OS) during build is: `windows`
-        int dmdModel = "../generated/windows/%s/64/dmd%s".format(build, exe).exists ? 64 : 32;
+        int dmdModel = (scriptDir ~ `\..\generated\windows\%s\64\dmd%s`).format(build, exe).exists ? 64 : 32;
         env.getDefault("MODEL", dmdModel.text);
-        env["DMD"] = "../generated/windows/%s/%d/dmd%s".format(build, dmdModel, exe);
+        env["DMD"] = (scriptDir ~ `\..\generated\windows\%s\%d\dmd%s`).format(build, dmdModel, exe).buildNormalizedPath;
     }
     else
     {
