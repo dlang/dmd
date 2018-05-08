@@ -146,6 +146,35 @@ public:
         dim++;
     }
 
+    /**
+    Search the array for an element and returns its index.
+    Params:
+        el = element to search for
+
+    Returns: index of the element, -1 otherwise
+    */
+    ptrdiff_t indexOf(const T el) const nothrow pure @nogc
+    {
+        foreach (i, const v; this)
+        {
+            if (v == el)
+                return i;
+        }
+        return -1;
+    }
+
+    ///
+    unittest
+    {
+        Array!int array;
+        array.push(1);
+        assert(array.indexOf(2) == -1);
+        array.push(2);
+        assert(array.indexOf(2) == 1);
+        array.push(3);
+        assert(array.indexOf(2) == 1);
+    }
+
     void setDim(size_t newdim) nothrow
     {
         if (dim < newdim)
