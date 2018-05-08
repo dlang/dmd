@@ -115,9 +115,9 @@ void ensureToolsExists()
     ];
     foreach (tool; tools.parallel(1))
     {
-        auto targetBin = resultsDir.buildPath(tool);
+        auto targetBin = resultsDir.buildPath(tool).exeName;
         auto sourceFile = toolsDir.buildPath(tool ~ ".d");
-        if (targetBin.timeLastModified.ifThrown(SysTime.init) > sourceFile.timeLastModified)
+        if (targetBin.timeLastModified.ifThrown(SysTime.init) >= sourceFile.timeLastModified)
             writefln("%s is already up-to-date", tool);
         else
         {
@@ -349,4 +349,12 @@ auto log(T...)(T args)
 {
     if (verbose)
         writefln(args);
+}
+
+// Add the executable filename extension to the given `name` for the current OS.
+auto exeName(T)(T name)
+{
+    version(Windows)
+        name ~= ".exe";
+    return name;
 }
