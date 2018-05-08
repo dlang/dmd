@@ -4,6 +4,6 @@
 # also trim off compiler debug message
 grep -v "runnable\|DEBUG" $1 > ${OUTPUT_BASE}.d.out.2
 
-diff --strip-trailing-cr ${EXTRA_FILES}/${TEST_NAME}.d.out ${OUTPUT_BASE}.d.out.2
+diff -pu --strip-trailing-cr ${EXTRA_FILES}/${TEST_NAME}.d.out ${OUTPUT_BASE}.d.out.2
 
 rm ${OUTPUT_BASE}.d.out.2
