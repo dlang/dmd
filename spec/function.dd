@@ -36,17 +36,20 @@ $(GNAME ParameterList):
     $(D ...)
 
 $(GNAME Parameter):
-    $(I InOut)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
-    $(I InOut)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(I InOut)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
-    $(I InOut)$(OPT) $(GLINK2 declaration, Type)
-    $(I InOut)$(OPT) $(GLINK2 declaration, Type) $(D ...)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, BasicType) $(GLINK2 declaration, Declarator) = $(ASSIGNEXPRESSION)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type)
+    $(I ParameterAttributes)$(OPT) $(GLINK2 declaration, Type) $(D ...)
+
+$(GNAME ParameterAttributes):
+    $(I InOut)
+    $(GLINK2 attribute, UserDefinedAttribute)
+    $(I ParameterAttributes InOut)
+    $(I ParameterAttributes) $(GLINK2 attribute, UserDefinedAttribute)
+    $(I ParameterAttributes)
 
 $(GNAME InOut):
-    $(I InOutX)
-    $(I InOut InOutX)
-
-$(GNAME InOutX):
     $(D auto)
     $(GLINK2 declaration, TypeCtor)
     $(D final)
@@ -1412,6 +1415,11 @@ ref int escape()
 $(P Template functions and lambdas can deduce the `return` attribute.)
 
 $(P `inout ref` parameters imply the `return` attribute.)
+
+
+$(H3 $(LNAME2 udas-parameters, User-Defined Attributes for Parameters))
+
+See also: $(GLINK2_ALTTEXT attribute, UserDefinedAttribute, User-Defined Attributes)
 
 $(H3 $(LNAME2 variadic, Variadic Functions))
 

@@ -1401,16 +1401,16 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterAttributes) $(OPT) $(GLINK FunctionLiteralBody)
-    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D function) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithAttributes) $(OPT) $(GLINK FunctionLiteralBody)
+    $(D delegate) $(GLINK2 declaration, Type)$(OPT) $(GLINK ParameterWithMemberAttributes) $(OPT) $(GLINK FunctionLiteralBody)
     $(GLINK ParameterMemberAttributes) $(GLINK FunctionLiteralBody)
     $(GLINK FunctionLiteralBody)
     $(GLINK Lambda)
 
-$(GNAME ParameterAttributes):
+$(GNAME ParameterWithAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
 
-$(GNAME ParameterMemberAttributes):
+$(GNAME ParameterWithMemberAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 
 $(GNAME FunctionLiteralBody):
