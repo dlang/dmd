@@ -245,6 +245,9 @@ endif
 ifdef ENABLE_RELEASE
 CXXFLAGS += -O2
 override DFLAGS += -O -release -inline
+else
+# Add debug symbols for all non-release builds
+override DFLAGS += -g
 endif
 ifdef ENABLE_PROFILING
 CXXFLAGS  += -pg -fprofile-arcs -ftest-coverage
