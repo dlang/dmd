@@ -10,26 +10,25 @@ Quick guide
 ### Run all tests
 
 ```sh
-make -j10
+./run.d
 ```
 
 Note:
 
-- the exact parallelism parameter `-j` depends on your system,
-but if you have enough memory, a high `-j` allows a significant speed-up.
+- `run.d` will automatically use all available threads. Use e.g. `-j4` if you need a lower parallelism
 - all commands below assume that you are in the `test` directory
 
 ### Run only a specific subset
 
 ```sh
-make -j10 run_fail_compilation_tests
-make -j10 run_compilable_tests
+./run.d fail
+./run.d compilable
 ```
 
-As linking is slow the `runnable` tests take a bit longer:
+As linking is slow the `runnable` tests take a bit longer to run:
 
 ```sh
-make -j10 run_runnable_tests
+./run.d runnable
 ```
 
 ### Run only an individual test
@@ -52,18 +51,19 @@ Often, when you add a new error message, a few tests need to be updated as their
 `TEST_OUTPUT` has changed. This is tedious work and `AUTO_UPDATE` can be to automate it:
 
 ```sh
-AUTO_UPDATE=1 make run_fail_compilation_tests -j10
+AUTO_UPDATE=1 ./run.d fail
 ```
 
 Updating the `TEST_OUTPUT` can also be done for a custom subset of tests:
 
 ```sh
-AUTO_UPDATE=1 ./run.d fail_compilation/diag*.d
+./run.d fail_compilation/diag*.d AUTO_UPDATE=1
 ```
 
 Note:
 - you might need to run this command twice if you add a new error message(s) as then the line numbers of the following error messages will change
 - `AUTO_UPDATE` doesn't work with tests that have multiple `TEST_OUTPUT` segments
+- `AUTO_UPDATE` can be set as an environment variable or as Makefile-like argument assignment
 
 Makefile targets
 ----------------
@@ -88,7 +88,7 @@ Test Configuration
 
 All tests defined within `.d` source files may use various settings to configure how they are to be run, i.e.
 
-`runnable/hellotest.d`:
+`compilable/hellotest.d`:
 ```D
 /*
 REQUIRED_ARGS: -version=Foo
@@ -97,12 +97,11 @@ TEST_OUTPUT:
 Hello, World!
 ---
 */
-import std.stdio;
 void main(string[] args)
 {
     version(Foo)
     {
-        writeln("Hello, World!");
+        pragma(msg, "Hello World");
     }
 }
 ```
