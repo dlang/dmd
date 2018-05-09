@@ -1284,12 +1284,26 @@ extern (C++) Expression semanticTraits(TraitsExp e, Scope* sc)
         {
             auto s = getDsymbol(o);
             Declaration d;
-            if (!s || (d = s.isDeclaration()) is null)
+            ClassDeclaration c;
+            if (!s || ((d = s.isDeclaration()) is null && (c = s.isClassDeclaration()) is null))
             {
                 e.error("argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
                 return new ErrorExp();
             }
-            link = d.linkage;
+            if (d !is null)
+                link = d.linkage;
+            else final switch (c.classKind)
+            {
+                case ClassKind.d:
+                    link = LINK.d;
+                    break;
+                case ClassKind.cpp:
+                    link = LINK.cpp;
+                    break;
+                case ClassKind.objc:
+                    link = LINK.objc;
+                    break;
+            }
         }
         auto linkage = linkageToChars(link);
         auto se = new StringExp(e.loc, cast(char*)linkage);
