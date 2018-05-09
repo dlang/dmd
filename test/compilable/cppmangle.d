@@ -450,3 +450,16 @@ version (Posix) // all non-Windows machines
     static assert(test37!int.mangleof == "_ZN5SPACE6test37IiEEiv");
 }
 
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=15388
+
+extern (C++) void test15388(typeof(null));
+
+version (Posix)
+{
+    static assert(test15388.mangleof == "_Z9test15388Dn");
+}
+version (Windows)
+{
+    static assert(test15388.mangleof == "?test15388@@YAX$$T@Z");
+}

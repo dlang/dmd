@@ -761,6 +761,14 @@ public:
         buf.writeByte(c);
     }
 
+    override void visit(TypeNull t)
+    {
+        if (t.isImmutable() || t.isShared())
+            return error(t);
+
+        writeBasicType(t, 'D', 'n');
+    }
+
     override void visit(TypeBasic t)
     {
         if (t.isImmutable() || t.isShared())
