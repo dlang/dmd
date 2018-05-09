@@ -3027,14 +3027,19 @@ unittest
 /// ditto
 void destroy(T)(ref T obj) if (is(T == struct))
 {
+    // We need to re-initialize `obj`.  Previously, the code
+    // `auto init = cast(ubyte[])typeid(T).initializer()` was used, but
+    // `typeid` is a runtime call and requires the `TypeInfo` object which is
+    // not usable when compiling with -betterC.  If we do `obj = T.init` then we
+    // end up needlessly calling postblits and destructors.  So, we create a
+    // static immutable lvalue that can be re-used with subsequent calls to `destroy`
+    shared static immutable T init = T.init;
+
     _destructRecurse(obj);
     () @trusted {
-        auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-        auto init = cast(ubyte[])typeid(T).initializer();
-        if (init.ptr is null) // null ptr means initialize to 0s
-            buf[] = 0;
-        else
-            buf[] = init[];
+        auto dest = (cast(ubyte*) &obj)[0 .. T.sizeof];
+        auto src = (cast(ubyte*) &init)[0 .. T.sizeof];
+        dest[] = src[];
     } ();
 }
 
