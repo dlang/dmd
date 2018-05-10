@@ -4780,19 +4780,20 @@ extern (C++) final class TypeFunction : TypeNext
     }
 
     // arguments get specially formatted
-    private const(char)* getParamError(const(char)* format, Expression arg, Parameter par)
+    private const(char)* getParamError(Expression arg, Parameter par)
     {
         // show qualification when toChars() is the same but types are different
         auto at = arg.type.toChars();
         bool qual = !arg.type.equals(par.type) && strcmp(at, par.type.toChars()) == 0;
         if (qual)
             at = arg.type.toPrettyChars(true);
-        OutBuffer as;
-        as.printf("`%s` of type `%s`", arg.toChars(), at);
-        OutBuffer ps;
-        ps.printf("`%s`", parameterToChars(par, this, qual));
         OutBuffer buf;
-        buf.printf(format, as.peekString(), ps.peekString());
+        // only mention rvalue if it's relevant
+        const rv = !arg.isLvalue() && par.storageClass & (STC.ref_ | STC.out_);
+        const char* fmt = rv ?
+            "cannot pass rvalue argument `%s` of type `%s` to parameter `%s`" :
+            "cannot pass argument `%s` of type `%s` to parameter `%s`";
+        buf.printf(fmt, arg.toChars(), at, parameterToChars(par, this, qual));
         return buf.extractString();
     }
 
@@ -4935,7 +4936,7 @@ extern (C++) final class TypeFunction : TypeNext
                     {
                         if (p.storageClass & STC.out_)
                         {
-                            if (pMessage) *pMessage = getParamError("cannot pass rvalue argument %s to parameter %s", arg, p);
+                            if (pMessage) *pMessage = getParamError(arg, p);
                             goto Nomatch;
                         }
 
@@ -4960,7 +4961,7 @@ extern (C++) final class TypeFunction : TypeNext
                         }
                         else
                         {
-                            if (pMessage) *pMessage = getParamError("cannot pass rvalue argument %s to parameter %s", arg, p);
+                            if (pMessage) *pMessage = getParamError(arg, p);
                             goto Nomatch;
                         }
                     }
@@ -4987,9 +4988,7 @@ extern (C++) final class TypeFunction : TypeNext
                      */
                     if (!ta.constConv(tp))
                     {
-                        if (pMessage) *pMessage = getParamError(
-                            arg.isLvalue() ? "cannot pass argument %s to parameter %s" :
-                                "cannot pass rvalue argument %s to parameter %s", arg, p);
+                        if (pMessage) *pMessage = getParamError(arg, p);
                         goto Nomatch;
                     }
                 }
@@ -5049,7 +5048,7 @@ extern (C++) final class TypeFunction : TypeNext
 
                                 if (m == MATCH.nomatch)
                                 {
-                                    if (pMessage) *pMessage = getParamError("cannot pass argument %s to parameter %s", arg, p);
+                                    if (pMessage) *pMessage = getParamError(arg, p);
                                     goto Nomatch;
                                 }
                                 if (m < match)
@@ -5067,7 +5066,7 @@ extern (C++) final class TypeFunction : TypeNext
                     }
                 }
                 if (pMessage && u < nargs)
-                    *pMessage = getParamError("cannot pass argument %s to parameter %s", (*args)[u], p);
+                    *pMessage = getParamError((*args)[u], p);
                 goto Nomatch;
             }
             if (m < match)
