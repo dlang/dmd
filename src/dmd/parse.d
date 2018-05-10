@@ -8489,6 +8489,11 @@ final class Parser(AST) : Lexer
     AST.Expression parseAssignExp()
     {
         auto e = parseCondExp();
+            // require parens for e.g. a ? a : a = a;
+            if (precedence[e.op] == PREC.cond && !e.parens && precedence[token.value] == PREC.assign)
+                dmd.errors.deprecation(e.loc, "`%s` must be parenthesized when next to operator `%s`",
+                    e.toChars(), Token.toChars(token.value));
+
         const loc = token.loc;
         switch (token.value)
         {
